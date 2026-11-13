@@ -1411,17 +1411,19 @@ def fx_circles(rig, arg, rng, gem):
 
 
 def fx_beams(rig, arg, rng, gem):
-	"""beams[:set]: from 2.0 s, beams fly outward to strike spots on the floor all round the room, each from the circle nearest its
-	target's direction: a white-hot core, a cyan rim and a thin dark edge, a white hit with small black smoke."""
+	"""beams[:set]: from 2.0 s, 10 of the 16 circles (a set per key) fire straight out along their outward facing, from the circle's
+	centre to where that line meets the floor or the wall (owner 2026-11-12, "beams follow their source"): a white-hot core, a cyan
+	rim and a thin dark edge, a white hit with small black smoke."""
 	s = SIZE / 4
 	rr = random.Random(780 + int(arg or 0))
 	circles = circle_set(rig)
-	c = chest(rig)
 	cam = (rig.mage.matrix_world.to_3x3().normalized() @ Vector(VIEW_MAIN)).normalized()
-	for i in range(12):
-		a, r = rr.uniform(0, math.tau), rr.uniform(R_IN - 10, R_WALL - 12)
-		end = Vector((r * math.cos(a), r * math.sin(a), 0.3))
-		p, d, studs = max(circles, key=lambda q: q[1].dot((end - c).normalized()))
+	for p, d, studs in rr.sample(circles, 10):
+		t = -p.z / d.z if d.z < -1e-3 else 1e9  # the floor
+		a2, b2 = d.x**2 + d.y**2, 2 * (p.x * d.x + p.y * d.y)
+		if a2 > 1e-6:  # the wall, a cylinder at R_WALL round the arena centre
+			t = min(t, (-b2 + math.sqrt(b2 * b2 - 4 * a2 * (p.x**2 + p.y**2 - R_WALL**2))) / (2 * a2))
+		end = p + d * min(t, 400)
 		w = studs * 0.06
 		near = d.dot(cam) > 0.05  # a beam leaving toward the sheet's camera: kept faint so her pose reads (arena view: full)
 		for o in (tube([p, end], w * 1.75, glow_mat("BeamEdge", (0.0, 0.0, 0.0), 0.0, 0.55)), tube([p, end], w * 1.45, glow_mat("BeamRim", (0.3, 0.85, 1.0), 3.0, 0.75)), tube([p, end], w, glow_mat("BeamCoreN", WHITE, 22))):
@@ -1660,14 +1662,14 @@ JMOVES.update(
 			"end": 5.4,
 			"cols": 5,
 			"strikes": [2.0, 4.0],
-			"note": "Dodge bar before the beams; cost event Barrage at 2.00 s (HIT, red); beam window 2.00 - 4.00 s, a strike every 0.15 s (14); barrage_in is generated. The room dims to a night; 16 cyan-white circles (24 - 40 studs) on a 45-stud sphere round her chest, facing outward, open one by one 0.08 s apart from 0.30 s (those between her and the camera drawn fainter); white-hot beams fly outward from the nearest circle to the floor all round the room, cyan rims, dark edges, black smoke.",
+			"note": "Dodge bar before the beams; cost event Barrage at 2.00 s (HIT, red); beam window 2.00 - 4.00 s, a strike every 0.15 s (14); barrage_in is generated. The room dims to a night; 16 cyan-white circles (24 - 40 studs) on a 45-stud sphere round her chest, facing outward, open one by one 0.08 s apart from 0.30 s (those between her and the camera drawn fainter); white-hot beams fire straight out along each circle's facing to the floor or wall, cyan rims, dark edges, black smoke.",
 			"keys": [
 				{"t": 0.0, "cap": "Idle key 0: hovering, staff across the body in both hands", **IDLE0},
 				{"t": 0.5, "cap": "Anticipation: staff swung back and low past her right hip, body coils right and dips; the first 3 circles open round her", "fx": ["circles:3"], "root": (0, 0.08, -0.25), "body": (0, 0, -14), "torso": (18, -2, -26), "head": (6, 0, 26), "RightArm": {"aim": (-2.15, 0.8, 2.75), "pole": (-0.4, 0.4, -1)}, "staff": {"dir": (-0.25, 0.85, -0.25)}, "LeftArm": {"aim": (1.2, -1.45, 3.1)}, "TailL": [(-16, -30, 6), (-10, -8, 0), (-8, -6, 0)], "TailR": [(-8, 40, -6), (-12, 12, 0), (-10, 8, 0)], "LeftLeg": {"hip": (-30, 0, -4), "knee": 72}, "RightLeg": {"hip": (-10, 0, 6), "knee": 55}},
 				{"t": 1.0, "cap": "Swing through, overshoot: staff whipped forward past level in both hands, chest arched; 9 of 16 circles open on a sphere round her", "fx": ["circles:9"], "root": (0, -0.12, 0.4), "body": (0, 0, 34), "torso": (-8, 6, -4), "head": (-16, 0, -24), **BRACE, "RightArm": {"aim": (-1.3, -1.2, 3.6), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-1, -0.42, 0.55)}, "TailL": [(12, -14, 0), (8, -4, 0), (6, -2, 0)], "TailR": [(16, 10, 0), (10, 4, 0), (8, 2, 0)], "LeftLeg": {"hip": (14, 0, -6), "knee": 15}, "RightLeg": {"hip": (28, 0, 8), "knee": 34}},
 				{"t": 1.45, "cap": "Settle: staff comes down level; the circles keep popping in one by one (15 of 16); tails fling up", "fx": ["circles:15"], "root": (0, -0.05, 0.2), "body": (0, 0, 32), "torso": (6, 4, -6), "head": (-8, 0, -26), **BRACE, "staff": {"dir": (-1, -0.42, 0.06)}, "TailL": [(-20, -44, 6), (-8, -10, 0), (-6, -6, 0)], "TailR": [(-16, 50, -4), (-8, 12, 0), (-4, 6, 0)], "LeftLeg": {"hip": (8, 0, -4), "knee": 34}, "RightLeg": {"hip": (18, 0, 6), "knee": 46}},
 				{"t": 1.85, "cap": "Brace (Dodge bar ends): all 16 circles open and bright round her, she leans into the staff, legs split; hair and tails blown back", "fx": ["circles:16:bright"], "root": (0, -0.15, 0.15), "body": (0, 0, 36), "torso": (16, 6, -6), "head": (-6, 0, -26), **BRACE, "TailL": TLB, "TailR": [(46, 30, 0), (16, 6, 0), (12, 4, 0)], "LeftLeg": {"hip": (26, 0, -6), "knee": 55}, "RightLeg": {"hip": (-34, 0, 8), "knee": 62}},
-				{"t": 2.0, "event": "Barrage", "look": "flash", "arena": "blue", "cap": "HIT, strike 1 of 14: the arena flashes white; white-hot beams fly outward from the circles to the floor all round the room; the kick drives her back", "fx": ["flash", "circles:16:bright", "beams:0"], "root": (0, 0.28, 0.2), "body": (0, 0, 34), "torso": (0, 10, -2), "head": (-14, 0, -24), **BRACE, "staff": {"dir": (-1, -0.42, 0.14)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (36, 0, -8), "knee": 72}, "RightLeg": {"hip": (-22, 0, 8), "knee": 46}},
+				{"t": 2.0, "event": "Barrage", "look": "flash", "arena": "blue", "cap": "HIT, strike 1 of 14: the arena flashes white; the circles fire white-hot beams straight out along their facing, all round the room; the kick drives her back", "fx": ["flash", "circles:16:bright", "beams:0"], "root": (0, 0.28, 0.2), "body": (0, 0, 34), "torso": (0, 10, -2), "head": (-14, 0, -24), **BRACE, "staff": {"dir": (-1, -0.42, 0.14)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (36, 0, -8), "knee": 72}, "RightLeg": {"hip": (-22, 0, 8), "knee": 46}},
 				{"t": 2.6, "arena": "blue", "cap": "Strike 5: she drives the staff left across the room, beams rake the far lanes; weight forward, tails whip to her right", "fx": ["circles:16:bright", "beams:1"], "root": (0.1, -0.12, 0.12), "body": (0, 0, 62), "torso": (18, 2, -10), "head": (-4, 0, -36), **BRACE, "staff": {"dir": (-1, -0.32, -0.04)}, "TailL": [(30, -4, 10), (14, 6, 0), (12, 6, 0)], "TailR": [(52, 54, -10), (24, 14, 0), (18, 8, 0)], "LeftLeg": {"hip": (18, 0, -4), "knee": 40}, "RightLeg": {"hip": (-40, 0, 6), "knee": 75}},
 				{"t": 3.35, "arena": "blue", "cap": "Strike 10: hips swing the staff back to her right and lower, the beams rake the near lanes; tails whip the other way", "fx": ["circles:16:bright", "beams:3"], "root": (-0.1, 0, -0.05), "body": (0, 0, 10), "torso": (20, -6, 14), "head": (2, 0, -18), **BRACE, "staff": {"dir": (-1, -0.5, -0.18)}, "TailL": [(56, -40, -6), (24, -10, 0), (18, -6, 0)], "TailR": [(28, 6, 8), (12, -4, 0), (8, -6, 0)], "LeftLeg": {"hip": (36, 0, -10), "knee": 66}, "RightLeg": {"hip": (-20, 0, 10), "knee": 40}},
 				{"t": 4.0, "cap": "Release (beams end): she pulls the staff up and back, left hand off it; the beams are gone, the circles fade", "fx": ["circles:16:fade"], "root": (0, 0.12, 0.35), "body": (0, 0, 18), "torso": (-12, 4, 4), "head": (-12, 0, -14), "RightArm": {"aim": (-1.2, -1.15, 3.9), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-0.7, -0.3, 0.75)}, "LeftArm": {"aim": (1.0, -1.2, 3.5)}, "TailL": [(-28, -30, 0), (-16, -8, 0), (-12, -6, 0)], "TailR": [(-24, 36, 0), (-14, 10, 0), (-10, 6, 0)], "LeftLeg": {"hip": (4, 0, -4), "knee": 20}, "RightLeg": {"hip": (14, 0, 6), "knee": 30}},
@@ -1809,7 +1811,7 @@ def rework(argv):
 			"parents": JPARENT,
 			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, "Staff": list(GRIP), **{SEG[n][0]: SHOULDER[n] for n in SHOULDER}, **{SEG[n][1]: list(ELBOW[n]) for n in ELBOW}, **{SEG[n][0]: LEG[n] for n in LEG}, **{SEG[n][1]: list(KNEE[n]) for n in KNEE}, **{n: [round(v, 4) for v in p] for n, p in TPIV.items()}},
 			"staff": "Staff turns about its grip (its origin); staff_grip_offset moves the grip in the right lower arm's space, model units",
-			"effects": "sketch labels per key: point[:size] (white starburst at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft, a pink-white burst at the tip, violet light pools where it lands), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers, circles:n[:bright|fade] (the first n of 16 cyan-white circles, 24 - 40 studs, on a 45-stud sphere round her chest, facing outward), beams:set (white-hot beams from the nearest circle outward to the floor all round the room, cyan rim, dark edge, black smoke). Lightning and barrage sheets: the room dimmed to a dark blue-violet night (owner 2026-11-12)",
+			"effects": "sketch labels per key: point[:size] (white starburst at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft, a pink-white burst at the tip, violet light pools where it lands), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers, circles:n[:bright|fade] (the first n of 16 cyan-white circles, 24 - 40 studs, on a 45-stud sphere round her chest, facing outward), beams:set (10 of the 16 circles fire straight out along their facing to the floor or wall; white-hot core, cyan rim, dark edge, black smoke). Lightning and barrage sheets: the room dimmed to a dark blue-violet night (owner 2026-11-12)",
 			"hover": {"studs": HOVER, "bob_studs": 1.5, "bob_seconds": 3.0, "note": "proposed; the bob is played in game, not keyed; no foot plants"},
 			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4)},
 			"approved": [],
