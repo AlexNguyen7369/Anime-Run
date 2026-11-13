@@ -108,19 +108,24 @@ local CYCLONE_TURN = 9 -- radians a second the cyclone rolls about the beam
 -- a gold light; blades are glowing rods; streaks leave gold sparkle dust. Enuma: the room goes red through the charge, a white
 -- full flash at 3.0 s, four red and black strands coil round the beam (Beams on the rolling cyclone, so they turn with it).
 local PORTAL_CLOSE = 0.3 -- s the portals take to close after the last volley (3.55 s) has left them
-local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 2, 28 -- each open portal's gold PointLight
+-- every other open portal's gold PointLight (Studio 2026-11-12: 20 lights at 2 turned him into a flat gold glow)
+local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.7, 24
+-- The arch of portals behind him, facing his front (the sheets' gates keys 3 to 9): degrees from his left to his right over his
+-- head, studs from his chest, studs behind him, the arch's centre over his feet as a fraction of his height (proposed)
+local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 115, { 22, 30 }, { 4, 12 }, 0.55
 local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
 local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
 local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 4, 18, 6, 1.3, 170 -- studs; reach: from Ea's tip
 local HIT_GLOW = 30 -- studs across the red glow under Enuma's hit
 local DIM_OUT, LIFT_SECONDS = 0.6, 0.3 -- s the dim takes to lift; the white flash lifts it this long
-local GATES_DIM = { -- warm to dark: the sunset room down to about 12%
-	Floor = 0.12,
-	In = 0.9,
-	Grade = { Brightness = -0.3, Contrast = 0.12, Saturation = 0.1, TintColor = Color3.fromRGB(255, 208, 165) },
-	Torch = GOLD,
-	TorchDim = 0.2,
-}
+local GATES_DIM =
+	{ -- the sunset room to a dusky mauve (Studio 2026-11-12: 12% and -0.3 read near black, the sheets are dusk)
+		Floor = 0.3,
+		In = 0.9,
+		Grade = { Brightness = -0.1, Contrast = 0.1, Saturation = 0.05, TintColor = Color3.fromRGB(240, 210, 225) },
+		Torch = GOLD,
+		TorchDim = 0.35,
+	}
 local ENUMA_DIM = { -- red through the charge
 	Floor = 0.3,
 	In = CHARGE * 0.8,
@@ -255,7 +260,8 @@ end
 -- A glowing stick from a to b: a Neon core inside a wider, softer Neon sheath, both fading out.
 local function streak(name, a, b, core, sheath, coreColor, sheathColor, seconds)
 	local frame, length = CFrame.lookAt((a + b) / 2, b), (b - a).Magnitude
-	pooled(name, frame, Vector3.new(sheath, sheath, length + sheath * 0.5), sheathColor, 0.4, seconds)
+	-- a soft glow round the white core (Studio 2026-11-12: at 0.4 the Neon sheath read as a solid gold bar)
+	pooled(name, frame, Vector3.new(sheath, sheath, length + sheath * 0.5), sheathColor, 0.65, seconds)
 	pooled(name .. "Core", frame, Vector3.new(core, core, length + core), coreColor, 0, seconds)
 end
 
@@ -492,10 +498,17 @@ local function playPortals(cascade)
 	local mine, run = effects, generation
 	for k = 1, count do
 		local size = PORTAL_SIZES[(k - 1) % #PORTAL_SIZES + 1]
-		local a = math.rad(-150 + 300 * (k - 1) / (count - 1)) + rng:NextNumber(-0.08, 0.08) -- 0 is his front (-Z)
-		local out = Vector3.new(math.sin(a), 0, -math.cos(a))
-		local anchor = him() + out * rng:NextNumber(14, 30) + Vector3.new(0, rng:NextNumber(10, Arena.BossHeight), 0)
-		local frame = CFrame.lookAt(anchor, anchor + out)
+		-- on an arch behind him from his left over his head to his right, each facing his front (the sheets; was a ring round
+		-- him facing out, which put edge-on discs between him and the lanes)
+		local a = math.rad(ARCH_SPAN * (2 * (k - 1) / (count - 1) - 1)) + rng:NextNumber(-0.08, 0.08)
+		local facing = (king.Rest.LookVector * Vector3.new(1, 0, 1)).Unit
+		local right = facing:Cross(Vector3.yAxis)
+		local radius = rng:NextNumber(ARCH_RADIUS[1], ARCH_RADIUS[2])
+		local anchor = him()
+			+ Vector3.new(0, Arena.BossHeight * ARCH_HEIGHT, 0)
+			+ (right * math.sin(a) + Vector3.yAxis * math.cos(a)) * radius
+			- facing * rng:NextNumber(ARCH_BACK[1], ARCH_BACK[2])
+		local frame = CFrame.lookAt(anchor, anchor + facing)
 		local turn = PORTAL_TURN * (k % 2 == 0 and 1 or -1)
 		-- The opening, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
 		-- size), then the weapon tip through (owner 2026-11-12: portal, then weapon, then shot).
@@ -520,9 +533,19 @@ local function playPortals(cascade)
 				Vector3.new(TIP_WIDTH, TIP_WIDTH, size * 0.6)
 			)
 			tip.Material, tip.Color = NEON, GOLD_HI
-			local glow = Instance.new("PointLight") -- each open portal lights the dimmed room gold
+			-- the drawn portal unlit as well, so it reads bright in the dim room (a decal is lit by the room)
+			local shine = Instance.new("SurfaceGui")
+			shine.Face, shine.LightInfluence, shine.Brightness = Enum.NormalId.Front, 0, 1.4
+			shine.SizingMode, shine.CanvasSize = Enum.SurfaceGuiSizingMode.FixedSize, Vector2.new(256, 256)
+			local shineImage = Instance.new("ImageLabel")
+			shineImage.Size, shineImage.BackgroundTransparency = UDim2.fromScale(1, 1), 1
+			shineImage.Image, shineImage.ImageTransparency = PORTAL_ART, 0.2
+			shineImage.Parent = shine
+			shine.Parent = part
+			local glow = Instance.new("PointLight") -- every other open portal lights the dimmed room gold
 			glow.Name = "PortalLight"
 			glow.Color, glow.Brightness, glow.Range, glow.Shadows = GOLD, 0, PORTAL_LIGHT_RANGE, false
+			glow.Enabled = k % 2 == 1
 			glow.Parent = part
 			Kit.tween(glow, PORTAL_GROW + PORTAL_OPEN, { Brightness = PORTAL_LIGHT })
 			Kit.tween(part, PORTAL_GROW, { Size = Vector3.new(size * 0.3, size * 0.3, 0.3) })
@@ -562,6 +585,7 @@ local function playPortals(cascade)
 				shimmer.Enabled = false
 				Kit.tween(front, PORTAL_CLOSE, { Transparency = 1 })
 				Kit.tween(back, PORTAL_CLOSE, { Transparency = 1 })
+				Kit.tween(shineImage, PORTAL_CLOSE, { ImageTransparency = 1 })
 				Kit.tween(tip, PORTAL_CLOSE, { Transparency = 1, CFrame = frame * CFrame.new(0, 0, size * 0.1) })
 				Kit.tween(glow, PORTAL_CLOSE, { Brightness = 0 })
 				Kit.tween(
