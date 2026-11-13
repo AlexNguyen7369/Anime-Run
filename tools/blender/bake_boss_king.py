@@ -61,6 +61,9 @@ CYCLE = (
 # keys.json event -> the schedule event the server charges or sets at; every Dodge bar move also opens with "<move>_start" at 0
 EVENTS = {"gates": ("gates", "gates"), "enuma": ("Beam", "enuma"), "shields": ("shields", "shields")}
 WINDOW = {"gates": (1.6, 3.6), "enuma": (3.0, 5.0)}  # fixed: the volleys, the beam sweep; the cost event is the window's start
+# Ea's blade held at its keys' pitch between the beam keys (design doc 4.37: the beam lands on the lanes all round). The slerped
+# chain alone lifts it about 30 degrees after the hit (3.05 - 3.45 s), so the beam would leave the arena. Yaw is left as slerped.
+AIM = {"enuma": (3.0, 4.85)}
 HITS = {"gates": 1.6, "enuma": 3.0}  # RECOIL starts here (shields' event is a status, not a hit)
 # One row per segment between stops (keys, then idle key 0 at the move's end when the last key is earlier). Proposed.
 PLAN = {
@@ -327,6 +330,15 @@ class King:
 			body[p + "@"] = tuple((a - b) * 100 for a, b in zip(locs[p], self.bind[p]["Offset"]))
 		return (float(t), body, key["root_offset"] if key is not None else tuple(st["root"]))
 
+	def ea_world(self, st):
+		"""Ea's parent's world rotation and Ea's (Body folded into Torso; the root does not turn)."""
+		rot = self.pose(st)[0]
+		par = rot["Torso"] @ rot["RightUpperArm"] @ rot["RightLowerArm"]
+		return par, par @ rot["Ea"]
+
+	def ea_pitch(self, st):
+		return math.asin(max(-1.0, min(1.0, (self.ea_world(st)[1] @ Vector((0, 0, 1))).z)))
+
 	def bake(self, name, stops, segments, duration, knots, approved=()):
 		"""Sampled at RATE, springs, trembles and recoil added (each back to 0 at every knot), then written as Euler frames."""
 		at = track(stops, segments)
@@ -353,12 +365,22 @@ class King:
 				ch = "%s:%d" % (p, axis)
 				sec[ch] = sec.get(ch, 0) + pinned(grid, degrees * np.exp(-6 * tau) * np.sin(2 * math.pi * hz * tau), knots)
 		keys = {s["t"]: s for s in stops if s["t"] in approved}
+		aim = AIM.get(name)
+		if aim:
+			held = [s for s in stops if aim[0] <= s["t"] <= aim[1]]
+			aim_t, aim_pitch = [s["t"] for s in held], [self.ea_pitch(s) for s in held]
 		frames, prev = [], None
 		for i, t in enumerate(grid):
 			s = samples[i]
 			for p in KEYED:
 				v = [float(sec["%s:%d" % (p, j)][i]) if "%s:%d" % (p, j) in sec else 0.0 for j in range(3)]
 				s["rot"][p] = s["rot"][p] @ turn(v)
+			if aim and aim[0] < t < aim[1]:  # turn Ea about its grip to the keys' pitch, on its own heading
+				par, w = self.ea_world(s)
+				d = w @ Vector((0, 0, 1))
+				pitch = float(np.interp(t, aim_t, aim_pitch))
+				want = Vector((d.x, d.y, 0)).normalized() * math.cos(pitch) + Vector((0, 0, math.sin(pitch)))
+				s["rot"]["Ea"] = par.inverted() @ d.rotation_difference(want) @ par @ s["rot"]["Ea"]
 			f = self.frame(t, s, prev, keys.get(float(t)))
 			frames.append(f)
 			prev = f[1]

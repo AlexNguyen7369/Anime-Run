@@ -271,6 +271,7 @@ def load_scene(arena):
 	rig.tip = float(np.array([v.co for v in rig.parts["Ea_Drum3"].data.vertices])[:, 2].max())
 	bpy.ops.mesh.primitive_plane_add(size=600, location=(0, 0, rig.stand - 0.02))
 	rig.floor = bpy.context.object  # his close views: a plain floor at the mound's top
+	rig.deck = rig.stand - (KING_MOUND_TOP if REWORK else 0.0)  # the lanes' deck, as in game: his rest feet MoundTop + hover over it
 	rig.floor.data.materials.append(mk.matte_mat("FlatFloor", (0.5, 0.46, 0.4)))
 	global FX
 	FX = mk.FX = bpy.data.collections.new("FX")
@@ -650,13 +651,14 @@ JMOVES = {
 			{"t": 1.45, "cap": "Settle, charge holds: Ea back upright, left fist braced low, white ball and red rings at the tip, grooves glow", "fx": ["arrows", "wind", "charge", "ball:0.5"], "root": (0, 0, 0.25), "body": (0, 0, 4), "torso": (-10, 4, 6), "head": (-20, 0, -4), "RightArm": {"aim": (-1.8, -0.2, 6.0)}, "LeftArm": {"aim": (2.5, -1.2, 2.3)}, "LeftLeg": {"hip": (-6, 0, -4), "knee": 25}, "RightLeg": {"hip": (12, 0, 6), "knee": 40}, "key": (-4, 0, 0), "ea": {"dir": (-0.1, 0.05, 1)}, "spin": 200},
 			{"t": 2.1, "cap": "Charge, strain: he rises and leans back into the wind, left forearm shields his face, legs blown back, drums faster", "fx": ["arrows", "wind", "charge", "ball:0.9"], "root": (0.25, 0.15, 0.45), "body": (0, -6, 8), "torso": (-16, -6, 8), "head": (-22, -4, -8), "RightArm": {"aim": (-1.7, 0.3, 6.0)}, "LeftArm": {"aim": (0.4, -1.6, 4.4), "pole": (1, 0.3, -1)}, "LeftLeg": {"hip": (14, 0, -8), "knee": 45}, "RightLeg": {"hip": (4, 0, 10), "knee": 20}, "key": (-8, 0, 0), "ea": {"dir": (-0.05, 0.15, 1)}, "spin": 450},
 			{"t": 2.75, "cap": "Wind-up: Ea cocked far back behind his head, left arm points at the arena, back arched, left knee drawn up, at his highest", "fx": ["arrows", "wind", "charge", "ball:1.4", "gather"], "root": (0, 0.35, 0.6), "body": (0, 0, -20), "torso": (-26, 0, -10), "head": (-8, 0, 8), "RightArm": {"aim": (-1.4, 1.2, 5.0), "pole": (-1, 0, -0.3)}, "LeftArm": {"aim": (1.6, -1.8, 4.0)}, "LeftLeg": {"hip": (-75, 0, -6), "knee": 95}, "RightLeg": {"hip": (18, 0, 6), "knee": 60}, "key": (-12, 0, 0), "ea": {"dir": (-0.1, 0.9, 0.45)}, "spin": 720},
-			{"t": 3.0, "view": (0.25, 1, 0.2), "cap": "Contact (hit): swung down side-on, both hands on Ea levelled at the arena, torso thrown into it, legs kicked back; white flash, beam", "event": "Beam", "fx": ["flash", "beam", "arrows"], "root": (-0.3, 0, -0.3), "body": (0, 0, -180), "torso": (8, 26, 10), "head": (-6, 10, 62), "RightArm": {"aim": (-0.2, -1.3, 2.9)}, "LeftArm": "grip", "LeftLeg": {"hip": (-24, -10, 0), "knee": 50}, "RightLeg": {"hip": (14, -22, 0), "knee": 70}, "key": (6, 10, 0), "ea": {"dir": (1, -0.35, -0.2)}, "spin": 820},
-			{"t": 3.9, "cap": "Beam drive: his whole body sweeps round over the lanes, hips lead, torso lags, both hands on Ea, legs braced against the recoil", "fx": ["beam", "arrows"], "root": (-0.25, 0, -0.2), "body": (0, 0, -70), "torso": (4, 18, -12), "head": (-4, 8, 58), "RightArm": {"aim": (-0.4, -1.4, 3.0)}, "LeftArm": "grip", "LeftLeg": {"hip": (-10, -16, 0), "knee": 35}, "RightLeg": {"hip": (20, -28, 0), "knee": 45}, "key": (4, 8, 0), "ea": {"dir": (1, -0.35, -0.2)}, "spin": 1000},
-			{"t": 4.85, "cap": "Beam end: the sweep closes its circle, recoil pushes him upright, Ea held down on the lanes, legs swing through", "fx": ["beam", "arrows"], "root": (-0.15, 0, -0.1), "body": (0, 0, 72), "torso": (-6, 4, -22), "head": (-10, 0, 50), "RightArm": {"aim": (-0.3, -1.4, 3.3)}, "LeftArm": "grip", "LeftLeg": {"hip": (6, -6, 0), "knee": 60}, "RightLeg": {"hip": (-20, -12, 0), "knee": 30}, "key": (0, 4, 0), "ea": {"dir": (1, -0.3, -0.22)}, "spin": 1180},
+			{"t": 3.0, "view": (0.25, 1, 0.2), "cap": "Contact (hit): swung down side-on, both hands on Ea levelled at the arena, torso thrown into it, legs kicked back; white flash, beam", "event": "Beam", "fx": ["flash", "beam", "arrows"], "root": (-0.3, 0, -0.3), "body": (0, 0, -180), "torso": (8, 26, 10), "head": (-6, 10, 62), "RightArm": {"aim": (-0.2, -1.3, 2.9)}, "LeftArm": "grip", "LeftLeg": {"hip": (-24, -10, 0), "knee": 50}, "RightLeg": {"hip": (14, -22, 0), "knee": 70}, "key": (6, 10, 0), "ea": {"dir": (1, -0.35, -0.52)}, "spin": 820},
+			{"t": 3.9, "cap": "Beam drive: his whole body sweeps round over the lanes, hips lead, torso lags, both hands on Ea, legs braced against the recoil", "fx": ["beam", "arrows"], "root": (-0.25, 0, -0.2), "body": (0, 0, -70), "torso": (4, 18, -12), "head": (-4, 8, 58), "RightArm": {"aim": (-0.4, -1.4, 3.0)}, "LeftArm": "grip", "LeftLeg": {"hip": (-10, -16, 0), "knee": 35}, "RightLeg": {"hip": (20, -28, 0), "knee": 45}, "key": (4, 8, 0), "ea": {"dir": (1, -0.35, -0.51)}, "spin": 1000},
+			{"t": 4.85, "cap": "Beam end: the sweep closes its circle, recoil pushes him upright, Ea held down on the lanes, legs swing through", "fx": ["beam", "arrows"], "root": (-0.15, 0, -0.1), "body": (0, 0, 72), "torso": (-6, 4, -22), "head": (-10, 0, 50), "RightArm": {"aim": (-0.3, -1.4, 3.3)}, "LeftArm": "grip", "LeftLeg": {"hip": (6, -6, 0), "knee": 60}, "RightLeg": {"hip": (-20, -12, 0), "knee": 30}, "key": (0, 4, 0), "ea": {"dir": (1, -0.3, -0.515)}, "spin": 1180},
 			{"t": 5.6, "cap": "Recover = idle key 0: arms folded again, Ea sinks back into its ripple, drums slow", "fx": ["draw", "embers"], **IDLE0, "ea": EA_OUT, "spin": 1260},
 		],
 	},
 }
+KING_MOUND_TOP = 35.0  # BossArenaConfig king.MoundTop: the game's deck lies this far under the mound top his hover starts from
 HOVER_STUDS = 12.0  # proposed (owner 2026-11-12: he hovers as the Elf Mage does; 1.5 stud bob over 3 s is played in game, not keyed)
 
 
@@ -866,7 +868,7 @@ def beam_line(rig):
 	ea = rig.parts["Ea"].matrix_world
 	tip = ea @ Vector((0, 0, rig.tip))
 	d = (ea.to_3x3() @ Vector((0, 0, 1))).normalized()
-	L = (tip.z - rig.stand) / -d.z if d.z < 0 else 320.0
+	L = (tip.z - rig.deck) / -d.z if d.z < 0 else 320.0
 	return tip, d, tip + d * L
 
 
@@ -921,7 +923,7 @@ def jbeam(rig, t):
 		pts = [around(u0 + 0.015 * q, ang + rng.uniform(-0.6, 0.6), rng.uniform(26, 46)) for q in range(14)]
 		mk.tube(pts, 1.2, mk.glow_mat("RedBolt", (1, 0.12, 0.08), 6))
 	mk.ball(tip, 1.2 * k, mk.glow_mat("TipGlow", (1, 0.85, 0.55), 3.0, 0.85))
-	ground = Vector((end.x, end.y, rig.stand + 0.5))
+	ground = Vector((end.x, end.y, rig.deck + 0.5))
 	away = Vector((d.x, d.y, 0)).normalized()  # the burst leans away from him, the way the blast travels
 	mk.ball(end, 14, mk.glow_mat("BurstCore", (1, 0.8, 0.65), 6))  # red-white: a white-hot heart in a red fireball
 	mk.ball(end + away * 8, 24, mk.glow_mat("BurstFire", (0.95, 0.08, 0.02), 2.0, 0.45))
@@ -1079,7 +1081,7 @@ JMOVES["gates"]["hitcam"] = (1, -0.2, 0.6)
 JMOVES["gates"]["note"] = "DODGE 0.00 - 1.60 s; event gates (20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, 14, one per 0.15 s (keys 5 - 9); idle by 4.40 s. The sunset room darkens as design C portals open in his sweep on an ordered dome round him (owner 2026-11-13 later: tiers at " + ", ".join(f"{e} deg x {n} ({a} studs)" for e, n, a in DOME_TIERS) + f" from his chest, dome radius {DOME_R * SIZE * CHAR_H / 6.63:.0f} studs, open sky above {DOME_TOP} deg; each faces out and down to the lanes {LANE_MID:g} studs out; {JVOLLEY} weapons a volley); a blade only in a full portal, shots only from blades along its facing (close views: the shot leaving; third view: the hits all round the lanes)"
 JMOVES["enuma"]["sky"] = [(1.0, 0), (0.9, 0.15), (0.75, 0.35), (0.6, 0.6), (0.45, 0.85), (0.35, 1.0), "white", (0.06, 1.0, 0.08), (0.06, 1.0, 0.08), (0.6, 0.4)]  # the beam floods the room dark red; low bloom keeps it crimson
 JMOVES["enuma"]["hitcam"] = (0.2, -0.5, 1.0)
-JMOVES["enuma"]["note"] = "DODGE (charge) 0.00 - 3.00 s; HIT 3.00 s: one white full flash, then the beam 3.00 - 5.00 s; recover 5.00 - 5.60 s. The sunset room tints red through the charge; the beam runs exactly along Ea's blade axis from its tip (no clamp, no tilt), 90 studs wide: a yellow-white hot core 21, orange fire billows, red 60 with thin bright red rim lines, a red-black cyclone 99 and black strands kept strong; red-white burst, black smoke and rubble where it lands. 360 sweep (owner 2026-11-13): his whole rig turns about his centre on top of the keys so the beam's yaw goes 370 degrees one way, eased, 3.00 - 5.00 s (sweep in each beam key's caption; the row below shows 0, 90, 180, 270, 360 from above); Ea pitched down so the beam lands on the lanes all round. Beam keys seen side-on with the landing in frame"
+JMOVES["enuma"]["note"] = "DODGE (charge) 0.00 - 3.00 s; HIT 3.00 s: one white full flash, then the beam 3.00 - 5.00 s; recover 5.00 - 5.60 s. The sunset room tints red through the charge; the beam runs exactly along Ea's blade axis from its tip (no clamp, no tilt), 90 studs wide: a yellow-white hot core 21, orange fire billows, red 60 with thin bright red rim lines, a red-black cyclone 99 and black strands kept strong; red-white burst, black smoke and rubble where it lands. 360 sweep (owner 2026-11-13): his whole rig turns about his centre on top of the keys so the beam's yaw goes 370 degrees one way, eased, 3.00 - 5.00 s (sweep in each beam key's caption; the row below shows 0, 90, 180, 270, 360 from above); Ea pitched about 26 degrees down (2026-11-13, game geometry: the deck 35 studs under the mound top, his feet 47 over it) so the beam lands about 138 studs from his centre, mid-lane, all round. Beam keys seen side-on with the landing in frame"
 SWEEP_DEG, SWEEP_T = 370.0, (3.0, 5.0)  # proposed (spec "Enuma 360"): the beam's yaw goes this far one way over the beam window
 
 
@@ -1314,7 +1316,7 @@ def lane_marks(rig):
 	"""The lanes' inner and outer edges on the deck (110 and 166 studs from his centre, proposed ring): review marks only."""
 	c = rig.king.matrix_world.translation
 	for r in (110.0, 166.0):
-		mk.ring(Vector((c.x, c.y, rig.stand + 0.3)), r, 0.9, mk.glow_mat("LaneMark", CREAM, 3))
+		mk.ring(Vector((c.x, c.y, rig.deck + 0.3)), r, 0.9, mk.glow_mat("LaneMark", CREAM, 3))
 
 
 def sweep_row(scene, rig, move):
@@ -1322,7 +1324,7 @@ def sweep_row(scene, rig, move):
 	global BEAM_VIEW
 	cam = rig.cam
 	c = rig.king.matrix_world.translation
-	ground = Vector((c.x, c.y, rig.stand))
+	ground = Vector((c.x, c.y, rig.deck))
 	eye = ground + to_world_dir(rig, (0, -0.75, 1)) * 470
 	out = []
 	pw = move.get("cols", COLS) * CELL_W // 5
@@ -1421,7 +1423,7 @@ def frame_extra(rig, key):
 		pts += [to_world(rig, (SHIELD_R * 1.4 * math.cos(a), SHIELD_R * 1.4 * math.sin(a), SHIELD_Z + dz)) for a in np.linspace(0, math.tau, 12) for dz in (-1.8, 1.8)]
 	if REWORK and "beam" in fx:  # the whole beam and its landing (fire wall, shock wave) stay in the close views
 		tip, d, end = beam_line(rig)
-		g = Vector((end.x, end.y, rig.stand))
+		g = Vector((end.x, end.y, rig.deck))
 		pts += [tip, end, g + Vector((0, 0, 60))] + [g + Vector((math.cos(a), math.sin(a), 0)) * 60 for a in np.linspace(0, math.tau, 8, endpoint=False)]
 	if any(f.startswith("jportals") for f in fx):
 		pts += [to_world(rig, c + d) for c, r, _ in JPORTALS for d in (Vector((r, 0, r)), Vector((-r, 0, -r)))]
@@ -1432,6 +1434,7 @@ def frame_extra(rig, key):
 
 def run_move(scene, rig, name, move):
 	keys = move["keys"]
+	rig.floor.location.z = (rig.deck if REWORK and name == "enuma" else rig.stand) - 0.02  # enuma's beam lands on the game's deck
 	union = []
 	for key in keys:  # pass 1: framing over every key of the move
 		pose_king(rig, key)
