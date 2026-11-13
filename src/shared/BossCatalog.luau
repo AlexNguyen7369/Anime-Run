@@ -118,7 +118,9 @@ local ROWS = {
 		TargetPart = "Torso",
 		-- Owner approved 2026-11-12 (design doc 4.37 "Rework approvals"): his arena's lane camera. Eye: the eye's height over the deck
 		-- (the others keep RunnerView's 6). Fov: the event's locked FOV in his arena only (the others keep BossEventConfig.CameraFov).
-		Camera = { Yaw = 75, Pitch = 13, Zoom = 40, Eye = 19.5, Fov = 60 },
+		-- Owner 2026-11-12 after playing (4.37 "Golden King camera"; was pitch 13, eye 19.5, FOV 60: runners out of frame). Proposed,
+		-- tuned in Studio: the team's feet sit above the bottom team slots and his head under the HP bar on lanes 1, 4 and 7.
+		Camera = { Yaw = 75, Pitch = 8, Zoom = 40, Eye = 10, Fov = 80 },
 		WaitCamera = { Out = 28, Up = 40, Down = 22 }, -- the mage's
 		Arena = "BossKingArena", -- his arena's late data (design doc 7 "Join size"): delivered and removed with his poses
 	},

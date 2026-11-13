@@ -785,7 +785,7 @@ function Tests.make()
 	--     functions: InnerRadius 110, Width 56 (7 lanes of 8), Lanes 7, WallRadius 250, MaxRunSpeed 100, BossHeight 44, MoundTop
 	--     (studs over Y, the mound's top), HoverY (studs over Y, his feet at rest) = MoundTop + 12, BobStuds 1.5, BobSeconds 3.
 	--     No row's Dressing is "vault".
-	--   BossCatalog.Get("boss_king").Camera = { Yaw = 75, Zoom = 40, Pitch = 13, Eye = 19.5 (studs over the deck), Fov = 60 };
+	--   BossCatalog.Get("boss_king").Camera = { Yaw = 75, Zoom = 40, Pitch = 8, Eye = 10 (studs over the deck), Fov = 80 };
 	--     the mage's and Big Raga's Camera.Fov nil or 100 (BossEventConfig.CameraFov).
 	--   Shared/BiomeEnvironment.Profile(ARENA_ZONE, "boss_king") is a sunset profile (ClockTime 16.5 to 19, the sun shown, sun
 	--     rays on), not the old VAULT (ClockTime 0, no sun); the mage's and Big Raga's profiles are other tables.
@@ -852,10 +852,11 @@ function Tests.make()
 			local cam = row and row.Camera or {}
 			eq("camera_yaw_75", cam.Yaw, 75)
 			eq("camera_zoom_40", cam.Zoom, 40)
-			-- pitch 13 (was 14, the mage's), eye 19.5, FOV 60: the owner's approved row, design doc 4.37 "Rework approvals".
-			eq("camera_pitch_13", cam.Pitch, 13)
-			near("camera_eye_19_5", cam.Eye, 19.5, 1e-6)
-			eq("camera_fov_60", cam.Fov, 60)
+			-- Owner change 2026-11-12 after playing (design doc 4.37 "Golden King camera"; was pitch 13, eye 19.5, FOV 60): FOV about
+			-- 80, eye and pitch lowered so runners and king are in frame; pitch 8, eye 10 tuned in Studio (proposed).
+			eq("camera_pitch_8", cam.Pitch, 8)
+			near("camera_eye_10", cam.Eye, 10, 1e-6)
+			eq("camera_fov_80", cam.Fov, 80)
 			for _, id in { MAGE, RAGA } do
 				local other = Catalog and Catalog.Get(id)
 				local fov = other and other.Camera and other.Camera.Fov
