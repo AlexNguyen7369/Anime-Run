@@ -627,7 +627,7 @@
     },
     {
      "t": 3.0,
-     "caption": "Contact (hit): swung down side-on, both hands on Ea levelled at the arena, torso thrown into it, legs kicked back; white flash, beam",
+     "caption": "Contact (hit): swung down side-on, both hands on Ea levelled at the arena, torso thrown into it, legs kicked back; white flash, beam (sweep +0 deg: beam 0 deg round)",
      "root_offset": [
       -0.3,
       0,
@@ -655,9 +655,9 @@
        0.0
       ],
       "Ea": [
-       37.914,
-       -149.448,
-       75.806
+       -152.138,
+       -16.186,
+       -94.126
       ],
       "RightUpperArm": [
        -61.696,
@@ -670,14 +670,14 @@
        0.0
       ],
       "LeftUpperArm": [
-       -73.491,
-       16.134,
-       -35.232
+       -66.663,
+       11.4,
+       -33.937
       ],
       "LeftLowerArm": [
        -1.25,
        -0.0,
-       -0.0
+       0.0
       ],
       "LeftUpperLeg": [
        -24.0,
@@ -722,6 +722,7 @@
       -0.0
      ],
      "ea_drum_spin": 820,
+     "sweep_deg": 0.0,
      "event": "Beam",
      "effects": [
       "flash",
@@ -731,7 +732,7 @@
     },
     {
      "t": 3.9,
-     "caption": "Beam drive: hips lead the sweep across the lanes, torso lags, both hands on Ea, legs braced back against the recoil",
+     "caption": "Beam drive: his whole body sweeps round over the lanes, hips lead, torso lags, both hands on Ea, legs braced against the recoil (sweep +47.3 deg: beam 157 deg round)",
      "root_offset": [
       -0.25,
       0,
@@ -759,9 +760,9 @@
        0.0
       ],
       "Ea": [
-       133.585,
-       -38.923,
-       35.446
+       134.989,
+       -10.137,
+       77.683
       ],
       "RightUpperArm": [
        -64.651,
@@ -770,17 +771,17 @@
       ],
       "RightLowerArm": [
        -1.25,
-       -0.0,
+       0.0,
        0.0
       ],
       "LeftUpperArm": [
-       -71.731,
-       20.312,
-       -36.428
+       -64.119,
+       15.465,
+       -35.045
       ],
       "LeftLowerArm": [
        -1.25,
-       -0.0,
+       0.0,
        0.0
       ],
       "LeftUpperLeg": [
@@ -791,7 +792,7 @@
       "LeftLowerLeg": [
        35.0,
        -0.0,
-       -0.0
+       0.0
       ],
       "RightUpperLeg": [
        20.0,
@@ -821,11 +822,12 @@
      },
      "ea_shown": true,
      "ea_grip_offset": [
-      -0.0,
+      0.0,
       0.62,
-      0.0
+      -0.0
      ],
      "ea_drum_spin": 1000,
+     "sweep_deg": 47.3,
      "effects": [
       "beam",
       "arrows"
@@ -833,7 +835,7 @@
     },
     {
      "t": 4.85,
-     "caption": "Beam end: the far side of the ring, recoil pushes him upright, Ea lifts, legs swing through",
+     "caption": "Beam end: the sweep closes its circle, recoil pushes him upright, Ea held down on the lanes, legs swing through (sweep +109.5 deg: beam 364 deg round)",
      "root_offset": [
       -0.15,
       0,
@@ -861,9 +863,9 @@
        -0.0
       ],
       "Ea": [
-       -24.443,
-       124.255,
-       -33.323
+       -126.992,
+       14.749,
+       -66.312
       ],
       "RightUpperArm": [
        -73.31,
@@ -872,18 +874,18 @@
       ],
       "RightLowerArm": [
        -1.25,
-       0.0,
+       -0.0,
        -0.0
       ],
       "LeftUpperArm": [
-       -59.406,
-       24.291,
-       -37.631
+       -63.474,
+       18.324,
+       -35.851
       ],
       "LeftLowerArm": [
-       -31.789,
+       -1.25,
        0.0,
-       0.0
+       -0.0
       ],
       "LeftUpperLeg": [
        6.0,
@@ -903,7 +905,7 @@
       "RightLowerLeg": [
        30.0,
        -0.0,
-       -0.0
+       0.0
       ],
       "Ea_Drum1": [
        0.0,
@@ -925,9 +927,10 @@
      "ea_grip_offset": [
       0.0,
       0.62,
-      0.0
+      -0.0
      ],
      "ea_drum_spin": 1180,
+     "sweep_deg": 109.5,
      "effects": [
       "beam",
       "arrows"
@@ -1925,7 +1928,7 @@
    ]
   },
   "gates": {
-   "title": "Gates of Babylon (rework, jointed rig, hovering): a sweep of his right arm opens the portals, a command fires the volleys",
+   "title": "Gates of Babylon (rework, jointed rig, hovering): a sweep of his right arm opens an ordered dome of portals round him, a command fires the volleys",
    "end": 4.4,
    "loop": false,
    "dodge_window": [
@@ -2029,7 +2032,7 @@
     },
     {
      "t": 0.4,
-     "caption": "Coil: right hand unfolds and drops across to his left hip, torso twists left, eyes stay on the lanes; first portals open on his left",
+     "caption": "Coil: right hand unfolds and drops across to his left hip, torso twists left, eyes stay on the lanes; first portals of the dome open on his left",
      "root_offset": [
       0,
       0,
@@ -2119,7 +2122,7 @@
     },
     {
      "t": 0.8,
-     "caption": "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path, the first ones full and pushing a blade out",
+     "caption": "Sweep: the open hand swings up across his chest toward his right, torso unwinds; the dome's portals cascade round him in its path, the first ones full and pushing a blade out",
      "root_offset": [
       0,
       0,
@@ -2209,7 +2212,7 @@
     },
     {
      "t": 1.2,
-     "caption": "Raised hand, sweep's end: arm up and out to his right, chest open, chin high; all 16 portals open, weapon tips push through (held still)",
+     "caption": "Raised hand, sweep's end: arm up and out to his right, chest open, chin high; all 50 dome portals open, weapon tips push through (held still)",
      "root_offset": [
       0,
       0,
@@ -4752,7 +4755,7 @@
   ]
  },
  "ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right lower arm's space, model units. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
- "effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand). 2026-11-12 later look: jportals blades only in full portals (portal, then weapon, then shot); jvolley shots fly straight out along their portal's facing (each portal faces the lanes) and land with a gold hit (flash, white core, shock ring, sparks, dust); beam in the rework runs along Ea's blade axis, about 60 studs wide (white core 14, crimson 40, black-red outer 60, a dark-red volume, black strands, red lightning, a turning cyclone) to a red-black shock wave, red fire and black smoke where it lands",
+ "effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand). 2026-11-12 later look: jportals blades only in full portals (portal, then weapon, then shot); jvolley shots fly straight out along their portal's facing (each portal faces the lanes) and land with a gold hit (flash, white core, shock ring, sparks, dust); beam in the rework runs along Ea's blade axis, about 60 studs wide (white core 14, crimson 40, black-red outer 60, a dark-red volume, black strands, red lightning, a turning cyclone) to a red-black shock wave, red fire and black smoke where it lands. 2026-11-13 later (owner): jportals stand in an ordered dome round him (fixed tiers, open top, each facing out and down to the lanes, see the gates note); the beam runs exactly along Ea's blade axis to where it meets the deck (no clamp), 1.5 x wider with a yellow-white hot core, orange fire billows, thin bright red rim lines, the red-black cyclone and black strands kept strong, a red-white burst with black smoke and rubble; sweep_deg: the whole rig's turn about his centre on top of the key (Enuma's 360 sweep)",
  "hover": {
   "studs_over_mound": 12.0,
   "bob_studs": 1.5,

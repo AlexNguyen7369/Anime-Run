@@ -1213,6 +1213,119 @@ function Module.Build(h)
 					perStrike("barrage_beam_white_core", beamCores, coreBarrage, isWhite, false)
 					perStrike("barrage_beam_dark_edge", edges, edgeBarrage, isDark, false)
 					check(res, "barrage_black_smoke", smokeDark, true)
+					-- Zoltraak lasers (owner 2026-11-13, BOSS_EVENT_SPEC "Boss effects after playing"): a core spans its
+					-- circle to the floor or wall in one frame (one end within 6 studs of a MagicCircle centre, the other
+					-- within 4 of the floor or wall, or 250+ long); the 34-stud flying ray never does past 34 studs.
+					-- Black mist: a BarrageBeamMist part with a dark ParticleEmitter, placed anew per beam. Smoke mound
+					-- (owner 2026-11-13, BOSS_EVENT_SPEC "Additions"): a BarrageSmokeMound part with a dark grey
+					-- ParticleEmitter, at most 3 studs over the floor, placed in T - 0.05 to T + 0.5 of every strike.
+					ReplicatedStorage:SetAttribute("BossVfxForce", "")
+					task.wait()
+					local holder = inArena("BossEffects")
+					if holder then
+						holder:SetAttribute("LastStrikes", nil)
+					end
+					ReplicatedStorage:SetAttribute("BossVfxForce", "Barrage")
+					local function onFloorOrWall(p)
+						local flat = Vector2.new(p.X - Arena.Center.X, p.Z - Arena.Center.Z).Magnitude
+						return math.abs(p.Y - Arena.Y) <= 4 or math.abs(flat - Arena.WallRadius) <= 4
+					end
+					local spans, spawned, before, mistAt, mistDark = {}, 0, {}, {}, true
+					local moundAt, moundTimes, moundOk = {}, {}, true
+					local born = os.clock()
+					while Arena and os.clock() - born < 2.6 do
+						local circles, now = {}, {}
+						local all = (inArena("BossEffects") or workspace):GetDescendants()
+						for _, d in all do
+							if d:IsA("BasePart") and d.Name == "MagicCircle" then
+								table.insert(circles, d.Position)
+							end
+						end
+						for _, d in all do
+							if d:IsA("BasePart") and d.Name == "BarrageBeamCore" and d.Transparency < 1 then
+								local spawn = before[d]
+								if not spawn then
+									spawned += 1
+									spawn = spawned
+								end
+								now[d] = spawn
+								local half = d.CFrame.LookVector * d.Size.Z / 2
+								local a, b = d.Position - half, d.Position + half
+								for _, ends in { { a, b }, { b, a } } do
+									local near = math.huge
+									for _, c in circles do
+										near = math.min(near, (c - ends[1]).Magnitude)
+									end
+									if near <= 6 and (onFloorOrWall(ends[2]) or d.Size.Z >= 250) then
+										spans[spawn] = true
+									end
+								end
+							elseif
+								d:IsA("BasePart") and (d.Name == "BarrageBeamMist" or d.Name == "BarrageSmokeMound")
+							then
+								local e = d:FindFirstChildWhichIsA("ParticleEmitter", true)
+								local key = tostring(d.Position)
+								if e and d.Name == "BarrageBeamMist" then
+									mistAt[key] = true
+									mistDark = mistDark and emitterDark(e)
+								elseif e and not moundAt[key] then
+									moundAt[key] = true
+									table.insert(moundTimes, os.clock() - born)
+									local c = e.Color.Keypoints[1].Value
+									moundOk = moundOk
+										and c.R <= 0.45
+										and c.G <= 0.45
+										and c.B <= 0.45
+										and d.Position.Y - Arena.Y <= 3
+								end
+							end
+						end
+						before = now
+						task.wait()
+					end
+					local raw = inArena("BossEffects") and inArena("BossEffects"):GetAttribute("LastStrikes")
+					local okLog, log = pcall(HttpService.JSONDecode, HttpService, raw or "")
+					local strikes = okLog and type(log) == "table" and log.Strikes or {}
+					local spanned, mists, unmounded = 0, 0, 0
+					for _ in spans do
+						spanned += 1
+					end
+					for _ in mistAt do
+						mists += 1
+					end
+					for _, strike in strikes do
+						local hit = false
+						for _, t in moundTimes do
+							hit = hit or (t >= (strike.T or 0) - 0.05 and t <= (strike.T or 0) + 0.5)
+						end
+						unmounded += hit and 0 or 1
+					end
+					h.check(
+						res,
+						"barrage_lasers_full_length",
+						("%d of %d cores span circle to floor/wall"):format(spanned, spawned),
+						">= 90%", -- frame-sampling slack: a 0.3 s laser may be missed at 15 fps
+						spawned > 0 and spanned >= 0.9 * spawned
+					)
+					h.check(
+						res,
+						"barrage_beam_mist",
+						("%d mist spots for %d beams, dark %s"):format(mists, spawned, tostring(mistDark)),
+						"a dark BarrageBeamMist emitter placed per beam (>= half the beams)",
+						mists > 0 and mists >= 0.5 * spawned and mistDark
+					)
+					h.check(
+						res,
+						"barrage_impact_smoke_mound",
+						("%d of %d strikes without a mound, %d mounds, dark and low %s"):format(
+							unmounded,
+							#strikes,
+							#moundTimes,
+							tostring(moundOk)
+						),
+						"a dark grey BarrageSmokeMound <= 3 studs up at every strike",
+						#strikes > 0 and unmounded == 0 and moundOk
+					)
 				end
 			end
 			h.player:SetAttribute("ReduceEffects", nil)

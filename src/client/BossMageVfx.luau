@@ -19,6 +19,10 @@
 -- purple Bolt glow with a branch, a white StrikeFlash, a purple ShockRing, Sparks and lit purple smoke at its spot; each barrage beam
 -- a white core, a blue-white glow and a near-black BarrageBeamEdge with a rounded head, a white flash, white sparks and black
 -- BarrageSmoke at its spot.
+-- Zoltraak lasers (owner 2026-11-13, design doc 4.37 "Boss effects after playing", BOSS_EVENT_SPEC, proposed): each barrage beam
+-- is a laser drawn the full length from its circle to its floor or wall end, shooting out in 0.05 s, holding, then thinning and
+-- fading over its last 0.12 s of a 0.3 s life, in dark BarrageBeamMist with a few white-cyan specks; its hit fires as it lands
+-- and leaves a low dark grey BarrageSmokeMound on the floor.
 -- Strike lighting (owner 2026-11-12, BOSS_EVENT_SPEC "Elf Mage strike lighting"): the room dims to a dark blue-violet from her
 -- lightning's or barrage's lead-in to 0.5 s after the window, the bolts glow deep violet and light the floor where they land.
 -- Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting"): under ReduceEffects or
@@ -96,18 +100,30 @@ local TORCH_TINT = Color3.fromRGB(190, 150, 255) -- the arena's lights turn viol
 -- lilac, not navy, and not darker on top of the 25% light (Studio 2026-11-12: -0.25 read navy)
 local DIM_GRADE = { Brightness = -0.05, Contrast = 0.08, Saturation = 0.05, TintColor = Color3.fromRGB(230, 210, 255) }
 -- the barrage's grade: no tint, so its white and cyan stay white and cyan (the lilac tint read them lavender, Studio 2026-11-12)
-local BARRAGE_GRADE = { Brightness = -0.25, Contrast = 0.1, Saturation = 0, TintColor = Color3.fromRGB(240, 244, 255) }
+local BARRAGE_GRADE = { Brightness = -0.05, Contrast = 0.1, Saturation = 0, TintColor = Color3.fromRGB(240, 244, 255) }
 local TORCH_DIM = 0.25 -- dim and violet, not red
+-- the barrage's room lighter, toward the sheet's warm colosseum (Studio pairs 2026-11-13: the 25% floor and -0.25 grade read
+-- near black): Lighting to BARRAGE_FLOOR (BossStrikeFloor; `barrage_room_dims` allows at most 0.4) and the arena's lights to
+-- BARRAGE_TORCH; her lightning keeps the above
+local BARRAGE_FLOOR, BARRAGE_TORCH = 0.38, 0.6
 local LIFT_SECONDS = 0.3 -- the first strike's white flash lifts the dim for this long
 local HIT_FLASH, HIT_FLASH_SECONDS = 7, 0.2 -- studs across a hit's small white disc at the bolt's foot, s
 local RING_FROM, RING_TO, RING_SECONDS = 4, 18, 0.36 -- studs across a hit's thin violet ring as it grows, s (pool reuse after 0.45 s)
 local SPARKS_PER_HIT, SMOKE_PER_HIT = 6, 2 -- particles at each lightning spot
 local BEAM_CORE, BEAM_GLOW, BEAM_EDGE = 3, 5, 6.8 -- studs across the barrage beam's layers
 local BEAM_HEAD = 5 -- studs across the beam's rounded white head at the hit
--- Studio pairs 2026-11-12: short white-hot rays flying from the circles (not bars across the room), as the sheet's
-local RAY_LENGTH, RAY_SPEED = 34, 520 -- studs long, studs a second
-local RAY_CYAN = Color3.fromRGB(110, 210, 255) -- the rays' cyan glow
+-- Zoltraak lasers (owner 2026-11-13, BOSS_EVENT_SPEC "Boss effects after playing", proposed; replaces the 34-stud flying rays):
+-- full length from the circle, out in BEAM_SHOOT s, held, thinned to BEAM_THIN x width and faded over the last BEAM_FADE s of a
+-- BEAM_LIFE s life; the edge at BEAM_EDGE_TRANSPARENCY.
+local BEAM_LIFE, BEAM_SHOOT, BEAM_FADE, BEAM_THIN = 0.3, 0.05, 0.12, 0.3
+local BEAM_EDGE_TRANSPARENCY = 0.85 -- Studio pairs 2026-11-13: 0.6 greyed the white-hot core
 local CYAN = Color3.fromRGB(150, 225, 255) -- the beams' rims
+local BEAM_GLOW_COLOR = Color3.fromRGB(200, 238, 255) -- the laser's cyan-white glow
+-- black mist along each laser: a speck about every MIST_EVERY studs, at most MIST_MAX, and MIST_SPECKS white-cyan sparkles
+local MIST_SHELL = 2 -- studs the mist's box is wider than the edge: its puffs start just outside the beam
+local MIST_EVERY, MIST_MAX, MIST_SPECKS = 6, 30, 8 -- Studio pairs 2026-11-13: 18, 14, 3 left the haze to a few flecks
+-- the smoke mound at each laser's end (owner 2026-11-13, BOSS_EVENT_SPEC "Additions", proposed): puffs, studs over the floor
+local MOUND_PUFFS, MOUND_UP = { 3, 5 }, 1
 local BEAM_SPARKS, BEAM_SMOKE = 4, 2 -- particles at each barrage hit
 -- Zoltraak circles around her (owner 2026-11-12, design doc 4.37; BOSS_EVENT_SPEC "Pose-tied effect values", proposed; replaces the
 -- cluster in front of the staff): 16 circles, 24 to 40 studs, on a sphere of about 45 studs round her chest (a Fibonacci sphere),
@@ -234,6 +250,55 @@ local HIT_LOOKS = {
 	},
 }
 
+-- The laser's black mist and its sparkles, two emitters on each pooled BarrageBeamMist (the dark one first), and the smoke
+-- mound at its end, one emitter on each pooled BarrageSmokeMound. Placeholders within the spec's proposed values.
+local MIST_LOOK = {
+	Name = "BarrageMist",
+	Texture = Art.Dust,
+	Shape = Enum.ParticleEmitterShape.Box,
+	-- from the box's skin, behind the core: the haze hugs the beam's outside (Studio pairs 2026-11-13: drawn in the volume it
+	-- blotched the white core black)
+	ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
+	ZOffset = -2,
+	Color = ColorSequence.new(INK, SOOT),
+	LightInfluence = 0.2,
+	Size = sequence(0, 2, 1, 4),
+	Transparency = sequence(0, 0.45, 1, 1), -- a see-through speckled haze, not solid blobs
+	Lifetime = NumberRange.new(0.3, 0.5),
+	Speed = NumberRange.new(1, 4),
+	SpreadAngle = Vector2.new(180, 180),
+	Rotation = NumberRange.new(0, 360),
+	RotSpeed = NumberRange.new(-60, 60),
+}
+local SPECK_LOOK = {
+	Name = "BarrageMistSpecks",
+	Texture = Art.Spark,
+	Shape = Enum.ParticleEmitterShape.Box,
+	Color = ColorSequence.new(WHITE, CYAN),
+	LightEmission = 1,
+	Size = sequence(0, 0.8, 1, 0),
+	Lifetime = NumberRange.new(0.2, 0.4),
+	Speed = NumberRange.new(2, 6),
+	SpreadAngle = Vector2.new(180, 180),
+}
+local MOUND_LOOK = {
+	Name = "BarrageMound",
+	Texture = Art.Dust,
+	Shape = Enum.ParticleEmitterShape.Box,
+	-- Studio pairs 2026-11-13: (70, 68, 78) lit at 0.4 went black in the dimmed room; the sheet's mounds are mid grey
+	Color = ColorSequence.new(Color3.fromRGB(105, 103, 112), Color3.fromRGB(70, 68, 78)),
+	LightInfluence = 0,
+	EmissionDirection = Enum.NormalId.Top,
+	SpreadAngle = Vector2.new(40, 40),
+	Size = sequence(0, 4, 1, 8),
+	Transparency = sequence(0, 0.35, 0.6, 0.6, 1, 1),
+	Lifetime = NumberRange.new(0.8, 1.2),
+	Speed = NumberRange.new(1, 3),
+	Drag = 4,
+	Rotation = NumberRange.new(0, 360),
+	RotSpeed = NumberRange.new(-20, 20),
+}
+
 local BossMageVfx = {}
 
 local effects, mage = nil, nil
@@ -296,8 +361,8 @@ local function logStrikes(name, list)
 end
 
 -- A Neon part of `name` from its pool (or a new one, shaped by `make`), back to the pool `seconds` later; its decals fade with
--- it. Parts the folder lost are dropped.
-local function pooled(name, cframe, size, color, transparency, seconds, make)
+-- it, over its whole life or (`fade`) over its last `fade` seconds. Parts the folder lost are dropped.
+local function pooled(name, cframe, size, color, transparency, seconds, make, fade)
 	local idle = pools[name]
 	local part = idle and table.remove(idle)
 	while part and part.Parent ~= effects do
@@ -313,15 +378,27 @@ local function pooled(name, cframe, size, color, transparency, seconds, make)
 		end
 	end
 	part.Name, part.Color, part.Transparency = name, color, transparency
-	Kit.tween(part, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	local decals = {}
 	for _, d in part:GetDescendants() do
 		if d:IsA("Decal") then
 			d.Transparency = 0
-			Kit.tween(d, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			table.insert(decals, { d, "Transparency" })
 		elseif d:IsA("ImageLabel") then
 			d.ImageTransparency = 0
-			Kit.tween(d, seconds, { ImageTransparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			table.insert(decals, { d, "ImageTransparency" })
 		end
+	end
+	local function fadeOut()
+		local over = fade or seconds
+		Kit.tween(part, over, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		for _, row in decals do
+			Kit.tween(row[1], over, { [row[2]] = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		end
+	end
+	if fade then
+		Kit.after(seconds - fade, fadeOut)
+	else
+		fadeOut()
 	end
 	Kit.after(seconds + 0.03, function()
 		if part.Parent == effects then
@@ -465,6 +542,7 @@ local function endDim()
 	end
 	dim.Grade:Destroy()
 	Lighting:SetAttribute("BossStrikeDim", nil)
+	Lighting:SetAttribute("BossStrikeFloor", nil)
 	Lighting:SetAttribute("BossStrikeHaze", nil)
 	for light, base in dim.Lights do
 		if light.Parent then
@@ -508,11 +586,13 @@ local function stepDim()
 	grade.Saturation, grade.TintColor = look.Saturation * f, WHITE:Lerp(look.TintColor, f)
 	Lighting:SetAttribute("BossStrikeDim", f)
 	Lighting:SetAttribute("BossStrikeHaze", dim.Haze and f or nil)
+	Lighting:SetAttribute("BossStrikeFloor", not dim.Haze and BARRAGE_FLOOR or nil)
+	local torch = dim.Haze and TORCH_DIM or BARRAGE_TORCH
 	for light, base in dim.Lights do
 		if light.Parent then
 			light.Color = base.Color:Lerp(TORCH_TINT, f)
 			if light:GetAttribute("ImpactBase") == nil then -- an impact pulse owns its brightness until it ends
-				light.Brightness = base.Brightness * (1 - (1 - TORCH_DIM) * f)
+				light.Brightness = base.Brightness * (1 - (1 - torch) * f)
 			end
 		end
 	end
@@ -986,9 +1066,9 @@ local function edgeLook(part)
 	part.Material = Enum.Material.SmoothPlastic
 end
 
--- One beam out of a circle's centre (her staff's tip with no circle open) to its strike's planned spot on the floor, so the
--- beams fan out from the cluster onto the logged spots (owner 2026-11-12, target sheets): a white-hot core in a cyan rim inside a
--- near-black edge, a rounded white head, and at the spot a white flash, white sparks and small black smoke.
+-- One laser out of a circle's centre (her staff's tip with no circle open), the full length to the floor or the wall (owner
+-- 2026-11-13, "Boss effects after playing"): a white-hot core in a cyan-white glow inside a near-black edge, in black mist; as it
+-- lands a rounded white head, a white flash, white sparks, small black smoke and a low smoke mound on the floor.
 -- Where a ray from `from` along `dir` ends: the floor or the wall, whichever it meets first, at most RAY_REACH.
 local RAY_REACH = 260
 local function rayEnd(from, dir)
@@ -1012,52 +1092,90 @@ end
 -- Beams follow their source (owner 2026-11-12, design doc 4.37): a ray leaves its circle straight out along the circle's outward
 -- facing, to the floor or the wall; the strike's logged spot only picks the circle (with no circle open: from the staff's tip to
 -- the spot).
-local function beam(circle, target, k, life)
-	local from = circle and circle.Position or mage:Point("Staff", STAFF_TIP)
-	if circle and circles[circle] then
-		target = rayEnd(from, circles[circle])
+local function beam(circle, target, k)
+	local out = circle and circles[circle]
+	local fixedFrom = circle and circle.Position or mage:Point("Staff", STAFF_TIP)
+	local fixedTo = out and rayEnd(fixedFrom, out) or target
+	-- its two ends now: riding its circle along the circle's facing while the circle stands
+	local function ends()
+		if out and circle.Parent then
+			local from = circle.Position
+			return from, rayEnd(from, out)
+		end
+		return fixedFrom, fixedTo
 	end
-	local line = target - from
-	local distance = line.Magnitude
-	local dir = distance > 0.01 and line / distance or Vector3.yAxis
-	local length = math.min(RAY_LENGTH, distance)
-	local flight = math.max(0.12, math.min(distance / RAY_SPEED, life)) -- 0.12: seen at 15 fps (Studio 2026-11-12)
 	local born = os.clock()
-	-- the ray's frame: its back end leaves the circle and its head reaches the spot at `flight`
-	local function along()
-		return function()
-			local u = math.min((os.clock() - born) / flight, 1)
-			local back = from + dir * (distance - length) * u
-			return CFrame.lookAt(back + dir * length / 2, back + dir * length)
+	-- a layer `width` across now: grown from the circle end over BEAM_SHOOT, thinned over the last BEAM_FADE
+	local function shape(width)
+		local from, to = ends()
+		local age = os.clock() - born
+		local line = to - from
+		local distance = line.Magnitude
+		local dir = distance > 0.01 and line / distance or Vector3.yAxis
+		local reach = math.max(distance * math.clamp(age / BEAM_SHOOT, 0, 1), 0.1)
+		local w = width * (1 - (1 - BEAM_THIN) * math.clamp((age - BEAM_LIFE + BEAM_FADE) / BEAM_FADE, 0, 1))
+		return CFrame.lookAt(from + dir * reach / 2, from + dir * reach), Vector3.new(w, w, reach)
+	end
+	for _, layer in
+		{
+			{ "BarrageBeam", BEAM_GLOW, k % 2 == 0 and CYAN or BEAM_GLOW_COLOR, 0.45 },
+			{ "BarrageBeamCore", BEAM_CORE, WHITE, 0 },
+			{ "BarrageBeamEdge", BEAM_EDGE, INK, BEAM_EDGE_TRANSPARENCY, edgeLook },
+		}
+	do
+		local width = layer[2]
+		local cframe, size = shape(width)
+		local part = pooled(layer[1], cframe, size, layer[3], layer[4], BEAM_LIFE, layer[5], BEAM_FADE)
+		tracked[part] = function()
+			local now, grown = shape(width)
+			part.Size = grown
+			return now
 		end
 	end
-	local start = along()()
-	local glow = pooled(
-		"BarrageBeam",
-		start,
-		Vector3.new(BEAM_GLOW, BEAM_GLOW, length + BEAM_GLOW * 0.5),
-		k % 2 == 0 and CYAN or RAY_CYAN,
-		0.45,
-		flight
+	-- the black mist along the whole laser, with a few sparkles
+	local from, to = ends()
+	local length = (to - from).Magnitude
+	local mist = pooled(
+		"BarrageBeamMist",
+		CFrame.lookAt((from + to) / 2, to),
+		Vector3.new(BEAM_EDGE + MIST_SHELL, BEAM_EDGE + MIST_SHELL, math.max(length, 0.1)),
+		INK,
+		1,
+		BEAM_LIFE,
+		function(part)
+			Kit.emitter(part, MIST_LOOK)
+			Kit.emitter(part, SPECK_LOOK)
+		end
 	)
-	local core =
-		pooled("BarrageBeamCore", start, Vector3.new(BEAM_CORE, BEAM_CORE, length + BEAM_CORE), WHITE, 0, flight)
-	local edge =
-		pooled("BarrageBeamEdge", start, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.75, flight, edgeLook)
-	for _, part in { glow, core, edge } do
-		tracked[part] = along()
-	end
+	local specks = math.min(MIST_MAX, math.ceil(length / MIST_EVERY))
+	local puffs = math.random(MOUND_PUFFS[1], MOUND_PUFFS[2])
 	local mine = effects
-	Kit.after(flight, function()
+	Kit.after(BEAM_SHOOT, function()
 		if effects ~= mine then
 			return
 		end
-		pooled("BarrageBeamHead", CFrame.new(target), Vector3.one * BEAM_HEAD, WHITE, 0, 0.15, ballLook)
-		flash(target, 10, 0.25)
-		emitAt("BarrageSparks", target, BEAM_SPARKS)
-		emitAt("BarrageSmoke", target + Vector3.new(0, 1, 0), BEAM_SMOKE)
+		mist.BarrageMist:Emit(specks)
+		mist.BarrageMistSpecks:Emit(MIST_SPECKS)
+		local _, hit = ends()
+		pooled("BarrageBeamHead", CFrame.new(hit), Vector3.one * BEAM_HEAD, WHITE, 0, 0.15, ballLook)
+		flash(hit, 10, 0.25)
+		emitAt("BarrageSparks", hit, BEAM_SPARKS)
+		emitAt("BarrageSmoke", hit + Vector3.new(0, 1, 0), BEAM_SMOKE)
+		-- the mound hugs the floor: under the hit (a wall hit's at the wall's foot)
+		local mound = pooled(
+			"BarrageSmokeMound",
+			CFrame.new(hit.X, Arena.Y + MOUND_UP, hit.Z),
+			Vector3.new(5, 1, 5),
+			SOOT,
+			1,
+			BEAM_LIFE,
+			function(part)
+				Kit.emitter(part, MOUND_LOOK)
+			end
+		)
+		mound.BarrageMound:Emit(puffs)
 	end)
-	return BEAM_SPARKS + BEAM_SMOKE
+	return BEAM_SPARKS + BEAM_SMOKE + specks + MIST_SPECKS + puffs
 end
 
 local function playBarrage()
@@ -1068,22 +1186,27 @@ local function playBarrage()
 		return logHits("Barrage", list, 0.1, 18)
 	end
 	startDim(Poses.Moves.barrage.Window[2] - BARRAGE_AT + DIM_TAIL, true)
-	local windowEnd = os.clock() + BARRAGE_WINDOW -- as the lightning's: the rays land and go by this clock
 	for _, strike in list do
 		later(strike.T, function()
 			local total = 0
 			local center = chest()
+			local used = {} -- circles fired this strike: a near one not yet used wins, so one strike draws distinct lasers
 			for k, target in strike.Spots do
 				-- the open circle nearest the spot's direction from her chest: the beam flies outward from it to the spot
 				local toward = (target - center).Magnitude > 0.1 and (target - center).Unit or Vector3.yAxis
 				local best, bestDot = nil, -math.huge
 				for circle, out in circles do
-					if circle.Parent and out:Dot(toward) > bestDot then
-						best, bestDot = circle, out:Dot(toward)
+					-- not a circle under the floor or past the wall: its laser would be a 1-stud stub out of sight
+					local reaches = circle.Parent and (rayEnd(circle.Position, out) - circle.Position).Magnitude > 2
+					local score = out:Dot(toward) - (used[circle] and 0.5 or 0)
+					if reaches and score > bestDot then
+						best, bestDot = circle, score
 					end
 				end
-				-- the rays land by the window's end (nothing fires past 4.0 s, the sheet's key 9)
-				total += beam(best, target, k, math.max(0.12, windowEnd - os.clock() - 0.06))
+				if best then
+					used[best] = true
+				end
+				total += beam(best, target, k)
 			end
 			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), ICE, 3, 0.2)
 			if strike.T == 0 then -- the first strike flashes the whole room white (the slices' key 6)

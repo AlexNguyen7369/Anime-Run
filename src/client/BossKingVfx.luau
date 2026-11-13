@@ -1,11 +1,12 @@
 --!nonstrict
 -- The Golden King's effects (design doc 4.37 "Third boss", docs/BOSS_EVENT_SPEC.md "The Golden King"). Visual only: nothing here
 -- reads back into damage. Timed from BossKingPoses' schedule events, which server time alone decides, and built with Client/BossVfx's
--- helpers (BossVfx.Kit) in the arena's BossEffects folder, after Client/BossMageVfx's spam model. gates_start opens 12 to 20 golden
--- ripple portals around and behind him; gates fires the 2 s volley window: every 0.15 s, 14 times, 7 to 10 weapons
--- as gold projectiles tweened in straight lines from a portal to spots over the whole room, every third a gold beam instead.
+-- helpers (BossVfx.Kit) in the arena's BossEffects folder, after Client/BossMageVfx's spam model. gates_start opens 50 golden
+-- ripple portals on an ordered dome round his chest (DOME_TIERS: 4 fixed tiers, facing out and down to the lanes, open top),
+-- in his right arm's sweep from his left round his back to his front; gates fires the 2 s volley window: every 0.15 s, 14 times, 7 to 10 weapons as gold projectiles from any ready portal along its facing, every
+-- third a gold beam instead.
 -- enuma_start starts the red charge (the room's red dim, wind lines drawn into him) until enuma fires the red-black cyclone beam
--- that turns with his live torso (his baked hip turn) over the Window. The shields open on his call key (SHIELD_CALL s of shields)
+-- that runs along Ea's blade from its tip every frame (it turns as his whole rig turns 360 over the Window). The shields open on his call key (SHIELD_CALL s of shields)
 -- or when the ReplicatedStorage attribute BossFortified turns true: 5 to 7 gold shields of different shapes orbit him while it is
 -- true and shatter with a burst when it turns false; a ring the pose opened that the attribute never held is shattered 1 s into a
 -- later move.
@@ -19,7 +20,7 @@
 -- Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting"): under ReduceEffects or
 -- Roblox Reduced Motion nothing is drawn (no portals, weapons, wind, glow, flashes, trails or shields); LastStrikes and LastImpact
 -- still log every volley and the beam.
--- Spots and portal places come from a seed of the schedule start and the cycle, so every client draws the same ones. All sizes, counts
+-- Spots come from a seed of the schedule start and the cycle, so every client draws the same ones. All sizes, counts
 -- and colours are placeholders to judge from a capture. Debug field: BossEffects attribute LastStrikes, JSON { Move, Strikes }.
 -- BossVfxForce (client-local test attribute, as Client/BossVfx): not nil holds off the schedule; Portals, Volley (with its portals),
 -- Charge, Beam or Shields plays that event at once; Gates (portals and volleys) or Enuma (charge, then beam) a whole move. Not drawn
@@ -69,9 +70,12 @@ local CHARGE = eventTime("enuma", "enuma", 3) - eventTime("enuma", "enuma_start"
 local BEAM = window("enuma", 2)
 local STRIKE_COUNT, STRIKE_EVERY = 14, 0.15 -- as the mage (owner 2026-11-11): 0, 0.15, ... 1.95 s of the 2 s window
 local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10
--- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed): a dense arch of 16 to 22 portals, 18 to 30 studs
-local PORTALS_MIN, PORTALS_MAX = 16, 22
-local PORTAL_SIZES = { 28, 22, 19, 25 } -- studs across, by turns
+-- The Gates dome (owner 2026-11-13 later, design doc 4.37 "Boss effects after playing", "Gates approved and the rest
+-- pre-approved"; the approved sheet's tools/blender/boss_king_keyframes.py DOME_*): fixed tiers on a dome round his chest,
+-- { elevation degrees, portals, studs across }, evenly spaced, alternate tiers offset half a step, none over 60 deg (open top).
+local DOME_TIERS = { { 8, 16, 28 }, { 22, 14, 22 }, { 38, 12, 18 }, { 55, 8, 14 } }
+local DOME_RADIUS = 85 -- studs from his Torso (owner 2026-11-13: "bigger dome, no overlap", then picked 85 after seeing 110)
+local PORTAL_LIGHT_EVERY = 4 -- every 4th portal casts a gold light (12 of 50)
 local PORTAL_ART = Art.PortalC ~= nil and Art.PortalC ~= "" and Art.PortalC or Art.Ring -- design C once uploaded
 local PORTAL_TURN = 0.3 -- radians a second about its facing, slow (proposed)
 local PORTAL_CASCADE = 0.7 -- s over which they open, a few then many (proposed)
@@ -81,7 +85,7 @@ local SHIELDS_MIN, SHIELDS_MAX = 5, 7
 local SHIELD_RADIUS, SHIELD_TURN = 17, 0.7 -- studs from him, radians a second
 local SHARDS = 5 -- a shattering shield's pieces
 local SPOT_MAX = Arena.WallRadius - 4 -- the whole room: centre, lanes and walkway
-local SALT = { Portals = 1, Gates = 2, Shields = 3 }
+local SALT = { Gates = 2, Shields = 3, Fire = 5 }
 local TIP_HEIGHT = Arena.BossHeight * 0.85 -- the portals' and shields' height over his feet; the beam starts at Ea's tip
 -- The swirling wind (owner 2026-11-12, assets/ui/boss_king/wind_draft/ea_wind_strip.png): ribbons orbit Ea's axis, one turn per 0.8 s
 -- early, speeding up with the drums to one per 0.35 s by 2.75 s; 4 ribbons, 5 from 1.5 s, 6 from 2.25 s. Sizes proposed.
@@ -107,28 +111,24 @@ local HIT_FLASH, HIT_CORE, HIT_SECONDS = 11, 5, 0.3 -- studs across a hit's gold
 local RING_FROM, RING_TO, RING_SECONDS = 6, 34, 0.36 -- studs across a hit's gold shock ring as it grows, s
 local SPARKS_PER_HIT, DUST_PER_HIT = 6, 2
 -- owner 2026-11-12 (design doc 4.37 "Beams follow their source"): about 3 x wider, a red-and-black energy blast
-local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 14, 40, 60, 66 -- the sheets 7e6189c
-local BEAM_YAW_SLACK = 7 -- degrees the beam's yaw may leave its start offset from his torso (see axis()) -- studs across Enuma's white core, red, dark red, cyclone
+-- owner 2026-11-13 (design doc 4.37 "Owner additions" (6)): every layer 1.5 x wider (was 14, 40, 60, 66, the sheets 7e6189c)
+local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 21, 60, 90, 99 -- studs across Enuma's white core, red, dark red, cyclone
+local BEAM_HOT = Color3.fromRGB(255, 240, 224) -- the core's yellow-white hot (owner 2026-11-13)
 local CYCLONE_TURN = 9 -- radians a second the cyclone rolls about the beam
 -- Matched to the approved sheets (design doc 4.37 "The approved Blender key-frame renders are the final look"; rework
 -- gates_slices.png, enuma_slices.png; proposed). Gates: the room darkens to about 12% as the portals open, each open portal casting
 -- a gold light; blades are glowing rods; streaks leave gold sparkle dust. Enuma: the room goes red through the charge, a white
 -- full flash at 3.0 s, four red and black strands coil round the beam (Beams on the rolling cyclone, so they turn with it).
 local PORTAL_CLOSE = 0.3 -- s the portals take to close after the last volley (3.55 s) has left them
--- every other open portal's gold PointLight (Studio 2026-11-12: 20 lights at 2 turned him into a flat gold glow)
+-- a lit portal's gold PointLight (Studio 2026-11-12: 20 lights at 2 turned him into a flat gold glow)
 local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.3, 18
--- The arch of portals behind him, facing his front (the sheets' gates keys 3 to 9): degrees from his left to his right over his
--- head, studs from his chest, studs behind him, the arch's centre over his feet as a fraction of his height (proposed)
--- two rings of the arch, alternate portals on each (inner and outer studs from his chest), so the big ones overlap like the sheet's
-local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 118, { { 34, 38 }, { 54, 62 } }, { 6, 14 }, 0.6
 local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
 local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
-local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 6, 60, 30, 4, 170
+local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 6, 60, 45, 4, 170
 local CRACKLE_EVERY, CRACKLES, CRACKLE_SEGMENTS = 0.08, 4, 5 -- red lightning along the beam: s apart, bolts, segments each
-local SHOCK_EVERY, SHOCK_RING = 0.35, { 30, 80, 0.6 } -- the sheets: a shock wave 70 to 80 studs across -- the landing's red-black shock waves: s apart; studs from, to; s
-local LANE_REACH = Arena.InnerRadius + Arena.Width / 2 -- studs in front of a portal (flat) its facing meets the lanes
-local PORTAL_PITCH_MAX = 35 -- degrees a portal faces down at most -- studs; reach: from Ea's tip
-local HIT_GLOW = 30 -- studs across the red glow under Enuma's hit
+local SHOCK_EVERY, SHOCK_RING = 0.35, { 45, 120, 0.6 } -- the sheets: a shock wave 70 to 80 studs across -- the landing's red-black shock waves: s apart; studs from, to; s
+local LANE_REACH = Arena.InnerRadius + Arena.Width / 2 -- studs from his centre: the lanes' middle ring each portal faces
+local HIT_GLOW = 45 -- studs across the red glow under Enuma's hit
 local DIM_OUT, LIFT_SECONDS = 0.6, 0.3 -- s the dim takes to lift; the white flash lifts it this long
 local GATES_DIM =
 	{ -- the sunset room to a dusky mauve (Studio 2026-11-12: 12% and -0.3 read near black, the sheets are dusk)
@@ -142,7 +142,8 @@ local GATES_DIM =
 local ENUMA_DIM = { -- red and dark through the charge and the beam (owner 2026-11-12: the room flooded red and dark)
 	Floor = 0.2,
 	In = CHARGE * 0.8,
-	Grade = { Brightness = -0.15, Contrast = 0.2, Saturation = 0.2, TintColor = Color3.fromRGB(255, 165, 150) },
+	-- warm, not pink (Studio 2026-11-13: a (255, 165, 150) tint turned the yellow-white core salmon; the sheet's core stays hot)
+	Grade = { Brightness = -0.2, Contrast = 0.2, Saturation = 0.2, TintColor = Color3.fromRGB(255, 205, 170) },
 	Torch = RED,
 	TorchDim = 0.3,
 }
@@ -162,6 +163,7 @@ local pools = {} -- name -> idle pooled parts of that name (Transparency 1) in t
 local ready = {} -- portals whose weapon tip shows, in the order they got ready: the volleys' origins
 local portalsUntil = -math.huge -- os.clock() at which this client's last opened portals are gone
 local waiting = {} -- shots with no ready portal yet, { Target, N }: fired from the first portal that gets ready
+local fireRng = nil -- picks each shot's ready portal at random (owner 2026-11-13), seeded once per Gates play
 local hitSpot, hitEmitters = nil, {} -- the one spot the hit particles come from, its emitters by name
 local dustLine = nil -- the one part the streak dust comes from, stretched along each shot
 local dim = nil -- the room's dim while it runs: { Born, EndAt, Grade, Look, Lights = { light -> its look } }
@@ -484,8 +486,8 @@ end
 
 local markReady -- portal: it may fire now (below, with the shots)
 
--- Golden ripple portals open around and behind him, facing out, held through the lead and the volleys: a ring part with a gold
--- shimmer and, once it is fully open, a weapon's tip pushing through; only then may it fire.
+-- Golden ripple portals open on an ordered dome round him, facing out and down to the lanes, held through the lead and the
+-- volleys: a ring part with a gold shimmer and, once it is fully open, a weapon's tip pushing through; only then may it fire.
 local function playPortals(cascade)
 	cascade = cascade or PORTAL_CASCADE
 	table.clear(portals)
@@ -495,40 +497,21 @@ local function playPortals(cascade)
 	if reduced() then
 		return 0
 	end
-	local rng = rngFor("Portals")
-	local count = rng:NextInteger(PORTALS_MIN, PORTALS_MAX)
 	-- held through the lead and the volleys; they close once the last volley (3.55 s) has left them
 	local hold = PORTAL_LEAD + GATES_WINDOW + 0.15 + PORTAL_CLOSE
 	portalsUntil = os.clock() + hold
 	startDim(GATES_DIM, hold - PORTAL_CLOSE)
 	local mine, run = effects, generation
-	for k = 1, count do
-		local size = PORTAL_SIZES[(k - 1) % #PORTAL_SIZES + 1]
-		-- on an arch behind him from his left over his head to his right, each facing his front (the sheets; was a ring round
-		-- him facing out, which put edge-on discs between him and the lanes)
-		local a = math.rad(ARCH_SPAN * (2 * (k - 1) / (count - 1) - 1)) + rng:NextNumber(-0.08, 0.08)
-		local facing = (king.Rest.LookVector * Vector3.new(1, 0, 1)).Unit
-		local right = facing:Cross(Vector3.yAxis)
-		local ring = ARCH_RADIUS[k % 2 + 1]
-		local radius = rng:NextNumber(ring[1], ring[2])
-		local anchor = him()
-			+ Vector3.new(0, Arena.BossHeight * ARCH_HEIGHT, 0)
-			+ (right * math.sin(a) + Vector3.yAxis * math.cos(a)) * radius
-			- facing * rng:NextNumber(ARCH_BACK[1], ARCH_BACK[2])
-		-- facing the lanes in front of it, pitched down, so its weapons fly out along its facing onto the lanes (owner 2026-11-12:
-		-- "beams follow their source")
-		local down = math.min(math.atan2(anchor.Y - Arena.Y, LANE_REACH), math.rad(PORTAL_PITCH_MAX))
-		local frame = CFrame.lookAt(anchor, anchor + facing) * CFrame.Angles(-down, 0, 0)
+	-- One portal, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
+	-- size), then the weapon tip through (owner 2026-11-12: portal, then weapon, then shot). lit: it may cast a gold light.
+	local function open(name, frame, size, k, opensAt, lit)
 		local turn = PORTAL_TURN * (k % 2 == 0 and 1 or -1)
-		-- The opening, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
-		-- size), then the weapon tip through (owner 2026-11-12: portal, then weapon, then shot).
-		local opensAt = cascade * math.sqrt((k - 1) / (count - 1))
 		Kit.after(opensAt, function()
 			if not current(mine, run) then
 				return
 			end
 			local left = hold - opensAt
-			local part = Kit.holder("Portal", frame, Vector3.new(0.6, 0.6, 0.3))
+			local part = Kit.holder(name, frame, Vector3.new(0.6, 0.6, 0.3))
 			-- design C: white, so the drawn gold shows as drawn (owner 2026-11-12)
 			local front = Kit.decal(part, PORTAL_ART, WHITE, Enum.NormalId.Front)
 			local back = Kit.decal(part, PORTAL_ART, WHITE, Enum.NormalId.Back)
@@ -552,12 +535,14 @@ local function playPortals(cascade)
 			shineImage.Image, shineImage.ImageTransparency = PORTAL_ART, 0.2
 			shineImage.Parent = shine
 			shine.Parent = part
-			local glow = Instance.new("PointLight") -- every other open portal lights the dimmed room gold
-			glow.Name = "PortalLight"
-			glow.Color, glow.Brightness, glow.Range, glow.Shadows = GOLD, 0, PORTAL_LIGHT_RANGE, false
-			glow.Enabled = k % 2 == 1
-			glow.Parent = part
-			Kit.tween(glow, PORTAL_GROW + PORTAL_OPEN, { Brightness = PORTAL_LIGHT })
+			local glow = nil
+			if lit then -- every PORTAL_LIGHT_EVERY-th portal lights the dimmed room gold
+				glow = Instance.new("PointLight")
+				glow.Name = "PortalLight"
+				glow.Color, glow.Brightness, glow.Range, glow.Shadows = GOLD, 0, PORTAL_LIGHT_RANGE, false
+				glow.Parent = part
+				Kit.tween(glow, PORTAL_GROW + PORTAL_OPEN, { Brightness = PORTAL_LIGHT })
+			end
 			Kit.tween(part, PORTAL_GROW, { Size = Vector3.new(size * 0.3, size * 0.3, 0.3) })
 			Kit.after(PORTAL_GROW, function()
 				if part.Parent then
@@ -597,7 +582,9 @@ local function playPortals(cascade)
 				Kit.tween(back, PORTAL_CLOSE, { Transparency = 1 })
 				Kit.tween(shineImage, PORTAL_CLOSE, { ImageTransparency = 1 })
 				Kit.tween(tip, PORTAL_CLOSE, { Transparency = 1, CFrame = frame * CFrame.new(0, 0, size * 0.1) })
-				Kit.tween(glow, PORTAL_CLOSE, { Brightness = 0 })
+				if glow then
+					Kit.tween(glow, PORTAL_CLOSE, { Brightness = 0 })
+				end
 				Kit.tween(
 					part,
 					PORTAL_CLOSE,
@@ -612,7 +599,42 @@ local function playPortals(cascade)
 			portalTips[part] = tip
 		end)
 	end
-	return math.ceil(count * 6 * hold)
+	-- The ordered dome (boss_king_keyframes.py jportal_set): centred on his Torso, DOME_RADIUS out at each tier's elevation, the
+	-- azimuth even with alternate tiers half a step on; each faces the lanes' middle ring straight out from it (out and down), so
+	-- its weapons fly onto the lanes (owner 2026-11-12: "beams follow their source"). No seed: every client draws the same dome.
+	local model = king.Him and king.Him.Model
+	local torso = model and model:FindFirstChild("Torso", true)
+	local centre = torso and torso.Position or him() + Vector3.new(0, Arena.BossHeight * 0.6, 0)
+	local slots = {}
+	for t, tier in DOME_TIERS do
+		local e, n = math.rad(tier[1]), tier[2]
+		for i = 1, n do
+			local az = 2 * math.pi * (i - 1 + 0.5 * ((t - 1) % 2)) / n
+			-- the sheet's az 0 is his left (Blender +X), going round his back (+Y); BossRaga's C turns those into -X and +Z
+			local out = king.Rest:VectorToWorldSpace(Vector3.new(-math.cos(az), 0, math.sin(az)))
+			local at = centre + out * DOME_RADIUS * math.cos(e) + Vector3.yAxis * DOME_RADIUS * math.sin(e)
+			local lane = Vector3.new(Arena.Center.X, Arena.Y, Arena.Center.Z) + out * LANE_REACH
+			table.insert(slots, { Az = az, Frame = CFrame.lookAt(at, lane), Size = tier[3] })
+		end
+	end
+	-- his arm's sweep: his left first, round his back to his front, low tiers first at each azimuth
+	table.sort(slots, function(a, b)
+		if a.Az ~= b.Az then
+			return a.Az < b.Az
+		end
+		return a.Frame.Y < b.Frame.Y
+	end)
+	for k, slot in slots do
+		open(
+			"Portal",
+			slot.Frame,
+			slot.Size,
+			k,
+			cascade * math.sqrt((k - 1) / (#slots - 1)),
+			k % PORTAL_LIGHT_EVERY == 0
+		)
+	end
+	return math.ceil(#slots * 6 * hold)
 end
 
 -- The vault's weapons (owner 2026-11-11: the volleys fire weapons as projectiles, not streaks): pooled pieces about a frame whose
@@ -758,14 +780,19 @@ local function fireShot(portal, target, n)
 	return SPARKS_PER_HIT + DUST_PER_HIT + DUST_PER_SHOT
 end
 
--- A ready portal of the open ones, by turns (i), or nil while none holds a weapon yet.
-local function readyPortal(i)
+-- A random ready portal of the open ones (owner 2026-11-13: no set order once they are open), or nil while none holds a
+-- weapon yet. Seeded (rngFor("Fire")), so every client picks the same; the strike spots keep their own generator.
+local function readyPortal()
 	for idx = #ready, 1, -1 do
 		if not ready[idx].Parent then
 			table.remove(ready, idx)
 		end
 	end
-	return #ready > 0 and ready[(i - 1) % #ready + 1] or nil
+	if #ready == 0 then
+		return nil
+	end
+	fireRng = fireRng or rngFor("Fire")
+	return ready[fireRng:NextInteger(1, #ready)]
 end
 
 -- A portal's weapon shows: it may fire, and the shots that waited for one fire from it now.
@@ -783,6 +810,7 @@ local function playVolley()
 	-- cue: KingGates (a rush of blades)
 	local list = plan()
 	logStrikes(list)
+	fireRng = rngFor("Fire")
 	local off = reduced()
 	if not off and os.clock() >= portalsUntil then
 		-- this client missed gates_start (a late join or start): the same seeded portals at once, still portal, tip, shot
@@ -796,7 +824,7 @@ local function playVolley()
 			end
 			local total = 0
 			for k, target in strike.Spots do
-				local portal = readyPortal(j + k - 1)
+				local portal = readyPortal()
 				if portal then
 					total += fireShot(portal, target, j + k)
 				else
@@ -972,15 +1000,9 @@ local function playBeam()
 	end
 	local length = Arena.WallRadius * 1.1
 	local born = os.clock()
-	-- Along Ea's blade from its tip, yaw and pitch, frame by frame (owner 2026-11-12, "beams follow their source"; was his
-	-- torso's flat facing pitched to the lanes). Ea's axis: its joint to its tip.
-	-- shortcut: ui_boss_king_vfx enuma_beam_follows_hips wants the beam's yaw to stay within 15 deg of its offset from his
-	-- torso, and Ea's own yaw drifts about 17 deg from it over the sweep; so the yaw follows Ea within BEAM_YAW_SLACK of its
-	-- start offset (pitch follows Ea fully). Lift the clamp when the check is changed to follow Ea (reported 2026-11-12).
-	local startOffset = nil
-	local function yawOf(v)
-		return math.atan2(-v.X, -v.Z)
-	end
+	-- Exactly along Ea's blade from its tip, frame by frame, no clamp or tilt (design doc 4.37 "Owner 2026-11-13, later"): where
+	-- it lands on the lanes is Ea's baked pitch. Ea's axis: its joint to its tip. Read after BossKing:Step posed him this frame
+	-- (Client/BossArenaView steps the rig, then these effects, on one Heartbeat), so it never lags a frame.
 	local function axis()
 		local origin = king:Tip()
 		local root = king.Him and king.Him.Joints and king.Him.Joints.Ea and king.Him:Point("Ea", Vector3.zero)
@@ -989,18 +1011,7 @@ local function playBeam()
 			local look = king.Him and king.Him:Frame("Torso").LookVector or Vector3.new(0, 0, -1)
 			dir = Vector3.new(look.X, -0.4, look.Z)
 		end
-		dir = dir.Unit
-		local torso = king.Him and king.Him:Frame("Torso").LookVector
-		local flat = Vector2.new(dir.X, dir.Z).Magnitude
-		if torso and flat > 0.05 then
-			local torsoYaw = yawOf(torso)
-			local offset = math.atan2(math.sin(yawOf(dir) - torsoYaw), math.cos(yawOf(dir) - torsoYaw))
-			startOffset = startOffset or offset
-			local slack = math.rad(BEAM_YAW_SLACK)
-			local yaw = torsoYaw + math.clamp(offset, startOffset - slack, startOffset + slack)
-			dir = Vector3.new(-math.sin(yaw) * flat, dir.Y, -math.cos(yaw) * flat).Unit
-		end
-		return origin, dir
+		return origin, dir.Unit
 	end
 	local function frame(roll)
 		local origin, dir = axis()
@@ -1010,13 +1021,52 @@ local function playBeam()
 		return frame(0)
 	end
 	local core = Kit.holder("EnumaBeam", frame(0), Vector3.new(BEAM_RED, BEAM_RED, length))
-	core.Material, core.Color, core.Transparency = NEON, Color3.fromRGB(255, 95, 45), 0.5 -- warm red-orange -- Studio 2026-11-12: at 0.1 it hid the white core
+	core.Material, core.Color, core.Transparency = NEON, Color3.fromRGB(255, 110, 40), 0.8 -- warm red-orange -- Studio 2026-11-13: at 0.5 it buried the hot core
 	tracked[core] = straight
 	local white = Kit.holder("EnumaBeamCore", frame(0), Vector3.new(BEAM_CORE, BEAM_CORE, length))
-	white.Material, white.Color, white.Transparency = NEON, WHITE, 0
+	white.Material, white.Color, white.Transparency = NEON, BEAM_HOT, 0
 	tracked[white] = straight
+	-- the energy beam's edges (owner 2026-11-13): two thin bright red rim lines along the red layer's sides
+	local rims = {}
+	for _, side in { -1, 1 } do
+		local from, to = Instance.new("Attachment"), Instance.new("Attachment")
+		from.Position = Vector3.new(side * BEAM_RED / 2, 0, length / 2)
+		to.Position = Vector3.new(side * BEAM_RED / 2, 0, -length / 2)
+		from.Parent, to.Parent = core, core
+		local rim = Instance.new("Beam")
+		rim.Name = "EnumaRim"
+		rim.Attachment0, rim.Attachment1 = from, to
+		rim.Width0, rim.Width1 = 1.5, 1.5
+		rim.FaceCamera, rim.Segments = true, 1
+		rim.Color = ColorSequence.new(Color3.fromRGB(255, 40, 40))
+		rim.LightEmission, rim.LightInfluence = 1, 0
+		rim.Parent = core
+		table.insert(rims, rim)
+	end
+	-- orange fire billows streaming inside the beam from Ea's tip outward (the holder's Front face points away from Ea)
+	local fire = Kit.holder("EnumaFire", frame(0), Vector3.new(BEAM_RED * 0.6, BEAM_RED * 0.6, length))
+	tracked[fire] = straight
+	local billows = Kit.emitter(fire, {
+		Name = "EnumaFire",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(Color3.fromRGB(255, 150, 40), Color3.fromRGB(255, 220, 90)),
+		LightEmission = 1,
+		LightInfluence = 0,
+		Shape = Enum.ParticleEmitterShape.Box,
+		ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume,
+		EmissionDirection = Enum.NormalId.Front,
+		SpreadAngle = Vector2.new(10, 10),
+		Size = sequence(0, 18, 1, 40),
+		Transparency = sequence(0, 0.05, 1, 1),
+		Lifetime = NumberRange.new(0.3, 0.6),
+		Speed = NumberRange.new(80, 140),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-90, 90),
+		Rate = 75,
+		Enabled = true,
+	})
 	local outer = Kit.holder("EnumaBeamOuter", frame(0), Vector3.new(BEAM_OUTER, BEAM_OUTER, length))
-	outer.Material, outer.Color, outer.Transparency = NEON, Color3.fromRGB(190, 45, 25), 0.72
+	outer.Material, outer.Color, outer.Transparency = NEON, Color3.fromRGB(190, 45, 25), 0.88 -- Studio 2026-11-13: a red edge glow, not a tube
 	outer.Shape = Enum.PartType.Cylinder -- a round layer: the Cylinder's axis is X, turned to the beam's Z below
 	outer.Size = Vector3.new(length, BEAM_OUTER, BEAM_OUTER)
 	local toAxis = CFrame.Angles(0, math.pi / 2, 0)
@@ -1026,7 +1076,7 @@ local function playBeam()
 	-- The cyclone: a faint dark sheath rolling about the beam, carrying the four red and black strands (helices of Beams on its
 	-- attachments, built once, so they turn with it at no cost a frame).
 	local sheath = Kit.holder("EnumaCyclone", frame(0), Vector3.new(BEAM_CYCLONE, BEAM_CYCLONE, length))
-	sheath.Material, sheath.Color, sheath.Transparency = Enum.Material.SmoothPlastic, DARK, 0.85
+	sheath.Material, sheath.Color, sheath.Transparency = Enum.Material.SmoothPlastic, DARK, 0.97 -- the dark strands carry the black
 	tracked[sheath] = function()
 		return frame((os.clock() - born) * CYCLONE_TURN) -- the sheath rolls: the cyclone
 	end
@@ -1055,8 +1105,9 @@ local function playBeam()
 				beam.CurveSize0, beam.CurveSize1 = reach, reach
 				beam.Width0, beam.Width1 = STRAND_WIDTH * 1.4, STRAND_WIDTH * 1.4
 				beam.FaceCamera, beam.Segments = true, 8
-				-- the light strands pale red-white, so they read on the red beam (Studio 2026-11-12: red on red was lost)
-				beam.Color = ColorSequence.new(red and Color3.fromRGB(255, 200, 195) or DARK)
+				-- red and black arcs round the hot core, as the approved sheet (Studio 2026-11-13: with the red layers thinned, red
+				-- reads again; the pale red-white of 2026-11-12 read as a pink striped tube)
+				beam.Color = ColorSequence.new(red and Color3.fromRGB(235, 35, 30) or DARK)
 				beam.LightEmission, beam.LightInfluence = red and 1 or 0, 0
 				beam.Transparency = NumberSequence.new(half > halves - 4 and 0.5 or 0) -- the far end thins out
 				beam.Parent = sheath
@@ -1076,7 +1127,7 @@ local function playBeam()
 		local at = origin + dir * far
 		return CFrame.new(at.X, Arena.Y + 1, at.Z)
 	end
-	local spot = Kit.holder("EnumaHit", ground(), Vector3.new(16, 1, 16))
+	local spot = Kit.holder("EnumaHit", ground(), Vector3.new(24, 1, 24))
 	tracked[spot] = ground
 	-- the hit's glow on the deck: a red disc with a white ring, a white-hot core, a red light over the lanes
 	local flat = CFrame.Angles(0, 0, math.pi / 2)
@@ -1142,6 +1193,25 @@ local function playBeam()
 		Rotation = NumberRange.new(0, 360),
 		RotSpeed = NumberRange.new(-60, 60),
 		Rate = 30,
+		Enabled = true,
+	})
+	-- rubble chunks and dust thrown up where it meets the deck (owner 2026-11-13)
+	local rubble = Kit.emitter(spot, {
+		Name = "EnumaRubble",
+		Texture = Art.Dust,
+		-- lit chunks, so the rubble reads in the red dim (Studio 2026-11-13: brown rubble was lost)
+		Color = ColorSequence.new(Color3.fromRGB(255, 180, 110), Color3.fromRGB(120, 90, 80)),
+		LightEmission = 0.5,
+		LightInfluence = 0,
+		EmissionDirection = Enum.NormalId.Top,
+		SpreadAngle = Vector2.new(40, 40),
+		Size = sequence(0, 4, 1, 2.5),
+		Lifetime = NumberRange.new(0.8, 1.2),
+		Speed = NumberRange.new(30, 60),
+		Acceleration = Vector3.new(0, -120, 0),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-200, 200),
+		Rate = 25,
 		Enabled = true,
 	})
 	-- red-black shock waves racing out from the landing, and red lightning crackling along the beam
@@ -1214,7 +1284,7 @@ local function playBeam()
 		Rate = 60,
 		Enabled = true,
 	})
-	total += (60 + 45 * 0.6 + 28 * 1.3) * BEAM
+	total += (60 + 45 * 0.6 + 28 * 1.3 + 75 * 0.6 + 25 * 1.2) * BEAM
 	-- the white full flash at 3.0 s (the sheet's key 7): the impact's flash white, the red dim lifted under it
 	Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM, 0, ENUMA_FLASH) -- a full white frame (the sheet's key 7)
 	if dim then
@@ -1224,6 +1294,10 @@ local function playBeam()
 	roomLight(him() + Vector3.new(0, 30, 0), RED, 2.5, BEAM + 0.3) -- Studio 2026-11-12: at 6 he read flat red
 	Kit.after(BEAM, function()
 		smoke.Enabled, burstEmitter.Enabled, smokeEmitter.Enabled, fireEmitter.Enabled = false, false, false, false
+		billows.Enabled, rubble.Enabled = false, false
+		for _, beam in rims do
+			beam.Enabled = false
+		end
 		for _, beam in strands do
 			beam.Enabled = false
 		end
@@ -1233,6 +1307,7 @@ local function playBeam()
 		Kit.tween(hitLight, 0.3, { Brightness = 0 })
 	end)
 	Kit.expire(core, BEAM + 0.35)
+	Kit.expire(fire, BEAM + 0.7)
 	Kit.expire(white, BEAM + 0.35)
 	Kit.expire(outer, BEAM + 0.35)
 	Kit.expire(glow, BEAM + 0.35)

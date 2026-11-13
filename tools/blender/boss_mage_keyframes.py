@@ -1410,10 +1410,96 @@ def fx_circles(rig, arg, rng, gem):
 		lamp(c + Vector((0, 0, SPHERE_R * 0.6)), (0.55, 0.85, 1.0), 4e4 * (SIZE / 4) ** 2, 10)
 
 
+def mist_mat(name, scale, cover, base, inner):
+	"""The Zoltraak beam's black mist (owner reference 2026-11-13, design doc 4.37): a grainy haze lit by the beam (`base`: its
+	emission, grey-cyan) broken by near-black speckles over `cover` of it (0 to 1), with sparse white-cyan specks. The grain is a fine
+	fractal noise in object space (studs), so the black reads against the dark room and against the beam. `inner`: the radius, over
+	the tube's, inside which the mist is not drawn (seen side on), so it hugs the outside of the beam and never veils the core."""
+	key = (name, scale, cover, base, inner)
+	if key in _mats:
+		return _mats[key]
+	m = bpy.data.materials.new(name)
+	m.use_nodes = True
+	nt = m.node_tree
+	for n in list(nt.nodes):
+		nt.nodes.remove(n)
+	N, L = nt.nodes.new, nt.links.new  # noqa: N806
+
+	def op(kind, a, b):
+		n = N("ShaderNodeMath")
+		n.operation = kind
+		for i, v in enumerate((a, b)):
+			if isinstance(v, float):
+				n.inputs[i].default_value = v
+			else:
+				L(v, n.inputs[i])
+		return n.outputs[0]
+
+	def noise(sc):
+		n = N("ShaderNodeTexNoise")
+		n.inputs["Scale"].default_value, n.inputs["Detail"].default_value, n.inputs["Roughness"].default_value = sc, 8.0, 0.75
+		L(tc.outputs["Object"], n.inputs["Vector"])
+		return n.outputs["Fac"]
+
+	def emit(rgb, strength):
+		n = N("ShaderNodeEmission")
+		n.inputs["Color"].default_value, n.inputs["Strength"].default_value = (*rgb, 1), strength
+		return n.outputs[0]
+
+	def mix(fac, a, b):
+		n = N("ShaderNodeMixShader")
+		L(fac, n.inputs[0])
+		L(a, n.inputs[1])
+		L(b, n.inputs[2])
+		return n.outputs[0]
+
+	tc, vor, sep = N("ShaderNodeTexCoord"), N("ShaderNodeTexVoronoi"), N("ShaderNodeSeparateColor")
+	vor.inputs["Scale"].default_value = scale * 1.2
+	L(tc.outputs["Object"], vor.inputs["Vector"])
+	L(vor.outputs["Color"], sep.inputs[0])
+	geo, ax = N("ShaderNodeNewGeometry"), N("ShaderNodeAttribute")  # the view ray across the beam: its component along the axis removed
+	ax.attribute_type, ax.attribute_name = "OBJECT", "axis"  # the beam's direction, set per tube by fx_beams
+
+	def vec(kind, a, b=None):
+		n = N("ShaderNodeVectorMath")
+		n.operation = kind
+		L(a, n.inputs[0])
+		if b is not None:
+			L(b, n.inputs[1])
+		return n.outputs["Value" if kind in ("DOT_PRODUCT", "LENGTH") else "Vector"]
+
+	along = N("ShaderNodeVectorMath")
+	along.operation = "SCALE"
+	L(ax.outputs["Vector"], along.inputs[0])
+	L(vec("DOT_PRODUCT", geo.outputs["Incoming"], ax.outputs["Vector"]), along.inputs["Scale"])
+	across = vec("NORMALIZE", vec("SUBTRACT", geo.outputs["Incoming"], along.outputs["Vector"]))
+	facing = op("SUBTRACT", 1.0, op("ABSOLUTE", vec("DOT_PRODUCT", geo.outputs["Normal"], across), 0.0))
+	side = op("GREATER_THAN", facing, 1 - math.sqrt(1 - inner * inner))  # outside the inner radius, seen from the camera
+	fall = op("MULTIPLY", op("POWER", facing, 1.5), 0.5)  # soft falloff: dense by the glow, none at the outer silhouette
+	thin = op("ADD", fall, 0.4)  # an irregular, noisy outer edge, no hard rim
+	grain = op("MULTIPLY", side, op("GREATER_THAN", noise(scale * 2.4), thin))  # the lit haze, grainy
+	dark = op("MULTIPLY", side, op("GREATER_THAN", noise(scale), op("ADD", fall, 0.5 + (0.5 - cover) * 0.3)))  # the black speckles
+	spark = op("MULTIPLY", side, op("MULTIPLY", op("GREATER_THAN", sep.outputs[0], 0.85), op("LESS_THAN", vor.outputs["Distance"], 0.1)))
+	sh = mix(grain, N("ShaderNodeBsdfTransparent").outputs[0], emit((0.6, 0.78, 0.82), base))
+	sh = mix(dark, sh, emit((0.004, 0.004, 0.008), 1.0))
+	sh = mix(spark, sh, emit((0.75, 0.95, 1.0), 9.0))
+	L(sh, N("ShaderNodeOutputMaterial").inputs["Surface"])
+	m.surface_render_method = "BLENDED"
+	_mats[key] = m
+	return m
+
+
+# Zoltraak lasers (owner 2026-11-13, design doc 4.37 "Boss effects after playing", BOSS_EVENT_SPEC values proposed): layer widths in
+# studs (white core 3, cyan-white glow 5, near-black edge 6.8, edge transparency 0.6), the black mist round the outside, and the
+# impact mound (4 to 8 studs across, at most 3 studs high, 3 to 5 puffs).
+BEAM_CORE, BEAM_GLOW, BEAM_EDGE, BEAM_MIST = 3.0, 5.0, 6.8, 13.0
+
+
 def fx_beams(rig, arg, rng, gem):
-	"""beams[:set]: from 2.0 s, 10 of the 16 circles (a set per key) fire straight out along their outward facing, from the circle's
-	centre to where that line meets the floor or the wall (owner 2026-11-12, "beams follow their source"): a white-hot core, a cyan
-	rim and a thin dark edge, a white hit with small black smoke."""
+	"""beams[:set]: from 2.0 s, 10 of the 16 circles (a set per key) fire lasers straight out along their outward facing, the full
+	length from the circle's centre to where that line meets the floor or the wall (owner 2026-11-12, "beams follow their source";
+	2026-11-13, lasers): a white-hot core, a cyan-white glow and a near-black edge, wrapped in dark speckled black mist with a few
+	white-cyan specks; at the end a white flash and a small low mound of dark grey smoke."""
 	s = SIZE / 4
 	rr = random.Random(780 + int(arg or 0))
 	circles = circle_set(rig)
@@ -1424,16 +1510,36 @@ def fx_beams(rig, arg, rng, gem):
 		if a2 > 1e-6:  # the wall, a cylinder at R_WALL round the arena centre
 			t = min(t, (-b2 + math.sqrt(b2 * b2 - 4 * a2 * (p.x**2 + p.y**2 - R_WALL**2))) / (2 * a2))
 		end = p + d * min(t, 400)
-		w = studs * 0.06
 		near = d.dot(cam) > 0.05  # a beam leaving toward the sheet's camera: kept faint so her pose reads (arena view: full)
-		for o in (tube([p, end], w * 1.75, glow_mat("BeamEdge", (0.0, 0.0, 0.0), 0.0, 0.55)), tube([p, end], w * 1.45, glow_mat("BeamRim", (0.3, 0.85, 1.0), 3.0, 0.75)), tube([p, end], w, glow_mat("BeamCoreN", WHITE, 22))):
+		taper = min(8.0, (end - p).length / 4)
+		haze = [p, p + d * taper, end - d * taper, end]  # the mist pinches in at both ends: no hard cut or flat slab
+		layers = (
+			tube(haze, BEAM_MIST / 2, mist_mat("BeamMistOut", 0.9, 0.8, 0.0, BEAM_EDGE / BEAM_MIST)),
+			tube(haze, BEAM_MIST * 0.36, mist_mat("BeamMistIn", 1.4, 0.6, 0.6, BEAM_GLOW / BEAM_MIST / 0.72)),
+			tube(haze, BEAM_EDGE / 2, mist_mat("BeamEdge", 2.0, 1.0, 0.0, BEAM_GLOW / BEAM_EDGE)),  # near-black, only outside the glow
+			tube([p, end], BEAM_GLOW / 2, glow_mat("BeamRim", (0.4, 0.85, 1.0), 2.5, 0.5)),
+			tube([p, end], BEAM_CORE / 2, glow_mat("BeamCoreN", (0.92, 0.97, 1.0), 16)),
+		)
+		for o in layers:
 			o["wide_only"] = near
+			o.data.bevel_resolution = 6  # round, not faceted, in a close-up
+			o["axis"] = tuple(d)  # the mist reads it (mist_mat)
+			o.data.use_fill_caps = False  # no flat end caps on the haze
+			if len(o.data.splines[0].points) == 4:
+				o.data.splines[0].points[0].radius = o.data.splines[0].points[3].radius = BEAM_GLOW / 2 / o.data.bevel_depth  # never inside the glow
 		if near:
-			tube([p, end], w * 0.6, glow_mat("BeamFaint", (0.6, 0.9, 1.0), 2.0, 0.25))["close_only"] = True
-		ball(end, w * 2.2, glow_mat("BeamHit", WHITE, 18))
-		for _ in range(3):  # small black smoke at the hit
-			ball(end + Vector((rr.uniform(-1, 1) * w * 2, rr.uniform(-1, 1) * w * 2, rr.uniform(0.5, 2.5) * w)), rr.uniform(1.0, 1.8) * w, matte_mat("Smoke", (0.015, 0.015, 0.02)))
-		lamp(end + Vector((0, 0, 3 * s)), (0.6, 0.9, 1.0), 2.5e4 * s * s, 4)
+			tube([p, end], BEAM_CORE * 0.3, glow_mat("BeamFaint", (0.6, 0.9, 1.0), 2.0, 0.25))["close_only"] = True
+		ball(end + Vector((0, 0, 0.6)), 1.6, glow_mat("BeamHit", WHITE, 18))
+		ground = end.z < 1  # a wall hit: the mound sits on the floor at the wall's foot, under the hit
+		base = end if ground else Vector((end.x, end.y, 0)) - Vector((end.x, end.y, 0)).normalized() * 3
+		for j in range(rr.randint(4, 5)):  # the mound: round dark grey puffs on the floor, lit on top, about 6 studs across, under 3 high
+			r = 1.7 if j == 0 else rr.uniform(1.0, 1.4)  # one central puff, smaller ones round it
+			a = rr.uniform(0, math.tau)
+			off = Vector((math.cos(a), math.sin(a), 0)) * (0 if j == 0 else rr.uniform(1.6, 2.4))
+			o = ball(Vector((base.x, base.y, 0.75 * r)) + off, r, matte_mat("Mound", (0.03, 0.03, 0.033)))
+			o.scale.z = 0.8
+			o.data.polygons.foreach_set("use_smooth", [True] * len(o.data.polygons))  # soft round smoke
+		lamp(end + Vector((0, 0, 8 * s)), (0.6, 0.9, 1.0), 2.5e4 * s * s, 4)  # high enough that the mound reads dark grey, lit on top
 
 
 def fx_haze(rig, arg, rng, gem):
@@ -1662,14 +1768,14 @@ JMOVES.update(
 			"end": 5.4,
 			"cols": 5,
 			"strikes": [2.0, 4.0],
-			"note": "Dodge bar before the beams; cost event Barrage at 2.00 s (HIT, red); beam window 2.00 - 4.00 s, a strike every 0.15 s (14); barrage_in is generated. The room dims to a night; 16 cyan-white circles (24 - 40 studs) on a 45-stud sphere round her chest, facing outward, open one by one 0.08 s apart from 0.30 s (those between her and the camera drawn fainter); white-hot beams fire straight out along each circle's facing to the floor or wall, cyan rims, dark edges, black smoke.",
+			"note": "Dodge bar before the beams; cost event Barrage at 2.00 s (HIT, red); beam window 2.00 - 4.00 s, a strike every 0.15 s (14); barrage_in is generated. The room dims to a night; 16 cyan-white circles (24 - 40 studs) on a 45-stud sphere round her chest, facing outward, open one by one 0.08 s apart from 0.30 s (those between her and the camera drawn fainter); Zoltraak lasers (owner 2026-11-13) run the full length from each circle along its facing to the floor or wall: white-hot core 3, cyan-white glow 5, near-black edge 6.8 studs, wrapped in soft speckled black mist with a few white-cyan specks; each impact a white flash and a small low mound of dark grey smoke (4 - 8 studs, under 3 high).",
 			"keys": [
 				{"t": 0.0, "cap": "Idle key 0: hovering, staff across the body in both hands", **IDLE0},
 				{"t": 0.5, "cap": "Anticipation: staff swung back and low past her right hip, body coils right and dips; the first 3 circles open round her", "fx": ["circles:3"], "root": (0, 0.08, -0.25), "body": (0, 0, -14), "torso": (18, -2, -26), "head": (6, 0, 26), "RightArm": {"aim": (-2.15, 0.8, 2.75), "pole": (-0.4, 0.4, -1)}, "staff": {"dir": (-0.25, 0.85, -0.25)}, "LeftArm": {"aim": (1.2, -1.45, 3.1)}, "TailL": [(-16, -30, 6), (-10, -8, 0), (-8, -6, 0)], "TailR": [(-8, 40, -6), (-12, 12, 0), (-10, 8, 0)], "LeftLeg": {"hip": (-30, 0, -4), "knee": 72}, "RightLeg": {"hip": (-10, 0, 6), "knee": 55}},
 				{"t": 1.0, "cap": "Swing through, overshoot: staff whipped forward past level in both hands, chest arched; 9 of 16 circles open on a sphere round her", "fx": ["circles:9"], "root": (0, -0.12, 0.4), "body": (0, 0, 34), "torso": (-8, 6, -4), "head": (-16, 0, -24), **BRACE, "RightArm": {"aim": (-1.3, -1.2, 3.6), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-1, -0.42, 0.55)}, "TailL": [(12, -14, 0), (8, -4, 0), (6, -2, 0)], "TailR": [(16, 10, 0), (10, 4, 0), (8, 2, 0)], "LeftLeg": {"hip": (14, 0, -6), "knee": 15}, "RightLeg": {"hip": (28, 0, 8), "knee": 34}},
 				{"t": 1.45, "cap": "Settle: staff comes down level; the circles keep popping in one by one (15 of 16); tails fling up", "fx": ["circles:15"], "root": (0, -0.05, 0.2), "body": (0, 0, 32), "torso": (6, 4, -6), "head": (-8, 0, -26), **BRACE, "staff": {"dir": (-1, -0.42, 0.06)}, "TailL": [(-20, -44, 6), (-8, -10, 0), (-6, -6, 0)], "TailR": [(-16, 50, -4), (-8, 12, 0), (-4, 6, 0)], "LeftLeg": {"hip": (8, 0, -4), "knee": 34}, "RightLeg": {"hip": (18, 0, 6), "knee": 46}},
 				{"t": 1.85, "cap": "Brace (Dodge bar ends): all 16 circles open and bright round her, she leans into the staff, legs split; hair and tails blown back", "fx": ["circles:16:bright"], "root": (0, -0.15, 0.15), "body": (0, 0, 36), "torso": (16, 6, -6), "head": (-6, 0, -26), **BRACE, "TailL": TLB, "TailR": [(46, 30, 0), (16, 6, 0), (12, 4, 0)], "LeftLeg": {"hip": (26, 0, -6), "knee": 55}, "RightLeg": {"hip": (-34, 0, 8), "knee": 62}},
-				{"t": 2.0, "event": "Barrage", "look": "flash", "arena": "blue", "cap": "HIT, strike 1 of 14: the arena flashes white; the circles fire white-hot beams straight out along their facing, all round the room; the kick drives her back", "fx": ["flash", "circles:16:bright", "beams:0"], "root": (0, 0.28, 0.2), "body": (0, 0, 34), "torso": (0, 10, -2), "head": (-14, 0, -24), **BRACE, "staff": {"dir": (-1, -0.42, 0.14)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (36, 0, -8), "knee": 72}, "RightLeg": {"hip": (-22, 0, 8), "knee": 46}},
+				{"t": 2.0, "event": "Barrage", "look": "flash", "arena": "blue", "cap": "HIT, strike 1 of 14: the arena flashes white; the circles fire full-length white-hot lasers wrapped in black mist straight out along their facing, all round the room; the kick drives her back", "fx": ["flash", "circles:16:bright", "beams:0"], "root": (0, 0.28, 0.2), "body": (0, 0, 34), "torso": (0, 10, -2), "head": (-14, 0, -24), **BRACE, "staff": {"dir": (-1, -0.42, 0.14)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (36, 0, -8), "knee": 72}, "RightLeg": {"hip": (-22, 0, 8), "knee": 46}},
 				{"t": 2.6, "arena": "blue", "cap": "Strike 5: she drives the staff left across the room, beams rake the far lanes; weight forward, tails whip to her right", "fx": ["circles:16:bright", "beams:1"], "root": (0.1, -0.12, 0.12), "body": (0, 0, 62), "torso": (18, 2, -10), "head": (-4, 0, -36), **BRACE, "staff": {"dir": (-1, -0.32, -0.04)}, "TailL": [(30, -4, 10), (14, 6, 0), (12, 6, 0)], "TailR": [(52, 54, -10), (24, 14, 0), (18, 8, 0)], "LeftLeg": {"hip": (18, 0, -4), "knee": 40}, "RightLeg": {"hip": (-40, 0, 6), "knee": 75}},
 				{"t": 3.35, "arena": "blue", "cap": "Strike 10: hips swing the staff back to her right and lower, the beams rake the near lanes; tails whip the other way", "fx": ["circles:16:bright", "beams:3"], "root": (-0.1, 0, -0.05), "body": (0, 0, 10), "torso": (20, -6, 14), "head": (2, 0, -18), **BRACE, "staff": {"dir": (-1, -0.5, -0.18)}, "TailL": [(56, -40, -6), (24, -10, 0), (18, -6, 0)], "TailR": [(28, 6, 8), (12, -4, 0), (8, -6, 0)], "LeftLeg": {"hip": (36, 0, -10), "knee": 66}, "RightLeg": {"hip": (-20, 0, 10), "knee": 40}},
 				{"t": 4.0, "cap": "Release (beams end): she pulls the staff up and back, left hand off it; the beams are gone, the circles fade", "fx": ["circles:16:fade"], "root": (0, 0.12, 0.35), "body": (0, 0, 18), "torso": (-12, 4, 4), "head": (-12, 0, -14), "RightArm": {"aim": (-1.2, -1.15, 3.9), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-0.7, -0.3, 0.75)}, "LeftArm": {"aim": (1.0, -1.2, 3.5)}, "TailL": [(-28, -30, 0), (-16, -8, 0), (-12, -6, 0)], "TailR": [(-24, 36, 0), (-14, 10, 0), (-10, 6, 0)], "LeftLeg": {"hip": (4, 0, -4), "knee": 20}, "RightLeg": {"hip": (14, 0, 6), "knee": 30}},

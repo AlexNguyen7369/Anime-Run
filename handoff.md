@@ -2,6 +2,13 @@
 
 History: `current_progress.md`, `git log`.
 
+## RESUME HERE (2026-11-13, boss-vfx-360): PR #18 merged into main; play-main updated for the owner to play
+- Owner 2026-11-13 after playing: Zoltraak lasers with black mist and small impact smoke mounds; Gates of Babylon an ordered dome (50 portals, 4 tiers 8/22/38/55 deg, 16/14/12/8 at 28/22/18/14 studs, open top, radius 85 picked after seeing 58 and 110), random seeded firing portal; Enuma beam exactly along Ea, whole rig turns 370 deg following Ea's heading, 1.5x energy beam with hard black and red, Ea pitched about -26 deg in keys 7-9 so it lands ~138-150 studs out. Blender sheets first, owner approved all three, then pre-approved the rest. Rules: design doc 4.37 "Boss effects after playing"; spec same bullet. Review page https://claude.ai/artifact/6LT1q5EMEAPvXo63p3QQP7.
+- Studio (targeted): ui_boss_king_vfx 108/108, ui_boss_mage_vfx 125/125, late_data 101/101, boss_king_event 101/101, boss_mage_event 291/291, boss_king_anim fail=0; boss_king_arena only `arena_ids_listed` (pre-existing). Rules audit PASS, fresh merge review APPROVE.
+- Non-blocking: during enuma `him:Pose` runs twice a frame (BossKing.luau ~118); random firing portal can differ on a client that opened portals late (visual only); barrage room lit to 38% (cap 40% by the existing barrage dim check); Zoltraak close-up mist is loose puffs rather than a tight sheath; Enuma core reads cream, not yellow; `lightning_floor_light` flaked once.
+- Not run: full harness (owner rule: targeted only).
+- Next: owner plays `/boss king` and `/elfboss` (or `/boss mage`) with `/skiptime` from play-main and reports.
+
 ## RESUME HERE (2026-11-12, /skiptime): committed on `feature/alex/powerup-tune` (2ea7a07), not pushed
 - Owner 2026-11-12: `/skiptime` skips the boss event's 1 min preparation for faster testing. `BossEventService.SkipPrep()` shifts `StartAt`, `EndsAt`, `ScheduleStart` back by the time left and ticks; join close and timeout come that much sooner too. Admin command in `AdminService`, test section `skip_prep` in `BossEventTests`, BOSS_EVENT_SPEC admin list.
 - Studio: the 3 scripts were patched in place by `execute_luau` (Rojo 34873 was not synced to Studio; Studio's HttpService is allowlist-blocked for localhost). `boss_event` ran once: `[CARTEST] END pass=1 fail=0` (1 = the scenario; the per-check list was truncated in the console). Owner then said no harness, Studio handed to the other session while it was in Play. `CarTestOnly="boss_event"` may still be set on ReplicatedStorage in Edit: clear it before the next harness.
