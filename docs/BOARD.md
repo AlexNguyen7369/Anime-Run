@@ -1,7 +1,6 @@
 # Board
 
 ## Doing
-- boss-vfx-360 b1: Blender sheets for Zoltraak lasers, Gates dome, Enuma 360 energy beam; owner approval before game (doing 2026-11-13; game branches v1 7c4dcec, v2 0d060e3 parked)
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
@@ -18,6 +17,7 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- boss-vfx-360: Zoltraak lasers, Gates dome (radius 85), Enuma 360 energy beam; PR #18 (done 2026-11-13)
 - 2026-11-13 boss-anim-rework and summon-ui: jointed rigs, re-keyed moves, Blender-matched Elf Mage and Golden King effects, king arena and camera, galaxy summon tests and tutorial; owner pre-approved; PR #16 from feature/alex/boss-look-match
 - 2026-11-12 hud-team t4 Team icon N3 (0188684) and t5 Team panel draft A (850af85) on feature/alex/boss-mage: team 28/28, ui_team 52/52, ui_panels 1044/1044, ui_backpack_characters 35/37 (pre-existing tab reds); rules audit PASS; page https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar
 - 2026-11-12 PR #8 feature/alex/anime-world merged into main (4f9e2dc): hud-tech, Dojos removed + showpiece C, track power-ups; fresh review APPROVE; full harness waived by the owner

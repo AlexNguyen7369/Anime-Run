@@ -339,14 +339,15 @@ Deliverables:
 - s1 | ui_sidekicks and ui_sidekick_tutorial rewritten for the galaxy screen; the rebirth-2 free-summon tutorial rewritten to point at the galaxy screen's elements | both scenarios green in Studio; ui_hud, ui_sidekick_follow, ui_sidekick_attack, sidekicks unchanged
 Out of scope: changing the galaxy screen's look or behaviour, summon costs, odds, pity.
 
-## boss-vfx-360: Zoltraak lasers, Gates portal wall, 360 Enuma sweep (owner 2026-11-13)
-Status: active
-Owner-confirmed: 2026-11-13 (plan approved: `~/.claude/plans/zoltrack-beams-should-be-proud-volcano.md`; `/orchestrator this task`)
+## boss-vfx-360: Zoltraak lasers, Gates dome, Enuma 360 energy beam (owner 2026-11-13)
+Status: done 2026-11-13 (PR #18, fresh review APPROVE)
+Owner-confirmed: 2026-11-13 (plan approved; later "gates approved, go ahead and pre approve everything from here on. end to end implementation and merge")
 Branch: feature/alex/boss-vfx-360 (from main e7bb37e)
 Spec: design doc 4.37 "Boss effects after playing", docs/BOSS_EVENT_SPEC.md "Boss effects after playing"
 Deliverables:
-- v0 | Rules: 4.37 bullet, spec line, OWNER_QUESTIONS 21, this goal | written before code
-- v1 | Zoltraak lasers with black mist (`BossMageVfx`), `UiBossMage` checks red first | `ui_boss_mage_vfx` green; Studio capture
-- v2 | Gates ring portals and 360 Enuma sweep (`BossKingVfx`, `BossKing`), `UiBossKing` checks red first | `ui_boss_king_vfx` green; Studio captures; frame time with the wall open
-- v3 | Rules audit, PR into main with a fresh reviewer (only on the owner's word) | audit PASS
-Out of scope: Blender sheet re-renders (OWNER_QUESTIONS 21), server, costs, timings, other moves.
+- v0 | Rules: 4.37 bullet with every dated ruling, spec values, OWNER_QUESTIONS 21 | done; rules audit PASS
+- b1 | Blender sheets: Zoltraak barrage, Gates dome, Enuma 360 | done; owner approved all three
+- v1 | Zoltraak lasers, black mist, impact mounds (`BossMageVfx`) | done; `ui_boss_mage_vfx` 125/125
+- v2 | Gates dome radius 85, random firing; Enuma beam along Ea, 370 sweep, energy look, Ea re-key and re-bake | done; `ui_boss_king_vfx` 108/108, `boss_king_anim` fail=0
+- v3 | Audit, PR into main, fresh review, merge, play build | done
+Out of scope: server, costs, timings, other moves.
