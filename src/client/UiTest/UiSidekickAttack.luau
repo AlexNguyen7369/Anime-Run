@@ -9,8 +9,11 @@
 --   Folder workspace.AttackEffects: every effect lives in it. Not under workspace.SidekickFollowers: ui_sidekick_follow counts
 --   that folder's children as followers.
 --   Each direct child is a BasePart or Model with attributes Kind ("Shot" or "Impact"), OwnerId (the entry's UserId), SidekickId, and
---   Particles: what it asks for, emitted plus Rate x lifetime, reduced or not. A Shot also has Effect: a name, one per Sidekick.
---   Effect is "Simple" for side_raga, which has no approved attack, and for every shot under REDUCED EFFECTS.
+--   Particles: what it asks for, emitted plus Rate x lifetime. A Shot also has Effect: a name, one per Sidekick.
+--   Effect is "Simple" for side_raga, which has no approved attack.
+--   Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner 2026-11-12:
+--   Sidekick attacks in boss events included): with ReduceEffects no Shot or Impact child in AttackEffects and no particles;
+--   the damage numbers (UI) still show, one per entry, and the batch is still received.
 --   No effect part can collide, query or touch.
 --   A Shot moves toward the boss: BigRaga when built, else BossArenaConfig.Center. An Impact lands at the boss.
 --   Impact appears about 0.4 s after the batch arrives, whatever the attack's Release time: a long wind-up is entered part way.
@@ -40,7 +43,7 @@ local BOSS_REACH = 300 -- studs sideways from the arena's centre: the boss is 56
 local MIN_POSE = 15 -- degrees the attack turns the watched part from rest; each is at least 40 in keys.json
 local POSE_LEFT = 2 -- degrees
 local POSE_WAIT = 2 -- s: an attack is at most 1.45 s
-local TOTAL_PARTICLES, REDUCED_PARTICLES = 400, 60 -- 400 the brief's, 60 proposed
+local TOTAL_PARTICLES = 400 -- the brief's
 local CROWD = 6 -- with the local player, the 7 lanes
 local FAKE_ID = -1001 -- UiTestSetup's first crowd runner
 local LINE_USER = 100 -- BossTeamRig.Owner(100, n) is -(1000 + n): UiTestSetup's crowd runner n stands in for that player's slot n rig
@@ -508,14 +511,13 @@ function Module.Build(h)
 		h.player:SetAttribute("ReduceEffects", true)
 		local reducedPoses = burstPoses()
 		local reduced = watch(res, remote, burstEntries(), reducedPoses)
-		checkCommon(res, "reduced", reduced)
-		check(res, "reduced_every_player_shoots", countShots(reduced), CROWD + 1)
-		inRange(res, "reduced_particle_budget", reduced.Peak, 0, REDUCED_PARTICLES)
-		h.check(res, "reduced_smaller_than_full", reduced.Peak, "under " .. w.Peak, reduced.Peak < w.Peak)
-		for key, shot in reduced.Shots do
-			check(res, "reduced_simple_shot_" .. key, shot.Effect, "Simple")
-			check(res, "reduced_shot_shows_" .. key, shot.Shows, true)
-		end
+		-- Effects off (BOSS_EVENT_SPEC "Effects setting", owner 2026-11-12; replaces the reduced particle budget, smaller than
+		-- full, Simple shots that still show): no attack effect at all; the damage numbers stay.
+		check(res, "reduced_batch_received", reduced.Received ~= nil, true)
+		inRange(res, "reduced_gone_in_time", since(reduced, reduced.GoneAt), 0, GONE_LIMIT)
+		check(res, "reduced_no_shots", countShots(reduced), 0)
+		check(res, "reduced_no_impact", reduced.ImpactAt, nil)
+		check(res, "reduced_no_particles", reduced.Peak, 0)
 		check(res, "reduced_number_per_entry", reduced.NumbersAtOnce, CROWD + 1)
 		checkLeftAtRest(res, "reduced", reducedPoses)
 		h.player:SetAttribute("ReduceEffects", nil)

@@ -1,13 +1,13 @@
 # Board
 
 ## Doing
-- boss-anim-rework: built and verified on feature/alex/boss-anim-rework; waiting on the owner (record the pre-approval, uploads, mage tris, beam sweep), then the PR into main (2026-11-12)
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
 - boss-king k9: rules audit round 2, then PR into main with a fresh reviewer (doing 2026-11-11)
 
 ## Next
+- boss-anim-rework follow-up: Enuma beam follows Ea's full turn (retire `BEAM_YAW_SLACK` with the older hips check), beam lands on the deck, near-camera Zoltraak circles, barrage room brightness (see handoff.md)
 - boss-king: owner's look at `/boss king` in Studio and rulings on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-king open items)
 - boss-mage-2: owner plays `/elfboss` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-mage-2), pose data join size first
 - hud-team t4: Team icon N3 uploaded and wired (2026-11-12); `ui_team`, `ui_hud` to run inside m12
@@ -17,6 +17,7 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-13 boss-anim-rework and summon-ui: jointed rigs, re-keyed moves, Blender-matched Elf Mage and Golden King effects, king arena and camera, galaxy summon tests and tutorial; owner pre-approved; PR #16 from feature/alex/boss-look-match
 - 2026-11-12 hud-team t4 Team icon N3 (0188684) and t5 Team panel draft A (850af85) on feature/alex/boss-mage: team 28/28, ui_team 52/52, ui_panels 1044/1044, ui_backpack_characters 35/37 (pre-existing tab reds); rules audit PASS; page https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar
 - 2026-11-12 PR #8 feature/alex/anime-world merged into main (4f9e2dc): hud-tech, Dojos removed + showpiece C, track power-ups; fresh review APPROVE; full harness waived by the owner
 - 2026-11-11 boss-mage m12 the owner's way: anime-world merged into boss-mage (481a82d), merge audit PASS, full harness waived; boss-mage merged into boss-king for play (556434f)
