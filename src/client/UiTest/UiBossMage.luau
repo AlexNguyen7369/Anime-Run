@@ -34,7 +34,8 @@
 --     named Sparks under BossEffects during the strikes.
 --     Barrage, per beam (as many as the strike's spots): BarrageBeamCore white and BarrageBeamEdge near-black (each channel
 --     <= 0.2); a ParticleEmitter or BasePart named BarrageSmoke, dark, during the window.
---     MagicCircle: 10, see the barrage watch.
+--     MagicCircle: 16 on a sphere of about 45 studs round her Torso, each facing outward (LookVector within 30 deg of
+--     outward), see the barrage watch; each BarrageBeam (the glow) starts within 6 studs of a circle centre.
 --   Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner
 --     2026-11-12): with ReduceEffects (or Roblox Reduced Motion) no boss visual effect at all under BossEffects (no visible
 --     BasePart, enabled ParticleEmitter, Beam or Trail) except the strike marks (StrikeMark), a telegraph; LastStrikes still
@@ -1540,7 +1541,8 @@ function Module.Build(h)
 						end
 						clean = clean and not circlesLeft()
 						state(res, "Fight", Cfg.PrepSeconds + at, 4000, 4000, true, 100)
-						local seenOff, rows, firstBeam = {}, {}, math.huge
+						local beamFar, rows, firstBeam = {}, {}, math.huge
+						local beamBefore = {}
 						local entered = os.clock() + 2
 						local move, t = scheduleNow()
 						while not (move == "barrage" and t < 0.3) and os.clock() < entered do
@@ -1554,49 +1556,68 @@ function Module.Build(h)
 						while true do
 							move, t = scheduleNow()
 							if move ~= "barrage" or t < last - 1e-3 then
-								return t >= 2.4 and move == "barrage", rows, seenOff, firstBeam
+								return t >= 2.4 and move == "barrage", rows, beamFar, firstBeam
 							end
 							if t > 2.4 then
-								return true, rows, seenOff, firstBeam
+								return true, rows, beamFar, firstBeam
 							end
 							last = t
+							-- Owner 2026-11-12 (BOSS_EVENT_SPEC "Pose-tied effect values": a sphere all around her, replaces
+							-- the fan in front of the staff): each circle's place and facing seen from her torso, kept
+							-- from its last frame in the window (it is fully open by then).
+							local her = mage:FindFirstChild("Torso", true)
+							local beamNow = {}
 							for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
 								if d:IsA("BasePart") and d.Name == "MagicCircle" then
 									local row = rows[d]
 									if not row then
-										-- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values": "a wide fan
-										-- of rings in front of the staff and around her"): within 70 deg of the staff's aim seen
-										-- from her (was 25 deg from the tip, for a row of circles along the aim).
-										local grip, tip = staffEnds()
-										local her = mage:FindFirstChild("Torso", true)
-										local aim = (tip - grip).Unit
-										local to = d.Position - (her and her.Position or tip)
-										local angle = to.Magnitude > 0
-												and math.deg(math.acos(math.clamp(aim:Dot(to.Unit), -1, 1)))
-											or 180
-										if angle > 70 then
-											table.insert(seenOff, ("%.0f"):format(angle))
-										end
 										row = { At = t, Peak = 0, Sizes = {} }
 										rows[d] = row
 									end
 									local size = math.max(d.Size.X, d.Size.Y)
 									row.Peak = math.max(row.Peak, size)
 									table.insert(row.Sizes, { t, size })
+									if her then
+										local out = d.Position - her.Position
+										row.Distance = out.Magnitude
+										row.Facing = out.Magnitude > 0
+												and math.deg(
+													math.acos(
+														math.clamp(math.abs(d.CFrame.LookVector:Dot(out.Unit)), 0, 1)
+													)
+												)
+											or 180
+										row.Front = her.CFrame.LookVector:Dot(out) > 0
+										row.Above = out.Y > 0
+									end
 								elseif d:IsA("BasePart") and d.Name == "BarrageBeam" and d.Transparency < 1 then
 									firstBeam = math.min(firstBeam, t)
+									beamNow[d] = true
+									if not beamBefore[d] then -- a beam drawn: its start end against the circles now
+										local start = d.Position - d.CFrame.LookVector * d.Size.Z / 2
+										local best = math.huge
+										for circle in rows do
+											if circle.Parent then
+												best = math.min(best, (circle.Position - start).Magnitude)
+											end
+										end
+										if best > 6 then
+											table.insert(beamFar, ("%.1f"):format(best))
+										end
+									end
 								end
 							end
+							beamBefore = beamNow
 							task.wait()
 						end
 					end
-					local watched, circleRows, off, beamAt = observe(barrageAt)
+					local watched, circleRows, beamFar, beamAt = observe(barrageAt)
 					if not watched then
-						watched, circleRows, off, beamAt = observe(barrageAt + Poses.CycleSeconds)
+						watched, circleRows, beamFar, beamAt = observe(barrageAt + Poses.CycleSeconds)
 					end
 					check(res, tag .. "barrage_clean_start", clean, true)
 					check(res, tag .. "barrage_window_watched", watched == true, true)
-					circleRows, off, beamAt = circleRows or {}, off or {}, beamAt or math.huge
+					circleRows, beamFar, beamAt = circleRows or {}, beamFar or {}, beamAt or math.huge
 					local list = {}
 					for _, row in circleRows do
 						row.FullAt = math.huge -- first time at 98% of its peak
@@ -1610,12 +1631,33 @@ function Module.Build(h)
 					table.sort(list, function(x, y)
 						return x.At < y.At
 					end)
+					-- times increasing only: sizes vary across the sphere now (owner 2026-11-12, BOSS_EVENT_SPEC "Pose-tied
+					-- effect values"; was also sizes not decreasing, small to large)
 					local ordered, minGap = #list > 1, math.huge
 					for i = 2, #list do
-						ordered = ordered and list[i].At > list[i - 1].At and list[i].Peak >= list[i - 1].Peak - 0.01
+						ordered = ordered and list[i].At > list[i - 1].At
 						minGap = math.min(minGap, list[i].At - list[i - 1].At)
 					end
-					local want = 10 -- owner 2026-11-12 after playing: 10 (was 6)
+					local want = 16 -- owner 2026-11-12: a sphere of 16 (was 10)
+					local offSphere, sides = {}, {}
+					for _, row in list do
+						if not row.Distance or row.Distance < 35 or row.Distance > 55 or row.Facing > 30 then
+							table.insert(
+								offSphere,
+								("%.1f studs, facing %.0f deg"):format(row.Distance or -1, row.Facing or 180)
+							)
+						end
+						if row.Distance then
+							sides[row.Front and "front" or "back"] = true
+							sides[row.Above and "above" or "below"] = true
+						end
+					end
+					local missingSides = {}
+					for _, side in { "front", "back", "above", "below" } do
+						if not sides[side] then
+							table.insert(missingSides, side)
+						end
+					end
 					local beforeBeams, lastFull, smallest, largest = 0, -math.huge, math.huge, 0
 					for _, row in list do
 						beforeBeams += row.At < 2.0 and 1 or 0
@@ -1628,10 +1670,14 @@ function Module.Build(h)
 						check(res, "reduced_no_barrage_circles", #list, 0)
 					else
 						check(res, tag .. "barrage_circles_seen", #list > 0, true)
-						h.checkList(res, tag .. "barrage_circles_in_front_of_staff", off)
+						-- on a sphere of about 45 studs round her chest, facing outward (owner 2026-11-12; replaces
+						-- barrage_circles_in_front_of_staff)
+						h.checkList(res, tag .. "barrage_circles_on_sphere", offSphere)
+						h.checkList(res, tag .. "barrage_circles_spread", missingSides)
 						check(res, tag .. "barrage_circles_one_after_another", ordered, true)
-						-- 0.15 s apart (owner 2026-11-12 after playing; was 0.28 with a 0.2 floor), 0.12 with frame slack
-						h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.12", #list > 1 and minGap >= 0.12)
+						-- 0.08 s apart (owner 2026-11-12, the sphere; was 0.15 with a 0.12 floor), 0.05 with frame slack
+						h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.05", #list > 1 and minGap >= 0.05)
+						h.checkList(res, tag .. "barrage_beam_from_circle", beamFar)
 						h.check(
 							res,
 							tag .. "barrage_circles_all_open_before_beams",
@@ -1649,8 +1695,8 @@ function Module.Build(h)
 								res,
 								"barrage_circles_bigger",
 								("%.1f to %.1f"):format(smallest, largest),
-								"smallest >= 28, largest >= 65", -- 30 to 70 studs (owner 2026-11-12 after playing; was 15 to 36)
-								#list > 0 and smallest >= 28 and largest >= 65
+								"smallest >= 22, largest >= 36", -- 24 to 40 studs (owner 2026-11-12, the sphere; was 30 to 70)
+								#list > 0 and smallest >= 22 and largest >= 36
 							)
 						end
 					end
