@@ -231,8 +231,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.18 Loading at high speed (owner 2026-11-01)
 - Biome meshes and textures must be loaded before a fast runner reaches them; sky and lighting must switch quickly at
   a biome boundary at any speed. Use the cheapest approach that keeps up at `MAX_CRUISE`. Client display only.
-  A Speed power-up (4.44) may run 1.5 x `MAX_CRUISE` for 3 s: the budget stays at `MAX_CRUISE`, the per-track `RunHold`
-  (4.25) still catches a boosted runner, and a late biome switch during those 3 s is accepted (**proposed**, taken on the
+  A Speed power-up (4.44) may run 1.2 x `MAX_CRUISE` for 2 s: the budget stays at `MAX_CRUISE`, the per-track `RunHold`
+  (4.25) still catches a boosted runner, and a late biome switch during those 2 s is accepted (**proposed**, taken on the
   owner's standing word 2026-11-11; see OWNER_QUESTIONS).
 - Biome while racing: the server publishes `RunTrack` (the track whose finish pad is still ahead) on the runner rig; the
   client takes the biome from it and switches at once at the finish pad. The nearest centre line (`ZoneAt`) is used only
@@ -581,17 +581,19 @@ before any Studio work.
 - Every placed power-up is on the runner's path and is always picked up (no steering, no misses; owner 2026-11-11).
 - Count scales with track length: about 1 per 1,000 studs (**placeholder**; Track 1 about 3, Track 10 about 22).
 - Two types for now:
-  - **Speed**: x1.5 cruise for 3 seconds. This boost may pass `MAX_CRUISE` (800) for those 3 seconds (owner
-    2026-11-11). It is the one timed exception to "the runner holds exact cruise everywhere" (3) and "cruise fixed
-    for the whole run" (TEAM_AND_STAMINA_SPEC) and to the loading budget in 4.18 (**proposed**). When it ends the runner goes back to its normal cruise.
-  - **Stamina**: +5 seconds of running for the character running at pickup. It may go past a full bar: the seconds
-    number on the team row shows the extra, the bar itself stays full (owner 2026-11-11); the extra drains first.
+  - **Speed**: a x1.2 turbo boost on cruise for 2 seconds (owner 2026-11-12; was x1.5 for 3 s). This boost may pass
+    `MAX_CRUISE` (800) for those 2 seconds (owner 2026-11-11). It is the one timed exception to "the runner holds exact
+    cruise everywhere" (3) and "cruise fixed for the whole run" (TEAM_AND_STAMINA_SPEC) and to the loading budget in
+    4.18 (**proposed**). When it ends the runner goes back to its normal cruise.
+  - **Stamina**: +3 seconds of running for the character running at pickup on Tracks 1-5, +2 seconds past Track 5
+    (Tracks 6-10) (owner 2026-11-12; was +5 s everywhere). It may go past a full bar: the seconds number on the team
+    row shows the extra, the bar itself stays full (owner 2026-11-11); the extra drains first.
 - Look (owner 2026-11-11, from the drafts https://claude.ai/artifact/AY1UokGYtRPBfzdVHgtWJz): each power-up is a
   **run-through ring** standing across the runner's lane (draft I4); the runner runs through it. Speed is orange with
   chevrons inside, Stamina the stamina bar's blue with a drop. Idle (owner 2026-11-11): the rim's
   pattern turns slowly and the glow breathes; REDUCED EFFECTS keeps only the turn.
 - HUD (owner 2026-11-11, draft H2): an active Speed boost shows as a badge on the running portrait's top-right corner
-  with a ring that drains over the 3 seconds; while a runner holds extra stamina seconds its seconds number turns blue.
+  with a ring that drains over the boost's 2 seconds; while a runner holds extra stamina seconds its seconds number turns blue.
 - Never saved. Not a paid item and never pays Money.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
@@ -664,6 +666,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-12: owner approved the rework review page: jointed Golden King, his 10 Enuma Elish keys, the Ea wind swirl, his arena draft and its camera with FOV 60 in his arena only (an exception to the event FOV of 100, which stays locked for the whole event), longer laps at the same cap, portal design C (sun wheel), and strike windows counted inside a move's 10 keys (4.37).
 - 2026-11-12: owner: the Golden King gets his own arena from the owner's concept image, larger than the colosseum; he keeps his size, hovers and gets stronger effects (replaces the treasure vault approved 2026-11-11 and "he does not hover") (4.37).
 - 2026-11-12: owner picked the Team drafts: icon 1 in more neutral colours, panel A "Line-up"; team selection moves from Items to the Team panel (4.40).
+- 2026-11-12: owner: power-ups tuned down: Speed is a x1.2 turbo boost for 2 s (was x1.5 for 3 s); Stamina gives +3 s on Tracks 1-5 and +2 s past Track 5 (was +5 s) (4.44, 4.18, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC).
 - 2026-11-12: owner: open panels and popups may overlap the HUD buttons, and the background behind any open panel or popup is dimmed lightly (4.42).
 - 2026-11-12: owner: boss data loads per boss shortly before its event or when it is spawned, not at join and not at the 30-minute announcement, and is removed after the event (section 7 Join size); the Bosses button moves into a second column right of the left column, between Index and Items, with a new Team button below it between Items and Rebirth (Team: design first, its panel will take team selection out of Items) (4.40).
 - 2026-11-12: owner: the Stone Golem has 1,000 HP per player (was flat 1,000); its rhythm dodge is slower and easier: a 3 second window (was 2), 3 circles 0.9 s apart, rings closing over 1.5 s, clicks within 0.35 s (4.37 Second boss, BOSS_EVENT_SPEC).

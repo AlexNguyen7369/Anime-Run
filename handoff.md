@@ -2,6 +2,19 @@
 
 History: `current_progress.md`, `git log`.
 
+## RESUME HERE (2026-11-12, /skiptime): committed on `feature/alex/powerup-tune` (2ea7a07), not pushed
+- Owner 2026-11-12: `/skiptime` skips the boss event's 1 min preparation for faster testing. `BossEventService.SkipPrep()` shifts `StartAt`, `EndsAt`, `ScheduleStart` back by the time left and ticks; join close and timeout come that much sooner too. Admin command in `AdminService`, test section `skip_prep` in `BossEventTests`, BOSS_EVENT_SPEC admin list.
+- Studio: the 3 scripts were patched in place by `execute_luau` (Rojo 34873 was not synced to Studio; Studio's HttpService is allowlist-blocked for localhost). `boss_event` ran once: `[CARTEST] END pass=1 fail=0` (1 = the scenario; the per-check list was truncated in the console). Owner then said no harness, Studio handed to the other session while it was in Play. `CarTestOnly="boss_event"` may still be set on ReplicatedStorage in Edit: clear it before the next harness.
+- Not seen live: `/skiptime` from chat on a real run.
+- Next: push the branch, PR into main (with the power-up tuning below).
+
+## RESUME HERE (2026-11-12, power-up tuning): committed on `feature/alex/powerup-tune` (02dc5b2), not pushed
+- Owner 2026-11-12: Stamina power-up gives 3 s, 2 s past Track 5; Speed is a x1.2 turbo boost for 2 s. Rules written with the date in design doc 4.44 and 4.18, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC, OWNER_QUESTIONS (risk line recomputed: a Secret at 800 covers 1,920 studs in 2 s).
+- Code: `PowerUpConfig` `SPEED_MULTI 1.2`, `SPEED_SECONDS 2`, `STAMINA_SECONDS 3`, `STAMINA_SECONDS_LATE 2`, `LATE_FROM_TRACK 6`, `StaminaSeconds(trackNumber)`; `RaceService` uses it by `race.Number`; `PowerUpView` ring label "+3" / "+2" from the set event's `Track`; `PowerUpTests` updated (new `powerups_stamina_seconds_by_track`, Secret check reads `SPEED_MULTI`).
+- Studio: `powerups` 23/23 fail=0 (max_dt 0.044). Rojo 34873 serves the main checkout on this branch (started this session, background). Rojo had synced 3 of the 4 files; `PowerUpTests` was written into Studio by `execute_luau` with the repo's exact content. Studio left in Edit, `CarTestOnly` / `CarTestRun` cleared.
+- Not seen live: the ring label and HUD badge drain at 2 s on a real run; `stamina` / `race` / `track_loading` scenarios not re-run (owner rule: targeted tests only).
+- Next: push the branch, PR into main, fresh review, merge; then the owner plays.
+- The main checkout was detached at 63a3810 (`hotfix/boss-vfx-kit-start`, in main) before this; the branch was cut from there.
 ## RESUME HERE (2026-11-13): boss look-match merged; review page has the final pairs
 - Owner pre-approved all of this work and ended the session at this review point. Review page: https://claude.ai/artifact/5ZJxJCKo8XGcDMzXdqbJ7Z (sections "final", "mage-pairs", "king-pairs", sheets).
 - Merged into main via `feature/alex/boss-look-match` (branches king-fx 601362b, mage-fx 83c2471, king-cam 6f85f76, summon-ui/s1 14bd334, sheets king-sheets 7e6189c and mage-sheets f8f2961). Final compatibility at 36a442b: only `arena_ids_listed`, `save_version` 19 vs 18 (sidekicks) and `sidekick_stage_shown_while_open` red.

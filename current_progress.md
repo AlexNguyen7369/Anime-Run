@@ -192,8 +192,10 @@
 188. 2026-11-12 — Alex Nguyen — Golden King lane camera retuned after playing so the runners stay in frame (FOV 80, eye 10, pitch 8, his arena only).
 189. 2026-11-12 — Alex Nguyen — Summon tests and the Sidekick tutorial rewritten for the galaxy summon screen (the screen as built is the rule; the tutorial closes the screen and points at Items after the free summon).
 190. 2026-11-13 — Alex Nguyen — Elf Mage and Golden King attack effects reworked to match re-rendered Blender target sheets (owner rule: Blender renders are the final look): dark lilac storm lightning, Zoltraak circles on a sphere with rays along their facing, Gates portal arch with portal-then-blade-then-shot and short gold rays, a dusk sky in his moves, a 60-stud red-black Enuma beam along Ea; boss effects all or nothing under the Effects toggle; four Studio match rounds per boss; merged as feature/alex/boss-look-match with the final compatibility run showing only the expected reds.
+191. 2026-11-12 — Alex Nguyen — Tuned track power-ups down on the owner's word (02dc5b2, branch feature/alex/powerup-tune): Speed x1.2 for 2 s (was x1.5 for 3 s), Stamina +3 s on Tracks 1-5 and +2 s past Track 5 (was +5 s); design doc 4.44 / 4.18, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC and the ring label updated; `powerups` 23/23 in Studio.
+192. 2026-11-12 — Alex Nguyen — Added admin `/skiptime` (2ea7a07, branch feature/alex/powerup-tune): `BossEventService.SkipPrep` moves the event's StartAt, EndsAt and ScheduleStart back by the time left in Prep so the fight starts now; BossEventTests `skip_prep` section; BOSS_EVENT_SPEC admin list; `boss_event` passed in Studio.
 
 ## What's next
-**Next session: let the Enuma Elish beam follow Ea's sideways turn fully (update the older `enuma_beam_follows_hips` check to the owner's "beams follow their source" rule and drop `BEAM_YAW_SLACK`), land the beam on the deck as the sheet does, and close the remaining look gaps on the review page (near-camera Zoltraak circles over her torso, the barrage room darker than its sheet).**
+**Owner plays the tuned power-ups and `/boss` + `/skiptime` from the main build; then the full compatibility harness when the owner wants a gate.**
 
-**Why this is next:** the owner pre-approved this work and will review it on the review page; these are the gaps the last Studio comparison left against the approved Blender sheets.
+**Why this is next:** PR #17 lands both on main; the full harness has never run on the merged tree (owner waived until all features are built), and these are the last tuning changes before that gate.

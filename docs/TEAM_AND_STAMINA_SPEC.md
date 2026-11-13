@@ -122,8 +122,8 @@ Stamina = Base(rarity or override)
   RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
   trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
-- Fixed for the whole run at run start (like stamina); no Speed stat, no gain. Exception: a Speed power-up's 3 s
-  boost and a Stamina power-up's +5 s (design doc 4.44, `docs/POWERUP_SPEC.md`).
+- Fixed for the whole run at run start (like stamina); no Speed stat, no gain. Exception: a Speed power-up's 2 s
+  x1.2 boost and a Stamina power-up's +3 s (+2 s past Track 5) (design doc 4.44, `docs/POWERUP_SPEC.md`).
 - Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
   - Speed potion factor = the active potion tier's own multi (BoostConfig: I x1.25, II x1.5, III x2), like the other
     potions; no tier = x1.

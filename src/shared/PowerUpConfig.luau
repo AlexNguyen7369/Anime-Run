@@ -5,9 +5,19 @@ local StaminaConfig = require(script.Parent.StaminaConfig)
 
 local PowerUpConfig = {}
 
-PowerUpConfig.SPEED_MULTI = 1.5 -- owner 2026-11-11; may pass MAX_CRUISE
-PowerUpConfig.SPEED_SECONDS = 3 -- owner 2026-11-11
-PowerUpConfig.STAMINA_SECONDS = 5 -- owner 2026-11-11; may overfill the seconds, the bar stays full
+PowerUpConfig.SPEED_MULTI = 1.2 -- owner 2026-11-12 (was 1.5); may pass MAX_CRUISE
+PowerUpConfig.SPEED_SECONDS = 2 -- owner 2026-11-12 (was 3)
+PowerUpConfig.STAMINA_SECONDS = 3 -- owner 2026-11-12 (was 5); may overfill the seconds, the bar stays full
+PowerUpConfig.STAMINA_SECONDS_LATE = 2 -- owner 2026-11-12: past Track 5
+PowerUpConfig.LATE_FROM_TRACK = 6
+
+-- Seconds a Stamina power-up gives on track `trackNumber` (owner 2026-11-12: 3 s on Tracks 1-5, 2 s past Track 5)
+function PowerUpConfig.StaminaSeconds(trackNumber)
+	if (trackNumber or 1) >= PowerUpConfig.LATE_FROM_TRACK then
+		return PowerUpConfig.STAMINA_SECONDS_LATE
+	end
+	return PowerUpConfig.STAMINA_SECONDS
+end
 PowerUpConfig.PER_STUDS = 1000 -- placeholder: about 1 power-up per this many studs of track
 PowerUpConfig.EDGE = 0.1 -- proposed: none in the first or last 10% of a track
 PowerUpConfig.MIN_GAP = 300 -- proposed: studs between two power-ups

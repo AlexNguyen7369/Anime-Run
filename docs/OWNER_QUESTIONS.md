@@ -147,14 +147,14 @@ Answered by the owner 2026-11-12: Team icon N3, upload allowed (image 8975862309
 Answered by the owner 2026-11-11 on the review page (https://claude.ai/artifact/6r7jJr5ykcdaAD574PHVH5): items 2 and 13 as marked above; models `boss_king` (2,872 tris, Ea massive, angular armor), `side_king` (2,422 tris) and `side_mage` (3,148 tris) approved; all the digital art (key Dodge icon, `Fortified` icon, portraits and heads, 5 Relics and chest, Bosses card) approved; upload allowed for the three models and all the Golden King art. Items 1, 3-12 and 14 stay open.
 
 ## 2026-11-11 power-ups: proposed defaults (design doc 4.44, POWERUP_SPEC)
-- Rules-audit question, answered with the recommended option on the owner's standing word ("auto approve by recommended", 2026-11-11), change it if wrong: the Speed boost is also the exception to the 4.18 loading budget (budget stays at `MAX_CRUISE`; `RunHold` still catches a boosted runner because holds are not distance look-ahead; a late biome switch during the 3 s is accepted). Alternative: raise the 4.18 budget to 1.5 x `MAX_CRUISE`.
+- Rules-audit question, answered with the recommended option on the owner's standing word ("auto approve by recommended", 2026-11-11), change it if wrong: the Speed boost is also the exception to the 4.18 loading budget (budget stays at `MAX_CRUISE`; `RunHold` still catches a boosted runner because holds are not distance look-ahead; a late biome switch during the 2 s is accepted). Alternative: raise the 4.18 budget to 1.2 x `MAX_CRUISE`.
 - Display constants, proposed: pickup pop 1.4x over 0.25 s, rim 16 pieces, glow light range 14, HUD badge 26 px. Stamina ring colour is the stamina bar's Full blue (60, 150, 255), the same as the HUD's blue number.
 - Known: `SpeedLeft` pauses during a `RunHold` but `PowerSpeedUntil` does not, so the badge can empty while the server boost is still owed after the hold (code `shortcut:` in RaceService).
 - Regular track runs only: none in boss arenas or duels.
 - Rolled per player at each track start, fresh every run (a loss reset rerolls).
 - Spots between 10% and 90% of the track, at least 300 studs apart; type 50/50 Speed / Stamina.
-- A second Speed during a boost resets the timer to 3 s (no stacking); the boost carries across a tag-in.
-- Risk: a Secret at 800 boosted to 1,200 studs/s covers 3,600 studs in 3 s; check the `RunHold` on Tracks 6-10 (4.25) still catches it.
+- A second Speed during a boost resets the timer to 2 s (no stacking); the boost carries across a tag-in.
+- Risk (recomputed 2026-11-12 for x1.2 / 2 s): a Secret at 800 boosted to 960 studs/s covers 1,920 studs in 2 s; check the `RunHold` on Tracks 6-10 (4.25) still catches it.
 - Ring size 12 studs, 6 over the rail; turn speed one turn per 4 s and glow breath 1.6 s (owner 2026-11-11 picked turning and glowing, no ground ring).
 
 ## 2026-11-12 boss-anim-rework: open items (design doc 4.37 "Animation rework")

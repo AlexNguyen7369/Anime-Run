@@ -1158,6 +1158,24 @@ local function tick(at)
 	end
 end
 
+-- Admin /skiptime: ends the preparation now by moving the event's clocks back by the time left, so the spawn, the join window
+-- and the timeout all come that much sooner. False outside Prep.
+function BossEventService.SkipPrep()
+	if not (event and event.Phase == "Prep") then
+		return false, "No event in preparation"
+	end
+	local at = now()
+	local left = event.StartAt + Cfg.PrepSeconds - at
+	if left <= 0 then
+		return false, "Preparation is over"
+	end
+	event.StartAt -= left
+	event.EndsAt -= left
+	event.ScheduleStart -= left
+	tick(at)
+	return true
+end
+
 -- The scheduler tick. An event moves first, so one ending on a mark does not skip that mark.
 function BossEventService.Advance(at)
 	at = at or now()
