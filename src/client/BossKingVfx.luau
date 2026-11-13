@@ -114,7 +114,9 @@ local HIT_FLASH, HIT_CORE, HIT_SECONDS = 11, 5, 0.3 -- studs across a hit's gold
 local RING_FROM, RING_TO, RING_SECONDS = 6, 34, 0.36 -- studs across a hit's gold shock ring as it grows, s
 local SPARKS_PER_HIT, DUST_PER_HIT = 6, 2
 -- owner 2026-11-12 (design doc 4.37 "Beams follow their source"): about 3 x wider, a red-and-black energy blast
-local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 14, 40, 60, 66 -- the sheets 7e6189c
+-- owner 2026-11-13 (design doc 4.37 "Owner additions" (6)): every layer 1.5 x wider (was 14, 40, 60, 66, the sheets 7e6189c)
+local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 21, 60, 90, 99
+local BEAM_HOT = Color3.fromRGB(255, 240, 224) -- the core's yellow-white hot (owner 2026-11-13)
 local BEAM_YAW_SLACK = 7 -- degrees the beam's yaw may leave its start offset from his torso (see axis()) -- studs across Enuma's white core, red, dark red, cyclone
 local CYCLONE_TURN = 9 -- radians a second the cyclone rolls about the beam
 -- Matched to the approved sheets (design doc 4.37 "The approved Blender key-frame renders are the final look"; rework
@@ -130,12 +132,12 @@ local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.3, 18
 local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 118, { { 34, 38 }, { 54, 62 } }, { 6, 14 }, 0.6
 local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
 local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
-local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 6, 60, 30, 4, 170
+local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 6, 60, 45, 4, 170
 local CRACKLE_EVERY, CRACKLES, CRACKLE_SEGMENTS = 0.08, 4, 5 -- red lightning along the beam: s apart, bolts, segments each
-local SHOCK_EVERY, SHOCK_RING = 0.35, { 30, 80, 0.6 } -- the sheets: a shock wave 70 to 80 studs across -- the landing's red-black shock waves: s apart; studs from, to; s
+local SHOCK_EVERY, SHOCK_RING = 0.35, { 45, 120, 0.6 } -- the sheets: a shock wave 70 to 80 studs across -- the landing's red-black shock waves: s apart; studs from, to; s
 local LANE_REACH = Arena.InnerRadius + Arena.Width / 2 -- studs in front of a portal (flat) its facing meets the lanes
 local PORTAL_PITCH_MAX = 35 -- degrees a portal faces down at most -- studs; reach: from Ea's tip
-local HIT_GLOW = 30 -- studs across the red glow under Enuma's hit
+local HIT_GLOW = 45 -- studs across the red glow under Enuma's hit
 local DIM_OUT, LIFT_SECONDS = 0.6, 0.3 -- s the dim takes to lift; the white flash lifts it this long
 local GATES_DIM =
 	{ -- the sunset room to a dusky mauve (Studio 2026-11-12: 12% and -0.3 read near black, the sheets are dusk)
@@ -1059,8 +1061,46 @@ local function playBeam()
 	core.Material, core.Color, core.Transparency = NEON, Color3.fromRGB(255, 95, 45), 0.5 -- warm red-orange -- Studio 2026-11-12: at 0.1 it hid the white core
 	tracked[core] = straight
 	local white = Kit.holder("EnumaBeamCore", frame(0), Vector3.new(BEAM_CORE, BEAM_CORE, length))
-	white.Material, white.Color, white.Transparency = NEON, WHITE, 0
+	white.Material, white.Color, white.Transparency = NEON, BEAM_HOT, 0
 	tracked[white] = straight
+	-- the energy beam's edges (owner 2026-11-13): two thin bright red rim lines along the red layer's sides
+	local rims = {}
+	for _, side in { -1, 1 } do
+		local from, to = Instance.new("Attachment"), Instance.new("Attachment")
+		from.Position = Vector3.new(side * BEAM_RED / 2, 0, length / 2)
+		to.Position = Vector3.new(side * BEAM_RED / 2, 0, -length / 2)
+		from.Parent, to.Parent = core, core
+		local rim = Instance.new("Beam")
+		rim.Name = "EnumaRim"
+		rim.Attachment0, rim.Attachment1 = from, to
+		rim.Width0, rim.Width1 = 1.5, 1.5
+		rim.FaceCamera, rim.Segments = true, 1
+		rim.Color = ColorSequence.new(Color3.fromRGB(255, 40, 40))
+		rim.LightEmission, rim.LightInfluence = 1, 0
+		rim.Parent = core
+		table.insert(rims, rim)
+	end
+	-- orange fire billows streaming inside the beam from Ea's tip outward (the holder's Front face points away from Ea)
+	local fire = Kit.holder("EnumaFire", frame(0), Vector3.new(BEAM_RED * 0.6, BEAM_RED * 0.6, length))
+	tracked[fire] = straight
+	local billows = Kit.emitter(fire, {
+		Name = "EnumaFire",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(Color3.fromRGB(255, 150, 40), Color3.fromRGB(255, 220, 90)),
+		LightEmission = 0.8,
+		Shape = Enum.ParticleEmitterShape.Box,
+		ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume,
+		EmissionDirection = Enum.NormalId.Front,
+		SpreadAngle = Vector2.new(10, 10),
+		Size = sequence(0, 12, 1, 30),
+		Transparency = sequence(0, 0.2, 1, 1),
+		Lifetime = NumberRange.new(0.3, 0.6),
+		Speed = NumberRange.new(80, 140),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-90, 90),
+		Rate = 75,
+		Enabled = true,
+	})
 	local outer = Kit.holder("EnumaBeamOuter", frame(0), Vector3.new(BEAM_OUTER, BEAM_OUTER, length))
 	outer.Material, outer.Color, outer.Transparency = NEON, Color3.fromRGB(190, 45, 25), 0.72
 	outer.Shape = Enum.PartType.Cylinder -- a round layer: the Cylinder's axis is X, turned to the beam's Z below
@@ -1122,7 +1162,7 @@ local function playBeam()
 		local at = origin + dir * far
 		return CFrame.new(at.X, Arena.Y + 1, at.Z)
 	end
-	local spot = Kit.holder("EnumaHit", ground(), Vector3.new(16, 1, 16))
+	local spot = Kit.holder("EnumaHit", ground(), Vector3.new(24, 1, 24))
 	tracked[spot] = ground
 	-- the hit's glow on the deck: a red disc with a white ring, a white-hot core, a red light over the lanes
 	local flat = CFrame.Angles(0, 0, math.pi / 2)
@@ -1188,6 +1228,23 @@ local function playBeam()
 		Rotation = NumberRange.new(0, 360),
 		RotSpeed = NumberRange.new(-60, 60),
 		Rate = 30,
+		Enabled = true,
+	})
+	-- rubble chunks and dust thrown up where it meets the deck (owner 2026-11-13)
+	local rubble = Kit.emitter(spot, {
+		Name = "EnumaRubble",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(Color3.fromRGB(80, 64, 52), Color3.fromRGB(58, 54, 50)),
+		LightInfluence = 0.5,
+		EmissionDirection = Enum.NormalId.Top,
+		SpreadAngle = Vector2.new(40, 40),
+		Size = sequence(0, 3, 1, 2),
+		Lifetime = NumberRange.new(0.8, 1.2),
+		Speed = NumberRange.new(30, 60),
+		Acceleration = Vector3.new(0, -120, 0),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-200, 200),
+		Rate = 25,
 		Enabled = true,
 	})
 	-- red-black shock waves racing out from the landing, and red lightning crackling along the beam
@@ -1260,7 +1317,7 @@ local function playBeam()
 		Rate = 60,
 		Enabled = true,
 	})
-	total += (60 + 45 * 0.6 + 28 * 1.3) * BEAM
+	total += (60 + 45 * 0.6 + 28 * 1.3 + 75 * 0.6 + 25 * 1.2) * BEAM
 	-- the white full flash at 3.0 s (the sheet's key 7): the impact's flash white, the red dim lifted under it
 	Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM, 0, ENUMA_FLASH) -- a full white frame (the sheet's key 7)
 	if dim then
@@ -1270,6 +1327,10 @@ local function playBeam()
 	roomLight(him() + Vector3.new(0, 30, 0), RED, 2.5, BEAM + 0.3) -- Studio 2026-11-12: at 6 he read flat red
 	Kit.after(BEAM, function()
 		smoke.Enabled, burstEmitter.Enabled, smokeEmitter.Enabled, fireEmitter.Enabled = false, false, false, false
+		billows.Enabled, rubble.Enabled = false, false
+		for _, beam in rims do
+			beam.Enabled = false
+		end
 		for _, beam in strands do
 			beam.Enabled = false
 		end
@@ -1279,6 +1340,7 @@ local function playBeam()
 		Kit.tween(hitLight, 0.3, { Brightness = 0 })
 	end)
 	Kit.expire(core, BEAM + 0.35)
+	Kit.expire(fire, BEAM + 0.7)
 	Kit.expire(white, BEAM + 0.35)
 	Kit.expire(outer, BEAM + 0.35)
 	Kit.expire(glow, BEAM + 0.35)
