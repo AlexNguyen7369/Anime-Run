@@ -325,7 +325,8 @@
       -0.0
      ],
      "effects": [
-      "point:1.2"
+      "point:1.2",
+      "haze:0.4"
      ]
     },
     {
@@ -435,7 +436,8 @@
      ],
      "effects": [
       "point",
-      "charge"
+      "charge",
+      "haze:0.6"
      ]
     },
     {
@@ -544,7 +546,8 @@
       0.0
      ],
      "effects": [
-      "point:1.4"
+      "point:1.4",
+      "haze:0.8"
      ]
     },
     {
@@ -656,6 +659,8 @@
      "event": "Lightning",
      "effects": [
       "flash",
+      "haze:1",
+      "storm",
       "cast",
       "strike"
      ]
@@ -766,6 +771,8 @@
       -0.0
      ],
      "effects": [
+      "haze:1",
+      "storm",
       "cast",
       "sustain"
      ]
@@ -876,6 +883,8 @@
       0.0
      ],
      "effects": [
+      "haze:1",
+      "storm",
       "cast",
       "sustain"
      ]
@@ -987,7 +996,8 @@
      ],
      "effects": [
       "cast:fade",
-      "embers"
+      "embers",
+      "haze:0.6"
      ]
     },
     {
