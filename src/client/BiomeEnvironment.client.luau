@@ -237,12 +237,12 @@ local HAZE_FILL = { Ambient = Color3.fromRGB(125, 100, 175), OutdoorAmbient = Co
 -- Lighting attribute BossStrikeDusk, 0 to 1 (the Golden King's Gates and Enuma, his sheets' dusk): the Atmosphere toward a violet
 -- to sand dusk and the ambients toward a warm mauve fill, instead of the arena's blue (proposed).
 local DUSK = {
-	Density = 0.36,
-	Haze = 2.2,
-	Color = Color3.fromRGB(225, 170, 165),
-	Decay = Color3.fromRGB(140, 95, 150),
+	Density = 0.3,
+	Haze = 1.6,
+	Color = Color3.fromRGB(235, 190, 165),
+	Decay = Color3.fromRGB(170, 120, 160),
 }
-local DUSK_FILL = { Ambient = Color3.fromRGB(125, 95, 110), OutdoorAmbient = Color3.fromRGB(160, 120, 135) }
+local DUSK_FILL = { Ambient = Color3.fromRGB(150, 115, 120), OutdoorAmbient = Color3.fromRGB(185, 145, 145) }
 local function dimmed(e, value)
 	local h = Lighting:GetAttribute("BossStrikeHaze")
 	local dusk = Lighting:GetAttribute("BossStrikeDusk")

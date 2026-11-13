@@ -118,7 +118,7 @@ local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.3, 18
 -- The arch of portals behind him, facing his front (the sheets' gates keys 3 to 9): degrees from his left to his right over his
 -- head, studs from his chest, studs behind him, the arch's centre over his feet as a fraction of his height (proposed)
 -- two rings of the arch, alternate portals on each (inner and outer studs from his chest), so the big ones overlap like the sheet's
-local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 112, { { 30, 34 }, { 44, 50 } }, { 6, 14 }, 0.5
+local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 118, { { 34, 38 }, { 54, 62 } }, { 6, 14 }, 0.6
 local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
 local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
 local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 4, 18, 6, 1.3, 170 -- studs; reach: from Ea's tip
