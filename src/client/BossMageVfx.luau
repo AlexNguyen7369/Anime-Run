@@ -133,7 +133,7 @@ local function slotOf(k)
 	return (k - 1) * 5 % CIRCLES + 1
 end
 local CHARGE_FROM = 0.6 -- s of lightning: the staff tip's charge from here to the strike (proposed)
-local CHARGE_RAYS, CHARGE_FLARE = { 14, 50 }, { 12, 34 }
+local CHARGE_RAYS, CHARGE_FLARE = { 22, 60 }, { 22, 40 }
 -- studs: the starburst's ray length and flare size, from to at the strike; of the charge: crackles at the tip from here, s apart,
 -- how many a time
 local CRACKLE_FROM, CRACKLE_EVERY, CRACKLES = 0.4, 0.08, 3
@@ -178,10 +178,10 @@ local HIT_LOOKS = {
 	StormCloud = { -- lightning: a big purple cloud lit from inside, drifting dark
 		Name = "StormCloud",
 		Texture = Art.Dust,
-		Color = ColorSequence.new(Color3.fromRGB(150, 90, 255), Color3.fromRGB(30, 15, 55)),
-		LightEmission = 0.35,
+		Color = ColorSequence.new(Color3.fromRGB(175, 135, 245), Color3.fromRGB(95, 75, 145)),
+		LightEmission = 0.6,
 		Size = sequence(0, 40, 1, 85),
-		Transparency = sequence(0, 0.4, 0.5, 0.6, 1, 1),
+		Transparency = sequence(0, 0.55, 0.5, 0.7, 1, 1),
 		Lifetime = NumberRange.new(1.4, 2.2),
 		Speed = NumberRange.new(2, 6),
 		SpreadAngle = Vector2.new(180, 180),
@@ -191,12 +191,13 @@ local HIT_LOOKS = {
 	StrikeSmoke = { -- lightning: purple smoke lit from inside, settling grey (clip 3)
 		Name = "StrikeSmoke",
 		Texture = Art.Dust,
-		Color = ColorSequence.new(VIOLET, SOOT),
-		LightEmission = 0.5,
+		-- lilac, lit from inside (Studio 2026-11-12: violet to soot read as a dark blot in the lilac room)
+		Color = ColorSequence.new(Color3.fromRGB(200, 165, 255), Color3.fromRGB(130, 110, 170)),
+		LightEmission = 0.7,
 		EmissionDirection = Enum.NormalId.Top,
 		SpreadAngle = Vector2.new(70, 70),
-		Size = sequence(0, 7, 1, 18),
-		Transparency = sequence(0, 0.35, 1, 1),
+		Size = sequence(0, 6, 1, 14),
+		Transparency = sequence(0, 0.5, 1, 1),
 		Lifetime = NumberRange.new(0.6, 1),
 		Speed = NumberRange.new(6, 14),
 		Drag = 1.5,
