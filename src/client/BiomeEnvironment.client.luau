@@ -227,8 +227,8 @@ local DIMMED = { Brightness = true, Ambient = true, OutdoorAmbient = true }
 local HAZE = {
 	Density = 0.4,
 	Haze = 2.8,
-	Color = Color3.fromRGB(110, 70, 175),
-	Decay = Color3.fromRGB(70, 40, 125),
+	Color = Color3.fromRGB(150, 110, 205),
+	Decay = Color3.fromRGB(105, 75, 165),
 } -- proposed (5634ce6 sheet: a mid purple haze, not black)
 local HAZE_AMBIENT = 0.12 -- with the haze, the ambients go this low (her a dark shape against the bolts); else DIM_FLOOR
 local function dimmed(e, value)
