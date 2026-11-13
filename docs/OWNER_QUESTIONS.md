@@ -184,3 +184,4 @@ Answered by the owner 2026-11-12 ("questions: your recommendation"): item 14, ye
 
 ## 2026-11-13 boss-vfx-360
 21. Owner rule "Blender renders are the final look": the 2026-11-13 changes (Zoltraak lasers with black mist, the 360 degree portal wall, the 360 degree Enuma sweep) were approved from schematic mock-ups (https://claude.ai/artifact/6LT1q5EMEAPvXo63p3QQP7), not Blender renders. Built in game first; the barrage, gates and enuma Blender sheets are not re-rendered. Choose: re-render those sheets to match, or let the game captures stand as the new target. Item 19 (hip-only sweep) is superseded by design doc 4.37 "Boss effects after playing".
+Answered by the owner 2026-11-13 (later): item 21, re-render the barrage, gates and enuma sheets in Blender and approve them before the game is changed (design doc 4.37 "Boss effects after playing").
