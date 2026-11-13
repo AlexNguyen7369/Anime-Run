@@ -3817,7 +3817,7 @@
     },
     {
      "t": 2.0,
-     "caption": "HIT, strike 1 of 14: the arena flashes white; white-hot beams fly outward from the circles to the floor all round the room; the kick drives her back",
+     "caption": "HIT, strike 1 of 14: the arena flashes white; the circles fire white-hot beams straight out along their facing, all round the room; the kick drives her back",
      "root_offset": [
       0,
       0.28,
@@ -14445,7 +14445,7 @@
   ]
  },
  "staff": "Staff turns about its grip (its origin); staff_grip_offset moves the grip in the right lower arm's space, model units",
- "effects": "sketch labels per key: point[:size] (white starburst at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft, a pink-white burst at the tip, violet light pools where it lands), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers, circles:n[:bright|fade] (the first n of 16 cyan-white circles, 24 - 40 studs, on a 45-stud sphere round her chest, facing outward), beams:set (white-hot beams from the nearest circle outward to the floor all round the room, cyan rim, dark edge, black smoke). Lightning and barrage sheets: the room dimmed to a dark blue-violet night (owner 2026-11-12)",
+ "effects": "sketch labels per key: point[:size] (white starburst at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft, a pink-white burst at the tip, violet light pools where it lands), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers, circles:n[:bright|fade] (the first n of 16 cyan-white circles, 24 - 40 studs, on a 45-stud sphere round her chest, facing outward), beams:set (10 of the 16 circles fire straight out along their facing to the floor or wall; white-hot core, cyan rim, dark edge, black smoke). Lightning and barrage sheets: the room dimmed to a dark blue-violet night (owner 2026-11-12)",
  "hover": {
   "studs": 8.0,
   "bob_studs": 1.5,
