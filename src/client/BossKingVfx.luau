@@ -90,7 +90,7 @@ local WIND_RIBBONS = 6
 local WIND_CLIMB = 1.2 -- s for a ribbon to climb from his feet to Ea's tip
 local WIND_RADIUS_FEET, WIND_RADIUS_TIP, WIND_WIDTH = 12, 5, 1.6 -- studs
 local SHIELD_CALL = 0.6 -- s of shields: his call key (rework keys), the ring opens
-local EA_GLOW_MAX = 4 -- EaGlow's brightness at the end of the charge, from 0 at its start (proposed)
+local EA_GLOW_MAX = 1.5 -- EaGlow's brightness at the end of the charge, from 0 at its start (proposed)
 local FLASH_LEAD = 0.08 -- s before the beam: the white flash (proposed)
 -- Stronger Gates and Enuma (owner 2026-11-12 after playing; design doc 4.37 "Golden King effects stronger", BOSS_EVENT_SPEC "Golden
 -- King effects", proposed). Order: a portal opens to full size, then its weapon tip pushes through, then it may fire.
@@ -109,10 +109,10 @@ local CYCLONE_TURN = 9 -- radians a second the cyclone rolls about the beam
 -- full flash at 3.0 s, four red and black strands coil round the beam (Beams on the rolling cyclone, so they turn with it).
 local PORTAL_CLOSE = 0.3 -- s the portals take to close after the last volley (3.55 s) has left them
 -- every other open portal's gold PointLight (Studio 2026-11-12: 20 lights at 2 turned him into a flat gold glow)
-local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.7, 24
+local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.3, 18
 -- The arch of portals behind him, facing his front (the sheets' gates keys 3 to 9): degrees from his left to his right over his
 -- head, studs from his chest, studs behind him, the arch's centre over his feet as a fraction of his height (proposed)
-local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 115, { 22, 30 }, { 4, 12 }, 0.55
+local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 120, { 28, 38 }, { 3, 8 }, 0.5
 local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
 local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
 local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 4, 18, 6, 1.3, 170 -- studs; reach: from Ea's tip
@@ -736,7 +736,7 @@ local function playVolley()
 					table.insert(waiting, { Target = target, N = j + k })
 				end
 			end
-			roomLight(him() + Vector3.new(0, 30, 0), GOLD, 2.5, 0.2)
+			roomLight(him() + Vector3.new(0, 30, 0), GOLD, 1, 0.2)
 			Kit.impact("Gates", Arena.Center, 0.1, 18, 0.15, strike.T)
 			return total
 		end)
@@ -872,13 +872,13 @@ local function playBeam()
 		return frame(0)
 	end
 	local core = Kit.holder("EnumaBeam", frame(0), Vector3.new(BEAM_RED, BEAM_RED, length))
-	core.Material, core.Color, core.Transparency = NEON, RED, 0.1
+	core.Material, core.Color, core.Transparency = NEON, RED, 0.5 -- Studio 2026-11-12: at 0.1 it hid the white core
 	tracked[core] = straight
 	local white = Kit.holder("EnumaBeamCore", frame(0), Vector3.new(BEAM_CORE, BEAM_CORE, length))
 	white.Material, white.Color, white.Transparency = NEON, WHITE, 0
 	tracked[white] = straight
 	local outer = Kit.holder("EnumaBeamOuter", frame(0), Vector3.new(BEAM_OUTER, BEAM_OUTER, length))
-	outer.Material, outer.Color, outer.Transparency = NEON, DARK_RED, 0.45
+	outer.Material, outer.Color, outer.Transparency = NEON, DARK_RED, 0.72
 	outer.Shape = Enum.PartType.Cylinder -- a round layer: the Cylinder's axis is X, turned to the beam's Z below
 	outer.Size = Vector3.new(length, BEAM_OUTER, BEAM_OUTER)
 	local toAxis = CFrame.Angles(0, math.pi / 2, 0)
@@ -915,9 +915,10 @@ local function playBeam()
 				beam.Name = "EnumaStrand"
 				beam.Attachment0, beam.Attachment1 = previous, point
 				beam.CurveSize0, beam.CurveSize1 = reach, reach
-				beam.Width0, beam.Width1 = STRAND_WIDTH, STRAND_WIDTH
+				beam.Width0, beam.Width1 = STRAND_WIDTH * 1.4, STRAND_WIDTH * 1.4
 				beam.FaceCamera, beam.Segments = true, 8
-				beam.Color = ColorSequence.new(red and RED or DARK)
+				-- the light strands pale red-white, so they read on the red beam (Studio 2026-11-12: red on red was lost)
+				beam.Color = ColorSequence.new(red and Color3.fromRGB(255, 200, 195) or DARK)
 				beam.LightEmission, beam.LightInfluence = red and 1 or 0, 0
 				beam.Transparency = NumberSequence.new(half > halves - 4 and 0.5 or 0) -- the far end thins out
 				beam.Parent = sheath
@@ -951,7 +952,7 @@ local function playBeam()
 		return ground() + Vector3.new(0, 2, 0)
 	end
 	local hitLight = Instance.new("PointLight")
-	hitLight.Color, hitLight.Brightness, hitLight.Range, hitLight.Shadows = RED, 6, 50, false
+	hitLight.Color, hitLight.Brightness, hitLight.Range, hitLight.Shadows = RED, 3, 50, false
 	hitLight.Parent = spot
 	local burstEmitter = Kit.emitter(spot, {
 		Name = "EnumaHitBurst",
@@ -1012,7 +1013,7 @@ local function playBeam()
 		dim.LiftAt = os.clock()
 	end
 	startDim(ENUMA_DIM, BEAM, 0.25) -- a client that missed the charge: the red room for the beam
-	roomLight(him() + Vector3.new(0, 30, 0), RED, 6, BEAM + 0.3) -- twice as bright (owner 2026-11-12)
+	roomLight(him() + Vector3.new(0, 30, 0), RED, 2.5, BEAM + 0.3) -- Studio 2026-11-12: at 6 he read flat red
 	Kit.after(BEAM, function()
 		smoke.Enabled, burstEmitter.Enabled, smokeEmitter.Enabled = false, false, false
 		for _, beam in strands do
@@ -1184,10 +1185,11 @@ end
 -- Ea's grooves glow while the drums spin up through the charge and hold through the beam; off otherwise and with effects off.
 -- The charge's white ball at Ea's tip (the sheets' enuma keys 4 to 6): from CHARGE_BALL_FROM it grows to the wind-up, one part
 -- and a flare while it shows.
-local CHARGE_BALL_FROM, CHARGE_BALL = 1.2, { 3, 15 } -- s of enuma; studs across, from to at the hit (proposed)
+local CHARGE_BALL_FROM, CHARGE_BALL = 1.2, { 4, 26 } -- s of enuma; studs across, from to at the hit (proposed)
 local chargeBall = nil
 local function stepChargeBall(move, localTime)
-	local on = move == "enuma" and localTime >= CHARGE_BALL_FROM and localTime < CHARGE and not reduced()
+	-- held at its full size at Ea's tip through the beam (the sheets' keys 7 to 9)
+	local on = move == "enuma" and localTime >= CHARGE_BALL_FROM and localTime < CHARGE + BEAM and not reduced()
 	if not on then
 		if chargeBall then
 			chargeBall:Destroy()
