@@ -678,7 +678,7 @@ local function playLightning()
 		later(strike.T, function()
 			local total = 0
 			-- all of it fades by the window's end (the sheet's key 9: the strikes are over at 4.0 s); at least 0.1 s, so it shows
-			strikeLife = math.clamp(windowEnd - os.clock() - 0.05, 0.04, BOLT_SECONDS)
+			strikeLife = math.clamp(windowEnd - os.clock() - 0.05, 0.12, BOLT_SECONDS) -- 0.12: seen at 15 fps
 			local feet = Vector3.new(mage.Her.Anchor.Position.X, Arena.Y + 0.15, mage.Her.Anchor.Position.Z)
 			local camera = Workspace.CurrentCamera
 			local away = camera and (feet - camera.CFrame.Position) * Vector3.new(1, 0, 1) or Vector3.new(0, 0, -1)
@@ -989,13 +989,39 @@ end
 -- One beam out of a circle's centre (her staff's tip with no circle open) to its strike's planned spot on the floor, so the
 -- beams fan out from the cluster onto the logged spots (owner 2026-11-12, target sheets): a white-hot core in a cyan rim inside a
 -- near-black edge, a rounded white head, and at the spot a white flash, white sparks and small black smoke.
+-- Where a ray from `from` along `dir` ends: the floor or the wall, whichever it meets first, at most RAY_REACH.
+local RAY_REACH = 260
+local function rayEnd(from, dir)
+	local reach = RAY_REACH
+	if dir.Y < -0.02 then
+		reach = math.min(reach, (Arena.Y + 0.15 - from.Y) / dir.Y)
+	end
+	local flat = Vector2.new(dir.X, dir.Z)
+	local a = flat:Dot(flat)
+	if a > 1e-4 then
+		local rel = Vector2.new(from.X - Arena.Center.X, from.Z - Arena.Center.Z)
+		local b, c = 2 * rel:Dot(flat), rel:Dot(rel) - Arena.WallRadius ^ 2
+		local root = b * b - 4 * a * c
+		if root >= 0 then
+			reach = math.min(reach, (-b + math.sqrt(root)) / (2 * a))
+		end
+	end
+	return from + dir * math.max(reach, 1)
+end
+
+-- Beams follow their source (owner 2026-11-12, design doc 4.37): a ray leaves its circle straight out along the circle's outward
+-- facing, to the floor or the wall; the strike's logged spot only picks the circle (with no circle open: from the staff's tip to
+-- the spot).
 local function beam(circle, target, k, life)
 	local from = circle and circle.Position or mage:Point("Staff", STAFF_TIP)
+	if circle and circles[circle] then
+		target = rayEnd(from, circles[circle])
+	end
 	local line = target - from
 	local distance = line.Magnitude
 	local dir = distance > 0.01 and line / distance or Vector3.yAxis
 	local length = math.min(RAY_LENGTH, distance)
-	local flight = math.max(0.04, math.min(distance / RAY_SPEED, life))
+	local flight = math.max(0.12, math.min(distance / RAY_SPEED, life)) -- 0.12: seen at 15 fps (Studio 2026-11-12)
 	local born = os.clock()
 	-- the ray's frame: its back end leaves the circle and its head reaches the spot at `flight`
 	local function along()
@@ -1057,7 +1083,7 @@ local function playBarrage()
 					end
 				end
 				-- the rays land by the window's end (nothing fires past 4.0 s, the sheet's key 9)
-				total += beam(best, target, k, math.max(0.04, windowEnd - os.clock() - 0.06))
+				total += beam(best, target, k, math.max(0.12, windowEnd - os.clock() - 0.06))
 			end
 			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), ICE, 3, 0.2)
 			if strike.T == 0 then -- the first strike flashes the whole room white (the slices' key 6)
