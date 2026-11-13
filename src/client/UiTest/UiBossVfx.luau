@@ -8,8 +8,10 @@
 --   workspace.BossArenaPreview holds, at any depth, a Folder BossEffects; every effect lives in it.
 --   Client-local ReplicatedStorage attribute BossVfxForce: not nil holds off scheduled effects; a change to an event name
 --   (Impact, Roar, WheelClick) plays that event at once; "" plays nothing. nil returns to the schedule.
---   BossEffects attribute LastParticles: particles the last event asked for, emitted and by Rate, reduced or not.
---   Impact makes at least one BasePart named Shockwave in BossEffects, reduced or not.
+--   BossEffects attribute LastParticles: particles the last event asked for, emitted and by Rate.
+--   Impact makes at least one BasePart named Shockwave in BossEffects.
+--   Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner 2026-11-12:
+--   Big Raga too): with ReduceEffects, no ParticleEmitter, no particles asked for (LastParticles 0 or nil) and no Shockwave.
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -27,7 +29,8 @@ local IDLE_SEARCH = 120 -- s after the rise
 local PEAK_WATCH = 1 -- s an effect is watched for its peak
 local CLEAN_SECONDS = 6 -- s, the brief's limit
 local MAX_EMITTERS, MAX_PARTICLES = 12, 150 -- proposed, a phone's budget in a server of many players
-local REDUCED_EMITTERS, REDUCED_PARTICLES = 3, 30 -- proposed
+-- Effects off: none at all (was 3 emitters and 30 particles; BOSS_EVENT_SPEC "Effects setting", owner 2026-11-12).
+local OFF_EMITTERS, OFF_PARTICLES = 0, 0
 local BUDGET = 60 -- s: the whole scenario
 
 local Module = {}
@@ -204,8 +207,8 @@ function Module.Build(h)
 
 	local function checkEffects(res, reduced)
 		local tagBase = reduced and "reduced_" or "full_"
-		local maxEmitters = reduced and REDUCED_EMITTERS or MAX_EMITTERS
-		local maxParticles = reduced and REDUCED_PARTICLES or MAX_PARTICLES
+		local maxEmitters = reduced and OFF_EMITTERS or MAX_EMITTERS
+		local maxParticles = reduced and OFF_PARTICLES or MAX_PARTICLES
 		for _, name in EVENTS do
 			local tag = tagBase .. string.lower(name)
 			local emitters, shockwave, particles = fire(res, tag, name)
@@ -215,9 +218,11 @@ function Module.Build(h)
 				tag .. "_particles",
 				particles,
 				"<= " .. maxParticles,
-				type(particles) == "number" and particles <= maxParticles
+				(type(particles) == "number" and particles <= maxParticles) or (reduced and particles == nil)
 			)
-			if name == "Impact" then
+			if name == "Impact" and reduced then
+				h.check(res, tag .. "_no_shockwave", shockwave, false, not shockwave)
+			elseif name == "Impact" then
 				h.check(res, tag .. "_has_shockwave", shockwave, true, shockwave)
 			end
 		end

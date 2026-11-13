@@ -72,6 +72,7 @@ local LateData = require(Shared:WaitForChild("LateData"))
 local BossColosseum = require(script.Parent:WaitForChild("BossColosseum"))
 local BossKingArenaView = require(script.Parent:WaitForChild("BossKingArenaView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local BossVfx = require(script.Parent:WaitForChild("BossVfx")) -- the capture's clock (BossVfx.ScrubTime, Studio only)
 
 local PARTS_PER_FRAME = 60 -- about 1,650 parts, so about 28 frames
 -- Every second ring point: 72 pieces of about 78 studs on each ring. The draft's 144 would be about 1,200 more parts.
@@ -111,6 +112,7 @@ local added = 0
 local raga = nil -- the boss, while the arena stands
 local mage = nil -- or The Elf Mage or The Golden King (a Client/BossMage or BossKing), while her colosseum or his arena stands
 local builtBoss = nil -- the boss id the standing arena was built for
+local shownEffects = nil -- the standing boss's BossEffects folder, once its Vfx started
 
 -- Call before each stretch of parts: yields every PARTS_PER_FRAME. False once the build was cancelled.
 local function pace(mine)
@@ -372,6 +374,7 @@ local function refresh()
 		end
 		folder:Destroy()
 		folder = nil
+		shownEffects = nil
 		raga = nil
 		mage = nil
 		builtBoss = nil
@@ -399,6 +402,7 @@ local function refresh()
 				raga = rig
 			end
 			view.Vfx.Start(effects, rig)
+			shownEffects = effects
 		end)
 		if boss ~= "boss_raga" then
 			local kit = { addPart = addPart, addRing = addRing, ringFrame = ringFrame, pace = pace, look = look }
@@ -445,7 +449,11 @@ local function stepMage()
 	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or (since and now - since or now)
 	local minionStart = ReplicatedStorage:GetAttribute("BossMinionStart")
 	local move, localTime, golemMove, golemTime
-	if minionStart then
+	local scrubMove, scrubTime = BossVfx.ScrubTime()
+	if scrubMove and views.boss_mage.Poses.Moves[scrubMove] then -- the capture (Studio): her move at its own clock
+		move, localTime, golemMove, golemTime = scrubMove, scrubTime, scrubMove, scrubTime
+		rise, since = 1, math.max(since or 0, Event.RiseSeconds)
+	elseif minionStart then
 		move, localTime, golemMove, golemTime = views.boss_mage.Poses.GolemAt(now - minionStart)
 	else
 		-- only her golem_fall row has golem frames: the fall plays on her clock after the golem's HP reaches 0
@@ -454,6 +462,7 @@ local function stepMage()
 	end
 	mage:Step(rise, move, localTime, now, golemMove, golemTime)
 	views.boss_mage.Vfx.Step(since, move, localTime, golemMove, golemTime)
+	BossVfx.ScrubStep()
 end
 
 -- His entrance (BOSS_EVENT_SPEC "The Golden King", an open question taken as Big Raga's rise): up through the mound over
@@ -465,8 +474,14 @@ local function stepKing()
 	local rise = since and (UiMotion.Reduced() and 1 or KingPoses.RiseAt(since))
 	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or (since and now - since or now)
 	local move, localTime = KingPoses.Schedule(schedule, now)
+	local scrubMove, scrubTime = BossVfx.ScrubTime()
+	if scrubMove and KingPoses.Moves[scrubMove] then -- the capture (Studio): his move at its own clock
+		move, localTime = scrubMove, scrubTime
+		rise, since = 1, math.max(since or 0, Event.RiseSeconds)
+	end
 	mage:Step(rise, move, localTime)
 	views.boss_king.Vfx.Step(since, move, localTime)
+	BossVfx.ScrubStep()
 end
 
 -- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00), through the dais from under the track, and every frame of the boss after it.
@@ -498,6 +513,13 @@ local function step()
 end
 
 RunService.Heartbeat:Connect(step)
+-- The capture starts or ends: the shown boss's effects start over (cleared, then its move from 0 or the schedule).
+BossVfx.OnScrub(function()
+	if mage and shownEffects and views[builtBoss] then
+		views[builtBoss].Vfx.Stop()
+		views[builtBoss].Vfx.Start(shownEffects, mage)
+	end
+end)
 ReplicatedStorage:GetAttributeChangedSignal(ATTRIBUTE):Connect(refresh)
 Players.LocalPlayer:GetAttributeChangedSignal("BossEvent"):Connect(refresh)
 ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(refresh)
