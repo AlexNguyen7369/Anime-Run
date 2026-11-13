@@ -219,6 +219,22 @@ local function target(e)
 	return v
 end
 
+-- The boss strike dim (Client/BossMageVfx, BOSS_EVENT_SPEC "Elf Mage strike lighting"): Lighting attribute BossStrikeDim, 0 to 1,
+-- takes the profile's brightness and ambients down to DIM_FLOOR of themselves; unset, the profile is written exactly.
+local DIM_FLOOR = 0.25 -- proposed
+local DIMMED = { Brightness = true, Ambient = true, OutdoorAmbient = true }
+local function dimmed(e, value)
+	local f = Lighting:GetAttribute("BossStrikeDim")
+	if e.Group ~= "Lighting" or not DIMMED[e.Key] or type(f) ~= "number" or f <= 0 then
+		return value
+	end
+	local scale = 1 - (1 - DIM_FLOOR) * math.min(f, 1)
+	if type(value) == "number" then
+		return value * scale
+	end
+	return typeof(value) == "Color3" and value:Lerp(Color3.new(), 1 - scale) or value
+end
+
 local function write(e, value)
 	if not same(e.Current, value) then
 		e.Current = value
@@ -360,6 +376,9 @@ local function startBlend(z, seconds)
 	startLoop()
 end
 
+Lighting:GetAttributeChangedSignal("BossStrikeDim"):Connect(function()
+	dirty = true
+end)
 Lighting:GetAttributeChangedSignal("SummonPreviewActive"):Connect(function()
 	if not Lighting:GetAttribute("SummonPreviewActive") then
 		dirty = true
@@ -395,7 +414,7 @@ RunService.RenderStepped:Connect(function()
 			if peak > 0 and e.Group == "Atmosphere" and (e.Key == "Haze" or e.Key == "Density") then
 				value += peak * (e.Key == "Haze" and Env.HAZE_PEAK or Env.DENSITY_PEAK)
 			end
-			write(e, value)
+			write(e, dimmed(e, value))
 		end
 	end
 	local fade = blending and (t < 0.5 and 1 - 2 * t or 2 * t - 1) or 1

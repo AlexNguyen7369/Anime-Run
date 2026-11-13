@@ -19,9 +19,13 @@
 -- purple Bolt glow with a branch, a white StrikeFlash, a purple ShockRing, Sparks and lit purple smoke at its spot; each barrage beam
 -- a white core, a blue-white glow and a near-black BarrageBeamEdge with a rounded head, a white flash, white sparks and black
 -- BarrageSmoke at its spot.
+-- Strike lighting (owner 2026-11-12, BOSS_EVENT_SPEC "Elf Mage strike lighting"): the room dims to a dark blue-violet from her
+-- lightning's or barrage's lead-in to 0.5 s after the window, the bolts glow deep violet and light the floor where they land.
 -- Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting"): under ReduceEffects or
--- Roblox Reduced Motion nothing is drawn but the strike marks; LastStrikes and LastImpact still log every strike.
+-- Roblox Reduced Motion nothing is drawn but the strike marks, the room is not dimmed; LastStrikes and LastImpact still log every
+-- strike. The capture (BossVfx.ScrubTime, Studio only) holds the effects with Kit.hold: delays go through Kit.after.
 local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -43,6 +47,9 @@ local NEON = Enum.Material.Neon
 local WHITE = Color3.new(1, 1, 1)
 local VIOLET = Color3.fromRGB(176, 84, 255)
 local LAVENDER = Color3.fromRGB(226, 196, 255) -- the shock ring's bright rim
+-- Owner 2026-11-12 (references lightning_dim_ref_1/2; BOSS_EVENT_SPEC "Elf Mage strike lighting", proposed): deep violet, not magenta
+local DEEP = Color3.fromRGB(110, 60, 210) -- the bolts' glow
+local FLOOR_GLOW = Color3.fromRGB(130, 70, 255) -- the light each bolt throws on the floor
 local ICE, BLUE = Color3.fromRGB(205, 232, 255), Color3.fromRGB(90, 150, 255) -- the barrage's white and blue
 local INK, SOOT = Color3.fromRGB(16, 12, 24), Color3.fromRGB(72, 68, 80) -- the barrage's black edge and smoke, smoke's grey end
 local DUST = Color3.fromRGB(196, 158, 116) -- the colosseum's ochre stone
@@ -60,6 +67,14 @@ local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
 local BOLT_KINKS = 3
 -- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): thick white-violet bolts that hit hard.
 local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 1.8, 7, 0.24 -- studs across the white core and the purple glow, s they show
+local GLOW_TRANSPARENCY = 0.2 -- the deep violet glow, low transparency
+local FLOOR_LIGHT, FLOOR_RANGE, FLOOR_UP = 5, 26, 4 -- a bolt's floor light: brightness, range, studs over its spot
+-- The room dims for her strikes: from her lead-in to DIM_TAIL after the window, in over DIM_IN, back over DIM_OUT. The grade is
+-- BossStrikeDim (Lighting); Lighting's brightness and ambients go to 25% through Client/BiomeEnvironment (Lighting attribute
+-- BossStrikeDim, 0 to 1); the arena's own lights to TORCH_DIM.
+local DIM_IN, DIM_OUT, DIM_TAIL = 0.25, 0.6, 0.5
+local DIM_GRADE = { Brightness = -0.25, Contrast = 0.08, Saturation = 0.15, TintColor = Color3.fromRGB(150, 140, 255) }
+local TORCH_DIM = 0.2
 local HIT_FLASH, HIT_FLASH_SECONDS = 22, 0.3 -- studs across a hit's white disc, s
 local RING_FROM, RING_TO, RING_SECONDS = 8, 46, 0.36 -- studs across a hit's purple shock ring as it grows, s (pool reuse after 0.45 s)
 local SPARKS_PER_HIT, SMOKE_PER_HIT = 6, 2 -- particles at each lightning spot
@@ -167,6 +182,9 @@ local tracked = {} -- part -> function giving its CFrame each frame
 local circles = {} -- the barrage's open circles, its beams' origins
 local pools = {} -- name -> idle pooled parts of that name's look (Transparency 1) in this arena's folder
 local hitSpot, hitEmitters = nil, {} -- the one spot the hit particles come from, its emitters by name
+local lightPool = {} -- idle floor lights (holder parts with a disabled PointLight)
+local dim = nil -- the room's dim while it runs: { Born, EndAt, Grade, Lights = { light -> its brightness } }
+local generation = 0 -- bumped by clear(): a `later` of an earlier start draws nothing
 local previousMove, previousTime = nil, nil
 local previousGolem, previousGolemTime = nil, nil
 local staff = nil -- her Staff part, found by name (the rig is built late)
@@ -241,7 +259,7 @@ local function pooled(name, cframe, size, color, transparency, seconds, make)
 			Kit.tween(d, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		end
 	end
-	task.delay(seconds + 0.03, function()
+	Kit.after(seconds + 0.03, function()
 		if part.Parent == effects then
 			part.Name, part.Transparency = "Pooled", 1
 			pools[name] = pools[name] or {}
@@ -253,9 +271,9 @@ end
 
 -- Plays `play` seconds from now while this arena's effects last, adding its particles to the event's count.
 local function later(seconds, play)
-	local mine = effects
-	task.delay(seconds, function()
-		if mine and effects == mine then
+	local mine, run = effects, generation
+	Kit.after(seconds, function()
+		if mine and effects == mine and generation == run then
 			mine:SetAttribute("LastParticles", (mine:GetAttribute("LastParticles") or 0) + play())
 		end
 	end)
@@ -273,9 +291,16 @@ local function logHits(move, list, full, roughness)
 end
 
 -- A glowing stick from a to b: a Neon core inside a wider, softer Neon sheath, both fading out.
-local function streak(name, a, b, core, sheath, coreColor, sheathColor, seconds)
+local function streak(name, a, b, core, sheath, coreColor, sheathColor, seconds, sheathTransparency)
 	local frame, length = CFrame.lookAt((a + b) / 2, b), (b - a).Magnitude
-	pooled(name, frame, Vector3.new(sheath, sheath, length + sheath * 0.5), sheathColor, 0.35, seconds)
+	pooled(
+		name,
+		frame,
+		Vector3.new(sheath, sheath, length + sheath * 0.5),
+		sheathColor,
+		sheathTransparency or 0.35,
+		seconds
+	)
 	pooled(name .. "Core", frame, Vector3.new(core, core, length + core), coreColor, 0, seconds)
 	return frame, length
 end
@@ -313,6 +338,101 @@ local function emitAt(name, at, count)
 	return count
 end
 
+-- A violet light on the floor at a bolt's spot for `seconds`, from a pool (one per spot).
+local function floorLight(at, seconds)
+	local part = table.remove(lightPool)
+	while part and part.Parent ~= effects do
+		part = table.remove(lightPool)
+	end
+	local light = part and part:FindFirstChildOfClass("PointLight")
+	if not light then
+		part = Kit.holder("BoltLight", CFrame.new(), Vector3.one)
+		light = Instance.new("PointLight")
+		light.Color, light.Range, light.Shadows = FLOOR_GLOW, FLOOR_RANGE, false
+		light.Parent = part
+	end
+	part.CFrame = CFrame.new(at + Vector3.new(0, FLOOR_UP, 0))
+	light.Enabled, light.Brightness = true, FLOOR_LIGHT
+	Kit.tween(light, seconds, { Brightness = 0 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	Kit.after(seconds + 0.03, function()
+		if part.Parent == effects then
+			light.Enabled = false
+			table.insert(lightPool, part)
+		end
+	end)
+end
+
+-- The room's dim ---------------------------------------------------------------------------------------------------------------
+
+-- Starts the dim, to end `endIn` s from now plus its fade. A running dim keeps going; an event (the window's start) sets its end.
+local function startDim(endIn, event)
+	if reduced() or not (effects and effects.Parent) then
+		return
+	end
+	local now = os.clock()
+	if dim then
+		if event then
+			dim.EndAt = now + endIn
+		end
+		return
+	end
+	local grade = Instance.new("ColorCorrectionEffect")
+	grade.Name = "BossStrikeDim"
+	grade.Parent = Lighting
+	local lights = {}
+	for _, d in effects.Parent:GetDescendants() do
+		if d:IsA("Light") and not d:IsDescendantOf(effects) then
+			lights[d] = d:GetAttribute("ImpactBase") or d.Brightness -- a light mid-pulse: its own brightness
+		end
+	end
+	dim = { Born = now, EndAt = now + endIn, Grade = grade, Lights = lights }
+end
+
+-- The room exactly as it was: the grade gone, the profile's lighting (Client/BiomeEnvironment), the arena's lights.
+local function endDim()
+	if not dim then
+		return
+	end
+	dim.Grade:Destroy()
+	Lighting:SetAttribute("BossStrikeDim", nil)
+	for light, base in dim.Lights do
+		if light.Parent then
+			light.Brightness = base
+			if light:GetAttribute("ImpactBase") ~= nil then -- an impact pulse still running: set again after it
+				task.delay(0.3, function()
+					light.Brightness = base
+				end)
+			end
+		end
+	end
+	dim = nil
+end
+
+local function stepDim()
+	if not dim then
+		return
+	end
+	local now = os.clock()
+	local f = math.min((now - dim.Born) / DIM_IN, 1)
+	if now > dim.EndAt then
+		f = math.min(f, 1 - (now - dim.EndAt) / DIM_OUT)
+	end
+	if f <= 0 or reduced() then
+		endDim()
+		return
+	end
+	f = f * f * (3 - 2 * f)
+	local grade = dim.Grade
+	grade.Brightness, grade.Contrast = DIM_GRADE.Brightness * f, DIM_GRADE.Contrast * f
+	grade.Saturation, grade.TintColor = DIM_GRADE.Saturation * f, WHITE:Lerp(DIM_GRADE.TintColor, f)
+	Lighting:SetAttribute("BossStrikeDim", f)
+	for light, base in dim.Lights do
+		if light.Parent and light:GetAttribute("ImpactBase") == nil then -- an impact pulse owns it until it ends
+			light.Brightness = base * (1 - (1 - TORCH_DIM) * f)
+		end
+	end
+end
+
 -- A short flash of light for the room: few lights, so the interior stays cheap at quality 1.
 local function roomLight(position, color, brightness, seconds)
 	local spot = Kit.holder("FlashLight", CFrame.new(position))
@@ -328,6 +448,7 @@ end
 -- 1.0 s ahead of each bolt: a purple ring closing in on its spot (one part each: there are up to 140). Shown with effects off too:
 -- the marks are the telegraph.
 local function playMarks()
+	startDim(Poses.Moves.lightning.Window[2] - (LIGHTNING_AT - MARK_LEAD) + DIM_TAIL)
 	for _, strike in plan("Lightning") do
 		local lead = MARK_LEAD + strike.T
 		for _, at in strike.Spots do
@@ -346,9 +467,10 @@ local function shockLook(part)
 	Kit.decal(part, Art.Ring, LAVENDER, Enum.NormalId.Right)
 end
 
--- One bolt's hit: a white disc, a purple shock ring racing out, sparks and lit purple smoke.
+-- One bolt's hit: a white disc, a purple shock ring racing out, sparks, lit purple smoke and a violet light on the floor.
 local function boltHit(at)
 	flash(at, HIT_FLASH, HIT_FLASH_SECONDS)
+	floorLight(at, HIT_FLASH_SECONDS)
 	local frame = CFrame.new(at + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.pi / 2)
 	local ring =
 		pooled("ShockRing", frame, Vector3.new(0.3, RING_FROM, RING_FROM), VIOLET, 0.3, RING_SECONDS, shockLook)
@@ -363,6 +485,7 @@ local function playLightning()
 	if reduced() then
 		return logHits("Lightning", list, 0.12, 20)
 	end
+	startDim(Poses.Moves.lightning.Window[2] - LIGHTNING_AT + DIM_TAIL, true)
 	for _, strike in list do
 		local bolts = {}
 		for k, at in strike.Spots do
@@ -372,17 +495,29 @@ local function playLightning()
 				table.insert(points, p + Vector3.new(rng:NextNumber(-6, 6), 0, rng:NextNumber(-6, 6)))
 			end
 			table.insert(points, at)
-			-- a branch off the lower kink, forking down and out (clip 3)
+			-- a branch off the lower kink, forking down and out (clip 3), and a thinner one off the upper kink
 			local fork = points[BOLT_KINKS]
 				+ Vector3.new(rng:NextNumber(-16, 16), -rng:NextNumber(12, 24), rng:NextNumber(-16, 16))
-			bolts[k] = { Points = points, Fork = fork }
+			local twig = points[2]
+				+ Vector3.new(rng:NextNumber(-18, 18), -rng:NextNumber(10, 20), rng:NextNumber(-18, 18))
+			bolts[k] = { Points = points, Fork = fork, Twig = twig }
 		end
 		later(strike.T, function()
 			local total = 0
 			for _, bolt in bolts do
 				local points = bolt.Points
 				for i = 1, #points - 1 do
-					streak("Bolt", points[i], points[i + 1], BOLT_CORE, BOLT_GLOW, WHITE, VIOLET, BOLT_SECONDS)
+					streak(
+						"Bolt",
+						points[i],
+						points[i + 1],
+						BOLT_CORE,
+						BOLT_GLOW,
+						WHITE,
+						DEEP,
+						BOLT_SECONDS,
+						GLOW_TRANSPARENCY
+					)
 				end
 				streak(
 					"Bolt",
@@ -391,17 +526,28 @@ local function playLightning()
 					BOLT_CORE * 0.6,
 					BOLT_GLOW * 0.6,
 					WHITE,
-					VIOLET,
-					BOLT_SECONDS
+					DEEP,
+					BOLT_SECONDS,
+					GLOW_TRANSPARENCY
+				)
+				streak(
+					"Bolt",
+					points[2],
+					bolt.Twig,
+					BOLT_CORE * 0.4,
+					BOLT_GLOW * 0.4,
+					WHITE,
+					DEEP,
+					BOLT_SECONDS,
+					GLOW_TRANSPARENCY
 				)
 				total += boltHit(points[#points])
 			end
-			roomLight(Vector3.new(Arena.Center.X, Arena.Y + 50, Arena.Center.Z), VIOLET, 3.5, 0.2)
+			roomLight(Vector3.new(Arena.Center.X, Arena.Y + 50, Arena.Center.Z), DEEP, 3.5, 0.2)
 			Kit.impact("Lightning", Arena.Center, 0.12, 20, 0.15, strike.T)
 			return total
 		end)
 	end
-	Kit.regrade({ TintColor = Color3.fromRGB(226, 204, 255), Brightness = 0.08, Contrast = 0.14 }, 0.05, 1.9, 0.55)
 	return 0
 end
 
@@ -433,7 +579,7 @@ local function playGather()
 		Enabled = true,
 	})
 	local seconds = SLAM_AT - GATHER_FROM
-	task.delay(seconds, function()
+	Kit.after(seconds, function()
 		motes.Enabled = false
 	end)
 	Kit.expire(part, seconds + 0.7)
@@ -590,6 +736,7 @@ local function playCircle(k)
 	end
 	if k == 1 then
 		table.clear(circles)
+		startDim(Poses.Moves.barrage.Window[2] - CIRCLE_FROM + DIM_TAIL)
 	end
 	local size = CIRCLE_SMALL + (CIRCLE_LARGE - CIRCLE_SMALL) * (k - 1) / (CIRCLES - 1)
 	local grip, tip = mage:Point("Staff", Vector3.zero), mage:Point("Staff", STAFF_TIP)
@@ -621,7 +768,7 @@ local function playCircle(k)
 	local pop = pooled("CirclePop", CFrame.new(center), Vector3.one * 4, WHITE, 0, 0.25, ballLook) -- the white burst as it opens
 	Kit.tween(pop, 0.25, { Size = Vector3.one * size * 0.4 })
 	local hold = BARRAGE_AT - (CIRCLE_FROM + (k - 1) * CIRCLE_EVERY) + BARRAGE_WINDOW
-	task.delay(hold + 0.25, function()
+	Kit.after(hold + 0.25, function()
 		for _, d in faces do
 			Kit.tween(d, 0.3, { Transparency = 1 })
 		end
@@ -673,6 +820,7 @@ local function playBarrage()
 	if reduced() then
 		return logHits("Barrage", list, 0.1, 18)
 	end
+	startDim(Poses.Moves.barrage.Window[2] - BARRAGE_AT + DIM_TAIL, true)
 	for j, strike in list do
 		later(strike.T, function()
 			local total = 0
@@ -796,6 +944,9 @@ local function advance(fire, move, t, lastMove, lastTime)
 end
 
 local function clear()
+	generation += 1
+	endDim()
+	table.clear(lightPool)
 	table.clear(pools)
 	hitSpot = nil
 	table.clear(hitEmitters)
@@ -828,9 +979,10 @@ end
 
 -- since: seconds since the spawn, nil before it. move, localTime: her move; golemMove, golemTime: the golem's (as Client/BossMage).
 function BossMageVfx.Step(since, move, localTime, golemMove, golemTime)
-	if not effects then
+	if not effects or Kit.held() then -- held: the capture's frame stays as drawn (BossVfx.ScrubStep)
 		return
 	end
+	stepDim()
 	for part, source in tracked do
 		if part.Parent then
 			part.CFrame = source()
