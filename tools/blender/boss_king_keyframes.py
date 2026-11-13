@@ -677,8 +677,11 @@ def jportal_set():
 		high = i % 2  # alternate a low and a high row
 		r = (5.6 if not high else 4.6) + rng.uniform(-0.4, 0.4)
 		c = Vector((r * math.cos(th), r * math.sin(th) + 1.4, (3.4 if not high else 7.6) + 1.6 * math.sin(math.pi * u) + rng.uniform(-0.5, 0.5)))
-		n = (Vector((math.cos(th), math.sin(th), 0)) * 0.3 + Vector((0, -1, -0.2))).normalized()
-		out.append((c, 1.25 * rng.uniform(0.8, 1.2), n))
+		size = 1.25 * rng.uniform(0.8, 1.2)
+		# Each portal faces a spot on the lanes (110 to 166 studs out, proposed ring), fanned with its place round him: its weapon
+		# and shot fly straight out along that facing (design doc 4.37 "Beams follow their source").
+		lane = Vector((1.6 * c.x + rng.uniform(-3, 3), -rng.uniform(17.5, 24), -HOVER_STUDS / (SIZE * CHAR_H / 6.63)))
+		out.append((c, size, (lane - c).normalized()))
 	return out
 
 
@@ -766,7 +769,7 @@ def fx_jvolley(rig, arg):
 		for i in rng.sample(range(N_PORTALS), VOLLEY):
 			c, rad, n = JPORTALS[i]
 			start = c + n * rad * 1.1  # from the weapon's tip: a shot only leaves a portal holding a weapon
-			end = Vector((rng.uniform(-14, 14), -rng.uniform(16.5, 25), floor))  # on the lanes, 110 to 166 studs out (proposed ring)
+			end = c + n * ((c.z - floor) / -n.z)  # straight out along the portal's facing to the floor (owner 2026-11-12)
 			p, q = to_world(rig, start), to_world(rig, end)
 			w = 0.055 * k  # 1.5 x thicker (spec "Golden King effects")
 			if dim:
@@ -847,12 +850,14 @@ def gold_hit(rig, q, rng):
 
 
 def jbeam(rig, t):
-	"""Enuma Elish's beam (owner 2026-11-12): a white core inside dark-red and red layers, a red-black cyclone turning round it,
-	out to the far lane edge (166 studs, proposed ring) where a big red-white burst throws dark smoke."""
-	k, s = rig.k, SIZE / 4
+	"""Enuma Elish's beam (owner 2026-11-12, "Beams follow their source"; clip 2): straight along Ea's blade axis from the tip, a
+	red-and-black energy blast about 34 studs across (white core 8, red 22, black-red outer 34), crackling black strands and red
+	lightning along it, a red-black cyclone turning round it; out to the far lane edge (166 studs, proposed ring) where a red-black
+	shock wave, a burst of red fire and black smoke go up."""
+	k = rig.k
 	ea = rig.parts["Ea"].matrix_world
 	tip = ea @ Vector((0, 0, rig.tip))
-	d = (ea.to_3x3() @ Vector((0, 0, 1))).normalized()
+	d = (ea.to_3x3() @ Vector((0, 0, 1))).normalized()  # Ea's blade axis: the beam is always parallel to the sword
 	centre = rig.king.matrix_world.translation
 	a2, b2 = d.x**2 + d.y**2, 2 * ((tip.x - centre.x) * d.x + (tip.y - centre.y) * d.y)
 	c2 = (tip.x - centre.x) ** 2 + (tip.y - centre.y) ** 2 - 166.0**2
@@ -861,33 +866,53 @@ def jbeam(rig, t):
 		L = min(L, (tip.z - rig.stand) / -d.z)
 	end = tip + d * L
 	JHITS.append(end.copy())
-	mk.tube([tip, end], 0.9 * s, mk.glow_mat("BeamWhite", (1, 0.95, 0.92), 18))
-	mk.tube([tip, end], 2.0 * s, mk.glow_mat("BeamRedHot", RED, 5, 0.75))
-	mk.tube([tip, end], 3.4 * s, mk.glow_mat("BeamDark", (0.25, 0.01, 0.01), 1.5, 0.55))
-	mk.tube([tip, end], 7 * s, mk.glow_mat("BeamHalo", RED, 0.6, 0.18))["wide_only"] = True
+	mk.tube([tip, end], 4.0, mk.glow_mat("BeamWhite", (1, 0.95, 0.82), 2.5))  # bright enough to read white, low enough not to bloom the red pink  # radii in studs
+	mk.tube([tip, end], 11.0, mk.glow_mat("BeamRedHot", (1.0, 0.04, 0.015), 1.1, 0.95))
+	mk.tube([tip, end], 17.0, mk.glow_mat("BeamDark", (0.1, 0.0, 0.0), 1.0, 0.6))
+	mk.tube([tip, end], 26.0, mk.glow_mat("BeamHalo", RED, 0.5, 0.15))["wide_only"] = True
 	side = d.orthogonal().normalized()
 	up = d.cross(side)
-	for h in range(4):  # the cyclone: four strands turning round the beam (phase by t), red and black, widening to the hit
-		ph = h * math.tau / 4 + t * 9
-		pts = [tip + d * (u * L) + (side * math.cos(ph + u * 26) + up * math.sin(ph + u * 26)) * (2.2 + 8 * u) * s for u in np.linspace(0, 1, 120)]
-		mk.tube(pts, 0.6 * s, mk.glow_mat("CycloneDark" if h % 2 else "CycloneRed", DARK if h % 2 else RED, 1.0 if h % 2 else 3.5, 0.8))
-	mk.ball(tip, 1.3 * k, mk.glow_mat("TipGlow", (1, 0.6, 0.55), 8, 0.7))
 	rng = random.Random(int(t * 100))
-	burst = []  # the burst is far out: drawn for the hit view only (the ortho close views would stack it on the beam)
-	burst.append(mk.ball(end, 2.2 * k, mk.glow_mat("BurstWhite", (1, 0.96, 0.92), 14)))
-	burst.append(mk.ball(end, 4.5 * k, mk.glow_mat("BurstRed", RED, 4, 0.5)))
-	burst.append(mk.ring(end, 6.0 * k, 0.2 * k, mk.glow_mat("BurstRing", (1, 0.4, 0.3), 6, 0.85), rot=frame_at(end, Vector((0, 0, 1))).to_euler()))
-	for _ in range(10):  # red-white spikes out of the burst
-		v = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.2, 1))).normalized()
-		burst.append(mk.tube([end + v * 2 * k, end + v * rng.uniform(7, 11) * k], 0.18 * k, mk.glow_mat("BurstSpike", (1, 0.75, 0.6), 9)))
-	for j in range(10):  # dark smoke rolling up round it
-		a = math.tau * j / 10 + rng.uniform(-0.3, 0.3)
-		v = Vector((math.cos(a), math.sin(a), rng.uniform(0.3, 1.4)))
-		burst.append(mk.ball(end + v * rng.uniform(4.5, 7) * k, rng.uniform(1.0, 1.8) * k, mk.glow_mat("Smoke", (0.03, 0.008, 0.008), 1.0, 0.85)))
+
+	def around(u, ang, rad):
+		return tip + d * (u * L) + (side * math.cos(ang) + up * math.sin(ang)) * rad
+
+	for h in range(4):  # the cyclone: four strands turning round the blast, red and black
+		ph = h * math.tau / 4 + t * 9
+		pts = [around(u, ph + u * 22, 18 + 6 * u) for u in np.linspace(0, 1, 140)]
+		mk.tube(pts, 0.8, mk.glow_mat("CycloneDark" if h % 2 else "CycloneRed", DARK if h % 2 else RED, 1.0 if h % 2 else 2.0, 0.6))
+	for j in range(7):  # crackling black strands: jagged lines just inside the outer layer
+		ang, u = rng.uniform(0, math.tau), rng.uniform(0, 0.15)
+		pts = []
+		while u < 1:
+			pts.append(around(u, ang, rng.uniform(11, 17)))
+			u += rng.uniform(0.02, 0.05)
+			ang += rng.uniform(-0.6, 0.6)
+		mk.tube(pts, 0.7, mk.glow_mat("CrackleBlack", (0.02, 0.0, 0.0), 1.0, 0.95))
+	for j in range(6):  # red lightning along it: short jagged bolts at the red layer
+		ang, u0 = rng.uniform(0, math.tau), rng.uniform(0, 0.85)
+		pts = [around(u0 + 0.012 * q, ang + rng.uniform(-0.5, 0.5), rng.uniform(7, 13)) for q in range(12)]
+		mk.tube(pts, 0.4, mk.glow_mat("RedBolt", (1, 0.35, 0.3), 12))
+	mk.ball(tip, 1.6 * k, mk.glow_mat("TipGlow", (1, 0.75, 0.6), 3, 0.8))
+	burst = []  # the impact is far out: drawn for the hit view only (the ortho close views would stack it on the beam)
+	ground = Vector((end.x, end.y, rig.stand + 0.5))
+	burst.append(mk.ball(end, 14, mk.glow_mat("BurstWhite", (1, 0.9, 0.7), 14)))
+	burst.append(mk.ball(end, 26, mk.glow_mat("BurstFire", (1, 0.35, 0.05), 4, 0.6)))
+	burst.append(mk.ring(ground, 70, 3.0, mk.glow_mat("ShockRed", RED, 6, 0.9)))  # the shock wave over the floor
+	burst.append(mk.ring(ground, 82, 4.5, mk.glow_mat("ShockDark", (0.05, 0.0, 0.0), 1.0, 0.85)))
+	for j in range(12):  # a wall of red and yellow fire tongues
+		a = math.tau * j / 12 + rng.uniform(-0.2, 0.2)
+		base = ground + Vector((math.cos(a), math.sin(a), 0)) * rng.uniform(10, 34)
+		top = base + Vector((rng.uniform(-6, 6), rng.uniform(-6, 6), rng.uniform(40, 75)))
+		burst.append(mk.tube([base, base.lerp(top, 0.5) + Vector((rng.uniform(-4, 4), rng.uniform(-4, 4), 0)), top], rng.uniform(3, 6), mk.glow_mat("FireTongue" if j % 3 else "FireYellow", (1, 0.25, 0.03) if j % 3 else (1, 0.8, 0.2), 5, 0.75)))
+	for j in range(12):  # black smoke rolling up round it
+		a = math.tau * j / 12 + rng.uniform(-0.3, 0.3)
+		v = Vector((math.cos(a), math.sin(a), 0)) * rng.uniform(30, 50) + Vector((0, 0, rng.uniform(15, 70)))
+		burst.append(mk.ball(ground + v, rng.uniform(9, 15), mk.glow_mat("Smoke", (0.02, 0.005, 0.005), 1.0, 0.9)))
 	for o in burst:
 		o["wide_only"] = True
-	mk.lamp(tip + d * 20, RED, 6e5 * s * s, 8)
-	mk.lamp(end + Vector((0, 0, 4 * k)), (1, 0.5, 0.4), 6e5 * s * s, 10)
+	mk.lamp(tip + d * 20, RED, 1.2e6, 10)
+	mk.lamp(end + Vector((0, 0, 30)), (1, 0.45, 0.2), 1.5e6, 14)
 
 
 SUNSET = ((0.0, "#FF9C5A"), (0.22, "#F27C76"), (0.45, "#BE5E98"), (0.7, "#8A4C9C"), (1.0, "#34306E"))  # the arena sky (build_king_arena)
@@ -1021,9 +1046,9 @@ for _k in JMOVES["gates"]["keys"]:
 JMOVES["gates"]["sky"] = [(1.0, 0), (0.8, 0), (0.45, 0), (0.2, 0), (0.12, 0), (0.12, 0), (0.12, 0), (0.12, 0), (0.18, 0), (0.7, 0)]
 JMOVES["gates"]["hitcam"] = (1, -0.2, 0.6)
 JMOVES["gates"]["note"] = "DODGE 0.00 - 1.60 s; event gates (20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, 14, one per 0.15 s (keys 5 - 9); idle by 4.40 s. The sunset room darkens as design C portals open in his sweep; a blade only in a full portal, shots only from blades (close views: the shot leaving; third view: the hits on the lanes)"
-JMOVES["enuma"]["sky"] = [(1.0, 0), (0.9, 0.15), (0.75, 0.35), (0.6, 0.6), (0.45, 0.85), (0.35, 1.0), "white", (0.3, 1.0), (0.35, 0.95), (0.8, 0.3)]
+JMOVES["enuma"]["sky"] = [(1.0, 0), (0.9, 0.15), (0.75, 0.35), (0.6, 0.6), (0.45, 0.85), (0.35, 1.0), "white", (0.1, 1.0), (0.1, 1.0), (0.6, 0.4)]  # the beam floods the room red and dark
 JMOVES["enuma"]["hitcam"] = (0.2, -0.5, 1.0)
-JMOVES["enuma"]["note"] = "DODGE (charge) 0.00 - 3.00 s; HIT 3.00 s: one white full flash, then the beam 3.00 - 5.00 s; recover 5.00 - 5.60 s. The sunset room tints red through the charge; beam: white core in red and dark-red layers, a turning red-black cyclone (third view: the burst and smoke where it hits)"
+JMOVES["enuma"]["note"] = "DODGE (charge) 0.00 - 3.00 s; HIT 3.00 s: one white full flash, then the beam 3.00 - 5.00 s; recover 5.00 - 5.60 s. The sunset room tints red through the charge; beam along Ea's blade axis, 34 studs wide, red-black blast (third view: shock wave, fire, smoke)"
 JMOVES["shields"] = {
 	"title": "Shield Gates (rework, jointed rig, hovering): his left hand calls a ring of shields out of small portals, a fold locks it",
 	"end": 2.6,
@@ -1471,7 +1496,7 @@ def rework(argv):
 			"parents": JPARENT | {"Ea_Drum1": "Ea", "Ea_Drum2": "Ea", "Ea_Drum3": "Ea"},
 			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, "Key": KEY_PIVOT, "Ea": list(EA_PIVOT), **{SEG[n][0]: SHOULDER[n] for n in SHOULDER}, **{SEG[n][1]: list(ELBOW[n]) for n in ELBOW}, **{SEG[n][0]: LEG[n] for n in LEG}, **{SEG[n][1]: list(KNEE[n]) for n in KNEE}},
 			"ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right lower arm's space, model units. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
-			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand). 2026-11-12 later look: jportals blades only in full portals (portal, then weapon, then shot); jvolley shots land on the lanes with a gold hit (flash, white core, shock ring, sparks, dust); beam in the rework is a white core in red-black layers with a turning cyclone and a red-white burst with dark smoke where it hits",
+			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand). 2026-11-12 later look: jportals blades only in full portals (portal, then weapon, then shot); jvolley shots fly straight out along their portal's facing (each portal faces the lanes) and land with a gold hit (flash, white core, shock ring, sparks, dust); beam in the rework runs along Ea's blade axis, about 34 studs wide (white core, red and black-red layers, black strands, red lightning, a turning cyclone) to a red-black shock wave, red fire and black smoke where it lands",
 			"hover": {"studs_over_mound": HOVER_STUDS, "bob_studs": 1.5, "bob_seconds": 3.0, "note": "proposed, owner 2026-11-12; the bob is played in game, not keyed"},
 			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4)},
 			"approved": [],
