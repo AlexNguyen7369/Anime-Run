@@ -4,7 +4,7 @@
 -- helpers (BossVfx.Kit) in the arena's BossEffects folder, after Client/BossMageVfx's spam model. gates_start opens 12 to 20 golden
 -- ripple portals around and behind him; gates fires the 2 s volley window: every 0.15 s, 14 times, 7 to 10 weapons
 -- as gold projectiles tweened in straight lines from a portal to spots over the whole room, every third a gold beam instead.
--- enuma_start starts the red charge (a ColorCorrection tint, wind lines drawn into him) until enuma fires the red-black cyclone beam
+-- enuma_start starts the red charge (the room's red dim, wind lines drawn into him) until enuma fires the red-black cyclone beam
 -- that turns with his live torso (his baked hip turn) over the Window. The shields open on his call key (SHIELD_CALL s of shields)
 -- or when the ReplicatedStorage attribute BossFortified turns true: 5 to 7 gold shields of different shapes orbit him while it is
 -- true and shatter with a burst when it turns false; a ring the pose opened that the attribute never held is shattered 1 s into a
@@ -22,9 +22,12 @@
 -- Spots and portal places come from a seed of the schedule start and the cycle, so every client draws the same ones. All sizes, counts
 -- and colours are placeholders to judge from a capture. Debug field: BossEffects attribute LastStrikes, JSON { Move, Strikes }.
 -- BossVfxForce (client-local test attribute, as Client/BossVfx): not nil holds off the schedule; Portals, Volley (with its portals),
--- Charge, Beam or Shields plays that event at once; Gates (portals and volleys) or Enuma (charge, then beam) a whole move. Not drawn yet: the drums' spin on Ea (pose data of the bake), the sky's own tint
--- (Client/BiomeEnvironment owns Lighting; the ColorCorrection carries the red).
+-- Charge, Beam or Shields plays that event at once; Gates (portals and volleys) or Enuma (charge, then beam) a whole move. Not drawn
+-- yet: the drums' spin on Ea (pose data of the bake). The room's dim goes through Client/BiomeEnvironment (Lighting attributes
+-- BossStrikeDim and BossStrikeFloor), as the Elf Mage's. The capture (BossVfx.ScrubTime, Studio only) holds the effects with
+-- Kit.held(); a clear() drops the delayed plays of an earlier start.
 local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -94,12 +97,38 @@ local FLASH_LEAD = 0.08 -- s before the beam: the white flash (proposed)
 local PORTAL_GROW, PORTAL_OPEN = 0.12, 0.25 -- s: a dot to a small ring, then to full size
 local TIP_PUSH, TIP_READY = 0.3, 0.1 -- s the tip takes to push through; s into the push the portal may fire (the tip shows)
 local EMERGE, EMERGE_STUDS = 0.1, 2 -- s and studs a weapon slides out of its portal before it flies
-local STREAK_CORE, STREAK_SHEATH = 1.05, 3 -- studs across a streak's white core and gold sheath (1.5 x 0.7 and 2)
+local STREAK_CORE, STREAK_SHEATH = 1.3, 3.6 -- studs across a streak's white core and gold sheath (the sheets' thick streaks)
 local HIT_FLASH, HIT_CORE, HIT_SECONDS = 15, 6, 0.3 -- studs across a hit's gold flash and its white core, s
 local RING_FROM, RING_TO, RING_SECONDS = 6, 34, 0.36 -- studs across a hit's gold shock ring as it grows, s
 local SPARKS_PER_HIT, DUST_PER_HIT = 6, 2
-local BEAM_CORE, BEAM_RED, BEAM_CYCLONE = 2.6, 7, 15 -- studs across Enuma's white core, red beam and dark cyclone
+local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 2.6, 7, 10.5, 15 -- studs across Enuma's white core, red, dark red, cyclone
 local CYCLONE_TURN = 9 -- radians a second the cyclone rolls about the beam
+-- Matched to the approved sheets (design doc 4.37 "The approved Blender key-frame renders are the final look"; rework
+-- gates_slices.png, enuma_slices.png; proposed). Gates: the room darkens to about 12% as the portals open, each open portal casting
+-- a gold light; blades are glowing rods; streaks leave gold sparkle dust. Enuma: the room goes red through the charge, a white
+-- full flash at 3.0 s, four red and black strands coil round the beam (Beams on the rolling cyclone, so they turn with it).
+local PORTAL_CLOSE = 0.3 -- s the portals take to close after the last volley (3.55 s) has left them
+local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 2, 28 -- each open portal's gold PointLight
+local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
+local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
+local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 4, 18, 6, 1.3, 170 -- studs; reach: from Ea's tip
+local HIT_GLOW = 30 -- studs across the red glow under Enuma's hit
+local DIM_OUT, LIFT_SECONDS = 0.6, 0.3 -- s the dim takes to lift; the white flash lifts it this long
+local GATES_DIM = { -- warm to dark: the sunset room down to about 12%
+	Floor = 0.12,
+	In = 0.9,
+	Grade = { Brightness = -0.3, Contrast = 0.12, Saturation = 0.1, TintColor = Color3.fromRGB(255, 208, 165) },
+	Torch = GOLD,
+	TorchDim = 0.2,
+}
+local ENUMA_DIM = { -- red through the charge
+	Floor = 0.3,
+	In = CHARGE * 0.8,
+	Grade = { Brightness = -0.1, Contrast = 0.15, Saturation = 0.25, TintColor = Color3.fromRGB(255, 115, 105) },
+	Torch = RED,
+	TorchDim = 0.3,
+}
+local DARK_RED = Color3.fromRGB(140, 12, 20)
 local EA_SWING = { 2.6, 3.25 } -- s of enuma: Ea's Trail, the 2.75 s swing into the 3.0 s hit and its follow-through (proposed)
 
 local BossKingVfx = {}
@@ -117,6 +146,9 @@ local ready = {} -- portals whose weapon tip shows, in the order they got ready:
 local portalsUntil = -math.huge -- os.clock() at which this client's last opened portals are gone
 local waiting = {} -- shots with no ready portal yet, { Target, N }: fired from the first portal that gets ready
 local hitSpot, hitEmitters = nil, {} -- the one spot the hit particles come from, its emitters by name
+local dustLine = nil -- the one part the streak dust comes from, stretched along each shot
+local dim = nil -- the room's dim while it runs: { Born, EndAt, Grade, Look, Lights = { light -> its look } }
+local generation = 0 -- bumped by clear(): a delayed play of an earlier start draws nothing
 local previousMove, previousTime = nil, nil
 
 local function reduced()
@@ -190,7 +222,7 @@ local function pooled(name, cframe, size, color, transparency, seconds, make)
 			Kit.tween(d, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		end
 	end
-	task.delay(seconds + 0.03, function()
+	Kit.after(seconds + 0.03, function()
 		if part.Parent == effects then
 			tracked[part] = nil
 			part.Name, part.Transparency = "Pooled", 1
@@ -205,11 +237,16 @@ local function pooled(name, cframe, size, color, transparency, seconds, make)
 	return part
 end
 
+-- Whether a play started under folder `mine` in run `run` may still draw (not cleared since).
+local function current(mine, run)
+	return mine ~= nil and effects == mine and generation == run and mine.Parent ~= nil
+end
+
 -- Plays `play` seconds from now while this arena's effects last, adding its particles to the event's count.
 local function later(seconds, play)
-	local mine = effects
-	task.delay(seconds, function()
-		if mine and effects == mine then
+	local mine, run = effects, generation
+	Kit.after(seconds, function()
+		if mine and effects == mine and generation == run then
 			mine:SetAttribute("LastParticles", (mine:GetAttribute("LastParticles") or 0) + play())
 		end
 	end)
@@ -281,6 +318,29 @@ local function emitAt(name, at, count)
 	return count
 end
 
+-- Gold sparkle dust along a shot's path from a to b, from the one dust line (no instance per shot).
+local function dustAlong(a, b)
+	if not (dustLine and dustLine.Parent == effects) then
+		dustLine = Kit.holder("DustLine", CFrame.new(a), Vector3.one)
+		Kit.emitter(dustLine, {
+			Name = "StreakDust",
+			Texture = Art.Spark,
+			Color = ColorSequence.new(WHITE, GOLD_HI),
+			LightEmission = 1,
+			Shape = Enum.ParticleEmitterShape.Box,
+			ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume,
+			SpreadAngle = Vector2.new(180, 180),
+			Size = sequence(0, 0.7, 1, 0),
+			Lifetime = NumberRange.new(0.35, 0.7),
+			Speed = NumberRange.new(1, 4),
+			Drag = 2,
+		})
+	end
+	dustLine.CFrame, dustLine.Size = CFrame.lookAt((a + b) / 2, b), Vector3.new(1, 1, (b - a).Magnitude)
+	dustLine.StreakDust:Emit(DUST_PER_SHOT)
+	return DUST_PER_SHOT
+end
+
 -- Where a weapon or streak lands: a gold flash with a white core, a gold shock ring racing out, gold sparks and dust.
 local function hit(at)
 	local flat = CFrame.new(at) * CFrame.Angles(0, 0, math.pi / 2)
@@ -317,6 +377,85 @@ local function roomLight(position, color, brightness, seconds)
 	Kit.expire(spot, seconds + 0.05)
 end
 
+-- The room's dim (the Elf Mage's strike dim, BOSS_EVENT_SPEC "Elf Mage strike lighting", with his own looks): a grade named
+-- BossStrikeDim, Client/BiomeEnvironment's profile brightness and ambients down to look.Floor (Lighting attributes BossStrikeDim
+-- 0 to 1 and BossStrikeFloor), the arena's own lights toward look.Torch. Eases in over look.In, out over DIM_OUT after `endIn`.
+-- A running dim takes the new look and end. Nothing with effects off.
+local function startDim(look, endIn, rampIn)
+	if reduced() or not (effects and effects.Parent) then
+		return
+	end
+	local now = os.clock()
+	Lighting:SetAttribute("BossStrikeFloor", look.Floor)
+	if dim then
+		dim.Look, dim.EndAt = look, now + endIn
+		return
+	end
+	local grade = Instance.new("ColorCorrectionEffect")
+	grade.Name = "BossStrikeDim"
+	grade.Parent = Lighting
+	local lights = {}
+	for _, d in effects.Parent:GetDescendants() do
+		if d:IsA("Light") and not d:IsDescendantOf(effects) then
+			-- a light mid-pulse: its own brightness
+			lights[d] = { Brightness = d:GetAttribute("ImpactBase") or d.Brightness, Color = d.Color }
+		end
+	end
+	dim = { Born = now, EndAt = now + endIn, Grade = grade, Lights = lights, Look = look, In = rampIn or look.In }
+end
+
+-- The room exactly as it was.
+local function endDim()
+	if not dim then
+		return
+	end
+	dim.Grade:Destroy()
+	Lighting:SetAttribute("BossStrikeDim", nil)
+	Lighting:SetAttribute("BossStrikeFloor", nil)
+	for light, base in dim.Lights do
+		if light.Parent then
+			light.Brightness, light.Color = base.Brightness, base.Color
+			if light:GetAttribute("ImpactBase") ~= nil then -- an impact pulse still running: set again after it
+				task.delay(0.3, function()
+					light.Brightness = base.Brightness
+				end)
+			end
+		end
+	end
+	dim = nil
+end
+
+local function stepDim()
+	if not dim then
+		return
+	end
+	local now = os.clock()
+	local f = math.min((now - dim.Born) / dim.In, 1)
+	if now > dim.EndAt then
+		f = math.min(f, 1 - (now - dim.EndAt) / DIM_OUT)
+	end
+	if f <= 0 or reduced() then
+		endDim()
+		return
+	end
+	f = f * f * (3 - 2 * f)
+	if dim.LiftAt then
+		f *= math.clamp((now - dim.LiftAt) / LIFT_SECONDS, 0, 1)
+	end
+	local look, grade = dim.Look, dim.Grade
+	grade.Brightness, grade.Contrast = look.Grade.Brightness * f, look.Grade.Contrast * f
+	grade.Saturation, grade.TintColor = look.Grade.Saturation * f, WHITE:Lerp(look.Grade.TintColor, f)
+	Lighting:SetAttribute("BossStrikeDim", f)
+	for light, base in dim.Lights do
+		if light.Parent then
+			light.Color = base.Color:Lerp(look.Torch, f)
+			if light:GetAttribute("ImpactBase") == nil then -- an impact pulse owns its brightness until it ends
+				light.Brightness = base.Brightness * (1 - (1 - look.TorchDim) * f)
+			end
+		end
+	end
+end
+
 local function him()
 	return king.Rest.Position
 end
@@ -346,8 +485,11 @@ local function playPortals(cascade)
 	end
 	local rng = rngFor("Portals")
 	local count = rng:NextInteger(PORTALS_MIN, PORTALS_MAX)
-	local hold = PORTAL_LEAD + GATES_WINDOW + 0.3
+	-- held through the lead and the volleys; they close once the last volley (3.55 s) has left them
+	local hold = PORTAL_LEAD + GATES_WINDOW + 0.15 + PORTAL_CLOSE
 	portalsUntil = os.clock() + hold
+	startDim(GATES_DIM, hold - PORTAL_CLOSE)
+	local mine, run = effects, generation
 	for k = 1, count do
 		local size = PORTAL_SIZES[(k - 1) % #PORTAL_SIZES + 1]
 		local a = math.rad(-150 + 300 * (k - 1) / (count - 1)) + rng:NextNumber(-0.08, 0.08) -- 0 is his front (-Z)
@@ -358,9 +500,8 @@ local function playPortals(cascade)
 		-- The opening, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
 		-- size), then the weapon tip through (owner 2026-11-12: portal, then weapon, then shot).
 		local opensAt = cascade * math.sqrt((k - 1) / (count - 1))
-		local mine = effects
-		task.delay(opensAt, function()
-			if effects ~= mine or not (mine and mine.Parent) then
+		Kit.after(opensAt, function()
+			if not current(mine, run) then
 				return
 			end
 			local left = hold - opensAt
@@ -372,21 +513,31 @@ local function playPortals(cascade)
 			tracked[part] = function()
 				return frame * CFrame.Angles(0, 0, (os.clock() - born) * turn)
 			end
-			local tip = Kit.holder("PortalTip", frame * CFrame.new(0, 0, size * 0.1), Vector3.new(0.6, 0.6, size * 0.6))
-			tip.Material, tip.Color = Enum.Material.Metal, GOLD_HI
+			-- the blade: a glowing gold rod, tip first through the open portal
+			local tip = Kit.holder(
+				"PortalTip",
+				frame * CFrame.new(0, 0, size * 0.1),
+				Vector3.new(TIP_WIDTH, TIP_WIDTH, size * 0.6)
+			)
+			tip.Material, tip.Color = NEON, GOLD_HI
+			local glow = Instance.new("PointLight") -- each open portal lights the dimmed room gold
+			glow.Name = "PortalLight"
+			glow.Color, glow.Brightness, glow.Range, glow.Shadows = GOLD, 0, PORTAL_LIGHT_RANGE, false
+			glow.Parent = part
+			Kit.tween(glow, PORTAL_GROW + PORTAL_OPEN, { Brightness = PORTAL_LIGHT })
 			Kit.tween(part, PORTAL_GROW, { Size = Vector3.new(size * 0.3, size * 0.3, 0.3) })
-			task.delay(PORTAL_GROW, function()
+			Kit.after(PORTAL_GROW, function()
 				if part.Parent then
 					Kit.tween(part, PORTAL_OPEN, { Size = Vector3.new(size, size, 0.3) })
 				end
 			end)
-			task.delay(PORTAL_GROW + PORTAL_OPEN, function()
+			Kit.after(PORTAL_GROW + PORTAL_OPEN, function()
 				if part.Parent then
 					Kit.tween(tip, TIP_PUSH, { CFrame = frame * CFrame.new(0, 0, -size * 0.3), Transparency = 0 })
 				end
 			end)
-			task.delay(PORTAL_GROW + PORTAL_OPEN + TIP_READY, function()
-				if part.Parent and effects == mine then
+			Kit.after(PORTAL_GROW + PORTAL_OPEN + TIP_READY, function()
+				if part.Parent and current(mine, run) then
 					markReady(part)
 				end
 			end)
@@ -403,13 +554,23 @@ local function playPortals(cascade)
 				Rate = 6,
 				Enabled = true,
 			})
-			task.delay(left - 0.3, function()
+			-- the close: the blade drawn back, the portal shrinks to a dot and goes
+			Kit.after(left - PORTAL_CLOSE, function()
+				if not part.Parent then
+					return
+				end
 				shimmer.Enabled = false
-			end)
-			task.delay(left - 0.3, function()
-				Kit.tween(front, 0.3, { Transparency = 1 })
-				Kit.tween(back, 0.3, { Transparency = 1 })
-				Kit.tween(tip, 0.3, { Transparency = 1 })
+				Kit.tween(front, PORTAL_CLOSE, { Transparency = 1 })
+				Kit.tween(back, PORTAL_CLOSE, { Transparency = 1 })
+				Kit.tween(tip, PORTAL_CLOSE, { Transparency = 1, CFrame = frame * CFrame.new(0, 0, size * 0.1) })
+				Kit.tween(glow, PORTAL_CLOSE, { Brightness = 0 })
+				Kit.tween(
+					part,
+					PORTAL_CLOSE,
+					{ Size = Vector3.new(0.6, 0.6, 0.3) },
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.In
+				)
 			end)
 			Kit.expire(part, left)
 			Kit.expire(tip, left)
@@ -468,13 +629,13 @@ local function shoot(from, to, k)
 	local trail = part:FindFirstChildOfClass("Trail")
 	if not trail then
 		local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
-		a0.Position, a1.Position = Vector3.new(0, 1.2, 0), Vector3.new(0, -1.2, 0)
+		a0.Position, a1.Position = Vector3.new(0, 1.6, 0), Vector3.new(0, -1.6, 0) -- a thick gold streak behind it
 		a0.Parent, a1.Parent = part, part
 		trail = Instance.new("Trail")
 		trail.Attachment0, trail.Attachment1 = a0, a1
-		trail.Color = ColorSequence.new(GOLD_HI, GOLD)
-		trail.Transparency = sequence(0, 0.2, 1, 1)
-		trail.Lifetime = 0.25
+		trail.Color = ColorSequence.new(WHITE, GOLD)
+		trail.Transparency = sequence(0, 0.05, 1, 1)
+		trail.Lifetime = 0.3
 		trail.LightEmission = 1
 		trail.Parent = part
 	end
@@ -484,25 +645,26 @@ end
 -- One shot n from a ready portal to target: its tip flashes, then a weapon (or, every third, a streak) and the hit where it lands.
 local function fireShot(portal, target, n)
 	local tip = portalTips[portal]
-	if tip and tip.Parent then -- the firing flash
-		tip.Material = NEON
-		task.delay(0.08, function()
-			tip.Material = Enum.Material.Metal
+	if tip and tip.Parent then -- the firing flash: the blade white
+		tip.Color = WHITE
+		Kit.after(0.08, function()
+			tip.Color = GOLD_HI
 		end)
 	end
 	local from = portal.Position
 	if n % 3 == 0 then
 		streak("Streak", from, target, STREAK_CORE, STREAK_SHEATH, WHITE, GOLD, 0.25) -- thinner than the weapons, so they lead
-		return hit(target)
+		return hit(target) + dustAlong(from, target)
 	end
 	shoot(from, target, n)
-	local mine = effects
-	task.delay(EMERGE + SHOT_SECONDS, function()
-		if effects == mine and mine then
+	local mine, run = effects, generation
+	Kit.after(EMERGE + SHOT_SECONDS, function()
+		if current(mine, run) then
 			hit(target)
+			dustAlong(from, target) -- the dust it left on its way
 		end
 	end)
-	return SPARKS_PER_HIT + DUST_PER_HIT
+	return SPARKS_PER_HIT + DUST_PER_HIT + DUST_PER_SHOT
 end
 
 -- A ready portal of the open ones, by turns (i), or nil while none holds a weapon yet.
@@ -566,12 +728,7 @@ local function playCharge()
 	if reduced() then
 		return 0
 	end
-	Kit.regrade(
-		{ TintColor = Color3.fromRGB(255, 120, 110), Contrast = 0.15, Saturation = 0.2 },
-		0.6,
-		CHARGE + BEAM - 0.6,
-		0.6
-	)
+	startDim(ENUMA_DIM, CHARGE + BEAM) -- the room tints red through the charge, held through the beam
 	-- At Ea's tip, local Y along Ea (grip to tip; world up with no Ea part): the orbit's axis.
 	local function tip()
 		local at, part = king:Tip(), eaPart()
@@ -648,14 +805,14 @@ local function playCharge()
 	light.Parent = part
 	Kit.tween(light, CHARGE, { Brightness = 3 })
 	Kit.pulseEdges(RED, 0.45, CHARGE / 3, 3)
-	task.delay(CHARGE, function()
+	Kit.after(CHARGE, function()
 		wind.Enabled = false
 	end)
 	-- The charge ends in a white flash at Ea's tip, just before the beam: its own part each Enuma (not pooled), the effects
 	-- setting read when it fires.
-	local mine = effects
-	task.delay(CHARGE - FLASH_LEAD, function()
-		if effects == mine and mine and mine.Parent and king and not reduced() then
+	local mine, run = effects, generation
+	Kit.after(CHARGE - FLASH_LEAD, function()
+		if current(mine, run) and king and not reduced() then
 			local white = Kit.holder("EnumaChargeFlash", CFrame.new(king:Tip()), Vector3.one * 8)
 			white.Shape, white.Material, white.Color, white.Transparency = Enum.PartType.Ball, NEON, WHITE, 0
 			Kit.tween(white, 0.3, { Size = Vector3.one * 34, Transparency = 1 })
@@ -691,15 +848,59 @@ local function playBeam()
 		return frame(0)
 	end
 	local core = Kit.holder("EnumaBeam", frame(0), Vector3.new(BEAM_RED, BEAM_RED, length))
-	core.Material, core.Color, core.Transparency = NEON, RED, 0.2
+	core.Material, core.Color, core.Transparency = NEON, RED, 0.1
 	tracked[core] = straight
 	local white = Kit.holder("EnumaBeamCore", frame(0), Vector3.new(BEAM_CORE, BEAM_CORE, length))
 	white.Material, white.Color, white.Transparency = NEON, WHITE, 0
 	tracked[white] = straight
+	local outer = Kit.holder("EnumaBeamOuter", frame(0), Vector3.new(BEAM_OUTER, BEAM_OUTER, length))
+	outer.Material, outer.Color, outer.Transparency = NEON, DARK_RED, 0.45
+	outer.Shape = Enum.PartType.Cylinder -- a round layer: the Cylinder's axis is X, turned to the beam's Z below
+	outer.Size = Vector3.new(length, BEAM_OUTER, BEAM_OUTER)
+	local toAxis = CFrame.Angles(0, math.pi / 2, 0)
+	tracked[outer] = function()
+		return straight() * toAxis
+	end
+	-- The cyclone: a faint dark sheath rolling about the beam, carrying the four red and black strands (helices of Beams on its
+	-- attachments, built once, so they turn with it at no cost a frame).
 	local sheath = Kit.holder("EnumaCyclone", frame(0), Vector3.new(BEAM_CYCLONE, BEAM_CYCLONE, length))
-	sheath.Material, sheath.Color, sheath.Transparency = Enum.Material.SmoothPlastic, DARK, 0.45
+	sheath.Material, sheath.Color, sheath.Transparency = Enum.Material.SmoothPlastic, DARK, 0.85
 	tracked[sheath] = function()
 		return frame((os.clock() - born) * CYCLONE_TURN) -- the sheath rolls: the cyclone
+	end
+	local strands = {}
+	local halves = 2 * math.floor(STRAND_REACH / STRAND_PITCH) -- half turns of each strand, from Ea's tip (local +Z end)
+	local lean = STRAND_PITCH / (2 * math.pi * STRAND_RADIUS) -- the helix's slope along the beam a stud of arc
+	local reach = 4 / 3 * STRAND_RADIUS * math.sqrt(1 + lean * lean) -- a half circle's cubic control length
+	for s = 1, STRANDS do
+		local red = s % 2 == 1
+		local previous = nil
+		for half = 0, halves do
+			local a = (s - 1) / STRANDS * 2 * math.pi + half * math.pi
+			local radial = Vector3.new(math.cos(a), math.sin(a), 0)
+			local along = Vector3.new(-math.sin(a), math.cos(a), -lean).Unit -- the way the strand runs, its Axis
+			local point = Instance.new("Attachment")
+			point.CFrame = CFrame.fromMatrix(
+				radial * STRAND_RADIUS + Vector3.new(0, 0, length / 2 - half * STRAND_PITCH / 2),
+				along,
+				radial
+			)
+			point.Parent = sheath
+			if previous then
+				local beam = Instance.new("Beam")
+				beam.Name = "EnumaStrand"
+				beam.Attachment0, beam.Attachment1 = previous, point
+				beam.CurveSize0, beam.CurveSize1 = reach, reach
+				beam.Width0, beam.Width1 = STRAND_WIDTH, STRAND_WIDTH
+				beam.FaceCamera, beam.Segments = true, 8
+				beam.Color = ColorSequence.new(red and RED or DARK)
+				beam.LightEmission, beam.LightInfluence = red and 1 or 0, 0
+				beam.Transparency = NumberSequence.new(half > halves - 4 and 0.5 or 0) -- the far end thins out
+				beam.Parent = sheath
+				table.insert(strands, beam)
+			end
+			previous = point
+		end
 	end
 	-- Where the beam meets the deck (the lanes' middle, along its aim): the burst and the smoke ride it through the sweep.
 	local function ground()
@@ -712,6 +913,22 @@ local function playBeam()
 	end
 	local spot = Kit.holder("EnumaHit", ground(), Vector3.new(16, 1, 16))
 	tracked[spot] = ground
+	-- the hit's glow on the deck: a red disc with a white ring, a white-hot core, a red light over the lanes
+	local flat = CFrame.Angles(0, 0, math.pi / 2)
+	local glow = Kit.holder("EnumaHitGlow", ground() * flat, Vector3.new(0.3, HIT_GLOW, HIT_GLOW))
+	glow.Shape, glow.Material, glow.Color, glow.Transparency = Enum.PartType.Cylinder, NEON, RED, 0.35
+	Kit.decal(glow, Art.Ring, WHITE, Enum.NormalId.Right)
+	tracked[glow] = function()
+		return ground() * flat
+	end
+	local hot = Kit.holder("EnumaHitCore", ground(), Vector3.one * 9)
+	hot.Shape, hot.Material, hot.Color, hot.Transparency = Enum.PartType.Ball, NEON, WHITE, 0.05
+	tracked[hot] = function()
+		return ground() + Vector3.new(0, 2, 0)
+	end
+	local hitLight = Instance.new("PointLight")
+	hitLight.Color, hitLight.Brightness, hitLight.Range, hitLight.Shadows = RED, 6, 50, false
+	hitLight.Parent = spot
 	local burstEmitter = Kit.emitter(spot, {
 		Name = "EnumaHitBurst",
 		Texture = Art.Spark,
@@ -720,7 +937,7 @@ local function playBeam()
 		Orientation = Enum.ParticleOrientation.VelocityParallel,
 		EmissionDirection = Enum.NormalId.Top,
 		SpreadAngle = Vector2.new(75, 75),
-		Size = sequence(0, 4, 1, 0),
+		Size = sequence(0, 6, 1, 0), -- the spikes
 		Lifetime = NumberRange.new(0.3, 0.6),
 		Speed = NumberRange.new(60, 130),
 		Drag = 2,
@@ -735,14 +952,14 @@ local function playBeam()
 		LightInfluence = 0.3,
 		EmissionDirection = Enum.NormalId.Top,
 		SpreadAngle = Vector2.new(60, 60),
-		Size = sequence(0, 10, 1, 26),
-		Transparency = sequence(0, 0.3, 1, 1),
+		Size = sequence(0, 12, 1, 30),
+		Transparency = sequence(0, 0.2, 1, 1),
 		Lifetime = NumberRange.new(0.8, 1.3),
 		Speed = NumberRange.new(10, 24),
 		Drag = 1.5,
 		Rotation = NumberRange.new(0, 360),
 		RotSpeed = NumberRange.new(-40, 40),
-		Rate = 20,
+		Rate = 28,
 		Enabled = true,
 	})
 	local total = 0
@@ -764,20 +981,29 @@ local function playBeam()
 		Rate = 60,
 		Enabled = true,
 	})
-	task.delay(BEAM, function()
-		smoke.Enabled = false
-	end)
-	total += (60 + 45 * 0.6 + 20 * 1.3) * BEAM
-	Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM)
+	total += (60 + 45 * 0.6 + 28 * 1.3) * BEAM
+	-- the white full flash at 3.0 s (the sheet's key 7): the impact's flash white, the red dim lifted under it
+	Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM, 0, true)
+	if dim then
+		dim.LiftAt = os.clock()
+	end
+	startDim(ENUMA_DIM, BEAM, 0.25) -- a client that missed the charge: the red room for the beam
 	roomLight(him() + Vector3.new(0, 30, 0), RED, 6, BEAM + 0.3) -- twice as bright (owner 2026-11-12)
-	task.delay(BEAM, function()
-		burstEmitter.Enabled, smokeEmitter.Enabled = false, false
-		Kit.tween(core, 0.3, { Transparency = 1 })
-		Kit.tween(white, 0.3, { Transparency = 1 })
-		Kit.tween(sheath, 0.3, { Transparency = 1 })
+	Kit.after(BEAM, function()
+		smoke.Enabled, burstEmitter.Enabled, smokeEmitter.Enabled = false, false, false
+		for _, beam in strands do
+			beam.Enabled = false
+		end
+		for _, part in { core, white, outer, sheath, glow, hot } do
+			Kit.tween(part, 0.3, { Transparency = 1 })
+		end
+		Kit.tween(hitLight, 0.3, { Brightness = 0 })
 	end)
 	Kit.expire(core, BEAM + 0.35)
 	Kit.expire(white, BEAM + 0.35)
+	Kit.expire(outer, BEAM + 0.35)
+	Kit.expire(glow, BEAM + 0.35)
+	Kit.expire(hot, BEAM + 0.35)
 	Kit.expire(sheath, BEAM + 1.1)
 	Kit.expire(spot, BEAM + 1.4)
 	return total
@@ -786,9 +1012,9 @@ end
 -- The whole move at once (BossVfxForce "Enuma"): the charge, then the beam when it would fire.
 local function playEnuma()
 	local count = playCharge()
-	local folder = effects
-	task.delay(CHARGE, function()
-		if effects and effects == folder and king then
+	local folder, run = effects, generation
+	Kit.after(CHARGE, function()
+		if current(folder, run) and king then
 			playBeam()
 		end
 	end)
@@ -954,12 +1180,15 @@ local function advance(move, t, lastMove, lastTime)
 		if t - lastTime < 0.5 then -- a long hitch skips its effects rather than playing them late
 			fire(move, lastTime, t)
 		end
-	elseif move ~= lastMove and lastMove and t < 0.5 then
+	elseif move ~= lastMove and t < 0.5 then -- a new move (or a fresh start early in one, as the capture's)
 		fire(move, -1, t)
 	end
 end
 
 local function clear()
+	generation += 1
+	endDim()
+	dustLine = nil
 	table.clear(pools)
 	table.clear(ready)
 	table.clear(waiting)
@@ -999,9 +1228,10 @@ end
 
 -- since: seconds since the spawn, nil before it. move, localTime: his move (as Client/BossKing).
 function BossKingVfx.Step(since, move, localTime)
-	if not effects then
+	if not effects or Kit.held() then -- held: the capture's frame stays as drawn (BossVfx.ScrubStep)
 		return
 	end
+	stepDim()
 	for part, source in tracked do
 		if part.Parent then
 			part.CFrame = source()

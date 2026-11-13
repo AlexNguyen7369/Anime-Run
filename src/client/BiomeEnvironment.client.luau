@@ -220,7 +220,8 @@ local function target(e)
 end
 
 -- The boss strike dim (Client/BossMageVfx, BOSS_EVENT_SPEC "Elf Mage strike lighting"): Lighting attribute BossStrikeDim, 0 to 1,
--- takes the profile's brightness and ambients down to DIM_FLOOR of themselves; unset, the profile is written exactly.
+-- takes the profile's brightness and ambients down to DIM_FLOOR of themselves; unset, the profile is written exactly. Lighting
+-- attribute BossStrikeFloor, a number, replaces DIM_FLOOR while set (the Golden King's Gates: about 0.12, Client/BossKingVfx).
 local DIM_FLOOR = 0.25 -- proposed
 local DIMMED = { Brightness = true, Ambient = true, OutdoorAmbient = true }
 -- Lighting attribute BossStrikeHaze, 0 to 1 (her lightning's storm, owner 2026-11-12): the Atmosphere toward a dark purple haze.
@@ -244,9 +245,11 @@ local function dimmed(e, value)
 	if e.Group ~= "Lighting" or not DIMMED[e.Key] or type(f) ~= "number" or f <= 0 then
 		return value
 	end
-	local floor = DIM_FLOOR
+	local base = Lighting:GetAttribute("BossStrikeFloor")
+	base = type(base) == "number" and math.clamp(base, 0, 1) or DIM_FLOOR
+	local floor = base
 	if e.Key ~= "Brightness" and type(h) == "number" and h > 0 then
-		floor = DIM_FLOOR + (HAZE_AMBIENT - DIM_FLOOR) * math.min(h, 1)
+		floor = base + (HAZE_AMBIENT - base) * math.min(h, 1)
 	end
 	local scale = 1 - (1 - floor) * math.min(f, 1)
 	if type(value) == "number" then
@@ -396,7 +399,7 @@ local function startBlend(z, seconds)
 	startLoop()
 end
 
-for _, name in { "BossStrikeDim", "BossStrikeHaze" } do
+for _, name in { "BossStrikeDim", "BossStrikeHaze", "BossStrikeFloor" } do
 	Lighting:GetAttributeChangedSignal(name):Connect(function()
 		dirty = true
 	end)
