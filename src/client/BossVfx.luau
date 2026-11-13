@@ -1293,9 +1293,11 @@ function BossVfx.ScrubTime()
 	return scrub.Move, t
 end
 
--- After the boss's Vfx.Step: holds the effects once the frame at the scrub's time is drawn.
+-- After the boss's Vfx.Step: holds the effects once the frame at the scrub's time is drawn, a beat past it so the delayed draws
+-- due at that time (a strike exactly at a key) are in the frame.
+local SCRUB_GRACE = 0.05
 function BossVfx.ScrubStep()
-	if scrub and scrub.Reached then
+	if scrub and scrub.Reached and os.clock() - scrub.Born >= scrub.At + SCRUB_GRACE then
 		hold(true)
 	end
 end
