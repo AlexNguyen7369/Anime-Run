@@ -612,7 +612,7 @@ UiSpec.PanelSwitch = {
 		["DailyBoosts/ModalBackdrop"] = "Daily",
 		["MarketUi/Backdrop"] = "Market",
 		["CheckpointUi/Panel"] = "Checkpoints",
-		["RacerSidekicks/Panel"] = "Sidekicks",
+		["RacerSidekicks/Canvas"] = "Sidekicks", -- the galaxy summon screen (owner 2026-11-12)
 		["RacerTeam/Panel"] = "Team", -- design doc 4.40 (owner 2026-11-12): the Team panel (UiTeam)
 	},
 }
@@ -1482,6 +1482,12 @@ UiSpec.ServerSetup = {
 		What = "Rebirth at the unlock, free summon unused, empty Bag, no Gems, Rolls at least 1, on foot. Steps "
 			.. "sidekick_tutorial:rebirth:<n> and sidekick_tutorial:block:<run|duel|showdown|boss|off>. 'restore' (or "
 			.. "restore:sidekick_tutorial) puts all of it back and restarts a run it stopped.",
+	},
+	{
+		Id = "sidekick_pity_due",
+		When = "before click sidekicks_details_guaranteed, after 'spy'",
+		What = "sidekick_states with SidekickPity at PityCount - 1 (the Mythic is due). 'restore' (or restore:sidekick_states) "
+			.. "puts it back.",
 	},
 	{
 		Id = "sidekick_big_reveal",
@@ -3505,37 +3511,56 @@ UiSpec.CharacterCast = {
 	Events = { ds_water = "rain", jk_night = "night", sea_gold = "gold" },
 }
 
--- Sidekick summon page (Client/SidekickUi; design doc 4.36, docs/SIDEKICK_SPEC.md). Opened at the plaza stall.
+-- Sidekick summon screen (Client/SidekickUi, assets/studio/RacerSidekicks.rbxm; design doc 4.36, docs/SIDEKICK_SPEC.md "Summon
+-- presentation", owner 2026-11-12): the full-screen galaxy Canvas. Opened at the plaza altar, and by Reopen in tutorial step 1.
 UiSpec.Guis.RacerSidekicks = {
 	Source = "Client/SidekickUi",
-	Panels = { "Panel" },
+	Panels = { "Canvas" },
 	Buttons = {
-		{ Path = "Panel/Header/Close", Does = "close_panel", Panel = "RacerSidekicks/Panel", Text = "X" },
-		{ Path = "Panel/Body/Main/Banner/Poster/Details", Does = "local" },
-		{ Path = "Panel/Body/Main/Banner/Poster/Tap", Does = "local" },
-		{ Path = "Panel/Body/Main/AutoSell", Does = "local", ClickCoverage = "ui_sidekicks" },
-		{ Path = "Panel/Body/DetailsSheet/Back", Does = "local", ClickCoverage = "ui_sidekicks" },
-		{ Path = "Panel/Body/AutoSellSheet/Back", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Canvas/Close", Does = "close_panel", Panel = "RacerSidekicks/Canvas" },
+		{ Path = "Canvas/Chances", Does = "local" }, -- "Show Chances": the odds dialog (section 6)
+		{ Path = "Canvas/Banner1", Does = "local" }, -- the featured banner opens Details too
+		{ Path = "Canvas/Info", Does = "local" },
+		{ Path = "Canvas/More", Does = "local" },
+		{ Path = "Canvas/AutoSell", Does = "local" },
+		{ Path = "Canvas/Modal/Panel/Dismiss", Does = "local" },
+		-- Rows of the Auto-Sell and More Gems dialogs: Auto-Sell reaches the server in ui_sidekicks, the packs are judged there.
 		{
-			Path = "Panel/Body/AutoSellSheet/List/*/Toggle",
+			Path = "Canvas/Modal/Panel/DetailsScroll/Actions/*",
 			Does = "remote",
-			Remote = "SidekickAutoSell",
+			Remote = "SidekickAutoSell|GemPackBuy",
 			Count = "dynamic",
 			ClickCoverage = "ui_sidekicks",
 		},
-		{ Path = "Panel/Body/Main/Summon1", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
-		{ Path = "Panel/Body/Main/Summon10", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
+		-- A real press prompts a Robux purchase; ui_sidekicks judges which pack each card sells.
+		{ Path = "Canvas/Offer1/Buy", Does = "remote", Remote = "GemPackBuy", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Canvas/Offer2/Buy", Does = "remote", Remote = "GemPackBuy", ClickCoverage = "ui_sidekicks" },
+		-- Auto keeps summoning while Gems last, so no click run presses it; ui_sidekicks sees it on the screen.
+		{ Path = "Canvas/Auto", Does = "remote", Remote = "SidekickSummon", ClickCoverage = "ui_sidekicks" },
+		-- Hidden by Client/SidekickUi: extra banners are left out on purpose (SIDEKICK_SPEC "Summon page").
+		{ Path = "Canvas/Banner2", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Canvas/Banner3", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Canvas/Banner4", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Canvas/Once", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
+		{ Path = "Canvas/Many", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
 		-- Shown only while the free summon is unused (design doc 4.36)
-		{ Path = "Panel/Body/Main/FreeSummon", Does = "remote", Remote = "SidekickFreeSummon", Count = "dynamic" },
+		{ Path = "Canvas/AutoFuse", Does = "remote", Remote = "SidekickFreeSummon", Count = "dynamic" },
+		-- The rbxm's own open button: always hidden (the galaxy look stays on the summon page, design doc 4.36)
+		{
+			Path = "Reopen",
+			Does = "open_panel",
+			Panel = "RacerSidekicks/Canvas",
+			ClickCoverage = "ui_sidekick_tutorial",
+		},
 	},
 }
 -- Sidekick tutorial (Client/SidekickTutorial; design doc 4.36, 4.21). UiSidekickTutorial holds the contract and judges its fit:
--- it is an overlay, enabled only while showing. GoButton shows in step 1 only.
+-- it is an overlay, enabled only while showing. GoButton shows in step 1 only (SIDEKICK_SPEC "Tutorial on the galaxy screen").
 UiSpec.Guis.SidekickTutorial = {
 	Source = "Client/SidekickTutorial",
 	Overlay = true,
 	Buttons = {
-		{ Path = "Layer/Card/GoButton", Does = "open_panel", Panel = "RacerSidekicks/Panel", Count = "dynamic" },
+		{ Path = "Layer/Card/GoButton", Does = "open_panel", Panel = "RacerSidekicks/Canvas", Count = "dynamic" },
 	},
 }
 table.insert(UiSpec.ClientScripts, "SidekickTutorial")
@@ -3964,43 +3989,76 @@ table.insert(UiSpec.ServerSetup, {
 	What = "Publishes what ServerStorage.ImpactSounds holds as ReplicatedStorage attribute UiTestImpactSounds.",
 })
 
+local SIDEKICKS = "RacerSidekicks/Canvas"
 table.insert(UiSpec.Clicks, {
 	Id = "close_sidekicks",
 	Gui = "RacerSidekicks",
-	Path = "Panel/Header/Close",
-	Prepare = only("RacerSidekicks/Panel"),
-	Expect = { Panels = { ["RacerSidekicks/Panel"] = false }, Remote = false },
+	Path = "Canvas/Close",
+	Prepare = only(SIDEKICKS),
+	Expect = { Panels = { [SIDEKICKS] = false }, Remote = false },
 })
--- The poster's tap and its Details button both open Details (SIDEKICK_SPEC "Summon page").
-for id, path in { sidekicks_details_button = "Details", sidekicks_details_tap = "Tap" } do
+-- Details and the featured banner both open Details (section 6; SIDEKICK_SPEC "Summon page").
+for id, path in { sidekicks_details_button = "Chances", sidekicks_details_tap = "Banner1" } do
 	table.insert(UiSpec.Clicks, {
 		Id = id,
 		Gui = "RacerSidekicks",
-		Path = "Panel/Body/Main/Banner/Poster/" .. path,
-		Prepare = only("RacerSidekicks/Panel"),
+		Path = "Canvas/" .. path,
+		Prepare = only(SIDEKICKS),
 		NeedSetup = { "spy", "sidekick_states" },
-		Expect = {
-			Panels = { ["RacerSidekicks/Panel"] = true },
-			Remote = false,
-			After = { "sidekicks_details_open" },
-		},
+		Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_details_open" } },
 	})
 end
+-- With the Mythic due: Details shows the guaranteed odds (design doc section 6, pity shows the updated odds).
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_details_guaranteed",
+	Gui = "RacerSidekicks",
+	Path = "Canvas/Chances",
+	Prepare = only(SIDEKICKS),
+	NeedSetup = { "spy", "sidekick_pity_due" },
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_details_guaranteed" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_autosell_open",
+	Gui = "RacerSidekicks",
+	Path = "Canvas/AutoSell",
+	Prepare = only(SIDEKICKS),
+	NeedSetup = { "spy", "sidekick_states" },
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_autosell_open" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_more_gems",
+	Gui = "RacerSidekicks",
+	Path = "Canvas/More",
+	Prepare = only(SIDEKICKS),
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_more_gems" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_info",
+	Gui = "RacerSidekicks",
+	Path = "Canvas/Info",
+	Prepare = only(SIDEKICKS),
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false },
+})
+-- Right after sidekicks_info: the dialog it opened closes, the screen stays.
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_dialog_dismiss",
+	Gui = "RacerSidekicks",
+	Path = "Canvas/Modal/Panel/Dismiss",
+	Prepare = { KeepPanels = true, Showcase = false },
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false },
+})
 -- A real summon on fixture Gems: the reveal needs its results. SidekickSummon is deliberately not in
 -- UiSpec.RemoteFunctions (progression_spy would block it), so the spy logs no remote here. Each reveal stays until its
--- Tap is pressed at the end, so each summon click has a close click right after it. The page closes behind the reveal.
+-- Tap is pressed at the end, so each summon click has a close click right after it. The screen steps aside behind the reveal
+-- (it closes and comes back after), so the summon clicks expect no panel state; the After checks judge it.
 local REVEAL_CLOSE = { KeepPanels = true, Showcase = false }
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_models",
 	Gui = "RacerSidekicks",
-	Path = "Panel/Body/Main/Summon1",
-	Prepare = only("RacerSidekicks/Panel"),
+	Path = "Canvas/Once",
+	Prepare = only(SIDEKICKS),
 	NeedSetup = { "spy", "sidekick_states" },
-	Expect = {
-		Panels = { ["RacerSidekicks/Panel"] = true },
-		Remote = false,
-		After = { "sidekicks_reveal_models" },
-	},
+	Expect = { Remote = false, After = { "sidekicks_reveal_models" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_close",
@@ -4012,14 +4070,10 @@ table.insert(UiSpec.Clicks, {
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_big",
 	Gui = "RacerSidekicks",
-	Path = "Panel/Body/Main/Summon10",
-	Prepare = only("RacerSidekicks/Panel"),
+	Path = "Canvas/Many",
+	Prepare = only(SIDEKICKS),
 	NeedSetup = { "spy", "sidekick_big_reveal" },
-	Expect = {
-		Panels = { ["RacerSidekicks/Panel"] = true },
-		Remote = false,
-		After = { "sidekicks_reveal_big" },
-	},
+	Expect = { Remote = false, After = { "sidekicks_reveal_big" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_big_close",
@@ -4028,29 +4082,29 @@ table.insert(UiSpec.Clicks, {
 	Prepare = REVEAL_CLOSE,
 	Expect = { Remote = false, After = { "sidekicks_reveal_closed" } },
 })
+-- Tutorial (UiSidekickTutorial): step 1's GoButton, step 2's free summon, the result's reveal, then the equip step.
 table.insert(UiSpec.Clicks, {
 	Id = "sidekick_tutorial_go",
 	Gui = "SidekickTutorial",
 	Path = "Layer/Card/GoButton",
 	Prepare = only(),
 	NeedSetup = { "spy", "sidekick_tutorial_ready" },
-	Expect = {
-		Panels = { ["RacerSidekicks/Panel"] = true },
-		Remote = false,
-		After = { "sidekick_tutorial_go" },
-	},
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekick_tutorial_go" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "sidekick_tutorial_free",
 	Gui = "RacerSidekicks",
-	Path = "Panel/Body/Main/FreeSummon",
-	Prepare = only("RacerSidekicks/Panel"),
+	Path = "Canvas/AutoFuse",
+	Prepare = only(SIDEKICKS),
 	NeedSetup = { "spy", "sidekick_tutorial_ready" },
-	Expect = {
-		Panels = { ["RacerSidekicks/Panel"] = true },
-		Remote = false,
-		After = { "sidekick_tutorial_free" },
-	},
+	Expect = { Remote = false, After = { "sidekick_tutorial_free" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "sidekick_tutorial_result_close",
+	Gui = "RacerSidekickReveal",
+	Path = "Tap",
+	Prepare = REVEAL_CLOSE,
+	Expect = { Remote = false, After = { "sidekick_tutorial_equip" } },
 })
 
 -- The click menu for Sidekicks and Relics, and the sale confirmation (Client/ItemMenu; design doc 4.36, 4.41). A module the Backpack

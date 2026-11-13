@@ -1,7 +1,9 @@
 --!nonstrict
 -- Sidekick spotlight tutorial (design doc 4.36, 4.21; docs/SIDEKICK_SPEC.md): from rebirth 2 until the one free summon is used.
--- Step 1 opens the summon page, step 2 points at its FreeSummon button, step 3 sends the player to equip the result in the Bag, as
--- only a worn Sidekick unlocks boss events. The step comes from attributes and the open panel alone, so a rejoin starts at step 1.
+-- Step 1 points at the card's own GoButton, which opens the galaxy summon screen; step 2 at its free-summon button (Canvas/AutoFuse).
+-- The result then plays with the tutorial waiting; after it, step 3 closes the summon screen as its Close does and points at the
+-- HUD's Items tile to equip the result in the Bag, as only a worn Sidekick unlocks boss events, then closes by itself.
+-- The step comes from attributes, the open panel and the reveal alone, so a rejoin starts at step 1.
 -- The server decides the free summon; this only points at the buttons.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -79,22 +81,38 @@ end
 
 local showing = false
 local closing = false -- step 3
+local screenClosed = false -- step 3 closed the summon screen once
 local closeAt = nil
 
 local function hide()
 	spot.Reset()
-	showing, closing, closeAt = false, false, nil
+	showing, closing, screenClosed, closeAt = false, false, false, nil
 end
 
--- The Items tile with nothing dimmed or blocked. The card itself when the HUD has no tile.
+-- The result first: the summon request and its reveal (SidekickUi sets Summoning until the reveal's end reopened the screen).
+local function resultPlaying()
+	return page:GetAttribute("Summoning") == true or playerGui:FindFirstChild("RacerSidekickReveal") ~= nil
+end
+
+-- After the result the summon screen closes, as its own Close does, then the Items tile with nothing dimmed or blocked.
+-- The card itself when the HUD has no tile.
 local function stepThree(dt)
-	if not page.Enabled then
-		spot.Root.Enabled = false -- the reveal is playing: the message waits for it
+	if resultPlaying() then
+		spot.Root.Enabled = false -- waits, taking no click, with no timer running
+		return
+	end
+	if not screenClosed then
+		screenClosed = true
+		PanelSwitch.Close("Sidekicks")
+	end
+	if main.Visible then
+		spot.Root.Enabled = false -- the screen's close motion, or the player opened it again: the HUD is hidden
 		return
 	end
 	spot.Root.Enabled = true
 	closeAt = closeAt or os.clock() + STEP3_SECONDS
-	local slot = playerGui:FindFirstChild("HudChrome") and playerGui.HudChrome:FindFirstChild("Grid")
+	local hud = playerGui:FindFirstChild("HudChrome")
+	local slot = hud and hud.Enabled and hud:FindFirstChild("Grid")
 	local tile = slot and slot:FindFirstChild("Items")
 	local target = tile and tile.Visible and tile or spot.Card
 	spot.Arrow.Visible = target == tile
