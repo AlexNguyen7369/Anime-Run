@@ -128,7 +128,8 @@ local GATES_DIM =
 	{ -- the sunset room to a dusky mauve (Studio 2026-11-12: 12% and -0.3 read near black, the sheets are dusk)
 		Floor = 0.3,
 		In = 0.9,
-		Grade = { Brightness = -0.1, Contrast = 0.1, Saturation = 0.05, TintColor = Color3.fromRGB(240, 210, 225) },
+		-- violet over the dusk sky's sand (Studio 2026-11-12, with BiomeEnvironment's BossStrikeDusk sky and haze)
+		Grade = { Brightness = -0.05, Contrast = 0.1, Saturation = -0.1, TintColor = Color3.fromRGB(215, 195, 255) },
 		Torch = GOLD,
 		TorchDim = 0.35,
 	}

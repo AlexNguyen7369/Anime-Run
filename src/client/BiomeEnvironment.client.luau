@@ -203,7 +203,10 @@ local function target(e)
 		local row = Env.Asset(zone, profile.Sky and profile.Sky[e.Key], "Texture") -- an AssetKey, never a raw id
 		v = row and row.Id
 	elseif e.Group == "Skybox" then
-		v = skyboxFace(e.Key)
+		-- the Golden King's dusk (Lighting attribute BossStrikeDusk): the plaza's reviewed gradient sky while his move runs
+		local dusk = Lighting:GetAttribute("BossStrikeDusk")
+		local row = type(dusk) == "number" and dusk > 0 and Env.Asset(0, "SkyGolden", "Skybox")
+		v = row and (row.Faces and row.Faces[e.Key] or row.Id) or skyboxFace(e.Key)
 	elseif profile.Underground and UNDERGROUND[e.Group] and UNDERGROUND[e.Group][e.Key] ~= nil then
 		v = UNDERGROUND[e.Group][e.Key]
 	elseif not (e.Reduce and reduced()) then
@@ -237,10 +240,11 @@ local HAZE_FILL = { Ambient = Color3.fromRGB(125, 100, 175), OutdoorAmbient = Co
 -- Lighting attribute BossStrikeDusk, 0 to 1 (the Golden King's Gates and Enuma, his sheets' dusk): the Atmosphere toward a violet
 -- to sand dusk and the ambients toward a warm mauve fill, instead of the arena's blue (proposed).
 local DUSK = {
-	Density = 0.3,
-	Haze = 1.6,
-	Color = Color3.fromRGB(235, 190, 165),
-	Decay = Color3.fromRGB(170, 120, 160),
+	Density = 0.25,
+	Haze = 1.2,
+	Glare = 0.2,
+	Color = Color3.fromRGB(215, 175, 185),
+	Decay = Color3.fromRGB(150, 110, 170),
 }
 local DUSK_FILL = { Ambient = Color3.fromRGB(150, 115, 120), OutdoorAmbient = Color3.fromRGB(185, 145, 145) }
 local function dimmed(e, value)
@@ -249,7 +253,7 @@ local function dimmed(e, value)
 	if e.Group == "Atmosphere" and DUSK[e.Key] ~= nil and type(dusk) == "number" and dusk > 0 then
 		local goal, u = DUSK[e.Key], math.min(dusk, 1)
 		if type(value) == "number" then
-			return value + (math.max(goal, value) - value) * u
+			return value + (goal - value) * u
 		end
 		return typeof(value) == "Color3" and value:Lerp(goal, u) or value
 	end
