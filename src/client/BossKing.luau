@@ -17,6 +17,56 @@ local Poses =
 	require(Shared:WaitForChild("LateData")).Get(require(Shared:WaitForChild("BossCatalog")).Get("boss_king").Poses)
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
 
+-- Enuma 360 (owner 2026-11-13, design doc 4.37 / BOSS_EVENT_SPEC "Boss effects after playing", proposed): over the Window his
+-- whole rig turns about his centre on top of the baked pose, so his torso's yaw goes SWEEP_DEGREES one way (smoothstep), then
+-- the extra eases back to facing front by SWEEP_HOME s.
+local SWEEP_DEGREES, SWEEP_HOME = 370, 5.6
+local WINDOW = Poses and Poses.Moves and Poses.Moves.enuma and Poses.Moves.enuma.Window or { 3, 5 }
+local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0)) -- as BossRaga's
+local C_INVERSE = C:Inverse()
+local sweepFrom, sweepSign = nil, nil -- the baked torso yaw at the Window's start, the way the keys turn there
+
+local function smoothstep(u)
+	u = math.clamp(u, 0, 1)
+	return u * u * (3 - 2 * u)
+end
+
+local function wrap(a)
+	return math.atan2(math.sin(a), math.cos(a))
+end
+
+-- The baked Torso's yaw (radians, Roblox axes) from a sampled pose: the Torso is a root joint, so its XYZ degrees alone, in
+-- BossRaga:Pose's order.
+local function bakedYaw(parts)
+	local v = parts.Torso
+	local turned = CFrame.Angles(0, 0, math.rad(v.Z))
+		* CFrame.Angles(0, math.rad(v.Y), 0)
+		* CFrame.Angles(math.rad(v.X), 0, 0)
+	local look = (C * turned * C_INVERSE).LookVector
+	return math.atan2(-look.X, -look.Z)
+end
+
+-- The rig's extra yaw at time t of enuma, given the baked pose's parts at t.
+local function sweepYaw(parts, t)
+	if t <= WINDOW[1] or t >= SWEEP_HOME then
+		return 0
+	end
+	if not sweepFrom then
+		sweepFrom = bakedYaw((Poses.Sample("enuma", WINDOW[1])))
+		local ahead = wrap(bakedYaw((Poses.Sample("enuma", WINDOW[1] + 0.05))) - sweepFrom)
+		sweepSign = ahead < 0 and -1 or 1
+	end
+	local function extraAt(at, baked)
+		local theta = sweepSign * math.rad(SWEEP_DEGREES) * smoothstep((at - WINDOW[1]) / (WINDOW[2] - WINDOW[1]))
+		return theta - (baked - sweepFrom) -- mod 2 pi: his torso's world yaw is sweepFrom + theta
+	end
+	if t <= WINDOW[2] then
+		return extraAt(t, bakedYaw(parts))
+	end
+	local last = wrap(extraAt(WINDOW[2], bakedYaw((Poses.Sample("enuma", WINDOW[2])))))
+	return last * (1 - smoothstep((t - WINDOW[2]) / (SWEEP_HOME - WINDOW[2])))
+end
+
 local BossKing = {}
 BossKing.__index = BossKing
 
@@ -48,7 +98,8 @@ function BossKing:Step(rise, move, localTime)
 		local parts, root, locs = Poses.Sample(move, localTime)
 		local below = (1 - rise) * (Arena.BossHeight + Arena.HoverY)
 		local bob = Arena.BobStuds / 2 * math.sin(Workspace:GetServerTimeNow() * 2 * math.pi / Arena.BobSeconds)
-		him:Pose(self.Rest - Vector3.new(0, below - bob, 0), parts, root, 1, 0, locs)
+		local turn = move == "enuma" and sweepYaw(parts, localTime) or 0
+		him:Pose((self.Rest - Vector3.new(0, below - bob, 0)) * CFrame.Angles(0, turn, 0), parts, root, 1, 0, locs)
 		-- Ea and its drums show only inside a move's EaShown window (enuma): drawn from the vault otherwise. Written every hidden
 		-- frame (4 parts), since Show's toggle makes every part visible again.
 		local eaShown = Poses.EaShown(move, localTime)

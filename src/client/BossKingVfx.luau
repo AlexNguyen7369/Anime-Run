@@ -1,9 +1,10 @@
 --!nonstrict
 -- The Golden King's effects (design doc 4.37 "Third boss", docs/BOSS_EVENT_SPEC.md "The Golden King"). Visual only: nothing here
 -- reads back into damage. Timed from BossKingPoses' schedule events, which server time alone decides, and built with Client/BossVfx's
--- helpers (BossVfx.Kit) in the arena's BossEffects folder, after Client/BossMageVfx's spam model. gates_start opens 12 to 20 golden
--- ripple portals around and behind him; gates fires the 2 s volley window: every 0.15 s, 14 times, 7 to 10 weapons
--- as gold projectiles tweened in straight lines from a portal to spots over the whole room, every third a gold beam instead.
+-- helpers (BossVfx.Kit) in the arena's BossEffects folder, after Client/BossMageVfx's spam model. gates_start opens 16 to 22 golden
+-- ripple portals on an arch behind him and 26 to 32 more in a ring all round him (PortalRing, facing out, unlit); gates fires the
+-- 2 s volley window: every 0.15 s, 14 times, 7 to 10 weapons as gold projectiles from any ready portal along its facing, every
+-- third a gold beam instead.
 -- enuma_start starts the red charge (the room's red dim, wind lines drawn into him) until enuma fires the red-black cyclone beam
 -- that turns with his live torso (his baked hip turn) over the Window. The shields open on his call key (SHIELD_CALL s of shields)
 -- or when the ReplicatedStorage attribute BossFortified turns true: 5 to 7 gold shields of different shapes orbit him while it is
@@ -71,6 +72,12 @@ local STRIKE_COUNT, STRIKE_EVERY = 14, 0.15 -- as the mage (owner 2026-11-11): 0
 local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10
 -- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed): a dense arch of 16 to 22 portals, 18 to 30 studs
 local PORTALS_MIN, PORTALS_MAX = 16, 22
+-- The Gates ring (owner 2026-11-13, BOSS_EVENT_SPEC "Boss effects after playing" Additions, proposed): 26 to 32 more portals (as
+-- dense as the arch) evenly round him
+local RING_PORTALS_MIN, RING_PORTALS_MAX = 26, 32
+-- radians of seeded jitter, studs (flat) from his centre (inside the spec's 40 to 60, so his torso's sway keeps them in), and
+-- their height over his feet as a fraction of his height
+local RING_JITTER, RING_RADIUS, RING_HEIGHT = 0.08, { 43, 57 }, { 0.3, 1.1 }
 local PORTAL_SIZES = { 28, 22, 19, 25 } -- studs across, by turns
 local PORTAL_ART = Art.PortalC ~= nil and Art.PortalC ~= "" and Art.PortalC or Art.Ring -- design C once uploaded
 local PORTAL_TURN = 0.3 -- radians a second about its facing, slow (proposed)
@@ -81,7 +88,7 @@ local SHIELDS_MIN, SHIELDS_MAX = 5, 7
 local SHIELD_RADIUS, SHIELD_TURN = 17, 0.7 -- studs from him, radians a second
 local SHARDS = 5 -- a shattering shield's pieces
 local SPOT_MAX = Arena.WallRadius - 4 -- the whole room: centre, lanes and walkway
-local SALT = { Portals = 1, Gates = 2, Shields = 3 }
+local SALT = { Portals = 1, Gates = 2, Shields = 3, Ring = 4 }
 local TIP_HEIGHT = Arena.BossHeight * 0.85 -- the portals' and shields' height over his feet; the beam starts at Ea's tip
 -- The swirling wind (owner 2026-11-12, assets/ui/boss_king/wind_draft/ea_wind_strip.png): ribbons orbit Ea's axis, one turn per 0.8 s
 -- early, speeding up with the drums to one per 0.35 s by 2.75 s; 4 ribbons, 5 from 1.5 s, 6 from 2.25 s. Sizes proposed.
@@ -502,33 +509,16 @@ local function playPortals(cascade)
 	portalsUntil = os.clock() + hold
 	startDim(GATES_DIM, hold - PORTAL_CLOSE)
 	local mine, run = effects, generation
-	for k = 1, count do
-		local size = PORTAL_SIZES[(k - 1) % #PORTAL_SIZES + 1]
-		-- on an arch behind him from his left over his head to his right, each facing his front (the sheets; was a ring round
-		-- him facing out, which put edge-on discs between him and the lanes)
-		local a = math.rad(ARCH_SPAN * (2 * (k - 1) / (count - 1) - 1)) + rng:NextNumber(-0.08, 0.08)
-		local facing = (king.Rest.LookVector * Vector3.new(1, 0, 1)).Unit
-		local right = facing:Cross(Vector3.yAxis)
-		local ring = ARCH_RADIUS[k % 2 + 1]
-		local radius = rng:NextNumber(ring[1], ring[2])
-		local anchor = him()
-			+ Vector3.new(0, Arena.BossHeight * ARCH_HEIGHT, 0)
-			+ (right * math.sin(a) + Vector3.yAxis * math.cos(a)) * radius
-			- facing * rng:NextNumber(ARCH_BACK[1], ARCH_BACK[2])
-		-- facing the lanes in front of it, pitched down, so its weapons fly out along its facing onto the lanes (owner 2026-11-12:
-		-- "beams follow their source")
-		local down = math.min(math.atan2(anchor.Y - Arena.Y, LANE_REACH), math.rad(PORTAL_PITCH_MAX))
-		local frame = CFrame.lookAt(anchor, anchor + facing) * CFrame.Angles(-down, 0, 0)
+	-- One portal, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
+	-- size), then the weapon tip through (owner 2026-11-12: portal, then weapon, then shot). lit: it may cast a gold light.
+	local function open(name, frame, size, k, opensAt, lit)
 		local turn = PORTAL_TURN * (k % 2 == 0 and 1 or -1)
-		-- The opening, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
-		-- size), then the weapon tip through (owner 2026-11-12: portal, then weapon, then shot).
-		local opensAt = cascade * math.sqrt((k - 1) / (count - 1))
 		Kit.after(opensAt, function()
 			if not current(mine, run) then
 				return
 			end
 			local left = hold - opensAt
-			local part = Kit.holder("Portal", frame, Vector3.new(0.6, 0.6, 0.3))
+			local part = Kit.holder(name, frame, Vector3.new(0.6, 0.6, 0.3))
 			-- design C: white, so the drawn gold shows as drawn (owner 2026-11-12)
 			local front = Kit.decal(part, PORTAL_ART, WHITE, Enum.NormalId.Front)
 			local back = Kit.decal(part, PORTAL_ART, WHITE, Enum.NormalId.Back)
@@ -552,12 +542,15 @@ local function playPortals(cascade)
 			shineImage.Image, shineImage.ImageTransparency = PORTAL_ART, 0.2
 			shineImage.Parent = shine
 			shine.Parent = part
-			local glow = Instance.new("PointLight") -- every other open portal lights the dimmed room gold
-			glow.Name = "PortalLight"
-			glow.Color, glow.Brightness, glow.Range, glow.Shadows = GOLD, 0, PORTAL_LIGHT_RANGE, false
-			glow.Enabled = k % 2 == 1
-			glow.Parent = part
-			Kit.tween(glow, PORTAL_GROW + PORTAL_OPEN, { Brightness = PORTAL_LIGHT })
+			local glow = nil
+			if lit then -- every other open arch portal lights the dimmed room gold; the ring has no light (owner 2026-11-13)
+				glow = Instance.new("PointLight")
+				glow.Name = "PortalLight"
+				glow.Color, glow.Brightness, glow.Range, glow.Shadows = GOLD, 0, PORTAL_LIGHT_RANGE, false
+				glow.Enabled = k % 2 == 1
+				glow.Parent = part
+				Kit.tween(glow, PORTAL_GROW + PORTAL_OPEN, { Brightness = PORTAL_LIGHT })
+			end
 			Kit.tween(part, PORTAL_GROW, { Size = Vector3.new(size * 0.3, size * 0.3, 0.3) })
 			Kit.after(PORTAL_GROW, function()
 				if part.Parent then
@@ -597,7 +590,9 @@ local function playPortals(cascade)
 				Kit.tween(back, PORTAL_CLOSE, { Transparency = 1 })
 				Kit.tween(shineImage, PORTAL_CLOSE, { ImageTransparency = 1 })
 				Kit.tween(tip, PORTAL_CLOSE, { Transparency = 1, CFrame = frame * CFrame.new(0, 0, size * 0.1) })
-				Kit.tween(glow, PORTAL_CLOSE, { Brightness = 0 })
+				if glow then
+					Kit.tween(glow, PORTAL_CLOSE, { Brightness = 0 })
+				end
 				Kit.tween(
 					part,
 					PORTAL_CLOSE,
@@ -612,7 +607,50 @@ local function playPortals(cascade)
 			portalTips[part] = tip
 		end)
 	end
-	return math.ceil(count * 6 * hold)
+	-- the Gates ring (owner 2026-11-13, "Boss effects after playing"): its own generator, so the arch's places stay
+	local ringRng = rngFor("Ring")
+	local rings = ringRng:NextInteger(RING_PORTALS_MIN, RING_PORTALS_MAX)
+	local slots = count + rings - 1 -- one cascade, the arch's slots first
+	for k = 1, count do
+		local size = PORTAL_SIZES[(k - 1) % #PORTAL_SIZES + 1]
+		-- on an arch behind him from his left over his head to his right, each facing his front (the sheets; was a ring round
+		-- him facing out, which put edge-on discs between him and the lanes)
+		local a = math.rad(ARCH_SPAN * (2 * (k - 1) / (count - 1) - 1)) + rng:NextNumber(-0.08, 0.08)
+		local facing = (king.Rest.LookVector * Vector3.new(1, 0, 1)).Unit
+		local right = facing:Cross(Vector3.yAxis)
+		local ring = ARCH_RADIUS[k % 2 + 1]
+		local radius = rng:NextNumber(ring[1], ring[2])
+		local anchor = him()
+			+ Vector3.new(0, Arena.BossHeight * ARCH_HEIGHT, 0)
+			+ (right * math.sin(a) + Vector3.yAxis * math.cos(a)) * radius
+			- facing * rng:NextNumber(ARCH_BACK[1], ARCH_BACK[2])
+		-- facing the lanes in front of it, pitched down, so its weapons fly out along its facing onto the lanes (owner 2026-11-12:
+		-- "beams follow their source")
+		local down = math.min(math.atan2(anchor.Y - Arena.Y, LANE_REACH), math.rad(PORTAL_PITCH_MAX))
+		local frame = CFrame.lookAt(anchor, anchor + facing) * CFrame.Angles(-down, 0, 0)
+		open("Portal", frame, size, k, cascade * math.sqrt((k - 1) / slots), true)
+	end
+	-- evenly all round him with a seeded jitter, facing out, pitched down to the lanes in front of it
+	for i = 1, rings do
+		local a = 2 * math.pi * (i - 1) / rings + ringRng:NextNumber(-RING_JITTER, RING_JITTER)
+		local out = Vector3.new(math.sin(a), 0, math.cos(a))
+		local radius = ringRng:NextNumber(RING_RADIUS[1], RING_RADIUS[2])
+		local anchor = him()
+			+ out * radius
+			+ Vector3.new(0, Arena.BossHeight * ringRng:NextNumber(RING_HEIGHT[1], RING_HEIGHT[2]), 0)
+		local down = math.min(math.atan2(anchor.Y - Arena.Y, LANE_REACH - radius), math.rad(PORTAL_PITCH_MAX))
+		local frame = CFrame.lookAt(anchor, anchor + out) * CFrame.Angles(-down, 0, 0)
+		local k = count + i
+		open(
+			"PortalRing",
+			frame,
+			PORTAL_SIZES[(i - 1) % #PORTAL_SIZES + 1],
+			k,
+			cascade * math.sqrt((k - 1) / slots),
+			false
+		)
+	end
+	return math.ceil((count + rings) * 6 * hold)
 end
 
 -- The vault's weapons (owner 2026-11-11: the volleys fire weapons as projectiles, not streaks): pooled pieces about a frame whose
@@ -999,6 +1037,14 @@ local function playBeam()
 			local slack = math.rad(BEAM_YAW_SLACK)
 			local yaw = torsoYaw + math.clamp(offset, startOffset - slack, startOffset + slack)
 			dir = Vector3.new(-math.sin(yaw) * flat, dir.Y, -math.cos(yaw) * flat).Unit
+		end
+		-- on the lanes all round (owner 2026-11-13, "Boss effects after playing"): tilted down, never up, to land within
+		-- LANE_REACH (flat) of Ea's tip
+		flat = Vector2.new(dir.X, dir.Z).Magnitude
+		local need = math.atan2(origin.Y - Arena.Y, LANE_REACH)
+		if flat > 1e-3 and math.atan2(-dir.Y, flat) < need then
+			local scale = math.cos(need) / flat
+			dir = Vector3.new(dir.X * scale, -math.sin(need), dir.Z * scale)
 		end
 		return origin, dir
 	end
