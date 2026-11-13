@@ -225,11 +225,12 @@ local DIM_FLOOR = 0.25 -- proposed
 local DIMMED = { Brightness = true, Ambient = true, OutdoorAmbient = true }
 -- Lighting attribute BossStrikeHaze, 0 to 1 (her lightning's storm, owner 2026-11-12): the Atmosphere toward a dark purple haze.
 local HAZE = {
-	Density = 0.38,
-	Haze = 2.5,
-	Color = Color3.fromRGB(70, 40, 120),
-	Decay = Color3.fromRGB(40, 20, 80),
-} -- proposed
+	Density = 0.4,
+	Haze = 2.8,
+	Color = Color3.fromRGB(110, 70, 175),
+	Decay = Color3.fromRGB(70, 40, 125),
+} -- proposed (5634ce6 sheet: a mid purple haze, not black)
+local HAZE_AMBIENT = 0.12 -- with the haze, the ambients go this low (her a dark shape against the bolts); else DIM_FLOOR
 local function dimmed(e, value)
 	local h = Lighting:GetAttribute("BossStrikeHaze")
 	if e.Group == "Atmosphere" and HAZE[e.Key] ~= nil and type(h) == "number" and h > 0 then
@@ -243,7 +244,11 @@ local function dimmed(e, value)
 	if e.Group ~= "Lighting" or not DIMMED[e.Key] or type(f) ~= "number" or f <= 0 then
 		return value
 	end
-	local scale = 1 - (1 - DIM_FLOOR) * math.min(f, 1)
+	local floor = DIM_FLOOR
+	if e.Key ~= "Brightness" and type(h) == "number" and h > 0 then
+		floor = DIM_FLOOR + (HAZE_AMBIENT - DIM_FLOOR) * math.min(h, 1)
+	end
+	local scale = 1 - (1 - floor) * math.min(f, 1)
 	if type(value) == "number" then
 		return value * scale
 	end

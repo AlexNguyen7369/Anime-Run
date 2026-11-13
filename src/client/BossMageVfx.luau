@@ -68,14 +68,20 @@ local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
 -- with small branches, 5 to 8 segments a bolt and 2 to 4 branches.
 -- Owner 2026-11-12 later (design doc 4.37 "Elf Mage target sheets"): a dark purple storm: thick white-violet bolts filling the view,
 -- a few big ones a strike from far above, purple clouds lit from inside, a dark purple haze in the room (proposed).
-local BOLT_SEGMENTS, BOLT_BRANCHES = { 4, 6 }, { 1, 3 }
+-- 5634ce6 sheet: strikes about twice as wide in a violet glow, 4 huge bolts by her at each strike, purple clouds lit from inside
+-- behind and beside her (never between her and a runner's camera).
+local BOLT_SEGMENTS, BOLT_BRANCHES = { 4, 5 }, { 1, 3 }
 local BOLT_JAG = 6 -- studs a bolt's kink strays sideways at most
-local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 2, 7, 0.24 -- studs across the white core and the violet halo, s they show
+local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 2.4, 10, 0.24 -- studs across the white core and the violet halo, s they show
 local BRANCH_CORE, BRANCH_LENGTH = 0.8, { 10, 26 } -- a branch's white core, studs across and long
 local GLOW_TRANSPARENCY = 0.5 -- the halo: soft, the core shows through
-local STORM_BOLTS, STORM_TOP, STORM_SEGMENTS = 2, 170, 7 -- big bolts a strike, from this high, segments
-local STORM_CORE, STORM_GLOW, STORM_JAG = 4, 14, 14 -- their core and halo, studs across; their kinks stray this far
-local CLOUDS_PER_STRIKE, CLOUD_HEIGHT = 2, { 45, 80 } -- purple clouds lit from inside, studs over the floor
+local STORM_BOLTS, STORM_TOP, STORM_SEGMENTS = 4, 170, 6 -- huge bolts by her a strike, from this high, segments
+local STORM_CORE, STORM_GLOW, STORM_JAG = 5, 20, 16 -- their core and halo, studs across; their kinks stray this far
+-- where they land: studs from her feet, and degrees off straight behind her as a runner's camera sees her (either side)
+local STORM_RANGE, STORM_TURN = { 28, 70 }, { 15, 140 }
+local STORM_RING = { 6, 30, 0.35 } -- the thin white ring at a huge bolt's foot: studs across from, to; s
+local CLOUDS_PER_STRIKE, CLOUD_HEIGHT = 2, { 25, 75 } -- purple clouds lit from inside, studs over the floor
+local CLOUD_RANGE, CLOUD_TURN = { 50, 110 }, { 0, 100 } -- as STORM_RANGE / STORM_TURN: behind and beside her
 local FLOOR_LIGHT, FLOOR_RANGE, FLOOR_UP = 5, 26, 4 -- a bolt's floor light: brightness, range, studs over its spot
 local TIP_SEGMENTS = 4 -- the bolt from her staff's tip to each strike's first spot
 local STAFF_BURST = { 12, 0.18 } -- studs across and s of the pink-white burst at her staff's tip as each strike leaves it
@@ -517,6 +523,12 @@ local function shockLook(part)
 	Kit.decal(part, Art.Ring, LAVENDER, Enum.NormalId.Top)
 end
 
+-- A huge bolt's foot: a thin white ring decal on a near-clear carrier, as the sheet's.
+local function stormRingLook(part)
+	part.Material = Enum.Material.SmoothPlastic
+	Kit.decal(part, Art.Ring, WHITE, Enum.NormalId.Top)
+end
+
 -- A round segment from a to b (a cylinder along the line): the bolts' cores and halos.
 local function rod(part)
 	part.Shape = Enum.PartType.Cylinder
@@ -606,24 +618,57 @@ local function playLightning()
 			bolts[k] = { Points = points, Branches = branches }
 		end
 		local tipRng = Random.new(j) -- the staff bolt's kinks: fixed per strike, its ends live
-		local storms = {}
+		-- huge bolts and clouds: seeded turns and distances, placed about her from this client's camera when they play
+		local storms, clouds, stormRng = {}, {}, Random.new(1000 + j)
 		for b = 1, STORM_BOLTS do
-			local at = strike.Spots[(b - 1) * 3 % #strike.Spots + 1]
-			local top = at + Vector3.new(rng:NextNumber(-30, 30), STORM_TOP, rng:NextNumber(-30, 30))
-			storms[b] = jagged(rng, top, at, STORM_SEGMENTS, STORM_JAG)
+			local side = b % 2 == 0 and 1 or -1
+			storms[b] = {
+				Turn = side * stormRng:NextNumber(STORM_TURN[1], STORM_TURN[2]),
+				Range = stormRng:NextNumber(STORM_RANGE[1], STORM_RANGE[2]),
+			}
 		end
-		local clouds = {}
 		for c = 1, CLOUDS_PER_STRIKE do
-			local at = strike.Spots[(c * 2 - 1) % #strike.Spots + 1]
-			clouds[c] = at + Vector3.new(0, rng:NextNumber(CLOUD_HEIGHT[1], CLOUD_HEIGHT[2]), 0)
+			local side = c % 2 == 0 and 1 or -1
+			clouds[c] = {
+				Turn = side * stormRng:NextNumber(CLOUD_TURN[1], CLOUD_TURN[2]),
+				Range = stormRng:NextNumber(CLOUD_RANGE[1], CLOUD_RANGE[2]),
+				Height = stormRng:NextNumber(CLOUD_HEIGHT[1], CLOUD_HEIGHT[2]),
+			}
 		end
 		later(strike.T, function()
 			local total = 0
-			for _, points in storms do
-				bolt(points, STORM_CORE, STORM_GLOW)
+			local feet = Vector3.new(mage.Her.Anchor.Position.X, Arena.Y + 0.15, mage.Her.Anchor.Position.Z)
+			local camera = Workspace.CurrentCamera
+			local away = camera and (feet - camera.CFrame.Position) * Vector3.new(1, 0, 1) or Vector3.new(0, 0, -1)
+			away = away.Magnitude > 1 and away.Unit or Vector3.new(0, 0, -1)
+			local function about(row)
+				return feet + (CFrame.Angles(0, math.rad(row.Turn), 0) * away) * row.Range
 			end
-			for _, at in clouds do
-				total += emitAt("StormCloud", at, 1)
+			for _, row in storms do
+				local at = about(row)
+				bolt(
+					jagged(stormRng, at + Vector3.new(0, STORM_TOP, 0), at, STORM_SEGMENTS, STORM_JAG),
+					STORM_CORE,
+					STORM_GLOW
+				)
+				local ring = pooled(
+					"StormRing",
+					CFrame.new(at + Vector3.new(0, 0.3, 0)),
+					Vector3.new(STORM_RING[1], 0.2, STORM_RING[1]),
+					WHITE,
+					0.95,
+					STORM_RING[3],
+					stormRingLook
+				)
+				Kit.tween(
+					ring,
+					STORM_RING[3],
+					{ Size = Vector3.new(STORM_RING[2], 0.2, STORM_RING[2]) },
+					Enum.EasingStyle.Quart
+				)
+			end
+			for _, row in clouds do
+				total += emitAt("StormCloud", about(row) + Vector3.new(0, row.Height, 0), 1)
 			end
 			for _, row in bolts do
 				bolt(row.Points)
