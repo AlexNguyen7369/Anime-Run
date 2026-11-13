@@ -7,6 +7,7 @@ History: `current_progress.md`, `git log`.
 - Studio (targeted): ui_boss_king_vfx 108/108, ui_boss_mage_vfx 125/125, late_data 101/101, boss_king_event 101/101, boss_mage_event 291/291, boss_king_anim fail=0; boss_king_arena only `arena_ids_listed` (pre-existing). Rules audit PASS, fresh merge review APPROVE.
 - Non-blocking: during enuma `him:Pose` runs twice a frame (BossKing.luau ~118); random firing portal can differ on a client that opened portals late (visual only); barrage room lit to 38% (cap 40% by the existing barrage dim check); Zoltraak close-up mist is loose puffs rather than a tight sheath; Enuma core reads cream, not yellow; `lightning_floor_light` flaked once.
 - Not run: full harness (owner rule: targeted only).
+- 2026-11-13 later: `/skiptime` was never registered as a chat command (missing from AdminService ORDER); fixed on hotfix/alex/skiptime-register with check `admin_every_command_registered` (`admin` scenario green). Restart Play after a sync: chat commands are created at server start.
 - Next: owner plays `/boss king` and `/elfboss` (or `/boss mage`) with `/skiptime` from play-main and reports.
 
 ## RESUME HERE (2026-11-12, /skiptime): committed on `feature/alex/powerup-tune` (2ea7a07), not pushed
