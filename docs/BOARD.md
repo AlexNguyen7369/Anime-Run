@@ -1,6 +1,7 @@
 # Board
 
 ## Doing
+- boss-anim-rework: built and verified on feature/alex/boss-anim-rework; waiting on the owner (record the pre-approval, uploads, mage tris, beam sweep), then the PR into main (2026-11-12)
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server

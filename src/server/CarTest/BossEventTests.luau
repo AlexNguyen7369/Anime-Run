@@ -678,29 +678,14 @@ function Tests.make(deps)
 				eq("owner_phase2_extra_hp", Cfg.Phase2ExtraHp, 50000)
 				eq("owner_phase2_extra_seconds", Cfg.Phase2ExtraSeconds, 120)
 				eq("owner_scream_seconds", Cfg.ScreamSeconds, 6)
-				do -- VehicleEffects.Boost scales an effect about the body
+				do
+					-- Owner 2026-11-12 (design doc 4.37 "Runners' auras and trails are toned down during boss events";
+					-- BOSS_EVENT_SPEC "Animation rework", "Runners' auras and trails in the event"): the 2026-11-06 event boost
+					-- (2.5 x scale, trails 1.5 x) is removed. Replaces the boost_moves_attachment / boost_scales_emitter /
+					-- boost_longer_trail checks of VehicleEffects.Boost. The lighter draw: UiBossImpact ui_event_auras.
 					local Effects = require(Shared.VehicleEffects)
-					local function boosted(kind, id)
-						local car = Instance.new("Model")
-						car.PrimaryPart = Instance.new("Part")
-						car.PrimaryPart.Parent = car
-						Effects.ApplyProfile(car, kind, id)
-						return car
-					end
-					local aura = boosted("Aura", "ember_aura")
-					local at = aura.PrimaryPart:FindFirstChildWhichIsA("Attachment")
-					local emitter = aura.PrimaryPart:FindFirstChildWhichIsA("ParticleEmitter", true)
-					local position, size = at.Position, emitter.Size.Keypoints[1].Value
-					Effects.Boost(aura, 2)
-					eq("boost_moves_attachment", (at.Position - position * 2).Magnitude < 1e-3, true)
-					eq("boost_scales_emitter", math.abs(emitter.Size.Keypoints[1].Value - size * 2) < 1e-3, true)
-					local wake = boosted("Trail", "void_trail")
-					local trail = wake.MarketEffects:FindFirstChildWhichIsA("Trail")
-					local life = trail.Lifetime
-					Effects.Boost(wake, 2)
-					eq("boost_longer_trail", trail.Lifetime > life, true)
-					aura:Destroy()
-					wake:Destroy()
+					eq("old_event_boost_removed", Effects.EVENT_BOOST, nil)
+					eq("old_boost_function_removed", Effects.Boost, nil)
 				end
 				eq("owner_phase1_money", Cfg.Phase1Money, 100000)
 				eq("owner_phase2_gems", Cfg.Phase2Gems, 1000)

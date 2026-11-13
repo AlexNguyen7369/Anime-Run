@@ -87,13 +87,13 @@ def _shade(o, co, lo, hi):
 	return (co.z - lo) / max(hi - lo, 1e-6)
 
 
-def merge_group(name, centre, members, swatches, mat, cols, zones):
+def merge_group(name, centre, members, swatches, mat, cols, zones, part_of=r15_of):
 	bm = bmesh.new()
 	uv = bm.loops.layers.uv.new("UVMap")
 	ink = swatches.setdefault(INK, len(swatches))
 	bpy.context.view_layer.update()
 	for o in bpy.data.objects:
-		if o.type != "MESH" or r15_of(o) not in members:
+		if o.type != "MESH" or part_of(o) not in members:
 			continue
 		painted = o.get("painted")
 		hexcol = "#" + o.data.materials[0].name[2:]
@@ -153,8 +153,9 @@ def merge_group(name, centre, members, swatches, mat, cols, zones):
 	return bpy.data.objects.new(name + "_merged", mesh), (2 * ext[0], 2 * ext[2], 2 * ext[1])  # Roblox: x, y up, z depth
 
 
-def merge(cid, keep=()):
-	"""Replaces the built parts of the current scene by the 6 merged parts. keep = objects from other characters."""
+def merge(cid, keep=(), groups=GROUPS, part_of=r15_of):
+	"""Replaces the built parts of the current scene by the 6 merged parts. keep = objects from other characters.
+	groups / part_of: another grouping (build_boss_king.py's jointed rig) and which R15 part a built piece counts as."""
 	mat = bpy.data.materials.new("Palette_" + cid)
 	mat.use_nodes = True
 	mat.use_backface_culling = True  # the outline needs it; also exported as doubleSided false
@@ -164,8 +165,8 @@ def merge(cid, keep=()):
 	painted = avatar_paint.atlas_path(cid)
 	cols = 1024 // CELL_PX if painted else CELLS
 	swatches, merged, sizes = {}, {}, {}
-	for name, (centre, members) in GROUPS.items():
-		merged[name], size = merge_group(name, centre, members, swatches, mat, cols, avatar_paint.hair_zones(cid))
+	for name, (centre, members) in groups.items():
+		merged[name], size = merge_group(name, centre, members, swatches, mat, cols, avatar_paint.hair_zones(cid), part_of)
 		sizes[name] = [round(s, 3) for s in size]
 	for o in list(bpy.data.objects):
 		if o not in merged.values() and o not in keep:

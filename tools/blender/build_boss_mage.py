@@ -3,10 +3,14 @@
 #   Blender -b --factory-startup --python tools/blender/build_boss_event.py -- build boss_golem
 #   Blender -b --factory-startup --python tools/blender/build_boss_mage.py
 #   Blender -b --factory-startup --python tools/blender/build_boss_mage.py -- portraits
+#   Blender -b --factory-startup --python tools/blender/build_boss_mage.py -- jointed
 # Writes assets/characters_avatar/boss_mage/review/{front,side,back,three_quarter,hover,hover_three_quarter,lineup}.png,
 # boss_mage.blend and boss_golem/review/slam_pose.png; portraits: boss_mage and boss_golem portrait.png and head.png.
 # She is a painted R15 character (paint/char_boss_mage.py) merged into the 6 runner parts; the staff and the two twin tails stay
 # their own objects, origin at their grip or root, so they animate on their own. Nothing here uploads.
+# jointed (animation rework, design doc 4.37 "Animation rework", owner 2026-11-12): the same model regrouped with elbows and knees
+# as build_boss_king.py -- jointed does (each limb block cut at its R15 seam and capped, nothing slimmed), and each twin tail cut
+# into TAIL_SEGS segments along its length; boss_mage_jointed.blend and review/jointed/*.png. The 6-part build is unchanged.
 import importlib
 import math
 import os
@@ -32,6 +36,8 @@ RDIR = os.path.join(build_avatar.OUT, CID, "review")
 LOOSE = {"TailL": ("Head_TailL", (0.86, 0.36, 5.86)), "TailR": ("Head_TailR", (-0.86, 0.36, 5.86)), "Staff": ("RightHand_Staff", (-1.5, -0.62, 2.05))}
 JOINT = {"LeftArm": (1.5, 0, 3.8), "RightArm": (-1.5, 0, 3.8), "LeftLeg": (0.5, 0, 2.0), "RightLeg": (-0.5, 0, 2.0)}
 HAND = {"LeftArm": Vector((1.5, 0, 2.05)), "RightArm": Vector((-1.5, 0, 2.05))}
+TAIL_SEGS = (0.36, 0.68)  # jointed: where each tail is cut, as fractions of its root-to-tip length (3 segments)
+JDIR = os.path.join(RDIR, "jointed")
 
 
 def join(name, prefix, pivot):
@@ -56,20 +62,76 @@ def join(name, prefix, pivot):
 	return o
 
 
-def build(cid=CID, small=False):
-	"""The mage (or her Sidekick side_mage, small: fine detail dropped) under an empty root named cid."""
+def tail_chain(o, name):
+	"""Cuts a joined tail (origin at its root) into len(TAIL_SEGS) + 1 objects name1, name2, ... along the line from the root to
+	its farthest vertex; each cut is capped (UVs from the side faces at each corner) and each segment's origin sits on that line
+	at its cut, so it turns about its own joint. Returns the segments, root first."""
+	root = o.matrix_world.translation.copy()
+	tip = max((o.matrix_world @ v.co for v in o.data.vertices), key=lambda p: (p - root).length)
+	axis = tip - root
+	cuts = [0.0, *TAIL_SEGS, None]
+	out = []
+	for i in range(len(cuts) - 1):
+		bmo = bmesh.new()
+		bmo.from_mesh(o.data)
+		bmo.transform(o.matrix_world)
+		for f, keep_after in ((cuts[i], True), (cuts[i + 1], False)):
+			if f is None or (f == 0.0 and keep_after):
+				continue
+			res = bmesh.ops.bisect_plane(bmo, geom=bmo.verts[:] + bmo.edges[:] + bmo.faces[:], plane_co=root + axis * f, plane_no=axis.normalized(), clear_inner=keep_after, clear_outer=not keep_after)
+			edges = [e for e in res["geom_cut"] if isinstance(e, bmesh.types.BMEdge) and e.is_valid and e.is_boundary]
+			caps = bmesh.ops.holes_fill(bmo, edges=edges, sides=0)["faces"]
+			uv = bmo.loops.layers.uv.active
+			for cf in caps:
+				for lp in cf.loops:
+					lp[uv].uv = next(x for x in lp.vert.link_loops if x.face is not cf)[uv].uv
+		bmesh.ops.recalc_face_normals(bmo, faces=bmo.faces[:])
+		pivot = root + axis * cuts[i]
+		bmesh.ops.translate(bmo, verts=bmo.verts[:], vec=-pivot)
+		mesh = bpy.data.meshes.new(f"{name}{i + 1}")
+		bmo.to_mesh(mesh)
+		bmo.free()
+		seg = bpy.data.objects.new(f"{name}{i + 1}", mesh)
+		bpy.context.scene.collection.objects.link(seg)
+		seg.location = pivot
+		out.append(seg)
+	bpy.data.objects.remove(o)
+	return out
+
+
+def build(cid=CID, small=False, jointed=False):
+	"""The mage (or her Sidekick side_mage, small: fine detail dropped) under an empty root named cid. jointed: the 10 parts of
+	build_boss_king.JOINTED (elbows and knees) and the tails as TailL1..3 / TailR1..3 (tail_chain)."""
 	build_avatar.reset()
 	bpy.context.preferences.filepaths.save_version = 0
 	importlib.import_module("char_" + CID).SMALL = small
 	build_avatar.build(CID, build_avatar.load_data()[CID])
 	loose = {n: join(n, *v) for n, v in LOOSE.items()}
-	merged, _ = avatar_merge.merge(CID, keep=list(loose.values()))
+	groups = avatar_merge.GROUPS
+	if jointed:
+		import build_boss_king as bkg  # the king's jointed rig: same R15 seams and pivots (imported here: it imports this module)
+
+		groups = bkg.JOINTED
+		bpy.context.view_layer.update()
+		for side in ("Left", "Right"):
+			for kind, seam in bkg.SEAM.items():
+				# every painted piece that crosses the seam is cut (her arm block and sleeve, her leg block); the rest go whole
+				for o in [o for o in bpy.data.objects if o.type == "MESH" and avatar_merge.r15_of(o) == f"{side}Upper{kind}"]:
+					zs = [(o.matrix_world @ v.co).z for v in o.data.vertices]
+					if min(zs) < seam - 0.05 and max(zs) > seam + 0.05:
+						bkg._split(o, seam, f"{side}Lower{kind}")
+		for t in ("TailL", "TailR"):
+			for seg in tail_chain(loose.pop(t), t):
+				loose[seg.name] = seg
+		merged, _ = avatar_merge.merge(CID, keep=list(loose.values()), groups=groups, part_of=bkg._segment)
+	else:
+		merged, _ = avatar_merge.merge(CID, keep=list(loose.values()))
 	root = bpy.data.objects.new(cid, None)
 	bpy.context.scene.collection.objects.link(root)
 	mat = merged["Head"].data.materials[0]
 	objs = {}
 	for name, o in merged.items():
-		o.location = avatar_merge.GROUPS[name][0]
+		o.location = groups[name][0]
 		o.parent = root
 		bpy.context.scene.collection.objects.link(o)
 		objs[name] = o
@@ -218,7 +280,59 @@ def portraits():
 	rp.render_sidekick("boss_golem", build_avatar.OUT)
 
 
+def jturn(objs, rest, turns):
+	"""Jointed review pose: turns = [(part, euler degrees)] parents first; each part turns about its pivot and carries its
+	children (lower limb under upper, tail segments down the chain). The staff stands upright in the right fist."""
+	import build_boss_king as bkg
+
+	pivots = {n: Vector(v[0]) for n, v in bkg.JOINTED.items()} | {n: r.translation for n, r in rest.items() if n.startswith("Tail")}
+	child = {"LeftUpperArm": ["LeftLowerArm"], "RightUpperArm": ["RightLowerArm"], "LeftUpperLeg": ["LeftLowerLeg"], "RightUpperLeg": ["RightLowerLeg"]}
+	for t in ("TailL", "TailR"):
+		child[t + "1"], child[t + "2"] = [t + "2", t + "3"], [t + "3"]
+	m = {n: Matrix() for n in objs}
+	for n, e in turns:
+		m[n] = m[n] @ turn(pivots[n], euler=e)
+		for c in child.get(n, []):
+			m[c] = m[n]
+	for n, o in objs.items():
+		o.matrix_world = m.get(n, Matrix()) @ rest[n]
+	objs["Staff"].matrix_world = Matrix.Translation(m["RightLowerArm"] @ HAND["RightArm"])
+	bpy.context.view_layer.update()
+
+
+def jointed():
+	"""The jointed mage: boss_mage_jointed.blend, 4 review views (staff upright in the right fist, that elbow bent, tails a little
+	bent at each joint) and 2 bend tests (both elbows at 90 degrees with the tails curled, the left knee at 90 degrees)."""
+	root, objs, tris = build(CID + "_jointed", jointed=True)
+	bpy.ops.wm.save_as_mainfile(filepath=os.path.join(build_avatar.OUT, CID, CID + "_jointed.blend"))
+	os.makedirs(JDIR, exist_ok=True)
+	cam = build_avatar.setup_render(bpy.context.scene)
+	cam.data.lens = 70
+	rest = {n: o.matrix_world.copy() for n, o in objs.items()}
+	tails = [("TailL1", (0, -12, 0)), ("TailL2", (0, -14, 0)), ("TailL3", (0, -16, 0)), ("TailR1", (0, 12, 0)), ("TailR2", (0, 14, 0)), ("TailR3", (0, 16, 0))]
+	jturn(objs, rest, [("RightLowerArm", (-50, 0, 0))] + tails)
+	for view, d in build_avatar.VIEWS.items():
+		render(cam, os.path.join(JDIR, view + ".png"), d, target=(0, 0, 4.2), dist=20)
+	objs["Staff"].hide_render = True
+	curl = [("TailL1", (20, 0, 0)), ("TailL2", (35, 0, 0)), ("TailL3", (45, 0, 0)), ("TailR1", (20, 0, 0)), ("TailR2", (35, 0, 0)), ("TailR3", (45, 0, 0))]
+	jturn(objs, rest, [("LeftLowerArm", (-90, 0, 0)), ("RightLowerArm", (-90, 0, 0))] + curl)
+	render(cam, os.path.join(JDIR, "bend_elbows.png"), (1, -0.25, 0.12), target=(0, 0.6, 3.6), dist=17)
+	jturn(objs, rest, [("LeftUpperLeg", (-80, 0, 0)), ("LeftLowerLeg", (90, 0, 0))])  # a high step: thigh level, shin hanging
+	objs["LeftUpperArm"].hide_render = objs["LeftLowerArm"].hide_render = objs["TailL1"].hide_render = objs["TailL2"].hide_render = objs["TailL3"].hide_render = True
+	render(cam, os.path.join(JDIR, "bend_knee.png"), (1, -0.1, 0.05), target=(0, 0, 3.0), dist=19)
+	for o in objs.values():
+		o.hide_render = False
+	jturn(objs, rest, [])
+	total = sum(tris.values())
+	print("TRIS", CID + "_jointed", total, "meshes", len([o for o in objs.values() if o.type == "MESH"]), tris)
+	if total > 3000:  # the shipped 6-part build is already over (3,352): the owner rules on the budget (BOSS_EVENT_SPEC "Animation rework")
+		print(f"OVER BUDGET {CID}_jointed: {total} tris over the 3,000 target")
+
+
 def main():
+	if sys.argv[-1] == "jointed":
+		jointed()
+		return
 	if sys.argv[-1] == "slam":
 		golem_slam()
 		return

@@ -584,7 +584,7 @@ local function refresh()
 	-- Owner 2026-11-10 (design doc 4.40): in a boss event both columns hide; the pills, the pair and the event UI stay.
 	local columns = not inTree and player:GetAttribute("BossEvent") ~= true
 	grid.Visible, shopColumn.Visible, bar.Visible = columns, columns, not inTree
-	setHudDimmed(PanelSwitch.Dimmed()) -- every panel and popup (design doc 4.42)
+	setHudDimmed(PanelSwitch.Dimmed() and not PanelSwitch.IsOpen("Sidekicks")) -- every panel and popup (design doc 4.42)
 end
 
 for _, attr in { "UpgradesBuyable", "StatPoints", "DailyLast", "BossEvent" } do

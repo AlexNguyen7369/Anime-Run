@@ -136,6 +136,7 @@ local UNDERGROUND = {
 local zone, profile, audio = nil, Env.Profile(0), {}
 local blendStart = -math.huge
 local dirty = false
+local landed = true -- false from a blend's start until the frame that writes its goals
 
 local function same(a, b)
 	if type(a) == "number" and type(b) == "number" then
@@ -169,6 +170,9 @@ local function bind(e)
 	e.Current = e.Server
 	e.From = e.Server
 	inst:GetPropertyChangedSignal(e.Prop):Connect(function()
+		if Lighting:GetAttribute("SummonPreviewActive") then
+			return
+		end
 		if not same(inst[e.Prop], e.Written) then
 			e.Server = inst[e.Prop] -- a server write (weather): keep it and re-apply over it next frame
 			e.Current = e.Server
@@ -347,6 +351,7 @@ local function startBlend(z, seconds)
 	blendSeconds = seconds
 	preloadSky(z + 1) -- the run goes through the tracks in Number order
 	swapped = false
+	landed = false
 	for _, e in entries do
 		if bind(e) then
 			e.From = e.Current
@@ -355,17 +360,28 @@ local function startBlend(z, seconds)
 	startLoop()
 end
 
+Lighting:GetAttributeChangedSignal("SummonPreviewActive"):Connect(function()
+	if not Lighting:GetAttribute("SummonPreviewActive") then
+		dirty = true
+	end
+end)
 RunService.RenderStepped:Connect(function()
+	if Lighting:GetAttribute("SummonPreviewActive") then
+		return
+	end
 	local camera = Workspace.CurrentCamera
 	if camera then
 		box.CFrame = camera.CFrame * CFrame.new(0, 0, -Env.PARTICLE_AHEAD)
 	end
 	local t = (os.clock() - blendStart) / blendSeconds
 	local blending = t < 1
-	if not (blending or dirty) then
+	-- The frame past the blend's end still writes the goals: a short blend (BLEND_MIN) over slow frames would otherwise stop at
+	-- its last lerp, short of the profile.
+	if not (blending or dirty or not landed) then
 		return
 	end
 	dirty = false
+	landed = not blending
 	local k = Env.Ease(t)
 	local peak = blending and math.sin(math.pi * math.clamp(t, 0, 1)) or 0
 	if not swapped and t >= 0.5 then

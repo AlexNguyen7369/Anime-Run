@@ -132,9 +132,15 @@ local function loadBoss(name, assetId, binds, root)
 	local folder = Instance.new("Folder")
 	folder.Name = name
 	local texture = ""
+	local names = {} -- the upload's part name -> its bind name (a bind row's Mesh, when it stands in for another part)
+	for partName, row in binds do
+		names[row.Mesh or partName] = partName
+	end
 	for _, d in asset:GetDescendants() do
-		local bind = d:IsA("MeshPart") and binds[d.Name]
+		local partName = d:IsA("MeshPart") and names[d.Name]
+		local bind = partName and binds[partName]
 		if bind then
+			d.Name = partName
 			d.Anchored = true
 			d.CanCollide = false
 			d.CanTouch = false
@@ -179,7 +185,8 @@ local function startBoss()
 				boss_king = BossKingPoses.Bind,
 			}
 		do
-			local art = SidekickArt[name]
+			-- the bosses' jointed uploads, not the old 6-part ones (still in SidekickArt)
+			local art = SidekickArt[(name == "boss_king" or name == "boss_mage") and name .. "_jointed" or name]
 			if art and art.BossModel then
 				pcall(loadBoss, name, art.BossModel, bind, root)
 			end

@@ -16,7 +16,6 @@ local BossCatalog = require(Shared.BossCatalog)
 local BossCfg = require(Shared.BossEventConfig)
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
-local VehicleEffects = require(Shared.VehicleEffects)
 local BossWaitCamera = require(script.Parent.BossWaitCamera)
 local RunnerVisual = require(script.Parent.RunnerVisual)
 local RunStyleFx = require(script.Parent.RunStyleFx)
@@ -33,14 +32,20 @@ local TRACK_CAMERA_RATE = 4 -- 1/s, placeholder: how fast the camera yaw turns t
 local ARENA_YAW, ARENA_PITCH = math.rad(75), math.rad(26)
 
 -- The running boss's view: Big Raga's the constants above, another boss its BossCatalog row's Camera (degrees, studs), and the
--- arena of that boss. Returns yaw, pitch (radians), zoom and the arena's numbers.
+-- arena of that boss. Returns yaw, pitch (radians), zoom, the arena's numbers, the eye's least height over the deck (the row's Eye,
+-- nil: ABOVE_DECK) and the event's locked FOV (the row's Fov, else BossEventConfig.CameraFov; design doc 4.37 "Rework approvals").
 local function arenaView()
 	local boss = BossCatalog.Current()
 	local view = boss.Camera
 	if boss.Id == BossCatalog.Default or not view then
-		return ARENA_YAW, ARENA_PITCH, BossCfg.CameraZoom, Arena
+		return ARENA_YAW, ARENA_PITCH, BossCfg.CameraZoom, Arena, nil, view and view.Fov or BossCfg.CameraFov
 	end
-	return math.rad(view.Yaw), math.rad(view.Pitch), view.Zoom, Arena.For(boss.Id)
+	return math.rad(view.Yaw),
+		math.rad(view.Pitch),
+		view.Zoom,
+		Arena.For(boss.Id),
+		view.Eye,
+		view.Fov or BossCfg.CameraFov
 end
 
 local player = Players.LocalPlayer
@@ -65,9 +70,9 @@ local function hide(d)
 	end
 end
 
--- Boss event (docs/BOSS_EVENT_SPEC.md "Arena"): Market auras and trails draw lighter on the copy, on top of the event boost.
--- Applied in place, so the camera keeps following the same copy. `on` false undoes it. Placeholders.
-local EVENT_AURA_RATE, EVENT_TRAIL_OPACITY = 0.5, 0.6
+-- Boss event (docs/BOSS_EVENT_SPEC.md "Animation rework", "Runners' auras and trails in the event"): Market auras and trails draw
+-- lighter on the copy, no other change. Applied in place, so the camera keeps following the same copy. `on` false undoes it. Proposed.
+local EVENT_AURA_RATE, EVENT_TRAIL_OPACITY = 0.25, 0.35
 local function lighten(d, on)
 	if d:IsA("ParticleEmitter") and d.Parent:GetAttribute("MarketEffect") then
 		d.Rate *= on and EVENT_AURA_RATE or 1 / EVENT_AURA_RATE
@@ -122,11 +127,6 @@ local function rebuild(view)
 	copy.Name = rig.Name .. "_Visible"
 	-- the rig's PrimaryPart can replicate nil after a re-skin (first tag-in), which would drop the camera to the hidden avatar
 	copy.PrimaryPart = copy:FindFirstChild("Torso") or copy.PrimaryPart
-	local owner = ownerOf(rig)
-	view.Boosted = owner ~= nil and owner:GetAttribute("BossEvent") == true
-	if view.Boosted then
-		VehicleEffects.Boost(copy, VehicleEffects.EVENT_BOOST)
-	end
 	CollectionService:AddTag(copy, RunnerVisual.TAG)
 	RunStyleFx.Attach(copy)
 	copy.Parent = Workspace
@@ -167,21 +167,6 @@ local function add(rig)
 			view.Dirty = true
 		end)
 	)
-	-- entering or leaving an event resizes the aura and trail, on the same copy: the camera follows it
-	local owner = ownerOf(rig)
-	if owner then
-		table.insert(
-			view.Connections,
-			owner:GetAttributeChangedSignal("BossEvent"):Connect(function()
-				local boosted = owner:GetAttribute("BossEvent") == true
-				if view.Copy and boosted ~= view.Boosted then
-					view.Boosted = boosted
-					local factor = VehicleEffects.EVENT_BOOST
-					VehicleEffects.Boost(view.Copy, boosted and factor or 1 / factor)
-				end
-			end)
-		)
-	end
 	view.ChangedAt = os.clock()
 	table.insert(
 		view.Connections,
@@ -436,10 +421,13 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 	if waitView then
 		wide = fovBefore ~= nil
 	end
-	if wide and not fovBefore then
-		fovBefore, zoomBefore = camera.FieldOfView, player.CameraMinZoomDistance
-		camera.FieldOfView = BossCfg.CameraFov
-		player.CameraMinZoomDistance = select(3, arenaView())
+	if wide then
+		local _, _, zoom, _, _, fov = arenaView()
+		if not fovBefore then
+			fovBefore, zoomBefore = camera.FieldOfView, player.CameraMinZoomDistance
+			player.CameraMinZoomDistance = zoom
+		end
+		camera.FieldOfView = fov -- every frame: the boss (and so the arena's FOV) can change while the event's view stays on
 	elseif camera and not wide and fovBefore then
 		camera.FieldOfView = fovBefore
 		player.CameraMinZoomDistance = zoomBefore
@@ -493,9 +481,9 @@ RunService:BindToRenderStep("BossEventCamera", Enum.RenderPriority.Camera.Value 
 	if not camera or camera.CameraType ~= Enum.CameraType.Custom or player:GetAttribute("BossEvent") ~= true then
 		return
 	end
-	local _, _, zoom, arena = arenaView()
+	local _, _, zoom, arena, above = arenaView()
 	local eye = camera.Focus.Position - camera.CFrame.LookVector * zoom
-	camera.CFrame = camera.CFrame.Rotation + Vector3.new(eye.X, math.max(eye.Y, arena.Y + ABOVE_DECK), eye.Z)
+	camera.CFrame = camera.CFrame.Rotation + Vector3.new(eye.X, math.max(eye.Y, arena.Y + (above or ABOVE_DECK)), eye.Z)
 end)
 
 -- Tunnel camera clamp (docs/BIOME_ENVIRONMENT_SPEC.md 3.5), after the default camera: while a tunnel part is straight

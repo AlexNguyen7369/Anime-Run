@@ -3,6 +3,9 @@
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
+      "SummonScreenAssets": {
+        "$path": "assets/studio/SummonScreenAssets.rbxm"
+      },
       "Shared": {
         "$path": "src/shared"
       },
@@ -40,7 +43,10 @@
       }
     },
     "StarterGui": {
-      "$path": "assets/studio/StarterGui.rbxm"
+      "$path": "assets/studio/StarterGui.rbxm",
+      "RacerSidekicks": {
+        "$path": "assets/studio/RacerSidekicks.rbxm"
+      }
     },
     "TextChatService": {
       "$properties": {

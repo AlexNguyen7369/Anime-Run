@@ -39,6 +39,10 @@ function Rotation.For(slot)
 		end
 		rotation[tier[1]] = drawn
 	end
+	local featured = Config.Get(Config.FeaturedMythic)
+	if featured and featured.Rarity == "Mythic" and Art[featured.Id] and Art[featured.Id].Model then
+		rotation.Mythic = { featured.Id }
+	end
 	local secrets = idsOf("Secret")
 	rotation.Secret = secrets[Random.new(slot * SEED_STEP + SECRET_SALT):NextInteger(1, #secrets)]
 	return rotation

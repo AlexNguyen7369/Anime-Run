@@ -28,8 +28,8 @@ local STEPS = {
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local page = playerGui:WaitForChild("RacerSidekicks")
-local main = page:WaitForChild("Panel"):WaitForChild("Body"):WaitForChild("Main")
-local free = main:WaitForChild("FreeSummon")
+local main = page:WaitForChild("Canvas")
+local free = main:WaitForChild("AutoFuse")
 
 local spot = TutorialSpotlight.new("SidekickTutorial", 18) -- above the summon reveal (15), below the starter popup (19)
 spot.Ring.ZIndex = 6 -- step 1's ring sits on the card
@@ -124,7 +124,7 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 	local open = PanelSwitch.IsOpen("Sidekicks")
 	-- The page open with a sheet over FreeSummon, or the reveal playing: nothing to point at.
-	local pointless = open and not (free.Visible and main.Visible and page.Enabled)
+	local pointless = open and not (free.Visible and main.Visible and page.Enabled and not main.Modal.Visible)
 	if used or (player:GetAttribute("RebirthLevel") or 0) < Config.UnlockRebirth or blocked() or pointless then
 		if showing then
 			hide()

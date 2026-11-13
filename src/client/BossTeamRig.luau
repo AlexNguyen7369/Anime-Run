@@ -58,7 +58,6 @@ function BossTeamRig.New(who, slot, id)
 		Follow.WornId(who:GetAttribute("SidekickGear"), who:GetAttribute("SidekickBag"), id)
 	)
 	VehicleEffects.Apply(rig, who, slot)
-	VehicleEffects.Boost(rig, VehicleEffects.EVENT_BOOST)
 	rig.Parent = BossTeamRig.Holder
 	CollectionService:AddTag(rig, RunnerVisual.TAG)
 	return rig
