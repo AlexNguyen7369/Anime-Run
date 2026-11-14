@@ -196,6 +196,7 @@
 192. 2026-11-12 — Alex Nguyen — Added admin `/skiptime` (2ea7a07, branch feature/alex/powerup-tune): `BossEventService.SkipPrep` moves the event's StartAt, EndsAt and ScheduleStart back by the time left in Prep so the fight starts now; BossEventTests `skip_prep` section; BOSS_EVENT_SPEC admin list; `boss_event` passed in Studio.
 193. 2026-11-13 — Alex Nguyen — Boss effects after playing (PR #18, da025b7): Zoltraak full-length lasers with black mist and impact smoke mounds, Gates of Babylon as an ordered 50-portal dome at radius 85 with random seeded firing, and an Enuma Elish energy beam exactly along Ea with a 370-degree sweep landing on the lanes (Ea re-keyed and re-baked); Blender sheets owner-approved first, targeted Studio checks green, rules audit PASS, fresh review APPROVE.
 194. 2026-11-13 — Alex Nguyen — Fixed `/skiptime` doing nothing in game: it was missing from AdminService's ORDER list, which registers the chat commands and the /help text; added it and a check that every admin command is registered (`admin` scenario green in Studio).
+195. 2026-11-13 — Alex Nguyen — Merged PR #17 feature/alex/powerup-tune into main (e7bb37e): power-up tuning and admin `/skiptime`; `../AnimeRun-orch/play-main` (Rojo 34874) moved to that main for the owner to play.
 
 ## What's next
 **Owner plays `/boss king` and `/boss mage` (with `/skiptime`) from the play-main build at da025b7 and reports what to change on the new Zoltraak, Gates dome and Enuma effects.**
