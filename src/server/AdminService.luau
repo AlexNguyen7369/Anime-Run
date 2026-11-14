@@ -593,6 +593,7 @@ local ORDER = {
 	"relics",
 	"boss",
 	"elfboss",
+	"skiptime", -- was missing: ORDER also registers the chat command (AdminService.Start)
 	"setrebirth",
 	"luck",
 	"giveluck",

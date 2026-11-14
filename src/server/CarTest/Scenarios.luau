@@ -9204,6 +9204,19 @@ function Scenarios.admin()
 		end
 		check(checks, "admin_help_true", okHelp and 1 or 0, 1, okHelp)
 		check(checks, "admin_help_lists_commands", listsAll and 1 or 0, 1, listsAll)
+		-- /help lists exactly the ORDER list, which is also what Start registers as chat commands
+		local unregistered = {}
+		for name in AdminService.Commands do
+			-- line start + trailing space so "/give" does not match "/givemoney"
+			if type(helpMsg) ~= "string" or not string.find(helpMsg, "\n/" .. name .. " ", 1, true) then
+				table.insert(unregistered, name)
+			end
+		end
+		check(checks, "admin_every_command_registered", #unregistered, 0, #unregistered == 0)
+		if #unregistered > 0 then
+			metrics.unregisteredCommands = table.concat(unregistered, ",")
+			warn("[CARTEST] admin commands missing from ORDER: " .. metrics.unregisteredCommands)
+		end
 		rejected("admin_unknown_command_false", "/fly 100")
 		rejected("admin_not_a_command_false", "money 5")
 

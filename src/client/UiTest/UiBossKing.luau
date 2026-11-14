@@ -77,7 +77,13 @@ local KING_ARENA_PARTS_MAX = 1250
 local PEAK_WATCH = 1.5
 local VOLLEY_COUNT, VOLLEY_EVERY, VOLLEY_TIME_SLACK = 14, 0.15, 0.02
 local PER_VOLLEY_MIN, PER_VOLLEY_MAX = 7, 10
-local PORTALS_MIN, PORTALS_MAX = 16, 22 -- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed); was 12 to 20
+-- Gates dome (design doc 4.37 "Gates approved and the rest pre-approved", owner 2026-11-13): 50 portals in 4 fixed tiers,
+-- elevation from his chest (deg), count and size (studs); open top. Replaces the 16 to 22 arch and the 26 to 32 ring.
+local DOME_TIERS = { { 8, 16, 28 }, { 22, 14, 22 }, { 38, 12, 18 }, { 55, 8, 14 } }
+local DOME_PORTALS, DOME_TOP = 50, 60
+local DOME_ELEVATION_SLACK, DOME_SIZE_SLACK, DOME_GAP_SLACK = 4, 1, 3
+local DOME_EXACT_GAP_SLACK = 0.5 -- no seeded jitter: gaps exact
+local EA_PARALLEL_DEG = 2
 local SHIELDS_MIN, SHIELDS_MAX = 5, 7
 local SCAN = 40
 
@@ -854,10 +860,10 @@ function Module.Build(h)
 		-- (implementer: report a change, do not loosen):
 		--   Portals: every Decal under each Portal part shows design C, the image id in Shared/BossVfxArt.PortalC (the ledger the
 		--     king's effects read; BossKingArt.PortalC also accepted), Color3 white; a portal's Size (X or Y, the drawn disc) peaks
-		--     between 18 and 30 studs, the largest at least 26 (BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed); replaces 1.25 x the old 14 /
-		--     10 / 7); it turns slowly about its facing (LookVector). The portals stand in an arch behind him: every centre within
-		--     120 deg (flat) of the direction behind his live Torso, and every portal's facing (either side) within 45 deg of
-		--     his Torso's facing, toward the lanes.
+		--     at its tier's size (DOME_TIERS, +/- 1), the largest at least 26; it turns slowly about its facing (LookVector). The
+		--     portals stand in an ordered dome round him (owner 2026-11-13, replaces the arch behind him and the ring): 50 `Portal`
+		--     parts, elevation from his Torso in 4 tiers (8/22/38/55 deg, 16/14/12/8 portals, +/- 4 deg), none over 60 deg, evenly
+		--     spaced in each tier (exactly, no jitter), each facing out from him (flat LookVector within 30 deg) and down 0 to 60 deg.
 		--   Wind: BossVfxForce "Charge" makes a BasePart EnumaWind under BossEffects that follows Ea, its local Y along the orbit's
 		--     axis; its Trails (enabled, faded at both ends: Transparency's first and last keypoints >= 0.8) ride Attachment0s
 		--     orbiting that axis: 4 early in the charge, 6 near 2.75 s; the orbit turns once per 0.8 s early and once per 0.35 s near
@@ -865,25 +871,26 @@ function Module.Build(h)
 		--   Ea's trail: an enabled Trail parented under the GoldenKing's Ea part (or whose Attachment0 is) during enuma's swing (3.0 s
 		--     +/- 0.3, from the schedule), none at rest (the idle), none under REDUCED EFFECTS. LastStrikes stays as checked above.
 		local WHITE_TOLERANCE = 0.01
-		local PORTAL_SMALL, PORTAL_LARGE, PORTAL_LARGEST = 18, 30, 26 -- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed)
+		local PORTAL_LARGEST = 26 -- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed); the dome's low tier is 28
 		local function portalArt()
 			local art = optional("BossVfxArt") or {}
 			return art.PortalC or (optional("BossKingArt") or {}).PortalC
 		end
-		-- Plays Gates and follows every Portal for `seconds`: { [portal] = { Peak, First, Last, Decals = { decal } } }.
-		local function watchPortals(seconds)
+		-- Plays Gates and follows every Portal (or parts named `name`) for `seconds`: { [portal] = { Peak, First, Last, Decals = { decal } } };
+		-- Last[3] is `centre`'s position on that frame (the dome's centre, his chest).
+		local function watchPortals(seconds, name, centre)
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
 			task.wait()
 			ReplicatedStorage:SetAttribute("BossVfxForce", "Gates")
 			local seen, stop = {}, os.clock() + seconds
 			while os.clock() < stop do
 				for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
-					if d.Name == "Portal" and d:IsA("BasePart") then
+					if d.Name == (name or "Portal") and d:IsA("BasePart") then
 						local row = seen[d] or { Peak = 0, Decals = {} }
 						seen[d] = row
 						row.Peak = math.max(row.Peak, d.Size.X, d.Size.Y)
 						row.First = row.First or { os.clock(), d.CFrame }
-						row.Last = { os.clock(), d.CFrame }
+						row.Last = { os.clock(), d.CFrame, centre and centre.Position }
 						for _, decal in d:GetDescendants() do
 							if decal:IsA("Decal") then
 								row.Decals[decal] = true
@@ -1027,13 +1034,9 @@ function Module.Build(h)
 			check(res, "king_arena_config_loads", Arena ~= nil, true)
 			-- Gates of Babylon: portals, then volleys of streaks over the whole arena.
 			local portals = mostNamed("Gates", "Portal")
-			h.check(
-				res,
-				"gates_portals_16_to_22", -- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed); was 12 to 20
-				portals,
-				PORTALS_MIN .. " to " .. PORTALS_MAX,
-				portals >= PORTALS_MIN and portals <= PORTALS_MAX
-			)
+			-- design doc 4.37 "Gates approved and the rest pre-approved" (owner 2026-11-13): replaces gates_portals_16_to_22 and the
+			-- 26 to 32 PortalRing count
+			check(res, "gates_dome_portal_count", portals, DOME_PORTALS)
 			h.check(res, "gates_streaks_drawn", mostNamed("Gates", "Streak"), "> 0", mostNamed("Gates", "Streak") > 0)
 			-- Design C, the sun wheel (owner 2026-11-12): its image, white, 1.25 x the old sizes, turning slowly.
 			local wantArt = portalArt()
@@ -1043,10 +1046,15 @@ function Module.Build(h)
 				type(wantArt) == "string" and string.find(wantArt, "rbxassetid://", 1, true) == 1,
 				true
 			)
-			local wrongArt, notWhite, offSize, turning, watched, largestPortal = {}, {}, {}, 0, 0, 0
-			local offArch = {}
+			local wrongArt, notWhite, turning, watched, largestPortal = {}, {}, 0, 0, 0
+			-- Gates dome (design doc 4.37 "Owner 2026-11-13, later" and "Gates approved and the rest pre-approved"; BOSS_EVENT_SPEC
+			-- "Later the same day"): replaces portals_arch_behind, portals_sheet_size (18 to 30) and the gates_ring_portals_* checks.
+			local offTier, offDomeSize, aboveTop, offFacing, tiers = {}, {}, {}, {}, {}
+			for k in DOME_TIERS do
+				tiers[k] = {}
+			end
 			local kingTorso = king:FindFirstChild("Torso", true)
-			for portal, row in watchPortals(2.6) do
+			for portal, row in watchPortals(2.6, nil, kingTorso) do
 				watched += 1
 				for decal in row.Decals do
 					if decal.Texture ~= wantArt then
@@ -1061,24 +1069,39 @@ function Module.Build(h)
 					table.insert(wrongArt, portal:GetFullName() .. " has no decal")
 				end
 				largestPortal = math.max(largestPortal, row.Peak)
-				if row.Peak < PORTAL_SMALL - 0.01 or row.Peak > PORTAL_LARGE + 0.01 then
-					table.insert(offSize, ("%.2f"):format(row.Peak))
-				end
-				-- the arch behind him, facing the lanes (from the portal's last frame and his Torso now)
-				if kingTorso and row.Last then
-					local facing = kingTorso.CFrame.LookVector * Vector3.new(1, 0, 1)
-					local out = (row.Last[2].Position - kingTorso.Position) * Vector3.new(1, 0, 1)
-					if facing.Magnitude > 1e-3 and out.Magnitude > 1e-3 then
-						facing, out = facing.Unit, out.Unit
-						local fromBehind = math.deg(math.acos(math.clamp(-facing:Dot(out), -1, 1)))
-						local look = row.Last[2].LookVector
-						local toLanes = math.deg(math.acos(math.clamp(math.abs(look:Dot(facing)), 0, 1)))
-						if fromBehind > 120 or toLanes > 45 then
+				-- on the dome: elevation from his chest on the portal's last frame, its tier, size and facing
+				local centre = row.Last and row.Last[3]
+				if centre then
+					local cf = row.Last[2]
+					local from = cf.Position - centre
+					local elevation = from.Magnitude > 1e-3 and math.deg(math.asin(math.clamp(from.Unit.Y, -1, 1))) or 0
+					if elevation > DOME_TOP then
+						table.insert(aboveTop, ("%.0f deg"):format(elevation))
+					end
+					local tier = 1
+					for k, want in DOME_TIERS do
+						if math.abs(elevation - want[1]) < math.abs(elevation - DOME_TIERS[tier][1]) then
+							tier = k
+						end
+					end
+					if math.abs(elevation - DOME_TIERS[tier][1]) > DOME_ELEVATION_SLACK then
+						table.insert(offTier, ("%.1f deg"):format(elevation))
+					else
+						table.insert(tiers[tier], cf.Position)
+						if math.abs(row.Peak - DOME_TIERS[tier][3]) > DOME_SIZE_SLACK then
 							table.insert(
-								offArch,
-								("%.0f deg from behind, faces %.0f deg off"):format(fromBehind, toLanes)
+								offDomeSize,
+								("%.2f at %d deg, want %d"):format(row.Peak, DOME_TIERS[tier][1], DOME_TIERS[tier][3])
 							)
 						end
+					end
+					local out = from * Vector3.new(1, 0, 1)
+					local flatLook = cf.LookVector * Vector3.new(1, 0, 1)
+					local dot = (out.Magnitude > 1e-3 and flatLook.Magnitude > 1e-3) and flatLook.Unit:Dot(out.Unit)
+						or -1
+					local down = math.deg(math.asin(math.clamp(-cf.LookVector.Y, -1, 1)))
+					if dot < math.cos(math.rad(30)) or down <= 0 or down > 60 then
+						table.insert(offFacing, ("out dot %.2f, down %.0f deg"):format(dot, down))
 					end
 				end
 				if row.First and row.Last and row.Last[1] - row.First[1] >= 0.5 then
@@ -1088,11 +1111,43 @@ function Module.Build(h)
 					turning += (turned > 1 and perSecond < 180) and 1 or 0
 				end
 			end
+			-- Even in each tier: azimuth about the tier's own centroid (an even ring's centroid is its centre, so his hover sway does
+			-- not skew it), sorted gaps 360 / n. gates_dome_not_random uses the exact gap (+/- 0.5 deg) in place of a second play:
+			-- forced plays may share a seed, so two plays could not prove the jitter is gone.
+			local tierCounts, uneven, jittered = {}, {}, {}
+			for k, list in tiers do
+				tierCounts[k] = #list
+				if #list >= 2 then
+					local sum = Vector3.zero
+					for _, p in list do
+						sum += p
+					end
+					local mid = sum / #list
+					local angles = {}
+					for _, p in list do
+						table.insert(angles, math.deg(math.atan2(p.Z - mid.Z, p.X - mid.X)) % 360)
+					end
+					table.sort(angles)
+					local want = 360 / #list
+					for i, a in angles do
+						local gap = ((angles[i % #angles + 1] - a) % 360)
+						local off = math.abs(gap - want)
+						if off > DOME_GAP_SLACK then
+							table.insert(uneven, ("tier %d: gap %.1f, want %.1f"):format(DOME_TIERS[k][1], gap, want))
+						end
+						if off > DOME_EXACT_GAP_SLACK then
+							table.insert(jittered, ("tier %d: gap %.2f, want %.2f"):format(DOME_TIERS[k][1], gap, want))
+						end
+					end
+				end
+			end
+			local wantCounts = {}
+			for k, row in DOME_TIERS do
+				wantCounts[k] = row[2]
+			end
 			check(res, "portals_watched", watched > 0, true)
 			h.checkList(res, "portals_design_c_art", wrongArt)
 			h.checkList(res, "portals_white", notWhite)
-			-- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed): replaces portals_1_25_x_size
-			h.checkList(res, "portals_sheet_size", offSize)
 			h.check(
 				res,
 				"portals_sheet_size_largest",
@@ -1101,7 +1156,19 @@ function Module.Build(h)
 				largestPortal >= PORTAL_LARGEST
 			)
 			check(res, "portals_king_torso_found", kingTorso ~= nil, true)
-			h.checkList(res, "portals_arch_behind", offArch)
+			h.checkList(res, "gates_dome_tiers_off_tier", offTier)
+			h.check(
+				res,
+				"gates_dome_tiers",
+				table.concat(tierCounts, "/"),
+				table.concat(wantCounts, "/"),
+				table.concat(tierCounts, "/") == table.concat(wantCounts, "/")
+			)
+			h.checkList(res, "gates_dome_sizes", offDomeSize)
+			h.checkList(res, "gates_dome_even", uneven)
+			h.checkList(res, "gates_dome_not_random", jittered)
+			h.checkList(res, "gates_dome_open_top", aboveTop)
+			h.checkList(res, "gates_dome_facing_out", offFacing)
 			h.check(res, "portals_turn_slowly", turning, "> 0", turning > 0)
 			local list = checkVolleys("gates", volleyLog(), PER_VOLLEY_MIN, PER_VOLLEY_MAX)
 			checkSpread("gates", list, Arena)
@@ -1230,9 +1297,8 @@ function Module.Build(h)
 			-- Pose-tied effects (BOSS_EVENT_SPEC "Animation rework" bullet "Pose-tied effects"; task a5c). Contract (implementer:
 			-- report a change, do not loosen), under BossEffects unless named otherwise:
 			--   Portal (as now): first seen over time, a growing cascade (not all in one frame).
-			--   EnumaBeam (as now): its yaw (LookVector) keeps one offset from his live Torso's yaw (his baked hip turn) through the
-			--     beam: at 3.5 s and 4.5 s the offsets agree within 15 deg, and frame to frame it turns with the torso (at most 3 deg
-			--     apart a frame; still while the hips hold). From the schedule, BossVfxForce off.
+			--   EnumaBeam: EnumaBeamCore's LookVector within 2 deg of Ea's blade axis (the Ea part's UpVector) every sampled frame
+			--     of 3.0 to 5.0 s (owner 2026-11-13, later; was: one offset from his Torso's yaw). From the schedule, BossVfxForce off.
 			--   EaGlow: Light(s) (PointLight or SurfaceLight) under the GoldenKing's Ea or Ea_Drum parts: brighter at 2.5 s of enuma
 			--     than at 0.2 s. None lit under REDUCED EFFECTS.
 			--   EnumaChargeFlash: the charge's white flash (a BasePart, light or effect), first seen within 0.15 s before the
@@ -1342,43 +1408,67 @@ function Module.Build(h)
 					end
 				end
 				h.player:SetAttribute("ReduceEffects", nil)
-				-- The beam turns with his hips.
+				-- The beam along Ea's blade (design doc 4.37 "Owner 2026-11-13, later": exactly parallel to Ea's blade every frame,
+				-- no clamp or tilt). Ea's blade axis: Poses.EaTip from the Ea joint is {0, 0, z} in Blender axes, which BossRaga:Pose's
+				-- C turns into the Ea part's local +Y, so the axis is the part's UpVector (as BossKing:Tip minus BossRaga:Point("Ea", 0)).
+				local eaPart = king:FindFirstChild("Ea", true)
 				state(res, "Fight", fight + enumaAt - 0.1, 4000, 4000, true, 100)
-				local born, rows = os.clock(), {}
+				local born, rows, offEa = os.clock(), {}, {}
 				while os.clock() - born < 2.1 do
 					local beam = inArena("EnumaBeam")
 					if beam and beam:IsA("BasePart") then
+						-- where the beam's axis meets the deck (the part is centred mid-beam along its LookVector)
+						local look = beam.CFrame.LookVector
+						local origin = beam.Position - look * beam.Size.Z / 2
+						local land = math.huge
+						if Arena and look.Y < -1e-3 then
+							local hit = origin + look * ((Arena.Y - origin.Y) / look.Y)
+							land = Vector2.new(hit.X - Arena.Center.X, hit.Z - Arena.Center.Z).Magnitude
+						end
+						local t = 2.9 + os.clock() - born
 						table.insert(rows, {
-							T = 2.9 + os.clock() - born,
-							Beam = yaw(beam.CFrame.LookVector),
-							Torso = yaw(torso.CFrame.LookVector),
+							T = t,
+							Beam = yaw(look),
+							Land = land,
 						})
+						local core = inArena("EnumaBeamCore")
+						if t >= 3.0 and t <= 5.0 and core and core:IsA("BasePart") and eaPart then
+							local apart = math.deg(
+								math.acos(math.clamp(core.CFrame.LookVector:Dot(eaPart.CFrame.UpVector), -1, 1))
+							)
+							if apart > EA_PARALLEL_DEG then
+								table.insert(offEa, ("%.2f s: %.1f deg"):format(t, apart))
+							end
+						end
 					end
 					task.wait()
 				end
-				local function offsetNear(t)
-					local best = nil
-					for _, row in rows do
-						if not best or math.abs(row.T - t) < math.abs(best.T - t) then
-							best = row
+				check(res, "enuma_beam_ea_part_found", eaPart ~= nil, true)
+				h.checkList(res, "enuma_beam_parallel_to_ea", offEa)
+				-- Retired 2026-11-13 (design doc 4.37 "Owner 2026-11-13, later": the beam follows Ea's blade, no clamp; Ea's yaw
+				-- drifts about 17 deg from his torso over the sweep): enuma_beam_follows_hips and enuma_beam_turns_only_with_hips.
+				-- Enuma 360 (owner 2026-11-13, design doc 4.37 / BOSS_EVENT_SPEC "Boss effects after playing", proposed): over the
+				-- window (3.0 to 5.0 s) the beam's yaw goes about 370 deg one way, and it lands on the deck within the wall all round.
+				local swept, forward, backward, offDeck, prev = 0, 0, 0, {}, nil
+				for _, row in rows do
+					if row.T >= 3.0 and row.T <= 5.0 then
+						if prev then
+							local step = wrap(row.Beam - prev.Beam)
+							swept += step
+							forward += math.max(step, 0)
+							backward += math.max(-step, 0)
+						end
+						prev = row
+						if row.T >= 3.05 and row.T <= 4.95 and not (Arena and row.Land <= Arena.WallRadius) then
+							table.insert(offDeck, ("%.2f s: %.0f studs"):format(row.T, row.Land))
 						end
 					end
-					return best and math.abs(best.T - t) < 0.1 and wrap(best.Beam - best.Torso) or nil
 				end
-				local a, b = offsetNear(3.5), offsetNear(4.5)
-				h.check(
-					res,
-					"enuma_beam_follows_hips",
-					a and b and math.abs(wrap(a - b)) or "no beam",
-					"<= 15",
-					a ~= nil and b ~= nil and math.abs(wrap(a - b)) <= 15
-				)
-				local worst = 0
-				for i = 2, #rows do
-					local turn = wrap(rows[i].Beam - rows[i - 1].Beam) - wrap(rows[i].Torso - rows[i - 1].Torso)
-					worst = math.max(worst, math.abs(wrap(turn)))
-				end
-				h.check(res, "enuma_beam_turns_only_with_hips", worst, "<= 3", #rows > 1 and worst <= 3)
+				h.check(res, "enuma_beam_sweeps_360", math.abs(swept), ">= 350", math.abs(swept) >= 350)
+				local against = swept >= 0 and backward or forward
+				h.check(res, "enuma_beam_one_way", against, "<= 10", prev ~= nil and against <= 10)
+				check(res, "enuma_beam_lands_rows", prev ~= nil and Arena ~= nil, true)
+				h.checkList(res, "enuma_beam_lands_on_lanes", offDeck)
 			end
 			if shieldsAt then
 				-- Shields appear with his call gesture, from the pose (BossFortified untouched), and burst when he lowers them.
@@ -1435,11 +1525,12 @@ function Module.Build(h)
 									Material = d.Material,
 								})
 							end
-						elseif d:IsA("ParticleEmitter") or d:IsA("Attachment") then
+						elseif d:IsA("ParticleEmitter") or d:IsA("Attachment") or d:IsA("Beam") then
 							w.Emitters[d.Name] = w.Emitters[d.Name] or {}
 							w.Emitters[d.Name][d] = true
 						end
-						if d:IsA("BasePart") and d.Name == "Portal" then
+						-- ring portals fire volleys too: a shot must come from an arch or ring portal with its tip shown
+						if d:IsA("BasePart") and (d.Name == "Portal" or d.Name == "PortalRing") then
 							local row = w.Portals[d] or { Peak = 0, Sizes = {} }
 							w.Portals[d] = row
 							local size = math.max(d.Size.X, d.Size.Y)
@@ -1621,8 +1712,59 @@ function Module.Build(h)
 				turned ~= nil and turned >= 10 and isRedOrDark(cyclone.Color)
 			)
 			local burstNear, smokeNear = false, false
+			-- Enuma energy beam (owner 2026-11-13, BOSS_EVENT_SPEC "Boss effects after playing" Additions, proposed), sampled
+			-- in the same watch while the beam shows: widest cross-section per layer, fire, rim lines, deck rubble.
+			local widest = { EnumaBeamCore = 0, EnumaBeam = 0, EnumaBeamOuter = 0, EnumaCyclone = 0 }
+			local hotCore, fireOk, fireSeen, rims, rubbleOk, rubbleSeen = nil, false, false, {}, false, false
+			local preBeam = {}
+			for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+				preBeam[d] = true
+			end
+			local function isOrange(c)
+				return c.R >= 0.9 and c.G >= 0.35 and c.G <= 0.75 and c.B <= 0.35
+			end
+			local function holderY(d)
+				local holder = d.Parent
+				return holder
+						and (holder:IsA("Attachment") and holder.WorldPosition.Y or (holder:IsA("BasePart") and holder.Position.Y))
+					or nil
+			end
 			local stop = os.clock() + 1.6
 			while os.clock() < stop and beamPart and beamPart.Parent do
+				for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+					local name = d.Name
+					if d:IsA("BasePart") and widest[name] and d.Transparency < 1 then
+						-- a Cylinder's axis is X (diameter Y/Z); a block beam runs along Z (cross-section X/Y)
+						local across = d.Shape == Enum.PartType.Cylinder and math.min(d.Size.Y, d.Size.Z)
+							or math.min(d.Size.X, d.Size.Y)
+						widest[name] = math.max(widest[name], across)
+						if name == "EnumaBeamCore" then
+							-- yellow-white hot: R >= 0.95, G >= 0.85, B 0.5 to 0.9 (not pure white, not orange)
+							local c = d.Color
+							hotCore = hotCore or c
+							if c.R >= 0.95 and c.G >= 0.85 and c.B >= 0.5 and c.B <= 0.9 then
+								hotCore = c
+							end
+						end
+					elseif
+						d:IsA("ParticleEmitter")
+						and (name == "EnumaFire" or (d.Parent and d.Parent.Name == "EnumaFire"))
+					then
+						fireSeen = true
+						fireOk = fireOk or (d.Enabled and d.Rate > 0 and isOrange(d.Color.Keypoints[1].Value))
+					elseif d:IsA("Beam") and name == "EnumaRim" then
+						local c = d.Color.Keypoints[1].Value
+						if d.Enabled and d.Width0 <= 3 and c.R >= 0.85 and c.G <= 0.3 and c.B <= 0.3 then
+							rims[d] = true
+						end
+					elseif d:IsA("ParticleEmitter") and name == "EnumaRubble" then
+						rubbleSeen = true
+						-- emitting: enabled with a rate, or a new emitter spawned during the sweep (an Emit burst)
+						local emitting = (d.Enabled and d.Rate > 0) or not preBeam[d]
+						local y = holderY(d)
+						rubbleOk = rubbleOk or (emitting and y ~= nil and Arena ~= nil and math.abs(y - Arena.Y) <= 8)
+					end
+				end
 				local look, length = beamPart.CFrame.LookVector, beamPart.Size.Z
 				local a = beamPart.Position - look * length / 2
 				local b = beamPart.Position + look * length / 2
@@ -1653,6 +1795,40 @@ function Module.Build(h)
 			end
 			check(res, "enuma_hit_burst", burstNear, true)
 			check(res, "enuma_hit_smoke", smokeNear, true)
+			-- every layer 1.5 x wider: core 21, red 60, outer 90, cyclone 99 studs (0.5 stud slack)
+			local narrow = {}
+			for name, want in { EnumaBeamCore = 21, EnumaBeam = 60, EnumaBeamOuter = 90, EnumaCyclone = 99 } do
+				if widest[name] < want - 0.5 then
+					table.insert(narrow, ("%s %.1f < %d"):format(name, widest[name], want))
+				end
+			end
+			h.checkList(res, "enuma_beam_widths_1_5x", narrow)
+			h.check(
+				res,
+				"enuma_beam_core_hot",
+				hotCore and ("%.2f %.2f %.2f"):format(hotCore.R, hotCore.G, hotCore.B) or "no core",
+				"R >= 0.95, G >= 0.85, B 0.5 to 0.9",
+				hotCore ~= nil and hotCore.R >= 0.95 and hotCore.G >= 0.85 and hotCore.B >= 0.5 and hotCore.B <= 0.9
+			)
+			h.check(
+				res,
+				"enuma_beam_fire_billows",
+				fireSeen and (fireOk and "orange, emitting" or "off or not orange") or "no EnumaFire",
+				"enabled, Rate > 0, orange",
+				fireOk
+			)
+			local rimCount = 0
+			for _ in rims do
+				rimCount += 1
+			end
+			h.check(res, "enuma_beam_rim_lines", rimCount, ">= 2 thin red", rimCount >= 2)
+			h.check(
+				res,
+				"enuma_ground_rubble",
+				rubbleSeen and (rubbleOk and "at the deck" or "off or away from the deck") or "no EnumaRubble",
+				"emitting within 8 studs of the deck",
+				rubbleOk
+			)
 			-- Effects off: none of them, the volley log the full plan.
 			h.player:SetAttribute("ReduceEffects", true)
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
@@ -1661,7 +1837,16 @@ function Module.Build(h)
 			local offGates = watchGates(4.2)
 			local drawnOff = {}
 			for _, name in
-				{ "Portal", "PortalTip", "Streak", "StreakCore", "StrikeFlash", "StrikeFlashCore", "ShockRing" }
+				{
+					"Portal",
+					"PortalRing",
+					"PortalTip",
+					"Streak",
+					"StreakCore",
+					"StrikeFlash",
+					"StrikeFlashCore",
+					"ShockRing",
+				}
 			do
 				if #spawnsOf(offGates, name) > 0 then
 					table.insert(drawnOff, name)
@@ -1676,7 +1861,18 @@ function Module.Build(h)
 			task.wait()
 			ReplicatedStorage:SetAttribute("BossVfxForce", "Enuma")
 			local offEnuma = watchGates(5.2)
-			for _, name in { "EnumaBeam", "EnumaBeamCore", "EnumaCyclone", "EnumaHitBurst", "EnumaHitSmoke" } do
+			for _, name in
+				{
+					"EnumaBeam",
+					"EnumaBeamCore",
+					"EnumaCyclone",
+					"EnumaHitBurst",
+					"EnumaHitSmoke",
+					"EnumaFire",
+					"EnumaRim",
+					"EnumaRubble",
+				}
+			do
 				if present(offEnuma, name) then
 					table.insert(drawnOff, name)
 				end
