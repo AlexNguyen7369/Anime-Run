@@ -1,3 +1,9 @@
+## RESUME HERE (2026-11-14, shrine summon presentation)
+- Owner approved the blossom-shrine v2 hybrid backdrop, warm wood/burgundy/gold summon buttons, and a stationary floor. This visual direction supersedes the galaxy environment; actions, summon rules, costs and individual auras remain unchanged.
+- Studio Anime Run: native RacerSidekicks themed, SummonShrineTheme module added, hybrid stage/backdrop share camera translation so the floor stays fixed while characters retain subtle parallax. Native image 119528763151983; matching assets and registration tools tracked.
+- Validation: Studio theme preview; 16 themed buttons; floor projection has zero pixel drift across four viewport sizes and 24 mouse positions. No new Play session started (automatic playtesting disabled). Selene: 0 errors/warnings; Rojo build passed; native theme is idempotent with 17 buttons and preserved action captions/layout.
+- Latest upstream main was fast-forwarded before applying this work; existing tutorial hooks and all upstream handoff entries preserved. Global progress-tracker skill was unavailable; current_progress.md intentionally untouched.
+
 # Agent handoff
 
 History: `current_progress.md`, `git log`.

@@ -2,6 +2,8 @@
 
 ## Summon presentation (owner 2026-11-12)
 
+Owner update 2026-11-14: replace the galaxy environment with the approved blossom-shrine hybrid presentation. A generated clean background preserves the approved pavilion, carved stone shrine, pink crystal, cherry trees and mountains; a real local 3D stage, foreground props and character models sit in front. Petals animate only behind the characters. Keep restrained camera movement so the image and geometry stay aligned. Existing character poses, individual auras, labels, purchases, costs, odds, pity and server authority remain unchanged. Activate the hybrid only after its image asset is registered and verify it in Studio; the old presentation remains available until then.
+
 - Full-screen galaxy stage with actual posed, bobbing character models. Igriz is the featured Mythic; existing summon costs, odds, pity, unlocks and server authority stay in place.
 - Every summonable catalog Sidekick has its own collected aura composition and character palette, from Anime auras pack 18515382827. Beroo uses blue lightning, Ryuuk white spectral wisps, and Igriz crimson flame. Other templates vary source presets, accent layers, masks, rates and colors.
 - Larger character framing, names centered on side models, a continuous galaxy backdrop, stronger smooth mouse panning, and softer character lighting. Closing restores camera, movement and lighting and removes the local stage.
@@ -120,3 +122,5 @@ In the style common to anime tower defense games: all effects original, no copie
 | Igriz | Armoured sprint | Sword swing launches a crimson slash wave | Crescent slash, red trail, cut flash at impact |
 | The Elf Mage (`side_mage`, owner 2026-11-11) | Flying: hovers as her boss does, staff across the body | A small purple lightning bolt from the staff | Purple bolt, small spark burst at impact |
 | The Golden King (`side_king`, owner 2026-11-11) | Walk: short armoured stride, arms folded when still | A small Gate volley: 2 or 3 tiny ripple portals fire weapon projectiles | Gold ripples, straight gold trails, clink flash at impact |
+
+Owner presentation update 2026-11-14: summon controls use warm wood/burgundy gradients, cream type, gold outlines and blossom stamps. The clean backdrop and native foreground move with the viewport camera so the painted and physical floor remain screen-locked; character idle poses and subtle parallax remain independent. HybridPresentationVersion=2; HybridFloorScreenLocked=true.

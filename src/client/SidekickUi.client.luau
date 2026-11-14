@@ -11,6 +11,8 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local SummonShrineTheme = require(script.Parent:WaitForChild("SummonShrineTheme"))
+local SummonHybrid = require(script.Parent:WaitForChild("SummonHybrid"))
 local assets = ReplicatedStorage:WaitForChild("SummonScreenAssets")
 local LegendaryAuraStyle = require(assets:WaitForChild("LegendaryAuraStyle"))
 local featuredRows = {}
@@ -32,6 +34,7 @@ local template = savedStage:Clone()
 template.Parent = nil
 -- The authored stage remains in ReplicatedStorage, outside streaming.
 local stage = nil
+local hybrid = nil
 local motion = {}
 local opened = false
 local auto = false
@@ -89,7 +92,11 @@ local function fit()
 	local aspect = view.X / math.max(view.Y, 1)
 	local distance = 18 * math.max(1, (16 / 9) / aspect)
 	if opened then
-		camera.CFrame = CFrame.lookAt(Vector3.new(0, 10001, -distance), Vector3.new(0, 10000, 0))
+		if hybrid then
+			camera.CFrame, camera.FieldOfView = hybrid:Frame(view, cameraDrift, elapsed, UiMotion.Reduced())
+		else
+			camera.CFrame = CFrame.lookAt(Vector3.new(0, 10001, -distance), Vector3.new(0, 10000, 0))
+		end
 		camera.Focus = CFrame.new(0, 10000, 0)
 	end
 end
@@ -237,6 +244,7 @@ local function populate()
 	stage = template:Clone()
 	stage.Name = "SummoningStageLocal"
 	stage.Parent = workspace
+	hybrid = SummonHybrid.Attach(stage, assets)
 	dressStage()
 	local stars = stage:FindFirstChild("BackgroundStars")
 	if stars then
@@ -391,6 +399,7 @@ local function close()
 		stage:Destroy()
 		stage = nil
 	end
+	hybrid = nil
 	motion = {}
 	freezePlayer(false)
 	if previousCamera then
@@ -400,6 +409,7 @@ local function close()
 		camera.CameraSubject = previousCamera.subject
 	end
 end
+SummonShrineTheme.Apply(gui)
 for _, button in gui:GetDescendants() do
 	if button:IsA("TextButton") then
 		local caption = button:FindFirstChild("Caption")
@@ -885,6 +895,7 @@ task.spawn(function()
 		end
 	end
 end)
+SummonShrineTheme.Apply(gui)
 renderRotation()
 fit()
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
@@ -916,8 +927,14 @@ RunService:BindToRenderStep("SummonDisplay", Enum.RenderPriority.Camera.Value + 
 		or Vector2.zero
 	cameraDrift = cameraDrift:Lerp(targetDrift, 1 - math.exp(-dt * 5))
 	local offset = Vector3.new(cameraDrift.X * 1.05, -cameraDrift.Y * 0.675, 0)
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, 10001, -distance) + offset, Vector3.new(0, 10000, 0) + offset * 0.35)
-		* CFrame.Angles(0, 0, -cameraDrift.X * 0.011)
+	if hybrid then
+		camera.CFrame, camera.FieldOfView = hybrid:Frame(view, cameraDrift, elapsed, UiMotion.Reduced())
+	else
+		camera.CFrame = CFrame.lookAt(
+			Vector3.new(0, 10001, -distance) + offset,
+			Vector3.new(0, 10000, 0) + offset * 0.35
+		) * CFrame.Angles(0, 0, -cameraDrift.X * 0.011)
+	end
 
 	camera.Focus = CFrame.new(0, 10000, 0)
 	elapsed += math.min(dt, 0.1)

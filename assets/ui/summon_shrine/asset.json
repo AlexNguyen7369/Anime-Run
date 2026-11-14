@@ -1,0 +1,8 @@
+{
+  "ApprovedComposition": "summon_blossom_shrine_v2.png",
+  "Image": "rbxassetid://119528763151983",
+  "Method": "Ropilot image upload, inspected before upload",
+  "Registration": "ReplicatedStorage.SummonScreenAssets.HybridBackdropImage",
+  "Source": "Backdrop.png",
+  "Stage": "Client/SummonHybrid"
+}
