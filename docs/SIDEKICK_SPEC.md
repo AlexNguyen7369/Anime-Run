@@ -90,6 +90,16 @@ Every boss drops its own downsized Sidekick this way (owner 2026-11-11, design d
 - Open and close play the shared Sakura transition (pink accent) around the blossom-shrine presentation; nothing on the
   page changes order, cost, odds or labels. Before the reveal, the stage's ring and beam flash in the result's rarity colour
   (Common ring only up to Mythic two pulses and a light screen flash); all of it is off under reduced effects.
+- Panels (owner 2026-11-17, "Summon UI State Reference" panels 2-9; `Client/SummonPanels`): one dark-burgundy panel at a
+  time over the page with a gold edge, a title and a red X. Featured Banner (Featured tile, More > Banner Details): the
+  rotation's featured units with portrait, rarity and rate. Show Chances: the rate summed per rarity, the Secret first,
+  then "Luck and potions never change Sidekick odds". Summon Info: How It Works, Banner Rules, Pity / Progression with the
+  player's counts, Currency (Gems). Auto Sell: Keep / Sell per rarity, Cancel / Save (only changed rarities are sent),
+  then an "Auto Sell Saved!" notice. More: Banner Details, Pity, History (this session's summons, not saved), Settings
+  (opens Auto Sell, the page's one setting), Gem Packs, Help. Many asks first: 10 summons, the cost and the Gems before
+  and after, Cancel / Confirm. A summon of one by hand ends on "You Obtained!" with Keep / Equip / Close; Equip puts the
+  new Sidekick on the Team's first runner through `SidekickEquip`. A gem pack's Buy shows the Buy Gems focus state
+  (the pack, what it gives, Cancel / Buy (R$n)) before the purchase prompt. Sizes and colours **proposed**.
 
 ## Summon page
 Layout ideas from the owner's reference (redesign 2026-11-05), no copied art. Motion through `Client/UiMotion`. This look stays on this page; moving it elsewhere needs the owner's approval.
