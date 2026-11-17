@@ -178,8 +178,9 @@ end
 -- Team Setup page. Returns { Slab, Rim, Top, Petals } part lists.
 local SAKURA_WOOD = Color3.fromRGB(70, 42, 32)
 local SAKURA_RIM = Color3.fromRGB(46, 200, 208)
-local SAKURA_TOP = Color3.fromRGB(255, 150, 190)
-local SAKURA_PETAL = Color3.fromRGB(255, 232, 240)
+local SAKURA_TOP = Color3.fromRGB(236, 104, 156)
+local SAKURA_PETAL = Color3.fromRGB(255, 214, 230)
+local SAKURA_HEART = Color3.fromRGB(255, 226, 150)
 function SpawnArea.SakuraAltar(parent, cframe, width, height)
 	local out = {}
 	out.Slab = SpawnArea.Octagon(
@@ -209,7 +210,7 @@ function SpawnArea.SakuraAltar(parent, cframe, width, height)
 		0.06,
 		cframe * CFrame.new(0, height + 0.03, 0),
 		SAKURA_TOP,
-		Enum.Material.Neon,
+		Enum.Material.SmoothPlastic, -- Neon washes out to white in a ViewportFrame
 		false
 	)
 	out.Petals = {}
@@ -222,7 +223,7 @@ function SpawnArea.SakuraAltar(parent, cframe, width, height)
 			Vector3.new(r * 0.9, 0.08, r * 1.5),
 			cframe * CFrame.new(0, height + 0.08, 0) * CFrame.Angles(0, a, 0) * CFrame.new(0, 0, -r * 0.85),
 			SAKURA_PETAL,
-			Enum.Material.Neon,
+			Enum.Material.SmoothPlastic,
 			false
 		)
 		local mesh = Instance.new("SpecialMesh")
@@ -237,8 +238,8 @@ function SpawnArea.SakuraAltar(parent, cframe, width, height)
 			"Heart",
 			Vector3.new(r * 0.5, 0.1, r * 0.5),
 			cframe * CFrame.new(0, height + 0.1, 0),
-			SAKURA_RIM,
-			Enum.Material.Neon,
+			SAKURA_HEART,
+			Enum.Material.SmoothPlastic,
 			false
 		)
 	)

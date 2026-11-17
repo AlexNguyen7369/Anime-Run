@@ -18,6 +18,10 @@ local WASH_BOTTOM = Color3.fromRGB(226, 120, 158)
 
 local UiTransition = {}
 UiTransition.COVER = IN -- s from Play until the wash covers the screen: pages switch then, unseen
+-- The wait before a page switches: COVER, or none under reduced motion (the fade is shorter than COVER).
+function UiTransition.Cover()
+	return UiMotion.Reduced() and 0 or UiTransition.COVER
+end
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)

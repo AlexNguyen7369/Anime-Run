@@ -621,9 +621,11 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
   owner's mockup: a full-screen page over the blossom-shrine scene (not the game-wide panel frame of 4.42), and each
   member stands on its altar as its 3D model with a pink light column (cyan over an empty altar): an exception to the
   portrait-art rule for Team Setup only; a small drawn-portrait badge sits by the name. Slot labels read "SLOT n".
-  - Centre: exactly three stacked octagonal altars (two or three tiers of dark wood and stone, cyan edge light, faint
-    sakura energy; never circular), well spaced, labelled Slot 1, Slot 2, Slot 3. An occupied altar shows the member's
-    drawn portrait standing above it with name, rarity and cruise under it (characters have no level; **open question** for the owner whether one is wanted); its edge follows the member's rarity. An empty altar
+  - Centre: exactly three octagonal altars, each one dark-wood slab with a cyan neon rim, a pink top and an inlaid
+    five-petal sakura emblem (owner 2026-11-17: "one slab with a sakura logo embedded"; never circular; the plaza Team
+    altar is the same slab), well spaced, labelled SLOT 1-3. An occupied altar shows the member's 3D model standing on
+    it with name, rarity and cruise above it (characters have no level; **open question** for the owner whether one is
+    wanted); the rarity colours the cruise line and the rim brightens on the picked altar. An empty altar
     shows a glowing "+" and "Add Character".
   - Top-left party icon and "Team Setup"; top-centre three slot dots; top-right a Team Bonus button (opens the team bonus
     as a small popover) and Close.

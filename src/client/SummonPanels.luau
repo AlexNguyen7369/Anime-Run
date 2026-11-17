@@ -42,8 +42,11 @@ local function text(name, parent, props)
 	props.Font = props.Font or UiTheme.Font
 	props.TextScaled = true
 	props.TextColor3 = props.TextColor3 or D.Cream
+	local maxSize = props.MaxSize or 22
+	props.MaxSize = nil
 	local label = make("TextLabel", name, parent, props)
 	make("UIStroke", "Outline", label, { Color = D.Ink, Thickness = 1.5, Transparency = 0.2 })
+	make("UITextSizeConstraint", "Limit", label, { MaxTextSize = maxSize })
 	return label
 end
 
@@ -148,6 +151,7 @@ function SummonPanels.new(canvas, deps)
 		ScaleType = Enum.ScaleType.Fit,
 	})
 	local title = text("Title", header, {
+		MaxSize = 30,
 		Position = UDim2.fromOffset(66, 8),
 		Size = UDim2.new(1, -140, 0, 34),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -277,6 +281,7 @@ function SummonPanels.new(canvas, deps)
 			FillDirection = Enum.FillDirection.Horizontal,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			Padding = UDim.new(0, 16),
+			SortOrder = Enum.SortOrder.LayoutOrder,
 		})
 		local made = {}
 		for i, spec in list do
@@ -290,7 +295,7 @@ function SummonPanels.new(canvas, deps)
 	end
 
 	local function percent(odds)
-		return string.format("%.2f%%", odds)
+		return string.format(odds > 0 and odds < 0.01 and "%.4f%%" or "%.2f%%", odds)
 	end
 
 	-- 2. Featured Banner: this rotation's featured units with their rates.

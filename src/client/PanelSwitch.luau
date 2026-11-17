@@ -352,6 +352,14 @@ function PanelSwitch.Toggle(name)
 	if not open and closeGuards[name] and closeGuards[name]() then
 		return true
 	end
+	if open then
+		-- Another open page with an unsaved draft asks first (Team Setup's Deploy / Discard, design doc 4.45).
+		for other, p in panels do
+			if other ~= name and p.Visible and closeGuards[other] and closeGuards[other]() then
+				return false
+			end
+		end
+	end
 	wanted[name] = open
 	local covered = false
 	if accents[name] and not panel:GetAttribute("SkipTransition") then
@@ -378,7 +386,7 @@ function PanelSwitch.Toggle(name)
 	end
 	if covered then
 		-- A Sakura page switches under the full petal wash (owner reference 2026-11-17), so no half-open frame shows.
-		task.delay(UiTransition.COVER, function()
+		task.delay(UiTransition.Cover(), function()
 			if wanted[name] == open then
 				apply()
 				notify()
@@ -430,7 +438,7 @@ function PanelSwitch.Close(name)
 		end
 		wanted[name] = false
 		if accents[name] and UiTransition.Play(accents[name]) then
-			task.delay(UiTransition.COVER, function()
+			task.delay(UiTransition.Cover(), function()
 				if wanted[name] == false then
 					closeMotion(panels[name])
 					notify()
