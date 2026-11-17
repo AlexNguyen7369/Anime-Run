@@ -198,8 +198,9 @@
 194. 2026-11-13 — Alex Nguyen — Fixed `/skiptime` doing nothing in game: it was missing from AdminService's ORDER list, which registers the chat commands and the /help text; added it and a check that every admin command is registered (`admin` scenario green in Studio).
 195. 2026-11-13 — Alex Nguyen — Merged PR #17 feature/alex/powerup-tune into main (e7bb37e): power-up tuning and admin `/skiptime`; `../AnimeRun-orch/play-main` (Rojo 34874) moved to that main for the owner to play.
 196. 2026-11-17 — Alex Nguyen — Renamed the car-era vocabulary to anime terms on feature/alex/car-vocab-refactor (94b6eb4): CarService -> RunnerService, CarTest/ -> ServerTest/ (`[SERVERTEST]`, `ServerTestOnly` / `ServerTestRun`), VehicleEffects -> RunnerEffects, EquippedCar -> EquippedCharacter, EquipCar -> EquipCharacter, RarestCar -> RarestCharacter, run.Car -> run.Runner, locals car / chassis -> runner / root across about 130 files; saved keys, absence checks and props kept; selene, stylua and rojo build green, no Studio run.
+197. 2026-11-17 — Alex Nguyen — Made power-ups timed boosts on feature/alex/powerup-boost (62b797d, stacked on the refactor): Speed x1.2 for 1 s, Stamina holds the drain for 2 s with no overfill, 1 per 500 studs; Studio `powerups` 25/25 fail=0, rules audit PASS.
 
 ## What's next
-**Run the `runner`, `race`, `duel`, `runner_effects`, `data` and `gacha` scenarios in Studio on feature/alex/car-vocab-refactor (clear the stale `CarTestOnly` / `CarTestRun` attributes first), then open its PR into main with a fresh review.**
+**Run the `runner`, `race`, `duel`, `runner_effects`, `data` and `gacha` scenarios in Studio on feature/alex/powerup-boost (it holds the refactor plus the power-ups; toggle `ServerTestRun` during Play), then open one PR into main with a fresh review.**
 
-**Why this is next:** the rename touches every service, the harness attributes and the remote and attribute names the client reads; a Studio run is the only check that the renamed modules still resolve at boot, and the branch must land before the power-up boost session rebases its 8 files onto it.
+**Why this is next:** the rename touches every service and the remote and attribute names the client reads; only a Studio run proves the renamed modules still resolve at boot, and both the refactor and the power-up boosts wait on it to reach main.
