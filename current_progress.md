@@ -199,8 +199,9 @@
 195. 2026-11-13 — Alex Nguyen — Merged PR #17 feature/alex/powerup-tune into main (e7bb37e): power-up tuning and admin `/skiptime`; `../AnimeRun-orch/play-main` (Rojo 34874) moved to that main for the owner to play.
 196. 2026-11-17 — Alex Nguyen — Renamed the car-era vocabulary to anime terms on feature/alex/car-vocab-refactor (94b6eb4): CarService -> RunnerService, CarTest/ -> ServerTest/ (`[SERVERTEST]`, `ServerTestOnly` / `ServerTestRun`), VehicleEffects -> RunnerEffects, EquippedCar -> EquippedCharacter, EquipCar -> EquipCharacter, RarestCar -> RarestCharacter, run.Car -> run.Runner, locals car / chassis -> runner / root across about 130 files; saved keys, absence checks and props kept; selene, stylua and rojo build green, no Studio run.
 197. 2026-11-17 — Alex Nguyen — Built the Sakura Dojo Summon entry points and Team Setup page (design doc 4.45: octagonal altars, draft with Quick Setup and Deploy, relic and Sidekick icons, shared petal transition, plaza Team altar) on feature/alex/dojo-pages with red-first tests, draft PR #21; not yet run in Studio.
+198. 2026-11-17 — Alex Nguyen — Reworked Team Setup to the owner's full-screen mockup (3D members on the altars) and the transition to the pink petal wash, and verified both flows in Studio: team, spawn_area, ui_team and ui_entry_points green.
 
 ## What's next
-**Connect Studio's Rojo plugin to port 34874 (feature/alex/dojo-pages, which also holds the car-vocab rename) and run `runner`, `race`, `duel`, `runner_effects`, `data`, `gacha`, `team`, `ui_team`, `ui_entry_points`, `ui_sidekicks`, `ui_panels`, `ui_hud`, `spawn_area` and `sidekicks`; then PR the car-vocab branch, then take PR #21 out of draft with a fresh review.**
+**Merge the car-vocab rename into main (Studio run and fresh review on its branch), then take PR #21 out of draft for a fresh review and merge.**
 
-**Why this is next:** neither the rename nor the new pages have booted in Studio; PR #21 contains the rename commit and can only merge after it, and the owner's play check of both Flow A and Flow B needs a green Studio run first.
+**Why this is next:** PR #21 contains the rename commit and is verified in Studio on top of it; it can only merge cleanly once the rename lands, and the owner's play check of both pages needs it in main.
