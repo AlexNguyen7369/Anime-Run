@@ -86,7 +86,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 		gacha.Grant(p, ids[i])
 	end
 	gacha.SetTeam(p, { ids[1] })
-	local team, equipped = p:GetAttribute("Team"), p:GetAttribute("EquippedCar")
+	local team, equipped = p:GetAttribute("Team"), p:GetAttribute("EquippedCharacter")
 
 	-- What QuickPick must answer for `draft`: computed here from the catalog and ownership
 	local rank, order = {}, {}
@@ -183,7 +183,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 	end
 	flag(
 		"team_quick_pick_team_unchanged",
-		p:GetAttribute("Team") == team and p:GetAttribute("EquippedCar") == equipped,
+		p:GetAttribute("Team") == team and p:GetAttribute("EquippedCharacter") == equipped,
 		tostring(p:GetAttribute("Team")),
 		tostring(team)
 	)
