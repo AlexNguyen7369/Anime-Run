@@ -15,6 +15,24 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
 - Player attribute `Team` (comma-joined ids) is the replicated truth for the UI.
 - On load, ids the player no longer owns are removed; an empty team falls back to `{ "starter" }`.
 
+## Team Setup page (owner 2026-11-17, design doc 4.45)
+Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
+- Opens from the Team button (T), a click on the team minibar, or the plaza Team altar prompt; all call
+  `PanelSwitch.Action("Team")`. The shared Sakura transition (`Client/UiTransition`, cyan accent) covers the open and close;
+  movement is locked while open (`Client/InputLock`).
+- On open the draft is a copy of the saved `Team`. Tap an altar to select it (cyan glow), then a roster card: the member's
+  portrait flies to the altar and lands with a ring pulse. A member already in another slot swaps. Tapping a member's
+  portrait offers Remove. The draft never drops below 1 member at Deploy (the button stays off at 0).
+- `TeamQuickPick(draftIds)` (RemoteFunction, read-only, 0.5 s cooldown): the server returns owned ids for the empty slots,
+  highest effective cruise first, ties to the higher rarity, never an id already in the draft. It never saves.
+- Deploy sends the draft through the unchanged `SetTeam`. On success the status reads Ready, the three altars play their
+  activation and the page closes. On refusal (run active, cooldown) the button shakes, the reason shows and the draft stays.
+- Close with a draft that differs from the saved Team asks "Deploy" or "Discard". An unchanged draft just closes.
+- Cards and altars show the member's relic emblem (diamond, from `RelicGear`) and Sidekick icon (circle, from
+  `SidekickGear`) at the top-right; tooltips name the item, rarity and effect. The Sidekicks tab equips through
+  `SidekickEquip` at once. Relics are inspect-only here.
+- Team bonus moves into a popover behind the Team Bonus button.
+
 ## Stamina
 
 - Base stamina (seconds of running from 100% to 0%) comes from the character's rarity, unless the catalog entry sets

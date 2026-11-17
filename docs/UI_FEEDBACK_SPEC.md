@@ -34,3 +34,9 @@ lives in `docs/UI_AUDIT.md` (SFX audit) and in the `UiFeedback` table, which mus
 
 ## 4. Limits carried over
 Design doc 4.20, 4.27, 4.28; ROLL_ANIMATION_SPEC. Harness values stay: hover 1.035, press 0.97, no hover strokes.
+
+## 5. Page transition (owner 2026-11-17, design doc 4.45)
+- `Client/UiTransition`: one reused ScreenGui above panels. Cream shoji paper panels sweep across (in 0.25 s, out 0.25 s,
+  Quad Out) with up to 12 plaza petal images; the page swaps while the paper covers the screen. Reduced motion: a 0.15 s
+  fade, no petals. A second call while one runs is ignored. Timings **proposed**.
+- Hover 0.12 s, press 0.1 s, panel entrance 0.3 s, tooltip 0.2 s (**proposed**, inside 4.20's ranges).
