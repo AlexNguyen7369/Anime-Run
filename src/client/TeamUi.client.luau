@@ -36,8 +36,7 @@ local D = UiTheme.Dojo
 local SLOTS = 3
 local SIZE = StaminaConfig.TEAM_SIZE
 -- Altar tiers in studs (bottom up) as the plaza Team altar; the viewport frames them. Proposed.
-local TIERS = { 14, 10.5, 7 }
-local TIER_H = 1.2
+local SLAB_W, SLAB_H = 12, 1.6 -- the Sakura altar slab (SpawnArea.SakuraAltar), as the plaza Team altar
 local FLY = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local HOVER = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local CARD_W, CARD_H = 112, 132 -- roster cards, design units
@@ -132,7 +131,9 @@ local icon = make("ImageLabel", "Icon", header, {
 })
 local close =
 	make("TextButton", "Close", header, { Text = "", AutoButtonColor = false, BackgroundTransparency = 1, ZIndex = 6 })
-local closeX = caption("X", close, { Size = UDim2.fromScale(1, 1), Text = "✕", TextColor3 = D.Cream, ZIndex = 7 })
+local closeX = caption("X", close, { Size = UDim2.fromScale(1, 1), Text = "X", TextColor3 = D.Cream, ZIndex = 7 })
+flat(close, D.Burgundy) -- a framed close button (the font has no ✕ glyph, which left it blank)
+close.BackgroundTransparency = 0.1
 local bonusButton =
 	flat(make("TextButton", "BonusButton", header, { Text = "Team Bonus", TextColor3 = D.Cream, ZIndex = 6 }), D.Ink)
 make("Frame", "Underline", bonusButton, {
@@ -281,39 +282,23 @@ for n = 1, SLOTS do
 		ZIndex = 2,
 	})
 	local model = make("Model", "Altar", view)
-	local edges = {}
-	for i, width in TIERS do
-		local y = (i - 1) * TIER_H
-		SpawnArea.Octagon(
-			model,
-			"Tier" .. i,
-			width,
-			TIER_H,
-			CFrame.new(0, y + TIER_H / 2, 0),
-			i == #TIERS and D.Wood or D.WoodDark,
-			Enum.Material.SmoothPlastic
-		)
-		-- A thin glowing rim: the slab sits just under the tier's top, so only its 0.15-stud lip shows.
-		local rim = CFrame.new(0, y + TIER_H - 0.12, 0)
-		for _, part in SpawnArea.Octagon(model, "Edge" .. i, width + 0.3, 0.18, rim, D.Cyan, Enum.Material.Neon) do
-			part.Name = i == #TIERS and "TopEdge" or part.Name
-			table.insert(edges, part)
-		end
-	end
-	local deck = #TIERS * TIER_H
-	local core = SpawnArea.Octagon(model, "Core", TIERS[#TIERS] - 0.6, 0.12, CFrame.new(0, deck + 0.06, 0), D.Sakura)
-	-- The light column over the deck (pink under a member, cyan over an empty altar), as the mockup.
+	-- One slab with the sakura emblem (owner 2026-11-17), as the plaza Team altar.
+	local altar = SpawnArea.SakuraAltar(model, CFrame.new(), SLAB_W, SLAB_H)
+	local edges = altar.Rim
+	local core = altar.Top
+	local deck = SLAB_H + 0.1
+	-- The light column over the slab (pink under a member, cyan over an empty altar), as the mockup.
 	local column = make("Part", "Column", model, {
 		Anchored = true,
-		Size = Vector3.new(TIERS[#TIERS] - 1.5, 9, TIERS[#TIERS] - 1.5),
+		Size = Vector3.new(SLAB_W - 4, 9, SLAB_W - 4),
 		CFrame = CFrame.new(0, deck + 4.5, 0),
 		Material = Enum.Material.Neon,
 		Color = D.Sakura,
-		Transparency = 0.72,
+		Transparency = 0.78,
 		CastShadow = false,
 	})
 	local camera = make("Camera", "Camera", view, { FieldOfView = 30 })
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, 8.5, 27), Vector3.new(0, 5, 0))
+	camera.CFrame = CFrame.lookAt(Vector3.new(0, 8, 24), Vector3.new(0, 3.6, 0))
 	view.CurrentCamera = camera
 	local plus = caption("Plus", b, { Text = "+", TextColor3 = D.Cyan, ZIndex = 4 })
 	local add = caption("Add", b, { Text = "Add Character", TextColor3 = D.Cream, ZIndex = 4 })
@@ -488,7 +473,7 @@ local function layout()
 		a.Name.TextXAlignment = Enum.TextXAlignment.Left
 		g.Role(a.Name, "Item").TextColor3 = D.Cream
 		g.Place(a.Info, 0, 72, aw, 22)
-		g.Role(a.Info, "Caption").TextColor3 = D.Gold
+		g.Role(a.Info, "Caption")
 		g.Place(a.Add, 0, 44, aw, 30)
 		g.Role(a.Add, "Item").TextColor3 = D.Cream
 		g.Place(a.View, 0, 96, aw, altarsH - 96)
@@ -636,15 +621,13 @@ end
 
 -- An altar's edge colour: bright cyan while selected, the member's rarity, else cyan.
 local function paintEdges(slot)
+	-- The cyan rim brightens on the picked altar; the member's rarity colours its Info line.
 	local a = altars[slot]
 	local spec = draft[slot] and CharacterCatalog.Get(draft[slot])
-	local edge = selected == slot and D.Cyan:Lerp(Color3.new(1, 1, 1), 0.35)
-		or spec and (GachaConfig.RARITY_COLORS[spec.Rarity] or D.Cyan)
-		or D.Cyan
-	-- The top rim carries the member's rarity (or the selection); the lower rims stay cyan, as the mockup.
 	for _, part in a.Edges do
-		part.Color = part.Name == "TopEdge" and edge or D.Cyan
+		part.Color = selected == slot and D.Cyan:Lerp(Color3.new(1, 1, 1), 0.45) or D.Cyan
 	end
+	a.Info.TextColor3 = spec and (GachaConfig.RARITY_COLORS[spec.Rarity] or D.Gold) or D.Gold
 end
 
 local function pulseEdges(slot, delay)

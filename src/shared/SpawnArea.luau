@@ -76,9 +76,8 @@ local ALTAR_NEON = Color3.fromRGB(46, 200, 208)
 -- The Team altar (design doc 4.45, owner 2026-11-17): a small stacked octagonal shrine in the ring slot before the gate
 -- axis, world (-3.1, 83.9), facing the spawn. Sizes and colours proposed.
 local TEAM_ALTAR_POS = Vector2.new(114.891, 3.942) -- world (-3.109, 83.942): opposite the Market across the spawn
-local TEAM_ALTAR_TIERS = { 14, 10.5, 7 } -- octagon widths across the flats, bottom to top
-local TEAM_ALTAR_TIER_HEIGHT = 1.2
-local TEAM_ALTAR_WOOD = Color3.fromRGB(64, 40, 30)
+local TEAM_ALTAR_WIDTH = 12 -- one octagonal slab across the flats (owner 2026-11-17: one slab, sakura emblem)
+local TEAM_ALTAR_HEIGHT = 1.6
 local TEAM_ALTAR_PINK = Color3.fromRGB(255, 150, 190)
 local TEAM_ALTAR_PROMPT_DISTANCE = 12
 
@@ -171,6 +170,79 @@ function SpawnArea.Octagon(parent, name, width, height, cframe, color, material,
 		)
 	end
 	return parts
+end
+
+-- The Sakura altar (design doc 4.45, owner 2026-11-17 mockup: "one slab with a sakura logo embedded"): one octagonal
+-- dark-wood slab `width` across and `height` tall standing on `cframe` (its base), a thin cyan neon rim round its top
+-- edge, a soft pink glowing top and a five-petal sakura emblem inlaid in it. Shared by the plaza Team altar and the
+-- Team Setup page. Returns { Slab, Rim, Top, Petals } part lists.
+local SAKURA_WOOD = Color3.fromRGB(70, 42, 32)
+local SAKURA_RIM = Color3.fromRGB(46, 200, 208)
+local SAKURA_TOP = Color3.fromRGB(255, 150, 190)
+local SAKURA_PETAL = Color3.fromRGB(255, 232, 240)
+function SpawnArea.SakuraAltar(parent, cframe, width, height)
+	local out = {}
+	out.Slab = SpawnArea.Octagon(
+		parent,
+		"Slab",
+		width,
+		height,
+		cframe * CFrame.new(0, height / 2, 0),
+		SAKURA_WOOD,
+		Enum.Material.Wood
+	)
+	-- The rim slab sits just under the top, so only its lip shows as a line.
+	out.Rim = SpawnArea.Octagon(
+		parent,
+		"Rim",
+		width + 0.3,
+		0.2,
+		cframe * CFrame.new(0, height - 0.14, 0),
+		SAKURA_RIM,
+		Enum.Material.Neon,
+		false
+	)
+	out.Top = SpawnArea.Octagon(
+		parent,
+		"Top",
+		width - 1,
+		0.06,
+		cframe * CFrame.new(0, height + 0.03, 0),
+		SAKURA_TOP,
+		Enum.Material.Neon,
+		false
+	)
+	out.Petals = {}
+	local r = width * 0.13
+	for k = 0, 4 do
+		local a = k * math.pi * 2 / 5
+		local petal = block(
+			parent,
+			"Petal",
+			Vector3.new(r * 0.9, 0.08, r * 1.5),
+			cframe * CFrame.new(0, height + 0.08, 0) * CFrame.Angles(0, a, 0) * CFrame.new(0, 0, -r * 0.85),
+			SAKURA_PETAL,
+			Enum.Material.Neon,
+			false
+		)
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere -- an ellipse: the petal's outline
+		mesh.Parent = petal
+		table.insert(out.Petals, petal)
+	end
+	table.insert(
+		out.Petals,
+		block(
+			parent,
+			"Heart",
+			Vector3.new(r * 0.5, 0.1, r * 0.5),
+			cframe * CFrame.new(0, height + 0.1, 0),
+			SAKURA_RIM,
+			Enum.Material.Neon,
+			false
+		)
+	)
+	return out
 end
 
 local function glow(parent, range)
@@ -419,46 +491,11 @@ local function teamAltar(startCFrame)
 	local m = Instance.new("Model")
 	m.Name = "TeamAltar"
 	local af = facing(startCFrame, TEAM_ALTAR_POS.X, TEAM_ALTAR_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y, 0)
-	local h, top = TEAM_ALTAR_TIER_HEIGHT, SpawnArea.TOP_Y
-	local topPart
-	for i, width in TEAM_ALTAR_TIERS do
-		local y = top + (i - 1) * h
-		local tier = SpawnArea.Octagon(
-			m,
-			"Tier" .. i,
-			width,
-			h,
-			af * CFrame.new(0, y + h / 2, 0),
-			i == 2 and STONE or TEAM_ALTAR_WOOD,
-			i == 2 and Enum.Material.Slate or Enum.Material.Wood
-		)
-		topPart = tier[1]
-		SpawnArea.Octagon(
-			m,
-			"Edge" .. i,
-			width + 0.3,
-			0.15,
-			af * CFrame.new(0, y + h, 0),
-			ALTAR_NEON,
-			Enum.Material.Neon,
-			false
-		)
-	end
-	local deck = top + #TEAM_ALTAR_TIERS * h
-	local core = SpawnArea.Octagon(
-		m,
-		"Core",
-		3,
-		0.2,
-		af * CFrame.new(0, deck + 0.1, 0),
-		TEAM_ALTAR_PINK,
-		Enum.Material.Neon,
-		false
-	)
+	local slab = SpawnArea.SakuraAltar(m, af * CFrame.new(0, SpawnArea.TOP_Y, 0), TEAM_ALTAR_WIDTH, TEAM_ALTAR_HEIGHT)
 	local light = Instance.new("PointLight")
 	light.Color, light.Brightness, light.Range, light.Shadows = TEAM_ALTAR_PINK, 0.8, 10, false
-	light.Parent = core[1]
-	m.PrimaryPart = addPrompt(topPart, "OpenTeam", "Team", "TEAM SETUP", TEAM_ALTAR_PROMPT_DISTANCE)
+	light.Parent = slab.Top[1]
+	m.PrimaryPart = addPrompt(slab.Slab[1], "OpenTeam", "Team", "TEAM SETUP", TEAM_ALTAR_PROMPT_DISTANCE)
 	return m
 end
 
