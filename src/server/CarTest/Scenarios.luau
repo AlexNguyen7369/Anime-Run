@@ -7490,7 +7490,9 @@ local SPAWN_PLAZA = {
 		{ Name = "IndexBoard", Prompt = "OpenIndex" },
 		{ Name = "CheckpointNpc", Prompt = "OpenCheckpoints" }, -- the sensei (same CheckpointService rules)
 		-- the summon altar replaces SidekickStall and keeps its prompt (design doc 4.36, SIDEKICK_SPEC "Summon altar")
-		{ Name = "SidekickAltar", Prompt = "OpenSidekicks" },
+		-- design doc 4.45 (owner 2026-11-17): its prompt reads "Summon"; the Team altar opens Team Setup
+		{ Name = "SidekickAltar", Prompt = "OpenSidekicks", Action = "Summon" },
+		{ Name = "TeamAltar", Prompt = "OpenTeam", Action = "Team" },
 	},
 	-- Spawn showpiece (design doc 4.43, owner 2026-11-11, draft C "Terrace, wide court"; WORLD_REDESIGN_SPEC section 4).
 	-- World (x, z) at the floor: judged within POS_TOL studs (footprint centre) and FACE_TOL degrees.
@@ -7507,6 +7509,8 @@ local SPAWN_PLAZA = {
 		{ Name = "IndexBoard", At = Vector2.new(61.6, -57.2), Front = true },
 		{ Name = "BestRoll", At = Vector2.new(83.9, 3.1), Front = false },
 		{ Name = "SidekickAltar", At = Vector2.new(57.2, 61.6), Front = true },
+		-- the slot before the gate axis (design doc 4.45, owner 2026-11-17); the gate-axis slot stays empty
+		{ Name = "TeamAltar", At = Vector2.new(-3.1, 83.9), Front = true },
 	},
 	EXCLUSIVE_XZ = Vector2.new(11.6, 12.5), -- the Saitamo pedestal, on the terrace's middle step
 	TERRACE = { 26, 20, 14 }, -- step radii bottom up
@@ -7779,13 +7783,16 @@ function Scenarios.spawn_area()
 		local exists = model ~= nil and model:IsA("Model")
 		check(checks, "plaza_" .. f.Name .. "_exists", exists and 1 or 0, 1, exists)
 		if exists then
-			local promptOk = f.Prompt == nil
+			local promptOk, action = f.Prompt == nil, nil
 			for _, d in model:GetDescendants() do
 				if d:IsA("ProximityPrompt") and d.Name == f.Prompt then
-					promptOk = true
+					promptOk, action = true, d.ActionText
 				end
 			end
 			check(checks, "plaza_" .. f.Name .. "_prompt", promptOk and 1 or 0, 1, promptOk)
+			if f.Action then
+				check(checks, "plaza_" .. f.Name .. "_prompt_text", tostring(action), f.Action, action == f.Action)
+			end
 			local onFloor, clear, count = true, true, 0
 			for _, d in model:GetDescendants() do
 				if d:IsA("BasePart") then

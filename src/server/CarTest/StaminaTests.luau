@@ -68,6 +68,128 @@ local function rollableIds(catalog, count)
 	return ids
 end
 
+-- Quick Setup checks (team_quick_pick_*), run inside Tests.team. `ids[5]` is never granted (unowned).
+local function quickPick(flag, mods, cleanup, ids, store)
+	local gacha, catalog = mods.gacha, mods.catalog
+	local RaceConfig = H.module(Shared, "RaceConfig")
+	local GachaConfig = H.module(Shared, "GachaConfig")
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	local remote = remotes and remotes:FindFirstChild("TeamQuickPick")
+	flag("team_quick_pick_remote_exists", remote ~= nil and remote:IsA("RemoteFunction"))
+	local api = type(gacha.QuickPick) == "function" and RaceConfig ~= nil and GachaConfig ~= nil
+	flag("team_quick_pick_api_exists", api)
+	if not api then
+		return
+	end
+	local p, uid = fakePlayer(cleanup, mods, "Quick")
+	for i = 1, 4 do
+		gacha.Grant(p, ids[i])
+	end
+	gacha.SetTeam(p, { ids[1] })
+	local team, equipped = p:GetAttribute("Team"), p:GetAttribute("EquippedCar")
+
+	-- What QuickPick must answer for `draft`: computed here from the catalog and ownership
+	local rank, order = {}, {}
+	for i, rarity in GachaConfig.RARITY_ORDER do
+		rank[rarity] = i
+	end
+	for i, spec in catalog.All() do
+		order[spec.Id] = i
+	end
+	local function expected(draft)
+		local out, used, pool = table.clone(draft), {}, {}
+		for _, id in draft do
+			used[id] = true
+		end
+		for _, spec in catalog.All() do
+			if not used[spec.Id] and gacha.Owns(p, spec.Id) then
+				table.insert(pool, spec)
+			end
+		end
+		table.sort(pool, function(a, b)
+			local ca, cb = RaceConfig.Cruise(a), RaceConfig.Cruise(b)
+			if ca ~= cb then
+				return ca > cb
+			end
+			local ra, rb = rank[a.Rarity] or 0, rank[b.Rarity] or 0
+			if ra ~= rb then
+				return ra > rb
+			end
+			return order[a.Id] < order[b.Id]
+		end)
+		for _, spec in pool do
+			if #out < 3 then
+				table.insert(out, spec.Id)
+			end
+		end
+		return out
+	end
+	local function problems(got, draft)
+		local wrong, seen = {}, {}
+		if type(got) ~= "table" then
+			return { "ids not a table" }
+		end
+		if #got > 3 then
+			table.insert(wrong, #got .. " ids")
+		end
+		for i, id in got do
+			if seen[id] then
+				table.insert(wrong, "duplicate " .. tostring(id))
+			end
+			seen[id] = true
+			if not gacha.Owns(p, id) then
+				table.insert(wrong, "unowned " .. tostring(id))
+			end
+			if draft[i] and id ~= draft[i] then
+				table.insert(wrong, ("slot %d %s, draft had %s"):format(i, tostring(id), draft[i]))
+			end
+		end
+		return wrong
+	end
+	local drafts = {
+		empty = {},
+		one = { ids[1] },
+		two = { ids[3], ids[2] },
+		full = { ids[2], ids[1], ids[3] },
+	}
+	for name, draft in drafts do
+		local ok, got = gacha.QuickPick(p, table.clone(draft))
+		local want = expected(draft)
+		local shown = type(got) == "table" and table.concat(got, ",") or tostring(got)
+		local wrong = problems(got, draft)
+		flag("team_quick_pick_" .. name .. "_ok", ok == true and #wrong == 0, table.concat(wrong, "; "), "")
+		flag(
+			"team_quick_pick_" .. name .. "_highest_cruise",
+			ok == true and type(got) == "table" and H.same(got, want),
+			shown,
+			table.concat(want, ",")
+		)
+	end
+	local rejects = {
+		not_table = ids[1],
+		four_ids = { ids[1], ids[2], ids[3], ids[4] },
+		not_string = { ids[1], 7 },
+		unowned = { ids[5] },
+		duplicate = { ids[1], ids[1] },
+	}
+	for name, value in rejects do
+		local ok, reason = gacha.QuickPick(p, value)
+		flag(
+			"team_quick_pick_reject_" .. name,
+			ok == false and reason == "Invalid team",
+			tostring(reason),
+			"Invalid team"
+		)
+	end
+	flag(
+		"team_quick_pick_team_unchanged",
+		p:GetAttribute("Team") == team and p:GetAttribute("EquippedCar") == equipped,
+		tostring(p:GetAttribute("Team")),
+		tostring(team)
+	)
+	flag("team_quick_pick_never_saves", store.data[mods.data.KeyFor(uid)] == nil)
+end
+
 function Tests.team()
 	local r, flag = H.report("team")
 	local mods = {
@@ -218,6 +340,11 @@ function Tests.team()
 		data.Save(old, cases[4].Uid, true)
 		local oldRec = store.data[data.KeyFor(cases[4].Uid)]
 		flag("team_old_save_migrates_on_save", type(oldRec) == "table" and H.same(oldRec.Team, { ids[2] }))
+
+		-- 4. Quick Setup (design doc 4.45, docs/team_setup_contract.md): GachaService.QuickPick(player, draft) -> true, ids:
+		-- the draft kept in place, its empty slots filled by owned characters not in it, highest RaceConfig.Cruise first
+		-- (a fake player has no multis), ties to the higher rarity, then catalog order. Read-only: Team and saves untouched.
+		quickPick(flag, mods, cleanup, ids, store)
 	end)
 	flag("team_no_error", ok)
 	if not ok then

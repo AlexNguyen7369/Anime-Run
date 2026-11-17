@@ -151,6 +151,8 @@ UiScenarios.Names = {
 	"ui_backpack_characters",
 	-- The Team button and Team panel (UiTeam; design doc 4.40, owner 2026-11-12): team selection left the Backpack
 	"ui_team",
+	-- Summon button, minibar, plaza prompts, transition and input lock (UiTeam; design doc 4.45, owner 2026-11-17)
+	"ui_entry_points",
 	"ui_starter_pick", -- UiContracts; design doc 4.21: structure only, the test never picks
 	"ui_character_icons",
 	-- Sidekick art, Details odds, Gem icons, Index page (UiSidekicks; design doc 4.36, 4.37)
