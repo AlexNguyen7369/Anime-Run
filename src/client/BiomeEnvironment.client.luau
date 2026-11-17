@@ -504,7 +504,7 @@ local function inArena(focus)
 	return ((focus - arena.Center) * Vector3.new(1, 0, 1)).Magnitude < reach
 end
 local function runTrack()
-	for _, rig in CollectionService:GetTagged("RunnerRig") do -- Server/CarService.RUNNER_TAG
+	for _, rig in CollectionService:GetTagged("RunnerRig") do -- Server/RunnerService.RUNNER_TAG
 		if rig:GetAttribute("Owner") == player.UserId then
 			return rig:GetAttribute("RunTrack")
 		end

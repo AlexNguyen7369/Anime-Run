@@ -7,7 +7,7 @@ local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local GachaConfig = {}
 
 GachaConfig.ROLL_INTERVAL = 3 -- seconds between free auto-rolls
-GachaConfig.DISCOVERIES_PER_POINT = 3 -- every 3 unique cars in the index grant 1 stat point
+GachaConfig.DISCOVERIES_PER_POINT = 3 -- every 3 unique characters in the index grant 1 stat point
 
 -- Turbo luck: every TURBO_EVERY-th roll (Rolls = 10, 20, ...) rolls with TURBO_LUCK times the player's luck.
 -- Derived from the saved roll count, so nothing extra is saved.
@@ -19,7 +19,7 @@ GachaConfig.STATS = { "Speed", "Money", "Luck", "Stamina" }
 GachaConfig.PER_POINT = { -- each point adds this to its multi (additive, easier to tune)
 	Speed = 0.02, -- +2 % cruise per point (placeholder, design doc 4.13; RaceConfig.SpeedMulti)
 	Money = 0.1, -- race payouts
-	Luck = 0.05, -- car roll odds
+	Luck = 0.05, -- character roll odds
 	Stamina = 0.05, -- +5 % stamina per point (placeholder, design doc 4.6; StaminaConfig.Multi)
 }
 
@@ -45,7 +45,7 @@ local function count(n)
 	return math.floor(n)
 end
 
--- One roll: checks cars rarest first, each hits with min(1, luck / N), the first hit wins, else the catch-all.
+-- One roll: checks characters rarest first, each hits with min(1, luck / N), the first hit wins, else the catch-all.
 function GachaConfig.Roll(rng, luck)
 	if type(luck) ~= "number" or luck ~= luck or luck < 1 then
 		luck = 1

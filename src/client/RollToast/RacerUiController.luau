@@ -50,7 +50,7 @@ require(client.RaceProgressMap).Attach(hud)
 -- The saved HUD asset predates the session-local free-points badge. Bake the
 -- small badge at runtime so the live HUD and UiSpec share the same contract.
 Components.BakeHud(hud)
--- The discovery panel is intentionally cars-only; holdables live in the separate Bag control.
+-- The discovery panel is intentionally characters-only; holdables live in the separate Bag control.
 if hud.IndexLabel then
 	hud.IndexLabel.Text = "INDEX"
 end
@@ -113,7 +113,7 @@ local rebirthConfig = require(Shared.RebirthConfig)
 for _, refs in { hud, index, stats, settings, rebirth } do
 	UiTheme.Apply(refs.Gui)
 end
--- Catalog additions extend the saved gallery without waiting forever for an old seven-car bake.
+-- Catalog additions extend the saved gallery without waiting forever for an old seven-character bake.
 local gallery = index.GridHost:FindFirstChild("Gallery")
 local rebuildGallery = gallery == nil or gallery:GetAttribute("DesignVersion") ~= 2
 for _, spec in catalog.All() do
@@ -168,7 +168,7 @@ local function formatDuration(seconds)
 	return hours > 0 and string.format("%dh %02dm", hours, minutes) or string.format("%dm %02ds", minutes, remainder)
 end
 
-local function bestRolledCar()
+local function bestRolledCharacter()
 	local best
 	for _, spec in catalog.All() do
 		if data and data:FindFirstChild(spec.Id) and (not best or (spec.Chance or 0) > (best.Chance or 0)) then
@@ -417,7 +417,7 @@ local function refreshProfile()
 		allocations[stat] = player:GetAttribute("Alloc_" .. stat) or 0
 	end
 	local multis = config.Multis(allocations)
-	local best = bestRolledCar()
+	local best = bestRolledCharacter()
 	profileValues.TotalRolls.Text = format.SpeedText(player:GetAttribute("Rolls") or 0)
 	profileValues.BestRoll.Text = format.Odds(best and best.Chance)
 	profileValues.CharactersDiscovered.Text = format.SpeedText(#data:GetChildren())
@@ -618,7 +618,7 @@ end)
 refreshTrackCamera()
 
 -- Optional bird's-eye camera for auto racing. Mouse-wheel zoom changes the
--- camera height, keeping the car visible from above instead of using a chase
+-- camera height, keeping the runner visible from above instead of using a chase
 -- camera. The normal Roblox camera is restored when auto racing ends.
 local topDownHeight = 48
 local TOP_DOWN_MIN = 22
@@ -647,7 +647,7 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 -- The local player's visible runner while auto racing (Client/RunnerView), or nil.
-local function autoRaceCar()
+local function autoRaceRunner()
 	local model = RunnerVisual.LocalRunner()
 	return model and model:GetAttribute("AutoRace") and model or nil
 end
@@ -660,14 +660,14 @@ RunService.RenderStepped:Connect(function(dt)
 	local autoRacing = player:GetAttribute("AutoRacing") == true
 	-- A boss event locks its view (design doc 4.37), whatever the saved top-down setting.
 	local topDown = player:GetAttribute("TopDownView") == true and player:GetAttribute("BossEvent") ~= true
-	local car = autoRacing and topDown and autoRaceCar() or nil
-	if car and camera then
+	local runner = autoRacing and topDown and autoRaceRunner() or nil
+	if runner and camera then
 		if not topDownWasActive then
 			topDownWasActive = true
 			savedCameraSubject = camera.CameraSubject
 			savedFieldOfView = camera.FieldOfView
 		end
-		local target = car:GetPivot().Position + Vector3.new(0, 2, 0)
+		local target = runner:GetPivot().Position + Vector3.new(0, 2, 0)
 		local desired = CFrame.lookAt(target + Vector3.new(0, topDownHeight, 0), target)
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = 55
@@ -761,7 +761,7 @@ for id, tile in pairs(tiles) do
 	tile.Equip.Activated:Connect(function()
 		if tile.Equip.Active and data:FindFirstChild(id) then
 			pressedEquip, pressedUntil = id, os.clock() + EQUIP_ANSWER_SECONDS
-			remotes.EquipCar:FireServer(id)
+			remotes.EquipCharacter:FireServer(id)
 		end
 	end)
 end
@@ -773,17 +773,20 @@ local function equipAnswered()
 		pressedEquip = nil
 	elseif
 		id
-		and (player:GetAttribute("EquippedCar") == id or string.split(player:GetAttribute("Team") or "", ",")[1] == id)
+		and (
+			player:GetAttribute("EquippedCharacter") == id
+			or string.split(player:GetAttribute("Team") or "", ",")[1] == id
+		)
 	then
 		pressedEquip = nil
 		UiFeedback.Play("Equip", tiles[id].Frame)
 	end
 end
-player:GetAttributeChangedSignal("EquippedCar"):Connect(equipAnswered)
+player:GetAttributeChangedSignal("EquippedCharacter"):Connect(equipAnswered)
 player:GetAttributeChangedSignal("Team"):Connect(equipAnswered)
 data.ChildAdded:Connect(refreshIndex)
 data.ChildRemoved:Connect(refreshIndex)
-player:GetAttributeChangedSignal("EquippedCar"):Connect(refreshIndex)
+player:GetAttributeChangedSignal("EquippedCharacter"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("Team"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("BestTrack"):Connect(refreshIndex)
 index.Gui:GetAttributeChangedSignal("SidekicksProgress"):Connect(refreshIndex)

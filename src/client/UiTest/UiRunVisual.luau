@@ -4,7 +4,7 @@
 -- Limits and their sources: UiSpec.RunVisual.
 --
 -- It never changes saved state: UiTestSetup's run_visual fixture builds a rig for no Player (a Folder holds the slot
--- attributes, Owner = 0) with the real RunnerFactory and VehicleEffects.Apply, and publishes RunRoute / RunSpeed /
+-- attributes, Owner = 0) with the real RunnerFactory and RunnerEffects.Apply, and publishes RunRoute / RunSpeed /
 -- RunDistance on a straight route of its own. The real Client/RunnerView draws it, so every number here comes from the
 -- real drawn copy. Team, owned items and Money are not read or written.
 --
@@ -726,7 +726,7 @@ function UiRunVisual.Build(deps)
 			end
 		end
 
-		-- Slot swap mid run, both ways (CarService.ApplyCharacter's order): the new slot's look and items on the same run
+		-- Slot swap mid run, both ways (RunnerService.ApplyCharacter's order): the new slot's look and items on the same run
 		local function firstOf(style)
 			for _, row in rows do
 				if row.Style == style then

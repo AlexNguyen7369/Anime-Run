@@ -328,14 +328,14 @@ function ShopMarket.Build(h)
 	end
 
 	-- What a price button must show: the listed price (thousands separated) and "Coming soon" for id 0.
-	-- ownedNow: the car id of an owned gamepass car (its button shows Equip / Equipped, SH.OwnedCar), else false
+	-- ownedNow: the character id of an owned gamepass character (its button shows Equip / Equipped, SH.OwnedCharacter), else false
 	local function priceProblems(bad, label, buy, price, onSaleId, ownedNow)
 		local text = h.allText(buy)
 		if ownedNow then
-			local equipped = attr("EquippedCar") == ownedNow
-			local want = equipped and SH.OwnedCar.Equipped or SH.OwnedCar.Equip
+			local equipped = attr("EquippedCharacter") == ownedNow
+			local want = equipped and SH.OwnedCharacter.Equipped or SH.OwnedCharacter.Equip
 			-- "Equipped" contains "Equip": the not-equipped button must not read "Equipped"
-			if not has(text, want) or (not equipped and has(text, SH.OwnedCar.Equipped)) then
+			if not has(text, want) or (not equipped and has(text, SH.OwnedCharacter.Equipped)) then
 				table.insert(bad, label .. ": shows " .. text .. ", want " .. want)
 			end
 			return

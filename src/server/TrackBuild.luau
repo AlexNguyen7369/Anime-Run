@@ -1,7 +1,7 @@
 --!nonstrict
 -- Build after join (docs/GAME_DESIGN_REQUIREMENTS.md 4.25): Main.server builds Tracks 1-5 before the join, then the
 -- rest one per frame in Order. A track Main marked pending is not built yet; RaceService holds a run that would start
--- on or cross into one (run.Holding, car attribute RunHold). Every other number counts as built (test routes).
+-- on or cross into one (run.Holding, runner attribute RunHold). Every other number counts as built (test routes).
 -- Each Workspace.Track model gets attribute BuiltAt = os.clock() once fully built (Main.server).
 local RunService = game:GetService("RunService")
 

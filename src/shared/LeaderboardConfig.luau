@@ -13,7 +13,7 @@ LeaderboardConfig.Boards = {
 	-- left untouched.
 	{ Id = "MoneyEarned", Title = "MONEY EARNED", Store = "LB_MoneyEarned_v1" },
 	{ Id = "Rolls", Title = "MOST ROLLS", Store = "LB_Rolls_v1" },
-	{ Id = "RarestCar", Title = "RAREST CHARACTER", Store = "LB_RarestCar_v1" },
+	{ Id = "RarestCharacter", Title = "RAREST CHARACTER", Store = "LB_RarestCar_v1" },
 }
 
 -- Signs: local (x, z) of each board's centre on the plaza: a row along its west edge (x = SIGN_X), facing the spawn,
@@ -29,9 +29,9 @@ LeaderboardConfig.BEST_ROLL = {
 	Z = -76.891,
 	RADIUS = 9,
 	HEIGHT = 2,
-	CAR_SCALE = 3.5, -- the car stands at this scale, so it reads from across the hub
+	MODEL_SCALE = 3.5, -- the character stands at this scale, so it reads from across the hub
 	SPIN = 45, -- degrees per second (client only)
-	TEXT_DISTANCE = 150, -- studs: MaxDistance of the stats above the car
+	TEXT_DISTANCE = 150, -- studs: MaxDistance of the stats above the character
 }
 
 return LeaderboardConfig

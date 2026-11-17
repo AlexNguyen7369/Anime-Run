@@ -1,18 +1,18 @@
 --!nonstrict
--- Static checks on a track layout, before anything is built or driven.
+-- Static checks on a track layout, before anything is built or run on.
 -- Returns { Ok = boolean, Issues = { string } }.
 
 local TrackBuilder = require(script.Parent.TrackBuilder)
 
 local TrackValidator = {}
 
-local MIN_RADIUS = 28 -- roughly the car's tightest full-lock circle
+local MIN_RADIUS = 28 -- roughly the runner's tightest full-lock circle
 local MIN_LENGTH = 300
 local CLOSE_TOLERANCE = 3 -- studs
 local HEADING_TOLERANCE = math.rad(1)
 local WALL_CLEARANCE_PAD = 8 -- road width plus both walls and a little air
 local MAX_GRADE_DEG = 25 -- steepest slope the runner can climb
-local MIN_LOOP_RADIUS = 25 -- the car is 13 studs long
+local MIN_LOOP_RADIUS = 25 -- the runner is 13 studs long
 local MIN_END_STRAIGHT = 40 -- first and last segment: straight, so tracks join straight-into-straight
 local MIN_END_STRAIGHT_MARGIN = 4 -- the last straight is the checkpoint plus this much wall
 local MIN_START_FINISH_WIDTHS = 2 -- start and finish are at least this many road widths apart

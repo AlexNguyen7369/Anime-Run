@@ -1,7 +1,7 @@
 --!nonstrict
 -- The spawn hub: an anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4). A stone-paved square with the game's
 -- only SpawnLocation at its centre, a torii StartGate over the StartPad (walking through it starts the run,
--- Server/CarService), the spawn terrace with the six service buildings (Shop, Potions, Market, Index, Best Roll, the
+-- Server/RunnerService), the spawn terrace with the six service buildings (Shop, Potions, Market, Index, Best Roll, the
 -- Sidekick summon altar) on a ring round it, every front facing the spawn (design doc 4.43, WORLD_REDESIGN_SPEC 4), and the
 -- Checkpoints sensei beside the gate. Players join and respawn here on foot, and Stop sends them back
 -- here. Each stall here is the plain stand-in for its mesh (Server/PlazaDressing): the prompt and collision stay on it,
@@ -581,10 +581,10 @@ function SpawnArea.Build(startCFrame)
 	-- Leaderboard banners removed (design doc 4.16, owner 2026-11-01); their data stores are left untouched.
 
 	-- The Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a). LeaderboardService fills the labels and puts a runner
-	-- on the CarMount; Client/BestRollView turns it.
+	-- on the CharacterMount; Client/BestRollView turns it.
 	local cfg = LeaderboardConfig.BEST_ROLL
 	local stoneDark, gold = Color3.fromRGB(110, 106, 100), Color3.fromRGB(230, 186, 80)
-	-- A round platform: returns its Pedestal part (with CarMount on top) and a Stats billboard above it
+	-- A round platform: returns its Pedestal part (with CharacterMount on top) and a Stats billboard above it
 	local function pedestal(parent, x, z, radius, statsSize, statsHeight, textDistance)
 		-- name, bottom and top as fractions of HEIGHT, radius inset (the stripe sits in a groove)
 		for _, layer in
@@ -607,7 +607,7 @@ function SpawnArea.Build(startCFrame)
 		end
 		local part = parent.Pedestal
 		local mount = Instance.new("Attachment")
-		mount.Name = "CarMount"
+		mount.Name = "CharacterMount"
 		mount.Parent = part
 		mount.WorldCFrame = frame * CFrame.new(x, top + cfg.HEIGHT, z)
 		local stats = Instance.new("BillboardGui")

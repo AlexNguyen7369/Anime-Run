@@ -3,8 +3,8 @@
 --   player.Upgrades: one StringValue per owned tile id
 --   player attributes: BestTrack, TurboCount, TurboEvery, TurboMulti, UpgradesBuyable (the badge)
 -- Remotes.BuyUpgrade(tileId) -> ok, reason. The client never sends a price.
--- Requires shared modules only: GachaService, MoneyService and CarService require this module, so it reads and writes
--- leaderstats.Money itself and tells CarService about WalkSpeed changes through OnChanged.
+-- Requires shared modules only: GachaService, MoneyService and RunnerService require this module, so it reads and writes
+-- leaderstats.Money itself and tells RunnerService about WalkSpeed changes through OnChanged.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -69,7 +69,7 @@ function UpgradeService.TrackCount()
 	return trackCount
 end
 
--- fn(player) runs after the player's tiles or BestTrack change (CarService re-applies WalkSpeed).
+-- fn(player) runs after the player's tiles or BestTrack change (RunnerService re-applies WalkSpeed).
 function UpgradeService.OnChanged(fn)
 	table.insert(listeners, fn)
 end
@@ -95,7 +95,7 @@ local function state(player)
 	}
 end
 
--- Effects, read by GachaService (Bonuses, RollInterval, Turbo) and CarService (WalkSpeed).
+-- Effects, read by GachaService (Bonuses, RollInterval, Turbo) and RunnerService (WalkSpeed).
 function UpgradeService.Bonuses(player)
 	return UpgradeTree.Bonuses(UpgradeService.Owned(player))
 end

@@ -1,6 +1,6 @@
 --!nonstrict
 -- Emphasized rolls in global chat (owner, 2026-10-02): the server (GachaService) fires Remotes.RollAnnounce to
--- everyone with the player, the car and their total rolls; this shows it as a system message in the general channel.
+-- everyone with the player, the character and their total rolls; this shows it as a system message in the general channel.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")

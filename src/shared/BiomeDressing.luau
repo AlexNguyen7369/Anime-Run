@@ -1,5 +1,5 @@
 --!nonstrict
--- Deterministic, non-colliding drive-by scenery for every track (docs/BIOME_DRESSING_SPEC.md).
+-- Deterministic, non-colliding run-by scenery for every track (docs/BIOME_DRESSING_SPEC.md).
 -- Build(model, layout, spec, origin) dresses one track from Shared/BiomeThemes[spec.Biome].
 -- Prune(trackModels, extra) runs after the whole chain is built and removes props too close to any road.
 -- SnapToTerrain(trackModels) drops every prop onto Shared/TerrainShape's height (docs/BIOME_ENVIRONMENT_SPEC.md 3.2).
@@ -466,12 +466,12 @@ local function biomeTitle(biome)
 end
 BiomeDressing.Title = biomeTitle
 
--- Text on the sign's face toward the oncoming car: the biome (owner 2026-10-21; the recommended-Speed line is gone
+-- Text on the sign's face toward the oncoming runner: the biome (owner 2026-10-21; the recommended-Speed line is gone
 -- with the Speed stat, owner 2026-11-01, design doc 4.13).
 local function signText(sign, spec)
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "GateSignGui"
-	gui.Face = Enum.NormalId.Back -- +Z: the car drives toward -Z (look direction)
+	gui.Face = Enum.NormalId.Back -- +Z: the runner runs toward -Z (look direction)
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 20
 	gui.LightInfluence = 0
