@@ -353,25 +353,39 @@ function PanelSwitch.Toggle(name)
 		return true
 	end
 	wanted[name] = open
+	local covered = false
 	if accents[name] and not panel:GetAttribute("SkipTransition") then
-		UiTransition.Play(accents[name])
+		covered = UiTransition.Play(accents[name])
 		if open then
 			openedAt[name] = os.clock()
 		end
 	end
-	if open then
-		for other, p in panels do
-			if other ~= name then
-				p.Visible = false
+	local function apply()
+		if open then
+			for other, p in panels do
+				if other ~= name then
+					p.Visible = false
+				end
 			end
+			if closing[panel] then
+				cancelClose(panel) -- reopened mid-close: still Visible, so play the open motion again
+				openMotion(panel)
+			end
+			panel.Visible = true
+		else
+			closeMotion(panel)
 		end
-		if closing[panel] then
-			cancelClose(panel) -- reopened mid-close: still Visible, so play the open motion again
-			openMotion(panel)
-		end
-		panel.Visible = true
+	end
+	if covered then
+		-- A Sakura page switches under the full petal wash (owner reference 2026-11-17), so no half-open frame shows.
+		task.delay(UiTransition.COVER, function()
+			if wanted[name] == open then
+				apply()
+				notify()
+			end
+		end)
 	else
-		closeMotion(panel)
+		apply()
 	end
 	notify()
 	return open
@@ -414,11 +428,17 @@ function PanelSwitch.Close(name)
 		if closeGuards[name] and closeGuards[name]() then
 			return
 		end
-		if accents[name] then
-			UiTransition.Play(accents[name])
-		end
 		wanted[name] = false
-		closeMotion(panels[name])
+		if accents[name] and UiTransition.Play(accents[name]) then
+			task.delay(UiTransition.COVER, function()
+				if wanted[name] == false then
+					closeMotion(panels[name])
+					notify()
+				end
+			end)
+		else
+			closeMotion(panels[name])
+		end
 		notify()
 	end
 end

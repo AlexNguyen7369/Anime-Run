@@ -1,17 +1,17 @@
 --!nonstrict
--- Gameplay input lock while a full page is open (design doc 4.45, owner 2026-11-17): movement and jump controls are
--- off while any holder holds the lock and come back when the last one releases. Only player input: a run the server
--- drives keeps going. Player attribute PageInputLocked mirrors it (display and tests).
+-- Gameplay input lock while a full page is open (design doc 4.45, owner 2026-11-17): walk and jump input is sunk while
+-- any holder holds the lock and passes again when the last one releases. Only player input: a run the server drives
+-- keeps going. ContextActionService, not PlayerModule controls (this place has no PlayerModule). Player attribute
+-- PageInputLocked mirrors it (display and tests).
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 
+local ACTION = "PageInputLock"
 local InputLock = {}
 local holders = {}
 
-local function controls()
-	local ok, module = pcall(function()
-		return require(Players.LocalPlayer:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule")):GetControls()
-	end)
-	return ok and module or nil
+local function sink()
+	return Enum.ContextActionResult.Sink
 end
 
 local function apply()
@@ -21,16 +21,29 @@ local function apply()
 		return
 	end
 	player:SetAttribute("PageInputLocked", locked)
-	task.spawn(function()
-		local c = controls()
-		if c then
-			if next(holders) ~= nil then -- the state now: controls() may have yielded past a later Release
-				c:Disable()
-			else
-				c:Enable()
-			end
-		end
-	end)
+	if locked then
+		ContextActionService:BindActionAtPriority(
+			ACTION,
+			sink,
+			false,
+			Enum.ContextActionPriority.High.Value,
+			Enum.PlayerActions.CharacterForward,
+			Enum.PlayerActions.CharacterBackward,
+			Enum.PlayerActions.CharacterLeft,
+			Enum.PlayerActions.CharacterRight,
+			Enum.PlayerActions.CharacterJump,
+			Enum.KeyCode.W,
+			Enum.KeyCode.A,
+			Enum.KeyCode.S,
+			Enum.KeyCode.D,
+			Enum.KeyCode.Space,
+			Enum.KeyCode.Up,
+			Enum.KeyCode.Down,
+			Enum.KeyCode.Thumbstick1
+		)
+	else
+		ContextActionService:UnbindAction(ACTION)
+	end
 end
 
 function InputLock.Hold(key)

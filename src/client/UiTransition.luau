@@ -1,20 +1,23 @@
 --!nonstrict
--- The Sakura Dojo page transition (design doc 4.45, docs/UI_FEEDBACK_SPEC.md section 5, owner 2026-11-17): cream shoji
--- paper panels sweep across the screen right to left with sakura petals blowing ahead of them, while the page opens or
--- closes behind. One reused ScreenGui; never takes input. Reduced motion: a short cream fade, no petals. A call while
--- one runs is ignored. Timings proposed.
+-- The Sakura Dojo page transition (design doc 4.45, docs/UI_FEEDBACK_SPEC.md section 5; owner reference 2026-11-17
+-- "Close / return transition": page, then a full-screen wash of sakura petals, then the next view). A soft pink wash
+-- fills the screen with large petals drifting through it while the page opens or closes behind, then clears. One reused
+-- ScreenGui; never takes input. Reduced motion: a short pink fade, no petals. A call while one runs is ignored.
+-- About 0.65 s in all (proposed).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local D = UiTheme.Dojo
-local SWEEP_IN, SWEEP_OUT = 0.25, 0.25
+local IN, HOLD, OUT = 0.22, 0.12, 0.3
 local FADE = 0.15
-local PETALS = 12
-local PANELS = 4
+local PETALS = 22
+local WASH_TOP = Color3.fromRGB(255, 196, 214)
+local WASH_BOTTOM = Color3.fromRGB(226, 120, 158)
 
 local UiTransition = {}
+UiTransition.COVER = IN -- s from Play until the wash covers the screen: pages switch then, unseen
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -26,7 +29,7 @@ local function make(class, name, parent, props)
 	return object
 end
 
-local root, paper, accentStrip, fade
+local root, paper, gradient
 local petals = {}
 
 local function build()
@@ -36,121 +39,85 @@ local function build()
 	root = make("ScreenGui", "UiTransition", Players.LocalPlayer:WaitForChild("PlayerGui"), {
 		ResetOnSpawn = false,
 		IgnoreGuiInset = true,
-		DisplayOrder = 40, -- above the panels, under popups' confirm dialogs
+		DisplayOrder = 40, -- above the pages
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	})
 	root:SetAttribute("Playing", false)
+	-- "Paper": the pink wash (kept under its first name for the UI tests).
 	paper = make("Frame", "Paper", root, {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.fromScale(1.05, 0.5),
-		Size = UDim2.fromScale(1.2, 1),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.new(1, 1, 1),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
 		Visible = false,
 		Active = false,
+		ZIndex = 1,
 	})
-	make("UIListLayout", "Layout", paper, { FillDirection = Enum.FillDirection.Horizontal })
-	for i = 1, PANELS do
-		-- A shoji panel: cream paper in a dark wood frame, with a thin lattice.
-		local panel = make("Frame", "Panel" .. i, paper, {
-			LayoutOrder = i,
-			Size = UDim2.fromScale(1 / PANELS, 1),
-			BackgroundColor3 = D.Cream,
-			BorderSizePixel = 0,
-		})
-		make("UIStroke", "Frame", panel, { Color = D.WoodDark, Thickness = 4 })
-		for k = 1, 2 do
-			make("Frame", "Mullion" .. k, panel, {
-				Position = UDim2.fromScale(k / 3, 0),
-				Size = UDim2.new(0, 2, 1, 0),
-				BackgroundColor3 = D.Wood,
-				BorderSizePixel = 0,
-			})
-		end
-		for k = 1, 4 do
-			make("Frame", "Rail" .. k, panel, {
-				Position = UDim2.fromScale(0, k / 5),
-				Size = UDim2.new(1, 0, 0, 2),
-				BackgroundColor3 = D.Wood,
-				BorderSizePixel = 0,
-			})
-		end
-	end
-	accentStrip = make("Frame", "Accent", paper, {
-		Size = UDim2.new(0, 6, 1, 0),
-		BackgroundColor3 = D.Sakura,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	})
-	accentStrip.Parent = root -- outside the list layout; follows the paper's leading edge
-	fade = make("Frame", "Fade", root, {
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = D.Cream,
-		BackgroundTransparency = 1,
-		Visible = false,
-	})
+	gradient = make("UIGradient", "Wash", paper, { Rotation = 70, Color = ColorSequence.new(WASH_TOP, WASH_BOTTOM) })
 	for i = 1, PETALS do
 		petals[i] = make("ImageLabel", "Petal" .. i, root, {
 			BackgroundTransparency = 1,
 			Image = D.Petal,
-			ImageColor3 = D.Sakura,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(26, 26),
 			Visible = false,
-			ZIndex = 3,
+			Active = false,
+			ZIndex = i % 3 == 0 and 0 or 2, -- a few behind the wash, softer
 		})
 	end
 end
 
--- Plays the sweep once with `accent` (a Color3, the page's colour) on the paper's leading edge. Returns false when one
--- is already running (the call is ignored).
+-- Plays the wash once; `accent` (a Color3, the page's colour) tints its lower edge a little. Returns false when one is
+-- already running (the call is ignored).
 function UiTransition.Play(accent)
 	build()
 	if root:GetAttribute("Playing") then
 		return false
 	end
 	root:SetAttribute("Playing", true)
+	gradient.Color = ColorSequence.new(WASH_TOP, accent and WASH_BOTTOM:Lerp(accent, 0.15) or WASH_BOTTOM)
+	paper.Visible, paper.BackgroundTransparency = true, 1
 	local function done()
-		paper.Visible, accentStrip.Visible, fade.Visible = false, false, false
+		paper.Visible = false
 		for _, petal in petals do
 			petal.Visible = false
 		end
 		root:SetAttribute("Playing", false)
 	end
 	if UiMotion.Reduced() then
-		fade.Visible, fade.BackgroundTransparency = true, 0.4
-		local t = UiMotion.Create(fade, TweenInfo.new(FADE), { BackgroundTransparency = 1 })
-		t:Play()
+		paper.BackgroundTransparency = 0.3
+		UiMotion.Create(paper, TweenInfo.new(FADE), { BackgroundTransparency = 1 }):Play()
 		task.delay(FADE, done)
 		return true
 	end
-	accentStrip.BackgroundColor3 = accent or D.Sakura
-	paper.Position, paper.Visible, accentStrip.Visible = UDim2.fromScale(1.05, 0.5), true, true
-	local function edge(x)
-		return UDim2.new(x, -6, 0, 0)
-	end
-	accentStrip.Position = edge(1.05)
-	accentStrip.Size = UDim2.new(0, 6, 1, 0)
-	local inInfo = TweenInfo.new(SWEEP_IN, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local outInfo = TweenInfo.new(SWEEP_OUT, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	UiMotion.Create(paper, inInfo, { Position = UDim2.fromScale(-0.1, 0.5) }):Play()
-	UiMotion.Create(accentStrip, inInfo, { Position = edge(-0.1) }):Play()
-	-- Petals ride just ahead of the paper and drift on past it.
-	for _, petal in petals do
-		local y = math.random()
-		petal.Position = UDim2.fromScale(1.05 + math.random() * 0.1, y)
+	local total = IN + HOLD + OUT
+	UiMotion.Create(paper, TweenInfo.new(IN, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 0.04,
+	}):Play()
+	-- Large petals drift down and across the whole screen, turning, over the full transition.
+	for i, petal in petals do
+		local size = math.random(46, 128)
+		local x, y = math.random() * 1.2 - 0.1, math.random() * 1.1 - 0.35
+		petal.Size = UDim2.fromOffset(size, size)
+		petal.Position = UDim2.fromScale(x, y)
 		petal.Rotation = math.random(0, 360)
-		petal.ImageTransparency = 0.1
+		petal.ImageColor3 = (i % 3 == 0) and Color3.fromRGB(255, 220, 232) or Color3.fromRGB(255, 168, 196)
+		petal.ImageTransparency = 1
 		petal.Visible = true
-		UiMotion.Create(petal, TweenInfo.new(SWEEP_IN + SWEEP_OUT, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-			Position = UDim2.fromScale(-0.15 - math.random() * 0.1, y + (math.random() - 0.5) * 0.2),
-			Rotation = petal.Rotation + math.random(180, 420),
-			ImageTransparency = 0.6,
+		UiMotion.Create(petal, TweenInfo.new(IN, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			ImageTransparency = i % 3 == 0 and 0.35 or 0.05,
+		}):Play()
+		UiMotion.Create(petal, TweenInfo.new(total, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+			Position = UDim2.fromScale(x - 0.12 - math.random() * 0.1, y + 0.25 + math.random() * 0.15),
+			Rotation = petal.Rotation + math.random(-160, 220),
 		}):Play()
 	end
-	task.delay(SWEEP_IN + 0.05, function()
-		UiMotion.Create(paper, outInfo, { Position = UDim2.fromScale(-1.3, 0.5) }):Play()
-		UiMotion.Create(accentStrip, outInfo, { Position = edge(-1.3) }):Play()
-		task.delay(SWEEP_OUT, done)
+	task.delay(IN + HOLD, function()
+		local outInfo = TweenInfo.new(OUT, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		UiMotion.Create(paper, outInfo, { BackgroundTransparency = 1 }):Play()
+		for _, petal in petals do
+			UiMotion.Create(petal, outInfo, { ImageTransparency = 1 }):Play()
+		end
+		task.delay(OUT, done)
 	end)
 	return true
 end

@@ -24,7 +24,6 @@ local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Icons = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local Components = require(script.Parent.RollToast.Ui:WaitForChild("RacerComponents"))
-local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local RosterCard = require(script.Parent:WaitForChild("RosterCard"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
@@ -41,7 +40,11 @@ local TIERS = { 14, 10.5, 7 }
 local TIER_H = 1.2
 local FLY = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local HOVER = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local CARD_W, CARD_H = 104, 116 -- roster cards, design units
+local CARD_W, CARD_H = 112, 132 -- roster cards, design units
+local DESIGN_H = 720 -- the full-screen page is laid out in units of a 720-tall screen (owner 2026-11-17 mockup)
+local GREEN = Color3.fromRGB(64, 168, 76) -- Deploy, as the mockup
+local PURPLE = Color3.fromRGB(122, 72, 176) -- the shown tray tab, as the mockup
+local BACKDROP = "rbxassetid://119528763151983" -- the approved blossom-shrine clean plate (assets/ui/summon_shrine)
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -59,7 +62,9 @@ local function caption(name, parent, props)
 end
 local function flat(button, color)
 	-- Flat, restrained buttons (4.45): a fill, a medium-thin outline, no pill.
-	button.AutoButtonColor = false
+	if button:IsA("GuiButton") then
+		button.AutoButtonColor = false
+	end
 	button.BackgroundColor3 = color
 	button.BorderSizePixel = 0
 	UiTheme.Corner(button, 4)
@@ -68,6 +73,22 @@ local function flat(button, color)
 	stroke.Thickness, stroke.Color = D.Stroke, D.Gold
 	return button
 end
+-- A small icon glyph at a button's left (its Text stays the plain words).
+local function glyph(button, char)
+	make("UIPadding", "Pad", button, { PaddingLeft = UDim.new(0.16, 0) })
+	return make("TextLabel", "Glyph", button, {
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(-0.12, 0.5),
+		Size = UDim2.fromScale(0.14, 0.6),
+		Text = char,
+		TextScaled = true,
+		Font = Enum.Font.GothamBold,
+		TextColor3 = button.TextColor3,
+		ZIndex = button.ZIndex + 1,
+	})
+end
+
 local function hoverable(button)
 	local scale = button:FindFirstChild("HoverScale") or make("UIScale", "HoverScale", button, {})
 	button.MouseEnter:Connect(function()
@@ -84,22 +105,73 @@ local root = make("ScreenGui", "RacerTeam", player:WaitForChild("PlayerGui"), {
 	DisplayOrder = 2, -- the panels' order (Backpack, Checkpoints)
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
+-- Full screen (owner 2026-11-17, from the mockup): the dojo scene behind everything.
 local panel = make("Frame", "Panel", root, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
-	Size = UDim2.fromOffset(720, 420),
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = D.Ink,
+	BorderSizePixel = 0,
 	Visible = false,
 	Active = true,
 })
 
-local header = make("Frame", "Header", panel, { BackgroundTransparency = 1 })
-caption("Title", header, { Text = "Team Setup" })
-make("ImageLabel", "Icon", header, { BackgroundTransparency = 1, Image = Icons.Team.Image })
-local close = make("TextButton", "Close", header, { Text = "", AutoButtonColor = false })
-caption("X", close, { Size = UDim2.fromScale(1, 1), Text = "X" })
-local bonusButton = flat(make("TextButton", "BonusButton", header, { Text = "Team Bonus", ZIndex = 10 }), D.Burgundy)
+local header = make("Frame", "Header", panel, { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 5 })
+local title = caption("Title", header, {
+	Text = "TEAM SETUP",
+	TextColor3 = D.Cream,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	ZIndex = 6,
+})
+local titleLine = make("Frame", "Underline", header, { BackgroundColor3 = D.Cyan, BorderSizePixel = 0, ZIndex = 6 })
+local icon = make("ImageLabel", "Icon", header, {
+	BackgroundTransparency = 1,
+	Image = Icons.Team.Image,
+	ScaleType = Enum.ScaleType.Fit,
+	ZIndex = 6,
+})
+local close =
+	make("TextButton", "Close", header, { Text = "", AutoButtonColor = false, BackgroundTransparency = 1, ZIndex = 6 })
+local closeX = caption("X", close, { Size = UDim2.fromScale(1, 1), Text = "✕", TextColor3 = D.Cream, ZIndex = 7 })
+local bonusButton =
+	flat(make("TextButton", "BonusButton", header, { Text = "Team Bonus", TextColor3 = D.Cream, ZIndex = 6 }), D.Ink)
+make("Frame", "Underline", bonusButton, {
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0, 0, 1, 4),
+	Size = UDim2.new(1, 0, 0, 2),
+	BackgroundColor3 = D.Cyan,
+	BorderSizePixel = 0,
+	ZIndex = 6,
+})
 
-local g -- the frame's units (PanelFrame.Attach, below)
+-- Units of a 720-tall screen (k px each); W is the screen's width in units. The roles size text as the panels do.
+local ROLE = { Title = 44, Section = 32, Item = 24, Body = 19, Caption = 15, Footer = 16 }
+local g = { k = 1, W = 1280, Small = false }
+function g.px(u)
+	return math.floor(u * g.k + 0.5)
+end
+function g.at(x, y)
+	return UDim2.fromOffset(g.px(x), g.px(y))
+end
+function g.Place(gui, x, y, w, h)
+	gui.AnchorPoint = Vector2.zero
+	gui.Position, gui.Size = g.at(x, y), g.at(w, h)
+end
+function g.Role(label, role)
+	local size = ROLE[role] or ROLE.Body
+	label:SetAttribute("AnimeRole", role)
+	label.Font = UiTheme.Font
+	label.TextScaled = true
+	local limit = label:FindFirstChild("RoleLimit") or make("UITextSizeConstraint", "RoleLimit", label, {})
+	limit.MaxTextSize = math.max(1, g.px(size))
+	limit.MinTextSize = math.max(1, math.min(g.px(size), g.px(9)))
+	local stroke = label:FindFirstChild("RoleStroke")
+		or make("UIStroke", "RoleStroke", label, { ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual })
+	stroke.Color = D.Ink
+	stroke.Thickness = (role == "Title" or role == "Item") and 2 or 1
+	stroke.Transparency = role == "Caption" and 1 or 0.15
+	return label
+end
 
 -- State: the draft (slot -> id or nil), the picked altar, the picked card (character id or Sidekick entry).
 local draft = {}
@@ -109,6 +181,7 @@ local chosenSidekick = nil
 local tab = "Characters"
 local busy = false
 local render -- set below
+local figureOn -- set below
 
 local function saved()
 	local out = {}
@@ -150,22 +223,29 @@ local function slotOf(id)
 end
 local openCount = 0 -- each open; a delayed close of an earlier open does nothing
 
--- Backdrop: warm dojo wood behind the content (the frame's chrome stays the game-wide one, 4.42).
-local backdrop = make("Frame", "Backdrop", panel, { BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0 })
-make("UIGradient", "Wood", backdrop, {
-	Rotation = 90,
-	Color = ColorSequence.new(D.Burgundy, D.Ink),
+-- Backdrop: the approved blossom-shrine scene (as the summon page's), darkened toward the tray so text reads.
+local backdrop = make("ImageLabel", "Backdrop", panel, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	Image = BACKDROP,
+	ScaleType = Enum.ScaleType.Crop,
+	ZIndex = 0,
 })
-UiTheme.Corner(backdrop, 6)
-for k = 1, 3 do -- faint shoji lines
-	make("Frame", "Shoji" .. k, backdrop, {
-		Position = UDim2.fromScale(k / 4, 0),
-		Size = UDim2.new(0, 1, 0.55, 0),
-		BackgroundColor3 = D.Gold,
-		BackgroundTransparency = 0.85,
-		BorderSizePixel = 0,
-	})
-end
+local shade = make("Frame", "Shade", backdrop, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = D.Ink,
+	BorderSizePixel = 0,
+	ZIndex = 0,
+})
+make("UIGradient", "Fade", shade, {
+	Rotation = 90,
+	Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.55),
+		NumberSequenceKeypoint.new(0.25, 0.8),
+		NumberSequenceKeypoint.new(0.62, 0.7),
+		NumberSequenceKeypoint.new(1, 0.15),
+	}),
+})
 
 -- Top centre: one dot per altar.
 local dots = make("Frame", "Dots", panel, { BackgroundTransparency = 1 })
@@ -176,8 +256,8 @@ make("UIListLayout", "Layout", dots, {
 	Padding = UDim.new(0, 10),
 })
 for n = 1, SLOTS do
-	local dot = make("Frame", "Dot" .. n, dots, { BackgroundColor3 = D.Cyan, LayoutOrder = n })
-	UiTheme.Corner(dot, 999)
+	local dot = make("Frame", "Dot" .. n, dots, { BackgroundColor3 = D.Cyan, LayoutOrder = n, Rotation = 45 })
+	make("UIStroke", "Edge", dot, { Color = D.Cream, Thickness = 1.5 })
 	make("UIAspectRatioConstraint", "Square", dot, {})
 end
 
@@ -194,9 +274,9 @@ for n = 1, SLOTS do
 	})
 	local view = make("ViewportFrame", "Pedestal", b, {
 		BackgroundTransparency = 1,
-		Ambient = Color3.fromRGB(150, 120, 120),
-		LightColor = Color3.fromRGB(255, 230, 210),
-		LightDirection = Vector3.new(-1, -2, -1),
+		Ambient = Color3.fromRGB(170, 150, 150),
+		LightColor = Color3.fromRGB(255, 235, 220),
+		LightDirection = Vector3.new(-0.6, -2, -1),
 		ZIndex = 2,
 	})
 	local model = make("Model", "Altar", view)
@@ -216,9 +296,20 @@ for n = 1, SLOTS do
 			table.insert(edges, part)
 		end
 	end
-	local core = SpawnArea.Octagon(model, "Core", 3, 0.2, CFrame.new(0, #TIERS * TIER_H + 0.1, 0), D.Sakura)
+	local deck = #TIERS * TIER_H
+	local core = SpawnArea.Octagon(model, "Core", TIERS[#TIERS] - 0.6, 0.12, CFrame.new(0, deck + 0.06, 0), D.Sakura)
+	-- The light column over the deck (pink under a member, cyan over an empty altar), as the mockup.
+	local column = make("Part", "Column", model, {
+		Anchored = true,
+		Size = Vector3.new(TIERS[#TIERS] - 1.5, 9, TIERS[#TIERS] - 1.5),
+		CFrame = CFrame.new(0, deck + 4.5, 0),
+		Material = Enum.Material.Neon,
+		Color = D.Sakura,
+		Transparency = 0.86,
+		CastShadow = false,
+	})
 	local camera = make("Camera", "Camera", view, { FieldOfView = 30 })
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, 14, 34), Vector3.new(0, 1.2, 0))
+	camera.CFrame = CFrame.lookAt(Vector3.new(0, 9.5, 36), Vector3.new(0, 4.6, 0))
 	view.CurrentCamera = camera
 	local plus = caption("Plus", b, { Text = "+", TextColor3 = D.Cyan, ZIndex = 4 })
 	local add = caption("Add", b, { Text = "Add Character", TextColor3 = D.Cream, ZIndex = 4 })
@@ -227,11 +318,22 @@ for n = 1, SLOTS do
 		Button = b,
 		Edges = edges,
 		Core = core,
-		SlotLabel = caption("SlotLabel", b, { Text = "Slot " .. n, TextColor3 = D.Gold, ZIndex = 4 }),
+		Column = column,
+		View = view,
+		Deck = deck,
+		SlotLabel = flat(
+			caption(
+				"SlotLabel",
+				b,
+				{ Text = "SLOT " .. n, TextColor3 = D.Cream, ZIndex = 4, BackgroundTransparency = 0.1 }
+			),
+			D.Ink
+		),
+		-- A small drawn-portrait badge by the name; the member itself stands on the altar as its 3D model.
 		Portrait = make("ImageLabel", "Portrait", b, {
-			BackgroundTransparency = 1,
-			ScaleType = Enum.ScaleType.Fit,
-			ZIndex = 3,
+			BackgroundColor3 = D.Ink,
+			ScaleType = Enum.ScaleType.Crop,
+			ZIndex = 4,
 		}),
 		Name = caption("Name", b, { TextColor3 = D.Cream, ZIndex = 4 }),
 		Info = caption("Info", b, { TextColor3 = D.Gold, ZIndex = 4 }),
@@ -243,6 +345,11 @@ end
 
 -- Footer row: Team 1 and its status, the count with a thin bar, Quick Setup and Deploy.
 local footer = make("Frame", "Footer", panel, { BackgroundTransparency = 1 })
+local pill = flat(make("Frame", "Pill", footer, { BackgroundTransparency = 0.15 }), D.Ink)
+local countLines = {}
+for i = 1, 2 do
+	countLines[i] = make("Frame", "Line" .. i, footer, { BackgroundColor3 = D.Gold, BorderSizePixel = 0 })
+end
 local teamName =
 	caption("TeamName", footer, { Text = "Team 1", TextColor3 = D.Cream, TextXAlignment = Enum.TextXAlignment.Left })
 local status =
@@ -250,17 +357,22 @@ local status =
 local count = caption("Count", footer, { Text = "", TextColor3 = D.Cream })
 local progress = make("Frame", "Progress", footer, { BackgroundColor3 = D.Ink, BorderSizePixel = 0 })
 local fill = make("Frame", "Fill", progress, { BackgroundColor3 = D.Cyan, BorderSizePixel = 0 })
-local quick = flat(make("TextButton", "QuickSetup", panel, { Text = "Quick Setup", TextColor3 = D.Cream }), D.Wood)
-local deploy = flat(make("TextButton", "Deploy", panel, { Text = "Deploy", TextColor3 = D.Ink }), D.Cyan)
+local quick = flat(make("TextButton", "QuickSetup", panel, { Text = "Quick Setup", TextColor3 = D.Ink }), D.Cream)
+local deploy = flat(make("TextButton", "Deploy", panel, { Text = "Deploy", TextColor3 = D.Cream }), GREEN)
 
 -- Roster tray: Characters / Sidekicks tabs, Sort and Search, one row of cards.
-local tray = make("Frame", "Tray", panel, { BackgroundColor3 = D.Ink, BackgroundTransparency = 0.25 })
-UiTheme.Corner(tray, 4)
-make("UIStroke", "Edge", tray, { Color = D.Cyan, Thickness = 1, Transparency = 0.4 })
+local tray =
+	make("Frame", "Tray", panel, { BackgroundColor3 = D.Ink, BackgroundTransparency = 0.2, BorderSizePixel = 0 })
+make("Frame", "TopLine", tray, {
+	Size = UDim2.new(1, 0, 0, 1),
+	BackgroundColor3 = D.Gold,
+	BackgroundTransparency = 0.5,
+	BorderSizePixel = 0,
+})
 local tabs = make("Frame", "Tabs", tray, { BackgroundTransparency = 1 })
 local tabButtons = {}
 for i, name in { "Characters", "Sidekicks" } do
-	local t = make("TextButton", name, tabs, { Text = name, AutoButtonColor = false, BackgroundTransparency = 1 })
+	local t = flat(make("TextButton", name, tabs, { Text = name, TextColor3 = D.Cream }), D.Ink)
 	make("Frame", "Underline", t, {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.fromScale(0, 1),
@@ -318,95 +430,120 @@ for _, b in { quick, deploy, sortButton, bonusButton, confirmDeploy, confirmDisc
 	hoverable(b)
 end
 
+glyph(bonusButton, "☰")
+glyph(quick, "⚡")
+glyph(deploy, "▶")
+
 local function setStatus(text, color)
 	status.Text = text
 	status.TextColor3 = color or D.Cyan
 end
 
--- Layout in the frame's design units: header row, altars, footer row, tray.
+-- Full-screen layout (owner mockup 2026-11-17) in units of a 720-tall screen: title, dots, Team Bonus and close on top;
+-- the three altars across the middle; Team 1, the count, Quick Setup and Deploy in a row; the roster tray at the bottom.
 local function layout()
-	local c = g.Content
-	local top, bottom = c.TabsY, c.Y + c.H
-	local h = bottom - top
-	local small = g.Small
-	local headerH = small and 26 or 34
-	local footerH = small and 30 or 40
-	local trayH = small and 92 or 150
-	local altarsY = top + headerH + 4
-	local altarsH = h - headerH - footerH - trayH - 16
-	g.Place(backdrop, c.X - 8, top - 6, c.W + 16, h + 12)
-	g.Place(dots, c.X + c.W / 2 - 60, top, 120, headerH * 0.5)
+	local size = panel.AbsoluteSize
+	if size.Y <= 0 then
+		return
+	end
+	g.k = size.Y / DESIGN_H
+	g.W = size.X / g.k
+	g.Small = size.Y < 500
+	local W = g.W
+	local M = 28 -- side margin
+	-- Top row
+	g.Place(icon, M, 18, 54, 54)
+	g.Place(title, M + 64, 16, 360, 52)
+	g.Role(title, "Title").TextColor3 = D.Cream
+	g.Place(titleLine, M + 64, 70, 250, 3)
+	g.Place(dots, W / 2 - 60, 26, 120, 20)
 	for _, dot in dots:GetChildren() do
 		if dot:IsA("Frame") then
-			dot.Size = g.at(headerH * 0.4, headerH * 0.4)
+			dot.Size = g.at(16, 16)
 		end
 	end
-	g.Place(bonusButton, c.X + c.W - (small and 120 or 170), top, small and 120 or 170, headerH)
+	dots.Layout.Padding = UDim.new(0, g.px(18))
+	g.Place(close, W - M - 54, 16, 54, 54)
+	g.Role(closeX, "Title").TextColor3 = D.Cream
+	g.Place(bonusButton, W - M - 54 - 16 - 220, 20, 220, 46)
 	g.Role(bonusButton, "Body").TextColor3 = D.Cream
-	g.Place(altarsFrame, c.X, altarsY, c.W, altarsH)
-	local w = c.W / SLOTS
+	-- Altars
+	local top, altarsH = 92, 380
+	local spacing = math.min(W / 3.2, 420)
+	local aw = math.min(spacing * 0.92, 360)
+	g.Place(altarsFrame, 0, top, W, altarsH)
 	for n, a in altars do
-		g.Place(a.Button, (n - 1) * w + w * 0.08, 0, w * 0.84, altarsH)
-		local aw = w * 0.84
-		a.SlotLabel.Position, a.SlotLabel.Size = g.at(0, 0), g.at(aw, altarsH * 0.1)
-		g.Role(a.SlotLabel, "Body").TextColor3 = D.Gold
-		a.Portrait.Position, a.Portrait.Size = g.at(aw * 0.25, altarsH * 0.08), g.at(aw * 0.5, altarsH * 0.5)
-		local pedestal = a.Button.Pedestal
-		pedestal.Position, pedestal.Size = g.at(0, altarsH * 0.42), g.at(aw, altarsH * 0.36)
-		a.Plus.Position, a.Plus.Size = g.at(aw * 0.35, altarsH * 0.2), g.at(aw * 0.3, altarsH * 0.22)
-		a.Add.Position, a.Add.Size = g.at(0, altarsH * 0.78), g.at(aw, altarsH * 0.1)
-		g.Role(a.Add, "Body").TextColor3 = D.Cream
-		a.Name.Position, a.Name.Size = g.at(0, altarsH * 0.78), g.at(aw, altarsH * 0.12)
+		local cx = W / 2 + (n - 2) * spacing
+		g.Place(a.Button, cx - aw / 2, 0, aw, altarsH)
+		g.Place(a.SlotLabel, aw / 2 - 64, 0, 128, 34)
+		g.Role(a.SlotLabel, "Body").TextColor3 = D.Cream
+		a.SlotLabel.BackgroundTransparency = 0.1 -- a pill (caption() made it clear)
+		g.Place(a.Portrait, aw / 2 - 110, 42, 30, 30)
+		UiTheme.Corner(a.Portrait, 999)
+		g.Place(a.Name, aw / 2 - 74, 40, 190, 32)
+		a.Name.TextXAlignment = Enum.TextXAlignment.Left
 		g.Role(a.Name, "Item").TextColor3 = D.Cream
-		a.Info.Position, a.Info.Size = g.at(0, altarsH * 0.9), g.at(aw, altarsH * 0.09)
+		g.Place(a.Info, 0, 72, aw, 22)
 		g.Role(a.Info, "Caption").TextColor3 = D.Gold
-		-- The icons fit the portrait's top-right quarter; Remove sits under them.
-		a.GearPos = g.at(aw * 0.75, altarsH * 0.08)
-		a.GearSize = math.max(8, math.min(g.px(22), math.floor((g.px(aw * 0.25) - 6) / 2), g.px(altarsH * 0.2)))
-		a.Remove.Position, a.Remove.Size = g.at(aw - 84, altarsH * 0.34), g.at(84, small and 22 or 28)
+		g.Place(a.Add, 0, 44, aw, 30)
+		g.Role(a.Add, "Item").TextColor3 = D.Cream
+		g.Place(a.View, 0, 96, aw, altarsH - 96)
+		g.Place(a.Plus, aw / 2 - 60, 150, 120, 120)
+		g.Role(a.Plus, "Title").TextColor3 = D.Cyan
+		a.Plus:FindFirstChild("RoleLimit").MaxTextSize = g.px(120)
+		-- The icons sit at the figure's top-right; Remove under them.
+		a.GearPos = g.at(aw * 0.78, 104)
+		a.GearSize = g.px(24)
+		g.Place(a.Remove, aw - 104, 140, 96, 30)
 		g.Role(a.Remove, "Caption").TextColor3 = D.Cream
 	end
-	local fy = altarsY + altarsH + 4
-	g.Place(footer, c.X, fy, c.W, footerH)
-	teamName.Position, teamName.Size = g.at(0, 0), g.at(180, footerH * 0.55)
+	-- Footer row
+	local fy = top + altarsH + 8
+	g.Place(footer, 0, fy, W, 60)
+	g.Place(pill, M, 4, 300, 52)
+	g.Place(teamName, M + 20, 6, 150, 46)
 	g.Role(teamName, "Item").TextColor3 = D.Cream
-	status.Position, status.Size = g.at(0, footerH * 0.55), g.at(220, footerH * 0.45)
+	g.Place(status, M + 160, 6, 130, 46)
+	status.TextXAlignment = Enum.TextXAlignment.Right
 	local statusColor = status.TextColor3
 	g.Role(status, "Caption").TextColor3 = statusColor
-	local countW = small and 120 or 260
-	count.Position, count.Size = g.at(c.W / 2 - countW / 2 - (small and 40 or 0), 0), g.at(countW, footerH * 0.65)
-	g.Role(count, "Body").TextColor3 = D.Cream
-	progress.Position, progress.Size =
-		g.at(c.W / 2 - countW / 2 - (small and 40 or 0) + 10, footerH * 0.72), g.at(countW - 20, 4)
-	local bw = small and 110 or 160
-	g.Place(quick, c.X + c.W - 2 * bw - 10, fy + 2, bw, footerH - 4)
-	g.Place(deploy, c.X + c.W - bw, fy + 2, bw, footerH - 4)
-	g.Role(quick, "Body").TextColor3 = D.Cream
-	g.Role(deploy, "Body").TextColor3 = D.Ink
-	local ty = fy + footerH + 8
-	g.Place(tray, c.X, ty, c.W, bottom - ty)
-	local tabH = small and 22 or 30
-	local tabW = small and 84 or 122
-	tabs.Position, tabs.Size = g.at(8, 4), g.at(2 * tabW + 8, tabH)
+	g.Place(count, W / 2 - 150, 10, 300, 36)
+	g.Role(count, "Item").TextColor3 = D.Cream
+	g.Place(countLines[1], W / 2 - 270, 28, 110, 2)
+	g.Place(countLines[2], W / 2 + 160, 28, 110, 2)
+	g.Place(progress, W / 2 - 110, 50, 220, 4)
+	g.Place(deploy, W - M - 240, fy + 2, 240, 56)
+	g.Place(quick, W - M - 240 - 16 - 220, fy + 4, 220, 52)
+	g.Role(quick, "Item").TextColor3 = D.Ink
+	g.Role(deploy, "Section").TextColor3 = D.Cream
+	-- Tray
+	local ty = fy + 72
+	g.Place(tray, 0, ty, W, DESIGN_H - ty)
+	local trayH = DESIGN_H - ty
+	tabs.Position, tabs.Size = g.at(M, 14), g.at(330, 46)
 	for i, t in tabButtons do
-		t.Position, t.Size = g.at((i - 1) * (tabW + 8), 0), g.at(tabW, tabH)
-		g.Role(t, "Body").TextColor3 = D.Cream
+		t.Position, t.Size = g.at((i - 1) * 168, 0), g.at(160, 46)
+		g.Role(t, "Item").TextColor3 = D.Cream
 	end
-	local sortW, searchW = small and 100 or 160, small and 120 or 210
-	sortButton.Position, sortButton.Size = g.at(c.W - 8 - searchW - 10 - sortW, 4), g.at(sortW, tabH)
+	g.Place(sortButton, M, 70, 160, 34)
 	g.Role(sortButton, "Caption").TextColor3 = D.Cream
-	search.Position, search.Size = g.at(c.W - 8 - searchW, 4), g.at(searchW, tabH)
+	g.Place(search, M + 168, 70, 160, 34)
 	g.Role(search, "Caption").TextColor3 = D.Cream
-	roster.Position, roster.Size = g.at(6, tabH + 8), UDim2.new(1, -g.px(12), 1, -g.px(tabH + 12))
-	rosterLayout.Padding = UDim.new(0, g.px(8))
-	popover.Position, popover.Size = g.at(c.X + c.W - 260, top + headerH + 4), g.at(260, 120)
-	bonusName.Position, bonusName.Size = g.at(10, 8), g.at(240, 26)
-	bonusEffect.Position, bonusEffect.Size = g.at(10, 38), g.at(240, 44)
-	bonusTotal.Position, bonusTotal.Size = g.at(10, 88), g.at(240, 22)
-	confirm.Position, confirm.Size = g.at(c.X + c.W / 2 - 180, top + h / 2 - 70), g.at(360, 140)
-	confirmText.Position, confirmText.Size = g.at(20, 14), g.at(320, 40)
-	confirmDeploy.Position, confirmDeploy.Size = g.at(30, 80), g.at(140, 40)
-	confirmDiscard.Position, confirmDiscard.Size = g.at(190, 80), g.at(140, 40)
+	g.Place(roster, M + 350, 8, W - 2 * M - 350, trayH - 16)
+	rosterLayout.Padding = UDim.new(0, g.px(10))
+	-- Popovers
+	g.Place(popover, W - M - 54 - 16 - 260, 76, 260, 120)
+	g.Place(bonusName, 10, 8, 240, 26)
+	g.Place(bonusEffect, 10, 38, 240, 44)
+	g.Place(bonusTotal, 10, 88, 240, 22)
+	g.Place(confirm, W / 2 - 200, 230, 400, 150)
+	g.Place(confirmText, 20, 16, 360, 44)
+	g.Place(confirmDeploy, 36, 90, 150, 44)
+	g.Place(confirmDiscard, 214, 90, 150, 44)
+	for _, b in { confirmText, confirmDeploy, confirmDiscard, bonusName, bonusEffect, bonusTotal } do
+		local color = b.TextColor3
+		g.Role(b, "Body").TextColor3 = color
+	end
 	if panel.Visible then
 		task.defer(render)
 	end
@@ -735,22 +872,18 @@ function render()
 		end
 		a.Plus.Visible, a.Add.Visible = spec == nil, spec == nil
 		a.Remove.Visible = isSelected and spec ~= nil
-		a.SlotLabel.TextColor3 = isSelected and D.Cyan or D.Gold
+		a.SlotLabel.TextColor3 = isSelected and D.Cyan or D.Cream
+		a.SlotLabel.Edge.Color = isSelected and D.Cyan or D.Gold
 		paintEdges(n)
-		local model = a.Portrait:FindFirstChild("Model")
-		if model and a.ShownId ~= id then
-			model:Destroy()
+		if a.ShownId ~= id or not a.View:FindFirstChild("Figure") and spec then
+			figureOn(a, spec)
 		end
 		local gearFrame = a.Button:FindFirstChild("Gear")
 		if gearFrame then
 			gearFrame:Destroy()
 		end
 		if spec then
-			local image = Components.PortraitImage(spec)
-			a.Portrait.Image = image or ""
-			if not image and not a.Portrait:FindFirstChild("Model") then
-				Components.RunnerArt(a.Portrait, "Model", spec, UDim2.new(), UDim2.fromScale(1, 1), true)
-			end
+			a.Portrait.Image = Components.PortraitImage(spec) or ""
 			a.Name.Text = spec.Name
 			a.Info.Text = string.format("%s · %s", spec.Rarity, HudFormat.RateText(RaceConfig.Cruise(spec)))
 			RosterCard.Gear(a.Button, id, player, 0, a.GearSize or g.px(22)).Position = a.GearPos or UDim2.new()
@@ -775,7 +908,8 @@ function render()
 		local active = (i == 1) == (tab == "Characters")
 		t:SetAttribute("Active", active)
 		t.Underline.Visible = active
-		t.TextTransparency = active and 0 or 0.4
+		t.BackgroundColor3 = active and PURPLE or D.Ink
+		t.TextTransparency = active and 0 or 0.3
 	end
 	drawBonus()
 	drawRoster()
@@ -929,18 +1063,35 @@ task.spawn(function()
 	changed()
 end)
 
-UiTheme.Apply(root)
--- The game-wide 1200 x 620 frame, in the panels' band (design doc 4.42).
-g = PanelFrame.Attach(panel, {
-	Theme = "Backpack",
-	Title = "Team Setup",
-	Icon = Icons.Team.Image,
-	TitleObject = header.Title,
-	Close = close,
-}).Frame
-PanelFrame.CloseOnOutsideClick(panel, function()
-	PanelSwitch.Close("Team")
-end)
-UiTheme.Corner(search, 4) -- after UiTheme.Apply, which snaps corners to its own radii
-PanelSwitch.Register("Team", panel, D.Cyan) -- after g exists: an open renders at once
-g.OnLayout(layout)
+-- The 3D member standing on its altar (owner 2026-11-17: the mockup's models; an exception to the portrait rule for
+-- Team Setup only), turned a little toward the camera, feet on the deck.
+function figureOn(a, spec)
+	local old = a.View:FindFirstChild("Figure")
+	if old then
+		old:Destroy()
+	end
+	a.Column.Color = spec and D.Sakura or D.Cyan
+	if not spec then
+		return
+	end
+	local ok, rig = pcall(function()
+		return require(shared:WaitForChild("RunnerFactory")).build(spec.Id)
+	end)
+	if not ok or not rig then
+		return
+	end
+	rig.Name = "Figure"
+	local label = rig:FindFirstChild("NameLabel")
+	if label then
+		label:Destroy()
+	end
+	rig:PivotTo(CFrame.Angles(0, math.pi - 0.3, 0))
+	local box, extents = rig:GetBoundingBox()
+	rig:PivotTo(rig:GetPivot() + Vector3.new(-box.X, a.Deck - (box.Y - extents.Y / 2), -box.Z))
+	rig.Parent = a.View
+end
+
+panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+UiTheme.Corner(search, 4)
+PanelSwitch.Register("Team", panel, D.Cyan)
+layout()
