@@ -613,7 +613,7 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
   from the Team button (key T), from a click or tap on the bottom team minibar (hover still shows its info card; this
   replaces "display only" for clicks) and from a new world Team altar in the plaza (below).
 - Team world altar: a small stacked octagonal shrine (dark wood and stone, cyan edge light) on the showpiece ring in the
-  slot before the gate axis, (-3.1, 83.9), facing the spawn, with a ProximityPrompt "Team". The gate-axis slot stays
+  slot before the gate axis, (-3.1, 83.9), facing the spawn, with a ProximityPrompt "Team". A floating TEAM header in the Team accent hangs over it like the other ring headers (orchestrator 2026-11-17, **proposed**). The gate-axis slot stays
   empty (replaces "the slot on the gate axis and the one before it empty", 4.43).
 - Team Setup page (replaces panel A "Line-up" of 4.40; the rules of choosing a team stay):
   - Centre: exactly three stacked octagonal altars (two or three tiers of dark wood and stone, cyan edge light, faint

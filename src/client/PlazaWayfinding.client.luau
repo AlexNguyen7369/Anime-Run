@@ -1,5 +1,5 @@
 --!nonstrict
--- The floating headers over Race Start, the economy wing (Market included) and the Sidekick summon altar (design doc 4.24 Wayfinding, Service headers): client
+-- The floating headers over Race Start, the economy wing (Market included), the Sidekick summon altar and the Team altar (design doc 4.24 Wayfinding, Service headers): client
 -- display only. Each hangs on an attachment in Terrain at a fixed world position, so streaming never hides it. Shown on foot
 -- only, and not up close where the landmark's own sign reads. Sizes and distances are proposed placeholders.
 local Players = game:GetService("Players")
@@ -46,6 +46,16 @@ local LABELS = {
 		Shape = "Star",
 		Color = Color3.fromRGB(30, 150, 170),
 		At = Vector3.new(57.158, 21, 61.555), -- the summon altar
+		Size = ROW_SIZE,
+		MaxDistance = ROW_MAX_DISTANCE,
+		HideWithin = ROW_HIDE_WITHIN,
+	},
+	{
+		Key = "Team",
+		Text = "TEAM",
+		Shape = "Star",
+		Color = Color3.fromRGB(46, 200, 208), -- UiTheme.Dojo.Cyan, the Team page's accent
+		At = Vector3.new(-3.109, 12, 83.942), -- the Team altar (design doc 4.45), its top tier at about 3.6 plus the emblem
 		Size = ROW_SIZE,
 		MaxDistance = ROW_MAX_DISTANCE,
 		HideWithin = ROW_HIDE_WITHIN,
