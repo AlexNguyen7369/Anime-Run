@@ -605,8 +605,10 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 - One look for both pages: warm wood, burgundy, cream, sakura pink, muted gold and selective cyan; flat controls with
   medium-thin outlines, icon first, few rounded containers, no thick borders, subtle cyan underlines or accent tabs.
   The summon page keeps the blossom-shrine presentation of 2026-11-14 (it is the Sakura Dojo backdrop).
-- Shared transition: both pages open and close through one transition (shoji paper panels sweep across with sakura petals,
-  about 0.5 s; Summon accent pink, Team accent cyan). Gameplay movement is locked while either page is open and restored on
+- Shared transition: both pages open and close through one transition. Owner reference 2026-11-17 (summon sheet panel 10,
+  "Close / return transition"): page, then a full-screen soft pink wash of large sakura petals, then the next view; the
+  page switches while the wash covers the screen, so no half-open frame shows (about 0.65 s; the wash's lower edge
+  takes a hint of the page accent, Summon pink, Team cyan). Replaces the shoji-paper sweep written earlier the same day. Gameplay movement is locked while either page is open and restored on
   close. A second open while one is opening is ignored. Reduced effects: a short fade, no petals.
 - Entry points, one page each, never a duplicate: Summon opens from a new Summon button in the right column under Shop
   (key letter G, **proposed**) and from the plaza's Sidekick summon altar (its prompt text becomes "Summon"). Team opens
@@ -615,7 +617,10 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 - Team world altar: a small stacked octagonal shrine (dark wood and stone, cyan edge light) on the showpiece ring in the
   slot before the gate axis, (-3.1, 83.9), facing the spawn, with a ProximityPrompt "Team". A floating TEAM header in the Team accent hangs over it like the other ring headers (orchestrator 2026-11-17, **proposed**). The gate-axis slot stays
   empty (replaces "the slot on the gate axis and the one before it empty", 4.43).
-- Team Setup page (replaces panel A "Line-up" of 4.40; the rules of choosing a team stay):
+- Team Setup page (replaces panel A "Line-up" of 4.40; the rules of choosing a team stay). Owner 2026-11-17, from the
+  owner's mockup: a full-screen page over the blossom-shrine scene (not the game-wide panel frame of 4.42), and each
+  member stands on its altar as its 3D model with a pink light column (cyan over an empty altar): an exception to the
+  portrait-art rule for Team Setup only; a small drawn-portrait badge sits by the name. Slot labels read "SLOT n".
   - Centre: exactly three stacked octagonal altars (two or three tiers of dark wood and stone, cyan edge light, faint
     sakura energy; never circular), well spaced, labelled Slot 1, Slot 2, Slot 3. An occupied altar shows the member's
     drawn portrait standing above it with name, rarity and cruise under it (characters have no level; **open question** for the owner whether one is wanted); its edge follows the member's rarity. An empty altar
