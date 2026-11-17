@@ -93,16 +93,22 @@ local function quickPick(flag, mods, cleanup, ids, store)
 	for i, rarity in GachaConfig.RARITY_ORDER do
 		rank[rarity] = i
 	end
-	for i, spec in catalog.All() do
-		order[spec.Id] = i
-	end
 	local function expected(draft)
 		local out, used, pool = table.clone(draft), {}, {}
 		for _, id in draft do
 			used[id] = true
 		end
-		for _, spec in catalog.All() do
-			if not used[spec.Id] and gacha.Owns(p, spec.Id) then
+		-- Candidates: the catalog, then each GachaData entry, then the starter; first occurrence sets the order
+		local candidates = table.clone(catalog.All())
+		local data = p:FindFirstChild("GachaData")
+		for _, entry in data and data:GetChildren() or {} do
+			table.insert(candidates, catalog.Get(entry.Name))
+		end
+		table.insert(candidates, catalog.Get(catalog.STARTER_ID))
+		order = {}
+		for i, spec in candidates do
+			if spec and not used[spec.Id] and order[spec.Id] == nil and gacha.Owns(p, spec.Id) then
+				order[spec.Id] = i
 				table.insert(pool, spec)
 			end
 		end

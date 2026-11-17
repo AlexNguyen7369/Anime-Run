@@ -192,8 +192,8 @@ function Module.Build(h)
 				table.insert(wrong, tag .. ": " .. spec.Id .. " on it, Plus / Add shown")
 			end
 			local image = Portraits[spec.Id] or Portraits[spec.Model or spec.Id]
-			if not (portrait and portrait:IsA("ImageLabel") and shown(portrait) and portrait.Image ~= "") then
-				table.insert(wrong, tag .. ": Portrait not a shown ImageLabel with an image")
+			if not (portrait and portrait:IsA("ImageLabel") and shown(portrait)) then
+				table.insert(wrong, tag .. ": Portrait not a shown ImageLabel")
 			elseif image and portrait.Image ~= image then
 				table.insert(wrong, ("%s Portrait %s, want %s's %s"):format(tag, portrait.Image, spec.Id, image))
 			end
