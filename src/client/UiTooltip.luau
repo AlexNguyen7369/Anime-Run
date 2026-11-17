@@ -125,6 +125,8 @@ function UiTooltip.Bind(gui, info)
 	end)
 end
 
+task.spawn(build) -- PlayerGui.UiTooltip/Tip exists before the first hover
+
 function UiTooltip.Hide()
 	if tip then
 		owner = nil

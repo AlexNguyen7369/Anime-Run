@@ -24,7 +24,7 @@ local function apply()
 	task.spawn(function()
 		local c = controls()
 		if c then
-			if locked then
+			if next(holders) ~= nil then -- the state now: controls() may have yielded past a later Release
 				c:Disable()
 			else
 				c:Enable()

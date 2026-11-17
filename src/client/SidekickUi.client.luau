@@ -740,12 +740,14 @@ local function requestSummon(count, free)
 		local rarity = SummonAltarFx.Best(results, function(result)
 			return Config.Get(result.Id)
 		end)
-		local landed = Instance.new("BindableEvent")
-		SummonAltarFx.Play(Vector2.new(point.X, point.Y), rarity, function()
-			landed:Fire()
+		local landed = false
+		local fxOk = pcall(SummonAltarFx.Play, Vector2.new(point.X, point.Y), rarity, function()
+			landed = true
 		end)
-		landed.Event:Wait()
-		landed:Destroy()
+		local waited = 0
+		while fxOk and not landed and waited < 2 do -- never stuck on the effect
+			waited += task.wait()
+		end
 	end
 	close()
 	gui.Enabled = false

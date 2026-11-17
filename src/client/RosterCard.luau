@@ -191,15 +191,16 @@ function RosterCard.Gear(parent, id, player, y, size)
 	frame.ZIndex = 8
 	frame.Parent = parent
 	local function icon(name, row, image, x, round, rim)
-		local holder = Instance.new("Frame")
+		local holder = Instance.new("ImageLabel") -- the icon itself; its Art child carries the picture
 		holder.Name = name
+		holder.Image = ""
 		holder.BackgroundColor3 = UiTheme.Dojo.Ink
 		holder.AnchorPoint = Vector2.new(0.5, 0.5)
 		holder.Position = UDim2.new(0, x + size / 2, 0.5, 0)
 		holder.Size = UDim2.fromOffset(round and size or size * 0.78, round and size or size * 0.78)
 		holder.Rotation = round and 0 or 45 -- a diamond for relics
 		holder.ZIndex = 8
-		holder.Active = true
+		holder.Active = false -- a tap still reaches the card
 		holder.Selectable = true
 		holder:SetAttribute("ItemName", row.Name)
 		holder:SetAttribute("Rarity", row.Rarity)

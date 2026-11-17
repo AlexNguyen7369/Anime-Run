@@ -137,7 +137,18 @@ local function takeFocus(panel)
 	GuiService:AddSelectionParent(FOCUS_GROUP, panel)
 	ContextActionService:BindActionAtPriority(CLOSE_ACTION, function(_, state)
 		if state == Enum.UserInputState.Begin and focused == panel then
-			panel.Visible = false
+			-- Through Close, so a page's close guard (Team Setup's unsaved draft) still asks first.
+			local name = nil
+			for n, p in panels do
+				if p == panel then
+					name = n
+				end
+			end
+			if name then
+				PanelSwitch.Close(name)
+			else
+				panel.Visible = false
+			end
 			return Enum.ContextActionResult.Sink
 		end
 		return Enum.ContextActionResult.Pass
@@ -329,7 +340,13 @@ function PanelSwitch.Toggle(name)
 		return false
 	end
 	local open = not panel.Visible or closing[panel] == true
-	if not open and accents[name] and openedAt[name] and os.clock() - openedAt[name] < OPEN_GUARD then
+	if
+		not open
+		and accents[name]
+		and openedAt[name]
+		and UiTransition.Playing()
+		and os.clock() - openedAt[name] < OPEN_GUARD
+	then
 		return true -- a second press while the page is still opening
 	end
 	if not open and closeGuards[name] and closeGuards[name]() then

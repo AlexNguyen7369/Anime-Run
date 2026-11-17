@@ -155,6 +155,9 @@ function UiTransition.Play(accent)
 	return true
 end
 
+-- Built at require, so PlayerGui.UiTransition exists before the first page opens.
+task.spawn(build)
+
 function UiTransition.Playing()
 	return root ~= nil and root:GetAttribute("Playing") == true
 end

@@ -91,7 +91,6 @@ local panel = make("Frame", "Panel", root, {
 	Visible = false,
 	Active = true,
 })
-PanelSwitch.Register("Team", panel, D.Cyan)
 
 local header = make("Frame", "Header", panel, { BackgroundTransparency = 1 })
 caption("Title", header, { Text = "Team Setup" })
@@ -130,9 +129,26 @@ end
 local function filled()
 	return #list(draft)
 end
+-- Slot by slot: a gap the altars show (a member moved to slot 3) is a change too; Deploy closes it up.
 local function dirty()
-	return table.concat(list(draft), ",") ~= table.concat(list(saved()), ",")
+	local was = saved()
+	for i = 1, SIZE do
+		if draft[i] ~= was[i] then
+			return true
+		end
+	end
+	return false
 end
+-- The draft slot holding `id` (the draft may have gaps, so not table.find).
+local function slotOf(id)
+	for i = 1, SIZE do
+		if draft[i] == id then
+			return i
+		end
+	end
+	return nil
+end
+local openCount = 0 -- each open; a delayed close of an earlier open does nothing
 
 -- Backdrop: warm dojo wood behind the content (the frame's chrome stays the game-wide one, 4.42).
 local backdrop = make("Frame", "Backdrop", panel, { BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0 })
@@ -344,8 +360,10 @@ local function layout()
 		g.Role(a.Name, "Item").TextColor3 = D.Cream
 		a.Info.Position, a.Info.Size = g.at(0, altarsH * 0.9), g.at(aw, altarsH * 0.09)
 		g.Role(a.Info, "Caption").TextColor3 = D.Gold
+		-- The icons fit the portrait's top-right quarter; Remove sits under them.
 		a.GearPos = g.at(aw * 0.75, altarsH * 0.08)
-		a.Remove.Position, a.Remove.Size = g.at(aw - 84, altarsH * 0.1), g.at(84, small and 22 or 28)
+		a.GearSize = math.max(8, math.min(g.px(22), math.floor((g.px(aw * 0.25) - 6) / 2), g.px(altarsH * 0.2)))
+		a.Remove.Position, a.Remove.Size = g.at(aw - 84, altarsH * 0.34), g.at(84, small and 22 or 28)
 		g.Role(a.Remove, "Caption").TextColor3 = D.Cream
 	end
 	local fy = altarsY + altarsH + 4
@@ -355,9 +373,11 @@ local function layout()
 	status.Position, status.Size = g.at(0, footerH * 0.55), g.at(220, footerH * 0.45)
 	local statusColor = status.TextColor3
 	g.Role(status, "Caption").TextColor3 = statusColor
-	count.Position, count.Size = g.at(c.W / 2 - 130, 0), g.at(260, footerH * 0.65)
+	local countW = small and 120 or 260
+	count.Position, count.Size = g.at(c.W / 2 - countW / 2 - (small and 40 or 0), 0), g.at(countW, footerH * 0.65)
 	g.Role(count, "Body").TextColor3 = D.Cream
-	progress.Position, progress.Size = g.at(c.W / 2 - 110, footerH * 0.72), g.at(220, 4)
+	progress.Position, progress.Size =
+		g.at(c.W / 2 - countW / 2 - (small and 40 or 0) + 10, footerH * 0.72), g.at(countW - 20, 4)
 	local bw = small and 110 or 160
 	g.Place(quick, c.X + c.W - 2 * bw - 10, fy + 2, bw, footerH - 4)
 	g.Place(deploy, c.X + c.W - bw, fy + 2, bw, footerH - 4)
@@ -366,14 +386,16 @@ local function layout()
 	local ty = fy + footerH + 8
 	g.Place(tray, c.X, ty, c.W, bottom - ty)
 	local tabH = small and 22 or 30
-	tabs.Position, tabs.Size = g.at(8, 4), g.at(260, tabH)
+	local tabW = small and 84 or 122
+	tabs.Position, tabs.Size = g.at(8, 4), g.at(2 * tabW + 8, tabH)
 	for i, t in tabButtons do
-		t.Position, t.Size = g.at((i - 1) * 130, 0), g.at(122, tabH)
+		t.Position, t.Size = g.at((i - 1) * (tabW + 8), 0), g.at(tabW, tabH)
 		g.Role(t, "Body").TextColor3 = D.Cream
 	end
-	sortButton.Position, sortButton.Size = g.at(c.W - 8 - 380, 4), g.at(160, tabH)
+	local sortW, searchW = small and 100 or 160, small and 120 or 210
+	sortButton.Position, sortButton.Size = g.at(c.W - 8 - searchW - 10 - sortW, 4), g.at(sortW, tabH)
 	g.Role(sortButton, "Caption").TextColor3 = D.Cream
-	search.Position, search.Size = g.at(c.W - 8 - 210, 4), g.at(210, tabH)
+	search.Position, search.Size = g.at(c.W - 8 - searchW, 4), g.at(searchW, tabH)
 	g.Role(search, "Caption").TextColor3 = D.Cream
 	roster.Position, roster.Size = g.at(6, tabH + 8), UDim2.new(1, -g.px(12), 1, -g.px(tabH + 12))
 	rosterLayout.Padding = UDim.new(0, g.px(8))
@@ -433,20 +455,27 @@ end
 
 -- The portrait flies from a roster card to its altar, then the altar's edges pulse (4.45 placement).
 local GuiService = game:GetService("GuiService")
-local function flyIn(card, slot)
+-- Where a card's art is now (read before a render redraws the roster).
+local function artSnapshot(card)
+	local art = card and card:FindFirstChild("Art")
+	if not (art and art:IsA("ImageLabel") and art.Image ~= "") then
+		return nil
+	end
+	return { Image = art.Image, Position = art.AbsolutePosition, Size = art.AbsoluteSize }
+end
+local function flyIn(from, slot)
 	local a = altars[slot]
-	if not card or not card:FindFirstChild("Art") or UiMotion.Reduced() then
+	if not from or UiMotion.Reduced() then
 		UiMotion.Pop(a.Portrait, 0.08)
 		return
 	end
-	local art = card.Art
 	local inset = GuiService:GetGuiInset().Y -- RacerTeam ignores the inset; AbsolutePosition does not
 	local ghost = make("ImageLabel", "Fly", root, {
 		BackgroundTransparency = 1,
-		Image = art:IsA("ImageLabel") and art.Image or "",
+		Image = from.Image,
 		ScaleType = Enum.ScaleType.Fit,
-		Position = UDim2.fromOffset(art.AbsolutePosition.X, art.AbsolutePosition.Y + inset),
-		Size = UDim2.fromOffset(art.AbsoluteSize.X, art.AbsoluteSize.Y),
+		Position = UDim2.fromOffset(from.Position.X, from.Position.Y + inset),
+		Size = UDim2.fromOffset(from.Size.X, from.Size.Y),
 		ZIndex = 50,
 	})
 	local target = a.Portrait
@@ -461,13 +490,25 @@ local function flyIn(card, slot)
 	t:Play()
 end
 
+-- An altar's edge colour: bright cyan while selected, the member's rarity, else cyan.
+local function paintEdges(slot)
+	local a = altars[slot]
+	local spec = draft[slot] and CharacterCatalog.Get(draft[slot])
+	local edge = selected == slot and D.Cyan:Lerp(Color3.new(1, 1, 1), 0.35)
+		or spec and (GachaConfig.RARITY_COLORS[spec.Rarity] or D.Cyan)
+		or D.Cyan
+	for _, part in a.Edges do
+		part.Color = edge
+	end
+end
+
 local function pulseEdges(slot, delay)
 	task.delay(delay or 0, function()
 		for _, part in altars[slot].Edges do
 			part.Color = D.Sakura
 		end
 		task.delay(0.3, function()
-			render()
+			paintEdges(slot)
 		end)
 	end)
 end
@@ -475,13 +516,13 @@ end
 local function selectSlot(slot)
 	selected = slot
 	if chosen and slot then
-		local card = roster:FindFirstChild(chosen)
+		local from = artSnapshot(roster:FindFirstChild(chosen))
 		local here = draft[slot] == chosen
 		place(slot, not here and chosen or nil)
-		chosen = nil
+		chosen, selected = nil, nil -- placed: the next tap on this altar selects it again
 		render()
 		if not here then
-			flyIn(card, slot)
+			flyIn(from, slot)
 			pulseEdges(slot, 0.35)
 			UiFeedback.Play("Equip", altars[slot].Button)
 		end
@@ -537,8 +578,11 @@ local function deployDraft(thenClose)
 	confirm.Visible = false
 	setStatus("Deployed")
 	if thenClose ~= false then
+		local this = openCount
 		task.delay(UiMotion.Reduced() and 0 or 0.8, function()
-			PanelSwitch.ForceClose("Team")
+			if openCount == this and panel.Visible then
+				PanelSwitch.ForceClose("Team")
+			end
 		end)
 	end
 end
@@ -553,7 +597,48 @@ local function applySearch()
 	end
 end
 
+-- Marks, strokes and badges follow the draft in place; the cards are rebuilt only when what they list changes.
+local rosterKey = nil
+local function markRoster()
+	for _, card in roster:GetChildren() do
+		if not card:IsA("GuiButton") then
+			continue
+		end
+		if tab == "Characters" then
+			local slot = slotOf(card.Name)
+			card.Badge.Text = slot and ("TEAM " .. slot) or ""
+			card.Badge.TextColor3 = UiTheme.Palette.Money
+			card.Stroke.Color = card.Name == chosen and D.Cyan or slot and D.Gold or UiTheme.Outline
+		else
+			local spec = SidekickConfig.Get(card:GetAttribute("SidekickId"))
+			card.Stroke.Color = card.Name == chosenSidekick and D.Cyan or SidekickView.RarityColor(spec and spec.Rarity)
+		end
+	end
+end
+local function ownedKey()
+	local data = player:FindFirstChild("GachaData")
+	local ids = {}
+	for _, entry in data and data:GetChildren() or {} do
+		table.insert(ids, entry.Name)
+	end
+	table.sort(ids)
+	return table.concat(ids, ",")
+end
 local function drawRoster()
+	local key = table.concat({
+		tab,
+		sortMode,
+		tostring(g.k),
+		ownedKey(),
+		player:GetAttribute("SidekickBag") or "",
+		player:GetAttribute("SidekickGear") or "",
+		player:GetAttribute("RelicGear") or "",
+	}, "|")
+	if key == rosterKey then
+		markRoster()
+		return
+	end
+	rosterKey = key
 	for _, child in roster:GetChildren() do
 		if child:IsA("GuiObject") then
 			child:Destroy()
@@ -564,11 +649,7 @@ local function drawRoster()
 		for order, spec in RosterCard.Owned(player, sortMode, true) do
 			local card = RosterCard.new(roster, spec, order, g, spec.Id == chosen)
 			card.Size = size
-			local slot = table.find(draft, spec.Id)
-			card.Badge.Text = slot and ("TEAM " .. slot) or ""
-			card.Badge.TextColor3 = D.Cyan
-			card.Stroke.Color = spec.Id == chosen and D.Cyan or slot and D.Gold or UiTheme.Outline
-			RosterCard.Gear(card, spec.Id, player, 34, g.px(18))
+			RosterCard.Gear(card, spec.Id, player, g.px(34), g.px(18))
 			card.Activated:Connect(function()
 				chosenSidekick = nil
 				if selected then
@@ -639,6 +720,7 @@ local function drawRoster()
 			end)
 		end
 	end
+	markRoster()
 	applySearch()
 end
 
@@ -654,14 +736,9 @@ function render()
 		a.Plus.Visible, a.Add.Visible = spec == nil, spec == nil
 		a.Remove.Visible = isSelected and spec ~= nil
 		a.SlotLabel.TextColor3 = isSelected and D.Cyan or D.Gold
-		local edge = isSelected and D.Cyan:Lerp(Color3.new(1, 1, 1), 0.35)
-			or spec and (GachaConfig.RARITY_COLORS[spec.Rarity] or D.Cyan)
-			or D.Cyan
-		for _, part in a.Edges do
-			part.Color = edge
-		end
+		paintEdges(n)
 		local model = a.Portrait:FindFirstChild("Model")
-		if model then
+		if model and a.ShownId ~= id then
 			model:Destroy()
 		end
 		local gearFrame = a.Button:FindFirstChild("Gear")
@@ -671,13 +748,14 @@ function render()
 		if spec then
 			local image = Components.PortraitImage(spec)
 			a.Portrait.Image = image or ""
-			if not image then
+			if not image and not a.Portrait:FindFirstChild("Model") then
 				Components.RunnerArt(a.Portrait, "Model", spec, UDim2.new(), UDim2.fromScale(1, 1), true)
 			end
 			a.Name.Text = spec.Name
 			a.Info.Text = string.format("%s · %s", spec.Rarity, HudFormat.RateText(RaceConfig.Cruise(spec)))
-			RosterCard.Gear(a.Button, id, player, 0, g.px(22)).Position = a.GearPos or UDim2.new()
+			RosterCard.Gear(a.Button, id, player, 0, a.GearSize or g.px(22)).Position = a.GearPos or UDim2.new()
 		end
+		a.ShownId = id
 	end
 	local n = filled()
 	for i = 1, SLOTS do
@@ -736,7 +814,7 @@ quick.Activated:Connect(function()
 	-- Keep each member on its altar; the new picks fill the empty altars left to right.
 	local new = {}
 	for _, id in ids do
-		if not table.find(draft, id) then
+		if not slotOf(id) then
 			table.insert(new, id)
 		end
 	end
@@ -808,6 +886,8 @@ end)
 
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible then
+		openCount += 1
+		rosterKey = nil
 		draft, selected, chosen, chosenSidekick = saved(), nil, nil, nil
 		tab = "Characters"
 		confirm.Visible, popover.Visible = false, false
@@ -862,4 +942,5 @@ PanelFrame.CloseOnOutsideClick(panel, function()
 	PanelSwitch.Close("Team")
 end)
 UiTheme.Corner(search, 4) -- after UiTheme.Apply, which snaps corners to its own radii
+PanelSwitch.Register("Team", panel, D.Cyan) -- after g exists: an open renders at once
 g.OnLayout(layout)
