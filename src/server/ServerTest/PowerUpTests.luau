@@ -1,13 +1,13 @@
 --!nonstrict
--- BRIEF: docs/POWERUP_SPEC.md "Tests" (design doc 4.44, owner 2026-11-11). Written before the feature.
+-- BRIEF: docs/POWERUP_SPEC.md "Tests" (design doc 4.44, owner 2026-11-11; both boosts timed 2026-11-16).
 -- API the tests read:
---   Shared/PowerUpConfig: SPEED_MULTI, SPEED_SECONDS, STAMINA_SECONDS, STAMINA_SECONDS_LATE, LATE_FROM_TRACK,
---     StaminaSeconds(trackNumber), PER_STUDS, EDGE, MIN_GAP,
+--   Shared/PowerUpConfig: SPEED_MULTI, SPEED_SECONDS, STAMINA_SECONDS, PER_STUDS, EDGE, MIN_GAP,
 --     Roll(from, length, rng?) -> { { Id, Kind = "Speed" | "Stamina", Dist } } in Dist order
 --   RaceService.NewRun options.PowerUps = true (NPC mode only) rolls each track's set at its start: run.PowerUps
 --     (tests may replace it; a Dist already passed is taken on the next tick), run.SpeedLeft (seconds),
---     run.TargetSpeed, run.Stamina[slot]; RunEvent { Kind = "PowerUps", Track, Route, List } and
---     { Kind = "PowerUpTaken", Id, Type, Track }; player attribute PowerSpeedUntil while a boost runs.
+--     run.StaminaLeft (seconds), run.TargetSpeed, run.Stamina[slot]; RunEvent { Kind = "PowerUps", Track, Route,
+--     List } and { Kind = "PowerUpTaken", Id, Type, Track }; player attributes PowerSpeedUntil / PowerStaminaUntil
+--     while a boost runs.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local H = require(script.Parent.AcceptanceSupport)
@@ -35,10 +35,9 @@ function Tests.powerups()
 	local api = cfg
 		and type(cfg.Roll) == "function"
 		and cfg.SPEED_MULTI == 1.2
-		and cfg.SPEED_SECONDS == 2
-		and cfg.STAMINA_SECONDS == 3
-		and cfg.STAMINA_SECONDS_LATE == 2
-		and cfg.LATE_FROM_TRACK == 6
+		and cfg.SPEED_SECONDS == 1
+		and cfg.STAMINA_SECONDS == 2
+		and cfg.PER_STUDS == 500
 		and mods.race
 		and type(mods.race.NewRun) == "function"
 		and mods.catalog
@@ -50,17 +49,6 @@ function Tests.powerups()
 	if not api then
 		return r
 	end
-	-- Stamina seconds per track (owner 2026-11-12): 3 s on Tracks 1-5, 2 s past Track 5
-	flag(
-		"powerups_stamina_seconds_by_track",
-		cfg.StaminaSeconds(1) == 3
-			and cfg.StaminaSeconds(5) == 3
-			and cfg.StaminaSeconds(6) == 2
-			and cfg.StaminaSeconds(10) == 2,
-		cfg.StaminaSeconds(5),
-		cfg.StaminaSeconds(6)
-	)
-
 	-- 1. Placement on every track of the live route: count, span, gaps (pure roll, many tries)
 	local route = mods.race.GetRoute()
 	flag("powerups_live_route", type(route) == "table" and type(route.Tracks) == "table" and #route.Tracks >= 1)
@@ -166,7 +154,7 @@ function Tests.powerups()
 			x:Destroy()
 		end
 
-		-- 3. Speed: x1.2 for 2 s, then back
+		-- 3. Speed: x1.2 for 1 s, then back
 		task.wait(0.1)
 		local base = run.TargetSpeed
 		run.PowerUps = { { Id = 99, Kind = "Speed", Dist = 0 } }
@@ -180,7 +168,7 @@ function Tests.powerups()
 		flag("powerups_speed_attribute", type(p:GetAttribute("PowerSpeedUntil")) == "number")
 		local taken = find(log, "PowerUpTaken")
 		flag("powerups_taken_event", taken ~= nil and taken.Id == 99 and taken.Type == "Speed")
-		task.wait(1.0)
+		task.wait(0.5)
 		run.PowerUps = { { Id = 98, Kind = "Speed", Dist = 0 } }
 		task.wait(0.15)
 		flag("powerups_speed_second_resets", run.SpeedLeft > cfg.SPEED_SECONDS - 0.4, run.SpeedLeft, cfg.SPEED_SECONDS)
@@ -188,24 +176,18 @@ function Tests.powerups()
 		flag("powerups_speed_reverts", math.abs(run.TargetSpeed - base) < 1e-6, run.TargetSpeed, base)
 		flag("powerups_speed_attribute_cleared", p:GetAttribute("PowerSpeedUntil") == nil)
 
-		-- 4. Stamina: +3 s on the running slot (Track 1), past 100 (20 s seconds -> +15%)
-		run.Stamina[1] = 100
+		-- 4. Stamina: no drain on the running slot for 2 s, never above 100, then drains again
+		run.Stamina[1] = 50
 		run.PowerUps = { { Id = 97, Kind = "Stamina", Dist = 0 } }
 		task.wait(0.15)
-		local added = 100 + cfg.StaminaSeconds(1) * 100 / 20
-		flag(
-			"powerups_stamina_overfills",
-			run.Stamina[1] > added - 2 and run.Stamina[1] <= added,
-			run.Stamina[1],
-			added
-		)
-		task.wait(0.2)
-		flag(
-			"powerups_stamina_attribute_over_100",
-			(p:GetAttribute("Stamina1") or 0) > 100,
-			p:GetAttribute("Stamina1"),
-			100
-		)
+		local held = run.Stamina[1]
+		flag("powerups_stamina_attribute", type(p:GetAttribute("PowerStaminaUntil")) == "number")
+		task.wait(1.0)
+		flag("powerups_stamina_holds", math.abs(run.Stamina[1] - held) < 1e-6, run.Stamina[1], held)
+		flag("powerups_stamina_no_overfill", run.Stamina[1] <= 100, run.Stamina[1], 100)
+		task.wait(cfg.STAMINA_SECONDS - 0.8)
+		flag("powerups_stamina_drains_after", run.Stamina[1] < held - 0.5, run.Stamina[1], held)
+		flag("powerups_stamina_attribute_cleared", p:GetAttribute("PowerStaminaUntil") == nil)
 		run:Destroy()
 
 		-- 5. A Secret at the cap passes MAX_CRUISE during a boost
