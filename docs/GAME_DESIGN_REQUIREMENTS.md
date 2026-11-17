@@ -618,13 +618,13 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 - Team Setup page (replaces panel A "Line-up" of 4.40; the rules of choosing a team stay):
   - Centre: exactly three stacked octagonal altars (two or three tiers of dark wood and stone, cyan edge light, faint
     sakura energy; never circular), well spaced, labelled Slot 1, Slot 2, Slot 3. An occupied altar shows the member's
-    drawn portrait standing above it with name and level under it; its edge follows the member's rarity. An empty altar
+    drawn portrait standing above it with name, rarity and cruise under it (characters have no level; **open question** for the owner whether one is wanted); its edge follows the member's rarity. An empty altar
     shows a glowing "+" and "Add Character".
   - Top-left party icon and "Team Setup"; top-centre three slot dots; top-right a Team Bonus button (opens the team bonus
     as a small popover) and Close.
   - Bottom-left "Team 1" and the status (Ready / Unsaved changes); one team only, no rename, no presets. Bottom-centre
     "n / 3 Slots Filled" with a thin bar. Bottom-right Quick Setup and Deploy.
-  - Bottom roster tray with Characters and Sidekicks tabs, Sort and filter. Cards show portrait, name, level, rarity
+  - Bottom roster tray with Characters and Sidekicks tabs, Sort and filter. Cards show portrait, name, cruise, rarity
     marker, equipped marker, and in the top-right corner the character's relic emblem (diamond) and Sidekick icon
     (circle), apart from each other and clear of the face. Hover, tap or gamepad focus on an icon shows its name, rarity
     and effect. Sidekick icons on Team Setup cards use the drawn portraits (adds Team Setup to the 4.36 portrait list).
