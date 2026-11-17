@@ -7,11 +7,19 @@ local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local InputLock = require(script.Parent:WaitForChild("InputLock"))
+local UiTransition = require(script.Parent:WaitForChild("UiTransition"))
 
 local PanelSwitch = {}
 
 local panels = {} -- name -> Frame
 local wanted = {} -- name -> true while PanelSwitch opened it
+-- Sakura Dojo pages (design doc 4.45): name -> accent Color3. Their open and close play Client/UiTransition and lock
+-- gameplay input while open; a press within OPEN_GUARD s of opening is ignored, so a double press never toggles shut.
+local accents = {}
+local openedAt = {}
+local closeGuards = {} -- name -> fn() returning true to keep the panel open (it asks the player first)
+local OPEN_GUARD = 0.3
 local changed = Instance.new("BindableEvent")
 PanelSwitch.Changed = changed.Event -- fires after any panel opens or closes (deferred)
 local listeners = {}
@@ -286,8 +294,9 @@ local function cancelClose(panel)
 	end
 end
 
-function PanelSwitch.Register(name, panel)
+function PanelSwitch.Register(name, panel, accent)
 	panels[name] = panel
+	accents[name] = accent
 	wanted[name] = panel.Visible
 	panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		-- Generated responsive fits re-apply the authored Visible = true on viewport changes; only Toggle opens
@@ -299,7 +308,11 @@ function PanelSwitch.Register(name, panel)
 		if panel.Visible then
 			openMotion(panel)
 			takeFocus(panel)
+			if accents[name] then
+				InputLock.Hold(name)
+			end
 		else
+			InputLock.Release(name)
 			wanted[name] = false
 			cancelClose(panel)
 			stopMotion(motionTarget(panel))
@@ -316,7 +329,19 @@ function PanelSwitch.Toggle(name)
 		return false
 	end
 	local open = not panel.Visible or closing[panel] == true
+	if not open and accents[name] and openedAt[name] and os.clock() - openedAt[name] < OPEN_GUARD then
+		return true -- a second press while the page is still opening
+	end
+	if not open and closeGuards[name] and closeGuards[name]() then
+		return true
+	end
 	wanted[name] = open
+	if accents[name] and not panel:GetAttribute("SkipTransition") then
+		UiTransition.Play(accents[name])
+		if open then
+			openedAt[name] = os.clock()
+		end
+	end
 	if open then
 		for other, p in panels do
 			if other ~= name then
@@ -354,8 +379,27 @@ function PanelSwitch.IsOpen(name)
 	return panels[name] ~= nil and panels[name].Visible and not closing[panels[name]]
 end
 
+-- `fn()` runs before Toggle or Close shuts `name`; returning true keeps it open (Team Setup's unsaved-draft question).
+function PanelSwitch.SetCloseGuard(name, fn)
+	closeGuards[name] = fn
+end
+
+-- Closes `name` past its close guard (the guard's own "Discard" / "Deploy" answers).
+function PanelSwitch.ForceClose(name)
+	local guard = closeGuards[name]
+	closeGuards[name] = nil
+	PanelSwitch.Close(name)
+	closeGuards[name] = guard
+end
+
 function PanelSwitch.Close(name)
 	if PanelSwitch.IsOpen(name) then
+		if closeGuards[name] and closeGuards[name]() then
+			return
+		end
+		if accents[name] then
+			UiTransition.Play(accents[name])
+		end
 		wanted[name] = false
 		closeMotion(panels[name])
 		notify()

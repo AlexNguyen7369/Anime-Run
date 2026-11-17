@@ -73,6 +73,14 @@ local ALTAR_STONE = Color3.fromRGB(176, 170, 160)
 local ALTAR_DARK = Color3.fromRGB(46, 42, 52)
 local ALTAR_GOLD = Color3.fromRGB(232, 178, 60)
 local ALTAR_NEON = Color3.fromRGB(46, 200, 208)
+-- The Team altar (design doc 4.45, owner 2026-11-17): a small stacked octagonal shrine in the ring slot before the gate
+-- axis, world (-3.1, 83.9), facing the spawn. Sizes and colours proposed.
+local TEAM_ALTAR_POS = Vector2.new(114.891, 3.942) -- world (-3.109, 83.942): opposite the Market across the spawn
+local TEAM_ALTAR_TIERS = { 14, 10.5, 7 } -- octagon widths across the flats, bottom to top
+local TEAM_ALTAR_TIER_HEIGHT = 1.2
+local TEAM_ALTAR_WOOD = Color3.fromRGB(64, 40, 30)
+local TEAM_ALTAR_PINK = Color3.fromRGB(255, 150, 190)
+local TEAM_ALTAR_PROMPT_DISTANCE = 12
 
 -- Track 1's start, flattened: yaw only, at ground level (the local space every plaza and plot position uses)
 local function base(startCFrame)
@@ -145,6 +153,24 @@ local function block(parent, name, size, cframe, color, material, collide)
 	end
 	p.Parent = parent
 	return p
+end
+
+-- An octagonal slab `width` across the flats and `height` tall centred on `cframe`: 4 bars of the width by the edge
+-- length, turned 45 degrees apart (their union is the octagon). Returns the 4 parts. Shared with Client/TeamUi's altars.
+function SpawnArea.Octagon(parent, name, width, height, cframe, color, material, collide)
+	local parts = {}
+	for k = 0, 3 do
+		parts[k + 1] = block(
+			parent,
+			name,
+			Vector3.new(width, height, width * math.tan(math.pi / 8)),
+			cframe * CFrame.Angles(0, k * math.pi / 4, 0),
+			color,
+			material,
+			collide
+		)
+	end
+	return parts
 end
 
 local function glow(parent, range)
@@ -383,7 +409,56 @@ local function altar(startCFrame)
 	modelSpot.Parent = topPart
 	modelSpot.WorldCFrame = af * CFrame.new(0, haloY, 0) -- -Z faces the path
 	glow(topPart, 20)
-	m.PrimaryPart = addPrompt(topPart, "OpenSidekicks", "Sidekicks", "SIDEKICKS", ALTAR_PROMPT_DISTANCE)
+	m.PrimaryPart = addPrompt(topPart, "OpenSidekicks", "Summon", "SIDEKICKS", ALTAR_PROMPT_DISTANCE)
+	return m
+end
+
+-- The Team altar (design doc 4.45): dark wood and stone tiers, each topped by a thin cyan edge, a faint sakura glow
+-- on the top; its prompt opens Team Setup (Client/PlazaPrompts).
+local function teamAltar(startCFrame)
+	local m = Instance.new("Model")
+	m.Name = "TeamAltar"
+	local af = facing(startCFrame, TEAM_ALTAR_POS.X, TEAM_ALTAR_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y, 0)
+	local h, top = TEAM_ALTAR_TIER_HEIGHT, SpawnArea.TOP_Y
+	local topPart
+	for i, width in TEAM_ALTAR_TIERS do
+		local y = top + (i - 1) * h
+		local tier = SpawnArea.Octagon(
+			m,
+			"Tier" .. i,
+			width,
+			h,
+			af * CFrame.new(0, y + h / 2, 0),
+			i == 2 and STONE or TEAM_ALTAR_WOOD,
+			i == 2 and Enum.Material.Slate or Enum.Material.Wood
+		)
+		topPart = tier[1]
+		SpawnArea.Octagon(
+			m,
+			"Edge" .. i,
+			width + 0.3,
+			0.15,
+			af * CFrame.new(0, y + h, 0),
+			ALTAR_NEON,
+			Enum.Material.Neon,
+			false
+		)
+	end
+	local deck = top + #TEAM_ALTAR_TIERS * h
+	local core = SpawnArea.Octagon(
+		m,
+		"Core",
+		3,
+		0.2,
+		af * CFrame.new(0, deck + 0.1, 0),
+		TEAM_ALTAR_PINK,
+		Enum.Material.Neon,
+		false
+	)
+	local light = Instance.new("PointLight")
+	light.Color, light.Brightness, light.Range, light.Shadows = TEAM_ALTAR_PINK, 0.8, 10, false
+	light.Parent = core[1]
+	m.PrimaryPart = addPrompt(topPart, "OpenTeam", "Team", "TEAM SETUP", TEAM_ALTAR_PROMPT_DISTANCE)
 	return m
 end
 
@@ -460,6 +535,7 @@ function SpawnArea.Build(startCFrame)
 	-- The ring (same panels and remotes as before): each stand-in's origin is its mesh's origin (Shared/PlazaAssets).
 	-- The Sidekicks stall became the summon altar (design doc 4.36).
 	altar(startCFrame).Parent = model
+	teamAltar(startCFrame).Parent = model
 	stall(
 		model,
 		startCFrame,

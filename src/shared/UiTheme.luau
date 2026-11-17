@@ -61,6 +61,21 @@ UiTheme.Palette = {
 	Marathoner = Color3.fromRGB(80, 160, 255),
 }
 
+-- Sakura Dojo pages (design doc 4.45, owner 2026-11-17): Summon and Team Setup share these, matching
+-- Client/SummonShrineTheme. Proposed values.
+UiTheme.Dojo = {
+	Wood = Color3.fromRGB(107, 47, 32),
+	WoodDark = Color3.fromRGB(64, 40, 30),
+	Burgundy = Color3.fromRGB(87, 25, 44),
+	Ink = Color3.fromRGB(47, 19, 22),
+	Cream = Color3.fromRGB(255, 243, 216),
+	Sakura = Color3.fromRGB(244, 145, 171),
+	Gold = Color3.fromRGB(237, 183, 93),
+	Cyan = Color3.fromRGB(46, 200, 208),
+	Stroke = 1.5, -- px: medium-thin outlines
+	Petal = "rbxassetid://130260166899982", -- the plaza petal (tools/blender/plaza/plaza_assets.json)
+}
+
 local function child(parent, class, name)
 	local value = parent:FindFirstChild(name)
 	if not value then

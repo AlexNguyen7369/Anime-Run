@@ -35,4 +35,6 @@ return {
 	Boss = { Image = "rbxassetid://137818614263751" },
 	-- Design doc 4.40 Team button, icon 1 "Trio", variant N3 (owner 2026-11-12): assets/ui/hud_tabtilt/Team_N3.png, tools/blender/hud_icon_assets.json.
 	Team = { Image = "rbxassetid://89758623094700" },
+	-- Summon button (design doc 4.45): the Gem icon until a Summon Tab tilt icon is drawn and uploaded.
+	Summon = { Image = "rbxassetid://115837117925526" },
 }

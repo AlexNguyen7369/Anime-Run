@@ -9,6 +9,7 @@ local PANEL = {
 	OpenPotions = "Shop", -- the Potions section lives in the Shop panel
 	OpenIndex = "Index",
 	OpenSidekicks = "Sidekicks",
+	OpenTeam = "Team", -- the Team altar (design doc 4.45)
 }
 
 ProximityPromptService.PromptTriggered:Connect(function(prompt)

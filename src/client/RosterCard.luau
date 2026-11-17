@@ -14,6 +14,11 @@ local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
+local RelicConfig = require(shared:WaitForChild("RelicConfig"))
+local SidekickArt = require(shared:WaitForChild("SidekickArt"))
+local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
+local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
+local UiTooltip = require(script.Parent:WaitForChild("UiTooltip"))
 
 local GREEN = UiTheme.Palette.Money
 local GOLD = UiTheme.Palette.Unbanked
@@ -144,6 +149,101 @@ function RosterCard.new(parent, spec, order, g, picked, note)
 		"Item"
 	)
 	return b, slot
+end
+
+-- The bag row's catalog row for character `id`'s worn relic or Sidekick (nil when it wears none).
+local function worn(bag, gear, id, get)
+	local entry = gear[id]
+	for _, row in entry and bag or {} do
+		if row.Entry == entry then
+			return get(row.Id)
+		end
+	end
+	return nil
+end
+
+local function bonusText(bonuses)
+	local parts = {}
+	for stat, value in bonuses or {} do
+		table.insert(parts, string.format("+%d%% %s", math.round(value * 100), stat))
+	end
+	table.sort(parts)
+	return table.concat(parts, ", ")
+end
+
+-- Design doc 4.45 (owner 2026-11-17): the relic emblem (a diamond with a rarity rim) and the Sidekick icon (a circle with
+-- a cream rim, its drawn portrait) character `id` wears, in a Gear frame at `parent`'s top-right (y px down, icon
+-- `size` px); a tooltip names each. Replaces an existing Gear. Returns the frame.
+function RosterCard.Gear(parent, id, player, y, size)
+	local old = parent:FindFirstChild("Gear")
+	if old then
+		old:Destroy()
+	end
+	size = size or 20
+	local relic = worn(SidekickView.RelicBag(player), SidekickView.RelicGear(player), id, RelicConfig.Get)
+	local sidekick = worn(SidekickView.Bag(player), SidekickView.Gear(player), id, SidekickConfig.Get)
+	local frame = Instance.new("Frame")
+	frame.Name = "Gear"
+	frame.AnchorPoint = Vector2.new(1, 0)
+	frame.Position = UDim2.new(1, -6, 0, y or 34)
+	frame.Size = UDim2.fromOffset(2 * size + 6, size)
+	frame.BackgroundTransparency = 1
+	frame.ZIndex = 8
+	frame.Parent = parent
+	local function icon(name, row, image, x, round, rim)
+		local holder = Instance.new("Frame")
+		holder.Name = name
+		holder.BackgroundColor3 = UiTheme.Dojo.Ink
+		holder.AnchorPoint = Vector2.new(0.5, 0.5)
+		holder.Position = UDim2.new(0, x + size / 2, 0.5, 0)
+		holder.Size = UDim2.fromOffset(round and size or size * 0.78, round and size or size * 0.78)
+		holder.Rotation = round and 0 or 45 -- a diamond for relics
+		holder.ZIndex = 8
+		holder.Active = true
+		holder.Selectable = true
+		holder:SetAttribute("ItemName", row.Name)
+		holder:SetAttribute("Rarity", row.Rarity)
+		holder.Parent = frame
+		local edge = Instance.new("UIStroke")
+		edge.Thickness, edge.Color = UiTheme.Dojo.Stroke, rim
+		edge.Parent = holder
+		if round then
+			UiTheme.Corner(holder, 999)
+		end
+		local art = Instance.new("ImageLabel")
+		art.Name = "Art"
+		art.BackgroundTransparency = 1
+		art.Image = image or ""
+		art.ScaleType = Enum.ScaleType.Fit
+		art.AnchorPoint = Vector2.new(0.5, 0.5)
+		art.Position = UDim2.fromScale(0.5, 0.5)
+		art.Size = UDim2.fromScale(round and 1 or 1.2, round and 1 or 1.2)
+		art.Rotation = round and 0 or -45
+		art.ZIndex = 9
+		art.Parent = holder
+		if round then
+			UiTheme.Corner(art, 999)
+		end
+		return holder
+	end
+	if relic then
+		local h = icon("Relic", relic, relic.Image, 0, false, GachaConfig.RARITY_COLORS[relic.Rarity] or GOLD)
+		UiTooltip.Bind(h, function()
+			return { Title = relic.Name, Rarity = relic.Rarity, Body = "Relic: " .. bonusText(relic.Bonuses) }
+		end)
+	end
+	if sidekick then
+		local art = SidekickArt[sidekick.Id]
+		local h = icon("Sidekick", sidekick, art and art.Portrait, size + 6, true, UiTheme.Dojo.Cream)
+		UiTooltip.Bind(h, function()
+			return {
+				Title = sidekick.Name,
+				Rarity = sidekick.Rarity,
+				Body = "Sidekick: " .. SidekickView.GainText(sidekick),
+			}
+		end)
+	end
+	return frame
 end
 
 return RosterCard

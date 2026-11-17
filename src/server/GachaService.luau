@@ -590,6 +590,67 @@ function GachaService.SetTeam(player, ids)
 	return true, "Team updated"
 end
 
+-- Quick Setup (design doc 4.45, TEAM_AND_STAMINA_SPEC "Team Setup page"): `draft` (the client's unsent Team, 0-3 distinct
+-- owned ids) with its empty slots filled by owned characters not in it, highest cruise first, ties to the rarer, then
+-- catalog order. Read-only: nothing is set or saved. Returns ok, ids or ok=false, reason.
+function GachaService.QuickPick(player, draft)
+	if type(draft) ~= "table" or #draft > TEAM_SIZE then
+		return false, "Invalid team"
+	end
+	local out, seen, count = {}, {}, 0
+	for key, id in draft do
+		count += 1
+		if
+			type(key) ~= "number"
+			or type(id) ~= "string"
+			or seen[id]
+			or not CharacterCatalog.Get(id)
+			or not owns(player, id)
+		then
+			return false, "Invalid team"
+		end
+		seen[id] = true
+		table.insert(out, id)
+	end
+	if count ~= #draft then
+		return false, "Invalid team"
+	end
+	local rank = {}
+	for i, rarity in GachaConfig.RARITY_ORDER do
+		rank[rarity] = i
+	end
+	-- Index characters, then owned ids outside it (starter picks, the starter itself), as the Team roster lists them.
+	local pool, candidates = {}, table.clone(CharacterCatalog.All())
+	local data = player:FindFirstChild("GachaData")
+	for _, entry in data and data:GetChildren() or {} do
+		table.insert(candidates, CharacterCatalog.Get(entry.Name))
+	end
+	table.insert(candidates, CharacterCatalog.Get(STARTER))
+	for order, spec in candidates do
+		if spec and not seen[spec.Id] and owns(player, spec.Id) then
+			seen[spec.Id] = true
+			table.insert(pool, { Spec = spec, Cruise = RaceConfig.Cruise(spec), Order = order })
+		end
+	end
+	table.sort(pool, function(a, b)
+		if a.Cruise ~= b.Cruise then
+			return a.Cruise > b.Cruise
+		end
+		local ra, rb = rank[a.Spec.Rarity] or 0, rank[b.Spec.Rarity] or 0
+		if ra ~= rb then
+			return ra > rb -- RARITY_ORDER runs common to rare
+		end
+		return a.Order < b.Order
+	end)
+	for _, item in pool do
+		if #out >= TEAM_SIZE then
+			break
+		end
+		table.insert(out, item.Spec.Id)
+	end
+	return true, out
+end
+
 -- Spends one free stat point on a stat in GachaConfig.STATS. Returns true if spent.
 function GachaService.Allocate(player, stat)
 	if type(stat) ~= "string" or GachaConfig.PER_POINT[stat] == nil then
@@ -1010,6 +1071,19 @@ function GachaService.Start()
 		end
 		lastTeam[player] = now
 		return GachaService.SetTeam(player, ids)
+	end
+
+	local quickRemote = remotes:FindFirstChild("TeamQuickPick") or Instance.new("RemoteFunction")
+	quickRemote.Name = "TeamQuickPick"
+	quickRemote.Parent = remotes
+	local lastQuick = setmetatable({}, { __mode = "k" })
+	quickRemote.OnServerInvoke = function(player, draft)
+		local now = os.clock()
+		if lastQuick[player] and now - lastQuick[player] < GachaService.TEAM_COOLDOWN then
+			return false, "Please wait"
+		end
+		lastQuick[player] = now
+		return GachaService.QuickPick(player, draft)
 	end
 
 	local function onPlayer(player)

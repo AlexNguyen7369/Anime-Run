@@ -10,6 +10,7 @@ local SidekickArt = require(shared:WaitForChild("SidekickArt"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
+local SummonAltarFx = require(script.Parent:WaitForChild("SummonAltarFx"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SummonShrineTheme = require(script.Parent:WaitForChild("SummonShrineTheme"))
 local SummonHybrid = require(script.Parent:WaitForChild("SummonHybrid"))
@@ -541,7 +542,7 @@ end
 -- Bind the imported presentation to existing Anime Run services.
 canvas.Visible = false
 gui.Reopen.Visible = false
-PanelSwitch.Register("Sidekicks", canvas)
+PanelSwitch.Register("Sidekicks", canvas, require(shared:WaitForChild("UiTheme")).Dojo.Sakura) -- the Sakura transition (design doc 4.45)
 
 local modal = canvas.Modal.Panel
 local modalBody = modal:WaitForChild("Body")
@@ -730,14 +731,31 @@ local function requestSummon(count, free)
 		return
 	end
 	local continueAuto = auto
+	revealing = true
+	-- The altar activation in the best result's colour (design doc 4.45), then the reveal as before.
+	local centre = stage and stage.Units:FindFirstChild("Unit2")
+	local root = centre and centre:FindFirstChild("Root")
+	if root and workspace.CurrentCamera then
+		local point = workspace.CurrentCamera:WorldToViewportPoint(root.Position - Vector3.new(0, 2.5, 0))
+		local rarity = SummonAltarFx.Best(results, function(result)
+			return Config.Get(result.Id)
+		end)
+		local landed = Instance.new("BindableEvent")
+		SummonAltarFx.Play(Vector2.new(point.X, point.Y), rarity, function()
+			landed:Fire()
+		end)
+		landed.Event:Wait()
+		landed:Destroy()
+	end
 	close()
 	gui.Enabled = false
-	revealing = true
 	SidekickReveal.Play(results, function()
 		revealing, busy = false, false
 		gui.Enabled = true
 		if not PanelSwitch.AnyOpen() then
+			canvas:SetAttribute("SkipTransition", true) -- back from a reveal: no page transition (design doc 4.45)
 			PanelSwitch.Action("Sidekicks")
+			canvas:SetAttribute("SkipTransition", nil)
 			setAuto(continueAuto)
 		end
 		gui:SetAttribute("Summoning", nil)
