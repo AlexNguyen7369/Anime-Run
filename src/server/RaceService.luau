@@ -210,6 +210,7 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 
 	run.PowerUps = {} -- the current track's set: { { Id, Kind, Dist, Taken } }
 	run.SpeedLeft = 0 -- seconds of the Speed power-up's boost left
+	run.StaminaLeft = 0 -- seconds of the Stamina power-up's no-drain boost left
 
 	local function rewardTrackWin(trackNumber)
 		local id = BoostConfig.WinReward(trackNumber)
@@ -392,9 +393,10 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 		for slot in team do
 			run.Stamina[slot] = 100
 		end
-		run.SpeedLeft = 0
+		run.SpeedLeft, run.StaminaLeft = 0, 0
 		if typeof(player) == "Instance" then
 			player:SetAttribute("PowerSpeedUntil", nil)
+			player:SetAttribute("PowerStaminaUntil", nil)
 		end
 		if boss then
 			run.Line = {}
@@ -702,6 +704,15 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 				publish()
 			end
 		end
+		if run.StaminaLeft > 0 and not run.Holding then
+			run.StaminaLeft -= railDt
+			if run.StaminaLeft <= 0 then
+				run.StaminaLeft = 0
+				if typeof(player) == "Instance" then
+					player:SetAttribute("PowerStaminaUntil", nil)
+				end
+			end
+		end
 		if race and not run.Holding then
 			for _, p in run.PowerUps do
 				if not p.Taken and dist >= p.Dist then
@@ -714,10 +725,12 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 						end
 						setCruise()
 						publish()
-					elseif staminaMode and seconds[run.Slot] then
-						-- no clamp at 100: the extra seconds drain first, the bar stays full (owner 2026-11-11)
-						run.Stamina[run.Slot] += PowerUpConfig.StaminaSeconds(race.Number) * 100 / seconds[run.Slot]
-						publishStamina()
+					elseif staminaMode then
+						-- no drain for whoever runs (owner 2026-11-16); a second one resets the timer, no stacking
+						run.StaminaLeft = PowerUpConfig.STAMINA_SECONDS
+						if typeof(player) == "Instance" then
+							player:SetAttribute("PowerStaminaUntil", workspace:GetServerTimeNow() + run.StaminaLeft)
+						end
 					end
 					runEvent({ Kind = "PowerUpTaken", Id = p.Id, Type = p.Kind, Track = race.Number })
 				end
@@ -779,7 +792,9 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 			end
 		elseif staminaMode and not run.Finished and not run.Holding then
 			local slot = run.Slot
-			run.Stamina[slot] -= 100 / seconds[slot] * railDt
+			if run.StaminaLeft <= 0 then -- a Stamina power-up holds the drain (design doc 4.44)
+				run.Stamina[slot] -= 100 / seconds[slot] * railDt
+			end
 			sinceStamina += railDt
 			if run.Stamina[slot] <= 0 then
 				run.Stamina[slot] = 0
@@ -868,6 +883,7 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 			if staminaMode and typeof(player) == "Instance" then
 				player:SetAttribute("RunSlot", nil) -- walking: the stamina bar hides, effects go back to slot 1
 				player:SetAttribute("PowerSpeedUntil", nil)
+				player:SetAttribute("PowerStaminaUntil", nil)
 				player:SetAttribute("BossLine", nil)
 				for slot = 1, StaminaConfig.TEAM_SIZE do
 					player:SetAttribute("Stamina" .. slot, nil)

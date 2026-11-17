@@ -641,10 +641,10 @@ RunService.RenderStepped:Connect(function(dt)
 			end
 			-- The run's own fixed seconds while running: TeamStamina moves if a potion is used mid-run
 			local total = tonumber(player:GetAttribute("RunSeconds" .. slot)) or teamStat("Stamina", slot)
-			-- A Stamina power-up's extra (design doc 4.44): the bar stays full, the number counts it, in blue
-			local raw = running and tonumber(player:GetAttribute("Stamina" .. slot))
-			local over = raw ~= nil and raw > 100 and total ~= nil and total ~= math.huge
-			local seconds = total and math.ceil(total * (over and raw / 100 or shown)) or nil
+			-- A Stamina power-up's no-drain boost (design doc 4.44): the running slot's number turns blue
+			local over = slot == running
+				and (tonumber(player:GetAttribute("PowerStaminaUntil")) or 0) > workspace:GetServerTimeNow()
+			local seconds = total and math.ceil(total * shown) or nil
 			if seconds ~= circle.Seconds or over ~= circle.Over then
 				circle.Seconds, circle.Over = seconds, over
 				circle.Number.Text = seconds == math.huge and "∞" or seconds and tostring(seconds) or "" -- Kami

@@ -200,8 +200,9 @@
 196. 2026-11-17 — Alex Nguyen — Renamed the car-era vocabulary to anime terms on feature/alex/car-vocab-refactor (94b6eb4): CarService -> RunnerService, CarTest/ -> ServerTest/ (`[SERVERTEST]`, `ServerTestOnly` / `ServerTestRun`), VehicleEffects -> RunnerEffects, EquippedCar -> EquippedCharacter, EquipCar -> EquipCharacter, RarestCar -> RarestCharacter, run.Car -> run.Runner, locals car / chassis -> runner / root across about 130 files; saved keys, absence checks and props kept; selene, stylua and rojo build green, no Studio run.
 197. 2026-11-17 — Alex Nguyen — Built the Sakura Dojo Summon entry points and Team Setup page (design doc 4.45: octagonal altars, draft with Quick Setup and Deploy, relic and Sidekick icons, shared petal transition, plaza Team altar) on feature/alex/dojo-pages with red-first tests, draft PR #21; not yet run in Studio.
 198. 2026-11-17 — Alex Nguyen — Reworked Team Setup to the owner's full-screen mockup (3D members on the altars) and the transition to the pink petal wash, and verified both flows in Studio: team, spawn_area, ui_team and ui_entry_points green.
+199. 2026-11-17 — Alex Nguyen — Made power-ups timed boosts on feature/alex/powerup-boost (62b797d, stacked on the refactor): Speed x1.2 for 1 s, Stamina holds the drain for 2 s with no overfill, 1 per 500 studs; Studio `powerups` 25/25 fail=0, rules audit PASS.
 
 ## What's next
-**Merge the car-vocab rename into main (Studio run and fresh review on its branch), then take PR #21 out of draft for a fresh review and merge.**
+**Run `ui_team`, `ui_entry_points`, `powerups` and the rename's scenarios (`runner`, `race`, `duel`, `runner_effects`, `data`, `gacha`, `ui_index`, `ui_showcase`) in Studio on feature/alex/dojo-pages (it now holds the rename, the power-up boosts and the Dojo pages), then take PR #21 out of draft, get a fresh review and merge into main.**
 
-**Why this is next:** PR #21 contains the rename commit and is verified in Studio on top of it; it can only merge cleanly once the rename lands, and the owner's play check of both pages needs it in main.
+**Why this is next:** the owner asked for all three to land in main together; PR #21 is the one branch that holds them, and the rename has never been run in Studio.

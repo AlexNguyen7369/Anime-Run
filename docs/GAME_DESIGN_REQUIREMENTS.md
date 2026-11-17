@@ -75,8 +75,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
   showing the active slot's stamina. Client display of the server's `Stamina<n>` / `RunSlot`.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
-- A Stamina power-up (4.44, owner 2026-11-11) may push the running character past 100%: the seconds number shows
-  the extra, the bar stays full.
+- A Stamina power-up (4.44, owner 2026-11-16) holds the running character's stamina still for 2 s: no drain, no
+  overfill (replaces the 2026-11-11 overfill past 100%).
 - Stamina bar look (owner 2026-11-03): the bar drains smoothly, a lighter trail shows the stamina just lost, the fill
   turns from blue to amber to red as it runs low (thresholds placeholder: 50% / 25%) and pulses when low, and it
   refills with a flash when the next runner tags in. Display only.
@@ -232,8 +232,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.18 Loading at high speed (owner 2026-11-01)
 - Biome meshes and textures must be loaded before a fast runner reaches them; sky and lighting must switch quickly at
   a biome boundary at any speed. Use the cheapest approach that keeps up at `MAX_CRUISE`. Client display only.
-  A Speed power-up (4.44) may run 1.2 x `MAX_CRUISE` for 2 s: the budget stays at `MAX_CRUISE`, the per-track `RunHold`
-  (4.25) still catches a boosted runner, and a late biome switch during those 2 s is accepted (**proposed**, taken on the
+  A Speed power-up (4.44) may run 1.2 x `MAX_CRUISE` for 1 s (owner 2026-11-16): the budget stays at `MAX_CRUISE`, the per-track `RunHold`
+  (4.25) still catches a boosted runner, and a late biome switch during that 1 s is accepted (**proposed**, taken on the
   owner's standing word 2026-11-11; see OWNER_QUESTIONS).
 - Biome while racing: the server publishes `RunTrack` (the track whose finish pad is still ahead) on the runner rig; the
   client takes the biome from it and switches at once at the finish pad. The nearest centre line (`ZoneAt`) is used only
@@ -581,21 +581,24 @@ before any Studio work.
 - Per player: each player gets their own set; other players never see or take them. The server rolls the set and
   decides every pickup; the client only draws them.
 - Every placed power-up is on the runner's path and is always picked up (no steering, no misses; owner 2026-11-11).
-- Count scales with track length: about 1 per 1,000 studs (**placeholder**; Track 1 about 3, Track 10 about 22).
-- Two types for now:
-  - **Speed**: a x1.2 turbo boost on cruise for 2 seconds (owner 2026-11-12; was x1.5 for 3 s). This boost may pass
-    `MAX_CRUISE` (800) for those 2 seconds (owner 2026-11-11). It is the one timed exception to "the runner holds exact
+- Count scales with track length: about 1 per 500 studs (owner 2026-11-16 "more per track"; was 1,000; the number is
+  a **placeholder**; Track 1 about 6, Track 10 about 44).
+- Two types for now, both timed boosts (owner 2026-11-16):
+  - **Speed**: a x1.2 turbo boost on cruise for 1 second (owner 2026-11-16; was 2 s, before that x1.5 for 3 s). This
+    boost may pass `MAX_CRUISE` (800) for that second (owner 2026-11-11). It is the one timed exception to "the runner holds exact
     cruise everywhere" (3) and "cruise fixed for the whole run" (TEAM_AND_STAMINA_SPEC) and to the loading budget in
     4.18 (**proposed**). When it ends the runner goes back to its normal cruise.
-  - **Stamina**: +3 seconds of running for the character running at pickup on Tracks 1-5, +2 seconds past Track 5
-    (Tracks 6-10) (owner 2026-11-12; was +5 s everywhere). It may go past a full bar: the seconds number on the team
-    row shows the extra, the bar itself stays full (owner 2026-11-11); the extra drains first.
+  - **Stamina**: a 2 second stamina boost (owner 2026-11-16): for 2 seconds whoever is running loses no stamina; the
+    bar and number hold still, then drain again. Same on every track. A second Stamina pickup while one runs resets the
+    timer to 2 s, no stacking (**proposed**). Replaces +3 s / +2 s of extra seconds and the overfill past a full bar
+    (2026-11-11/12).
 - Look (owner 2026-11-11, from the drafts https://claude.ai/artifact/AY1UokGYtRPBfzdVHgtWJz): each power-up is a
   **run-through ring** standing across the runner's lane (draft I4); the runner runs through it. Speed is orange with
   chevrons inside, Stamina the stamina bar's blue with a drop. Idle (owner 2026-11-11): the rim's
   pattern turns slowly and the glow breathes; REDUCED EFFECTS keeps only the turn.
 - HUD (owner 2026-11-11, draft H2): an active Speed boost shows as a badge on the running portrait's top-right corner
-  with a ring that drains over the boost's 2 seconds; while a runner holds extra stamina seconds its seconds number turns blue.
+  with a ring that drains over the boost's 1 second; while a Stamina boost runs the running slot's seconds number
+  turns blue.
 - Never saved. Not a paid item and never pays Money.
 
 ### 4.45 Sakura Dojo pages: Summon and Team Setup (owner 2026-11-17)
@@ -706,6 +709,7 @@ None open here; 4.25 marks its own open question.
 
 ## Change log
 - 2026-11-17: owner: Sakura Dojo pages: shared petal transition for Summon and Team; Summon button in the right column (G) and the altar prompt "Summon"; Team opens from the button, the minibar and a new plaza Team altar at (-3.1, 83.9); Team Setup replaces panel A with three octagonal altars, a roster tray with relic and Sidekick icons, Quick Setup (highest cruise) and Deploy (staged draft) (4.45; replaces parts of 4.40 and 4.43).
+- 2026-11-16: owner: both power-ups are timed boosts and there are more per track: Speed is x1.2 for 1 s (was 2 s); Stamina stops the running character's stamina from draining for 2 s (was +3 s / +2 s of extra seconds, no more overfill); about 1 per 500 studs (was 1,000) (4.3, 4.18, 4.44, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC).
 - 2026-11-12: owner: animation rework of the Elf Mage, the Stone Golem and the Golden King: jointed models with elbows and knees, every move re-keyed with 10 key frames approved before in-betweens (replaces 3 to 5 for these moves, and the old approved keys become starting poses only); boss effects stronger, the whole arena flashes or shakes on a hit (4.37, BOSS_EVENT_SPEC "Animation rework").
 - 2026-11-12: owner: runners' auras and trails are decreased during boss events (replaces "more visible in the event", 2026-11-06, and the lighter draw of 2026-11-09) (4.37).
 - 2026-11-12: owner took the orchestrator's recommendations: 10 key frames per move is the rule for every future boss (replaces 3 to 5), and boss hits keep no FOV kick (the event FOV lock stays) (4.37).
