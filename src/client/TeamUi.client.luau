@@ -162,6 +162,7 @@ function g.Role(label, role)
 	label:SetAttribute("AnimeRole", role)
 	label.Font = UiTheme.Font
 	label.TextScaled = true
+	label.TextColor3 = D.Cream -- callers recolour after
 	local limit = label:FindFirstChild("RoleLimit") or make("UITextSizeConstraint", "RoleLimit", label, {})
 	limit.MaxTextSize = math.max(1, g.px(size))
 	limit.MinTextSize = math.max(1, math.min(g.px(size), g.px(9)))
@@ -289,10 +290,13 @@ for n = 1, SLOTS do
 			width,
 			TIER_H,
 			CFrame.new(0, y + TIER_H / 2, 0),
-			i == 2 and Color3.fromRGB(158, 152, 140) or D.WoodDark,
+			i == #TIERS and D.Wood or D.WoodDark,
 			Enum.Material.SmoothPlastic
 		)
-		for _, part in SpawnArea.Octagon(model, "Edge" .. i, width + 0.3, 0.18, CFrame.new(0, y + TIER_H, 0), D.Cyan) do
+		-- A thin glowing rim: the slab sits just under the tier's top, so only its 0.15-stud lip shows.
+		local rim = CFrame.new(0, y + TIER_H - 0.12, 0)
+		for _, part in SpawnArea.Octagon(model, "Edge" .. i, width + 0.3, 0.18, rim, D.Cyan, Enum.Material.Neon) do
+			part.Name = i == #TIERS and "TopEdge" or part.Name
 			table.insert(edges, part)
 		end
 	end
@@ -305,11 +309,11 @@ for n = 1, SLOTS do
 		CFrame = CFrame.new(0, deck + 4.5, 0),
 		Material = Enum.Material.Neon,
 		Color = D.Sakura,
-		Transparency = 0.86,
+		Transparency = 0.72,
 		CastShadow = false,
 	})
 	local camera = make("Camera", "Camera", view, { FieldOfView = 30 })
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, 9.5, 36), Vector3.new(0, 4.6, 0))
+	camera.CFrame = CFrame.lookAt(Vector3.new(0, 8.5, 27), Vector3.new(0, 5, 0))
 	view.CurrentCamera = camera
 	local plus = caption("Plus", b, { Text = "+", TextColor3 = D.Cyan, ZIndex = 4 })
 	local add = caption("Add", b, { Text = "Add Character", TextColor3 = D.Cream, ZIndex = 4 })
@@ -430,7 +434,7 @@ for _, b in { quick, deploy, sortButton, bonusButton, confirmDeploy, confirmDisc
 	hoverable(b)
 end
 
-glyph(bonusButton, "☰")
+glyph(bonusButton, "≡")
 glyph(quick, "⚡")
 glyph(deploy, "▶")
 
@@ -634,8 +638,9 @@ local function paintEdges(slot)
 	local edge = selected == slot and D.Cyan:Lerp(Color3.new(1, 1, 1), 0.35)
 		or spec and (GachaConfig.RARITY_COLORS[spec.Rarity] or D.Cyan)
 		or D.Cyan
+	-- The top rim carries the member's rarity (or the selection); the lower rims stay cyan, as the mockup.
 	for _, part in a.Edges do
-		part.Color = edge
+		part.Color = part.Name == "TopEdge" and edge or D.Cyan
 	end
 end
 
@@ -898,9 +903,9 @@ function render()
 	UiMotion.Create(fill, TweenInfo.new(0.2), { Size = UDim2.fromScale(n / SLOTS, 1) }):Play()
 	local changed = dirty()
 	deploy:SetAttribute("Enabled", changed and n > 0)
-	deploy.BackgroundColor3 = (changed and n > 0) and D.Cyan or D.Cyan:Lerp(D.Ink, 0.6)
+	deploy.BackgroundColor3 = (changed and n > 0) and GREEN or GREEN:Lerp(D.Ink, 0.55)
 	quick:SetAttribute("Enabled", n < SLOTS)
-	quick.BackgroundColor3 = n < SLOTS and D.Wood or D.Wood:Lerp(D.Ink, 0.6)
+	quick.BackgroundColor3 = n < SLOTS and D.Cream or D.Cream:Lerp(D.Ink, 0.5)
 	if status.Text == "Ready" or status.Text == "Unsaved changes" or status.Text == "Deployed" then
 		setStatus(changed and "Unsaved changes" or "Ready", changed and D.Gold or D.Cyan)
 	end

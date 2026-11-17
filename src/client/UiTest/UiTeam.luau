@@ -13,12 +13,12 @@
 --     X_TOL px); its centre is within MID_TOL px of the midpoint of the Items and Rebirth cells' centres; it is clear of the
 --     left column (cells, Key letters, Badges) and of BossButton at its biggest pulse. Hidden in a boss event as BossButton is
 --     (UiBossEvent onlyShown). A press, or the T key, toggles RacerTeam/Panel (PanelSwitch "Team"); an open panel draws above it.
---   RacerTeam/Panel: the game-wide frame (PanelFrame.Attach: attribute PanelFrame; UiSpec.BandPanels 1200), Header/Title
---     "TEAM SETUP" (PanelFrame upper-cases it), Header/Close, Header/BonusButton. The world dim is on while it is open.
+--   RacerTeam/Panel: a full-screen page (owner 2026-11-17: AbsoluteSize = its ScreenGui's within 2 px; not a band
+--     panel, UiSpec.FullScreenPanels), Header/Title "TEAM SETUP" (upper-cased), Header/Close, Header/BonusButton. The world dim is on while it is open.
 --     BonusPopover (hidden until BonusButton; a second press hides it): Name (bonus or "No team bonus"), Effect, Total
 --     ("Total <n> s"). Dots/Dot1..3: BackgroundTransparency < 0.5 when that draft slot is filled, else >= 0.5.
---     Altars/Altar1..3 (TextButtons, left to right, same Y, not overlapping): SlotLabel "Slot n"; Pedestal (ViewportFrame
---     holding a Model "Altar"); a member shows Portrait (ImageLabel, its CharacterPortraits image), Name (character name),
+--     Altars/Altar1..3 (TextButtons, left to right, same Y, not overlapping): SlotLabel "SLOT n"; Pedestal (ViewportFrame
+--     holding a Model "Altar", and a Model "Figure" (the member's 3D model) only on a member altar); a member shows Portrait (ImageLabel, its CharacterPortraits image), Name (character name),
 --     Info ("<Rarity> · <n> studs/s") and hides Plus / Add; an empty altar shows Plus "+" and Add "Add Character" and hides
 --     Portrait / Name / Info. Remove "Remove" shows only on the selected altar holding a member; attribute Selected on it.
 --     Footer: TeamName "Team 1", Status "Ready" (draft == saved Team) or "Unsaved changes" (or the server's refusal),
@@ -28,7 +28,7 @@
 --     while draft == saved Team or the draft is empty). ConfirmClose (hidden; Deploy, Discard). No BestTeam anywhere; no
 --     Slots or Bonus child of Panel.
 --   Gear: every member altar and every character card with a RelicGear / SidekickGear entry holds Gear (top-right: in the
---     card's top-right quarter, on an altar in the Portrait's top-right quarter) with Relic / Sidekick ImageLabels shown,
+--     card's top-right quarter, on an altar in the Pedestal's top-right quarter) with Relic / Sidekick ImageLabels shown,
 --     attributes ItemName and Rarity. UiTooltip/Tip (Title, Rarity, Body) shows on SelectionGained of an icon with Title ==
 --     ItemName, and hides on SelectionLost.
 --   Editing: tap an altar, then a card (draft only, nothing sent); a member already on another altar swaps; Remove takes
@@ -169,6 +169,19 @@ function Module.Build(h)
 			local model = pedestal and pedestal:IsA("ViewportFrame") and pedestal:FindFirstChild("Altar", true)
 			if not (model and model:IsA("Model")) then
 				table.insert(wrong, tag .. ": Pedestal is not a ViewportFrame holding a Model Altar")
+			end
+			-- Owner 2026-11-17 (4.45): a member stands on its altar as its 3D model; an empty altar holds none
+			local figure = pedestal and pedestal:FindFirstChild("Figure", true)
+			local hasFigure = figure ~= nil and figure:IsA("Model")
+			if hasFigure ~= (ids[n] ~= nil) then
+				table.insert(
+					wrong,
+					("%s: Pedestal Model Figure %s, want %s"):format(
+						tag,
+						hasFigure and "present" or "absent",
+						ids[n] and "present" or "absent"
+					)
+				)
 			end
 			local portrait, name, info =
 				a:FindFirstChild("Portrait"), a:FindFirstChild("Name"), a:FindFirstChild("Info")
@@ -454,7 +467,28 @@ function Module.Build(h)
 		local panel = h.find(T.Panel)
 		check(res, "team_panel_present", panel ~= nil and panel:IsA("Frame"), true)
 		check(res, "team_panel_shown", shown(panel), true)
-		check(res, "team_panel_shared_frame", panel and panel:GetAttribute("PanelFrame"), true)
+		-- Owner 2026-11-17 (4.45): a full-screen page, not the game-wide panel frame
+		local gui = panel and panel:FindFirstAncestorWhichIsA("LayerCollector")
+		local full = panel ~= nil
+			and gui ~= nil
+			and math.abs(panel.AbsoluteSize.X - gui.AbsoluteSize.X) <= T.FullScreenTol
+			and math.abs(panel.AbsoluteSize.Y - gui.AbsoluteSize.Y) <= T.FullScreenTol
+		h.check(
+			res,
+			"team_panel_full_screen",
+			panel
+					and gui
+					and ("%.0fx%.0f in %.0fx%.0f"):format(
+						panel.AbsoluteSize.X,
+						panel.AbsoluteSize.Y,
+						gui.AbsoluteSize.X,
+						gui.AbsoluteSize.Y
+					)
+				or "missing",
+			"the ScreenGui's size +/- " .. T.FullScreenTol,
+			full
+		)
+		check(res, "team_panel_not_band", Spec.BandPanels[T.Panel], nil)
 		local title = textOf(h.find(T.Title))
 		check(res, "team_panel_title", title and string.upper(title), T.TitleText)
 		local close = h.find(T.Close)
@@ -637,9 +671,9 @@ function Module.Build(h)
 		end
 		for n = 1, 3 do
 			local a = altar(n)
-			local portrait = a and a:FindFirstChild("Portrait")
-			if ids[n] and portrait then
-				for _, w in gearProblems(a, ids[n], portrait, "Altar" .. n, icons) do
+			local pedestal = a and a:FindFirstChild("Pedestal")
+			if ids[n] and pedestal then
+				for _, w in gearProblems(a, ids[n], pedestal, "Altar" .. n, icons) do
 					table.insert(wrong, w)
 				end
 			end

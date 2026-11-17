@@ -865,7 +865,7 @@ UiSpec.BandPanels = {
 	["CheckpointUi/Panel"] = 1200,
 	["DailyBoosts/ModalBackdrop/Modal"] = 1200,
 	["RacerBackpack/Panel"] = 1200,
-	["RacerTeam/Panel"] = 1200, -- the game-wide 1200 x 620 frame (design doc 4.40 Team panel)
+	-- retired: RacerTeam/Panel, Team Setup is a full-screen page (design doc 4.45, owner 2026-11-17)
 	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }
 UiSpec.Band = {
@@ -1000,7 +1000,13 @@ UiSpec.PanelDimmers = {
 		"RollToast/PanelDimmer",
 		"RacerProgression/PanelDimmer",
 	},
-	VeilExempt = { RollShowcase = true, LoserScreen = true, RacerUpgrades = true, UiTransition = true },
+	VeilExempt = {
+		RollShowcase = true,
+		LoserScreen = true,
+		RacerUpgrades = true,
+		UiTransition = true,
+		RacerTeam = true,
+	},
 	Veil = { MinCoverage = 0.9, MaxTransparency = 0.95 },
 	PersistentButtons = {
 		"HudChrome/Grid/Index",
@@ -1038,7 +1044,8 @@ UiSpec.Motion = {
 -- element of another ScreenGui (the HUD entries need not be drawn or clickable), and the panel band rules
 -- (below roll / race, above turbo) do not apply. Overlaps INSIDE its ScreenGui (tile vs tile, tile vs chrome) and
 -- every other panel's rules stay checked.
-UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true }
+-- Owner 2026-11-17 (design doc 4.45): Team Setup is a full-screen page over the blossom-shrine scene.
+UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true, ["RacerTeam/Panel"] = true }
 
 -- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the second left column (Bosses, and
 -- Team once its button has a path), drawn above it (ui_layout no_overlap_* / text_clear_of_buttons_* allow it only
@@ -3435,7 +3442,7 @@ UiSpec.Team = {
 	Button = "RacerSecondColumn/TeamButton",
 	Panel = TEAM_ROOT,
 	Title = TEAM_ROOT .. "/Header/Title",
-	TitleText = "TEAM SETUP", -- PanelFrame upper-cases "Team Setup"
+	TitleText = "TEAM SETUP", -- compared upper-cased
 	Close = TEAM_ROOT .. "/Header/Close",
 	BonusButton = TEAM_ROOT .. "/Header/BonusButton",
 	BonusPopover = TEAM_ROOT .. "/BonusPopover", -- Name, Effect, Total; hidden until BonusButton is pressed
@@ -3458,7 +3465,8 @@ UiSpec.Team = {
 	SummonPanel = "RacerSidekicks/Canvas",
 	Gone = { "BestTeam" }, -- no descendant of Panel has this name (Quick Setup replaced it, 4.45)
 	GoneDirect = { "Slots", "Bonus" }, -- layout A's parts: no child of Panel has these names any more
-	SlotLabels = { "Slot 1", "Slot 2", "Slot 3" },
+	SlotLabels = { "SLOT 1", "SLOT 2", "SLOT 3" }, -- owner 2026-11-17 (4.45)
+	FullScreenTol = 2, -- px: Panel AbsoluteSize against its ScreenGui's
 	TeamName = "Team 1",
 	Ready = "Ready",
 	Unsaved = "Unsaved changes",

@@ -7793,7 +7793,13 @@ function Scenarios.spawn_area()
 			end
 			check(checks, "plaza_" .. f.Name .. "_prompt", promptOk and 1 or 0, 1, promptOk)
 			if f.Action then
-				check(checks, "plaza_" .. f.Name .. "_prompt_text", tostring(action), f.Action, action == f.Action)
+				check(
+					checks,
+					"plaza_" .. f.Name .. "_prompt_text",
+					action == f.Action and 1 or 0,
+					1,
+					action == f.Action
+				)
 			end
 			local onFloor, clear, count = true, true, 0
 			for _, d in model:GetDescendants() do
