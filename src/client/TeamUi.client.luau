@@ -519,6 +519,7 @@ local function layout()
 	g.Place(deploy, W - M - 240, fy + 2, 240, 56)
 	g.Place(quick, W - M - 240 - 16 - 220, fy + 4, 220, 52)
 	g.Role(quick, "Item").TextColor3 = D.Ink
+	quick.RoleStroke.Transparency = 1 -- dark words on cream need no outline
 	g.Role(deploy, "Section").TextColor3 = D.Cream
 	-- Tray
 	local ty = fy + 72
@@ -548,6 +549,8 @@ local function layout()
 		local color = b.TextColor3
 		g.Role(b, "Body").TextColor3 = color
 	end
+	confirmDeploy.BackgroundColor3 = GREEN -- the same green as Deploy; cream words read on it
+	confirmDeploy.TextColor3 = D.Cream
 	if panel.Visible then
 		task.defer(render)
 	end

@@ -58,13 +58,23 @@ local function build()
 		BorderSizePixel = 0,
 		Visible = false,
 	})
+	-- A soft column: the colour fades out to both sides, with a thin white core.
 	make("UIGradient", "Fade", beam, {
-		Rotation = 90,
 		Transparency = NumberSequence.new({
 			NumberSequenceKeypoint.new(0, 1),
-			NumberSequenceKeypoint.new(0.5, 0.2),
-			NumberSequenceKeypoint.new(1, 0),
+			NumberSequenceKeypoint.new(0.35, 0.55),
+			NumberSequenceKeypoint.new(0.5, 0.25),
+			NumberSequenceKeypoint.new(0.65, 0.55),
+			NumberSequenceKeypoint.new(1, 1),
 		}),
+	})
+	make("Frame", "Core", beam, {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.fromScale(0.12, 1),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.25,
+		BorderSizePixel = 0,
 	})
 	flash = make("Frame", "Flash", root, {
 		Size = UDim2.fromScale(1, 1),
@@ -138,13 +148,15 @@ function SummonAltarFx.Play(at, rarity, done)
 	end
 	if tier >= 2 then
 		beam.Position, beam.BackgroundColor3, beam.Visible = spot, color, true
-		beam.Size = UDim2.fromOffset(tier >= 4 and 60 or 36, 0)
+		beam.Size = UDim2.fromOffset(tier >= 4 and 110 or 70, 0)
 		beam.BackgroundTransparency = 0
+		beam.Core.BackgroundTransparency = 0.25
 		UiMotion.Create(beam, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			Size = UDim2.fromOffset(beam.Size.X.Offset, tier >= 4 and at.Y or at.Y * 0.6),
 		}):Play()
 		task.delay(0.45, function()
 			UiMotion.Create(beam, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+			UiMotion.Create(beam.Core, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
 		end)
 	end
 	if tier >= 3 then
