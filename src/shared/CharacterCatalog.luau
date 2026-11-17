@@ -132,7 +132,7 @@ function CharacterCatalog.Rollable()
 	return rarestFirst
 end
 
--- Kept for the old car API: there are no gamepass characters, so always empty.
+-- Kept for the old character API: there are no gamepass characters, so always empty.
 local NO_PASSES = {}
 function CharacterCatalog.Passes()
 	return NO_PASSES

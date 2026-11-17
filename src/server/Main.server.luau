@@ -1,7 +1,7 @@
 --!nonstrict
 -- Test code never reaches a live server or phone: it is about a third of the client's script bytes and samples GUI every frame.
 if not game:GetService("RunService"):IsStudio() then
-	local tests = script.Parent:FindFirstChild("CarTest")
+	local tests = script.Parent:FindFirstChild("ServerTest")
 	local uiTests = game:GetService("StarterPlayer").StarterPlayerScripts:FindFirstChild("Client")
 	uiTests = uiTests and uiTests:FindFirstChild("UiTest")
 	if tests then
@@ -26,7 +26,7 @@ local Tunnel = require(Shared.Tunnel)
 local BiomeThemes = require(Shared.BiomeThemes)
 local TerrainBuilder = require(script.Parent.TerrainBuilder)
 local AdminService = require(script.Parent.AdminService)
-local CarService = require(script.Parent.CarService)
+local RunnerService = require(script.Parent.RunnerService)
 local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
@@ -98,16 +98,16 @@ end
 
 -- The lighting baseline goes in before WeatherService snapshots it (docs/RENDERING_SPEC.md)
 require(Shared.LightingConfig).Apply()
--- The player's car auto-races the whole chain at the speed from their saved stats
+-- The player's runner auto-races the whole chain at the speed from their saved stats
 RaceService.Start(RaceService.BuildRoute(entries))
 WeatherService.Start()
 require(script.Parent.CharacterModelService).Start() -- loads the uploaded runner models in the background
 PlayerData.Start()
 UpgradeService.SetTrackCount(#chain) -- the tree's tier gate (docs/UPGRADE_TREE_DESIGN.md)
 UpgradeService.Start() -- the money upgrade tree: Remotes.BuyUpgrade and the UPGRADES badge
-GachaService.Start() -- free auto-rolls (after each save loads), the car index and stat points
+GachaService.Start() -- free auto-rolls (after each save loads), the character index and stat points
 MoneyService.Start()
-CarService.Start()
+RunnerService.Start()
 require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza meshes, in the background (design doc 4.24)
 do -- cyber accents on top of the plaza (4.24 "Dojo with cyber accents"); a failure only warns
 	local ok, err = pcall(function()
@@ -205,7 +205,7 @@ QuestService.Start() -- UTC daily and weekly quest tracking (docs/QUESTS_SPEC.md
 require(script.Parent.PassService).Start() -- gamepass ownership and the paid random items policy
 ShopService.Start() -- Robux potion receipts and redeem codes (docs/MONETIZATION_SPEC.md)
 AdminService.Start() -- chat admin commands (docs/ADMIN_COMMANDS_SPEC.md)
-LeaderboardService.Start({ "RarestCar" }) -- feeds the Best Roll pedestal only; the boards stay removed (design doc 4.16)
+LeaderboardService.Start({ "RarestCharacter" }) -- feeds the Best Roll pedestal only; the boards stay removed (design doc 4.16)
 
 -- Tracks 6-10 behind the game (design doc 4.25), one per frame, a track a player is on or headed to first. Each is
 -- pruned against every built road both ways, then snapped against every built road, pinned hero and pad;
@@ -213,9 +213,9 @@ LeaderboardService.Start({ "RarestCar" }) -- feeds the Best Roll pedestal only; 
 local function playerTracks()
 	local list = {}
 	for _, player in game:GetService("Players"):GetPlayers() do
-		local run = CarService.GetRun(player)
-		local car = run and run.Car
-		table.insert(list, car and (car:GetAttribute("RunHold") or car:GetAttribute("RunTrack")) or 1) -- on foot: plaza
+		local run = RunnerService.GetRun(player)
+		local runner = run and run.Runner
+		table.insert(list, runner and (runner:GetAttribute("RunHold") or runner:GetAttribute("RunTrack")) or 1) -- on foot: plaza
 	end
 	return list
 end

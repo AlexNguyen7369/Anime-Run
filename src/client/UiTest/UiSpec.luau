@@ -152,8 +152,8 @@ UiSpec.Guis = {
 			{
 				Path = "Panel/Face/GridHost/Gallery/*/Equip",
 				Does = "remote",
-				Remote = "EquipCar",
-				Arg = "tile_id", -- THAT tile's car id
+				Remote = "EquipCharacter",
+				Arg = "tile_id", -- THAT tile's character id
 				Count = "catalog", -- one per CharacterCatalog.All()
 				DisabledWhen = "team_slot_1", -- only Team slot 1 shows "IN TEAM" and fires nothing; slots 2, 3 swap (design doc 4.2, UI audit A14)
 				HiddenWhen = "undiscovered", -- undiscovered tiles have no Equip button
@@ -276,7 +276,7 @@ UiSpec.Guis = {
 	-- shown (Visible = false at rest: no invisible hitbox; shown at rest only while AutoRoll is false, with "AUTO OFF").
 	-- Text is "": its parts draw it.
 	-- Starter choice popup (design doc 4.21, 4.24): Enabled only for a new player. A save with rolls never sees it, so
-	-- its Choose buttons are covered by ui_starter_pick (structure, no pick) and CarTest Phase2Tests starter_pick_*.
+	-- its Choose buttons are covered by ui_starter_pick (structure, no pick) and ServerTest Phase2Tests starter_pick_*.
 	StarterPick = {
 		Source = "Client/StarterPick",
 		Overlay = true,
@@ -299,7 +299,7 @@ UiSpec.Guis = {
 				Path = "Toast",
 				Does = "open_overlay",
 				Overlay = "RollShowcase",
-				Label = "the bare car art and Odds of the latest RollResult (no card)",
+				Label = "the bare character art and Odds of the latest RollResult (no card)",
 			},
 		},
 		NonInteractiveParts = { "FlyIcon" },
@@ -793,9 +793,9 @@ UiSpec.Shop = {
 	Bundle = "Bundle",
 	BuyName = "Buy",
 	ComingSoon = "Coming soon", -- id 0 (GamepassId / ProductId)
-	-- An owned gamepass car (attribute Pass_<carId>): its Featured button equips it (docs/GAMEPASS_CARS_SPEC.md, owner
-	-- 2026-10-20, later than GAMEPASS_SHOP_SPEC section 2's "Owned"): "Equipped" while it is EquippedCar, else "Equip".
-	OwnedCar = { Equip = "Equip", Equipped = "Equipped" },
+	-- An owned gamepass character (attribute Pass_<characterId>): its Featured button equips it (docs/GAMEPASS_CARS_SPEC.md, owner
+	-- 2026-10-20, later than GAMEPASS_SHOP_SPEC section 2's "Owned"): "Equipped" while it is EquippedCharacter, else "Equip".
+	OwnedCharacter = { Equip = "Equip", Equipped = "Equipped" },
 	ThanksText = "Thanks for your support!",
 	Codes = { Input = "Input", Redeem = "Redeem", Status = "Status" },
 	-- The text the redeem click types: never a real code (Server/CodeConfig keys are upper case words; this has a
@@ -1120,14 +1120,14 @@ UiSpec.Showcase = {
 	SpeedAliasText = "Cruise %s",
 	TurboBadgeText = "TURBO x%s", -- %s = the roll's turbo multi
 	-- Duplicates are kept as copies and pay $0 (docs/WORKSHOP_SPEC.md "5b. Showcase", owner 2026-10-22): the card's
-	-- ScrapBadge shows this on a duplicate roll (never a Money amount), and is hidden on a new car. RollResult's
+	-- ScrapBadge shows this on a duplicate roll (never a Money amount), and is hidden on a new character. RollResult's
 	-- 5th argument (scrapMoney) must be 0.
 	CopyBadge = "ScrapBadge",
 	CopyBadgeText = "+1 COPY",
 	GoldOdds = Color3.fromRGB(255, 200, 60), -- contract: Legendary and rarer show gold odds
 	SecretMinLuminance = 0.5, -- Secret's colour is near-black: its Rarity / Odds text must still read (light)
 	NameStrokeMaxLuminance = 0.3, -- ResultName: a DARK UIStroke outline
-	CarNameStrokeMaxLuminance = 0.3, -- compatibility probe name for the same ResultName outline
+	ResultNameStrokeMaxLuminance = 0.3, -- compatibility probe name for the same ResultName outline
 	Blur = "RollShowcaseBlur", -- BlurEffect in Lighting: Enabled while open, disabled when closed
 	CornerInset = 24, -- px: the backdrop click lands this far in from the bottom-right corner (clear of the card)
 	Hint = "Hint", -- Backdrop/Hint
@@ -1257,7 +1257,7 @@ UiSpec.RollAnim = {
 UiSpec.Announce = {
 	Remote = "RollAnnounce",
 	Channel = "RBXGeneral",
-	Format = "%s rolled %s (%s)! Total rolls: %d", -- DisplayName, Car Name, odds, Rolls after the roll
+	Format = "%s rolled %s (%s)! Total rolls: %d", -- DisplayName, Character Name, odds, Rolls after the roll
 }
 
 -- Client scripts that build no ScreenGui but must exist (StarterPlayerScripts.Client).
@@ -1267,7 +1267,7 @@ UiSpec.ClientScripts = { "RollAnnounce", "BossPrepRun" } -- BossPrepRun: display
 UiSpec.Remotes = {
 	"SetAutoRace",
 	"SetAutoRoll",
-	"EquipCar",
+	"EquipCharacter",
 	"AllocateStat",
 	"RollResult",
 	"RollAnnounce",
@@ -1359,10 +1359,10 @@ UiSpec.Billboards = {
 		Text = "HudFormat.MoneyText(Cash)",
 	},
 	-- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md section 3a): Workspace.SpawnArea.BestRoll.Pedestal.Stats.
-	-- Odds / Car / Player follow the RarestCar board (server); here only that they exist. Title is fixed.
+	-- Odds / Character / Player follow the RarestCharacter board (server); here only that they exist. Title is fixed.
 	BestRollStats = {
 		Path = "SpawnArea/BestRoll/Pedestal/Stats", -- under Workspace
-		Adornee = "CarMount", -- Pedestal.CarMount
+		Adornee = "CharacterMount", -- Pedestal.CharacterMount
 		-- true = must exist, any text; "Character" (was Car: characters, not cars, WORLD_REDESIGN_SPEC, w1)
 		Labels = { Title = "BEST ROLL EVER", Odds = true, Character = true, Player = true },
 		MaxDistance = "LeaderboardConfig.BEST_ROLL.TEXT_DISTANCE", -- 150
@@ -1405,7 +1405,7 @@ UiSpec.Waits = {
 }
 
 --[[
-Server-side setup. Done by src/server/CarTest/UiTestSetup.server.luau (Studio only, live modules), triggered by
+Server-side setup. Done by src/server/ServerTest/UiTestSetup.server.luau (Studio only, live modules), triggered by
 ui-tester on the SERVER datamodel (a client cannot: client attribute changes do not replicate):
   1. ReplicatedStorage:SetAttribute("UiTestSetup", "<id>:<nonce>")   (a fresh nonce every time)
   2. wait until ReplicatedStorage:GetAttribute("UiTestSetupDone") == "<id>:<nonce>"
@@ -1434,7 +1434,7 @@ UiSpec.ServerSetup = {
 	{
 		Id = "index_states",
 		When = "before UiTestRun (ui_index needs a discovered, an undiscovered AND an equipped catalog tile)",
-		What = "Owns every catalog car but the rarest (stays '???'), equips the first owned one, sets every "
+		What = "Owns every catalog character but the rarest (stays '???'), equips the first owned one, sets every "
 			.. "Alloc_* to 0 so StatPoints = FreePoints >= 1.",
 	},
 	{
@@ -1453,15 +1453,15 @@ UiSpec.ServerSetup = {
 		When = "asked for by ui_run_visual itself (UiScenarios.Needs) and by UiRunVisual.Capture; the rig commands "
 			.. "run_visual_rig, run_visual_swap and run_visual_clear only reach UiTestSetupRequest",
 		What = "A straight route of its own (RunRoutes/UiRunVisualRoute) and one rig at a time built for no Player "
-			.. "(Owner = 0), with the real RunnerFactory and VehicleEffects.Apply on a Folder's slot attributes. Reads "
+			.. "(Owner = 0), with the real RunnerFactory and RunnerEffects.Apply on a Folder's slot attributes. Reads "
 			.. "and writes no Team, owned item or Money. 'restore:run_visual' removes the rig and the route.",
 	},
 	{
 		Id = "on_foot",
 		When = "before the on_foot fixture runs (UiSpec.Progression.FixtureChecks) and first in the NeedSetup of "
-			.. "every click whose After pins Money (progression_not_optimistic: a racing car's pad payouts would move "
+			.. "every click whose After pins Money (progression_not_optimistic: a racing runner's pad payouts would move "
 			.. "it mid-check); needs 'snapshot' first",
-		What = "Stops auto race (AutoRacing == false, avatar on foot at the walk spawn, no car). 'restore' puts "
+		What = "Stops auto race (AutoRacing == false, avatar on foot at the walk spawn, no runner). 'restore' puts "
 			.. "AutoRacing back.",
 	},
 	{
@@ -1550,8 +1550,8 @@ UiSpec.ServerSetup = {
 	{
 		Id = "emphasized_next",
 		When = "during UiTestRun when the harness prints '[UITEST] WAIT emphasized_roll'; needs 'snapshot' first",
-		What = "Takes every rollable car away until the next roll happened (emphasized, new), then gives exactly the "
-			.. "cars owned before back.",
+		What = "Takes every rollable character away until the next roll happened (emphasized, new), then gives exactly the "
+			.. "characters owned before back.",
 	},
 	{
 		Id = "auto_roll_on",
@@ -1563,8 +1563,8 @@ UiSpec.ServerSetup = {
 		When = "after the run and the clicks",
 		What = "Applies the 'snapshot', restores AutoRacing and AutoRoll and removes UiTestSpy. It CONSUMES the "
 			.. "snapshot (deliberately: a kept baseline would survive into a later session and make its 'snapshot' a "
-			.. "no-op, restoring stale money/cars). Any fixture after a restore needs a fresh 'snapshot' first, else "
-			.. "it errors 'snapshot required'. Restore can stop auto race, and CarService then holds the avatar at the "
+			.. "no-op, restoring stale money/characters). Any fixture after a restore needs a fresh 'snapshot' first, else "
+			.. "it errors 'snapshot required'. Restore can stop auto race, and RunnerService then holds the avatar at the "
 			.. "walk spawn for ~2 s.",
 	},
 }
@@ -2084,7 +2084,7 @@ UiSpec.Clicks = {
 			After = { "autorace_label_follows_server", "autoracing_is_arg", "auto_pill_tint_follows_server" },
 		},
 	},
-	-- Index: Equip fires EquipCar with THAT tile's id; the equipped tile fires nothing
+	-- Index: Equip fires EquipCharacter with THAT tile's id; the equipped tile fires nothing
 	{
 		Id = "equip_discovered_tile",
 		Gui = "RacerIndex",
@@ -2093,7 +2093,7 @@ UiSpec.Clicks = {
 		-- on_foot: only an equip on foot changes the Team, and the tile's IN TEAM follows slot 1 (design doc 4.2, UI audit A14)
 		NeedSetup = { "on_foot", "spy", "index_states" },
 		Expect = {
-			Remote = { Name = "EquipCar", Arg = "tile_id" },
+			Remote = { Name = "EquipCharacter", Arg = "tile_id" },
 			After = { "equipped_is_tile", "tile_shows_equipped" },
 		},
 	},
@@ -2671,16 +2671,22 @@ for _, item in
 		-- granted or paid) and turns AutoRoll off until 'restore'
 		{
 			Id = "roll_odds_luck2",
-			What = "Plants a car with a Chance at luck 2; display remains base rarity; run ui_roll_odds.",
+			What = "Plants a character with a Chance at luck 2; display remains base rarity; run ui_roll_odds.",
 		},
-		{ Id = "roll_odds_round", What = "Same car at luck 3; display remains base rarity; run ui_roll_odds." },
-		{ Id = "roll_odds_clamp", What = "Same car at extreme luck; display remains base rarity; run ui_roll_odds." },
-		{ Id = "roll_odds_luck1", What = "Same car at luck 1 (base odds); run ui_roll_odds." },
-		{ Id = "roll_odds_no_luck", What = "Same car with NO 6th argument (base odds); run ui_roll_odds." },
-		{ Id = "roll_odds_catchall", What = "The catch-all car (Chance 1) at luck 2 ('1 in 1'); run ui_roll_odds." },
+		{ Id = "roll_odds_round", What = "Same character at luck 3; display remains base rarity; run ui_roll_odds." },
+		{
+			Id = "roll_odds_clamp",
+			What = "Same character at extreme luck; display remains base rarity; run ui_roll_odds.",
+		},
+		{ Id = "roll_odds_luck1", What = "Same character at luck 1 (base odds); run ui_roll_odds." },
+		{ Id = "roll_odds_no_luck", What = "Same character with NO 6th argument (base odds); run ui_roll_odds." },
+		{
+			Id = "roll_odds_catchall",
+			What = "The catch-all character (Chance 1) at luck 2 ('1 in 1'); run ui_roll_odds.",
+		},
 		{
 			Id = "weather_rain_roll",
-			What = "weather_rain, then plants the Rain car (else a car with a Chance) at the luck the server gives this "
+			What = "weather_rain, then plants the Rain character (else a character with a Chance) at the luck the server gives this "
 				.. "player during Rain (GachaService.Luck x WeatherConfig rain Luck); run ui_weather.",
 		},
 	}
@@ -2732,7 +2738,7 @@ UiSpec.Progression.FixtureChecks = {
 --[[
 Displayed odds (docs/WEATHER_EVENTS_SPEC.md "Displayed odds"; docs/ROLL_ANIMATION_SPEC.md). RollResult's 6th
 argument is the roll's server luck for compatibility, but both Odds labels (RollToast/Toast `Odds`; RollShowcase/Card
-`ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. The catch-all car (Chance 1)
+`ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. The catch-all character (Chance 1)
 shows "1 in 1". The Index and the roll announcement keep the base odds.
 
 Each fixture sets the player attribute Attr = JSON { fixture, id, luck (absent when not sent), nonce }, waits for a
@@ -2742,8 +2748,8 @@ later, RollResult(id, false, 1, true, 0, luck) (emphasized: plays on the enlarge
 UiSpec.RollOdds = {
 	Attr = "UiTestRollOdds",
 	Wait = 30, -- s for both planted rolls to land (the fixture first waits out the longest roll animation)
-	-- The luck each fixture must send. Luck = that number; ChanceTimes = the car's Chance x it; NoLuck = no 6th
-	-- argument; Event = at least that WeatherConfig event's Luck. CatchAll = the car has no Chance.
+	-- The luck each fixture must send. Luck = that number; ChanceTimes = the character's Chance x it; NoLuck = no 6th
+	-- argument; Event = at least that WeatherConfig event's Luck. CatchAll = the character has no Chance.
 	Fixtures = {
 		roll_odds_luck2 = { Luck = 2 },
 		roll_odds_round = { Luck = 3 },
@@ -3041,7 +3047,7 @@ do
 	table.insert(UiSpec.ServerSetup, item)
 end
 -- Backpack Characters tiles (c1 / u4): a tile click only picks the character, nothing is sent (owner 2026-11-12, 4.40: the
--- team slot buttons left for the Team panel, UiSpec.Team). Retired: a tile click firing EquipCar and the "equipped tile fires nothing"
+-- team slot buttons left for the Team panel, UiSpec.Team). Retired: a tile click firing EquipCharacter and the "equipped tile fires nothing"
 -- click backpack_equipped_car (the Team of 3 replaced the single equip, design doc 4.2).
 table.insert(UiSpec.Clicks, {
 	Id = "backpack_pick_character",
@@ -3336,7 +3342,7 @@ for _, panel in { "PickPanel", "InvitePanel" } do
 	})
 end
 -- Owner-approved 2026-10-20 contracts. Existing limits and click contracts above stay intact.
--- Backpack (docs/HUD_LAYOUT_SPEC.md section 3, owner 2026-10-20) and car icons (docs/CAR_EXPANSION_SPEC.md "Car icons
+-- Backpack (docs/HUD_LAYOUT_SPEC.md section 3, owner 2026-10-20) and character icons (docs/CAR_EXPANSION_SPEC.md "Car icons
 -- and model detail"). Checked by ui_backpack_characters and ui_character_icons (UiContracts) and the backpack_*
 -- clicks. Cars -> Characters, car models -> runner rigs (docs/WORLD_REDESIGN_SPEC.md section 1, ruling 2026-10-28).
 -- ui_backpack_characters measures the live engine rects and tags its geometry checks with the live variant (_desktop, or
@@ -3851,8 +3857,8 @@ table.insert(UiSpec.Clicks, {
 })
 
 -- Index header (reconcile 2026-10-27, Isaac's INVENTORY tabs, ccea607). docs/HUD_LAYOUT_SPEC.md sections 1 and 3:
--- Index opens its existing panel and stays the discovery gallery of every car; consumables live in the Backpack's
--- Misc tab (the old Bag is gone). The generated header keeps one visible tab, CharactersTab, which shows the car gallery
+-- Index opens its existing panel and stays the discovery gallery of every character; consumables live in the Backpack's
+-- Misc tab (the old Bag is gone). The generated header keeps one visible tab, CharactersTab, which shows the character gallery
 -- and asks the server nothing; the CONSUMABLES tab and its host stay hidden (ui_index index_no_consumables_view).
 UiSpec.IndexTabs = {
 	CarsTab = "RacerIndex/Panel/Face/Header/Face/CharactersTab",
@@ -3975,7 +3981,7 @@ table.insert(UiSpec.Clicks, {
 -- retired: UiSpec.SpeedDial, the speedometer (design doc 4.13, owner 2026-11-01)
 -- ui_runner_smooth (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28): measurement tolerances, not game values
 UiSpec.RunnerSmooth = {
-	Tag = "VisibleRunner", -- CollectionService tag of the runner the client renders (contract: Server/CarTest/RunnerTests)
+	Tag = "VisibleRunner", -- CollectionService tag of the runner the client renders (contract: Server/ServerTest/RunnerTests)
 	Wait = 5, -- s: while AutoRacing the visible runner must exist within this
 	SampleSeconds = 3, -- frames watched
 	MinFrames = 30, -- an unmeasured window never passes
@@ -3990,7 +3996,7 @@ UiSpec.RunnerSmooth = {
 -- ui_run_visual (core c3, owner 2026-11-04; UiRunVisual). Measurement limits, not game values. Pose numbers (SWING, BOB,
 -- STRIDE, NINJA) are never copied here: the scenario measures them from RunnerVisual on an unparented clone.
 UiSpec.RunVisual = {
-	Route = "UiRunVisualRoute", -- Server/CarTest/UiTestSetup RUN_VISUAL.ROUTE: straight, flat, RunRoutes folder
+	Route = "UiRunVisualRoute", -- Server/ServerTest/UiTestSetup RUN_VISUAL.ROUTE: straight, flat, RunRoutes folder
 	RigPrefix = "UiRunVisualRig",
 	Meshes = { "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg" }, -- design doc 5, RunnerFactory.PARTS without Trim
 	-- Runtime: about 40 rows x (SampleSeconds + settle + fetch) + 2 swaps; the owner's limit is about 5 minutes
@@ -4029,9 +4035,9 @@ UiSpec.RunVisual = {
 	FootTolerance = 0.1, -- studs off the range the pose itself gives the leg box over a stride
 	FootSinkLimit = 0.35, -- studs under the ground at most: the deepest boot box (1.96 x SCALE) swung 40 deg reaches 0.13
 	-- Aura and trail. Effect radii unscaled by RunnerFactory.SCALE: known cosmetic note, not a failure.
-	AttachmentTolerance = 0.05, -- studs: VehicleEffectTests' 0.001 is too small for float noise thousands of studs out
+	AttachmentTolerance = 0.05, -- studs: RunnerEffectTests' 0.001 is too small for float noise thousands of studs out
 	OriginClear = 1, -- studs: the route is high above the origin, so an attachment this near it has lost its part
-	MinRibbonWidth = 0.05, -- studs between a trail's attachments, VehicleEffectTests MIN_RIBBON_WIDTH
+	MinRibbonWidth = 0.05, -- studs between a trail's attachments, RunnerEffectTests MIN_RIBBON_WIDTH
 	-- Slot swap
 	SwapSeconds = 1,
 	SwapMinFrames = 15,

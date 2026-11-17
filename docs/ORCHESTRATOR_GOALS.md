@@ -4,11 +4,11 @@ Owner's end goals for `/orchestrate` (config `.claude/orchestrator.md`). Only th
 Game rules stay in `docs/GAME_DESIGN_REQUIREMENTS.md` and the specs.
 
 ## Global
-- Definition of done (every deliverable): its harness scenarios green, the full harness `[CARTEST] END fail=0`, rules
+- Definition of done (every deliverable): its harness scenarios green, the full harness `[SERVERTEST] END fail=0`, rules
   audit PASS (owner 2026-10-28).
 - Owner 2026-10-30 (replaces the per-deliverable full harness): during development each deliverable needs only its
   own targeted scenarios green plus `stylua` / `selene`; tests are a development tool, not a gate that delays work.
-  One full compatibility check (full harness `[CARTEST] END fail=0` + rules audit) runs once all features are built.
+  One full compatibility check (full harness `[SERVERTEST] END fail=0` + rules audit) runs once all features are built.
 
 ## anime-world: World redesign, every car model scrapped (replaces anime-maps)
 Status: active (owner 2026-10-28)

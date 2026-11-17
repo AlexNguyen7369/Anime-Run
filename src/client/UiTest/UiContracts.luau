@@ -291,9 +291,9 @@ function Contracts.Build(h)
 		check(res, "cast_no_other_rarities", next(rarities) == nil, true)
 		h.checkList(res, "cast_tiles_present", missing)
 		local catchalls = {}
-		for _, car in Catalog.All() do
-			if car.Chance == nil then
-				table.insert(catchalls, car.Id)
+		for _, character in Catalog.All() do
+			if character.Chance == nil then
+				table.insert(catchalls, character.Id)
 			end
 		end
 		check(res, "index_single_original_catchall", table.concat(catchalls, ","), "sea_navigator")
@@ -515,9 +515,9 @@ function Contracts.Build(h)
 	end
 
 	---------------------------------------------------------------------------------------------------------------
-	-- Backpack Cars tab (docs/HUD_LAYOUT_SPEC.md section 3, owner 2026-10-20) and car model icons
+	-- Backpack Characters tab (docs/HUD_LAYOUT_SPEC.md section 3, owner 2026-10-20) and character model icons
 	-- (docs/CAR_EXPANSION_SPEC.md "Car icons and model detail"). Live engine rects only: the rail's runtime UIScale
-	-- is not in the layout model, so ui-tester runs ui_backpack_cars at desktop AND phone landscape (UiSpec.Backpack).
+	-- is not in the layout model, so ui-tester runs ui_backpack_characters at desktop AND phone landscape (UiSpec.Backpack).
 	local B = Spec.Backpack
 	local BLACK = Color3.new(0, 0, 0)
 	local function rstr(r)
@@ -599,20 +599,20 @@ function Contracts.Build(h)
 	local function rank(rarity)
 		return table.find(B.RarityOrder, rarity) or math.huge
 	end
-	-- Owned cars, least rare first, then catalog Order: the spec's order. Index cars are owned through
-	-- LocalPlayer.GachaData; gamepass cars through the attribute Pass_<carId> and sort by their catalog rarity
+	-- Owned characters, least rare first, then catalog Order: the spec's order. Index characters are owned through
+	-- LocalPlayer.GachaData; gamepass characters through the attribute Pass_<characterId> and sort by their catalog rarity
 	-- (docs/HUD_LAYOUT_SPEC.md section 3, docs/GAMEPASS_CARS_SPEC.md "the Backpack Cars tab lists owned gamepass cars").
 	local function ownedInOrder()
 		local data = h.player:FindFirstChild("GachaData")
 		local list = {}
-		for _, car in Catalog.All() do
-			if data and data:FindFirstChild(car.Id) then
-				table.insert(list, car)
+		for _, character in Catalog.All() do
+			if data and data:FindFirstChild(character.Id) then
+				table.insert(list, character)
 			end
 		end
-		for _, car in Catalog.Passes() do
-			if h.player:GetAttribute("Pass_" .. car.Id) == true then
-				table.insert(list, car)
+		for _, character in Catalog.Passes() do
+			if h.player:GetAttribute("Pass_" .. character.Id) == true then
+				table.insert(list, character)
 			end
 		end
 		table.sort(list, function(a, b)
@@ -636,8 +636,8 @@ function Contracts.Build(h)
 		return nil
 	end
 
-	-- Problems of the Backpack grid as the Cars view, per check name (empty lists = all good)
-	local function carsGridProblems()
+	-- Problems of the Backpack grid as the Characters view, per check name (empty lists = all good)
+	local function charactersGridProblems()
 		local p = {
 			backpack_characters_owned_only = {},
 			backpack_characters_order = {},
@@ -657,15 +657,15 @@ function Contracts.Build(h)
 		end
 		local want = ownedInOrder()
 		local wanted = {}
-		for _, car in want do
-			wanted[car.Id] = true
+		for _, character in want do
+			wanted[character.Id] = true
 		end
 		local tiles = {}
 		for _, child in grid:GetChildren() do
 			if child:IsA("GuiObject") then
 				table.insert(tiles, child)
 				if not wanted[child.Name] then
-					table.insert(p.backpack_characters_owned_only, child.Name .. ": shown but not an owned car")
+					table.insert(p.backpack_characters_owned_only, child.Name .. ": shown but not an owned character")
 				end
 			end
 		end
@@ -673,9 +673,9 @@ function Contracts.Build(h)
 		for _, tile in tiles do
 			shownIds[tile.Name] = true
 		end
-		for _, car in want do
-			if not shownIds[car.Id] then
-				table.insert(p.backpack_characters_owned_only, car.Id .. ": owned but no tile")
+		for _, character in want do
+			if not shownIds[character.Id] then
+				table.insert(p.backpack_characters_owned_only, character.Id .. ": owned but no tile")
 			end
 		end
 		-- Order: LayoutOrder sequence and the reading order on screen both equal the spec order
@@ -691,8 +691,8 @@ function Contracts.Build(h)
 			return a.AbsolutePosition.X < b.AbsolutePosition.X
 		end)
 		local wantIds, layoutIds, screenIds = {}, {}, {}
-		for i, car in want do
-			wantIds[i] = car.Id
+		for i, character in want do
+			wantIds[i] = character.Id
 		end
 		for i, tile in byLayout do
 			layoutIds[i] = tile.Name
@@ -714,24 +714,24 @@ function Contracts.Build(h)
 		local team = string.split(h.player:GetAttribute("Team") or "", ",")
 		local picked = 0
 		for _, tile in tiles do
-			local car = Catalog.Get(tile.Name)
-			if not car then
+			local character = Catalog.Get(tile.Name)
+			if not character then
 				continue
 			end
 			local art = tile:FindFirstChild("Art")
-			local artProblem = cardArtProblem(art, car)
+			local artProblem = cardArtProblem(art, character)
 			if artProblem then
 				table.insert(p.backpack_characters_runner_art, tile.Name .. ": " .. artProblem)
-			elseif portraitOf(car) and art.ImageColor3 ~= Color3.new(1, 1, 1) then
+			elseif portraitOf(character) and art.ImageColor3 ~= Color3.new(1, 1, 1) then
 				table.insert(p.backpack_characters_runner_art, tile.Name .. ": portrait not white")
 			end
 			local name = tile:FindFirstChild("Name")
-			if not (name and name:IsA("TextLabel") and name.Text == car.Name) then
-				table.insert(p.backpack_characters_name, tile.Name .. ": " .. text(name) .. " want " .. car.Name)
+			if not (name and name:IsA("TextLabel") and name.Text == character.Name) then
+				table.insert(p.backpack_characters_name, tile.Name .. ": " .. text(name) .. " want " .. character.Name)
 			end
 			local multi = tile:FindFirstChild("Multi")
 			-- The tile shows the character's cruise, fixed by rarity x category (design doc 4.13; was Multi(SpeedMulti))
-			local wantMulti = Format.RateText(RaceConfig.Cruise(car))
+			local wantMulti = Format.RateText(RaceConfig.Cruise(character))
 			local got = multi and multi:IsA("TextLabel") and multi.Text or "missing"
 			if got ~= wantMulti then
 				table.insert(p.backpack_characters_multi, tile.Name .. ": " .. got .. " want " .. wantMulti)
@@ -770,14 +770,14 @@ function Contracts.Build(h)
 		if emptyShown ~= (#want == 0) then
 			table.insert(
 				p.backpack_characters_empty_label,
-				("Empty shown=%s with %d owned cars"):format(tostring(emptyShown), #want)
+				("Empty shown=%s with %d owned characters"):format(tostring(emptyShown), #want)
 			)
 		end
 		return p
 	end
-	local function carsGridChecks(res)
+	local function charactersGridChecks(res)
 		local _, problems = waitFor(B.ModelWait, function()
-			local p = carsGridProblems()
+			local p = charactersGridProblems()
 			for _, list in p do
 				if #list > 0 then
 					return false, p
@@ -796,7 +796,7 @@ function Contracts.Build(h)
 	end
 
 	-- Design doc 4.21: the popup offers exactly the 3 starters and opens only for a player who has to pick.
-	-- Structure only: a pick would spend the save's one choice (CarTest Phase2Tests covers the server).
+	-- Structure only: a pick would spend the save's one choice (ServerTest Phase2Tests covers the server).
 	function scenarios.ui_starter_pick(res)
 		local gui = required(res, "StarterPick", "ScreenGui")
 		local cards = required(res, "StarterPick/Dim/Panel/Cards", "Frame")
@@ -895,19 +895,19 @@ function Contracts.Build(h)
 		h.checkList(res, "backpack_tabs_no_overlap" .. variant, overlaps)
 		h.checkList(res, "backpack_tabs_topmost" .. variant, covered)
 		-- The Characters view itself is judged after the backpack_characters click (After backpack_characters_grid); when the grid
-		-- already shows cars (an earlier click) it is judged here too.
-		local showsCars = false
+		-- already shows characters (an earlier click) it is judged here too.
+		local showsCharacters = false
 		for _, child in grid:GetChildren() do
-			showsCars = showsCars or (child:IsA("GuiButton") and Catalog.Get(child.Name) ~= nil)
+			showsCharacters = showsCharacters or (child:IsA("GuiButton") and Catalog.Get(child.Name) ~= nil)
 		end
-		if showsCars then
-			carsGridChecks(res)
+		if showsCharacters then
+			charactersGridChecks(res)
 		end
 		restore()
 	end
 
 	-- Every Index gallery tile shows its character's runner rig (ViewportFrame Art, never the atlas);
-	-- an undiscovered car is a black silhouette, a discovered one is not.
+	-- an undiscovered character is a black silhouette, a discovered one is not.
 	function scenarios.ui_character_icons(res)
 		local restore = h.setPanels({ "RacerIndex/Panel" })
 		h.frames(2)
@@ -917,22 +917,22 @@ function Contracts.Build(h)
 		local function problems()
 			local p = { index_tiles_runner_art = {}, index_silhouette_state = {} }
 			local data = h.player:FindFirstChild("GachaData")
-			for _, car in Catalog.All() do
-				local tile = h.find(B.IndexGallery .. "/" .. car.Id)
+			for _, character in Catalog.All() do
+				local tile = h.find(B.IndexGallery .. "/" .. character.Id)
 				local art = tile and tile:FindFirstChild("Art")
-				local artProblem = cardArtProblem(art, car)
+				local artProblem = cardArtProblem(art, character)
 				if artProblem then
-					table.insert(p.index_tiles_runner_art, car.Id .. ": " .. artProblem)
+					table.insert(p.index_tiles_runner_art, character.Id .. ": " .. artProblem)
 				end
 				if art and (art:IsA("ViewportFrame") or art:IsA("ImageLabel")) then
-					local owned = data ~= nil and data:FindFirstChild(car.Id) ~= nil
+					local owned = data ~= nil and data:FindFirstChild(character.Id) ~= nil
 					if (art.ImageColor3 == BLACK) == owned then
 						table.insert(
 							p.index_silhouette_state,
-							car.Id .. (owned and ": discovered but black" or ": undiscovered but not black")
+							character.Id .. (owned and ": discovered but black" or ": undiscovered but not black")
 						)
 					elseif owned and art:IsA("ImageLabel") and art.ImageColor3 ~= Color3.new(1, 1, 1) then
-						table.insert(p.index_silhouette_state, car.Id .. ": discovered portrait not white")
+						table.insert(p.index_silhouette_state, character.Id .. ": discovered portrait not white")
 					end
 				end
 			end
@@ -949,7 +949,7 @@ function Contracts.Build(h)
 
 	-- Click post-conditions (UiSpec.Clicks Expect.After)
 	function after.backpack_characters_grid(res)
-		carsGridChecks(res)
+		charactersGridChecks(res)
 	end
 	-- retired: backpack_tile_shows_equipped (a Backpack tile no longer equips; the Team panel's slots do, UiTeam)
 	-- moved: backpack_characters_slots (the Slot<n> names of Team[n]) is UiTeam team_slots_* (owner 2026-11-12, 4.40)

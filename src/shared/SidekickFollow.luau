@@ -1,5 +1,5 @@
 --!nonstrict
--- Sidekick follow motion, pure (design doc 4.36; docs/SIDEKICK_SPEC.md "Display"). Contract: Server/CarTest/SidekickFollowTests.
+-- Sidekick follow motion, pure (design doc 4.36; docs/SIDEKICK_SPEC.md "Display"). Contract: Server/ServerTest/SidekickFollowTests.
 -- Drawn by Client/SidekickFollower. All distances and rates are placeholders. Offset is on the runner's right; the client mirrors it.
 local HttpService = game:GetService("HttpService")
 

@@ -1,6 +1,6 @@
 --!nonstrict
 -- Pays money into the player's stats. The server decides every number: a winnings pad (tag "WinPad")
--- carries a Cash attribute set by TrackBuilder, and touching it with your car adds that to
+-- carries a Cash attribute set by TrackBuilder, and touching it with your runner adds that to
 -- leaderstats.Money. Nothing the client sends is ever used as an amount.
 
 local CollectionService = game:GetService("CollectionService")
@@ -112,10 +112,10 @@ function MoneyService.Collect(player, pad, now)
 	return math.floor(cash) -- what was actually paid
 end
 
--- The player who owns the car this part belongs to (CarService tags cars with Owner = UserId).
+-- The player who owns the runner this part belongs to (RunnerService tags runners with Owner = UserId).
 function MoneyService.PlayerFromPart(part)
-	local car = part:FindFirstAncestorOfClass("Model")
-	local owner = car and car:GetAttribute("Owner")
+	local runner = part:FindFirstAncestorOfClass("Model")
+	local owner = runner and runner:GetAttribute("Owner")
 	if type(owner) ~= "number" then
 		return nil
 	end

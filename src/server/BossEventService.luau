@@ -1,7 +1,7 @@
 --!nonstrict
 -- Boss events (design doc 4.37, docs/BOSS_EVENT_SPEC.md): one event per server, every 30 minutes on a fixed grid (the
 -- WeatherService shape), or at once for a paid start. The server decides every hit; no remote reaches the damage. Contract:
--- Server/CarTest/BossEventTests.
+-- Server/ServerTest/BossEventTests.
 -- Clients read ReplicatedStorage attributes BossEventPhase ("Prep" or "Fight", nil when idle), BossEventStart (server time),
 -- BossEventHp, BossEventMaxHp, BossEventStage, BossEventEndsAt, BossScreamEndsAt (nil outside the scream) and BossScheduleStart
 -- (Poses.Schedule's start; shifted by the pause when a golem falls), BossEventBoss (BossCatalog id, nil when idle),
@@ -29,7 +29,7 @@ local CharacterCatalog = require(Shared.CharacterCatalog)
 local Cfg = require(Shared.BossEventConfig)
 local LateData = require(Shared.LateData)
 local StaminaConfig = require(Shared.StaminaConfig)
-local CarService = require(script.Parent.CarService)
+local RunnerService = require(script.Parent.RunnerService)
 local DuelService = require(script.Parent.DuelService)
 local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
@@ -258,21 +258,21 @@ BossEventService.Hooks = {
 	end,
 	-- The boss of an event started without one. Tests start theirs by name, so the default keeps them on Big Raga.
 	PickBoss = function()
-		if ReplicatedStorage:GetAttribute("CarTestRunning") == true then
+		if ReplicatedStorage:GetAttribute("ServerTestRunning") == true then
 			return BossCatalog.Default
 		end
 		return BossCatalog.Order[rewardRng:NextInteger(1, #BossCatalog.Order)]
 	end,
 	Arrive = function(player, lane)
 		local cf = RaceService.RouteStartCFrame(arenaNow().LaneRoute(lane))
-		assert(CarService.HoldAt(player, cf), "no living avatar")
-		CarService.GetCharacter(player):FindFirstChildOfClass("Humanoid").Died:Once(function()
+		assert(RunnerService.HoldAt(player, cf), "no living avatar")
+		RunnerService.GetCharacter(player):FindFirstChildOfClass("Humanoid").Died:Once(function()
 			BossEventService.Leave(player, "Death")
 		end)
 	end,
 	StartRun = function(player, team, lane)
 		local route = { Path = arenaNow().LaneRoute(lane), Pads = {}, Tracks = {} }
-		return CarService.RunHeld(player, route, {
+		return RunnerService.RunHeld(player, route, {
 			Boss = true,
 			Team = team,
 			MaxSpeed = arenaNow().MaxRunSpeed,
@@ -291,7 +291,7 @@ BossEventService.Hooks = {
 		})
 	end,
 	Depart = function(player)
-		CarService.SetAutoRace(player, false) -- back on foot at the walk spawn
+		RunnerService.SetAutoRace(player, false) -- back on foot at the walk spawn
 	end,
 	SwitchLane = function(run, lane)
 		run:SwitchRoute(arenaNow().LaneRoute(lane))
@@ -414,12 +414,12 @@ function BossEventService.AutoTeam(player)
 	return team
 end
 
--- The minibar's event roster (design doc 4.37): the Team attribute is never touched. Display only, except EquippedCar: the first
+-- The minibar's event roster (design doc 4.37): the Team attribute is never touched. Display only, except EquippedCharacter: the first
 -- on the team wears the held runner, for the preparation run. release() puts the player's own back.
 local function publishTeam(player, team)
 	player:SetAttribute("BossTeam", table.concat(team, ","))
-	if team[1] and player:GetAttribute("EquippedCar") ~= team[1] then
-		player:SetAttribute("EquippedCar", team[1])
+	if team[1] and player:GetAttribute("EquippedCharacter") ~= team[1] then
+		player:SetAttribute("EquippedCharacter", team[1])
 	end
 	local kind, series = GachaService.TeamBonus(player, team)
 	player:SetAttribute("BossTeamBonus", kind and (kind .. ":" .. series.Id) or "")
@@ -749,7 +749,7 @@ local function startRun(player, member)
 	member.Run = ok and run or nil
 end
 
--- Takes a member, already out of the Members table, out of the game's event state. The run stops first; EquippedCar goes
+-- Takes a member, already out of the Members table, out of the game's event state. The run stops first; EquippedCharacter goes
 -- back last so a failed return cannot keep the event's character.
 local function release(player, member, depart)
 	player:SetAttribute("BossEvent", nil)
@@ -767,8 +767,8 @@ local function release(player, member, depart)
 	if depart then
 		safely(BossEventService.Hooks.Depart, player)
 	end
-	if player:GetAttribute("EquippedCar") ~= member.Equipped then
-		player:SetAttribute("EquippedCar", member.Equipped)
+	if player:GetAttribute("EquippedCharacter") ~= member.Equipped then
+		player:SetAttribute("EquippedCharacter", member.Equipped)
 	end
 end
 
@@ -831,7 +831,7 @@ function BossEventService.Join(player)
 			Spared = {},
 			Osu = {},
 		},
-		Equipped = player:GetAttribute("EquippedCar"),
+		Equipped = player:GetAttribute("EquippedCharacter"),
 	}
 	-- A move before the join never hit this player: no stack, as for the stamina through ChargedTo.
 	for index = 1, indexAt(member.ChargedTo, current.Boss.Id) do
@@ -1250,7 +1250,7 @@ function BossEventService.Init()
 		left(player)
 		return true
 	end)
-	PlayerData.OnLeaving(left) -- before the leave save: it must hold the player's own EquippedCar
+	PlayerData.OnLeaving(left) -- before the leave save: it must hold the player's own EquippedCharacter
 	Players.PlayerRemoving:Connect(left)
 	ReplicatedStorage:GetAttributeChangedSignal("BossArenaPreview"):Connect(function()
 		if ReplicatedStorage:GetAttribute("BossArenaPreview") then -- the test preview builds the previewed boss's arena with no event
@@ -1268,7 +1268,7 @@ function BossEventService.Init()
 	task.spawn(function()
 		while true do
 			task.wait(TICK_SECONDS)
-			if ReplicatedStorage:GetAttribute("CarTestRunning") ~= true then
+			if ReplicatedStorage:GetAttribute("ServerTestRunning") ~= true then
 				safely(BossEventService.Advance)
 			end
 		end

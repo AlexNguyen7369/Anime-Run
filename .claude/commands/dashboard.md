@@ -10,4 +10,4 @@ Start the local Anime Run dashboard with the options: $ARGUMENTS
 3. Tell the user what the gate light currently says (`/api/gate` `text`).
 
 The server is read-only. `--lan` binds 0.0.0.0 so teammates on the same network can view it.
-The gate reads `.agents/gate.json` (`{"end": "[CARTEST] END pass=N fail=N", "commit": "<sha>"}`), written after a harness run.
+The gate reads `.agents/gate.json` (`{"end": "[SERVERTEST] END pass=N fail=N", "commit": "<sha>"}`), written after a harness run.

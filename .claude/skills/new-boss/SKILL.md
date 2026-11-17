@@ -16,7 +16,7 @@ Name the boss once: `<id>` is the short model id (`boss_<id>`), `<Id>` its capit
 - R15 block body: likeness comes from hair, face, paint and separate props. Never slim, taper or reshape the blocky body.
 - UI shows the drawn portrait PNG, never the 3D model.
 - Every upload script has a `main()` guard (`if __name__ == "__main__":`). Check it before any import or run. Nothing is uploaded to Roblox without the owner's explicit upload word for that batch (the 2026-11-05 incident uploaded 26 Decals).
-- Test files (`src/server/CarTest/*`, `src/client/UiTest/*`) are written only by the test-writer agent (`roster.tests_write`), red first, before the code they test.
+- Test files (`src/server/ServerTest/*`, `src/client/UiTest/*`) are written only by the test-writer agent (`roster.tests_write`), red first, before the code they test.
 - Every number the owner has not fixed is written `**proposed**` in the docs and listed in `docs/OWNER_QUESTIONS.md` under a dated heading.
 - One review page per gate (claude.ai artifact, like the Elf Mage's), with every render on it, each image labelled, and a numbered list of the decisions the owner must make. Template in the checklist.
 - Studio is shared with IVS work: check no other session is using it, one run at a time, Rojo serving the task checkout.
@@ -67,8 +67,8 @@ Done: approved keys unchanged (diff `keys.json`); every uploaded id in a ledger 
 
 ## 9. Server, client, verify, PR
 
-Order: test-writer writes `src/server/CarTest/Boss<Id>Tests.luau` and registers `boss_<id>_event`, `boss_<id>_anim`, `boss_<id>_arena` in `Scenarios.luau`; run them red. Then the server (catalog row, statuses, chest with `SidekickId`, `/boss <id>`); run green. Test-writer writes `src/client/UiTest/UiBoss<Id>.luau` (`ui_boss_<id>*`) and registers in `UiScenarios.luau` and `UiSpec.luau`; red. Then the client (arena branch, `Boss<Id>.luau`, `Boss<Id>Vfx.luau`, notices, cards); green. Existing scenarios (`boss_event`, `boss_mage_event`, `relics`, `sidekicks`, `ui_boss_cards`, `ui_boss_dodge`) stay green. Owner plays `/boss <id>` in Studio and rules on the open questions. Rules audit on the full diff. Open the PR with `merge.open` from `.claude/orchestrator.md`; a fresh reviewer reviews it; fix, then merge with the owner's word.
-Done: harness `[CARTEST] END fail=0` and `[UITEST] END fail=0` on the integration branch; audit PASS; PR merged.
+Order: test-writer writes `src/server/ServerTest/Boss<Id>Tests.luau` and registers `boss_<id>_event`, `boss_<id>_anim`, `boss_<id>_arena` in `Scenarios.luau`; run them red. Then the server (catalog row, statuses, chest with `SidekickId`, `/boss <id>`); run green. Test-writer writes `src/client/UiTest/UiBoss<Id>.luau` (`ui_boss_<id>*`) and registers in `UiScenarios.luau` and `UiSpec.luau`; red. Then the client (arena branch, `Boss<Id>.luau`, `Boss<Id>Vfx.luau`, notices, cards); green. Existing scenarios (`boss_event`, `boss_mage_event`, `relics`, `sidekicks`, `ui_boss_cards`, `ui_boss_dodge`) stay green. Owner plays `/boss <id>` in Studio and rules on the open questions. Rules audit on the full diff. Open the PR with `merge.open` from `.claude/orchestrator.md`; a fresh reviewer reviews it; fix, then merge with the owner's word.
+Done: harness `[SERVERTEST] END fail=0` and `[UITEST] END fail=0` on the integration branch; audit PASS; PR merged.
 
 ## 10. Bookkeeping
 

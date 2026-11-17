@@ -1,6 +1,6 @@
 --!nonstrict
 -- UTC-day login rewards. The server owns claim timing.
--- No Money: Money comes only from race cash-outs and duplicate car sales (design doc, "Economy").
+-- No Money: Money comes only from race cash-outs and duplicate character sales (design doc, "Economy").
 
 local DailyLoginConfig = {}
 

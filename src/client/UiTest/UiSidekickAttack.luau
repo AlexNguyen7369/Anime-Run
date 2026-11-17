@@ -1,7 +1,7 @@
 --!nonstrict
 -- Sidekick attacks at the boss (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks", docs/SIDEKICK_SPEC.md; task b7d). Owned by
 -- ui-test-writer. Fixtures: UiTestSetup sidekick_follow_*, with sidekick_follow_hits sending fake Remotes.BossHits batches to this
--- client. Pose data's own contract: Server/CarTest/SidekickAttackTests. Effects are approved from a Studio capture (spec's owner gate).
+-- client. Pose data's own contract: Server/ServerTest/SidekickAttackTests. Effects are approved from a Studio capture (spec's owner gate).
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
 --   Client/SidekickAttackView, a module the client loads. It draws what Remotes.BossHits brings, whatever the event's state; the

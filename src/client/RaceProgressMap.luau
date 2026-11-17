@@ -510,9 +510,9 @@ function Controller.Attach(hud, player, remote)
 		RunService.RenderStepped:Connect(function()
 			fit()
 			if state then
-				local car = RunnerVisual.LocalRunner()
-				local position = car and car:GetAttribute("AutoRace") and car:GetPivot().Position or nil
-				local heading = car and car:GetPivot().LookVector or nil
+				local runner = RunnerVisual.LocalRunner()
+				local position = runner and runner:GetAttribute("AutoRace") and runner:GetPivot().Position or nil
+				local heading = runner and runner:GetPivot().LookVector or nil
 				self.Update(math.max(0, workspace:GetServerTimeNow() - state.ServerStart), position, heading)
 			end
 		end)

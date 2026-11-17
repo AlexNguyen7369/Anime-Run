@@ -115,7 +115,7 @@ function WeatherService.Start()
 	task.spawn(function()
 		while started do
 			task.wait(1)
-			if ReplicatedStorage:GetAttribute("CarTestRunning") ~= true then
+			if ReplicatedStorage:GetAttribute("ServerTestRunning") ~= true then
 				WeatherService.Tick()
 			end
 		end

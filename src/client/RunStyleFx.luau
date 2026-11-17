@@ -5,14 +5,14 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
-local VehicleEffects = require(Shared:WaitForChild("VehicleEffects"))
+local RunnerEffects = require(Shared:WaitForChild("RunnerEffects"))
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local RunStyleFx = {}
 
 local FX_NAME = "RunStyleFx"
-local TEX = VehicleEffects.TEXTURES
+local TEX = RunnerEffects.TEXTURES
 local TAN, BROWN = Color3.fromRGB(214, 190, 150), Color3.fromRGB(110, 88, 66)
 
 local function seq(a, b)

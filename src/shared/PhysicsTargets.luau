@@ -1,5 +1,5 @@
 --!nonstrict
--- Pass/fail limits used by the server-side CarTest harness for the runner on the race rail
+-- Pass/fail limits used by the server-side ServerTest harness for the runner on the race rail
 -- (docs/WORLD_REDESIGN_SPEC.md section 2). Only change a target on purpose (it is a game-feel decision, not a bug fix).
 -- The car physics limits (static_settle, accel, brake, skidpad) were scrapped with the car body (section 1).
 

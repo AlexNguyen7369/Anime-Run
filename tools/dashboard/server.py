@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 STATIC = Path(__file__).parent / "static"
 STATE = ROOT / ".agents" / "orchestrator.json"
-GATE = ROOT / ".agents" / "gate.json"  # written after a harness run: {"end": "[CARTEST] END pass=N fail=N", "commit": sha}
+GATE = ROOT / ".agents" / "gate.json"  # written after a harness run: {"end": "[SERVERTEST] END pass=N fail=N", "commit": sha}
 
 
 def git(*args):

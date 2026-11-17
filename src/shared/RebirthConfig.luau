@@ -44,7 +44,7 @@ function RebirthConfig.NextMultiplier(level)
 	return RebirthConfig.LuckMulti(RebirthConfig.CleanLevel(level) + 1)
 end
 
--- Stat points earned from rebirths, added to the car-index points (never saved: derived from the rebirth count)
+-- Stat points earned from rebirths, added to the character-index points (never saved: derived from the rebirth count)
 function RebirthConfig.Points(level)
 	return RebirthConfig.CleanLevel(level) * RebirthConfig.POINTS_PER_REBIRTH
 end

@@ -33,7 +33,7 @@ TrackBuilder.TRACK_LIFT = 1 -- studs the chain sits above the baseplate so road 
 -- Track 1's start pose: the plaza (SpawnArea.CENTRE from here) lands on the world origin (owner 2026-10-30)
 TrackBuilder.CHAIN_ORIGIN = CFrame.new(-118, TrackBuilder.TRACK_LIFT, 80)
 TrackBuilder.WIN_TEXT_DISTANCE = 60 -- studs: the $ text only shows when the player is this close
-TrackBuilder.LANE_OFFSET = 10 -- studs to the RIGHT of the road centre the car drives (a right-hand lane)
+TrackBuilder.LANE_OFFSET = 10 -- studs to the RIGHT of the road centre the runner runs (a right-hand lane)
 TrackBuilder.CHECKPOINT_LENGTH = 60 -- studs of the last straight that make up the checkpoint area
 TrackBuilder.CHECKPOINT_APRON = 30 -- studs of apron on each side of the road at the checkpoint
 TrackBuilder.PAD_LEFT_OFFSET = 24 -- studs the winnings pad sits to the left of the road centre line
@@ -107,9 +107,9 @@ function TrackBuilder.EndCFrame(layout, origin)
 	return origin * CFrame.new(layout.EndPosition) * CFrame.Angles(0, layout.EndHeading, 0)
 end
 
--- The line the auto-racing car follows: the road centre line shifted LANE_OFFSET studs to the RIGHT, so the car
--- drives in a right-hand lane, not dead centre. The winnings pad sits beside the road on the left apron, so the
--- path never goes near it; PadIndex is the waypoint abeam of the pad and the car collects when it passes it.
+-- The line the auto-racing runner follows: the road centre line shifted LANE_OFFSET studs to the RIGHT, so the runner
+-- runs in a right-hand lane, not dead centre. The winnings pad sits beside the road on the left apron, so the
+-- path never goes near it; PadIndex is the waypoint abeam of the pad and the runner collects when it passes it.
 -- Curvature is adjusted for the shifted radius (right lane: outside of a left bend, inside of a right bend).
 -- offset (optional, signed, default LANE_OFFSET): studs to the right; the NPC racer passes -LANE_OFFSET (left lane).
 -- Returns local-space { Waypoints, Curvature, PadIndex }.
@@ -444,7 +444,7 @@ function TrackBuilder.Build(spec, origin)
 		colors.Line,
 		Enum.Material.Neon
 	).CanCollide =
-		false -- decor: the car drives over it
+		false -- decor: the runner runs over it
 	if colors.Checkered then
 		checkeredLine(model, "StartCheckered", origin * CFrame.new(0, 0.1, -6), width, 3, colors)
 	end
@@ -459,7 +459,7 @@ function TrackBuilder.Build(spec, origin)
 		part.CanQuery = false
 		return part
 	end
-	-- Wider than the road: an apron each side. It is a real slab (cars drive on it), flush with the road top.
+	-- Wider than the road: an apron each side. It is a real slab (runners run on it), flush with the road top.
 	newPart(
 		checkpoint,
 		"CheckpointArea",
@@ -495,7 +495,7 @@ function TrackBuilder.Build(spec, origin)
 		colors.WinPad,
 		Enum.Material.Neon
 	))
-	winPad.CanTouch = true -- RaceService pays the driver when the auto-racing car reaches it
+	winPad.CanTouch = true -- RaceService pays the runner when the auto-racing runner reaches it
 	local cash = TrackBuilder.CashFor(spec.Number)
 	winPad:SetAttribute("Cash", cash)
 	CollectionService:AddTag(winPad, "WinPad")

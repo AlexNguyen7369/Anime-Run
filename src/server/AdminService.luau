@@ -16,7 +16,7 @@ local WeatherConfig = require(Shared.WeatherConfig)
 local VfxArea = require(Shared.VfxArea)
 local AdminConfig = require(script.Parent.AdminConfig)
 local BossEventService = require(script.Parent.BossEventService)
-local CarService = require(script.Parent.CarService)
+local RunnerService = require(script.Parent.RunnerService)
 local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
@@ -40,7 +40,7 @@ local replyRemote = nil -- Remotes.AdminMessage, made by Start()
 
 -- The race run a /tp moves. Tests may swap this out.
 function AdminService.RunOf(player)
-	return CarService.GetRun(player)
+	return RunnerService.GetRun(player)
 end
 
 local function userIdOf(player)
@@ -564,8 +564,8 @@ AdminService.Commands = {
 				if n == "vfxarea" and not workspace:FindFirstChild("VfxArea") then
 					VfxArea.Build().Parent = workspace -- built lazily: no live server pays for it until an admin goes there
 				end
-				local cf = n == "vfxarea" and VfxArea.SpawnCFrame() or CarService.WalkSpawnCFrame()
-				if CarService.Teleport(p, cf) then
+				local cf = n == "vfxarea" and VfxArea.SpawnCFrame() or RunnerService.WalkSpawnCFrame()
+				if RunnerService.Teleport(p, cf) then
 					return true, n == "vfxarea" and "in the VFX showcase area" or "back at the spawn"
 				end
 				return false, "no avatar to move"
