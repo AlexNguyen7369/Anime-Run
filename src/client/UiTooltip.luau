@@ -40,7 +40,7 @@ local function build()
 	gui.Name = "UiTooltip"
 	gui.ResetOnSpawn = false
 	gui.IgnoreGuiInset = true
-	gui.DisplayOrder = 60
+	gui.DisplayOrder = 11 -- above the panels (2) and Sidekicks (10), below the roll showcase (14) that tops the HUD
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 	tip = Instance.new("Frame")
 	tip.Name = "Tip"

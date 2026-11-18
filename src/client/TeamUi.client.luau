@@ -205,15 +205,18 @@ local function filled()
 	return #list(draft)
 end
 -- Slot by slot: a gap the altars show (a member moved to slot 3) is a change too; Deploy closes it up.
-local function dirty()
-	local was = saved()
+local function differs(a, b)
 	for i = 1, SIZE do
-		if draft[i] ~= was[i] then
+		if a[i] ~= b[i] then
 			return true
 		end
 	end
 	return false
 end
+local function dirty()
+	return differs(draft, saved())
+end
+local base = {} -- the saved Team the open draft started from
 -- The draft slot holding `id` (the draft may have gaps, so not table.find).
 local function slotOf(id)
 	for i = 1, SIZE do
@@ -1014,6 +1017,7 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		openCount += 1
 		rosterKey = nil
 		draft, selected, chosen, chosenSidekick = saved(), nil, nil, nil
+		base = saved()
 		tab = "Characters"
 		confirm.Visible, popover.Visible = false, false
 		setStatus("Ready")
@@ -1035,6 +1039,13 @@ player.AttributeChanged:Connect(function(attr)
 			or string.match(attr, "^TeamStamina%d$")
 		)
 	then
+		if attr == "Team" then
+			-- The saved Team changed under an open page (another device, a Deploy): an untouched draft follows it
+			if not differs(draft, base) then
+				draft = saved()
+			end
+			base = saved()
+		end
 		render()
 	end
 end)
