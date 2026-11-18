@@ -201,8 +201,9 @@
 197. 2026-11-17 — Alex Nguyen — Built the Sakura Dojo Summon entry points and Team Setup page (design doc 4.45: octagonal altars, draft with Quick Setup and Deploy, relic and Sidekick icons, shared petal transition, plaza Team altar) on feature/alex/dojo-pages with red-first tests, draft PR #21; not yet run in Studio.
 198. 2026-11-17 — Alex Nguyen — Reworked Team Setup to the owner's full-screen mockup (3D members on the altars) and the transition to the pink petal wash, and verified both flows in Studio: team, spawn_area, ui_team and ui_entry_points green.
 199. 2026-11-17 — Alex Nguyen — Made power-ups timed boosts on feature/alex/powerup-boost (62b797d, stacked on the refactor): Speed x1.2 for 1 s, Stamina holds the drain for 2 s with no overfill, 1 per 500 studs; Studio `powerups` 25/25 fail=0, rules audit PASS.
+200. 2026-11-17 — Alex Nguyen — Merged PR #21 into main (car-vocab rename, power-up boosts, Sakura Dojo pages) after Studio runs (runner 88/88 and 12 more scenarios fail=0), fixes for the Team draft and tooltip layering, rules audits PASS and a fresh review APPROVE.
 
 ## What's next
-**Run `ui_team`, `ui_entry_points`, `powerups` and the rename's scenarios (`runner`, `race`, `duel`, `runner_effects`, `data`, `gacha`, `ui_index`, `ui_showcase`) in Studio on feature/alex/dojo-pages (it now holds the rename, the power-up boosts and the Dojo pages), then take PR #21 out of draft, get a fresh review and merge into main.**
+**Owner plays main: Team Setup (Deploy, Quick Setup, the Deploy / Discard question), the Summon entry points and the timed power-up boosts, and reports what to change.**
 
-**Why this is next:** the owner asked for all three to land in main together; PR #21 is the one branch that holds them, and the rename has never been run in Studio.
+**Why this is next:** all three pieces are verified only by tests and hand clicks in Studio; the owner's play check decides the follow-ups, including the three review notes left open in handoff.md.
