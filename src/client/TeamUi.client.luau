@@ -706,6 +706,8 @@ local function deployDraft(thenClose)
 			end)
 		end
 	end
+	-- The draft is now what the server saved (gaps closed up), so the Team change that follows is not "unsaved"
+	draft, base = table.clone(team), table.clone(team)
 	confirm.Visible = false
 	setStatus("Deployed")
 	if thenClose ~= false then
