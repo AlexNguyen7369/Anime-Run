@@ -641,6 +641,9 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
   - Staged draft: edits are a local draft; Deploy sends one `SetTeam`. The saved Team stays the truth until Deploy.
     Closing with an undeployed draft asks Deploy or Discard; an unchanged draft just closes. Deploy plays the three-altar
     activation and closes the page.
+    Owner 2026-11-17 (after the rules audit): opening another page over an undeployed draft asks Deploy or Discard
+    first, as closing does; if the saved Team changes while the page is open (a Deploy elsewhere), an untouched draft
+    takes the new saved Team and an edited draft stays as it is.
   - Quick Setup fills the draft's empty slots with the owned characters with the highest cruise, ties to the higher rarity,
     never a duplicate; the server picks them (replaces "the Best team button (left out: needs a rule)", 4.40).
   - On the Sidekicks tab, picking a Sidekick and then a placed member equips it at once through the existing Sidekick equip
@@ -708,6 +711,7 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-17: owner, after the rules audit: Team Setup asks Deploy or Discard before another page opens over an undeployed draft, and an untouched draft follows a saved Team change (4.45, TEAM_AND_STAMINA_SPEC).
 - 2026-11-17: owner: Sakura Dojo pages: shared petal transition for Summon and Team; Summon button in the right column (G) and the altar prompt "Summon"; Team opens from the button, the minibar and a new plaza Team altar at (-3.1, 83.9); Team Setup replaces panel A with three octagonal altars, a roster tray with relic and Sidekick icons, Quick Setup (highest cruise) and Deploy (staged draft) (4.45; replaces parts of 4.40 and 4.43).
 - 2026-11-16: owner: both power-ups are timed boosts and there are more per track: Speed is x1.2 for 1 s (was 2 s); Stamina stops the running character's stamina from draining for 2 s (was +3 s / +2 s of extra seconds, no more overfill); about 1 per 500 studs (was 1,000) (4.3, 4.18, 4.44, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC).
 - 2026-11-12: owner: animation rework of the Elf Mage, the Stone Golem and the Golden King: jointed models with elbows and knees, every move re-keyed with 10 key frames approved before in-betweens (replaces 3 to 5 for these moves, and the old approved keys become starting poses only); boss effects stronger, the whole arena flashes or shakes on a hit (4.37, BOSS_EVENT_SPEC "Animation rework").

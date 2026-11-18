@@ -28,6 +28,10 @@ Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
 - Deploy sends the draft through the unchanged `SetTeam`. On success the status reads Ready, the three altars play their
   activation and the page closes. On refusal (run active, cooldown) the button shakes, the reason shows and the draft stays.
 - Close with a draft that differs from the saved Team asks "Deploy" or "Discard". An unchanged draft just closes.
+- Opening another page (Summon, Shop, any panel) over a draft that differs asks "Deploy" or "Discard" first (owner
+  2026-11-17).
+- The saved Team changing while the page is open: an untouched draft takes the new saved Team; an edited draft stays
+  (owner 2026-11-17).
 - Cards and altars show the member's relic emblem (diamond, from `RelicGear`) and Sidekick icon (circle, from
   `SidekickGear`) at the top-right; tooltips name the item, rarity and effect. The Sidekicks tab equips through
   `SidekickEquip` at once. Relics are inspect-only here.
