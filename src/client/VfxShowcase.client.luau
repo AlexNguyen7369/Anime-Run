@@ -8,26 +8,26 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local RunnerFactory = require(Shared.RunnerFactory)
 local RunnerVisual = require(script.Parent.RunnerVisual)
-local VehicleEffects = require(Shared.VehicleEffects)
+local RunnerEffects = require(Shared.RunnerEffects)
 local VfxArea = require(Shared.VfxArea)
 
 local TRAIL_RADIUS, AURA_RADIUS, SPEED = 16, 9, 45 -- studs, studs, studs/s (the cruise speed at Speed 0)
 
 local player = Players.LocalPlayer
-local showcase, cars, clock, phase = nil, {}, 0, 0
+local showcase, runners, clock, phase = nil, {}, 0, 0
 
 local function build()
 	showcase = Instance.new("Folder")
 	showcase.Name = "VfxShowcase"
 	for i, item in VfxArea.Items do
 		local kind, id = item[1], item[2]
-		local car = RunnerFactory.build(CharacterCatalog.STARTER_ID)
-		car.Name = id
-		VehicleEffects.ApplyProfile(car, kind, id)
-		car.Parent = showcase
+		local runner = RunnerFactory.build(CharacterCatalog.STARTER_ID)
+		runner.Name = id
+		RunnerEffects.ApplyProfile(runner, kind, id)
+		runner.Parent = showcase
 		table.insert(
-			cars,
-			{ model = car, centre = VfxArea.LaneCentre(i), radius = kind == "Aura" and AURA_RADIUS or TRAIL_RADIUS }
+			runners,
+			{ model = runner, centre = VfxArea.LaneCentre(i), radius = kind == "Aura" and AURA_RADIUS or TRAIL_RADIUS }
 		)
 	end
 	showcase.Parent = Workspace
@@ -37,20 +37,20 @@ local function clear()
 	if showcase then
 		showcase:Destroy()
 	end
-	showcase, cars = nil, {}
+	showcase, runners = nil, {}
 end
 
 local function step(dt)
 	clock += dt
 	phase = RunnerVisual.Advance(phase, SPEED, dt)
-	for _, c in cars do
+	for _, c in runners do
 		local a = clock * SPEED / c.radius
 		local pos = c.centre + Vector3.new(math.cos(a) * c.radius, RunnerFactory.HIP_HEIGHT, math.sin(a) * c.radius)
 		RunnerVisual.Pose(c.model, CFrame.lookAt(pos, pos + Vector3.new(-math.sin(a), 0, math.cos(a))), phase, 1) -- forward is -Z
 	end
 end
 
--- A 1 s poll, not a per-frame check: the Heartbeat that drives the loops runs only while the showcase is built.
+-- A 1 s poll, not a per-frame check: the Heartbeat that steps the loops runs only while the showcase is built.
 local heartbeat = nil
 while true do
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")

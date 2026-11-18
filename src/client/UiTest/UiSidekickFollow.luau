@@ -1,7 +1,7 @@
 --!nonstrict
 -- Sidekick followers (design doc 4.36; docs/SIDEKICK_SPEC.md "Display"; task b7d). Owned by ui-test-writer. Follow motion only:
 -- attacks wait for the owner's key frames. Fixtures: UiTestSetup sidekick_follow_*, a rig of this player's drawn by the real
--- Client/RunnerView, so nobody really runs. Shared/SidekickFollow's own contract: Server/CarTest/SidekickFollowTests.
+-- Client/RunnerView, so nobody really runs. Shared/SidekickFollow's own contract: Server/ServerTest/SidekickFollowTests.
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
 --   A follower Model carries attribute SidekickId, and holds a clone of ReplicatedStorage.SidekickModels/<id>'s parts, scaled:

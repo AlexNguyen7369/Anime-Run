@@ -10,6 +10,8 @@ local SidekickArt = require(shared:WaitForChild("SidekickArt"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
+local SummonAltarFx = require(script.Parent:WaitForChild("SummonAltarFx"))
+local SummonPanels = require(script.Parent:WaitForChild("SummonPanels"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SummonShrineTheme = require(script.Parent:WaitForChild("SummonShrineTheme"))
 local SummonHybrid = require(script.Parent:WaitForChild("SummonHybrid"))
@@ -541,7 +543,7 @@ end
 -- Bind the imported presentation to existing Anime Run services.
 canvas.Visible = false
 gui.Reopen.Visible = false
-PanelSwitch.Register("Sidekicks", canvas)
+PanelSwitch.Register("Sidekicks", canvas, require(shared:WaitForChild("UiTheme")).Dojo.Sakura) -- the Sakura transition (design doc 4.45)
 
 local modal = canvas.Modal.Panel
 local modalBody = modal:WaitForChild("Body")
@@ -615,7 +617,7 @@ local function actionRow(text, callback)
 end
 
 local rotation = {}
-local showChances
+local panels -- SummonPanels, the reference sheet's panels (design doc 4.45); made below
 local function refresh()
 	canvas.Balance.Text = HudFormat.Short(player:GetAttribute("Gems") or 0)
 	canvas.Once.Text = "Once   " .. tostring(player:GetAttribute("SidekickCost1") or Config.SummonCost)
@@ -666,46 +668,13 @@ local function renderRotation()
 	dressStage()
 	refresh()
 end
-showChances = function()
-	local tier
-	if (player:GetAttribute("SidekickPity") or 0) >= Config.PityCount - 1 then
-		tier = "Mythic"
-	elseif (player:GetAttribute("SidekickLegendaryPity") or 0) >= Config.LegendaryPityCount - 1 then
-		tier = "Legendary"
-	end
-	local lines = {}
-	local count = 0
-	for _, id in rotation.Ids or {} do
-		if Config.Get(id).Rarity == tier then
-			count += 1
-		end
-	end
-	for _, id in rotation.Ids or {} do
-		local row = Config.Get(id)
-		local odds = tier and (row.Rarity == tier and 100 / math.max(1, count) or 0) or (rotation.Odds or {})[id] or 0
-		table.insert(lines, string.format("%s • %s — %.3f%%", row.Name, row.Rarity, odds))
-	end
-	table.insert(
-		lines,
-		string.format("Secret — %.3f%%", tier and 0 or ((rotation.Odds or {})[rotation.SecretId] or 0))
-	)
-	table.insert(lines, "\nLuck and potions do not change Sidekick odds.")
-	table.insert(
-		lines,
-		string.format("Mythic pity: %d. Legendary pity: %d.", Config.PityCount, Config.LegendaryPityCount)
-	)
-	if tier then
-		table.insert(lines, "\n" .. tier .. " guaranteed on the next summon; later results in a 10x roll normally.")
-	end
-	dialog("SUMMON CHANCES", #lines > 3 and table.concat(lines, "\n") or "Waiting for the server's rotation…")
-end
 
 local function setAuto(on)
 	auto = on
 	canvas.Auto.Text = on and "Stop Auto" or "Auto"
 end
 local function requestSummon(count, free)
-	if busy or revealing or not opened or canvas.Modal.Visible then
+	if busy or revealing or not opened or canvas.Modal.Visible or (panels and panels.IsOpen()) then
 		return
 	end
 	if (player:GetAttribute("RebirthLevel") or 0) < Config.UnlockRebirth then
@@ -730,15 +699,39 @@ local function requestSummon(count, free)
 		return
 	end
 	local continueAuto = auto
+	revealing = true
+	panels.Record(results)
+	-- The altar activation in the best result's colour (design doc 4.45), then the reveal as before.
+	local centre = stage and stage.Units:FindFirstChild("Unit2")
+	local root = centre and centre:FindFirstChild("Root")
+	if root and workspace.CurrentCamera then
+		local point = workspace.CurrentCamera:WorldToViewportPoint(root.Position - Vector3.new(0, 2.5, 0))
+		local rarity = SummonAltarFx.Best(results, function(result)
+			return Config.Get(result.Id)
+		end)
+		local landed = false
+		local fxOk = pcall(SummonAltarFx.Play, Vector2.new(point.X, point.Y), rarity, function()
+			landed = true
+		end)
+		local waited = 0
+		while fxOk and not landed and waited < 2 do -- never stuck on the effect
+			waited += task.wait()
+		end
+	end
 	close()
 	gui.Enabled = false
-	revealing = true
 	SidekickReveal.Play(results, function()
 		revealing, busy = false, false
 		gui.Enabled = true
 		if not PanelSwitch.AnyOpen() then
+			canvas:SetAttribute("SkipTransition", true) -- back from a reveal: no page transition (design doc 4.45)
 			PanelSwitch.Action("Sidekicks")
+			canvas:SetAttribute("SkipTransition", nil)
 			setAuto(continueAuto)
+			-- One summon by hand: the "You Obtained!" panel (reference sheet panel 8). Auto runs on without it.
+			if #results == 1 and not continueAuto then
+				task.defer(panels.Result, results[1])
+			end
 		end
 		gui:SetAttribute("Summoning", nil)
 		refresh()
@@ -787,6 +780,29 @@ local function buyPack(pack)
 		toast(ok and tostring(message or "Purchase unavailable") or "Connection error")
 	end
 end
+panels = SummonPanels.new(canvas, {
+	Rotation = function()
+		return rotation
+	end,
+	Toast = toast,
+	BuyPack = buyPack,
+	Packs = Monetization.GemPacks,
+	Remotes = remotes,
+	-- Equip from the result: the new Sidekick goes on the Team's first runner (SidekickEquip; the server checks it).
+	Equip = function(id)
+		local entry
+		for _, item in SidekickView.Bag(player) do
+			if item.Id == id then
+				entry = item.Entry
+			end
+		end
+		local leader = string.split(player:GetAttribute("Team") or "", ",")[1]
+		local ok, done, message = pcall(function()
+			return remotes:WaitForChild("SidekickEquip"):InvokeServer(leader, entry)
+		end)
+		toast(ok and done and "Equipped on your first runner" or tostring(ok and message or "Connection error"))
+	end,
+})
 for i = 1, 2 do
 	local offer = canvas["Offer" .. i]
 	local pack = Monetization.GemPacks[i]
@@ -795,21 +811,11 @@ for i = 1, 2 do
 	offer.Price.Text = "R$" .. tostring(pack.RobuxPrice)
 	offer.PotionIcon.Image = "rbxassetid://136720019410378"
 	offer.Buy.Activated:Connect(function()
-		buyPack(pack)
+		panels.BuyGems(pack) -- the Buy Gems focus state first (reference sheet panel 9)
 	end)
 end
 canvas.More.Activated:Connect(function()
-	dialog("MORE GEMS", "")
-	modalBody.Visible = false
-	modalRows.Visible = true
-	for _, pack in Monetization.GemPacks do
-		actionRow(
-			string.format("%s  •  %s Gems  •  R$%d", pack.Name, HudFormat.Short(pack.Gems), pack.RobuxPrice),
-			function()
-				buyPack(pack)
-			end
-		)
-	end
+	panels.More()
 end)
 for _, name in { "Pity3", "PityCount3", "PityCard3", "Banner2", "Banner3", "Banner4" } do
 	canvas[name].Visible = false
@@ -818,22 +824,21 @@ canvas.Title.Text = "Summon"
 canvas.Subtitle.Text = "Sidekick Banner"
 canvas.Banner1.Text = "Featured"
 canvas.Banner1.Caption.Text = "Featured"
-canvas.Banner1.Activated:Connect(showChances)
+canvas.Banner1.Activated:Connect(function()
+	panels.Featured()
+end)
 canvas.Close.Activated:Connect(function()
 	PanelSwitch.Close("Sidekicks")
 end)
-canvas.Chances.Activated:Connect(showChances)
-canvas.Info.Activated:Connect(function()
-	dialog(
-		"SIDEKICK SUMMONING",
-		string.format(
-			"The featured rotation changes every 30 minutes.\n\nView Show Chances for every outcome and its odds. Mythic pity is %d; Legendary pity is %d.\n\nSidekicks can be equipped from your Backpack. The server validates every summon and purchase.",
-			Config.PityCount,
-			Config.LegendaryPityCount
-		)
-	)
+canvas.Chances.Activated:Connect(function()
+	panels.Chances()
 end)
-canvas.AutoSell.Activated:Connect(showAutoSell)
+canvas.Info.Activated:Connect(function()
+	panels.Info()
+end)
+canvas.AutoSell.Activated:Connect(function()
+	panels.AutoSell()
+end)
 canvas.AutoFuse.Activated:Connect(function()
 	requestSummon(nil, true)
 end)
@@ -841,7 +846,11 @@ canvas.Once.Activated:Connect(function()
 	requestSummon(1, false)
 end)
 canvas.Many.Activated:Connect(function()
-	requestSummon(10, false)
+	-- The Many confirmation first (reference sheet panel 7); the server still checks Gems and spends them.
+	local cost = player:GetAttribute("SidekickCost10") or Config.TenCost
+	panels.ConfirmMany(10, cost, function()
+		requestSummon(10, false)
+	end)
 end)
 canvas.Auto.Activated:Connect(function()
 	setAuto(not auto)
@@ -857,6 +866,7 @@ canvas:GetPropertyChangedSignal("Visible"):Connect(function()
 		renderRotation()
 		open()
 	else
+		panels.Hide()
 		close()
 	end
 end)
@@ -889,6 +899,7 @@ task.spawn(function()
 			and not revealing
 			and opened
 			and not canvas.Modal.Visible
+			and not panels.IsOpen()
 			and os.clock() - lastAuto >= 3
 		then
 			requestSummon(1, false)

@@ -15,6 +15,28 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
 - Player attribute `Team` (comma-joined ids) is the replicated truth for the UI.
 - On load, ids the player no longer owns are removed; an empty team falls back to `{ "starter" }`.
 
+## Team Setup page (owner 2026-11-17, design doc 4.45)
+Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
+- Opens from the Team button (T), a click on the team minibar, or the plaza Team altar prompt; all call
+  `PanelSwitch.Action("Team")`. The shared Sakura transition (`Client/UiTransition`, cyan accent) covers the open and close;
+  movement is locked while open (`Client/InputLock`).
+- On open the draft is a copy of the saved `Team`. Tap an altar to select it (cyan glow), then a roster card: the member's
+  portrait flies to the altar and lands with a ring pulse. A member already in another slot swaps. Tapping a member's
+  portrait offers Remove. The draft never drops below 1 member at Deploy (the button stays off at 0).
+- `TeamQuickPick(draftIds)` (RemoteFunction, read-only, 0.5 s cooldown): the server returns owned ids for the empty slots,
+  highest effective cruise first, ties to the higher rarity, never an id already in the draft. It never saves.
+- Deploy sends the draft through the unchanged `SetTeam`. On success the status reads Ready, the three altars play their
+  activation and the page closes. On refusal (run active, cooldown) the button shakes, the reason shows and the draft stays.
+- Close with a draft that differs from the saved Team asks "Deploy" or "Discard". An unchanged draft just closes.
+- Opening another page (Summon, Shop, any panel) over a draft that differs asks "Deploy" or "Discard" first (owner
+  2026-11-17).
+- The saved Team changing while the page is open: an untouched draft takes the new saved Team; an edited draft stays
+  (owner 2026-11-17).
+- Cards and altars show the member's relic emblem (diamond, from `RelicGear`) and Sidekick icon (circle, from
+  `SidekickGear`) at the top-right; tooltips name the item, rarity and effect. The Sidekicks tab equips through
+  `SidekickEquip` at once. Relics are inspect-only here.
+- Team bonus moves into a popover behind the Team Bonus button.
+
 ## Stamina
 
 - Base stamina (seconds of running from 100% to 0%) comes from the character's rarity, unless the catalog entry sets
@@ -122,8 +144,8 @@ Stamina = Base(rarity or override)
   RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
   trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
-- Fixed for the whole run at run start (like stamina); no Speed stat, no gain. Exception: a Speed power-up's 2 s
-  x1.2 boost and a Stamina power-up's +3 s (+2 s past Track 5) (design doc 4.44, `docs/POWERUP_SPEC.md`).
+- Fixed for the whole run at run start (like stamina); no Speed stat, no gain. Exception: a Speed power-up's 1 s
+  x1.2 boost and a Stamina power-up's 2 s with no drain (owner 2026-11-16) (design doc 4.44, `docs/POWERUP_SPEC.md`).
 - Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
   - Speed potion factor = the active potion tier's own multi (BoostConfig: I x1.25, II x1.5, III x2), like the other
     potions; no tier = x1.
@@ -167,7 +189,7 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
   gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
   pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
   (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). On foot all three show normally; an empty slot is a dim empty circle. Display only.
-  Power-ups (design doc 4.44, POWERUP_SPEC): the seconds number shows `Stamina<n> / 100 x RunSeconds<n>` and turns blue while `Stamina<n>` is above 100 (the arc stays capped); a Speed badge sits on the running portrait while `PowerSpeedUntil` is in the future.
+  Power-ups (design doc 4.44, POWERUP_SPEC): the running slot's seconds number turns blue while `PowerStaminaUntil` is in the future (its stamina does not drain); a Speed badge sits on the running portrait while `PowerSpeedUntil` is in the future.
 - Team editor (owner 2026-11-12: it moves to the Team panel opened by the HUD's Team button, design doc 4.40, layout A "Line-up"; the Backpack Characters tab keeps its grid, the green TEAM badge and a character's details, without the slot buttons for the team. The flow is unchanged:) (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
   aura / trail slot row) to put it on slot 1-3; a character on another slot swaps; its own slot takes it off; gaps
   close up. The single equip (Index, roll toast, /kami) puts a character on slot 1. Disabled during a run.

@@ -1,7 +1,7 @@
 --!nonstrict
 -- The spawn hub: an anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4). A stone-paved square with the game's
 -- only SpawnLocation at its centre, a torii StartGate over the StartPad (walking through it starts the run,
--- Server/CarService), the spawn terrace with the six service buildings (Shop, Potions, Market, Index, Best Roll, the
+-- Server/RunnerService), the spawn terrace with the six service buildings (Shop, Potions, Market, Index, Best Roll, the
 -- Sidekick summon altar) on a ring round it, every front facing the spawn (design doc 4.43, WORLD_REDESIGN_SPEC 4), and the
 -- Checkpoints sensei beside the gate. Players join and respawn here on foot, and Stop sends them back
 -- here. Each stall here is the plain stand-in for its mesh (Server/PlazaDressing): the prompt and collision stay on it,
@@ -73,6 +73,13 @@ local ALTAR_STONE = Color3.fromRGB(176, 170, 160)
 local ALTAR_DARK = Color3.fromRGB(46, 42, 52)
 local ALTAR_GOLD = Color3.fromRGB(232, 178, 60)
 local ALTAR_NEON = Color3.fromRGB(46, 200, 208)
+-- The Team altar (design doc 4.45, owner 2026-11-17): a small stacked octagonal shrine in the ring slot before the gate
+-- axis, world (-3.1, 83.9), facing the spawn. Sizes and colours proposed.
+local TEAM_ALTAR_POS = Vector2.new(114.891, 3.942) -- world (-3.109, 83.942): opposite the Market across the spawn
+local TEAM_ALTAR_WIDTH = 12 -- one octagonal slab across the flats (owner 2026-11-17: one slab, sakura emblem)
+local TEAM_ALTAR_HEIGHT = 1.6
+local TEAM_ALTAR_PINK = Color3.fromRGB(255, 150, 190)
+local TEAM_ALTAR_PROMPT_DISTANCE = 12
 
 -- Track 1's start, flattened: yaw only, at ground level (the local space every plaza and plot position uses)
 local function base(startCFrame)
@@ -145,6 +152,98 @@ local function block(parent, name, size, cframe, color, material, collide)
 	end
 	p.Parent = parent
 	return p
+end
+
+-- An octagonal slab `width` across the flats and `height` tall centred on `cframe`: 4 bars of the width by the edge
+-- length, turned 45 degrees apart (their union is the octagon). Returns the 4 parts. Shared with Client/TeamUi's altars.
+function SpawnArea.Octagon(parent, name, width, height, cframe, color, material, collide)
+	local parts = {}
+	for k = 0, 3 do
+		parts[k + 1] = block(
+			parent,
+			name,
+			Vector3.new(width, height, width * math.tan(math.pi / 8)),
+			cframe * CFrame.Angles(0, k * math.pi / 4, 0),
+			color,
+			material,
+			collide
+		)
+	end
+	return parts
+end
+
+-- The Sakura altar (design doc 4.45, owner 2026-11-17 mockup: "one slab with a sakura logo embedded"): one octagonal
+-- dark-wood slab `width` across and `height` tall standing on `cframe` (its base), a thin cyan neon rim round its top
+-- edge, a soft pink glowing top and a five-petal sakura emblem inlaid in it. Shared by the plaza Team altar and the
+-- Team Setup page. Returns { Slab, Rim, Top, Petals } part lists.
+local SAKURA_WOOD = Color3.fromRGB(70, 42, 32)
+local SAKURA_RIM = Color3.fromRGB(46, 200, 208)
+local SAKURA_TOP = Color3.fromRGB(236, 104, 156)
+local SAKURA_PETAL = Color3.fromRGB(255, 214, 230)
+local SAKURA_HEART = Color3.fromRGB(255, 226, 150)
+function SpawnArea.SakuraAltar(parent, cframe, width, height)
+	local out = {}
+	out.Slab = SpawnArea.Octagon(
+		parent,
+		"Slab",
+		width,
+		height,
+		cframe * CFrame.new(0, height / 2, 0),
+		SAKURA_WOOD,
+		Enum.Material.Wood
+	)
+	-- The rim slab sits just under the top, so only its lip shows as a line.
+	out.Rim = SpawnArea.Octagon(
+		parent,
+		"Rim",
+		width + 0.3,
+		0.2,
+		cframe * CFrame.new(0, height - 0.14, 0),
+		SAKURA_RIM,
+		Enum.Material.Neon,
+		false
+	)
+	out.Top = SpawnArea.Octagon(
+		parent,
+		"Top",
+		width - 1,
+		0.06,
+		cframe * CFrame.new(0, height + 0.03, 0),
+		SAKURA_TOP,
+		Enum.Material.SmoothPlastic, -- Neon washes out to white in a ViewportFrame
+		false
+	)
+	out.Petals = {}
+	local r = width * 0.13
+	for k = 0, 4 do
+		local a = k * math.pi * 2 / 5
+		local petal = block(
+			parent,
+			"Petal",
+			Vector3.new(r * 0.9, 0.08, r * 1.5),
+			cframe * CFrame.new(0, height + 0.08, 0) * CFrame.Angles(0, a, 0) * CFrame.new(0, 0, -r * 0.85),
+			SAKURA_PETAL,
+			Enum.Material.SmoothPlastic,
+			false
+		)
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere -- an ellipse: the petal's outline
+		mesh.Parent = petal
+		table.insert(out.Petals, petal)
+	end
+	table.insert(
+		out.Petals,
+		block(
+			parent,
+			"Heart",
+			Vector3.new(r * 0.5, 0.1, r * 0.5),
+			cframe * CFrame.new(0, height + 0.1, 0),
+			SAKURA_HEART,
+			Enum.Material.SmoothPlastic,
+			false
+		)
+	)
+	return out
 end
 
 local function glow(parent, range)
@@ -383,7 +482,21 @@ local function altar(startCFrame)
 	modelSpot.Parent = topPart
 	modelSpot.WorldCFrame = af * CFrame.new(0, haloY, 0) -- -Z faces the path
 	glow(topPart, 20)
-	m.PrimaryPart = addPrompt(topPart, "OpenSidekicks", "Sidekicks", "SIDEKICKS", ALTAR_PROMPT_DISTANCE)
+	m.PrimaryPart = addPrompt(topPart, "OpenSidekicks", "Summon", "SIDEKICKS", ALTAR_PROMPT_DISTANCE)
+	return m
+end
+
+-- The Team altar (design doc 4.45): dark wood and stone tiers, each topped by a thin cyan edge, a faint sakura glow
+-- on the top; its prompt opens Team Setup (Client/PlazaPrompts).
+local function teamAltar(startCFrame)
+	local m = Instance.new("Model")
+	m.Name = "TeamAltar"
+	local af = facing(startCFrame, TEAM_ALTAR_POS.X, TEAM_ALTAR_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y, 0)
+	local slab = SpawnArea.SakuraAltar(m, af * CFrame.new(0, SpawnArea.TOP_Y, 0), TEAM_ALTAR_WIDTH, TEAM_ALTAR_HEIGHT)
+	local light = Instance.new("PointLight")
+	light.Color, light.Brightness, light.Range, light.Shadows = TEAM_ALTAR_PINK, 0.8, 10, false
+	light.Parent = slab.Top[1]
+	m.PrimaryPart = addPrompt(slab.Slab[1], "OpenTeam", "Team", "TEAM SETUP", TEAM_ALTAR_PROMPT_DISTANCE)
 	return m
 end
 
@@ -460,6 +573,7 @@ function SpawnArea.Build(startCFrame)
 	-- The ring (same panels and remotes as before): each stand-in's origin is its mesh's origin (Shared/PlazaAssets).
 	-- The Sidekicks stall became the summon altar (design doc 4.36).
 	altar(startCFrame).Parent = model
+	teamAltar(startCFrame).Parent = model
 	stall(
 		model,
 		startCFrame,
@@ -581,10 +695,10 @@ function SpawnArea.Build(startCFrame)
 	-- Leaderboard banners removed (design doc 4.16, owner 2026-11-01); their data stores are left untouched.
 
 	-- The Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a). LeaderboardService fills the labels and puts a runner
-	-- on the CarMount; Client/BestRollView turns it.
+	-- on the CharacterMount; Client/BestRollView turns it.
 	local cfg = LeaderboardConfig.BEST_ROLL
 	local stoneDark, gold = Color3.fromRGB(110, 106, 100), Color3.fromRGB(230, 186, 80)
-	-- A round platform: returns its Pedestal part (with CarMount on top) and a Stats billboard above it
+	-- A round platform: returns its Pedestal part (with CharacterMount on top) and a Stats billboard above it
 	local function pedestal(parent, x, z, radius, statsSize, statsHeight, textDistance)
 		-- name, bottom and top as fractions of HEIGHT, radius inset (the stripe sits in a groove)
 		for _, layer in
@@ -607,7 +721,7 @@ function SpawnArea.Build(startCFrame)
 		end
 		local part = parent.Pedestal
 		local mount = Instance.new("Attachment")
-		mount.Name = "CarMount"
+		mount.Name = "CharacterMount"
 		mount.Parent = part
 		mount.WorldCFrame = frame * CFrame.new(x, top + cfg.HEIGHT, z)
 		local stats = Instance.new("BillboardGui")

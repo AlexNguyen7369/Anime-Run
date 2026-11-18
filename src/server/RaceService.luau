@@ -4,7 +4,7 @@
 -- slowing; design doc, owner 2026-10-20), and the rig is put at that point of the path, upright and facing along it
 -- (docs/WORLD_REDESIGN_SPEC.md section 2). No physics forces. The rig is the authoritative pose; for smooth drawing
 -- the run publishes RunRoute / RunDistance / RunSpeed on the model and every client interpolates the visible runner
--- (Client/RunnerView; contract in Server/CarTest/RunnerTests). The cruise speed is the character's fixed cruise
+-- (Client/RunnerView; contract in Server/ServerTest/RunnerTests). The cruise speed is the character's fixed cruise
 -- (GachaService.Cruise, design doc 4.13), set at run start and when the character changes; there is no Speed stat.
 -- When the runner passes a winnings pad the pad pays the player (MoneyService.Collect); the rig never has to touch
 -- the pad. After the last finish the runner is put back at the start of Track 1 and keeps running.
@@ -103,8 +103,8 @@ local function reachTrack(player, number)
 	end
 end
 
-local function setCarGroup(car)
-	for _, part in car:GetDescendants() do
+local function setRunnerGroup(runner)
+	for _, part in runner:GetDescendants() do
 		if part:IsA("BasePart") then
 			part.CollisionGroup = RUNNER_GROUP
 		end
@@ -163,8 +163,8 @@ local function rigCFrame(feet)
 	return feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0)
 end
 
--- Starts driving `car` along `raceRoute` for `player`. Returns a run object; call run:Destroy() to stop.
--- options: { Loop = true } puts the car back at the start of the route after the last finish.
+-- Starts running `runner` along `raceRoute` for `player`. Returns a run object; call run:Destroy() to stop.
+-- options: { Loop = true } puts the runner back at the start of the route after the last finish.
 --          { Npc = true } races every track against its NPC. Test hooks: NpcSpeeds = { [number] = speed },
 --          LoseScreenSeconds, OnRaceEvent(event), StaminaSeconds = { s1, s2, s3 }, OnRunEvent(event).
 --          { StartTrack = n } (NPC mode) starts on track n, and a loss or the loop goes back to it (checkpoints).
@@ -174,9 +174,9 @@ end
 --          closed lane route, no NPC, no pads, no checkpoint payout. run.Line: slots still running, all draining at once.
 --          At an empty line: run.Waiting, then the full team refills.
 --          { PowerUps = true } (NPC mode; Attach sets it) rolls each track's power-ups (design doc 4.44): run.PowerUps.
-function RaceService.NewRun(car, raceRoute, player, options)
+function RaceService.NewRun(runner, raceRoute, player, options)
 	options = options or {}
-	car:SetAttribute("AutoRace", true)
+	runner:SetAttribute("AutoRace", true)
 
 	PlayerData.Setup(player)
 	local wps = raceRoute.Path.WorldWaypoints
@@ -186,7 +186,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	-- Tests may set Index; the rail then moves the runner to that waypoint.
 	local driver = { Index = 1, Done = false, TargetSpeed = GachaService.Cruise(player) }
 	local run = {
-		Car = car,
+		Runner = runner,
 		TargetSpeed = driver.TargetSpeed,
 		Finished = false,
 		Payouts = 0,
@@ -210,6 +210,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 
 	run.PowerUps = {} -- the current track's set: { { Id, Kind, Dist, Taken } }
 	run.SpeedLeft = 0 -- seconds of the Speed power-up's boost left
+	run.StaminaLeft = 0 -- seconds of the Stamina power-up's no-drain boost left
 
 	local function rewardTrackWin(trackNumber)
 		local id = BoostConfig.WinReward(trackNumber)
@@ -244,7 +245,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	-- Puts the rig at its arc position, upright and facing along the path. Returns the segment index.
 	local function place()
 		local feet, k = PathDriver.PoseAt(wps, arc, dist, driver.Index, closed)
-		car:PivotTo(rigCFrame(feet))
+		runner:PivotTo(rigCFrame(feet))
 		return k
 	end
 	-- Track the runner is on: the first track whose finish pad is still ahead (the last past the end). Clients pick the
@@ -260,20 +261,20 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 		return number or (pads[#pads] and pads[#pads].Number) -- a route without pads (test fixtures) has no track
 	end
-	-- What clients interpolate the visible runner from (contract in Server/CarTest/RunnerTests)
+	-- What clients interpolate the visible runner from (contract in Server/ServerTest/RunnerTests)
 	local function publish()
 		sincePublish = 0
-		car:SetAttribute("RunRoute", routeId)
-		car:SetAttribute("RunSpeed", (run.Finished or run.Waiting or run.Holding ~= nil) and 0 or run.TargetSpeed)
-		car:SetAttribute("RunDistance", dist)
-		car:SetAttribute("RunTrack", trackAt())
+		runner:SetAttribute("RunRoute", routeId)
+		runner:SetAttribute("RunSpeed", (run.Finished or run.Waiting or run.Holding ~= nil) and 0 or run.TargetSpeed)
+		runner:SetAttribute("RunDistance", dist)
+		runner:SetAttribute("RunTrack", trackAt())
 	end
 	-- Design doc 4.25: wait for unbuilt track `number` (nil releases); `resume` runs once it is built. The rail, stamina
-	-- and race clock stand still meanwhile; RunHold drives the client's "Loading next track" label.
+	-- and race clock stand still meanwhile; RunHold controls the client's "Loading next track" label.
 	local holdResume = nil
 	local function hold(number, resume)
 		run.Holding, holdResume = number, resume
-		car:SetAttribute("RunHold", number)
+		runner:SetAttribute("RunHold", number)
 		publish()
 	end
 	-- Puts the runner `ahead` studs past waypoint `index` (a start, restart or jump; clients snap there).
@@ -365,13 +366,13 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 	local showdownToken = 0
 	local setCruise, payShare, snapshotCruise -- forward declarations (defined below)
-	-- Makes `slot` the active runner: EquippedCar follows (CarService re-skins the runner) and its cruise applies at once
+	-- Makes `slot` the active runner: EquippedCharacter follows (RunnerService re-skins the runner) and its cruise applies at once
 	local function setSlot(slot)
 		run.Slot = slot
 		if typeof(player) == "Instance" then
 			player:SetAttribute("RunSlot", slot)
-			if player:GetAttribute("EquippedCar") ~= team[slot] then
-				player:SetAttribute("EquippedCar", team[slot])
+			if player:GetAttribute("EquippedCharacter") ~= team[slot] then
+				player:SetAttribute("EquippedCharacter", team[slot])
 			end
 		end
 		if setCruise then
@@ -392,9 +393,10 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		for slot in team do
 			run.Stamina[slot] = 100
 		end
-		run.SpeedLeft = 0
+		run.SpeedLeft, run.StaminaLeft = 0, 0
 		if typeof(player) == "Instance" then
 			player:SetAttribute("PowerSpeedUntil", nil)
+			player:SetAttribute("PowerStaminaUntil", nil)
 		end
 		if boss then
 			run.Line = {}
@@ -467,7 +469,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 	end
 
-	-- The player's car reached the finish of the track it is racing on: decide, pay a win, move on.
+	-- The player's runner reached the finish of the track it is racing on: decide, pay a win, move on.
 	local function finishRace()
 		local track = raceRoute.Tracks[race.Index]
 		local playerTime = runTime - race.Started
@@ -517,7 +519,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			end
 		else
 			run.Losses += 1
-			-- The loser screen is presentation-only; the authoritative car reset is
+			-- The loser screen is presentation-only; the authoritative runner reset is
 			-- immediate and names the checkpoint that was lost.
 			backToStart()
 			run.Resets += 1
@@ -546,7 +548,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 
 	-- Distance from the rig's feet to the route: the nearer of the two segments around its segment
 	local function pathDeviation()
-		local pos = car.PrimaryPart.Position - Vector3.new(0, RunnerFactory.HIP_HEIGHT, 0)
+		local pos = runner.PrimaryPart.Position - Vector3.new(0, RunnerFactory.HIP_HEIGHT, 0)
 		local best = math.huge
 		for k = math.max(driver.Index - 1, 1), math.min(driver.Index, n - 1) do
 			local a, b = wps[k], wps[k + 1]
@@ -572,7 +574,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 
 	-- The run's fixed cruise (design doc 4.13), shown on the HUD as the player attribute Cruise
 	function setCruise()
-		local id = typeof(player) == "Instance" and player:GetAttribute("EquippedCar")
+		local id = typeof(player) == "Instance" and player:GetAttribute("EquippedCharacter")
 		-- a character equipped outside the team mid-run (admin /kami) runs at its own cruise
 		local cruise = (id == team[run.Slot] and fixedCruise[run.Slot]) or GachaService.Cruise(player, run.Slot)
 		-- options.MaxSpeed caps the travel only (The Elf Mage's small ring, BOSS_EVENT_SPEC "Run speed cap"); the HUD keeps the cruise.
@@ -586,7 +588,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 	setCruise()
 
-	-- The equipped character changed mid-run (CarService.ApplyCharacter): its cruise applies at once, clients hear now
+	-- The equipped character changed mid-run (RunnerService.ApplyCharacter): its cruise applies at once, clients hear now
 	function run:Refresh()
 		setCruise()
 		publish()
@@ -599,7 +601,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		startRace(1)
 	end
 
-	-- Admin /tp: puts the car at the start of track `number` (START_AHEAD in, in the lane, upright, facing along the
+	-- Admin /tp: puts the runner at the start of track `number` (START_AHEAD in, in the lane, upright, facing along the
 	-- path). Pads of earlier tracks count as paid for this pass, so a jump never pays; in NPC mode the race in
 	-- progress is dropped (no Result) and that track's race starts. Returns false (nothing changes) for a bad number.
 	function run:JumpToTrack(number)
@@ -669,7 +671,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 
 	local lastTick = os.clock()
 	run.Connection = RunService.PreSimulation:Connect(function()
-		if not car.Parent then
+		if not runner.Parent then
 			run:Destroy()
 			return
 		end
@@ -702,6 +704,15 @@ function RaceService.NewRun(car, raceRoute, player, options)
 				publish()
 			end
 		end
+		if run.StaminaLeft > 0 and not run.Holding then
+			run.StaminaLeft -= railDt
+			if run.StaminaLeft <= 0 then
+				run.StaminaLeft = 0
+				if typeof(player) == "Instance" then
+					player:SetAttribute("PowerStaminaUntil", nil)
+				end
+			end
+		end
 		if race and not run.Holding then
 			for _, p in run.PowerUps do
 				if not p.Taken and dist >= p.Dist then
@@ -714,10 +725,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 						end
 						setCruise()
 						publish()
-					elseif staminaMode and seconds[run.Slot] then
-						-- no clamp at 100: the extra seconds drain first, the bar stays full (owner 2026-11-11)
-						run.Stamina[run.Slot] += PowerUpConfig.StaminaSeconds(race.Number) * 100 / seconds[run.Slot]
-						publishStamina()
+					elseif staminaMode then
+						-- no drain for whoever runs (owner 2026-11-16); a second one resets the timer, no stacking
+						run.StaminaLeft = PowerUpConfig.STAMINA_SECONDS
+						if typeof(player) == "Instance" then
+							player:SetAttribute("PowerStaminaUntil", workspace:GetServerTimeNow() + run.StaminaLeft)
+						end
 					end
 					runEvent({ Kind = "PowerUpTaken", Id = p.Id, Type = p.Kind, Track = race.Number })
 				end
@@ -726,7 +739,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		driver.Done = not closed and dist >= arc[n]
 		driver.Index = driver.Done and n or nearestIndex(k)
 		lastIndex = driver.Index
-		run.MinUpY = math.min(run.MinUpY, car.PrimaryPart.CFrame.UpVector.Y)
+		run.MinUpY = math.min(run.MinUpY, runner.PrimaryPart.CFrame.UpVector.Y)
 		if not run.Holding then
 			runTime += railDt -- a duel's or race's time never counts the wait
 		end
@@ -779,7 +792,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			end
 		elseif staminaMode and not run.Finished and not run.Holding then
 			local slot = run.Slot
-			run.Stamina[slot] -= 100 / seconds[slot] * railDt
+			if run.StaminaLeft <= 0 then -- a Stamina power-up holds the drain (design doc 4.44)
+				run.Stamina[slot] -= 100 / seconds[slot] * railDt
+			end
 			sinceStamina += railDt
 			if run.Stamina[slot] <= 0 then
 				run.Stamina[slot] = 0
@@ -793,9 +808,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 					run:Destroy()
 					if isPlayer(player) then
 						task.defer(function()
-							local CarService = require(script.Parent.CarService)
-							if CarService.GetRun(player) == run then
-								CarService.SetAutoRace(player, false) -- back on foot at the walk spawn
+							local RunnerService = require(script.Parent.RunnerService)
+							if RunnerService.GetRun(player) == run then
+								RunnerService.SetAutoRace(player, false) -- back on foot at the walk spawn
 							end
 						end)
 					end
@@ -836,7 +851,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		sincePublish += railDt
 		if
 			sincePublish >= RaceService.PUBLISH_INTERVAL
-			or (run.Finished or run.Waiting or run.Holding ~= nil) ~= (car:GetAttribute("RunSpeed") == 0)
+			or (run.Finished or run.Waiting or run.Holding ~= nil) ~= (runner:GetAttribute("RunSpeed") == 0)
 		then
 			publish()
 		end
@@ -863,11 +878,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	function run:Destroy()
 		if alive then
 			alive = false
-			car:SetAttribute("RunTrack", nil) -- walking again: clients go back to ZoneAt
-			car:SetAttribute("RunHold", nil)
+			runner:SetAttribute("RunTrack", nil) -- walking again: clients go back to ZoneAt
+			runner:SetAttribute("RunHold", nil)
 			if staminaMode and typeof(player) == "Instance" then
 				player:SetAttribute("RunSlot", nil) -- walking: the stamina bar hides, effects go back to slot 1
 				player:SetAttribute("PowerSpeedUntil", nil)
+				player:SetAttribute("PowerStaminaUntil", nil)
 				player:SetAttribute("BossLine", nil)
 				for slot = 1, StaminaConfig.TEAM_SIZE do
 					player:SetAttribute("Stamina" .. slot, nil)
@@ -886,7 +902,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	return run
 end
 
-RaceService.SetCarGroup = setCarGroup
+RaceService.SetRunnerGroup = setRunnerGroup
 
 -- Where a runner (its Torso) starts track `number` of the live route (START_AHEAD in, in the lane, facing along the path), or nil.
 function RaceService.TrackStartCFrame(number)
@@ -907,15 +923,15 @@ function RaceService.RouteStartCFrame(path)
 	return rigCFrame((PathDriver.PoseAt(path.WorldWaypoints, arcOf(path), RaceService.START_AHEAD, 1, closed)))
 end
 
--- Called by CarService once the player's car exists. Returns the run, or nil if there is no route
--- (then the car is driven manually).
-function RaceService.Attach(player, car)
+-- Called by RunnerService once the player's runner exists. Returns the run, or nil if there is no route
+-- (then the runner is run manually).
+function RaceService.Attach(player, runner)
 	if not route then
 		return nil
 	end
-	setCarGroup(car)
+	setRunnerGroup(runner)
 	return RaceService.NewRun(
-		car,
+		runner,
 		route,
 		player,
 		{ Loop = true, Npc = true, PowerUps = true, StartTrack = RaceService.StartTrackFor(player) }

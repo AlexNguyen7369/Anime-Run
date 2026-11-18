@@ -138,7 +138,7 @@ local function finish(trackModels, baseplate, keep)
 	end
 end
 
--- The loading screen may let players in; TerrainNearReadyAt = os.clock() of the first time (Server/CarTest/TrackLoadTests)
+-- The loading screen may let players in; TerrainNearReadyAt = os.clock() of the first time (Server/ServerTest/TrackLoadTests)
 local function nearReady()
 	if not ReplicatedStorage:GetAttribute("TerrainNearReady") then
 		ReplicatedStorage:SetAttribute("TerrainNearReadyAt", os.clock())

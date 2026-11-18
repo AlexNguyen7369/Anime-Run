@@ -1,6 +1,6 @@
 --!nonstrict
 -- UI compatibility checks, run on the client by UiTestHarness. Owned by ui-test-writer.
--- Result shape matches Server/CarTest: { scenario, pass, checks = { { name, value, limit, pass } } }.
+-- Result shape matches Server/ServerTest: { scenario, pass, checks = { { name, value, limit, pass } } }.
 --
 -- Geometry is in SCREEN pixels: (0, 0) is the window's top-left corner, the top-bar inset included.
 -- "current" uses the engine's AbsolutePosition/AbsoluteSize; the other UiSpec.Viewports are solved with the same
@@ -151,6 +151,8 @@ UiScenarios.Names = {
 	"ui_backpack_characters",
 	-- The Team button and Team panel (UiTeam; design doc 4.40, owner 2026-11-12): team selection left the Backpack
 	"ui_team",
+	-- Summon button, minibar, plaza prompts, transition and input lock (UiTeam; design doc 4.45, owner 2026-11-17)
+	"ui_entry_points",
 	"ui_starter_pick", -- UiContracts; design doc 4.21: structure only, the test never picks
 	"ui_character_icons",
 	-- Sidekick art, Details odds, Gem icons, Index page (UiSidekicks; design doc 4.36, 4.37)
@@ -205,7 +207,7 @@ UiScenarios.Names = {
 	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
-	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
+	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened
 	"ui_roll_emphasized",
 }
 
@@ -1909,7 +1911,7 @@ local function fmtNum(n)
 	return ("%g"):format(n)
 end
 
--- The roll fixtures leave room (Server/CarTest/UiTestSetup makeBagRoom): a full bag stops every roll (design doc 4.41).
+-- The roll fixtures leave room (Server/ServerTest/UiTestSetup makeBagRoom): a full bag stops every roll (design doc 4.41).
 function K.checkBagRoom(res, tag)
 	check(
 		res,
@@ -2342,7 +2344,7 @@ local function cardProblems(card, ev, skipGeometry)
 		table.insert(bad, ("NewBadge shown=%s want %s"):format(tostring(effectivelyVisible(newBadge)), tostring(isNew)))
 	end
 	-- Duplicates are kept as copies (docs/WORKSHOP_SPEC.md "5b. Showcase", owner 2026-10-22): the server pays $0 and
-	-- the copy badge says "+1 COPY" on a duplicate (never a Money amount); hidden on a new car.
+	-- the copy badge says "+1 COPY" on a duplicate (never a Money amount); hidden on a new character.
 	if ev.scrapMoney ~= nil and ev.scrapMoney ~= 0 then
 		table.insert(bad, ("RollResult scrapMoney %s want 0"):format(tostring(ev.scrapMoney)))
 	end
@@ -2352,7 +2354,7 @@ local function cardProblems(card, ev, skipGeometry)
 		table.insert(bad, "no " .. UiSpec.Showcase.CopyBadge)
 	elseif isNew then
 		if effectivelyVisible(copyBadge) then
-			table.insert(bad, UiSpec.Showcase.CopyBadge .. " shown on a new car")
+			table.insert(bad, UiSpec.Showcase.CopyBadge .. " shown on a new character")
 		end
 	else
 		local text = allText(copyBadge)
@@ -2616,7 +2618,7 @@ local function compactShapeProblems(toast)
 end
 
 -- The landed compact roll shows the roll's truth: its odds (rarity-coloured, italic) and name under the bare figure,
--- the rolled character's own model (K.modelProblems), all inside the rect, and a Reel that clips its cars.
+-- the rolled character's own model (K.modelProblems), all inside the rect, and a Reel that clips its characters.
 local function compactProblems(toast, ev)
 	if not toast then
 		return { "no RollToast/Toast" }
@@ -2663,7 +2665,7 @@ local function compactProblems(toast, ev)
 	end
 	local reel = toast:FindFirstChild("Reel", true)
 	if not (reel and reel:IsA("GuiObject") and reel.ClipsDescendants) then
-		table.insert(bad, "Reel does not clip its cars (ClipsDescendants)")
+		table.insert(bad, "Reel does not clip its characters (ClipsDescendants)")
 	end
 	return bad
 end
@@ -2727,7 +2729,7 @@ local function glowGradient(card)
 end
 
 -- The look of a landed card: italic Odds, bold CarName with a dark UIStroke outline, a Glow with a UIGradient in
--- the rarity colour, a Reel that clips its cars.
+-- the rarity colour, a Reel that clips its characters.
 local function styleProblems(card, spec)
 	local bad = {}
 	local odds = partOf(card, "Odds")
@@ -2743,7 +2745,7 @@ local function styleProblems(card, spec)
 		not (
 			stroke
 			and stroke.Transparency < 0.5
-			and luminance(stroke.Color) <= UiSpec.Showcase.CarNameStrokeMaxLuminance
+			and luminance(stroke.Color) <= UiSpec.Showcase.ResultNameStrokeMaxLuminance
 		)
 	then
 		table.insert(bad, "CharacterName has no dark UIStroke outline")
@@ -2781,7 +2783,7 @@ local function styleProblems(card, spec)
 	end
 	local reel = partOf(card, "Reel")
 	if not (reel and reel:IsA("GuiObject") and reel.ClipsDescendants) then
-		table.insert(bad, "Reel does not clip its cars (ClipsDescendants)")
+		table.insert(bad, "Reel does not clip its characters (ClipsDescendants)")
 	end
 	-- docs/ROLL_ANIMATION_SPEC.md "Views": the odds gradient comes from the rarity; Mythic and Secret are multi-colour
 	local resultOdds = partOf(card, "ResultOdds")
@@ -5566,7 +5568,7 @@ end
 
 -- retired: ui_speed_dial, the speedometer (design doc 4.13, owner 2026-11-01)
 
--- Smooth motion (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28; contract in Server/CarTest/RunnerTests
+-- Smooth motion (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28; contract in Server/ServerTest/RunnerTests
 -- header): the server's rig is anchored and authoritative, and this client renders the visible runner (tag
 -- VisibleRunner, Owner = this player's UserId) by interpolating along the path. While auto racing, every frame's step
 -- must be about the runner's speed x dt: the IVS stutter (3.7, 0, 3.7, 0 studs per frame, a server pose replicated
@@ -5770,7 +5772,7 @@ function S.ui_theme(res)
 	checkList(res, "theme_multi_format", badMulti)
 end
 
--- The open Index is the car gallery (docs/HUD_LAYOUT_SPEC.md sections 1 and 3, UiSpec.IndexTabs): its GridHost is
+-- The open Index is the character gallery (docs/HUD_LAYOUT_SPEC.md sections 1 and 3, UiSpec.IndexTabs): its GridHost is
 -- shown and no consumables view or tab is (consumables live in the Backpack's Misc tab).
 local function indexViewChecks(res, prefix)
 	local cfg = UiSpec.IndexTabs
@@ -5881,7 +5883,7 @@ function S.ui_index(res)
 			if not (name and name.Text == "???") then
 				table.insert(wrong, id .. ": undiscovered but name is " .. tostring(name and name.Text))
 			end
-			-- Owner 2026-10-20 (docs/CAR_EXPANSION_SPEC.md "Car icons"): the silhouette is the car's own model in a
+			-- Owner 2026-10-20 (docs/CAR_EXPANSION_SPEC.md "Car icons"): the silhouette is the character's own model in a
 			-- ViewportFrame (was the atlas ImageLabel), still black; with a portrait, that ImageLabel in black
 			local wantClass = K.portraitImage(id) and "ImageLabel" or "ViewportFrame"
 			if not (art and art:IsA(wantClass) and art.ImageColor3 == Color3.new(0, 0, 0)) then
@@ -5897,10 +5899,10 @@ function S.ui_index(res)
 	end
 	checkList(res, "tiles_match_gachadata", wrong)
 	if not anyFound then
-		stateMissing(res, "has_discovered_tile", "index_states", "no catalog car in GachaData")
+		stateMissing(res, "has_discovered_tile", "index_states", "no catalog character in GachaData")
 	end
 	if not anyHidden then
-		stateMissing(res, "has_undiscovered_tile", "index_states", "every catalog car owned")
+		stateMissing(res, "has_undiscovered_tile", "index_states", "every catalog character owned")
 	end
 	if equippedTile then
 		local e = equippedTile.tile:FindFirstChild("Equip")
@@ -6050,11 +6052,11 @@ local function profileValue(rowName)
 	return value and value:IsA("TextLabel") and value.Text or nil
 end
 
-local function bestOwnedCar()
+local function bestOwnedCharacter()
 	local best = nil
-	for _, car in CharacterCatalog.All() do
-		if owned(car.Id) and (best == nil or (car.Chance or 0) > (best.Chance or 0)) then
-			best = car
+	for _, character in CharacterCatalog.All() do
+		if owned(character.Id) and (best == nil or (character.Chance or 0) > (best.Chance or 0)) then
+			best = character
 		end
 	end
 	return best
@@ -6149,7 +6151,7 @@ function S.ui_settings_profile(res)
 	for _, stat in GachaConfig.STATS do
 		allocation[stat] = attr("Alloc_" .. stat) or 0
 	end
-	local best = bestOwnedCar()
+	local best = bestOwnedCharacter()
 	local expected = {
 		TotalRolls = HudFormat.SpeedText(attr("Rolls") or 0),
 		BestRoll = HudFormat.Odds(best and best.Chance),
@@ -6411,7 +6413,7 @@ function S.ui_toast(res)
 		top ~= nil and (top == toast or toast:IsAncestorOf(top))
 	)
 	check(res, "toast_reached_hold", holdRec.landed, true, holdRec.landed == true)
-	-- Owner decision 4: the compact roll shows the odds, not the car's name (CarName / NewBadge are checked on the
+	-- Owner decision 4: the compact roll shows the odds, not the character's name (CarName / NewBadge are checked on the
 	-- enlarged card: showcase_card_is_latest_roll, showcase_updates_live, emphasized_card_matches_roll)
 	local wantOdds = oddsText(spec.Chance, ev.luck)
 	check(res, "toast_shows_odds", holdRec.odds, wantOdds, holdRec.odds == wantOdds and holdRec.oddsShown == true)
@@ -6778,7 +6780,7 @@ function S.ui_roll_anim(res)
 		minExit <= UiSpec.RollAnim.ExitShrinkMax
 	)
 
-	-- FlyIcon (a small car icon, no text) flies from the roll to the HUD INDEX button on Exit, takes no clicks, then
+	-- FlyIcon (a small character icon, no text) flies from the roll to the HUD INDEX button on Exit, takes no clicks, then
 	-- is gone
 	local target = findPath(UiSpec.RollAnim.FlyTarget)
 	local fly = rec.fly
@@ -7254,7 +7256,7 @@ local function billboardsAtHub(res)
 		check(res, prefix .. "_not_clickable", bb.Active, false, not bb.Active and #buttonsIn(bb) == 0)
 	end
 
-	-- Workspace.StreamingEnabled streams the pedestal parts (and their billboards / prompts) out while the car races
+	-- Workspace.StreamingEnabled streams the pedestal parts (and their billboards / prompts) out while the runner races
 	-- far away. Ask for the area around each pedestal model (Player:RequestStreamAroundAsync: client-side, changes no
 	-- game state) and wait for each part, so the check judges the pedestal, not the streaming radius.
 	local function streamNear(model)
@@ -7278,20 +7280,20 @@ local function billboardsAtHub(res)
 		-- the label is "Character" (WORLD_REDESIGN_SPEC: characters, not cars; SpawnArea / LeaderboardService, w1)
 		{ Title = "BEST ROLL EVER", Odds = true, Character = true, Player = true }
 	)
-	local mount = waitIn(bestPedestal, "CarMount")
+	local mount = waitIn(bestPedestal, "CharacterMount")
 	check(
 		res,
 		"best_roll_stats_adornee",
 		bestStats and bestStats:IsA("BillboardGui") and bestStats.Adornee and bestStats.Adornee:GetFullName(),
-		"Pedestal.CarMount",
+		"Pedestal.CharacterMount",
 		mount ~= nil and bestStats ~= nil and bestStats:IsA("BillboardGui") and bestStats.Adornee == mount
 	)
 end
 
 function S.ui_billboards(res)
 	-- Two runs judge it: on foot at the hub (UiSpec.Progression.FixtureChecks on_foot) the pedestal billboards; auto
-	-- racing (the main run) the win pads beside the car and the NPC label. StreamingEnabled streams the hub out while
-	-- the car races and the chain out while the avatar stands at the hub.
+	-- racing (the main run) the win pads beside the runner and the NPC label. StreamingEnabled streams the hub out while
+	-- the runner races and the chain out while the avatar stands at the hub.
 	if player:GetAttribute("AutoRacing") ~= true then
 		billboardsAtHub(res)
 		return
@@ -8271,7 +8273,7 @@ local function rollOddsJudge(res)
 		res,
 		"roll_odds_fixture_car",
 		("%s Chance=%s"):format(tostring(fx.id), tostring(spec and spec.Chance)),
-		want.CatchAll and "the catch-all (Chance 1)" or "a catalog car with a Chance above 1",
+		want.CatchAll and "the catch-all (Chance 1)" or "a catalog character with a Chance above 1",
 		spec ~= nil and type(spec.Chance) == "number" and (spec.Chance == 1) == (want.CatchAll == true)
 	)
 	if not spec then
@@ -9001,7 +9003,7 @@ function Click.attrSnapshot()
 		ReduceEffects = attr("ReduceEffects") == true,
 		TopDownView = attr("TopDownView") == true,
 		TrackCamera = attr("TrackCamera") ~= false, -- unset = ON (docs/CAMERA_SPEC.md)
-		EquippedCar = attr("EquippedCar"),
+		EquippedCharacter = attr("EquippedCharacter"),
 		StatPoints = attr("StatPoints") or 0,
 		Checkpoint = attr("Checkpoint"), -- checkpoint_not_optimistic (was never captured: the check compared to nil)
 		ProgressionMoney = player:FindFirstChild("leaderstats") and player.leaderstats.Money.Value,
@@ -9263,18 +9265,18 @@ function UiScenarios.RunClick(id)
 	local team = K.teamIds()
 	if string.find(path, "{discovered_unequipped}", 1, true) then
 		-- not on the Team: the press adds a member; slot 1's tile is disabled (design doc 4.2, UI audit A14)
-		for _, car in CharacterCatalog.All() do
-			if not tileId and owned(car.Id) and not table.find(team, car.Id) then
-				tileId = car.Id
+		for _, character in CharacterCatalog.All() do
+			if not tileId and owned(character.Id) and not table.find(team, character.Id) then
+				tileId = character.Id
 			end
 		end
 		if not tileId then
-			stateMissing(res, "target_tile", "index_states", "no owned catalog car off the Team")
+			stateMissing(res, "target_tile", "index_states", "no owned catalog character off the Team")
 			return res
 		end
 		path = string.gsub(path, "{discovered_unequipped}", tileId)
 	elseif string.find(path, "{equipped}", 1, true) then
-		-- a Team member: slot 1 is what EquippedCar names on foot (GachaService.Equip)
+		-- a Team member: slot 1 is what EquippedCharacter names on foot (GachaService.Equip)
 		if not (CharacterCatalog.Get(team[1]) and CharacterCatalog.Get(team[1]).Rollable) then
 			stateMissing(res, "target_tile", "index_states", "Team slot 1 is " .. tostring(team[1]))
 			return res
@@ -10007,7 +10009,7 @@ function UiScenarios.RunClick(id)
 			local ok = name ~= nil and name:IsA("TextLabel") and expected ~= nil and name.Text == expected.Name
 			check(res, cond, name and name.Text or "missing", expected and expected.Name or "daily quest", ok)
 		elseif cond == "equipped_is_tile" then
-			check(res, cond, attr("EquippedCar"), tileId, attr("EquippedCar") == tileId)
+			check(res, cond, attr("EquippedCharacter"), tileId, attr("EquippedCharacter") == tileId)
 		elseif cond == "tile_shows_equipped" then
 			local e = findPath("RacerIndex/Panel/Face/GridHost/Gallery/" .. tileId .. "/Equip")
 			local label = e and e:FindFirstChild("Label")

@@ -2,7 +2,7 @@
 -- Relics (design doc 4.38, docs/RELIC_SPEC.md): boss drops, the bag and per-character equip. The server decides everything;
 -- nothing a client sends is trusted. Clients only read the player attributes RelicBag and RelicGear (JSON). Saved by
 -- PlayerData (Snapshot/Apply) as Relics and RelicGear. Drops never touch GachaService.Roll, Luck or the roll counters.
--- Contract: Server/CarTest/RelicTests.
+-- Contract: Server/ServerTest/RelicTests.
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 

@@ -87,7 +87,10 @@ UiSpec.Guis = {
 		},
 		Readouts = { "Money", "Turbo" },
 		NonInteractiveParts = { "Money", "Turbo" },
-		Buttons = {},
+		Buttons = {
+			-- Design doc 4.45 (owner 2026-11-17): TeamHud's OpenTeam covers the team minibar and opens Team Setup
+			{ Path = "**/OpenTeam", Does = "toggle_panel", Panel = "RacerTeam/Panel" },
+		},
 	},
 	-- Current persistent HUD entry points (docs/HUD_LAYOUT_SPEC.md). The generated
 	-- RacerHud navigation/settings nodes remain hidden compatibility assets and are
@@ -101,6 +104,7 @@ UiSpec.Guis = {
 			"Grid/Rebirth/Badge",
 			"ShopColumn/Quests",
 			"ShopColumn/Shop",
+			"ShopColumn/Summon", -- design doc 4.45 (owner 2026-11-17)
 			"TopRight/Market",
 			"AutoSlot/Auto",
 			"UpgradeSlot/Upgrade",
@@ -113,6 +117,8 @@ UiSpec.Guis = {
 			{ Path = "Grid/Items", Does = "toggle_panel", Panel = "RacerBackpack/Panel", Text = "Items" },
 			{ Path = "Grid/Rebirth", Does = "toggle_panel", Panel = "RacerRebirth/Panel", Text = "Rebirth" },
 			{ Path = "ShopColumn/Shop", Does = "toggle_panel", Panel = "ShopUi/Backdrop", Text = "Shop" },
+			-- Design doc 4.45 (owner 2026-11-17): under Shop, key G, attribute Panel "Sidekicks"; opens the summon page
+			{ Path = "ShopColumn/Summon", Does = "toggle_panel", Panel = "RacerSidekicks/Canvas", Text = "Summon" },
 			{ Path = "UpgradeSlot/Upgrade", Does = "toggle_panel", Panel = "RacerUpgrades/Panel", Text = "Upgrade" },
 			{
 				Path = "AutoSlot/Auto",
@@ -146,8 +152,8 @@ UiSpec.Guis = {
 			{
 				Path = "Panel/Face/GridHost/Gallery/*/Equip",
 				Does = "remote",
-				Remote = "EquipCar",
-				Arg = "tile_id", -- THAT tile's car id
+				Remote = "EquipCharacter",
+				Arg = "tile_id", -- THAT tile's character id
 				Count = "catalog", -- one per CharacterCatalog.All()
 				DisabledWhen = "team_slot_1", -- only Team slot 1 shows "IN TEAM" and fires nothing; slots 2, 3 swap (design doc 4.2, UI audit A14)
 				HiddenWhen = "undiscovered", -- undiscovered tiles have no Equip button
@@ -270,7 +276,7 @@ UiSpec.Guis = {
 	-- shown (Visible = false at rest: no invisible hitbox; shown at rest only while AutoRoll is false, with "AUTO OFF").
 	-- Text is "": its parts draw it.
 	-- Starter choice popup (design doc 4.21, 4.24): Enabled only for a new player. A save with rolls never sees it, so
-	-- its Choose buttons are covered by ui_starter_pick (structure, no pick) and CarTest Phase2Tests starter_pick_*.
+	-- its Choose buttons are covered by ui_starter_pick (structure, no pick) and ServerTest Phase2Tests starter_pick_*.
 	StarterPick = {
 		Source = "Client/StarterPick",
 		Overlay = true,
@@ -293,7 +299,7 @@ UiSpec.Guis = {
 				Path = "Toast",
 				Does = "open_overlay",
 				Overlay = "RollShowcase",
-				Label = "the bare car art and Odds of the latest RollResult (no card)",
+				Label = "the bare character art and Odds of the latest RollResult (no card)",
 			},
 		},
 		NonInteractiveParts = { "FlyIcon" },
@@ -513,9 +519,10 @@ UiSpec.Hud = {
 	Quests = "HudChrome/ShopColumn/Quests",
 	Market = "HudChrome/TopRight/Market",
 	Grid = "HudChrome/Grid", -- the left column: Index, Items, Rebirth
-	ShopColumn = "HudChrome/ShopColumn", -- the right column: Quests, Shop
-	ColumnSize = 3, -- buttons in the left column: NavButtons 1-3; the rest (4-5) are the right column
-	RightColumnSize = 2,
+	Summon = "HudChrome/ShopColumn/Summon", -- design doc 4.45 (owner 2026-11-17): under Shop, key G
+	ShopColumn = "HudChrome/ShopColumn", -- the right column: Quests, Shop, Summon
+	ColumnSize = 3, -- buttons in the left column: NavButtons 1-3; the rest (4-6) are the right column
+	RightColumnSize = 3,
 	ColumnGap = 8, -- px between stacked buttons (each holder's UIListLayout Padding; a phone's UIScale only shrinks it)
 	Cell = Vector2.new(84, 94), -- one button before its holder's UIScale: a 72 px icon + 12, the icon + a 22 px label
 	-- retired: GridColumns / GridGap (the 2-column block) and GoldTiles (the gold-frame tile art), owner 2026-11-10
@@ -527,6 +534,7 @@ UiSpec.Hud = {
 		"HudChrome/Grid/Rebirth",
 		"HudChrome/ShopColumn/Quests",
 		"HudChrome/ShopColumn/Shop",
+		"HudChrome/ShopColumn/Summon",
 		"HudChrome/AutoSlot/Auto",
 		"HudChrome/UpgradeSlot/Upgrade",
 	},
@@ -547,9 +555,11 @@ UiSpec.Hud = {
 		"HudChrome/Grid/Rebirth",
 		"HudChrome/ShopColumn/Quests",
 		"HudChrome/ShopColumn/Shop",
+		"HudChrome/ShopColumn/Summon",
 	},
 	-- Design doc 4.40 split L/R, top to bottom: Index, Items, Rebirth on the LEFT edge; Quests, Shop on the RIGHT
-	NavLabels = { "Index", "Items", "Rebirth", "Quests", "Shop" },
+	-- (4.45, owner 2026-11-17: Summon under Shop)
+	NavLabels = { "Index", "Items", "Rebirth", "Quests", "Shop", "Summon" },
 	NavMaxLeftGap = 32, -- px from the screen's left edge to the left column (and the right edge to the right column)
 	-- retired: Speed, SpeedIcon, SpeedDial, SpeedValue (the speedometer and cruise read-out, design doc 4.13, owner 2026-11-01)
 	Money = "RacerHud/Money",
@@ -711,28 +721,35 @@ UiSpec.Guis.RacerBackpack = {
 	},
 }
 
--- Team panel (design doc 4.40 Team button, owner 2026-11-12, layout A "Line-up"; docs/TEAM_AND_STAMINA_SPEC.md "Team",
--- "HUD" Team editor). UiSpec.Team holds the parts and UiTeam the contract; the team_* clicks drive the real SetTeam.
+-- Team Setup page (design doc 4.45, owner 2026-11-17, replaces layout A of 4.40; docs/TEAM_AND_STAMINA_SPEC.md "Team Setup
+-- page", docs/team_setup_contract.md). UiSpec.Team holds the parts and UiTeam the contract; the team_* clicks edit a local
+-- draft and Deploy sends it through the real SetTeam.
 UiSpec.Guis.RacerTeam = {
 	Source = "Client/TeamUi",
 	Panels = { "Panel" },
 	Buttons = {
 		{ Path = "Panel/Header/Close", Does = "close_panel", Panel = "RacerTeam/Panel", Text = "X" },
-		-- A roster card only picks the character (no remote); the slots below put it on the Team.
-		{ Path = "Panel/Roster/*", Does = "local", Effect = "team_pick", Count = "dynamic", ClickCoverage = "ui_team" },
-		-- Slot<n>: SetTeam(the Team with the picked character on slot n; its own slot takes it off). A RemoteFunction:
-		-- the team_* clicks judge the Team the server answers with (UiTeam After hooks).
-		{
-			Path = "Panel/Slots/*",
-			Does = "remote",
-			Remote = "SetTeam",
-			Arg = "slot",
-			Count = "dynamic",
-			ClickCoverage = "ui_team",
-		},
-		{ Path = "Panel/Sort", Does = "local", Effect = "team_sort", ClickCoverage = "ui_team" },
+		{ Path = "Panel/Header/BonusButton", Does = "local", Effect = "team_bonus_popover" },
+		-- Altar<n> selects that slot; Remove (shown on the selected occupied altar) takes its member off the draft
+		{ Path = "Panel/Altars/*", Does = "local", Effect = "team_select_altar", Count = "dynamic" },
+		{ Path = "Panel/Altars/*/Remove", Does = "local", Effect = "team_draft_remove", Count = "dynamic" },
+		{ Path = "Panel/Tray/Tabs/Characters", Does = "local", Effect = "team_tab" },
+		{ Path = "Panel/Tray/Tabs/Sidekicks", Does = "local", Effect = "team_tab" },
+		{ Path = "Panel/Tray/Sort", Does = "local", Effect = "team_sort", ClickCoverage = "ui_team" },
+		-- A roster card puts the character on the selected altar in the draft (no remote); on the Sidekicks tab a card
+		-- then an occupied altar invokes SidekickEquip at once.
+		{ Path = "Panel/Tray/Roster/*", Does = "local", Effect = "team_pick", Count = "dynamic" },
+		-- Quick Setup: TeamQuickPick(draft) fills the draft's empty slots; Deploy: SetTeam(draft). RemoteFunctions: the
+		-- team_* clicks judge the Team the server answers with (UiTeam After hooks).
+		{ Path = "Panel/QuickSetup", Does = "remote", Remote = "TeamQuickPick", Arg = "draft" },
+		{ Path = "Panel/Deploy", Does = "remote", Remote = "SetTeam", Arg = "draft" },
+		{ Path = "Panel/ConfirmClose/Deploy", Does = "remote", Remote = "SetTeam", Arg = "draft" },
+		{ Path = "Panel/ConfirmClose/Discard", Does = "close_panel", Panel = "RacerTeam/Panel" },
 	},
 }
+-- The shared Sakura transition (Client/UiTransition) and the Team Setup tooltip (Client/UiTooltip): display only.
+UiSpec.Guis.UiTransition = { Source = "Client/UiTransition", Overlay = true, Buttons = {}, NonInteractive = true }
+UiSpec.Guis.UiTooltip = { Source = "Client/UiTooltip", Buttons = {}, NonInteractive = true }
 
 -- Robux Shop (Client/ShopUi; docs/GAMEPASS_SHOP_SPEC.md, owner rewrite 2026-10-16). Cards are found BY NAME under
 -- their section ("**" = any depth): the spec fixes the names, not the wrapper frames. UiSpec.Shop holds the parts.
@@ -776,9 +793,9 @@ UiSpec.Shop = {
 	Bundle = "Bundle",
 	BuyName = "Buy",
 	ComingSoon = "Coming soon", -- id 0 (GamepassId / ProductId)
-	-- An owned gamepass car (attribute Pass_<carId>): its Featured button equips it (docs/GAMEPASS_CARS_SPEC.md, owner
-	-- 2026-10-20, later than GAMEPASS_SHOP_SPEC section 2's "Owned"): "Equipped" while it is EquippedCar, else "Equip".
-	OwnedCar = { Equip = "Equip", Equipped = "Equipped" },
+	-- An owned gamepass character (attribute Pass_<characterId>): its Featured button equips it (docs/GAMEPASS_CARS_SPEC.md, owner
+	-- 2026-10-20, later than GAMEPASS_SHOP_SPEC section 2's "Owned"): "Equipped" while it is EquippedCharacter, else "Equip".
+	OwnedCharacter = { Equip = "Equip", Equipped = "Equipped" },
 	ThanksText = "Thanks for your support!",
 	Codes = { Input = "Input", Redeem = "Redeem", Status = "Status" },
 	-- The text the redeem click types: never a real code (Server/CodeConfig keys are upper case words; this has a
@@ -848,7 +865,7 @@ UiSpec.BandPanels = {
 	["CheckpointUi/Panel"] = 1200,
 	["DailyBoosts/ModalBackdrop/Modal"] = 1200,
 	["RacerBackpack/Panel"] = 1200,
-	["RacerTeam/Panel"] = 1200, -- the game-wide 1200 x 620 frame (design doc 4.40 Team panel)
+	-- retired: RacerTeam/Panel, Team Setup is a full-screen page (design doc 4.45, owner 2026-11-17)
 	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }
 UiSpec.Band = {
@@ -983,7 +1000,13 @@ UiSpec.PanelDimmers = {
 		"RollToast/PanelDimmer",
 		"RacerProgression/PanelDimmer",
 	},
-	VeilExempt = { RollShowcase = true, LoserScreen = true, RacerUpgrades = true },
+	VeilExempt = {
+		RollShowcase = true,
+		LoserScreen = true,
+		RacerUpgrades = true,
+		UiTransition = true,
+		RacerTeam = true,
+	},
 	Veil = { MinCoverage = 0.9, MaxTransparency = 0.95 },
 	PersistentButtons = {
 		"HudChrome/Grid/Index",
@@ -991,6 +1014,7 @@ UiSpec.PanelDimmers = {
 		"HudChrome/Grid/Rebirth",
 		"HudChrome/ShopColumn/Quests",
 		"HudChrome/ShopColumn/Shop",
+		"HudChrome/ShopColumn/Summon",
 		"HudChrome/AutoSlot/Auto",
 		"HudChrome/UpgradeSlot/Upgrade",
 		"HudChrome/TopRight/Daily",
@@ -1020,7 +1044,8 @@ UiSpec.Motion = {
 -- element of another ScreenGui (the HUD entries need not be drawn or clickable), and the panel band rules
 -- (below roll / race, above turbo) do not apply. Overlaps INSIDE its ScreenGui (tile vs tile, tile vs chrome) and
 -- every other panel's rules stay checked.
-UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true }
+-- Owner 2026-11-17 (design doc 4.45): Team Setup is a full-screen page over the blossom-shrine scene.
+UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true, ["RacerTeam/Panel"] = true }
 
 -- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the second left column (Bosses, and
 -- Team once its button has a path), drawn above it (ui_layout no_overlap_* / text_clear_of_buttons_* allow it only
@@ -1102,14 +1127,14 @@ UiSpec.Showcase = {
 	SpeedAliasText = "Cruise %s",
 	TurboBadgeText = "TURBO x%s", -- %s = the roll's turbo multi
 	-- Duplicates are kept as copies and pay $0 (docs/WORKSHOP_SPEC.md "5b. Showcase", owner 2026-10-22): the card's
-	-- ScrapBadge shows this on a duplicate roll (never a Money amount), and is hidden on a new car. RollResult's
+	-- ScrapBadge shows this on a duplicate roll (never a Money amount), and is hidden on a new character. RollResult's
 	-- 5th argument (scrapMoney) must be 0.
 	CopyBadge = "ScrapBadge",
 	CopyBadgeText = "+1 COPY",
 	GoldOdds = Color3.fromRGB(255, 200, 60), -- contract: Legendary and rarer show gold odds
 	SecretMinLuminance = 0.5, -- Secret's colour is near-black: its Rarity / Odds text must still read (light)
 	NameStrokeMaxLuminance = 0.3, -- ResultName: a DARK UIStroke outline
-	CarNameStrokeMaxLuminance = 0.3, -- compatibility probe name for the same ResultName outline
+	ResultNameStrokeMaxLuminance = 0.3, -- compatibility probe name for the same ResultName outline
 	Blur = "RollShowcaseBlur", -- BlurEffect in Lighting: Enabled while open, disabled when closed
 	CornerInset = 24, -- px: the backdrop click lands this far in from the bottom-right corner (clear of the card)
 	Hint = "Hint", -- Backdrop/Hint
@@ -1239,7 +1264,7 @@ UiSpec.RollAnim = {
 UiSpec.Announce = {
 	Remote = "RollAnnounce",
 	Channel = "RBXGeneral",
-	Format = "%s rolled %s (%s)! Total rolls: %d", -- DisplayName, Car Name, odds, Rolls after the roll
+	Format = "%s rolled %s (%s)! Total rolls: %d", -- DisplayName, Character Name, odds, Rolls after the roll
 }
 
 -- Client scripts that build no ScreenGui but must exist (StarterPlayerScripts.Client).
@@ -1249,7 +1274,7 @@ UiSpec.ClientScripts = { "RollAnnounce", "BossPrepRun" } -- BossPrepRun: display
 UiSpec.Remotes = {
 	"SetAutoRace",
 	"SetAutoRoll",
-	"EquipCar",
+	"EquipCharacter",
 	"AllocateStat",
 	"RollResult",
 	"RollAnnounce",
@@ -1341,10 +1366,10 @@ UiSpec.Billboards = {
 		Text = "HudFormat.MoneyText(Cash)",
 	},
 	-- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md section 3a): Workspace.SpawnArea.BestRoll.Pedestal.Stats.
-	-- Odds / Car / Player follow the RarestCar board (server); here only that they exist. Title is fixed.
+	-- Odds / Character / Player follow the RarestCharacter board (server); here only that they exist. Title is fixed.
 	BestRollStats = {
 		Path = "SpawnArea/BestRoll/Pedestal/Stats", -- under Workspace
-		Adornee = "CarMount", -- Pedestal.CarMount
+		Adornee = "CharacterMount", -- Pedestal.CharacterMount
 		-- true = must exist, any text; "Character" (was Car: characters, not cars, WORLD_REDESIGN_SPEC, w1)
 		Labels = { Title = "BEST ROLL EVER", Odds = true, Character = true, Player = true },
 		MaxDistance = "LeaderboardConfig.BEST_ROLL.TEXT_DISTANCE", -- 150
@@ -1387,7 +1412,7 @@ UiSpec.Waits = {
 }
 
 --[[
-Server-side setup. Done by src/server/CarTest/UiTestSetup.server.luau (Studio only, live modules), triggered by
+Server-side setup. Done by src/server/ServerTest/UiTestSetup.server.luau (Studio only, live modules), triggered by
 ui-tester on the SERVER datamodel (a client cannot: client attribute changes do not replicate):
   1. ReplicatedStorage:SetAttribute("UiTestSetup", "<id>:<nonce>")   (a fresh nonce every time)
   2. wait until ReplicatedStorage:GetAttribute("UiTestSetupDone") == "<id>:<nonce>"
@@ -1416,7 +1441,7 @@ UiSpec.ServerSetup = {
 	{
 		Id = "index_states",
 		When = "before UiTestRun (ui_index needs a discovered, an undiscovered AND an equipped catalog tile)",
-		What = "Owns every catalog car but the rarest (stays '???'), equips the first owned one, sets every "
+		What = "Owns every catalog character but the rarest (stays '???'), equips the first owned one, sets every "
 			.. "Alloc_* to 0 so StatPoints = FreePoints >= 1.",
 	},
 	{
@@ -1435,15 +1460,15 @@ UiSpec.ServerSetup = {
 		When = "asked for by ui_run_visual itself (UiScenarios.Needs) and by UiRunVisual.Capture; the rig commands "
 			.. "run_visual_rig, run_visual_swap and run_visual_clear only reach UiTestSetupRequest",
 		What = "A straight route of its own (RunRoutes/UiRunVisualRoute) and one rig at a time built for no Player "
-			.. "(Owner = 0), with the real RunnerFactory and VehicleEffects.Apply on a Folder's slot attributes. Reads "
+			.. "(Owner = 0), with the real RunnerFactory and RunnerEffects.Apply on a Folder's slot attributes. Reads "
 			.. "and writes no Team, owned item or Money. 'restore:run_visual' removes the rig and the route.",
 	},
 	{
 		Id = "on_foot",
 		When = "before the on_foot fixture runs (UiSpec.Progression.FixtureChecks) and first in the NeedSetup of "
-			.. "every click whose After pins Money (progression_not_optimistic: a racing car's pad payouts would move "
+			.. "every click whose After pins Money (progression_not_optimistic: a racing runner's pad payouts would move "
 			.. "it mid-check); needs 'snapshot' first",
-		What = "Stops auto race (AutoRacing == false, avatar on foot at the walk spawn, no car). 'restore' puts "
+		What = "Stops auto race (AutoRacing == false, avatar on foot at the walk spawn, no runner). 'restore' puts "
 			.. "AutoRacing back.",
 	},
 	{
@@ -1532,8 +1557,8 @@ UiSpec.ServerSetup = {
 	{
 		Id = "emphasized_next",
 		When = "during UiTestRun when the harness prints '[UITEST] WAIT emphasized_roll'; needs 'snapshot' first",
-		What = "Takes every rollable car away until the next roll happened (emphasized, new), then gives exactly the "
-			.. "cars owned before back.",
+		What = "Takes every rollable character away until the next roll happened (emphasized, new), then gives exactly the "
+			.. "characters owned before back.",
 	},
 	{
 		Id = "auto_roll_on",
@@ -1545,8 +1570,8 @@ UiSpec.ServerSetup = {
 		When = "after the run and the clicks",
 		What = "Applies the 'snapshot', restores AutoRacing and AutoRoll and removes UiTestSpy. It CONSUMES the "
 			.. "snapshot (deliberately: a kept baseline would survive into a later session and make its 'snapshot' a "
-			.. "no-op, restoring stale money/cars). Any fixture after a restore needs a fresh 'snapshot' first, else "
-			.. "it errors 'snapshot required'. Restore can stop auto race, and CarService then holds the avatar at the "
+			.. "no-op, restoring stale money/characters). Any fixture after a restore needs a fresh 'snapshot' first, else "
+			.. "it errors 'snapshot required'. Restore can stop auto race, and RunnerService then holds the avatar at the "
 			.. "walk spawn for ~2 s.",
 	},
 }
@@ -2066,7 +2091,7 @@ UiSpec.Clicks = {
 			After = { "autorace_label_follows_server", "autoracing_is_arg", "auto_pill_tint_follows_server" },
 		},
 	},
-	-- Index: Equip fires EquipCar with THAT tile's id; the equipped tile fires nothing
+	-- Index: Equip fires EquipCharacter with THAT tile's id; the equipped tile fires nothing
 	{
 		Id = "equip_discovered_tile",
 		Gui = "RacerIndex",
@@ -2075,7 +2100,7 @@ UiSpec.Clicks = {
 		-- on_foot: only an equip on foot changes the Team, and the tile's IN TEAM follows slot 1 (design doc 4.2, UI audit A14)
 		NeedSetup = { "on_foot", "spy", "index_states" },
 		Expect = {
-			Remote = { Name = "EquipCar", Arg = "tile_id" },
+			Remote = { Name = "EquipCharacter", Arg = "tile_id" },
 			After = { "equipped_is_tile", "tile_shows_equipped" },
 		},
 	},
@@ -2653,16 +2678,22 @@ for _, item in
 		-- granted or paid) and turns AutoRoll off until 'restore'
 		{
 			Id = "roll_odds_luck2",
-			What = "Plants a car with a Chance at luck 2; display remains base rarity; run ui_roll_odds.",
+			What = "Plants a character with a Chance at luck 2; display remains base rarity; run ui_roll_odds.",
 		},
-		{ Id = "roll_odds_round", What = "Same car at luck 3; display remains base rarity; run ui_roll_odds." },
-		{ Id = "roll_odds_clamp", What = "Same car at extreme luck; display remains base rarity; run ui_roll_odds." },
-		{ Id = "roll_odds_luck1", What = "Same car at luck 1 (base odds); run ui_roll_odds." },
-		{ Id = "roll_odds_no_luck", What = "Same car with NO 6th argument (base odds); run ui_roll_odds." },
-		{ Id = "roll_odds_catchall", What = "The catch-all car (Chance 1) at luck 2 ('1 in 1'); run ui_roll_odds." },
+		{ Id = "roll_odds_round", What = "Same character at luck 3; display remains base rarity; run ui_roll_odds." },
+		{
+			Id = "roll_odds_clamp",
+			What = "Same character at extreme luck; display remains base rarity; run ui_roll_odds.",
+		},
+		{ Id = "roll_odds_luck1", What = "Same character at luck 1 (base odds); run ui_roll_odds." },
+		{ Id = "roll_odds_no_luck", What = "Same character with NO 6th argument (base odds); run ui_roll_odds." },
+		{
+			Id = "roll_odds_catchall",
+			What = "The catch-all character (Chance 1) at luck 2 ('1 in 1'); run ui_roll_odds.",
+		},
 		{
 			Id = "weather_rain_roll",
-			What = "weather_rain, then plants the Rain car (else a car with a Chance) at the luck the server gives this "
+			What = "weather_rain, then plants the Rain character (else a character with a Chance) at the luck the server gives this "
 				.. "player during Rain (GachaService.Luck x WeatherConfig rain Luck); run ui_weather.",
 		},
 	}
@@ -2714,7 +2745,7 @@ UiSpec.Progression.FixtureChecks = {
 --[[
 Displayed odds (docs/WEATHER_EVENTS_SPEC.md "Displayed odds"; docs/ROLL_ANIMATION_SPEC.md). RollResult's 6th
 argument is the roll's server luck for compatibility, but both Odds labels (RollToast/Toast `Odds`; RollShowcase/Card
-`ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. The catch-all car (Chance 1)
+`ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. The catch-all character (Chance 1)
 shows "1 in 1". The Index and the roll announcement keep the base odds.
 
 Each fixture sets the player attribute Attr = JSON { fixture, id, luck (absent when not sent), nonce }, waits for a
@@ -2724,8 +2755,8 @@ later, RollResult(id, false, 1, true, 0, luck) (emphasized: plays on the enlarge
 UiSpec.RollOdds = {
 	Attr = "UiTestRollOdds",
 	Wait = 30, -- s for both planted rolls to land (the fixture first waits out the longest roll animation)
-	-- The luck each fixture must send. Luck = that number; ChanceTimes = the car's Chance x it; NoLuck = no 6th
-	-- argument; Event = at least that WeatherConfig event's Luck. CatchAll = the car has no Chance.
+	-- The luck each fixture must send. Luck = that number; ChanceTimes = the character's Chance x it; NoLuck = no 6th
+	-- argument; Event = at least that WeatherConfig event's Luck. CatchAll = the character has no Chance.
 	Fixtures = {
 		roll_odds_luck2 = { Luck = 2 },
 		roll_odds_round = { Luck = 3 },
@@ -3023,7 +3054,7 @@ do
 	table.insert(UiSpec.ServerSetup, item)
 end
 -- Backpack Characters tiles (c1 / u4): a tile click only picks the character, nothing is sent (owner 2026-11-12, 4.40: the
--- team slot buttons left for the Team panel, UiSpec.Team). Retired: a tile click firing EquipCar and the "equipped tile fires nothing"
+-- team slot buttons left for the Team panel, UiSpec.Team). Retired: a tile click firing EquipCharacter and the "equipped tile fires nothing"
 -- click backpack_equipped_car (the Team of 3 replaced the single equip, design doc 4.2).
 table.insert(UiSpec.Clicks, {
 	Id = "backpack_pick_character",
@@ -3318,7 +3349,7 @@ for _, panel in { "PickPanel", "InvitePanel" } do
 	})
 end
 -- Owner-approved 2026-10-20 contracts. Existing limits and click contracts above stay intact.
--- Backpack (docs/HUD_LAYOUT_SPEC.md section 3, owner 2026-10-20) and car icons (docs/CAR_EXPANSION_SPEC.md "Car icons
+-- Backpack (docs/HUD_LAYOUT_SPEC.md section 3, owner 2026-10-20) and character icons (docs/CAR_EXPANSION_SPEC.md "Car icons
 -- and model detail"). Checked by ui_backpack_characters and ui_character_icons (UiContracts) and the backpack_*
 -- clicks. Cars -> Characters, car models -> runner rigs (docs/WORLD_REDESIGN_SPEC.md section 1, ruling 2026-10-28).
 -- ui_backpack_characters measures the live engine rects and tags its geometry checks with the live variant (_desktop, or
@@ -3402,33 +3433,58 @@ UiSpec.Backpack = {
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
 
--- Team panel (design doc 4.40 "Market pill and Bosses button", owner 2026-11-12, layout A "Line-up",
--- assets/ui/team_draft/A_desktop.png; docs/TEAM_AND_STAMINA_SPEC.md "Team", "HUD" Team editor). UiTeam holds the contract.
--- The parts sit directly in Panel; each Slot<n> is a GuiButton holding Order, Portrait (ImageLabel), Name, Category,
--- Cruise, Stamina, or Empty when no member is on it. The rules of choosing a team are TEAM_AND_STAMINA_SPEC "Team".
+-- Team Setup page (design doc 4.45, owner 2026-11-17; docs/TEAM_AND_STAMINA_SPEC.md "Team Setup page",
+-- docs/team_setup_contract.md). Replaces layout A of 4.40. UiTeam holds the contract. Three altars Altar1..3 in Altars,
+-- the Footer, the roster Tray, Quick Setup and Deploy; edits are a local draft, Deploy sends one SetTeam. The rules of
+-- choosing a team are TEAM_AND_STAMINA_SPEC "Team".
+local TEAM_ROOT = "RacerTeam/Panel"
 UiSpec.Team = {
 	Button = "RacerSecondColumn/TeamButton",
-	Panel = "RacerTeam/Panel",
-	Title = "RacerTeam/Panel/Header/Title",
-	Close = "RacerTeam/Panel/Header/Close",
-	Slots = "RacerTeam/Panel/Slots",
-	Bonus = "RacerTeam/Panel/Bonus",
-	Roster = "RacerTeam/Panel/Roster",
-	Sort = "RacerTeam/Panel/Sort",
-	Search = "RacerTeam/Panel/Search",
-	Gone = { "BestTeam" }, -- left out by rule (needs a rule, owner 2026-11-12): no descendant of Panel has this name
-	Order = { "RUNS FIRST", "TAGS IN 2ND", "TAGS IN LAST" },
-	SlotParts = { "Order", "Portrait", "Name", "Category", "Cruise", "Stamina" },
+	Panel = TEAM_ROOT,
+	Title = TEAM_ROOT .. "/Header/Title",
+	TitleText = "TEAM SETUP", -- compared upper-cased
+	Close = TEAM_ROOT .. "/Header/Close",
+	BonusButton = TEAM_ROOT .. "/Header/BonusButton",
+	BonusPopover = TEAM_ROOT .. "/BonusPopover", -- Name, Effect, Total; hidden until BonusButton is pressed
+	Dots = TEAM_ROOT .. "/Dots", -- Dot1..3: BackgroundTransparency < 0.5 when that draft slot is filled
+	Altars = TEAM_ROOT .. "/Altars", -- Altar1..3 TextButtons, left to right
+	Footer = TEAM_ROOT .. "/Footer", -- TeamName, Status, Count, Progress/Fill
+	Tray = TEAM_ROOT .. "/Tray",
+	Tabs = TEAM_ROOT .. "/Tray/Tabs", -- Characters, Sidekicks (attribute Active on the shown tab)
+	Roster = TEAM_ROOT .. "/Tray/Roster",
+	Sort = TEAM_ROOT .. "/Tray/Sort",
+	Search = TEAM_ROOT .. "/Tray/Search",
+	QuickSetup = TEAM_ROOT .. "/QuickSetup",
+	Deploy = TEAM_ROOT .. "/Deploy", -- attribute Enabled false while draft == saved Team or the draft is empty
+	ConfirmClose = TEAM_ROOT .. "/ConfirmClose", -- Deploy, Discard; shown on a dirty close
+	Tooltip = "UiTooltip/Tip", -- Title, Rarity, Body
+	Transition = "UiTransition", -- ScreenGui with Paper; attribute Playing while it runs
+	InputLockAttr = "PageInputLocked", -- LocalPlayer attribute while Team or Sidekicks is open
+	Summon = "HudChrome/ShopColumn/Summon",
+	SummonKey = "G", -- proposed (design doc 4.45)
+	SummonPanel = "RacerSidekicks/Canvas",
+	Gone = { "BestTeam" }, -- no descendant of Panel has this name (Quick Setup replaced it, 4.45)
+	GoneDirect = { "Slots", "Bonus" }, -- layout A's parts: no child of Panel has these names any more
+	SlotLabels = { "SLOT 1", "SLOT 2", "SLOT 3" }, -- owner 2026-11-17 (4.45)
+	FullScreenTol = 2, -- px: Panel AbsoluteSize against its ScreenGui's
+	TeamName = "Team 1",
+	Ready = "Ready",
+	Unsaved = "Unsaved changes",
+	CountText = "%d / 3 Slots Filled",
+	PlusText = "+",
+	AddText = "Add Character",
+	RemoveText = "Remove",
 	PanelSwitchName = "Team",
 	Key = "T", -- proposed (owner 2026-11-12)
 	Label = "Team",
 	NoBonus = "No team bonus",
-	-- Notices, word for word as the Backpack showed them (server GachaService.SetTeam / Client/BackpackUi)
+	-- Notices, word for word (server GachaService.SetTeam); shown in Footer/Status on a refused Deploy
 	RunNotice = "Stop running to change your Team",
-	MinNotice = "Your Team needs at least 1 character",
 	FixtureAttr = "UiTestTeamIds", -- ServerSetup team_states: "A,B,C", the Team is A,B
-	StaminaSlack = 0.15, -- s: Total against the summed slot figures (each rounded to 0.1)
-	Hold = 0.6, -- s a refused change must leave the Team as it was
+	Hold = 0.6, -- s a draft-only or refused change must leave the saved Team as it was
+	DeployClose = 1.2, -- s: a successful Deploy plays the altar activation and closes (about 1 s)
+	-- Plaza prompts (Shared/SpawnArea; Client/PlazaPrompts maps them to PanelSwitch)
+	Prompts = { OpenTeam = "Team", OpenSidekicks = "Summon" },
 }
 -- Path tokens of the team_* clicks: the team_states fixture's three ids (A, B on the Team, C off it).
 for i, token in { "{team_a}", "{team_b}", "{team_c}" } do
@@ -3482,25 +3538,104 @@ table.insert(UiSpec.Clicks, {
 	NeedSetup = { "spy" },
 	Expect = { Panels = { [TEAM_PANEL] = true }, Remote = false },
 })
--- The editor flow (TEAM_AND_STAMINA_SPEC "HUD" Team editor, moved from the Backpack): tap a card, then a slot. Each slot
--- press invokes the real SetTeam; its After waits for the Team the server answers with and the slots showing it.
+-- The editor flow (TEAM_AND_STAMINA_SPEC "Team Setup page"): tap an altar, then a card; the draft never sends. Deploy
+-- invokes the real SetTeam and, on success, closes the page (about 1 s, inside ClickSettle). Every chain starts from
+-- team_states (saved Team A,B). A step marked CLOSES expects the panel closed after it.
 local PICK = { ScrollIntoView = true }
-UiSpec.AddMenuChain({ "spy", "team_states" }, TEAM_PANEL, {
-	{ "team_pick_c", "RacerTeam", "Panel/Roster/{team_c}", "team_pick_sends_nothing", PICK },
-	{ "team_put_c_slot3", "RacerTeam", "Panel/Slots/Slot3", "team_is_abc" },
-	{ "team_pick_a", "RacerTeam", "Panel/Roster/{team_a}", nil, PICK },
-	{ "team_swap_a_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_bac" }, -- A from slot 1 swaps with B
-	{ "team_pick_a_again", "RacerTeam", "Panel/Roster/{team_a}", nil, PICK },
-	{ "team_remove_a_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_bc" }, -- its own slot takes it off
-	{ "team_pick_c_again", "RacerTeam", "Panel/Roster/{team_c}", nil, PICK },
-	{ "team_remove_c_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_b" },
-	{ "team_pick_b", "RacerTeam", "Panel/Roster/{team_b}", nil, PICK },
-	{ "team_keep_last_slot1", "RacerTeam", "Panel/Slots/Slot1", "team_keeps_last_member" }, -- never fewer than 1
+local CLOSES = {}
+local function teamChain(need, steps)
+	UiSpec.AddMenuChain(need, TEAM_PANEL, steps)
+	for _, click in UiSpec.Clicks do
+		if CLOSES[click.Id] then
+			click.Expect.Panels[TEAM_PANEL] = false
+		end
+	end
+end
+local TEAM_NEED = { "spy", "team_states" }
+CLOSES.team_deploy_abc = true
+teamChain(TEAM_NEED, {
+	{ "team_select_altar3", "RacerTeam", "Panel/Altars/Altar3", "team_altar3_selected" },
+	{ "team_put_c", "RacerTeam", "Panel/Tray/Roster/{team_c}", "team_draft_abc", PICK }, -- draft only: Team still A,B
+	{ "team_deploy_abc", "RacerTeam", "Panel/Deploy", "team_is_abc" },
 })
--- During a run the Team is locked, with the Backpack's notice (SetTeam refuses it).
-UiSpec.AddMenuChain({ "spy", "team_states", "auto_racing" }, TEAM_PANEL, {
-	{ "team_run_pick_c", "RacerTeam", "Panel/Roster/{team_c}", nil, PICK },
-	{ "team_run_put_c_slot3", "RacerTeam", "Panel/Slots/Slot3", "team_locked_in_run" },
+-- Swap, then Remove, then Deploy: A on altar 2 swaps with B (draft B,A); Remove on altar 2 leaves B.
+CLOSES.team_deploy_b = true
+teamChain(TEAM_NEED, {
+	{ "team_swap_select_altar2", "RacerTeam", "Panel/Altars/Altar2" },
+	{ "team_swap_a", "RacerTeam", "Panel/Tray/Roster/{team_a}", "team_draft_ba", PICK },
+	{ "team_remove_select_altar2", "RacerTeam", "Panel/Altars/Altar2", "team_remove_shown" },
+	{ "team_remove_a", "RacerTeam", "Panel/Altars/Altar2/Remove", "team_draft_b" },
+	{ "team_deploy_b", "RacerTeam", "Panel/Deploy", "team_is_b" },
+})
+-- Never fewer than 1 member: an empty draft turns Deploy off and a press saves nothing.
+teamChain(TEAM_NEED, {
+	{ "team_empty_select_altar2", "RacerTeam", "Panel/Altars/Altar2" },
+	{ "team_empty_remove_b", "RacerTeam", "Panel/Altars/Altar2/Remove" },
+	{ "team_empty_select_altar1", "RacerTeam", "Panel/Altars/Altar1" },
+	{ "team_empty_remove_a", "RacerTeam", "Panel/Altars/Altar1/Remove", "team_draft_empty" },
+	{ "team_empty_deploy", "RacerTeam", "Panel/Deploy", "team_empty_kept" },
+})
+-- During a run SetTeam refuses: the page stays open, the draft is kept and Footer/Status shows the server's notice.
+teamChain({ "spy", "team_states", "auto_racing" }, {
+	{ "team_run_select_altar3", "RacerTeam", "Panel/Altars/Altar3" },
+	{ "team_run_put_c", "RacerTeam", "Panel/Tray/Roster/{team_c}", nil, PICK },
+	{ "team_run_deploy", "RacerTeam", "Panel/Deploy", "team_locked_in_run" },
+})
+-- Quick Setup: with the draft at A only, TeamQuickPick fills slots 2 and 3 (draft only); Deploy saves exactly that draft.
+CLOSES.team_quick_deploy = true
+teamChain(TEAM_NEED, {
+	{ "team_quick_select_altar2", "RacerTeam", "Panel/Altars/Altar2" },
+	{ "team_quick_remove_b", "RacerTeam", "Panel/Altars/Altar2/Remove", "team_draft_a" },
+	{ "team_quick_setup", "RacerTeam", "Panel/QuickSetup", "team_quick_filled" },
+	{ "team_quick_deploy", "RacerTeam", "Panel/Deploy", "team_is_quick" },
+})
+-- Dirty close: Close asks Deploy or Discard and the page stays open; Discard closes and keeps the saved Team.
+CLOSES.team_dirty_discard = true
+teamChain(TEAM_NEED, {
+	{ "team_dirty_select_altar3", "RacerTeam", "Panel/Altars/Altar3" },
+	{ "team_dirty_put_c", "RacerTeam", "Panel/Tray/Roster/{team_c}", nil, PICK },
+	{ "team_dirty_close", "RacerTeam", "Panel/Header/Close", "team_confirm_shown" },
+	{ "team_dirty_discard", "RacerTeam", "Panel/ConfirmClose/Discard", "team_discarded" },
+})
+-- ... and its Deploy deploys, then closes.
+CLOSES.team_confirm_deploy = true
+teamChain(TEAM_NEED, {
+	{ "team_confirm_select_altar3", "RacerTeam", "Panel/Altars/Altar3" },
+	{ "team_confirm_put_c", "RacerTeam", "Panel/Tray/Roster/{team_c}", nil, PICK },
+	{ "team_confirm_close", "RacerTeam", "Panel/Header/Close", "team_confirm_shown" },
+	{ "team_confirm_deploy", "RacerTeam", "Panel/ConfirmClose/Deploy", "team_is_abc" },
+})
+-- The Team Bonus popover and the tray tabs (no remote, the saved Team untouched).
+teamChain(TEAM_NEED, {
+	{ "team_bonus_open", "RacerTeam", "Panel/Header/BonusButton", "team_bonus_shown" },
+	{ "team_bonus_close", "RacerTeam", "Panel/Header/BonusButton", "team_bonus_hidden" },
+	{ "team_tab_sidekicks", "RacerTeam", "Panel/Tray/Tabs/Sidekicks", "team_tab_sidekicks_active" },
+	{ "team_tab_characters", "RacerTeam", "Panel/Tray/Tabs/Characters", "team_tab_characters_active" },
+})
+
+-- Entry points (design doc 4.45): the Summon button (and G) opens the summon page; the team minibar opens Team Setup.
+table.insert(UiSpec.Clicks, {
+	Id = "open_summon",
+	Gui = "HudChrome",
+	Path = "ShopColumn/Summon",
+	Prepare = { Closed = CLOSED, Showcase = false },
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [UiSpec.Team.SummonPanel] = true }, Remote = false },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "summon_key_g",
+	Key = UiSpec.Team.SummonKey,
+	Prepare = { Closed = CLOSED, Showcase = false },
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [UiSpec.Team.SummonPanel] = true }, Remote = false },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "open_team_minibar",
+	Gui = "RacerHud",
+	Path = "**/OpenTeam",
+	Prepare = { Closed = CLOSED, Showcase = false },
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = true }, Remote = false, After = { "team_dim_on" } },
 })
 
 -- docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains": 44 rollable characters (the starter is not in the Index)
@@ -3730,8 +3865,8 @@ table.insert(UiSpec.Clicks, {
 })
 
 -- Index header (reconcile 2026-10-27, Isaac's INVENTORY tabs, ccea607). docs/HUD_LAYOUT_SPEC.md sections 1 and 3:
--- Index opens its existing panel and stays the discovery gallery of every car; consumables live in the Backpack's
--- Misc tab (the old Bag is gone). The generated header keeps one visible tab, CharactersTab, which shows the car gallery
+-- Index opens its existing panel and stays the discovery gallery of every character; consumables live in the Backpack's
+-- Misc tab (the old Bag is gone). The generated header keeps one visible tab, CharactersTab, which shows the character gallery
 -- and asks the server nothing; the CONSUMABLES tab and its host stay hidden (ui_index index_no_consumables_view).
 UiSpec.IndexTabs = {
 	CarsTab = "RacerIndex/Panel/Face/Header/Face/CharactersTab",
@@ -3854,7 +3989,7 @@ table.insert(UiSpec.Clicks, {
 -- retired: UiSpec.SpeedDial, the speedometer (design doc 4.13, owner 2026-11-01)
 -- ui_runner_smooth (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28): measurement tolerances, not game values
 UiSpec.RunnerSmooth = {
-	Tag = "VisibleRunner", -- CollectionService tag of the runner the client renders (contract: Server/CarTest/RunnerTests)
+	Tag = "VisibleRunner", -- CollectionService tag of the runner the client renders (contract: Server/ServerTest/RunnerTests)
 	Wait = 5, -- s: while AutoRacing the visible runner must exist within this
 	SampleSeconds = 3, -- frames watched
 	MinFrames = 30, -- an unmeasured window never passes
@@ -3869,7 +4004,7 @@ UiSpec.RunnerSmooth = {
 -- ui_run_visual (core c3, owner 2026-11-04; UiRunVisual). Measurement limits, not game values. Pose numbers (SWING, BOB,
 -- STRIDE, NINJA) are never copied here: the scenario measures them from RunnerVisual on an unparented clone.
 UiSpec.RunVisual = {
-	Route = "UiRunVisualRoute", -- Server/CarTest/UiTestSetup RUN_VISUAL.ROUTE: straight, flat, RunRoutes folder
+	Route = "UiRunVisualRoute", -- Server/ServerTest/UiTestSetup RUN_VISUAL.ROUTE: straight, flat, RunRoutes folder
 	RigPrefix = "UiRunVisualRig",
 	Meshes = { "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg" }, -- design doc 5, RunnerFactory.PARTS without Trim
 	-- Runtime: about 40 rows x (SampleSeconds + settle + fetch) + 2 swaps; the owner's limit is about 5 minutes
@@ -3908,9 +4043,9 @@ UiSpec.RunVisual = {
 	FootTolerance = 0.1, -- studs off the range the pose itself gives the leg box over a stride
 	FootSinkLimit = 0.35, -- studs under the ground at most: the deepest boot box (1.96 x SCALE) swung 40 deg reaches 0.13
 	-- Aura and trail. Effect radii unscaled by RunnerFactory.SCALE: known cosmetic note, not a failure.
-	AttachmentTolerance = 0.05, -- studs: VehicleEffectTests' 0.001 is too small for float noise thousands of studs out
+	AttachmentTolerance = 0.05, -- studs: RunnerEffectTests' 0.001 is too small for float noise thousands of studs out
 	OriginClear = 1, -- studs: the route is high above the origin, so an attachment this near it has lost its part
-	MinRibbonWidth = 0.05, -- studs between a trail's attachments, VehicleEffectTests MIN_RIBBON_WIDTH
+	MinRibbonWidth = 0.05, -- studs between a trail's attachments, RunnerEffectTests MIN_RIBBON_WIDTH
 	-- Slot swap
 	SwapSeconds = 1,
 	SwapMinFrames = 15,

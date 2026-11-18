@@ -1,5 +1,5 @@
 --!nonstrict
--- Saved player stats: Money, the car gacha (inventory, equipped car, rolls, stat allocation), the upgrade tree
+-- Saved player stats: Money, the character gacha (inventory, equipped character, rolls, stat allocation), the upgrade tree
 -- (owned tiles, BestTrack, TurboCount). There is no Speed stat (owner 2026-11-01, design doc
 -- 4.13): an old save's Speed is kept in the record but never read. The server owns them: leaderstats replicate down to clients, nothing a client sends ever changes a value. Data is
 -- kept in a DataStore; if the store cannot be read (Studio without API access, outage) the player is
@@ -169,7 +169,7 @@ function PlayerData.Load(player, userId)
 			"LastBossTeam",
 			type(data.LastBossTeam) == "string" and string.sub(data.LastBossTeam, 1, 200) or ""
 		)
-		GachaService.Apply(player, data) -- older saves have no gacha fields: starter car, nothing allocated
+		GachaService.Apply(player, data) -- older saves have no gacha fields: starter character, nothing allocated
 		GachaService.CheckStarter(player) -- a brand new save picks a starter (design doc 4.21)
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
 		MarketService.Apply(player, data)
@@ -447,7 +447,7 @@ function PlayerData.Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		for _, hook in leaveHooks do
-			pcall(hook, player) -- e.g. CarService stops the run
+			pcall(hook, player) -- e.g. RunnerService stops the run
 		end
 		PlayerData.Save(player, nil, true)
 	end)

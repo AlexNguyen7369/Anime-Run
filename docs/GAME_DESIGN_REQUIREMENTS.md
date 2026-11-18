@@ -75,8 +75,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
   showing the active slot's stamina. Client display of the server's `Stamina<n>` / `RunSlot`.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
-- A Stamina power-up (4.44, owner 2026-11-11) may push the running character past 100%: the seconds number shows
-  the extra, the bar stays full.
+- A Stamina power-up (4.44, owner 2026-11-16) holds the running character's stamina still for 2 s: no drain, no
+  overfill (replaces the 2026-11-11 overfill past 100%).
 - Stamina bar look (owner 2026-11-03): the bar drains smoothly, a lighter trail shows the stamina just lost, the fill
   turns from blue to amber to red as it runs low (thresholds placeholder: 50% / 25%) and pulses when low, and it
   refills with a flash when the next runner tags in. Display only.
@@ -232,8 +232,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.18 Loading at high speed (owner 2026-11-01)
 - Biome meshes and textures must be loaded before a fast runner reaches them; sky and lighting must switch quickly at
   a biome boundary at any speed. Use the cheapest approach that keeps up at `MAX_CRUISE`. Client display only.
-  A Speed power-up (4.44) may run 1.2 x `MAX_CRUISE` for 2 s: the budget stays at `MAX_CRUISE`, the per-track `RunHold`
-  (4.25) still catches a boosted runner, and a late biome switch during those 2 s is accepted (**proposed**, taken on the
+  A Speed power-up (4.44) may run 1.2 x `MAX_CRUISE` for 1 s (owner 2026-11-16): the budget stays at `MAX_CRUISE`, the per-track `RunHold`
+  (4.25) still catches a boosted runner, and a late biome switch during that 1 s is accepted (**proposed**, taken on the
   owner's standing word 2026-11-11; see OWNER_QUESTIONS).
 - Biome while racing: the server publishes `RunTrack` (the track whose finish pad is still ahead) on the runner rig; the
   client takes the biome from it and switches at once at the finish pad. The nearest centre line (`ZoneAt`) is used only
@@ -532,7 +532,7 @@ before any Studio work.
 - Icon style (owner 2026-11-10, third pick of the day; replaces the Gold badge): "Tab tilt", rendition 4 of https://claude.ai/artifact/5QMx5w44ZWhRhMXkNxqJty: each HUD icon is today's object standing on a slanted cyan art tab, the same shape as the Index's tabs and header strip, keeping each object's colour. No tile frame and no badge. Covers Index, Items, Rebirth, Quests, Shop, Auto, Upgrade, Daily, Market, Settings, Stats, Gem and Boss (the Boss icon is the purple horned mask). The label sits under the icon (white, dark outline).
 - Turbo bar and Team minibar (owner 2026-11-10, replaces the gold Turbo and minibar look of the same day): both keep their look from before that change, except the minibar stamina arc, which stays a smooth curved band with both ends cut on a slant, a curved parallelogram (owner 2026-11-10; slant about 30 degrees off the radial, **proposed**). Sizes, positions and behaviour unchanged.
 - HUD layout (owner 2026-11-10, "split L/R"; replaces the gold frame tiles and the L2 block of the same day): one column on the left edge holds Index, Items and Rebirth, top to bottom; one column on the right edge holds Quests, Shop and Market. Daily and Settings stay as the top-right pills, Auto and Upgrade stay as the bottom pair beside the LEVEL / TURBO LUCK bars, all with the Tab tilt icons. The red count badge stays at the icon's top-left. Panels (4.42) centre between the two columns, 8 px clear of each. Phones shrink both columns (4.27). Keybind letters stay (owner 2026-11-10): each column button shows its key letter at its top-right (white heavy text, dark outline), and on keyboard that key opens the panel, the same as a click, only while the button could be clicked: Index X, Items B, Rebirth R, Quests Q, Shop P, Market M (not S and I: S walks backward, I zooms). Letters show only when a keyboard is in use. No NEW tag. Sizes and gaps are **proposed**. Owner approved the Tab tilt icons and this layout from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG). During a boss event (the local player in the event) both columns hide; the Daily and Settings pills, Auto and Upgrade and the event UI stay (owner 2026-11-10).
-- Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**. Owner approved from Studio screenshots 2026-11-10 (https://claude.ai/artifact/BXmkHjXQaPcXy4xod9fPKD). The Bosses button uses the column buttons' exact cell, icon and label sizes, phone scale included (owner 2026-11-11). At that size it no longer fits in Roblox's top bar, so it sits just below the top bar (gap 6 px, **proposed**), left-aligned with the left column when it fits above the column with room for its pulse. Where it would reach the left column (phones, short desktop windows) it starts right of Roblox's buttons instead (TopbarInset.Min.X plus the gap, never over the column) (owner 2026-11-11). It stays clear of the left column, the Money / Gems readout and the roll at the top centre. Owner 2026-11-12, from a screenshot (replaces the 2026-11-11 placement below the top bar and the same day's top-bar idea): the Bosses button moves into a second column directly right of the left column, placed half a row down, level with the gap between Index and Items. Below it in that second column, level with the gap between Items and Rebirth, sits a new Team button (same cell, icon and label sizes; icon and key letter **proposed**). Team opens the team selection and formation panel, which leaves Items. Owner 2026-11-12, from the drafts (https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp): icon 1 "Trio" (three runners, the lead in front) in more neutral colours (variant N3, sand lead with a grey pair, picked and uploaded on the owner's word 2026-11-12: `assets/ui/hud_tabtilt/Team_N3.png`), and panel A "Line-up" (`assets/ui/team_draft/A_desktop.png`, `A_phone.png`): three big slot cards across the top in run order (runs first, tags in 2nd, tags in last) with each member's portrait, category, cruise and stamina, the team bonus box at their right, and below them the owned roster grid with Sort and Search; tap a character, then a slot; members swap places; tapping a member's own slot removes it. Owner 2026-11-12, after seeing the first build: the panel matches draft A closely: each slot card carries its number badge (1, 2, 3) and its own coloured border and tint (gold, purple, green as drawn), a stamina bar under the member, arrows between the slots; roster cards at the draft's size (two rows of eight on desktop); the green TEAM n badge sits clear of the category dot. The rules of choosing a team do not change (`docs/TEAM_AND_STAMINA_SPEC.md` Team: `SetTeam`, at least 1 member, locked during a run). Not ruled by the owner, so left out or **proposed**: the Best team button (left out: needs a rule), the summed team stamina figure (**proposed**, display only), key letter T (**proposed**), the per-slot aura and trail buttons (stay in Items). Offsets and the phone layout are **proposed**. Picked-slot lighting (only the slot holding the picked character lightens; draft A's caption lights every slot) and the "+" glyph on an empty slot are **proposed** (orchestrator 2026-11-12, owner to confirm from the Studio capture).
+- Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**. Owner approved from Studio screenshots 2026-11-10 (https://claude.ai/artifact/BXmkHjXQaPcXy4xod9fPKD). The Bosses button uses the column buttons' exact cell, icon and label sizes, phone scale included (owner 2026-11-11). At that size it no longer fits in Roblox's top bar, so it sits just below the top bar (gap 6 px, **proposed**), left-aligned with the left column when it fits above the column with room for its pulse. Where it would reach the left column (phones, short desktop windows) it starts right of Roblox's buttons instead (TopbarInset.Min.X plus the gap, never over the column) (owner 2026-11-11). It stays clear of the left column, the Money / Gems readout and the roll at the top centre. Owner 2026-11-12, from a screenshot (replaces the 2026-11-11 placement below the top bar and the same day's top-bar idea): the Bosses button moves into a second column directly right of the left column, placed half a row down, level with the gap between Index and Items. Below it in that second column, level with the gap between Items and Rebirth, sits a new Team button (same cell, icon and label sizes; icon and key letter **proposed**). Team opens the team selection and formation panel, which leaves Items. Owner 2026-11-12, from the drafts (https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp): icon 1 "Trio" (three runners, the lead in front) in more neutral colours (variant N3, sand lead with a grey pair, picked and uploaded on the owner's word 2026-11-12: `assets/ui/hud_tabtilt/Team_N3.png`), and panel A "Line-up" (`assets/ui/team_draft/A_desktop.png`, `A_phone.png`): three big slot cards across the top in run order (runs first, tags in 2nd, tags in last) with each member's portrait, category, cruise and stamina, the team bonus box at their right, and below them the owned roster grid with Sort and Search; tap a character, then a slot; members swap places; tapping a member's own slot removes it. Owner 2026-11-12, after seeing the first build: the panel matches draft A closely: each slot card carries its number badge (1, 2, 3) and its own coloured border and tint (gold, purple, green as drawn), a stamina bar under the member, arrows between the slots; roster cards at the draft's size (two rows of eight on desktop); the green TEAM n badge sits clear of the category dot. The rules of choosing a team do not change (`docs/TEAM_AND_STAMINA_SPEC.md` Team: `SetTeam`, at least 1 member, locked during a run). (Owner 2026-11-17: panel A's layout is replaced by Team Setup, 4.45; the Best team button becomes Quick Setup there.) Not ruled by the owner, so left out or **proposed**: the Best team button (left out: needs a rule), the summed team stamina figure (**proposed**, display only), key letter T (**proposed**), the per-slot aura and trail buttons (stay in Items). Offsets and the phone layout are **proposed**. Picked-slot lighting (only the slot holding the picked character lightens; draft A's caption lights every slot) and the "+" glyph on an empty slot are **proposed** (orchestrator 2026-11-12, owner to confirm from the Studio capture).
 - Money and Gems counters (owner 2026-11-10): no dark box or border behind Money or Gems; the Gems counter sits directly under the Money counter (bottom-left); the UNBANKED line is removed. Each checkpoint payout shows a short "Cashed out +$X" notice by the Money counter as the Money counts up. Sizes and timing **proposed**.
 
 ### 4.41 Character bag and auto sell (owner 2026-11-04)
@@ -570,7 +570,7 @@ before any Studio work.
 - Refund (fixed, not a placeholder): at the first load after the change, a save with `WorkshopLevel` above 1 gets Money += the sum of `PayoutCurve.Cost(500, level - 1)` for levels 2 to `WorkshopLevel` (level 5 = 10,336,500), once. The save goes from VERSION 18 to 19; `WorkshopLevel`, `WorkshopStat` and `Showcase` are dropped at the next save.
 - Dojo Master is removed and taken off sale in the Creator Dashboard by hand. Its id 2071362782 stays as a comment in `MonetizationConfig` and `tools/monetization/create_products.py` and is never reused.
 - Max Players stays 7: the boss arena lanes need it (4.37).
-- **Spawn showpiece** (owner picked draft C "Terrace, wide court" 2026-11-11 from 3 Blender drafts, per 4.24; built the same day): the freed ring round the spawn becomes a raised landmark at (0, 0). A 3-step stone terrace of radius 26, 20 and 14 (each step 0.8 tall, top at y 3.4) carries the SpawnLocation and the walk spawn on its top step, the spawn disc with a neon rim, a petal moat (radius 10 to 13.4) with 8 bloom jets and 8 small lanterns, and the Saitamo exclusive pedestal (4.35) on the middle step at (11.6, 12.5), facing the spawn. The six service buildings stand on a ring of radius 84, one slot every 45 degrees counted from the gate's angle, the slot on the gate axis and the one before it empty, every front facing the spawn: Shop (-83.9, -3.1), Potions (-57.2, -61.6), Market (3.1, -83.9), Index (61.6, -57.2), Best Roll (83.9, 3.1), Sidekick altar (57.2, 61.6). Unchanged: the gate pad (-84, 78), the torii and its 4 lanterns, the Sensei (-80.0, 57.9), the Great Sakura (80, 118), the sky loop, the floor (188 x 220). The path's stones start past the terrace (27 studs out); the spawn mosaic is retired (the terrace's disc replaces it). Sizes are **proposed**; the arrangement is fixed.
+- **Spawn showpiece** (owner picked draft C "Terrace, wide court" 2026-11-11 from 3 Blender drafts, per 4.24; built the same day): the freed ring round the spawn becomes a raised landmark at (0, 0). A 3-step stone terrace of radius 26, 20 and 14 (each step 0.8 tall, top at y 3.4) carries the SpawnLocation and the walk spawn on its top step, the spawn disc with a neon rim, a petal moat (radius 10 to 13.4) with 8 bloom jets and 8 small lanterns, and the Saitamo exclusive pedestal (4.35) on the middle step at (11.6, 12.5), facing the spawn. The six service buildings stand on a ring of radius 84, one slot every 45 degrees counted from the gate's angle, the slot on the gate axis and the one before it empty (owner 2026-11-17: the one before it now holds the Team altar at (-3.1, 83.9), 4.45), every front facing the spawn: Shop (-83.9, -3.1), Potions (-57.2, -61.6), Market (3.1, -83.9), Index (61.6, -57.2), Best Roll (83.9, 3.1), Sidekick altar (57.2, 61.6). Unchanged: the gate pad (-84, 78), the torii and its 4 lanterns, the Sensei (-80.0, 57.9), the Great Sakura (80, 118), the sky loop, the floor (188 x 220). The path's stones start past the terrace (27 studs out); the spawn mosaic is retired (the terrace's disc replaces it). Sizes are **proposed**; the arrangement is fixed.
   - The other drafts were A "Fountain spawn, wings kept" and B "Ring court" (ring radius 60). The draft had C's ring at 88, where the Shop and Best Roll backs touched the floor edge (x +-94), so the build pulled it in to 84. The draft script `draft_showpiece.py` was removed with the pick (git history holds it).
   - This replaces the Two wings positions of 4.24; everything else in 4.24 stays.
 - Tests `dojo`, `workshop`, `workshop_phase2`, `workshop_boost`, `showcase`, `ui_workshop_modal` and `ui_workshop_showcase` are retired; a `data` check covers the refund.
@@ -581,22 +581,73 @@ before any Studio work.
 - Per player: each player gets their own set; other players never see or take them. The server rolls the set and
   decides every pickup; the client only draws them.
 - Every placed power-up is on the runner's path and is always picked up (no steering, no misses; owner 2026-11-11).
-- Count scales with track length: about 1 per 1,000 studs (**placeholder**; Track 1 about 3, Track 10 about 22).
-- Two types for now:
-  - **Speed**: a x1.2 turbo boost on cruise for 2 seconds (owner 2026-11-12; was x1.5 for 3 s). This boost may pass
-    `MAX_CRUISE` (800) for those 2 seconds (owner 2026-11-11). It is the one timed exception to "the runner holds exact
+- Count scales with track length: about 1 per 500 studs (owner 2026-11-16 "more per track"; was 1,000; the number is
+  a **placeholder**; Track 1 about 6, Track 10 about 44).
+- Two types for now, both timed boosts (owner 2026-11-16):
+  - **Speed**: a x1.2 turbo boost on cruise for 1 second (owner 2026-11-16; was 2 s, before that x1.5 for 3 s). This
+    boost may pass `MAX_CRUISE` (800) for that second (owner 2026-11-11). It is the one timed exception to "the runner holds exact
     cruise everywhere" (3) and "cruise fixed for the whole run" (TEAM_AND_STAMINA_SPEC) and to the loading budget in
     4.18 (**proposed**). When it ends the runner goes back to its normal cruise.
-  - **Stamina**: +3 seconds of running for the character running at pickup on Tracks 1-5, +2 seconds past Track 5
-    (Tracks 6-10) (owner 2026-11-12; was +5 s everywhere). It may go past a full bar: the seconds number on the team
-    row shows the extra, the bar itself stays full (owner 2026-11-11); the extra drains first.
+  - **Stamina**: a 2 second stamina boost (owner 2026-11-16): for 2 seconds whoever is running loses no stamina; the
+    bar and number hold still, then drain again. Same on every track. A second Stamina pickup while one runs resets the
+    timer to 2 s, no stacking (**proposed**). Replaces +3 s / +2 s of extra seconds and the overfill past a full bar
+    (2026-11-11/12).
 - Look (owner 2026-11-11, from the drafts https://claude.ai/artifact/AY1UokGYtRPBfzdVHgtWJz): each power-up is a
   **run-through ring** standing across the runner's lane (draft I4); the runner runs through it. Speed is orange with
   chevrons inside, Stamina the stamina bar's blue with a drop. Idle (owner 2026-11-11): the rim's
   pattern turns slowly and the glow breathes; REDUCED EFFECTS keeps only the turn.
 - HUD (owner 2026-11-11, draft H2): an active Speed boost shows as a badge on the running portrait's top-right corner
-  with a ring that drains over the boost's 2 seconds; while a runner holds extra stamina seconds its seconds number turns blue.
+  with a ring that drains over the boost's 1 second; while a Stamina boost runs the running slot's seconds number
+  turns blue.
 - Never saved. Not a paid item and never pays Money.
+
+### 4.45 Sakura Dojo pages: Summon and Team Setup (owner 2026-11-17)
+Owner brief 2026-11-17 ("Summoning Page" and "Team Roster / Team Setup Page"), with the owner's answers the same day. The
+snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "Team Setup" and `docs/SIDEKICK_SPEC.md`
+"Sakura Dojo transition". Every size, timing, colour and offset in this section is **proposed**.
+- One look for both pages: warm wood, burgundy, cream, sakura pink, muted gold and selective cyan; flat controls with
+  medium-thin outlines, icon first, few rounded containers, no thick borders, subtle cyan underlines or accent tabs.
+  The summon page keeps the blossom-shrine presentation of 2026-11-14 (it is the Sakura Dojo backdrop).
+- Shared transition: both pages open and close through one transition. Owner reference 2026-11-17 (summon sheet panel 10,
+  "Close / return transition"): page, then a full-screen soft pink wash of large sakura petals, then the next view; the
+  page switches while the wash covers the screen, so no half-open frame shows (about 0.65 s; the wash's lower edge
+  takes a hint of the page accent, Summon pink, Team cyan). Replaces the shoji-paper sweep written earlier the same day. Gameplay movement is locked while either page is open and restored on
+  close. A second open while one is opening is ignored. Reduced effects: a short fade, no petals.
+- Entry points, one page each, never a duplicate: Summon opens from a new Summon button in the right column under Shop
+  (key letter G, **proposed**) and from the plaza's Sidekick summon altar (its prompt text becomes "Summon"). Team opens
+  from the Team button (key T), from a click or tap on the bottom team minibar (hover still shows its info card; this
+  replaces "display only" for clicks) and from a new world Team altar in the plaza (below).
+- Team world altar: a small stacked octagonal shrine (dark wood and stone, cyan edge light) on the showpiece ring in the
+  slot before the gate axis, (-3.1, 83.9), facing the spawn, with a ProximityPrompt "Team". A floating TEAM header in the Team accent hangs over it like the other ring headers (orchestrator 2026-11-17, **proposed**). The gate-axis slot stays
+  empty (replaces "the slot on the gate axis and the one before it empty", 4.43).
+- Team Setup page (replaces panel A "Line-up" of 4.40; the rules of choosing a team stay). Owner 2026-11-17, from the
+  owner's mockup: a full-screen page over the blossom-shrine scene (not the game-wide panel frame of 4.42), and each
+  member stands on its altar as its 3D model with a pink light column (cyan over an empty altar): an exception to the
+  portrait-art rule for Team Setup only; a small drawn-portrait badge sits by the name. Slot labels read "SLOT n".
+  - Centre: exactly three octagonal altars, each one dark-wood slab with a cyan neon rim, a pink top and an inlaid
+    five-petal sakura emblem (owner 2026-11-17: "one slab with a sakura logo embedded"; never circular; the plaza Team
+    altar is the same slab), well spaced, labelled SLOT 1-3. An occupied altar shows the member's 3D model standing on
+    it with name, rarity and cruise above it (characters have no level; **open question** for the owner whether one is
+    wanted); the rarity colours the cruise line and the rim brightens on the picked altar. An empty altar
+    shows a glowing "+" and "Add Character".
+  - Top-left party icon and "Team Setup"; top-centre three slot dots; top-right a Team Bonus button (opens the team bonus
+    as a small popover) and Close.
+  - Bottom-left "Team 1" and the status (Ready / Unsaved changes); one team only, no rename, no presets. Bottom-centre
+    "n / 3 Slots Filled" with a thin bar. Bottom-right Quick Setup and Deploy.
+  - Bottom roster tray with Characters and Sidekicks tabs, Sort and filter. Cards show portrait, name, cruise, rarity
+    marker, equipped marker, and in the top-right corner the character's relic emblem (diamond) and Sidekick icon
+    (circle), apart from each other and clear of the face. Hover, tap or gamepad focus on an icon shows its name, rarity
+    and effect. Sidekick icons on Team Setup cards use the drawn portraits (adds Team Setup to the 4.36 portrait list).
+  - Staged draft: edits are a local draft; Deploy sends one `SetTeam`. The saved Team stays the truth until Deploy.
+    Closing with an undeployed draft asks Deploy or Discard; an unchanged draft just closes. Deploy plays the three-altar
+    activation and closes the page.
+    Owner 2026-11-17 (after the rules audit): opening another page over an undeployed draft asks Deploy or Discard
+    first, as closing does; if the saved Team changes while the page is open (a Deploy elsewhere), an untouched draft
+    takes the new saved Team and an edited draft stays as it is.
+  - Quick Setup fills the draft's empty slots with the owned characters with the highest cruise, ties to the higher rarity,
+    never a duplicate; the server picks them (replaces "the Best team button (left out: needs a rule)", 4.40).
+  - On the Sidekicks tab, picking a Sidekick and then a placed member equips it at once through the existing Sidekick equip
+    (not part of the draft). Relics are inspect-only here; equipping relics stays in Items.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -660,6 +711,9 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-17: owner, after the rules audit: Team Setup asks Deploy or Discard before another page opens over an undeployed draft, and an untouched draft follows a saved Team change (4.45, TEAM_AND_STAMINA_SPEC).
+- 2026-11-17: owner: Sakura Dojo pages: shared petal transition for Summon and Team; Summon button in the right column (G) and the altar prompt "Summon"; Team opens from the button, the minibar and a new plaza Team altar at (-3.1, 83.9); Team Setup replaces panel A with three octagonal altars, a roster tray with relic and Sidekick icons, Quick Setup (highest cruise) and Deploy (staged draft) (4.45; replaces parts of 4.40 and 4.43).
+- 2026-11-16: owner: both power-ups are timed boosts and there are more per track: Speed is x1.2 for 1 s (was 2 s); Stamina stops the running character's stamina from draining for 2 s (was +3 s / +2 s of extra seconds, no more overfill); about 1 per 500 studs (was 1,000) (4.3, 4.18, 4.44, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC).
 - 2026-11-12: owner: animation rework of the Elf Mage, the Stone Golem and the Golden King: jointed models with elbows and knees, every move re-keyed with 10 key frames approved before in-betweens (replaces 3 to 5 for these moves, and the old approved keys become starting poses only); boss effects stronger, the whole arena flashes or shakes on a hit (4.37, BOSS_EVENT_SPEC "Animation rework").
 - 2026-11-12: owner: runners' auras and trails are decreased during boss events (replaces "more visible in the event", 2026-11-06, and the lighter draw of 2026-11-09) (4.37).
 - 2026-11-12: owner took the orchestrator's recommendations: 10 key frames per move is the rule for every future boss (replaces 3 to 5), and boss hits keep no FOV kick (the event FOV lock stays) (4.37).

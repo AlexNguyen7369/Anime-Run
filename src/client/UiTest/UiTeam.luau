@@ -1,9 +1,10 @@
 --!nonstrict
--- Team button and Team panel (design doc 4.40 "Market pill and Bosses button", owner 2026-11-12, layout A "Line-up",
--- assets/ui/team_draft/A_desktop.png; docs/TEAM_AND_STAMINA_SPEC.md "Team" and "HUD" Team editor). Owned by
--- ui-test-writer. ui_team judges the button, the panel and what the panel shows for a Team the server set (ServerSetup
--- team_states). The team_* clicks (UiSpec.Clicks) press for real through Remotes.SetTeam; their After hooks here judge the
--- Team the server answered with and the slots showing it (the client only displays).
+-- Team button, Team Setup page and its entry points (design doc 4.40 Team button, owner 2026-11-12; design doc 4.45
+-- "Sakura Dojo pages", owner 2026-11-17, which replaces layout A; docs/TEAM_AND_STAMINA_SPEC.md "Team Setup page";
+-- docs/team_setup_contract.md). Owned by ui-test-writer. ui_team judges the button, the page and what it shows for a Team
+-- the server set (ServerSetup team_states). ui_entry_points judges the Summon button, the minibar, the plaza prompts,
+-- the transition and the input lock. The team_* clicks (UiSpec.Clicks) edit the local draft and Deploy for real through
+-- Remotes.SetTeam; their After hooks here judge the draft the page shows and the Team the server answered with.
 --
 -- Contract (implementer: report a change, do not loosen):
 --   RacerSecondColumn/TeamButton: a TextButton in BossButton's style: transparent, Text "Team" at the bottom, an ImageLabel Icon
@@ -12,33 +13,41 @@
 --     X_TOL px); its centre is within MID_TOL px of the midpoint of the Items and Rebirth cells' centres; it is clear of the
 --     left column (cells, Key letters, Badges) and of BossButton at its biggest pulse. Hidden in a boss event as BossButton is
 --     (UiBossEvent onlyShown). A press, or the T key, toggles RacerTeam/Panel (PanelSwitch "Team"); an open panel draws above it.
---   RacerTeam/Panel: the game-wide frame (PanelFrame.Attach: attribute PanelFrame; UiSpec.BandPanels 1200), Header/Title
---     "TEAM", Header/Close. Directly in Panel (UiSpec.Team): Slots with Slot1..3 GuiButtons, each with Order ("RUNS FIRST",
---     "TAGS IN 2ND", "TAGS IN LAST"), and for a member Portrait (ImageLabel, its CharacterPortraits image when it has one),
---     Name, Category, Cruise ("<n> studs/s"), Stamina (holds the seconds); an empty slot shows Empty and no Portrait. Bonus
---     shows the team bonus name or "No team bonus" and its effect line; Bonus/Total holds the summed Stamina seconds. Roster
---     (ScrollingFrame): one card per owned catalog character, named by its id, with a TextLabel Badge "TEAM n" in green on
---     members. Sort (GuiButton), Search (TextBox). No BestTeam anywhere in it. The world dim (UiSpec.PanelDimmers) is on
---     while it is open.
---   Draft A, closely (owner 2026-11-12, after seeing the first build): each Slot<n> also holds Number (TextLabel "1" / "2" /
---     "3", shown, in the card's top-left quarter), Border (UIStroke, shown; its hue gold / purple / green for slots 1 / 2 / 3,
---     SLOT_HUES, never grey) and StaminaBar (Frame below the Portrait, inside the card, holding a shown Fill and the
---     Stamina text). An empty slot keeps Number and Border and hides StaminaBar. Slots/Arrow1 and Slots/Arrow2 sit
---     horizontally between Slot1 / Slot2 and Slot2 / Slot3, level with them, overlapping neither. Number, Order, Name,
---     Category, Cruise fit their card (TextFits, inside it) and no two of them or StaminaBar overlap, at either variant.
---     Desktop roster: at least ROW_CARDS cards fully inside Roster in the first row and ROWS rows at the top. Every card's
---     shown Badge stays clear of its category dot (UiSpec.Backpack.BadgeDotProblem), both inside the card.
---   Editing: tap a card, then a slot; a member put on another slot swaps; a member's own slot takes it off; never fewer than
---     1 member (the Backpack's notice); during a run the server refuses it and the panel shows the same notice as the Backpack.
+--   RacerTeam/Panel: a full-screen page (owner 2026-11-17: AbsoluteSize = its ScreenGui's within 2 px; not a band
+--     panel, UiSpec.FullScreenPanels), Header/Title "TEAM SETUP" (upper-cased), Header/Close, Header/BonusButton. The world dim is on while it is open.
+--     BonusPopover (hidden until BonusButton; a second press hides it): Name (bonus or "No team bonus"), Effect, Total
+--     ("Total <n> s"). Dots/Dot1..3: BackgroundTransparency < 0.5 when that draft slot is filled, else >= 0.5.
+--     Altars/Altar1..3 (TextButtons, left to right, same Y, not overlapping): SlotLabel "SLOT n"; Pedestal (ViewportFrame
+--     holding a Model "Altar", and a Model "Figure" (the member's 3D model) only on a member altar); a member shows Portrait (ImageLabel, its CharacterPortraits image), Name (character name),
+--     Info ("<Rarity> · <n> studs/s") and hides Plus / Add; an empty altar shows Plus "+" and Add "Add Character" and hides
+--     Portrait / Name / Info. Remove "Remove" shows only on the selected altar holding a member; attribute Selected on it.
+--     Footer: TeamName "Team 1", Status "Ready" (draft == saved Team) or "Unsaved changes" (or the server's refusal),
+--     Count "<n> / 3 Slots Filled", Progress/Fill Size.X.Scale = n/3. Tray: Tabs/Characters, Tabs/Sidekicks (attribute
+--     Active on the shown one), Sort (GuiButton), Search (TextBox), Roster (ScrollingFrame): one card per owned character
+--     named by its id with a green TextLabel Badge "TEAM n" on draft members. QuickSetup, Deploy (attribute Enabled false
+--     while draft == saved Team or the draft is empty). ConfirmClose (hidden; Deploy, Discard). No BestTeam anywhere; no
+--     Slots or Bonus child of Panel.
+--   Gear: every member altar and every character card with a RelicGear / SidekickGear entry holds Gear (top-right: in the
+--     card's top-right quarter, on an altar in the Pedestal's top-right quarter) with Relic / Sidekick ImageLabels shown,
+--     attributes ItemName and Rarity. UiTooltip/Tip (Title, Rarity, Body) shows on SelectionGained of an icon with Title ==
+--     ItemName, and hides on SelectionLost.
+--   Editing: tap an altar, then a card (draft only, nothing sent); a member already on another altar swaps; Remove takes
+--     it off; Deploy sends SetTeam(draft) and closes on success; an empty draft never deploys; during a run the server
+--     refuses, the page stays open with the draft and Footer/Status shows "Stop running to change your Team". Quick Setup
+--     fills the draft's empty slots (TeamQuickPick) without saving. A dirty Close shows ConfirmClose and keeps the page open.
+--   Entry points: HudChrome/ShopColumn/Summon (Key "G", attribute Panel "Sidekicks") opens the summon page; RacerHud's
+--     OpenTeam opens Team Setup; workspace prompts OpenTeam ActionText "Team", OpenSidekicks "Summon". PlayerGui.UiTransition
+--     (ScreenGui, Paper) sets Playing true when a page opens. LocalPlayer PageInputLocked is true while Team is open and
+--     false after close. Two quick opens leave Team open exactly once (PanelSwitch.IsOpen and Panel.Visible agree).
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Catalog = require(Shared:WaitForChild("CharacterCatalog"))
 local Portraits = require(Shared:WaitForChild("CharacterPortraits"))
-local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
-local Format = require(Shared:WaitForChild("HudFormat"))
 local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+local SidekickView = require(script.Parent.Parent:WaitForChild("SidekickView"))
 local Spec = require(script.Parent.UiSpec)
 
 local T = Spec.Team
@@ -50,19 +59,16 @@ local X_TOL = 1 -- px: "the same column"
 local MID_TOL = 12 -- px off the Items / Rebirth centres' midpoint: "level with the gap" (owner 2026-11-12)
 local BOSS_PULSE = 1.08 -- BossButton's biggest pulse Scale (UiBossEvent BUTTON_PULSE)
 local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has followed
--- Draft A (assets/ui/team_draft/A_desktop.png; owner 2026-11-12): slot borders gold, purple, green as hue bands (0..1)
-local SLOT_HUES = { { 0.06, 0.18, "gold" }, { 0.7, 0.88, "purple" }, { 0.22, 0.47, "green" } }
-local MIN_SATURATION, MIN_VALUE = 0.25, 0.3 -- below either: grey
-local HUE_APART = 0.05 -- the three border hues differ pairwise by at least this much
-local FIT_PARTS = { "Number", "Order", "Name", "Category", "Cruise" }
-local ROW_CARDS, ROWS = 8, 2 -- desktop roster: two rows of eight (owner 2026-11-12)
 local TOL = 1 -- px
+local DOT_FILLED = 0.5 -- Dot BackgroundTransparency below this: filled
+local FILL_TOL = 0.02 -- Progress/Fill Size.X.Scale against n/3
 
 local Module = {}
 
 function Module.Build(h)
 	local scenarios, after = {}, {}
 	local player = h.player or Players.LocalPlayer
+	local quickDraft = nil -- the draft team_quick_filled saw, for team_is_quick
 
 	local function check(res, name, got, want)
 		h.check(res, name, got, want, got == want)
@@ -89,8 +95,14 @@ function Module.Build(h)
 	local function overlaps(a, b)
 		return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 	end
-	local function number(text)
-		return tonumber(string.match(text or "", "%d+%.?%d*"))
+	local function inside(outer, r)
+		return r.x >= outer.x - TOL
+			and r.y >= outer.y - TOL
+			and r.x + r.w <= outer.x + outer.w + TOL
+			and r.y + r.h <= outer.y + outer.h + TOL
+	end
+	local function topRight(r)
+		return { x = r.x + r.w / 2, y = r.y, w = r.w / 2, h = r.h / 2 }
 	end
 	local function textOf(object)
 		return object and (object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox")) and object.Text
@@ -107,92 +119,157 @@ function Module.Build(h)
 		local gui, frame = h.find(Spec.PanelDimmers.Gui), h.find(Spec.PanelDimmers.Frame)
 		return gui ~= nil and gui:IsA("ScreenGui") and gui.Enabled and frame ~= nil and frame.Visible
 	end
-
-	-- What the slots show against the Team `ids` in slot order; `exact` also compares Category and the base cruise (a Team
-	-- with no bonus). Returns problems, the summed Stamina seconds the slots show.
-	local function slotProblems(ids, exact)
-		local wrong, sum = {}, 0
-		local slots = h.find(T.Slots)
-		if not slots then
-			return { T.Slots .. " missing" }, 0
+	local function panelSwitch()
+		return require(script.Parent.Parent:WaitForChild("PanelSwitch"))
+	end
+	local function altar(n)
+		return h.find(T.Altars .. "/Altar" .. n)
+	end
+	-- Letters a / b / c = the team_states fixture's ids, in slot order.
+	local function idsOf(letters)
+		local all, ids = fixtureIds(), {}
+		for i = 1, #letters do
+			ids[i] = all[string.byte(letters, i) - string.byte("a") + 1]
 		end
+		return ids
+	end
+	-- The ids the altars show, in slot order (nil for an empty altar), read from Name against the catalog.
+	local function draftShown()
+		local out = {}
 		for n = 1, 3 do
-			local slot = slots:FindFirstChild("Slot" .. n)
-			local tag = "Slot" .. n
-			if not (slot and slot:IsA("GuiButton")) then
-				table.insert(wrong, tag .. " missing (GuiButton)")
+			local a = altar(n)
+			local name = a and shown(a:FindFirstChild("Name")) and textOf(a:FindFirstChild("Name"))
+			if name then
+				for _, spec in Catalog.All() do
+					if spec.Name == name then
+						out[n] = spec.Id
+						break
+					end
+				end
+				out[n] = out[n] or ("?" .. name)
+			end
+		end
+		return out
+	end
+
+	-- What the altars show against the draft `ids` (slot n empty when ids[n] is nil).
+	local function altarProblems(ids)
+		local wrong = {}
+		for n = 1, 3 do
+			local a, tag = altar(n), "Altar" .. n
+			if not (a and a:IsA("TextButton")) then
+				table.insert(wrong, tag .. " missing (TextButton)")
 				continue
 			end
-			local order = textOf(slot:FindFirstChild("Order"))
-			if not (order and string.upper(order) == T.Order[n]) then
-				table.insert(wrong, ("%s Order %q, want %q"):format(tag, tostring(order), T.Order[n]))
+			local label = textOf(a:FindFirstChild("SlotLabel"))
+			if label ~= T.SlotLabels[n] then
+				table.insert(wrong, ("%s SlotLabel %q, want %q"):format(tag, tostring(label), T.SlotLabels[n]))
 			end
-			local portrait = slot:FindFirstChild("Portrait")
-			local empty = slot:FindFirstChild("Empty")
+			local pedestal = a:FindFirstChild("Pedestal")
+			local model = pedestal and pedestal:IsA("ViewportFrame") and pedestal:FindFirstChild("Altar", true)
+			if not (model and model:IsA("Model")) then
+				table.insert(wrong, tag .. ": Pedestal is not a ViewportFrame holding a Model Altar")
+			end
+			-- Owner 2026-11-17 (4.45): a member stands on its altar as its 3D model; an empty altar holds none
+			local figure = pedestal and pedestal:FindFirstChild("Figure", true)
+			local hasFigure = figure ~= nil and figure:IsA("Model")
+			if hasFigure ~= (ids[n] ~= nil) then
+				table.insert(
+					wrong,
+					("%s: Pedestal Model Figure %s, want %s"):format(
+						tag,
+						hasFigure and "present" or "absent",
+						ids[n] and "present" or "absent"
+					)
+				)
+			end
+			local portrait, name, info =
+				a:FindFirstChild("Portrait"), a:FindFirstChild("Name"), a:FindFirstChild("Info")
+			local plus, add = a:FindFirstChild("Plus"), a:FindFirstChild("Add")
 			local spec = ids[n] and Catalog.Get(ids[n])
 			if not spec then
-				if not shown(empty) then
-					table.insert(wrong, tag .. ": no member, Empty not shown")
+				if not (shown(plus) and textOf(plus) == T.PlusText) then
+					table.insert(wrong, tag .. ': empty, Plus "+" not shown')
 				end
-				if shown(portrait) then
-					table.insert(wrong, tag .. ": no member, Portrait shown")
+				if not (shown(add) and textOf(add) == T.AddText) then
+					table.insert(wrong, tag .. ': empty, Add "Add Character" not shown')
+				end
+				for _, o in { portrait, name, info } do
+					if shown(o) then
+						table.insert(wrong, tag .. ": empty, " .. o.Name .. " shown")
+					end
 				end
 				continue
 			end
-			if shown(empty) then
-				table.insert(wrong, tag .. ": " .. spec.Id .. " on it, Empty shown")
+			if shown(plus) or shown(add) then
+				table.insert(wrong, tag .. ": " .. spec.Id .. " on it, Plus / Add shown")
 			end
 			local image = Portraits[spec.Id] or Portraits[spec.Model or spec.Id]
-			if not (portrait and portrait:IsA("ImageLabel") and shown(portrait) and portrait.Image ~= "") then
-				table.insert(wrong, tag .. ": Portrait not a shown ImageLabel with an image")
+			if not (portrait and portrait:IsA("ImageLabel") and shown(portrait)) then
+				table.insert(wrong, tag .. ": Portrait not a shown ImageLabel")
 			elseif image and portrait.Image ~= image then
 				table.insert(wrong, ("%s Portrait %s, want %s's %s"):format(tag, portrait.Image, spec.Id, image))
 			end
-			local name = textOf(slot:FindFirstChild("Name"))
-			if name ~= spec.Name then
-				table.insert(wrong, ("%s Name %q, want %q"):format(tag, tostring(name), spec.Name))
+			if textOf(name) ~= spec.Name or not shown(name) then
+				table.insert(wrong, ("%s Name %q, want %q"):format(tag, tostring(textOf(name)), spec.Name))
 			end
-			local category = textOf(slot:FindFirstChild("Category"))
-			if not category or (exact and category ~= spec.Category) then
-				table.insert(wrong, ("%s Category %q, want %q"):format(tag, tostring(category), spec.Category))
-			end
-			local cruise = textOf(slot:FindFirstChild("Cruise"))
-			local wantCruise = Format.RateText(RaceConfig.Cruise(spec))
-			if not (cruise and string.find(cruise, "studs/s", 1, true)) or (exact and cruise ~= wantCruise) then
-				table.insert(wrong, ("%s Cruise %q, want %q"):format(tag, tostring(cruise), wantCruise))
-			end
-			local stamina = number(textOf(slot:FindFirstChild("Stamina", true))) -- in StaminaBar since draft A
-			if not (stamina and stamina > 0) then
-				table.insert(wrong, tag .. " Stamina holds no seconds")
-			else
-				sum += stamina
+			local infoText = shown(info) and textOf(info) or ""
+			if not (string.find(infoText, spec.Rarity, 1, true) and string.find(infoText, "studs/s", 1, true)) then
+				table.insert(wrong, ('%s Info %q, want "%s · <n> studs/s"'):format(tag, infoText, spec.Rarity))
 			end
 		end
-		return wrong, sum
+		return wrong
 	end
-	-- Waits until the slots show `ids` (the server's answer), then lists what is still wrong.
-	local function checkSlots(res, tag, ids, exact)
-		local wrong = waitIs(function()
-			return #slotProblems(ids, exact) == 0
-		end, true)
-		h.checkList(res, tag .. "_slots_show_team", wrong and {} or (slotProblems(ids, exact)))
-	end
-	-- A notice with `text` shown anywhere in PlayerGui within SHOW_WAIT.
-	local function noticeShown(text)
-		return waitIs(function()
-			for _, d in player:WaitForChild("PlayerGui"):GetDescendants() do
-				if
-					(d:IsA("TextLabel") or d:IsA("TextButton"))
-					and h.visible(d)
-					and string.find(d.Text, text, 1, true)
-				then
-					return true
-				end
+	-- Footer, Dots and Deploy for a draft of `count` members; `status` the Footer/Status text it must show.
+	local function footerProblems(ids, status, deployOn)
+		local wrong, count = {}, 0
+		for n = 1, 3 do
+			count += ids[n] and 1 or 0
+		end
+		local function want(path, text)
+			local got = textOf(h.find(path))
+			if got ~= text then
+				table.insert(wrong, ("%s %q, want %q"):format(path, tostring(got), text))
 			end
-			return false
-		end, true)
+		end
+		want(T.Footer .. "/TeamName", T.TeamName)
+		want(T.Footer .. "/Status", status)
+		want(T.Footer .. "/Count", T.CountText:format(count))
+		local fill = h.find(T.Footer .. "/Progress/Fill")
+		local scale = fill and fill:IsA("GuiObject") and fill.Size.X.Scale
+		if not (scale and math.abs(scale - count / 3) <= FILL_TOL) then
+			table.insert(wrong, ("Progress/Fill Size.X.Scale %s, want %.2f"):format(tostring(scale), count / 3))
+		end
+		for n = 1, 3 do
+			local dot = h.find(T.Dots .. "/Dot" .. n)
+			local filled = dot and dot:IsA("GuiObject") and dot.BackgroundTransparency < DOT_FILLED
+			if not dot then
+				table.insert(wrong, "Dot" .. n .. " missing")
+			elseif filled ~= (ids[n] ~= nil) then
+				table.insert(wrong, ("Dot%d filled=%s, want %s"):format(n, tostring(filled), tostring(ids[n] ~= nil)))
+			end
+		end
+		local deploy = h.find(T.Deploy)
+		local enabled = deploy and deploy:GetAttribute("Enabled")
+		if deployOn ~= nil and enabled ~= deployOn then
+			table.insert(wrong, ("Deploy Enabled %s, want %s"):format(tostring(enabled), tostring(deployOn)))
+		end
+		return wrong
 	end
-
+	-- Waits until the page shows the draft `ids` with `status`, then lists what is still wrong.
+	local function checkDraft(res, tag, ids, status, deployOn)
+		local function all()
+			local wrong = altarProblems(ids)
+			for _, w in footerProblems(ids, status, deployOn) do
+				table.insert(wrong, w)
+			end
+			return wrong
+		end
+		local ok = waitIs(function()
+			return #all() == 0
+		end, true)
+		h.checkList(res, tag .. "_page_shows_draft", ok and {} or all())
+	end
 	-- Owner 2026-11-11 (4.40, kept for the Team button 2026-11-12): HudChrome/Grid/Index's sizes on screen.
 	local function checkColumnSizes(res, b, icon)
 		local column = h.find(GRID .. "/Index")
@@ -386,45 +463,106 @@ function Module.Build(h)
 		end
 		restore()
 	end
-
 	local function checkPanel(res)
 		local panel = h.find(T.Panel)
 		check(res, "team_panel_present", panel ~= nil and panel:IsA("Frame"), true)
 		check(res, "team_panel_shown", shown(panel), true)
-		check(res, "team_panel_shared_frame", panel and panel:GetAttribute("PanelFrame"), true)
+		-- Owner 2026-11-17 (4.45): a full-screen page, not the game-wide panel frame
+		local gui = panel and panel:FindFirstAncestorWhichIsA("LayerCollector")
+		local full = panel ~= nil
+			and gui ~= nil
+			and math.abs(panel.AbsoluteSize.X - gui.AbsoluteSize.X) <= T.FullScreenTol
+			and math.abs(panel.AbsoluteSize.Y - gui.AbsoluteSize.Y) <= T.FullScreenTol
+		h.check(
+			res,
+			"team_panel_full_screen",
+			panel
+					and gui
+					and ("%.0fx%.0f in %.0fx%.0f"):format(
+						panel.AbsoluteSize.X,
+						panel.AbsoluteSize.Y,
+						gui.AbsoluteSize.X,
+						gui.AbsoluteSize.Y
+					)
+				or "missing",
+			"the ScreenGui's size +/- " .. T.FullScreenTol,
+			full
+		)
+		check(res, "team_panel_not_band", Spec.BandPanels[T.Panel], nil)
 		local title = textOf(h.find(T.Title))
-		check(res, "team_panel_title", title and string.upper(title), "TEAM")
+		check(res, "team_panel_title", title and string.upper(title), T.TitleText)
 		local close = h.find(T.Close)
 		check(res, "team_panel_close", close ~= nil and close:IsA("GuiButton"), true)
 		check(res, "team_panel_dims_world", waitIs(dimOn, true), true)
 		local parts = {
-			{ T.Slots, "Frame" },
-			{ T.Bonus, "GuiObject" },
-			{ T.Bonus .. "/Total", "TextLabel" },
+			{ T.BonusButton, "TextButton" },
+			{ T.BonusPopover, "Frame" },
+			{ T.Dots, "GuiObject" },
+			{ T.Altars, "GuiObject" },
+			{ T.Footer, "GuiObject" },
+			{ T.Footer .. "/Progress/Fill", "GuiObject" },
+			{ T.Tabs .. "/Characters", "TextButton" },
+			{ T.Tabs .. "/Sidekicks", "TextButton" },
 			{ T.Roster, "ScrollingFrame" },
 			{ T.Sort, "GuiButton" },
 			{ T.Search, "TextBox" },
+			{ T.QuickSetup, "TextButton" },
+			{ T.Deploy, "TextButton" },
+			{ T.ConfirmClose, "Frame" },
+			{ T.ConfirmClose .. "/Deploy", "TextButton" },
+			{ T.ConfirmClose .. "/Discard", "TextButton" },
 		}
 		for _, part in parts do
 			local o = h.find(part[1])
 			h.check(
 				res,
-				"team_part_" .. string.match(part[1], "[^/]+$"),
+				"team_part_" .. string.gsub(string.sub(part[1], #T.Panel + 2), "/", "_"),
 				o and o.ClassName or "missing",
 				part[2],
 				o ~= nil and o:IsA(part[2])
 			)
 		end
-		for n = 1, 3 do
-			local slot = h.find(T.Slots .. "/Slot" .. n)
-			check(res, "team_part_Slot" .. n, slot ~= nil and slot:IsA("GuiButton"), true)
-		end
+		check(res, "team_quick_setup_text", textOf(h.find(T.QuickSetup)), "Quick Setup")
+		check(res, "team_deploy_text", textOf(h.find(T.Deploy)), "Deploy")
+		check(res, "team_bonus_button_text", textOf(h.find(T.BonusButton)), "Team Bonus")
+		check(res, "team_bonus_popover_hidden_at_open", shown(h.find(T.BonusPopover)), false)
+		check(res, "team_confirm_close_hidden_at_open", shown(h.find(T.ConfirmClose)), false)
 		for _, name in T.Gone do
 			check(res, "team_no_" .. name, panel and panel:FindFirstChild(name, true), nil)
 		end
+		for _, name in T.GoneDirect do
+			check(res, "team_no_panel_" .. name, panel and panel:FindFirstChild(name), nil)
+		end
+		-- Three altars, left to right, level, apart
+		local rects, wrong = {}, {}
+		for n = 1, 3 do
+			local a = altar(n)
+			if shown(a) then
+				rects[n] = h.rect(a)
+			else
+				table.insert(wrong, "Altar" .. n .. " missing or hidden")
+			end
+		end
+		for n = 1, 2 do
+			local a, b = rects[n], rects[n + 1]
+			if a and b then
+				if a.x + a.w / 2 >= b.x + b.w / 2 then
+					table.insert(wrong, ("Altar%d not left of Altar%d"):format(n, n + 1))
+				end
+				if math.abs(a.y - b.y) > TOL then
+					table.insert(wrong, ("Altar%d y %.0f, Altar%d y %.0f"):format(n, a.y, n + 1, b.y))
+				end
+			end
+			for m = n + 1, 3 do
+				if rects[n] and rects[m] and overlaps(rects[n], rects[m]) then
+					table.insert(wrong, ("Altar%d overlaps Altar%d"):format(n, m))
+				end
+			end
+		end
+		h.checkList(res, "team_altars_in_a_row", wrong)
 	end
 
-	-- The roster: one card per owned catalog character; members carry the green TEAM n badge, the others none.
+	-- The roster: one card per owned catalog character; draft members carry the green TEAM n badge, the others none.
 	local function rosterProblems(ids)
 		local wrong = {}
 		local roster = h.find(T.Roster)
@@ -456,214 +594,94 @@ function Module.Build(h)
 		return wrong
 	end
 
-	-- Draft A, closely (owner 2026-11-12, after seeing the first build). Geometry checks carry the live variant.
-	local function variant()
-		return workspace.CurrentCamera.ViewportSize.Y <= Spec.PhoneMaxHeight and "_phone" or "_desktop"
-	end
-	local function inside(outer, r)
-		return r.x >= outer.x - TOL
-			and r.y >= outer.y - TOL
-			and r.x + r.w <= outer.x + outer.w + TOL
-			and r.y + r.h <= outer.y + outer.h + TOL
-	end
-	local function rstr(r)
-		return ("(%.0f,%.0f %.0fx%.0f)"):format(r.x, r.y, r.w, r.h)
-	end
-
-	-- The slot cards with the Team `ids` on them (slot n empty when ids[n] is nil).
-	local function checkSlotCards(res, ids)
-		local v = variant()
-		local p = { numbers = {}, borders = {}, bars = {}, arrows = {}, fit = {}, overlap = {} }
-		local slots = h.find(T.Slots)
-		local cardRects, hues = {}, {}
-		for n = 1, 3 do
-			local tag = "Slot" .. n
-			local slot = slots and slots:FindFirstChild(tag)
-			if not (slot and slot:IsA("GuiObject") and shown(slot)) then
-				table.insert(p.numbers, tag .. " missing or hidden")
+	-- Gear icons on `holder` (a card, or an altar judged against its Portrait) for `characterId`.
+	local function gearProblems(holder, characterId, frame, tag, icons)
+		local wrong = {}
+		local relic = SidekickView.RelicGear(player)[characterId]
+		local sidekick = SidekickView.Gear(player)[characterId]
+		if relic == nil and sidekick == nil then
+			return wrong
+		end
+		local gear = holder:FindFirstChild("Gear", true)
+		if not (gear and shown(gear)) then
+			table.insert(wrong, tag .. ": wears gear, no shown Gear")
+			return wrong
+		end
+		if not inside(topRight(h.rect(frame)), h.rect(gear)) then
+			table.insert(wrong, tag .. ": Gear not in the top-right quarter of " .. frame.Name)
+		end
+		for _, part in { { "Relic", relic }, { "Sidekick", sidekick } } do
+			local icon = gear:FindFirstChild(part[1], true)
+			if part[2] == nil then
 				continue
 			end
-			local sr = h.rect(slot)
-			cardRects[n] = sr
-			local num = slot:FindFirstChild("Number")
-			if not (num and num:IsA("TextLabel")) then
-				table.insert(p.numbers, tag .. ": no TextLabel Number")
-			elseif num.Text ~= tostring(n) or not shown(num) then
-				table.insert(
-					p.numbers,
-					("%s: Number %q shown=%s, want %q shown"):format(tag, num.Text, tostring(shown(num)), tostring(n))
-				)
-			elseif not inside({ x = sr.x, y = sr.y, w = sr.w / 2, h = sr.h / 2 }, h.rect(num)) then
-				table.insert(
-					p.numbers,
-					("%s: Number%s not in the top-left quarter of %s"):format(tag, rstr(h.rect(num)), rstr(sr))
-				)
-			end
-			local border = slot:FindFirstChild("Border")
-			if
-				not (
-					border
-					and border:IsA("UIStroke")
-					and border.Enabled
-					and border.Thickness > 0
-					and border.Transparency < 1
-				)
-			then
-				table.insert(p.borders, tag .. ": no shown UIStroke Border")
+			local name = icon and icon:GetAttribute("ItemName")
+			if not (icon and icon:IsA("ImageLabel") and shown(icon)) then
+				table.insert(wrong, tag .. ": " .. part[1] .. " icon not a shown ImageLabel")
+			elseif type(name) ~= "string" or name == "" then
+				table.insert(wrong, tag .. ": " .. part[1] .. " icon has no ItemName")
+			elseif type(icon:GetAttribute("Rarity")) ~= "string" then
+				table.insert(wrong, tag .. ": " .. part[1] .. " icon has no Rarity")
 			else
-				local hue, sat, val = border.Color:ToHSV()
-				local band = SLOT_HUES[n]
-				if sat < MIN_SATURATION or val < MIN_VALUE then
-					table.insert(p.borders, ("%s: Border %s is grey"):format(tag, tostring(border.Color)))
-				elseif hue < band[1] or hue > band[2] then
-					table.insert(
-						p.borders,
-						("%s: Border hue %.2f, want %s %.2f..%.2f"):format(tag, hue, band[3], band[1], band[2])
-					)
-				else
-					hues[n] = hue
-				end
-			end
-			local bar = slot:FindFirstChild("StaminaBar")
-			if not ids[n] then
-				if shown(bar) then
-					table.insert(p.bars, tag .. ": empty, StaminaBar shown")
-				end
-			elseif not (bar and bar:IsA("Frame") and shown(bar)) then
-				table.insert(p.bars, tag .. ": no shown Frame StaminaBar")
-			else
-				local br = h.rect(bar)
-				local fill, text = bar:FindFirstChild("Fill"), bar:FindFirstChild("Stamina")
-				local portrait = slot:FindFirstChild("Portrait")
-				if not inside(sr, br) then
-					table.insert(p.bars, ("%s: StaminaBar%s outside the card%s"):format(tag, rstr(br), rstr(sr)))
-				end
-				if shown(portrait) and br.y < h.rect(portrait).y + h.rect(portrait).h - TOL then
-					table.insert(
-						p.bars,
-						("%s: StaminaBar%s not below Portrait%s"):format(tag, rstr(br), rstr(h.rect(portrait)))
-					)
-				end
-				if not (fill and fill:IsA("GuiObject") and shown(fill)) then
-					table.insert(p.bars, tag .. ": StaminaBar has no shown Fill")
-				elseif not inside(br, h.rect(fill)) then
-					table.insert(p.bars, tag .. ": Fill outside StaminaBar")
-				end
-				if not (text and text:IsA("TextLabel") and shown(text) and number(text.Text)) then
-					table.insert(p.bars, tag .. ": StaminaBar has no shown Stamina seconds")
-				elseif not inside(br, h.rect(text)) then
-					table.insert(p.bars, tag .. ": Stamina text outside StaminaBar")
-				end
-			end
-			local parts = {}
-			for _, name in FIT_PARTS do
-				local o = slot:FindFirstChild(name)
-				if o and o:IsA("TextLabel") and shown(o) then
-					local r = h.rect(o)
-					if not inside(sr, r) then
-						table.insert(p.fit, ("%s/%s%s outside the card%s"):format(tag, name, rstr(r), rstr(sr)))
-					elseif not o.TextFits then
-						table.insert(p.fit, ("%s/%s %q does not fit"):format(tag, name, o.Text))
-					end
-					table.insert(parts, { name, r })
-				end
-			end
-			if ids[n] and shown(bar) then
-				table.insert(parts, { "StaminaBar", h.rect(bar) })
-			end
-			for i = 1, #parts do
-				for j = i + 1, #parts do
-					if overlaps(parts[i][2], parts[j][2]) then
-						table.insert(
-							p.overlap,
-							("%s: %s%s x %s%s"):format(
-								tag,
-								parts[i][1],
-								rstr(parts[i][2]),
-								parts[j][1],
-								rstr(parts[j][2])
-							)
-						)
-					end
-				end
+				table.insert(icons, icon)
 			end
 		end
-		for n = 1, 2 do
-			local arrow = slots and slots:FindFirstChild("Arrow" .. n)
-			local a, b = cardRects[n], cardRects[n + 1]
-			if not (arrow and arrow:IsA("GuiObject") and shown(arrow)) then
-				table.insert(p.arrows, "Arrow" .. n .. " missing or hidden")
-			elseif a and b then
-				local r = h.rect(arrow)
-				local mid = r.y + r.h / 2
-				if r.x < a.x + a.w - TOL or r.x + r.w > b.x + TOL then
-					table.insert(
-						p.arrows,
-						("Arrow%d%s not between Slot%d%s and Slot%d%s"):format(n, rstr(r), n, rstr(a), n + 1, rstr(b))
-					)
-				elseif mid < math.max(a.y, b.y) or mid > math.min(a.y + a.h, b.y + b.h) then
-					table.insert(p.arrows, ("Arrow%d%s not level with the slots"):format(n, rstr(r)))
-				end
-			end
-		end
-		local apart = {}
-		for i = 1, 3 do
-			for j = i + 1, 3 do
-				local d = hues[i] and hues[j] and math.abs(hues[i] - hues[j])
-				d = d and math.min(d, 1 - d)
-				if not (d and d >= HUE_APART) then
-					table.insert(
-						apart,
-						("Slot%d / Slot%d hues %s"):format(i, j, d and ("%.2f apart"):format(d) or "not both coloured")
-					)
-				end
-			end
-		end
-		h.checkList(res, "team_slot_numbers" .. v, p.numbers)
-		h.checkList(res, "team_slot_borders" .. v, p.borders)
-		h.checkList(res, "team_slot_borders_differ" .. v, apart)
-		h.checkList(res, "team_slot_stamina_bars" .. v, p.bars)
-		h.checkList(res, "team_slot_arrows" .. v, p.arrows)
-		h.checkList(res, "team_slot_text_fits" .. v, p.fit)
-		h.checkList(res, "team_slot_parts_no_overlap" .. v, p.overlap)
+		return wrong
 	end
-
-	-- The roster: every shown Badge clear of its category dot; on desktop two rows of eight at the top.
-	local function checkRosterDraft(res)
-		local v = variant()
-		local roster = h.find(T.Roster)
-		local cards, wrong = {}, {}
-		for _, card in roster and roster:GetChildren() or {} do
-			if card:IsA("GuiButton") and shown(card) then
-				table.insert(cards, card)
-				local problem = Spec.Backpack.BadgeDotProblem(card, h.rect, h.visible)
-				if problem then
-					table.insert(wrong, problem)
-				end
-			end
-		end
-		h.checkList(res, "team_roster_badge_clear_of_dot" .. v, wrong)
-		if v ~= "_desktop" or not (roster and roster:IsA("ScrollingFrame")) then
+	-- The tooltip on gamepad focus of an icon: shown with Title == ItemName, hidden when focus leaves.
+	local function checkTooltip(res, icon)
+		if not icon then
+			h.check(res, "team_gear_tooltip", "no gear icon to focus", "an icon", false)
 			return
 		end
-		roster.CanvasPosition = Vector2.zero
-		task.wait(0.1)
-		local rr, rows, tops = h.rect(roster), {}, {}
-		for _, card in cards do
-			local r = h.rect(card)
-			if inside(rr, r) then
-				local y = math.floor(r.y + 0.5)
-				if not rows[y] then
-					rows[y] = 0
-					table.insert(tops, y)
+		local wasSelectable = icon.Selectable
+		icon.Selectable = true -- shortcut: the contract shows the tip on SelectionGained; hover can not be sent from a test
+		GuiService.SelectedObject = icon
+		local tip = h.find(T.Tooltip)
+		local function title()
+			local t = h.find(T.Tooltip .. "/Title")
+			return shown(h.find(T.Tooltip)) and textOf(t) or nil
+		end
+		local got = waitIs(title, icon:GetAttribute("ItemName"))
+		check(res, "team_gear_tooltip_names_item", got, icon:GetAttribute("ItemName"))
+		for _, part in { "Title", "Rarity", "Body" } do
+			check(res, "team_gear_tooltip_has_" .. string.lower(part), tip and tip:FindFirstChild(part) ~= nil, true)
+		end
+		GuiService.SelectedObject = nil
+		check(
+			res,
+			"team_gear_tooltip_hides",
+			waitIs(function()
+				return shown(h.find(T.Tooltip))
+			end, false),
+			false
+		)
+		icon.Selectable = wasSelectable
+	end
+	-- Gear on every card and member altar (relic_states puts a Relic on Team[1]).
+	local function checkGear(res, ids)
+		local wrong, icons = {}, {}
+		local roster = h.find(T.Roster)
+		for _, card in roster and roster:GetChildren() or {} do
+			if card:IsA("GuiObject") and Catalog.Get(card.Name) then
+				for _, w in gearProblems(card, card.Name, card, "card " .. card.Name, icons) do
+					table.insert(wrong, w)
 				end
-				rows[y] += 1
 			end
 		end
-		table.sort(tops)
-		local first = tops[1] and rows[tops[1]] or 0
-		h.check(res, "team_roster_first_row_cards_desktop", first, ">= " .. ROW_CARDS, first >= ROW_CARDS)
-		h.check(res, "team_roster_rows_shown_desktop", #tops, ">= " .. ROWS, #tops >= ROWS)
+		for n = 1, 3 do
+			local a = altar(n)
+			local pedestal = a and a:FindFirstChild("Pedestal")
+			if ids[n] and pedestal then
+				for _, w in gearProblems(a, ids[n], pedestal, "Altar" .. n, icons) do
+					table.insert(wrong, w)
+				end
+			end
+		end
+		local worn = SidekickView.RelicGear(player)[ids[1]] ~= nil
+		check(res, "team_gear_fixture_relic_on_first", worn, true)
+		h.checkList(res, "team_gear_icons", wrong)
+		checkTooltip(res, icons[1])
 	end
 
 	function scenarios.ui_team(res)
@@ -672,90 +690,285 @@ function Module.Build(h)
 		checkPlace(res)
 		local restore = h.setPanels({ T.Panel })
 		checkPanel(res)
-		-- The slots, the bonus and the roster show the Team the server set (A, B; slot 3 empty; teams of 2 have no bonus)
+		-- The altars, footer and roster show the Team the server set (A, B; altar 3 empty), unchanged: Ready, Deploy off
 		if setup(res, "team_states") then
 			local ids = fixtureIds()
 			local ab = ids[1] and ids[2] and (ids[1] .. "," .. ids[2]) or "?"
 			check(res, "team_fixture_set", waitIs(team, ab), ab)
-			checkSlots(res, "team_ab", { ids[1], ids[2] }, true)
-			local _, sum = slotProblems({ ids[1], ids[2] }, true)
-			local bonus = h.find(T.Bonus)
-			local bonusText = {}
-			for _, d in bonus and bonus:GetDescendants() or {} do
-				if d:IsA("TextLabel") and h.visible(d) then
-					table.insert(bonusText, d.Text)
-				end
-			end
-			h.check(
-				res,
-				"team_ab_no_bonus",
-				table.concat(bonusText, " | "),
-				"holds " .. T.NoBonus,
-				string.find(string.lower(table.concat(bonusText, " ")), string.lower(T.NoBonus), 1, true) ~= nil
-			)
-			local total = number(textOf(h.find(T.Bonus .. "/Total")))
-			h.check(
-				res,
-				"team_ab_total_stamina",
-				total or "no seconds",
-				("%.1f +/- %.2f"):format(sum, T.StaminaSlack),
-				total ~= nil and math.abs(total - sum) <= T.StaminaSlack
-			)
+			restore()
+			restore = h.setPanels({ T.Panel }) -- reopen: the draft is the saved Team on open
+			checkDraft(res, "team_ab", { ids[1], ids[2] }, T.Ready, false)
+			local tab = h.find(T.Tabs .. "/Characters")
+			check(res, "team_characters_tab_active", tab and tab:GetAttribute("Active"), true)
 			local wrong = waitIs(function()
 				return #rosterProblems({ ids[1], ids[2] }) == 0
 			end, true)
 			h.checkList(res, "team_ab_roster", wrong and {} or rosterProblems({ ids[1], ids[2] }))
-			checkSlotCards(res, { ids[1], ids[2] }) -- slot 3 empty
-			checkRosterDraft(res)
+			for n = 1, 3 do
+				local a = altar(n)
+				check(
+					res,
+					"team_altar" .. n .. "_remove_hidden_at_open",
+					shown(a and a:FindFirstChild("Remove")),
+					false
+				)
+			end
+			if setup(res, "relic_states") then
+				task.wait(0.5)
+				checkGear(res, { ids[1], ids[2] })
+				setup(res, "restore:relic_states")
+			end
 			setup(res, "team_states_clear")
 		end
 		restore()
 	end
 
-	-- After the real presses (UiSpec.Clicks team_*): the Team the server answered with, letters a / b / c = the
-	-- team_states fixture's ids.
-	local function judge(res, tag, letters, hold)
-		local all = fixtureIds()
-		local ids = {}
-		for i = 1, #letters do
-			ids[i] = all[string.byte(letters, i) - string.byte("a") + 1]
+	-- Entry points (design doc 4.45). The presses themselves are clicks (open_summon, summon_key_g, open_team_minibar).
+	function scenarios.ui_entry_points(res)
+		h.waitGuis()
+		local summon = h.find(T.Summon)
+		check(res, "entry_summon_present", summon ~= nil and summon:IsA("ImageButton"), true)
+		check(res, "entry_summon_shown", shown(summon), true)
+		check(res, "entry_summon_panel_attr", summon and summon:GetAttribute("Panel"), "Sidekicks")
+		check(res, "entry_summon_key_letter", textOf(summon and summon:FindFirstChild("Key", true)), T.SummonKey)
+		local label = summon and summon:FindFirstChild("Label", true)
+		check(res, "entry_summon_label", textOf(label), "Summon")
+		local hud = h.find("RacerHud")
+		local open = hud and hud:FindFirstChild("OpenTeam", true)
+		check(res, "entry_minibar_open_team", open ~= nil and open:IsA("TextButton"), true)
+		for name, action in T.Prompts do
+			local prompt = workspace:FindFirstChild(name, true)
+			check(res, "entry_prompt_" .. string.lower(name), prompt ~= nil and prompt:IsA("ProximityPrompt"), true)
+			check(res, "entry_prompt_" .. string.lower(name) .. "_text", prompt and prompt.ActionText, action)
 		end
-		local want = table.concat(ids, ",")
+		local altarModel = workspace:FindFirstChild("TeamAltar", true)
+		check(res, "entry_team_altar_model", altarModel ~= nil and altarModel:IsA("Model"), true)
+
+		local PanelSwitch = panelSwitch()
+		local restore = h.setPanels({})
+		local gui = player.PlayerGui:FindFirstChild(T.Transition)
+		check(res, "entry_transition_gui", gui ~= nil and gui:IsA("ScreenGui"), true)
+		check(res, "entry_transition_paper", gui ~= nil and gui:FindFirstChild("Paper", true) ~= nil, true)
+		check(res, "entry_input_unlocked_at_rest", player:GetAttribute(T.InputLockAttr) == true, false)
+		-- Two quick opens: the second is ignored while the first plays; Team ends open exactly once
+		PanelSwitch.Action(T.PanelSwitchName)
+		PanelSwitch.Action(T.PanelSwitchName)
+		check(
+			res,
+			"entry_transition_plays_on_open",
+			waitIs(function()
+				return gui ~= nil and gui:GetAttribute("Playing") == true
+			end, true, 0.5),
+			true
+		)
+		task.wait(1)
+		local panel = h.find(T.Panel)
+		check(res, "entry_double_open_team_open", PanelSwitch.IsOpen(T.PanelSwitchName), true)
+		check(res, "entry_double_open_panel_shown", shown(panel), true)
+		check(
+			res,
+			"entry_input_locked_while_open",
+			waitIs(function()
+				return player:GetAttribute(T.InputLockAttr) == true
+			end, true),
+			true
+		)
+		PanelSwitch.Close(T.PanelSwitchName)
+		check(
+			res,
+			"entry_input_unlocked_after_close",
+			waitIs(function()
+				return player:GetAttribute(T.InputLockAttr) == true
+			end, false),
+			false
+		)
+		check(
+			res,
+			"entry_team_closed",
+			waitIs(function()
+				return shown(h.find(T.Panel))
+			end, false),
+			false
+		)
+		restore()
+	end
+
+	-- After the real presses (UiSpec.Clicks team_*). Letters a / b / c = the team_states fixture's ids.
+	local function savedIs(res, tag, letters, hold)
+		local want = table.concat(idsOf(letters), ",")
 		if hold then
-			task.wait(T.Hold) -- a refused change: the Team must still be the same afterwards
+			task.wait(T.Hold) -- a draft-only or refused change: the saved Team must still be the same afterwards
 		end
-		check(res, tag .. "_team", waitIs(team, want), want)
-		checkSlots(res, tag, ids, false)
+		check(res, tag .. "_saved_team", waitIs(team, want), want)
+	end
+	local function draftIs(res, tag, letters, status, deployOn)
+		local ids = idsOf(letters)
+		checkDraft(res, tag, ids, status, deployOn)
 		local wrong = waitIs(function()
 			return #rosterProblems(ids) == 0
 		end, true)
 		h.checkList(res, tag .. "_roster_badges", wrong and {} or rosterProblems(ids))
 	end
+	-- A successful Deploy: the saved Team the server answered with, and the page closed.
+	local function deployed(res, tag, want)
+		check(res, tag .. "_saved_team", waitIs(team, want, SHOW_WAIT + T.DeployClose), want)
+		check(
+			res,
+			tag .. "_page_closed",
+			waitIs(function()
+				return shown(h.find(T.Panel))
+			end, false, T.DeployClose),
+			false
+		)
+	end
 	function after.team_dim_on(res)
 		check(res, "team_open_dims_world", waitIs(dimOn, true), true)
 	end
-	function after.team_pick_sends_nothing(res)
-		judge(res, "team_pick", "ab", true)
+	function after.team_altar3_selected(res)
+		local wrong = {}
+		for n = 1, 3 do
+			local a = altar(n)
+			if (a and a:GetAttribute("Selected") == true) ~= (n == 3) then
+				table.insert(wrong, "Altar" .. n .. " Selected " .. tostring(a and a:GetAttribute("Selected")))
+			end
+		end
+		h.checkList(res, "team_altar3_selected", wrong)
+		check(res, "team_select_empty_no_remove", shown(altar(3) and altar(3):FindFirstChild("Remove")), false)
+	end
+	function after.team_draft_abc(res)
+		draftIs(res, "team_draft_abc", "abc", T.Unsaved, true)
+		savedIs(res, "team_draft_abc", "ab", true)
 	end
 	function after.team_is_abc(res)
-		judge(res, "team_put", "abc")
+		deployed(res, "team_deploy_abc", table.concat(idsOf("abc"), ","))
 	end
-	function after.team_is_bac(res)
-		judge(res, "team_swap", "bac")
+	function after.team_draft_ba(res)
+		draftIs(res, "team_draft_ba", "ba", T.Unsaved, true)
+		savedIs(res, "team_draft_ba", "ab", true)
 	end
-	function after.team_is_bc(res)
-		judge(res, "team_remove", "bc")
+	function after.team_remove_shown(res)
+		local remove = altar(2) and altar(2):FindFirstChild("Remove")
+		check(res, "team_remove_shown", shown(remove) and textOf(remove), T.RemoveText)
+	end
+	function after.team_draft_b(res)
+		draftIs(res, "team_draft_b", "b", T.Unsaved, true)
+		savedIs(res, "team_draft_b", "ab", true)
 	end
 	function after.team_is_b(res)
-		judge(res, "team_remove_second", "b")
+		deployed(res, "team_deploy_b", table.concat(idsOf("b"), ","))
 	end
-	function after.team_keeps_last_member(res)
-		judge(res, "team_last", "b", true)
-		check(res, "team_last_notice", noticeShown(T.MinNotice), true)
+	function after.team_draft_empty(res)
+		checkDraft(res, "team_draft_empty", {}, T.Unsaved, false)
+	end
+	function after.team_empty_kept(res)
+		savedIs(res, "team_empty", "ab", true)
+		check(res, "team_empty_page_open", shown(h.find(T.Panel)), true)
 	end
 	function after.team_locked_in_run(res)
-		judge(res, "team_run", "ab", true)
-		check(res, "team_run_notice", noticeShown(T.RunNotice), true)
+		savedIs(res, "team_run", "ab", true)
+		checkDraft(res, "team_run_draft_kept", idsOf("abc"), T.RunNotice, nil)
+		check(res, "team_run_page_open", shown(h.find(T.Panel)), true)
+	end
+	function after.team_draft_a(res)
+		draftIs(res, "team_draft_a", "a", T.Unsaved, true)
+	end
+	function after.team_quick_filled(res)
+		local a = idsOf("a")[1]
+		local got = waitIs(function()
+			local d = draftShown()
+			return d[1] ~= nil and d[2] ~= nil and d[3] ~= nil
+		end, true)
+		local d = draftShown()
+		local wrong = {}
+		if not got then
+			table.insert(wrong, ("draft %s, %s, %s: not filled"):format(tostring(d[1]), tostring(d[2]), tostring(d[3])))
+		end
+		if d[1] ~= a then
+			table.insert(wrong, ("Altar1 %s, want %s kept"):format(tostring(d[1]), tostring(a)))
+		end
+		local seen, data = {}, player:FindFirstChild("GachaData")
+		for n = 1, 3 do
+			local id = d[n]
+			if id and seen[id] then
+				table.insert(wrong, "duplicate " .. id)
+			end
+			if id then
+				seen[id] = true
+			end
+			if id and id ~= Catalog.STARTER_ID and not (data and data:FindFirstChild(id)) then
+				table.insert(wrong, "unowned " .. id)
+			end
+		end
+		h.checkList(res, "team_quick_fills_draft", wrong)
+		quickDraft = { d[1], d[2], d[3] }
+		checkDraft(res, "team_quick", quickDraft, T.Unsaved, true)
+		savedIs(res, "team_quick", "ab", true)
+	end
+	function after.team_is_quick(res)
+		deployed(res, "team_deploy_quick", quickDraft and table.concat(quickDraft, ",") or "no draft seen")
+	end
+	function after.team_confirm_shown(res)
+		check(
+			res,
+			"team_confirm_close_shown",
+			waitIs(function()
+				return shown(h.find(T.ConfirmClose))
+			end, true),
+			true
+		)
+		check(res, "team_confirm_page_open", shown(h.find(T.Panel)), true)
+		savedIs(res, "team_confirm", "ab", true)
+	end
+	function after.team_discarded(res)
+		savedIs(res, "team_discard", "ab", true)
+		check(res, "team_discard_page_closed", shown(h.find(T.Panel)), false)
+	end
+	function after.team_bonus_shown(res)
+		local pop = h.find(T.BonusPopover)
+		check(
+			res,
+			"team_bonus_popover_shown",
+			waitIs(function()
+				return shown(pop)
+			end, true),
+			true
+		)
+		check(res, "team_bonus_popover_no_bonus", textOf(pop and pop:FindFirstChild("Name")), T.NoBonus)
+		check(res, "team_bonus_popover_effect", pop ~= nil and pop:FindFirstChild("Effect") ~= nil, true)
+		local total = textOf(pop and pop:FindFirstChild("Total")) or ""
+		check(res, "team_bonus_popover_total", string.match(total, "^Total [%d%.]+ s$") ~= nil, true)
+		savedIs(res, "team_bonus", "ab", false)
+	end
+	function after.team_bonus_hidden(res)
+		check(
+			res,
+			"team_bonus_popover_hidden",
+			waitIs(function()
+				return shown(h.find(T.BonusPopover))
+			end, false),
+			false
+		)
+	end
+	local function tabActive(res, tag, active)
+		for _, name in { "Characters", "Sidekicks" } do
+			local tab = h.find(T.Tabs .. "/" .. name)
+			check(res, tag .. "_" .. string.lower(name), tab and tab:GetAttribute("Active") == true, name == active)
+		end
+	end
+	function after.team_tab_sidekicks_active(res)
+		tabActive(res, "team_tab_sidekicks", "Sidekicks")
+		local roster, wrong = h.find(T.Roster), {}
+		for _, card in roster and roster:GetChildren() or {} do
+			if card:IsA("GuiButton") and shown(card) and type(card:GetAttribute("SidekickId")) ~= "string" then
+				table.insert(wrong, card.Name .. ": no SidekickId")
+			end
+		end
+		h.checkList(res, "team_tab_sidekicks_cards", wrong)
+	end
+	function after.team_tab_characters_active(res)
+		tabActive(res, "team_tab_characters", "Characters")
+		local ids = idsOf("ab")
+		h.checkList(res, "team_tab_characters_roster", rosterProblems(ids))
 	end
 
 	return { Scenarios = scenarios, After = after }

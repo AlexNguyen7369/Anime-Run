@@ -1,0 +1,557 @@
+--!nonstrict
+-- BRIEF: Void Trail rework (src/shared/RunnerEffects.luau). docs/PANEL_ART_GIFTING_SPEC.md: "Effects attach to the
+-- chassis, have no collision, and never change mass or controls. Equip, respawn and skin replacement preserve the
+-- server-owned EquippedAura/EquippedTrail attributes". docs/GAME_DESIGN_REQUIREMENTS.md (~line 737): distinct
+-- cosmetic in-world profiles applied to the shared root part without changing physics or equip authority.
+-- Runs on a fake player's real auto-racing runner (RunnerService.Attach -> RaceService run), like auto_toggle.
+-- Anime Run (docs/WORLD_REDESIGN_SPEC.md section 2): the runner is the anchored rig and "Auras and trails attach to
+-- the runner's Torso instead of the car", so every "root" check below reads the rig's Torso. The IVS skin
+-- replacement sub-check becomes a mid-race character switch (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29: as the IVS mid-race
+-- equip did, the live runner is rebuilt / re-skinned as the new character at the same distance, keeps its aura and
+-- trail, and the new cruise applies at once). Test seams: RunnerService.ApplyCharacter(player) is the EquippedCharacter
+-- listener body (the listener itself is wired only for real Players); the runner model carries attribute
+-- CharacterId = the character it shows.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local H = require(script.Parent.AcceptanceSupport)
+local Server = script.Parent.Parent
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+
+local TRAIL_ID = "void_trail"
+local TRAILS = { "void_trailCore", "void_trailEdgeL", "void_trailEdgeR" }
+local EMITTERS = { "void_trailMotes", "void_trailSmoke" }
+local EMITTER_ATTACHMENT = "void_trailEmitter"
+local RUN_SECONDS = 3
+local MIN_RUN_DISTANCE = 20 -- studs the root part must cover in RUN_SECONDS (floor)
+-- Fixed cruise (design doc 4.13): the runner covers run.TargetSpeed x time along the rail. The root part and every
+-- effect attachment must travel at least this share of that, summed frame to frame (a spiral road brings the runner
+-- back near where it started, so a straight start-to-end distance says nothing about travel).
+local RUN_SHARE = 0.5
+local MIN_RIBBON_WIDTH = 0.05 -- studs between a trail's two attachments
+local MASS_TOLERANCE = 1e-6
+local TRACK_TOLERANCE = 1e-3 -- studs: attachment world position vs root-part-space position
+local SEAT_TIMEOUT = 10 -- seconds to wait for a run after a (re)start
+local AURA_ID = "azure_aura" -- equipped with the trail before the character switch (6a)
+local SPEED_EXACT = 0.01 -- studs/s: the new character's cruise applies at once
+local EFFECT_CLASSES = { Attachment = true, Trail = true, Beam = true, ParticleEmitter = true, Folder = true }
+
+local Tests = {}
+
+-- helpers = { newFakeCharacter, clearSpawnOfRealPlayers } (locals of Scenarios.luau, passed in)
+function Tests.make(helpers)
+	return function()
+		local r, flag = H.report("runner_effects")
+		local metrics = r.metrics
+		local RunnerService = H.module(Server, "RunnerService")
+		local MarketService = H.module(Server, "MarketService")
+		local PlayerData = H.module(Server, "PlayerData")
+		local Money = H.module(Server, "MoneyService")
+		local RunnerEffects = H.module(Shared, "RunnerEffects")
+		local Targets = H.module(Shared, "PhysicsTargets")
+		local strict = Targets and Targets.lap and Targets.lap.MinUpYStrict
+		local apiOk = RunnerService ~= nil
+			and MarketService ~= nil
+			and PlayerData ~= nil
+			and Money ~= nil
+			and RunnerEffects ~= nil
+			and type(strict) == "number"
+			and type(RunnerService.Attach) == "function"
+			and type(RunnerService.SetAutoRace) == "function"
+			and type(RunnerService.GetRunner) == "function"
+			and type(RunnerService.GetRun) == "function"
+			and type(MarketService.Equip) == "function"
+			and type(RunnerService.ApplyCharacter) == "function"
+			and type(RunnerEffects.Apply) == "function"
+			and type(RunnerEffects.Profiles) == "table"
+			and RunnerEffects.Profiles[TRAIL_ID] ~= nil
+		flag("effects_api_exists", apiOk)
+		if not apiOk then
+			return r
+		end
+		-- Design doc "Aura and trail ladders" (owner 2026-10-27): 5 trails (rainbow, solar, void, NEW frost, NEW prism)
+		-- and 3 auras are sold, and every sold one needs its own VFX profile (a market item must never equip blank).
+		local MarketConfig = H.module(Shared, "MarketConfig")
+		local items = MarketConfig and MarketConfig.Items or {}
+		local trailIds, auraIds = {}, {}
+		for _, item in items.Trail or {} do
+			trailIds[item.Id] = true
+		end
+		for _, item in items.Aura or {} do
+			auraIds[item.Id] = true
+		end
+		local ladderOk = #(items.Trail or {}) == 5 and #(items.Aura or {}) == 3
+		for _, id in { "rainbow_trail", "solar_trail", "void_trail", "frost_trail", "prism_trail" } do
+			ladderOk = ladderOk and trailIds[id] == true
+		end
+		for _, id in { "azure_aura", "ember_aura", "galaxy_aura" } do
+			ladderOk = ladderOk and auraIds[id] == true
+		end
+		flag("market_trail_aura_ladder", ladderOk, #(items.Trail or {}), 5)
+		-- Owner 2026-10-27 (design doc "payout and price curves"): trail i = PayoutCurve.Cost(500, i), aura i =
+		-- Cost(2500, i), in ladder order; SpeedMulti values unchanged (1.5, 2, 3, 4, 5 and 1.2, 2, 3).
+		local PayoutCurve = H.module(Shared, "PayoutCurve")
+		local LADDER = {
+			{ "Trail", "rainbow_trail", 500, 1.5, 500, 1 },
+			{ "Trail", "solar_trail", 16000, 2, 500, 2 },
+			{ "Trail", "void_trail", 320000, 3, 500, 3 },
+			{ "Trail", "frost_trail", 10000000, 4, 500, 4 },
+			{ "Trail", "prism_trail", 210000000, 5, 500, 5 },
+			{ "Aura", "azure_aura", 2500, 1.2, 2500, 1 },
+			{ "Aura", "ember_aura", 79000, 2, 2500, 2 },
+			{ "Aura", "galaxy_aura", 1600000, 3, 2500, 3 },
+		}
+		local priceBad = {}
+		for _, row in LADDER do
+			local item = MarketConfig and type(MarketConfig.Get) == "function" and MarketConfig.Get(row[1], row[2])
+			local okC, curve = false, nil
+			if PayoutCurve and type(PayoutCurve.Cost) == "function" then
+				okC, curve = pcall(PayoutCurve.Cost, row[5], row[6])
+			end
+			if not item or item.Price ~= row[3] or item.SpeedMulti ~= row[4] or not okC or curve ~= row[3] then
+				table.insert(priceBad, row[2])
+			end
+		end
+		metrics.market_price_bad = table.concat(priceBad, ",")
+		flag("market_prices_payout_curve", #priceBad == 0, #priceBad, 0)
+		local missing = {}
+		for _, kindItems in { items.Trail or {}, items.Aura or {} } do
+			for _, item in kindItems do
+				if RunnerEffects.Profiles[item.Id] == nil then
+					table.insert(missing, item.Id)
+				end
+			end
+		end
+		flag("market_items_have_vfx_profiles", #missing == 0, #missing, 0)
+
+		local player = Instance.new("Folder")
+		player.Name = "ServerTestEffectsPlayer"
+		player.Parent = Workspace
+		local origTrail, origAura = player:GetAttribute("Slot1Trail"), player:GetAttribute("Slot1Aura")
+		local okWalk, walkCF = pcall(RunnerService.WalkSpawnCFrame)
+		walkCF = okWalk and typeof(walkCF) == "CFrame" and walkCF or CFrame.new(0, 3, 0)
+		local releaseSpawn = helpers.clearSpawnOfRealPlayers(walkCF.Position)
+		local character = helpers.newFakeCharacter(CFrame.new(walkCF.Position + Vector3.new(0, 3, 0)))
+
+		local function waitRun()
+			local deadline = os.clock() + SEAT_TIMEOUT
+			while os.clock() < deadline do
+				local runner, run = RunnerService.GetRunner(player), RunnerService.GetRun(player)
+				if
+					runner
+					and runner:FindFirstChild("Torso", true)
+					and type(run) == "table"
+					and run.Connection ~= nil
+				then
+					return runner, run
+				end
+				RunService.Heartbeat:Wait()
+			end
+			return RunnerService.GetRunner(player), RunnerService.GetRun(player)
+		end
+		local function snapshot(runner)
+			local set, parts = {}, 0
+			for _, d in runner:GetDescendants() do
+				set[d] = true
+				if d:IsA("BasePart") then
+					parts += 1
+				end
+			end
+			return set, parts
+		end
+		local function partMass(runner)
+			local total = 0
+			for _, d in runner:GetDescendants() do
+				if d:IsA("BasePart") then
+					total += d:GetMass()
+				end
+			end
+			return total
+		end
+		-- The anchored rig has no meaningful AssemblyMass: count its Massless parts instead (effects add no mass).
+		local function masslessParts(runner)
+			local n = 0
+			for _, d in runner:GetDescendants() do
+				if d:IsA("BasePart") and d.Massless then
+					n += 1
+				end
+			end
+			return n
+		end
+		-- Checks 1 and 2: folder, three ribbons and two emitters, all on the root part. Returns the attachments.
+		local function checkProfile(pre, runner)
+			local root = runner:FindFirstChild("Torso", true)
+			local folder = runner:FindFirstChild("MarketEffects")
+			flag(pre .. "_folder_exists", folder ~= nil and folder:IsA("Folder"))
+			flag(pre .. "_folder_trail_attr", folder ~= nil and folder:GetAttribute("Trail") == TRAIL_ID)
+			local atts = {}
+			for _, name in TRAILS do
+				local t = folder and folder:FindFirstChild(name)
+				local isTrail = t ~= nil and t:IsA("Trail")
+				flag(pre .. "_" .. name .. "_exists", isTrail)
+				if isTrail then
+					local a0, a1 = t.Attachment0, t.Attachment1
+					local onRoot = a0 ~= nil and a1 ~= nil and a0.Parent == root and a1.Parent == root
+					flag(pre .. "_" .. name .. "_on_root", onRoot)
+					local width = onRoot and (a0.WorldPosition - a1.WorldPosition).Magnitude or 0
+					flag(pre .. "_" .. name .. "_width", width > MIN_RIBBON_WIDTH, width, MIN_RIBBON_WIDTH)
+					flag(pre .. "_" .. name .. "_flat", t.FaceCamera == false)
+					flag(pre .. "_" .. name .. "_enabled", t.Enabled == true)
+					local tagged = onRoot
+						and a0:GetAttribute("MarketEffect") == true
+						and a1:GetAttribute("MarketEffect") == true
+					flag(pre .. "_" .. name .. "_attachments_tagged", tagged)
+					if onRoot then
+						table.insert(atts, a0)
+						table.insert(atts, a1)
+					end
+				end
+			end
+			local source = root:FindFirstChild(EMITTER_ATTACHMENT)
+			local sourceOk = source ~= nil and source:IsA("Attachment") and source:GetAttribute("MarketEffect") == true
+			flag(pre .. "_emitter_attachment_on_root", sourceOk)
+			for _, name in EMITTERS do
+				local e = source and source:FindFirstChild(name)
+				local ok = e ~= nil and e:IsA("ParticleEmitter") and e.Enabled == true and e.Rate > 0
+				flag(pre .. "_" .. name .. "_emitting", ok, e and e:IsA("ParticleEmitter") and e.Rate or 0, 0)
+			end
+			if sourceOk then
+				table.insert(atts, source)
+			end
+			return atts
+		end
+		local function effectLeft(runner)
+			local n = 0
+			for _, d in runner:GetDescendants() do
+				if d:GetAttribute("MarketEffect") == true or string.sub(d.Name, 1, #TRAIL_ID) == TRAIL_ID then
+					n += 1
+				end
+			end
+			return n
+		end
+
+		local function body()
+			local okSetup = pcall(function()
+				Money.Setup(player)
+				PlayerData.Setup(player)
+			end)
+			flag("effects_fake_player_setup", okSetup)
+			player:SetAttribute("Slot1Aura", nil)
+			player:SetAttribute("Slot1Trail", nil)
+			flag("effects_attach_no_error", (pcall(RunnerService.Attach, player, character)))
+			local runner, run = waitRun()
+			local runnerOk = runner ~= nil
+				and runner:FindFirstChild("Torso", true) ~= nil
+				and type(run) == "table"
+				and run.Runner == runner
+			flag("effects_racing_car", runnerOk)
+			if not runnerOk then
+				return
+			end
+			local root = runner:FindFirstChild("Torso", true)
+
+			-- Equip the way the Market does (server-side, ownership checked), then the RunnerService listener body
+			-- (RunnerEffects.Apply on the live runner; the listener itself is wired only for real Players)
+			local before, partsBefore = snapshot(runner)
+			local massBefore, masslessBefore = partMass(runner), masslessParts(runner)
+			player:SetAttribute("OwnTrail_" .. TRAIL_ID, 1)
+			local okEquip, equipped = pcall(MarketService.Equip, player, "Trail", TRAIL_ID)
+			flag("effects_market_equip", okEquip and equipped == true and player:GetAttribute("Slot1Trail") == TRAIL_ID)
+			flag("effects_apply_no_error", (pcall(RunnerEffects.Apply, runner, player)))
+			local atts = checkProfile("equip", runner)
+
+			-- 3. Only effect instances added, no BasePart, mass unchanged, the same run still runs the runner
+			local _, partsAfter = snapshot(runner)
+			flag("equip_no_basepart_added", partsAfter == partsBefore, partsAfter - partsBefore, 0)
+			local bad = 0
+			for _, d in runner:GetDescendants() do
+				if not before[d] and not EFFECT_CLASSES[d.ClassName] then
+					bad += 1
+					metrics["equip_unexpected_" .. bad] = d.ClassName .. ":" .. d.Name
+				end
+			end
+			flag("equip_only_effect_instances", bad == 0, bad, 0)
+			local dMass = math.abs(partMass(runner) - massBefore)
+			local dMassless = masslessParts(runner) - masslessBefore
+			flag("equip_part_mass_unchanged", dMass <= MASS_TOLERANCE, dMass, MASS_TOLERANCE)
+			flag("equip_massless_unchanged", dMassless == 0, dMassless, 0)
+			local sameRun = RunnerService.GetRun(player) == run
+				and run.Connection ~= nil
+				and RunnerService.GetRunner(player) == runner
+			flag("equip_controls_unchanged", sameRun and runner:GetAttribute("AutoRace") == true)
+
+			-- 4 + 5. The runner runs on: the root part travels, every effect attachment rides on it, no tilt
+			local last = root.Position
+			local travelled = 0
+			local attLast, attTravel = {}, {}
+			for i, a in atts do
+				attLast[i] = a.WorldPosition
+				attTravel[i] = 0
+			end
+			local minUpY, maxTrackErr, detached = 1, 0, 0
+			local t = 0
+			-- Diagnostics only (metrics.run): why a window can come up short. No check reads these.
+			local function runState()
+				return {
+					stamina = run.Stamina and run.Stamina[run.Slot],
+					slot = run.Slot,
+					run_slot_attr = player:GetAttribute("RunSlot"),
+					race_track = run.RaceTrack,
+					wins = run.Wins,
+					losses = run.Losses,
+					resets = run.Resets,
+					laps = run.Laps,
+					index = run.Driver and run.Driver.Index,
+					done = run.Driver and run.Driver.Done,
+					connected = run.Connection ~= nil,
+					auto_racing = player:GetAttribute("AutoRacing"),
+					race_event = player:GetAttribute("RaceEvent"),
+					run_speed_attr = runner:GetAttribute("RunSpeed"),
+				}
+			end
+			local diag = {
+				start = runState(),
+				clockStart = os.clock(),
+				wallStart = DateTime.now().UnixTimestampMillis,
+				frames = 0,
+				maxDt = 0,
+				maxDtAt = 0,
+				maxMove = 0,
+				maxMoveAt = 0,
+				zeroMoves = 0,
+				minTarget = math.huge,
+				maxTarget = -math.huge,
+				runChanged = false,
+				runnerChanged = false,
+				rootChanged = false,
+				rootUnparented = false,
+				indexBackward = 0,
+				indexMaxJump = 0,
+			}
+			local prevIndex = run.Driver and run.Driver.Index
+			-- Time is the rail's clock (Heartbeat dt can jump with no wall-clock time). A real stall still fails: this
+			-- clock keeps growing while the root part does not move.
+			local railStart = os.clock()
+			local railClock = railStart
+			local railConn = RunService.PreSimulation:Connect(function()
+				railClock = os.clock()
+			end)
+			while t < RUN_SECONDS do
+				local frameDt = RunService.Heartbeat:Wait()
+				t = railClock - railStart
+				diag.frames += 1
+				if frameDt > diag.maxDt then
+					diag.maxDt, diag.maxDtAt = frameDt, t
+				end
+				if type(run.TargetSpeed) == "number" then
+					diag.minTarget = math.min(diag.minTarget, run.TargetSpeed)
+					diag.maxTarget = math.max(diag.maxTarget, run.TargetSpeed)
+				end
+				diag.runChanged = diag.runChanged or RunnerService.GetRun(player) ~= run
+				diag.runnerChanged = diag.runnerChanged
+					or RunnerService.GetRunner(player) ~= runner
+					or run.Runner ~= runner
+				diag.rootChanged = diag.rootChanged or runner:FindFirstChild("Torso", true) ~= root
+				local index = run.Driver and run.Driver.Index
+				if index and prevIndex then
+					diag.indexMaxJump = math.max(diag.indexMaxJump, math.abs(index - prevIndex))
+					if index < prevIndex then
+						diag.indexBackward += 1
+					end
+				end
+				prevIndex = index
+				if not root.Parent then
+					diag.rootUnparented = true
+					break
+				end
+				local frameMove = (root.Position - last).Magnitude
+				if frameMove > diag.maxMove then
+					diag.maxMove, diag.maxMoveAt = frameMove, t
+				end
+				if frameMove == 0 then
+					diag.zeroMoves += 1
+				end
+				travelled += frameMove
+				last = root.Position
+				for i, a in atts do
+					attTravel[i] += (a.WorldPosition - attLast[i]).Magnitude
+					attLast[i] = a.WorldPosition
+				end
+				minUpY = math.min(minUpY, root.CFrame.UpVector.Y)
+				for _, a in atts do
+					if a.Parent ~= root then
+						detached += 1
+					else
+						local want = root.CFrame:PointToWorldSpace(a.Position)
+						maxTrackErr = math.max(maxTrackErr, (a.WorldPosition - want).Magnitude)
+					end
+				end
+			end
+			railConn:Disconnect()
+			local speed = type(run.TargetSpeed) == "number" and run.TargetSpeed or 0
+			local wantTravel = math.max(MIN_RUN_DISTANCE, RUN_SHARE * speed * t)
+			r.metrics.run = {
+				seconds = t,
+				target_speed = speed,
+				finished = run.Finished == true,
+				want = wantTravel,
+				clock_elapsed = os.clock() - diag.clockStart,
+				wall_elapsed = (DateTime.now().UnixTimestampMillis - diag.wallStart) / 1000,
+				frames = diag.frames,
+				max_dt = diag.maxDt,
+				max_dt_at = diag.maxDtAt,
+				max_move = diag.maxMove,
+				max_move_at = diag.maxMoveAt,
+				zero_move_frames = diag.zeroMoves,
+				min_target = diag.minTarget,
+				max_target = diag.maxTarget,
+				run_changed = diag.runChanged,
+				runner_changed = diag.runnerChanged,
+				root_changed = diag.rootChanged,
+				root_unparented = diag.rootUnparented,
+				index_backward = diag.indexBackward,
+				index_max_jump = diag.indexMaxJump,
+				state_start = diag.start,
+				state_end = runState(),
+			}
+			flag("run_root_moved", travelled > wantTravel, travelled, wantTravel)
+			local minAttMoved = math.huge
+			for i in atts do
+				minAttMoved = math.min(minAttMoved, attTravel[i])
+			end
+			minAttMoved = #atts > 0 and minAttMoved or 0
+			flag("run_trail_laid", minAttMoved > wantTravel, minAttMoved, wantTravel)
+			flag("run_attachments_stay_on_root", detached == 0, detached, 0)
+			flag("run_attachments_track_root", maxTrackErr <= TRACK_TOLERANCE, maxTrackErr, TRACK_TOLERANCE)
+			flag("run_min_up_y", minUpY >= strict, minUpY, strict)
+			checkProfile("run", runner)
+			-- Diagnostics only: the rail runs at PreSimulation, this loop at Heartbeat, so a hitch between them ends the
+			-- window before the rail catches up; the frame after the window shows that catch-up.
+			r.metrics.run.next_frame_dt = RunService.Heartbeat:Wait()
+			r.metrics.run.next_frame_move = (root.Position - last).Magnitude
+
+			-- 6a. Mid-race character switch: equip a second owned character with another fixed cruise (design doc 4.13:
+			-- rarity x category; GachaService.Equip, the server path), then the EquippedCharacter listener body
+			-- (RunnerService.ApplyCharacter)
+			local Gacha = H.module(Server, "GachaService")
+			local Catalog = H.module(Shared, "CharacterCatalog")
+			local RaceConfig = H.module(Shared, "RaceConfig")
+			local maxDev = Targets.race and Targets.race.MaxPathDeviation
+			local switchOk = Gacha ~= nil
+				and Catalog ~= nil
+				and RaceConfig ~= nil
+				and type(Gacha.Equip) == "function"
+				and type(Gacha.Grant) == "function"
+				and type(Gacha.Cruise) == "function"
+				and type(RaceConfig.Cruise) == "function"
+				and type(maxDev) == "number"
+			flag("switch_api_exists", switchOk)
+			if not switchOk then
+				return
+			end
+			player:SetAttribute("OwnAura_" .. AURA_ID, 1)
+			local okAura = pcall(MarketService.Equip, player, "Aura", AURA_ID)
+			flag("switch_aura_equipped", okAura and player:GetAttribute("Slot1Aura") == AURA_ID)
+			pcall(RunnerEffects.Apply, runner, player)
+			local from = Catalog.Get(player:GetAttribute("EquippedCharacter"))
+			local fromCruise = RaceConfig.Cruise(from)
+			local to = nil
+			for _, spec in Catalog.Rollable() do
+				if not to and RaceConfig.Cruise(spec) ~= fromCruise then
+					to = spec
+				end
+			end
+			flag("switch_second_character", to ~= nil, to and to.Id or "none", "Cruise ~= " .. fromCruise)
+			if not to then
+				return
+			end
+			pcall(Gacha.Grant, player, to.Id)
+			local feet0 = runner:GetBoundingBox().Position
+			local speed0 = type(run.TargetSpeed) == "number" and run.TargetSpeed or 0
+			local t0 = os.clock()
+			local okSwitch = pcall(function()
+				assert(Gacha.Equip(player, to.Id) == true, "equip refused")
+				RunnerService.ApplyCharacter(player)
+			end)
+			flag("switch_no_error", okSwitch)
+			local swRunner, swRun = RunnerService.GetRunner(player), RunnerService.GetRun(player)
+			local elapsed = os.clock() - t0
+			flag(
+				"switch_runner_is_new_character",
+				swRunner ~= nil and H.isRig(swRunner) and swRunner:GetAttribute("CharacterId") == to.Id,
+				swRunner and tostring(swRunner:GetAttribute("CharacterId")) or "no runner",
+				to.Id
+			)
+			flag("switch_same_run", type(swRun) == "table" and swRun.Connection ~= nil and swRun.Runner == swRunner)
+			if not (swRunner and type(swRun) == "table") then
+				return
+			end
+			-- same distance: the rig's bounding-box centre is where it was, plus what it ran since
+			local jump = (swRunner:GetBoundingBox().Position - feet0).Magnitude
+			local allowed = maxDev + speed0 * elapsed + 1
+			flag("switch_same_distance", jump <= allowed, jump, allowed)
+			-- the new character's cruise at once (RaceService's own formula, read right after the switch)
+			local want = Gacha.Cruise(player, swRun.Slot)
+			local got = type(swRun.TargetSpeed) == "number" and swRun.TargetSpeed or -1
+			flag("switch_cruise_at_once", math.abs(got - want) <= SPEED_EXACT, got, want)
+			flag("switch_cruise_changed", math.abs(got - speed0) > SPEED_EXACT, got, speed0)
+			flag(
+				"switch_equipped_kept",
+				player:GetAttribute("Slot1Trail") == TRAIL_ID and player:GetAttribute("Slot1Aura") == AURA_ID
+			)
+			checkProfile("switch", swRunner)
+			local swTorso = swRunner:FindFirstChild("Torso", true)
+			local auraOnTorso = 0
+			for _, d in swRunner:GetDescendants() do
+				-- aura instances are named <id><layer> (RunnerEffects); the ones carrying it hang under the Torso
+				if string.sub(d.Name, 1, #AURA_ID) == AURA_ID and swTorso and d:IsDescendantOf(swTorso) then
+					auraOnTorso += 1
+				end
+			end
+			flag("switch_aura_on_torso", auraOnTorso > 0, auraOnTorso, 1)
+			runner = swRunner
+			player:SetAttribute("Slot1Aura", nil)
+
+			-- 6b. Respawn: Stop then Start builds a new runner through RunnerService.spawnRunner
+			flag("respawn_stop_no_error", (pcall(RunnerService.SetAutoRace, player, false)))
+			RunService.Heartbeat:Wait()
+			flag("respawn_start_no_error", (pcall(RunnerService.SetAutoRace, player, true)))
+			local runner2 = waitRun()
+			local runner2Ok = runner2 ~= nil and runner2 ~= runner and runner2:FindFirstChild("Torso", true) ~= nil
+			flag("respawn_new_runner", runner2Ok)
+			flag("respawn_equipped_trail_kept", player:GetAttribute("Slot1Trail") == TRAIL_ID)
+			if not runner2Ok then
+				return
+			end
+			checkProfile("respawn", runner2)
+
+			-- 7. Unequip: attribute nil (listener body) clears the folder and every MarketEffect attachment
+			player:SetAttribute("Slot1Trail", nil)
+			flag("unequip_apply_no_error", (pcall(RunnerEffects.Apply, runner2, player)))
+			local folder = runner2:FindFirstChild("MarketEffects")
+			local emptyOk = folder == nil or (#folder:GetChildren() == 0 and folder:GetAttribute("Trail") == nil)
+			flag("unequip_folder_empty", emptyOk, folder and #folder:GetChildren() or 0, 0)
+			local left = effectLeft(runner2)
+			flag("unequip_no_effect_left", left == 0, left, 0)
+		end
+
+		local ok, err = pcall(body)
+		flag("effects_no_error", ok)
+		if not ok then
+			metrics.error = tostring(err)
+		end
+		pcall(RunnerService.SetAutoRace, player, false)
+		player:SetAttribute("Slot1Trail", origTrail)
+		player:SetAttribute("Slot1Aura", origAura)
+		local leftover = RunnerService.GetRunner(player)
+		if leftover then
+			leftover:Destroy()
+		end
+		character:Destroy()
+		player:Destroy()
+		releaseSpawn()
+		return r
+	end
+end
+
+return Tests

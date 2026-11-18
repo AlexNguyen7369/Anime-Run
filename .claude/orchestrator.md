@@ -27,7 +27,7 @@ merge:
   merge: gh pr merge <number> --merge
 tests:
   always: ["stylua src", "selene src"]
-  harness: Studio test harness copied from IVS (`[CARTEST] END fail=0`), run through the Roblox Studio MCP
+  harness: Studio test harness copied from IVS (`[SERVERTEST] END fail=0`), run through the Roblox Studio MCP
   ui: none yet
   large_change: full harness on the integration branch
 exclusive_resources:

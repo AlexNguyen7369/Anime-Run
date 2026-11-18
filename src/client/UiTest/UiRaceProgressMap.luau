@@ -221,7 +221,7 @@ function Tests.Run()
 		youCentered("you_centered_after_heading_change")
 		controller.Update(0, startPosition, north)
 		local routeBeforeMovement = farEnd()
-		-- Advance along the right-hand lane in small increments. Chassis positions
+		-- Advance along the right-hand lane in small increments. Root part positions
 		-- include ride height, while route projection must use the road's height.
 		for i = 1, 10 do
 			controller.Update(0, map.Point(playerRoute, i / 100) + up)

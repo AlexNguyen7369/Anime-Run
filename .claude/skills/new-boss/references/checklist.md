@@ -37,7 +37,7 @@ Step 7, art: `tools/blender/portrait/draw_<id>_ui.py` (dodge icon, portrait, hea
 Step 8, bake and upload: `tools/blender/bake_boss_<id>.py` -> `src/late/Boss<Id>Poses.luau (ServerStorage.LateData, delivered on event publish; design doc 7)`; `tools/blender/portrait/upload_<id>_art.py` -> `src/shared/Boss<Id>Art.luau`, ledger `tools/blender/<id>_art_assets.json`; `tools/blender/upload_avatar.py` -> `tools/blender/avatar_assets.json`.
 
 Step 9, server (tests first, test-writer only):
-- `src/server/CarTest/Boss<Id>Tests.luau` (sections: numbers, camera, poses, approved keys, schedule, dodge timeline, catalog, one per new status), `src/server/CarTest/Scenarios.luau` registrations.
+- `src/server/ServerTest/Boss<Id>Tests.luau` (sections: numbers, camera, poses, approved keys, schedule, dodge timeline, catalog, one per new status), `src/server/ServerTest/Scenarios.luau` registrations.
 - `src/shared/BossCatalog.luau`: row `boss_<id>` (Moves with Cost per move, Statuses, `DodgeIcon = Boss<Id>Art.<Icon>`, `Poses = "Boss<Id>Poses"`, texts, `Camera`, `WaitCamera`), `Order` += `boss_<id>`.
 - `src/server/BossEventService.luau`: new status hooks (`Hooks.DamageMulti` for a boss-side cut), published attributes, Cost 0 moves skipped by `chargeMoves`, dodge refused for moves without a bar, `/boss <id>`.
 - `src/shared/RelicConfig.luau`: 6 Relics, `relic_chest_<id>` with `SidekickId = "side_<id>"`, `SidekickChance` 0.00001 (0.0001 Adapted); `src/server/RelicService.luau` reads the chest's fields, no per-boss constant.

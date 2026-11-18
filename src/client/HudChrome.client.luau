@@ -135,6 +135,7 @@ local PANEL = {
 	Index = "Index",
 	Upgrade = "Upgrades",
 	Rebirth = "Rebirth",
+	Summon = "Sidekicks", -- the summon page (design doc 4.45, owner 2026-11-17)
 }
 local scales = {}
 -- A transparent holder with a vertical list of buttons; its UIScale shrinks it on phones (design doc 4.27).
@@ -150,7 +151,7 @@ end
 -- top-right pill, design doc 4.40 "Market pill and Bosses button").
 local grid = holder("Grid", 3, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, -24) })
 local shopColumn =
-	holder("ShopColumn", 2, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
+	holder("ShopColumn", 3, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
 -- Auto and Upgrade flank the LEVEL / TURBO LUCK bars at the bottom centre; placed every refresh.
 -- The anchor sits on the icon's centre (not the icon + label), so the icon lines up with the gap.
 local ICON_MID = ICON / 2 / CELL.Y
@@ -164,6 +165,7 @@ local SLOTS = {
 	{ "Rebirth", grid },
 	{ "Quests", shopColumn },
 	{ "Shop", shopColumn },
+	{ "Summon", shopColumn },
 	{ "Auto", autoSlot },
 	{ "Upgrade", upgradeSlot },
 }
@@ -175,6 +177,7 @@ local KEYS = {
 	Quests = Enum.KeyCode.Q,
 	Shop = Enum.KeyCode.P,
 	Market = Enum.KeyCode.M,
+	Summon = Enum.KeyCode.G, -- proposed (design doc 4.45)
 }
 local tiles = {}
 for order, slot in SLOTS do

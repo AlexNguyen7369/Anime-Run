@@ -1,5 +1,5 @@
 --!nonstrict
--- Smooth runners (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28; contract in Server/CarTest/RunnerTests).
+-- Smooth runners (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28; contract in Server/ServerTest/RunnerTests).
 -- The server's anchored rig (tag RunnerRig) is the authoritative pose but replicates in steps, so this client hides it
 -- locally and draws a copy (tag VisibleRunner, same Owner) placed every frame on the run's path at
 -- RunDistance + RunSpeed x (time since RunDistance changed), with a procedural run animation. The camera follows the
@@ -20,7 +20,7 @@ local BossWaitCamera = require(script.Parent.BossWaitCamera)
 local RunnerVisual = require(script.Parent.RunnerVisual)
 local RunStyleFx = require(script.Parent.RunStyleFx)
 
-local SERVER_TAG = "RunnerRig" -- Server/CarService.RUNNER_TAG
+local SERVER_TAG = "RunnerRig" -- Server/RunnerService.RUNNER_TAG
 local CORRECT_RATE = 2 -- 1/s: how fast the drawn distance closes on the published one (no visible jump)
 local SNAP_STUDS = 40 -- a larger gap (restart, jump, late join) is snapped at once
 local SNAP_SECONDS = 0.5 -- ...as is a gap of more than this many seconds of running
@@ -118,7 +118,7 @@ local function rebuild(view)
 		if d:IsA("BasePart") or d:IsA("Decal") then
 			d.LocalTransparencyModifier = 0
 		elseif isEffect(d) then
-			d.Enabled = true -- VehicleEffects never adds a disabled effect; hide() turned them off on the rig
+			d.Enabled = true -- RunnerEffects never adds a disabled effect; hide() turned them off on the rig
 			if lighter then
 				lighten(d, true)
 			end

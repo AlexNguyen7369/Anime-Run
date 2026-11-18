@@ -7,11 +7,19 @@ local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local InputLock = require(script.Parent:WaitForChild("InputLock"))
+local UiTransition = require(script.Parent:WaitForChild("UiTransition"))
 
 local PanelSwitch = {}
 
 local panels = {} -- name -> Frame
 local wanted = {} -- name -> true while PanelSwitch opened it
+-- Sakura Dojo pages (design doc 4.45): name -> accent Color3. Their open and close play Client/UiTransition and lock
+-- gameplay input while open; a press within OPEN_GUARD s of opening is ignored, so a double press never toggles shut.
+local accents = {}
+local openedAt = {}
+local closeGuards = {} -- name -> fn() returning true to keep the panel open (it asks the player first)
+local OPEN_GUARD = 0.3
 local changed = Instance.new("BindableEvent")
 PanelSwitch.Changed = changed.Event -- fires after any panel opens or closes (deferred)
 local listeners = {}
@@ -129,7 +137,18 @@ local function takeFocus(panel)
 	GuiService:AddSelectionParent(FOCUS_GROUP, panel)
 	ContextActionService:BindActionAtPriority(CLOSE_ACTION, function(_, state)
 		if state == Enum.UserInputState.Begin and focused == panel then
-			panel.Visible = false
+			-- Through Close, so a page's close guard (Team Setup's unsaved draft) still asks first.
+			local name = nil
+			for n, p in panels do
+				if p == panel then
+					name = n
+				end
+			end
+			if name then
+				PanelSwitch.Close(name)
+			else
+				panel.Visible = false
+			end
 			return Enum.ContextActionResult.Sink
 		end
 		return Enum.ContextActionResult.Pass
@@ -286,8 +305,9 @@ local function cancelClose(panel)
 	end
 end
 
-function PanelSwitch.Register(name, panel)
+function PanelSwitch.Register(name, panel, accent)
 	panels[name] = panel
+	accents[name] = accent
 	wanted[name] = panel.Visible
 	panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		-- Generated responsive fits re-apply the authored Visible = true on viewport changes; only Toggle opens
@@ -299,7 +319,11 @@ function PanelSwitch.Register(name, panel)
 		if panel.Visible then
 			openMotion(panel)
 			takeFocus(panel)
+			if accents[name] then
+				InputLock.Hold(name)
+			end
 		else
+			InputLock.Release(name)
 			wanted[name] = false
 			cancelClose(panel)
 			stopMotion(motionTarget(panel))
@@ -316,20 +340,60 @@ function PanelSwitch.Toggle(name)
 		return false
 	end
 	local open = not panel.Visible or closing[panel] == true
-	wanted[name] = open
+	if
+		not open
+		and accents[name]
+		and openedAt[name]
+		and UiTransition.Playing()
+		and os.clock() - openedAt[name] < OPEN_GUARD
+	then
+		return true -- a second press while the page is still opening
+	end
+	if not open and closeGuards[name] and closeGuards[name]() then
+		return true
+	end
 	if open then
+		-- Another open page with an unsaved draft asks first (Team Setup's Deploy / Discard, design doc 4.45).
 		for other, p in panels do
-			if other ~= name then
-				p.Visible = false
+			if other ~= name and p.Visible and closeGuards[other] and closeGuards[other]() then
+				return false
 			end
 		end
-		if closing[panel] then
-			cancelClose(panel) -- reopened mid-close: still Visible, so play the open motion again
-			openMotion(panel)
+	end
+	wanted[name] = open
+	local covered = false
+	if accents[name] and not panel:GetAttribute("SkipTransition") then
+		covered = UiTransition.Play(accents[name])
+		if open then
+			openedAt[name] = os.clock()
 		end
-		panel.Visible = true
+	end
+	local function apply()
+		if open then
+			for other, p in panels do
+				if other ~= name then
+					p.Visible = false
+				end
+			end
+			if closing[panel] then
+				cancelClose(panel) -- reopened mid-close: still Visible, so play the open motion again
+				openMotion(panel)
+			end
+			panel.Visible = true
+		else
+			closeMotion(panel)
+		end
+	end
+	if covered then
+		-- A Sakura page switches under the full petal wash (owner reference 2026-11-17), so no half-open frame shows.
+		task.delay(UiTransition.Cover(), function()
+			if wanted[name] == open then
+				apply()
+				notify()
+			end
+		end)
 	else
-		closeMotion(panel)
+		apply()
 	end
 	notify()
 	return open
@@ -354,10 +418,35 @@ function PanelSwitch.IsOpen(name)
 	return panels[name] ~= nil and panels[name].Visible and not closing[panels[name]]
 end
 
+-- `fn()` runs before Toggle or Close shuts `name`; returning true keeps it open (Team Setup's unsaved-draft question).
+function PanelSwitch.SetCloseGuard(name, fn)
+	closeGuards[name] = fn
+end
+
+-- Closes `name` past its close guard (the guard's own "Discard" / "Deploy" answers).
+function PanelSwitch.ForceClose(name)
+	local guard = closeGuards[name]
+	closeGuards[name] = nil
+	PanelSwitch.Close(name)
+	closeGuards[name] = guard
+end
+
 function PanelSwitch.Close(name)
 	if PanelSwitch.IsOpen(name) then
+		if closeGuards[name] and closeGuards[name]() then
+			return
+		end
 		wanted[name] = false
-		closeMotion(panels[name])
+		if accents[name] and UiTransition.Play(accents[name]) then
+			task.delay(UiTransition.Cover(), function()
+				if wanted[name] == false then
+					closeMotion(panels[name])
+					notify()
+				end
+			end)
+		else
+			closeMotion(panels[name])
+		end
 		notify()
 	end
 end

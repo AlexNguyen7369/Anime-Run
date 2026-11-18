@@ -1,7 +1,7 @@
 --!nonstrict
 -- Duels, player vs player (docs/DUEL_SPEC.md). A requests (the "Duel" prompt on B's on-foot character), A picks a
--- track both unlocked, B accepts or declines. Both get a car held at that track's start; COUNTDOWN after both are
--- seated the cars are released in the same step and auto-race that ONE track. The server decides everything; the
+-- track both unlocked, B accepts or declines. Both get a runner held at that track's start; COUNTDOWN after both are
+-- seated the runners are released in the same step and auto-race that ONE track. The server decides everything; the
 -- winner gets DuelWins + 1. No stake: a duel run has no NPC, pays no pad and no checkpoint.
 --
 -- One table per pair, in duelOf[player] for both players. Phases: "Picking" -> "Invited" -> "Countdown" ->
@@ -13,7 +13,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.DuelConfig)
-local CarService = require(script.Parent.CarService)
+local RunnerService = require(script.Parent.RunnerService)
 local RaceService = require(script.Parent.RaceService)
 
 local DuelService = {}
@@ -77,7 +77,7 @@ local function loaded(player)
 end
 
 local function onFoot(player)
-	local character = CarService.GetCharacter(player)
+	local character = RunnerService.GetCharacter(player)
 	local humanoid = character and character.Parent and character:FindFirstChildOfClass("Humanoid")
 	return humanoid ~= nil
 		and humanoid.Health > 0
@@ -109,7 +109,7 @@ local function cancel(duel, reason, except)
 	end
 end
 
--- Ends a race (or its countdown): results, DuelWins, both cars removed, both players on foot at the walk spawn.
+-- Ends a race (or its countdown): results, DuelWins, both runners removed, both players on foot at the walk spawn.
 local function finish(duel, resultA, resultB)
 	clear(duel)
 	local results = { [duel.A] = resultA, [duel.B] = resultB }
@@ -124,7 +124,7 @@ local function finish(duel, resultA, resultB)
 			Time = duel.Finish[p],
 			OpponentTime = duel.Finish[other(duel, p)],
 		})
-		task.spawn(pcall, CarService.SetAutoRace, p, false) -- yields until the avatar stands
+		task.spawn(pcall, RunnerService.SetAutoRace, p, false) -- yields until the avatar stands
 	end
 end
 
@@ -189,8 +189,8 @@ function DuelService.Respond(b, accept)
 	duel.At = clock()
 	for slot, p in { duel.A, duel.B } do
 		p:SetAttribute("DuelActive", true)
-		-- Yields until the avatar is seated in its held car, so each player is seated on their own thread
-		task.spawn(pcall, CarService.SetAutoRace, p, true, {
+		-- Yields until the avatar is seated in its held runner, so each player is seated on their own thread
+		task.spawn(pcall, RunnerService.SetAutoRace, p, true, {
 			Track = duel.Track,
 			Slot = slot,
 			OnSeated = function()
@@ -216,14 +216,14 @@ end
 
 -- Stop Auto, death, a respawn or leaving during the countdown or the race.
 local function forfeited(duel, player)
-	return duel.Left == player or not CarService.IsAutoRacing(player) or CarService.GetCar(player) == nil
+	return duel.Left == player or not RunnerService.IsAutoRacing(player) or RunnerService.GetRunner(player) == nil
 end
 
 local function release(duel)
 	duel.Phase = "Racing"
 	duel.At = clock()
 	for _, p in { duel.A, duel.B } do
-		CarService.ReleaseDuel(p, {
+		RunnerService.ReleaseDuel(p, {
 			Track = duel.Track,
 			OnFinish = function(_, seconds)
 				duel.Finish[p] = seconds

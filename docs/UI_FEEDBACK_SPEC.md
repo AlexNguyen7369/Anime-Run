@@ -34,3 +34,10 @@ lives in `docs/UI_AUDIT.md` (SFX audit) and in the `UiFeedback` table, which mus
 
 ## 4. Limits carried over
 Design doc 4.20, 4.27, 4.28; ROLL_ANIMATION_SPEC. Harness values stay: hover 1.035, press 0.97, no hover strokes.
+
+## 5. Page transition (owner 2026-11-17, design doc 4.45; owner reference: summon sheet panel 10)
+- `Client/UiTransition`: one reused ScreenGui above the pages. A soft pink wash (frame `Paper`) fades in over 0.22 s
+  with up to 22 large plaza petal images drifting and turning through it, holds 0.12 s, and clears over 0.3 s.
+  `PanelSwitch` switches the page at `UiTransition.COVER` (full cover), on open and on close. Reduced motion: a 0.15 s
+  fade, no petals; the page switches at once. A second call while one runs is ignored. Timings **proposed**.
+- Hover 0.12 s, press 0.1 s, panel entrance 0.3 s, tooltip 0.2 s (**proposed**, inside 4.20's ranges).

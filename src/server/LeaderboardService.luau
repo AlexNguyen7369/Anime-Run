@@ -89,8 +89,8 @@ end
 function LeaderboardService.Scores(player)
 	local rarest = 0
 	local owned = player:FindFirstChild("GachaData")
-	for _, car in owned and owned:GetChildren() or {} do
-		local spec = CharacterCatalog.Get(car.Name)
+	for _, character in owned and owned:GetChildren() or {} do
+		local spec = CharacterCatalog.Get(character.Name)
 		if spec and type(spec.Chance) == "number" then
 			rarest = math.max(rarest, spec.Chance)
 		end
@@ -98,7 +98,7 @@ function LeaderboardService.Scores(player)
 	return {
 		MoneyEarned = whole(player:GetAttribute("MoneyEarned")),
 		Rolls = whole(player:GetAttribute("Rolls")),
-		RarestCar = whole(rarest),
+		RarestCharacter = whole(rarest),
 	}
 end
 
@@ -147,7 +147,7 @@ local function nameOf(userId)
 	return "Player " .. tostring(userId)
 end
 
--- The catalog car a RarestCar score stands for, or nil.
+-- The catalog character a RarestCharacter score stands for, or nil.
 local function carByChance(score)
 	for _, spec in CharacterCatalog.All() do
 		if spec.Chance == score then
@@ -159,7 +159,7 @@ end
 
 local function rowText(board, rank, entry)
 	local head = string.format("%d. %s", rank, entry.Name)
-	if board.Id == "RarestCar" then
+	if board.Id == "RarestCharacter" then
 		local spec = carByChance(entry.Score)
 		return head .. "  " .. (spec and spec.Name .. "  " or "") .. HudFormat.Odds(entry.Score)
 	elseif board.Id == "MoneyEarned" then
@@ -189,24 +189,24 @@ local function render(board)
 	end
 end
 
--- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a): row 1 of the RarestCar board, with its car on the platform.
+-- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a): row 1 of the RarestCharacter board, with its character on the platform.
 local function renderBestRoll()
 	local area = Workspace:FindFirstChild("SpawnArea")
 	local best = area and area:FindFirstChild("BestRoll")
 	local pedestal = best and best:FindFirstChild("Pedestal")
 	local stats = pedestal and pedestal:FindFirstChild("Stats")
-	local mount = pedestal and pedestal:FindFirstChild("CarMount")
+	local mount = pedestal and pedestal:FindFirstChild("CharacterMount")
 	if not (stats and mount) then
 		return
 	end
-	local row = (tops.RarestCar or {})[1]
+	local row = (tops.RarestCharacter or {})[1]
 	local spec = row and carByChance(row.Score)
 	stats.Odds.Text = row and HudFormat.Odds(row.Score) or Config.NO_DATA
 	stats.Character.Text = spec and spec.Name or ""
 	stats.Player.Text = row and "by " .. row.Name or ""
 	local id = spec and spec.Id or nil
 	if best:GetAttribute("CharacterId") == id then
-		return -- same car: keep the model the clients are turning
+		return -- same character: keep the model the clients are turning
 	end
 	best:SetAttribute("CharacterId", id)
 	local old = best:FindFirstChild("Runner")
@@ -214,7 +214,7 @@ local function renderBestRoll()
 		old:Destroy()
 	end
 	if spec then
-		displayRunner(spec, mount.WorldCFrame, Config.BEST_ROLL.CAR_SCALE).Parent = best
+		displayRunner(spec, mount.WorldCFrame, Config.BEST_ROLL.MODEL_SCALE).Parent = best
 	end
 end
 
@@ -247,7 +247,7 @@ function LeaderboardService.Top(id)
 	return table.clone(tops[id] or {})
 end
 
--- `boardIds` (optional): only these boards are written and read, e.g. { "RarestCar" } for the Best Roll pedestal
+-- `boardIds` (optional): only these boards are written and read, e.g. { "RarestCharacter" } for the Best Roll pedestal
 -- alone (design doc 4.16: boards removed, pedestal kept). Omitted: every board.
 function LeaderboardService.Start(boardIds)
 	if started then
@@ -265,7 +265,7 @@ function LeaderboardService.Start(boardIds)
 		LeaderboardService.Write(player, only)
 	end)
 	local function quiet()
-		return ReplicatedStorage:GetAttribute("CarTestRunning") ~= true -- the harness drives it with a fake store
+		return ReplicatedStorage:GetAttribute("ServerTestRunning") ~= true -- the harness runs it with a fake store
 	end
 	task.spawn(function()
 		while true do

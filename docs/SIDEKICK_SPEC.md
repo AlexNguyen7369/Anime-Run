@@ -84,6 +84,23 @@ Every boss drops its own downsized Sidekick this way (owner 2026-11-11, design d
 - The top shows the current rotation's Mythic as its actual 3D model, turning slowly; it swaps on each 30-minute rotation. The client reads the rotation the summon page already gets. Turn speed and model size are **placeholders**.
 - **Proposed**: three stone tiers about 32 studs across, a glowing ring and a halo around the model, a "SIDEKICKS" header like the economy wing's, a locked "Rebirth 2" look before the vendor unlocks. Plaza position: the showpiece ring at (57.2, 61.6), facing the spawn (`docs/WORLD_REDESIGN_SPEC.md` section 4, design doc 4.43; was the summon wing's middle (26.8, 40.6)).
 
+## Sakura Dojo entry and transition (owner 2026-11-17, design doc 4.45)
+- The summon page also opens from a Summon button in the right column (key G, **proposed**); the altar prompt reads
+  "Summon". Both call `PanelSwitch.Action("Sidekicks")`.
+- Open and close play the shared Sakura transition (pink accent) around the blossom-shrine presentation; nothing on the
+  page changes order, cost, odds or labels. Before the reveal, the stage's ring and beam flash in the result's rarity colour
+  (Common ring only up to Mythic two pulses and a light screen flash); all of it is off under reduced effects.
+- Panels (owner 2026-11-17, "Summon UI State Reference" panels 2-9; `Client/SummonPanels`): one dark-burgundy panel at a
+  time over the page with a gold edge, a title and a red X. Featured Banner (Featured tile, More > Banner Details): the
+  rotation's featured units with portrait, rarity and rate. Show Chances: the rate summed per rarity, the Secret first,
+  then "Luck and potions never change Sidekick odds". Summon Info: How It Works, Banner Rules, Pity / Progression with the
+  player's counts, Currency (Gems). Auto Sell: Keep / Sell per rarity, Cancel / Save (only changed rarities are sent),
+  then an "Auto Sell Saved!" notice. More: Banner Details, Pity, History (this session's summons, not saved), Settings
+  (opens Auto Sell, the page's one setting), Gem Packs, Help. Many asks first: 10 summons, the cost and the Gems before
+  and after, Cancel / Confirm. A summon of one by hand ends on "You Obtained!" with Keep / Equip / Close; Equip puts the
+  new Sidekick on the Team's first runner through `SidekickEquip`. A gem pack's Buy shows the Buy Gems focus state
+  (the pack, what it gives, Cancel / Buy (R$n)) before the purchase prompt. Sizes and colours **proposed**.
+
 ## Summon page
 Layout ideas from the owner's reference (redesign 2026-11-05), no copied art. Motion through `Client/UiMotion`. This look stays on this page; moving it elsewhere needs the owner's approval.
 - Top: Gem balance, a timer bar counting to the next rotation, and Mythic Pity and Legendary Pity with their counts.

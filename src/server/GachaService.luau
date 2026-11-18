@@ -1,12 +1,12 @@
 --!nonstrict
--- Car gacha, index and stat allocation. The server owns all of it; clients only see:
---   player.GachaData: one StringValue per owned car Id (discovering a car = owning it); attribute Copies = the
+-- Character gacha, index and stat allocation. The server owns all of it; clients only see:
+--   player.GachaData: one StringValue per owned character Id (discovering a character = owning it); attribute Copies = the
 --   duplicates rolled since (never sold, they fill the bag, design doc 4.41)
---   player attributes: Team (up to 3 character ids joined by ",", docs/TEAM_AND_STAMINA_SPEC.md), EquippedCar (the
+--   player attributes: Team (up to 3 character ids joined by ",", docs/TEAM_AND_STAMINA_SPEC.md), EquippedCharacter (the
 --   active runner: Team[1] on foot, the runner in play during a run), Rolls, StatPoints (free points), Alloc_<Stat> for each GachaConfig.STATS,
 --   AutoRoll (the AUTO toggle of the roll view, true on join, false on a save with no rolls yet, not saved),
 --   LuckMulti (live permanent multiplier snapshot), Cruise (the equipped character's cruise, studs/s)
--- Every unique car in the index counts towards stat points (GachaConfig.EarnedPoints); earned points are
+-- Every unique character in the index counts towards stat points (GachaConfig.EarnedPoints); earned points are
 -- never stored, only what was allocated, so the two can not drift apart. Saved by PlayerData (Snapshot/Apply).
 
 local Players = game:GetService("Players")
@@ -28,7 +28,7 @@ local PassService = require(script.Parent.PassService)
 local GachaService = {}
 local QuestService = require(script.Parent.QuestService)
 
-GachaService.REMOTE_COOLDOWN = 0.15 -- seconds between accepted EquipCar / AllocateStat requests per player
+GachaService.REMOTE_COOLDOWN = 0.15 -- seconds between accepted EquipCharacter / AllocateStat requests per player
 GachaService.TEAM_COOLDOWN = 0.5 -- seconds between accepted SetTeam requests (TEAM_AND_STAMINA_SPEC "Team")
 
 local MAX_COUNT = 1e9
@@ -72,8 +72,8 @@ end
 -- Creates GachaData and the attributes (idempotent). Works on any Instance.
 function GachaService.Setup(player)
 	local data = folder(player)
-	if player:GetAttribute("EquippedCar") == nil then
-		player:SetAttribute("EquippedCar", STARTER)
+	if player:GetAttribute("EquippedCharacter") == nil then
+		player:SetAttribute("EquippedCharacter", STARTER)
 	end
 	if player:GetAttribute("Team") == nil then
 		player:SetAttribute("Team", STARTER)
@@ -101,7 +101,7 @@ function GachaService.Setup(player)
 		end
 		player.AttributeChanged:Connect(function(name)
 			if
-				name == "EquippedCar"
+				name == "EquippedCharacter"
 				or name == "Team"
 				or string.sub(name, 1, 18) == "BoostUntil_Stamina"
 				or string.match(name, "^Slot%d+Aura$")
@@ -160,7 +160,7 @@ local function allocSum(a)
 	return sum
 end
 
--- Number of distinct catalog cars the player has discovered (unknown ids from old saves do not count).
+-- Number of distinct catalog characters the player has discovered (unknown ids from old saves do not count).
 function GachaService.UniqueCount(player)
 	local data = player:FindFirstChild("GachaData")
 	if not data then
@@ -197,7 +197,7 @@ local function cleanCopies(n)
 	return math.floor(math.min(n, GachaConfig.MAX_SAVED_COPIES))
 end
 
--- Duplicates of an owned car rolled after discovering it (0 when not owned).
+-- Duplicates of an owned character rolled after discovering it (0 when not owned).
 function GachaService.Copies(player, id)
 	local data = player:FindFirstChild("GachaData")
 	local entry = data and type(id) == "string" and data:FindFirstChild(id)
@@ -254,8 +254,8 @@ function GachaService.GrantExclusive(player)
 	end
 end
 
--- Discovers a catalog car. Returns true if it is new to the index, false if already owned (nothing changes),
--- nil (and changes nothing) for anything that is not a rollable car Id.
+-- Discovers a catalog character. Returns true if it is new to the index, false if already owned (nothing changes),
+-- nil (and changes nothing) for anything that is not a rollable character Id.
 function GachaService.Grant(player, id)
 	if type(id) ~= "string" then
 		return nil
@@ -295,7 +295,7 @@ function GachaService.Announce(player, id, rolls)
 end
 
 -- One roll at the player's luck, times the Turbo tier's Multi on every turbo roll (UpgradeService.AdvanceTurbo: the
--- player's TurboCount reaches the tier's Every; x5 every 10th roll with no Turbo tier). Returns the car Id,
+-- player's TurboCount reaches the tier's Every; x5 every 10th roll with no Turbo tier). Returns the character Id,
 -- whether it was new, the turbo multi (1 on a normal roll), whether it is emphasized (GachaConfig.IsEmphasized:
 -- played enlarged and announced to the whole server), 0 (duplicates used to pay scrap Money; they now add a copy,
 -- owner 2026-10-22) and the roll's luck without
@@ -498,7 +498,7 @@ function GachaService.SetAutoRoll(player, on)
 	return true
 end
 
--- Equips the starter or an owned car. Returns true if it is now equipped.
+-- Equips the starter or an owned character. Returns true if it is now equipped.
 function GachaService.Equip(player, id)
 	if type(id) ~= "string" or not CharacterCatalog.Get(id) or not owns(player, id) then
 		return false
@@ -515,7 +515,7 @@ function GachaService.Equip(player, id)
 		team[1] = id
 		player:SetAttribute("Team", table.concat(team, ","))
 	end
-	player:SetAttribute("EquippedCar", id)
+	player:SetAttribute("EquippedCharacter", id)
 	return true
 end
 
@@ -558,7 +558,7 @@ function GachaService.PickStarter(player, id)
 	rollHoldUntil[player] = os.clock() + STARTER_ROLL_HOLD
 	player:SetAttribute("NeedsStarter", false)
 	player:SetAttribute("Team", id)
-	player:SetAttribute("EquippedCar", id)
+	player:SetAttribute("EquippedCharacter", id)
 	return true
 end
 
@@ -586,8 +586,69 @@ function GachaService.SetTeam(player, ids)
 	end
 	GachaService.Setup(player)
 	player:SetAttribute("Team", table.concat(ids, ","))
-	player:SetAttribute("EquippedCar", ids[1])
+	player:SetAttribute("EquippedCharacter", ids[1])
 	return true, "Team updated"
+end
+
+-- Quick Setup (design doc 4.45, TEAM_AND_STAMINA_SPEC "Team Setup page"): `draft` (the client's unsent Team, 0-3 distinct
+-- owned ids) with its empty slots filled by owned characters not in it, highest cruise first, ties to the rarer, then
+-- catalog order. Read-only: nothing is set or saved. Returns ok, ids or ok=false, reason.
+function GachaService.QuickPick(player, draft)
+	if type(draft) ~= "table" or #draft > TEAM_SIZE then
+		return false, "Invalid team"
+	end
+	local out, seen, count = {}, {}, 0
+	for key, id in draft do
+		count += 1
+		if
+			type(key) ~= "number"
+			or type(id) ~= "string"
+			or seen[id]
+			or not CharacterCatalog.Get(id)
+			or not owns(player, id)
+		then
+			return false, "Invalid team"
+		end
+		seen[id] = true
+		table.insert(out, id)
+	end
+	if count ~= #draft then
+		return false, "Invalid team"
+	end
+	local rank = {}
+	for i, rarity in GachaConfig.RARITY_ORDER do
+		rank[rarity] = i
+	end
+	-- Index characters, then owned ids outside it (starter picks, the starter itself), as the Team roster lists them.
+	local pool, candidates = {}, table.clone(CharacterCatalog.All())
+	local data = player:FindFirstChild("GachaData")
+	for _, entry in data and data:GetChildren() or {} do
+		table.insert(candidates, CharacterCatalog.Get(entry.Name))
+	end
+	table.insert(candidates, CharacterCatalog.Get(STARTER))
+	for order, spec in candidates do
+		if spec and not seen[spec.Id] and owns(player, spec.Id) then
+			seen[spec.Id] = true
+			table.insert(pool, { Spec = spec, Cruise = RaceConfig.Cruise(spec), Order = order })
+		end
+	end
+	table.sort(pool, function(a, b)
+		if a.Cruise ~= b.Cruise then
+			return a.Cruise > b.Cruise
+		end
+		local ra, rb = rank[a.Spec.Rarity] or 0, rank[b.Spec.Rarity] or 0
+		if ra ~= rb then
+			return ra > rb -- RARITY_ORDER runs common to rare
+		end
+		return a.Order < b.Order
+	end)
+	for _, item in pool do
+		if #out >= TEAM_SIZE then
+			break
+		end
+		table.insert(out, item.Spec.Id)
+	end
+	return true, out
 end
 
 -- Spends one free stat point on a stat in GachaConfig.STATS. Returns true if spent.
@@ -675,9 +736,9 @@ function GachaService.CruiseFor(player, id, slot, team)
 	return RaceConfig.Cruise(spec, multi * gear)
 end
 
--- Cruise of the equipped character (EquippedCar: RaceService sets it to the active Team slot's character).
+-- Cruise of the equipped character (EquippedCharacter: RaceService sets it to the active Team slot's character).
 function GachaService.Cruise(player, slot)
-	return GachaService.CruiseFor(player, player:GetAttribute("EquippedCar"), slot)
+	return GachaService.CruiseFor(player, player:GetAttribute("EquippedCharacter"), slot)
 end
 
 -- Replicates what the team row shows (server numbers, display only): TeamBonus ("Preset:<id>", "Series:<id>" or
@@ -741,16 +802,16 @@ end
 -- Equipped = id (Team[1], kept for old readers),
 -- Rolls = n, StatAlloc = { [stat] = n } }.
 function GachaService.Snapshot(player)
-	local cars = {}
+	local characters = {}
 	local data = player:FindFirstChild("GachaData")
 	if data then
 		for _, entry in data:GetChildren() do
-			table.insert(cars, entry.Name)
+			table.insert(characters, entry.Name)
 		end
-		table.sort(cars)
+		table.sort(characters)
 	end
 	local copies = {}
-	for _, id in cars do
+	for _, id in characters do
 		local n = GachaService.Copies(player, id)
 		if n > 0 then
 			copies[id] = n
@@ -766,7 +827,7 @@ function GachaService.Snapshot(player)
 		team[1] = STARTER
 	end
 	return {
-		Cars = cars,
+		Cars = characters,
 		Copies = copies,
 		Team = team,
 		Equipped = team[1],
@@ -779,7 +840,7 @@ end
 
 local TRIM_ORDER = { "Stamina", "Money", "Luck", "Speed" } -- over-allocation is removed in this order
 
--- Loads a saved table (anything else gives a fresh player). Unknown car ids are kept so a car taken out of
+-- Loads a saved table (anything else gives a fresh player). Unknown character ids are kept so a character taken out of
 -- the catalog is not wiped from saves, but they never count for points or multis.
 function GachaService.Apply(player, saved)
 	saved = type(saved) == "table" and saved or {}
@@ -826,7 +887,7 @@ function GachaService.Apply(player, saved)
 		team[1] = STARTER
 	end
 	player:SetAttribute("Team", table.concat(team, ","))
-	player:SetAttribute("EquippedCar", team[1])
+	player:SetAttribute("EquippedCharacter", team[1])
 	player:SetAttribute("Rolls", cleanCount(saved.Rolls))
 	player:SetAttribute("AutoSellChance", BagConfig.CleanChance(saved.AutoSellChance))
 	player:SetAttribute("AutoSell", saved.AutoSell == true and BagConfig.CleanChance(saved.AutoSellChance) ~= nil)
@@ -983,7 +1044,7 @@ function GachaService.Start()
 		return GachaService.Luck(player), UpgradeService.Turbo(player).Multi
 	end
 	remote(remotes, "SetAutoRoll").OnServerEvent:Connect(GachaService.RequestSetAutoRoll)
-	remote(remotes, "EquipCar").OnServerEvent:Connect(function(player, id)
+	remote(remotes, "EquipCharacter").OnServerEvent:Connect(function(player, id)
 		if accept(player) then
 			GachaService.Equip(player, id)
 		end
@@ -1010,6 +1071,19 @@ function GachaService.Start()
 		end
 		lastTeam[player] = now
 		return GachaService.SetTeam(player, ids)
+	end
+
+	local quickRemote = remotes:FindFirstChild("TeamQuickPick") or Instance.new("RemoteFunction")
+	quickRemote.Name = "TeamQuickPick"
+	quickRemote.Parent = remotes
+	local lastQuick = setmetatable({}, { __mode = "k" })
+	quickRemote.OnServerInvoke = function(player, draft)
+		local now = os.clock()
+		if lastQuick[player] and now - lastQuick[player] < GachaService.TEAM_COOLDOWN then
+			return false, "Please wait"
+		end
+		lastQuick[player] = now
+		return GachaService.QuickPick(player, draft)
 	end
 
 	local function onPlayer(player)

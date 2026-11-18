@@ -5,7 +5,8 @@
 -- eased per frame; the active slot (RunSlot) is enlarged with a pulsing gold glow and a bobbing marker, pops on a
 -- tag-in; a slot at 0 fades grey and shrinks. Slots sit at fixed positions, so scaling one never moves the others. A badge above
 -- the row names the team bonus (TeamBonus). Hover (tap on touch) opens an info card: name, category and its effect,
--- cruise and stamina (server attributes TeamCruise<n> / TeamStamina<n>). Display only. Motion goes through UiMotion
+-- cruise and stamina (server attributes TeamCruise<n> / TeamStamina<n>). A click or tap on the row opens Team Setup
+-- (OpenTeam, design doc 4.45, owner 2026-11-17); everything else is display only. Motion goes through UiMotion
 -- (design doc 4.20): tweens land at once and the active pulse + bob stop while motion is reduced.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,6 +26,7 @@ local UiTheme = require(shared.UiTheme)
 local Palette = UiTheme.Palette
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 
 local SLOTS = 3
 local CIRCLE = 52 -- px (placeholder)
@@ -231,6 +233,21 @@ local function inEvent()
 	return player:GetAttribute("BossEvent") == true
 end
 
+-- Team Setup opens from the row (design doc 4.45): a plain button under the circles, so their hover card still shows.
+-- Not in a boss event: the row then shows the event roster, edited from the event's own Edit Team.
+local openTeam = make("TextButton", {
+	Name = "OpenTeam",
+	BackgroundTransparency = 1,
+	Size = UDim2.fromScale(1, 1),
+	Text = "",
+	ZIndex = 0,
+}, row)
+openTeam.Activated:Connect(function()
+	if not inEvent() then
+		PanelSwitch.Action("Team")
+	end
+end)
+
 local function teamIds()
 	return string.split(player:GetAttribute(inEvent() and "BossTeam" or "Team") or "", ",")
 end
@@ -398,7 +415,7 @@ for slot = 1, SLOTS do
 	number:FindFirstChildOfClass("UIStroke").Thickness = 2.5
 	number:FindFirstChildOfClass("UIStroke").Color = DIM
 	number:FindFirstChildOfClass("UIStroke").Transparency = 0
-	-- Hover / tap on the circle itself (no invisible button: the row is display-only, not a control)
+	-- Hover / tap on the circle itself (the OpenTeam button under the row takes the click)
 	c.MouseEnter:Connect(function()
 		showCard(slot)
 	end)
@@ -624,10 +641,10 @@ RunService.RenderStepped:Connect(function(dt)
 			end
 			-- The run's own fixed seconds while running: TeamStamina moves if a potion is used mid-run
 			local total = tonumber(player:GetAttribute("RunSeconds" .. slot)) or teamStat("Stamina", slot)
-			-- A Stamina power-up's extra (design doc 4.44): the bar stays full, the number counts it, in blue
-			local raw = running and tonumber(player:GetAttribute("Stamina" .. slot))
-			local over = raw ~= nil and raw > 100 and total ~= nil and total ~= math.huge
-			local seconds = total and math.ceil(total * (over and raw / 100 or shown)) or nil
+			-- A Stamina power-up's no-drain boost (design doc 4.44): the running slot's number turns blue
+			local over = slot == running
+				and (tonumber(player:GetAttribute("PowerStaminaUntil")) or 0) > workspace:GetServerTimeNow()
+			local seconds = total and math.ceil(total * shown) or nil
 			if seconds ~= circle.Seconds or over ~= circle.Over then
 				circle.Seconds, circle.Over = seconds, over
 				circle.Number.Text = seconds == math.huge and "∞" or seconds and tostring(seconds) or "" -- Kami

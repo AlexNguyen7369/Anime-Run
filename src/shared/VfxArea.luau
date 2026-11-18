@@ -1,6 +1,6 @@
 --!nonstrict
 -- VFX showcase area (docs/ADMIN_COMMANDS_SPEC.md, owner 2026-10-26): a flat testing floor far east of the track
--- chain, reached only with `/tp vfxarea`. Client/VfxShowcase drives one local car per Market trail / aura here.
+-- chain, reached only with `/tp vfxarea`. Client/VfxShowcase runs one local runner per Market trail / aura here.
 local UiTheme = require(script.Parent.UiTheme)
 
 local VfxArea = {}

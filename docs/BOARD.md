@@ -17,6 +17,8 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-17 PR #21 into main: car-vocab rename, power-up boosts, Sakura Dojo pages; runner 88/88 and 12 more scenarios fail=0; audits PASS; fresh review APPROVE
+- 2026-11-17 power-up boosts (62b797d, feature/alex/powerup-boost): Speed x1.2 for 1 s, Stamina holds the drain 2 s, 1 per 500 studs; `powerups` 25/25 fail=0; rules audit PASS
 - boss-vfx-360: Zoltraak lasers, Gates dome (radius 85), Enuma 360 energy beam; PR #18 (done 2026-11-13)
 - 2026-11-13 boss-anim-rework and summon-ui: jointed rigs, re-keyed moves, Blender-matched Elf Mage and Golden King effects, king arena and camera, galaxy summon tests and tutorial; owner pre-approved; PR #16 from feature/alex/boss-look-match
 - 2026-11-12 hud-team t4 Team icon N3 (0188684) and t5 Team panel draft A (850af85) on feature/alex/boss-mage: team 28/28, ui_team 52/52, ui_panels 1044/1044, ui_backpack_characters 35/37 (pre-existing tab reds); rules audit PASS; page https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar
