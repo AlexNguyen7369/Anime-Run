@@ -555,7 +555,9 @@ function Module.Build(h)
 		end
 		check(res, "team_quick_setup_text", textOf(h.find(T.QuickSetup)), "Quick Setup")
 		check(res, "team_deploy_text", textOf(h.find(T.Deploy)), "Deploy")
-		check(res, "team_bonus_button_text", textOf(h.find(T.BonusButton)), "Team Bonus")
+		-- Team Bonus with its View link (design doc 4.45 T2 "Ledger scroll"): the button reads View, the label beside it.
+		check(res, "team_bonus_button_text", textOf(h.find(T.BonusButton)), "View")
+		check(res, "team_bonus_label_text", textOf(h.find(T.Panel .. "/Header/BonusLabel")), "Team Bonus")
 		check(res, "team_bonus_popover_hidden_at_open", shown(h.find(T.BonusPopover)), false)
 		check(res, "team_confirm_close_hidden_at_open", shown(h.find(T.ConfirmClose)), false)
 		for _, name in T.Gone do

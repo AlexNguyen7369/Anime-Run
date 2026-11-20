@@ -305,7 +305,7 @@ UiScenarios.Needs = {
 	ui_camera_follows_runner = { "auto_racing" },
 	ui_toast = { "auto_racing", "auto_roll_on" },
 	ui_rolls = { "auto_roll_on" },
-	ui_roll_anim = { "auto_roll_on" },
+	ui_roll_anim = { "auto_roll_on", "turbo_next" }, -- section 2 judges a turbo roll on the compact roll
 	ui_billboards = { "auto_racing" }, -- the main run judges the racing part (win pads, NPC label)
 	ui_roll_emphasized = { "auto_roll_on" },
 	ui_sidekicks = { "sidekick_states" },
@@ -2010,12 +2010,21 @@ function UiScenarios.SampleTurbo(ev)
 	task.wait(hideBy - UiSpec.Waits.TurboPopShow)
 	local _, _, gone = popState()
 	rec.gone = gone
-	rec.fill = fillFraction()
 	rec.rolls = attr("Rolls")
 	rec.isolated = true
 	for _, other in events.rolls do
 		if other ~= ev and other.t >= ev.t and other.t <= os.clock() then
 			rec.isolated = false
+		end
+	end
+	-- The pop holds the bar full (RacerUiController turboPopUntil), so the fill is read once the pop has ended; rolls
+	-- that arrive by then may each add one step to it.
+	task.wait(math.max(0, ev.t + UiSpec.Waits.TurboFillSettle - os.clock()))
+	rec.fill = fillFraction()
+	rec.laterRolls = 0
+	for _, other in events.rolls do
+		if other ~= ev and other.t >= ev.t and other.t <= os.clock() then
+			rec.laterRolls += 1
 		end
 	end
 	rec.done = true
@@ -6231,6 +6240,22 @@ function S.ui_toast(res)
 			end
 		end
 	end
+	-- A Sakura page switches under the petal wash, UiTransition.Cover() s after the press (0.15 s, audit 2026-11-20,
+	-- 112999f): until then the page is not shown yet, or still shown while closing, so reads wait for the wash.
+	local transitionModule = script.Parent.Parent:FindFirstChild("UiTransition")
+	local Transition = nil
+	if transitionModule and transitionModule:IsA("ModuleScript") then
+		local ok, m = pcall(require, transitionModule)
+		if ok and type(m) == "table" and type(m.Cover) == "function" and type(m.Playing) == "function" then
+			Transition = m
+		end
+	end
+	local function waitWash()
+		if Transition and Transition.Playing() then
+			task.wait(Transition.Cover())
+			RunService.Heartbeat:Wait() -- the switch's own task.delay(Cover) runs first
+		end
+	end
 	local want = table.concat(UiSpec.RollAnim.Phases, ",")
 	for _, p in allPanels() do
 		local restorePanel = setPanels({})
@@ -6241,6 +6266,7 @@ function S.ui_toast(res)
 			local serial0 = toast:GetAttribute("RollSerial")
 			local shownBefore = effectivelyVisible(toast)
 			setPanel(p, true)
+			waitWash()
 			local panelObj = findPath(p)
 			local opened = panelObj ~= nil and panelObj.Visible
 			-- PanelSwitch.Changed -> refreshToast runs as the panel's Visible changes: hidden in the next frame
@@ -6276,6 +6302,7 @@ function S.ui_toast(res)
 				opened and shownBefore and shownFrames == 0 and clickFrames == 0
 			)
 			setPanel(p, false)
+			waitWash()
 			frames(2)
 			local phaseNow = toast:GetAttribute("Phase")
 			local back = effectivelyVisible(toast)
@@ -6561,12 +6588,13 @@ function S.ui_rolls(res)
 	-- Extra rolls count for Turbo (docs/MONETIZATION_SPEC.md "Extra rolls"), and GachaService.RollTick makes them before this
 	-- roll's RollResult, so the bar may already hold them.
 	local extras = (attr("Pass_extra_roll_1") == true and 1 or 0) + (attr("Pass_extra_roll_2") == true and 1 or 0)
-	local fillLimit = extras / turboEvery() + UiSpec.Turbo.FillTolerance
+	local steps = extras + (rec.laterRolls or 0)
+	local fillLimit = steps / turboEvery() + UiSpec.Turbo.FillTolerance
 	check(
 		res,
 		"turbo_fill_empty_after_turbo",
 		rec.fill or "missing",
-		("<= %.2f (%d extras)"):format(fillLimit, extras),
+		("<= %.2f (%d extras, %d later rolls)"):format(fillLimit, extras, rec.laterRolls or 0),
 		rec.fill ~= nil and rec.fill <= fillLimit
 	)
 end

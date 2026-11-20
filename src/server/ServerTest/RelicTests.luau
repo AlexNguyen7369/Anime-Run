@@ -59,7 +59,7 @@ local Server = script.Parent.Parent
 local Tests = {}
 
 local UID = 990138000
-local VERSION = 18
+local VERSION = 19 -- 19: Dojos removed (design doc 4.43)
 local BOSS = "big_raga"
 local STATS = { "Damage", "AttackSpeed", "Luck", "Money", "Speed", "Stamina" }
 local STAT_COUNT = { Common = 1, Rare = 1, Epic = 2, Legendary = 3, Mythic = 4, Secret = 6 } -- design doc 4.38
