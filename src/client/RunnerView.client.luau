@@ -295,7 +295,7 @@ end
 
 -- Every runner each render step; one farther than FAR_STUDS from the camera at FAR_RATE only (its dt adds up, so it
 -- keeps its place). `localOnly` steps just this player's runner (the PreSimulation pass that carries the camera).
-local FAR_STUDS, FAR_RATE = 300, 15 -- studs, steps/s (placeholders)
+local FAR_STUDS, FAR_RATE = math.huge, 15 -- off: the 15 Hz far pose made far runners pop (ui_run_visual pos_no_pop); set a distance to re-enable
 local function stepAll(localOnly)
 	local now = os.clock()
 	local camera = Workspace.CurrentCamera
