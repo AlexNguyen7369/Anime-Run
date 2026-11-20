@@ -735,6 +735,33 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     slot 1 in the centre); how a picked altar shows now that the rings are gold-orange (until ruled, the picked slot keeps
     the "Selected" plate and a brighter ring); the plaza Team altar's look.
 
+### 4.46 Scroll Dojo look, game-wide (owner 2026-11-20) - DRAFT, waits for the owner's reference approval
+Owner brief 2026-11-20: a full redesign of every current GUI, taking its look from the Summon and Team Select pages
+(scroll, dojo, sakura), with a scroll that opens from the middle out to the left and right. Reference screenshots go to
+the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing and colour here is **proposed**.
+- Summon (4.45) and Team Select (4.45 "Team Select night dojo") are the style source only: their pages, layouts and
+  motion do not change.
+- Scope: every panel and popup (Index, Items, Shop, Market, Quests and Daily, Rebirth, Stats, Settings, Upgrades,
+  Tracks, Duel, starter choice, item menu and its confirms, gift and slot pickers, Auto Sell and Details, the loser card,
+  toasts and banners), the boss event UI (Bosses panel, rewards popup, event HUD), and the HUD buttons and bars. The
+  HUD is approved on its own; if the owner drops it, everything else ships and the HUD keeps 4.40.
+- Look: the Summon parchment kit on a horizontal handscroll (makimono): parchment paper, brown wood rollers at the left
+  and right ends with dark caps, leather edge strips, brush wordmark titles with a vertical vermilion kanji (decoration
+  only, every label stays English), red brush pills for highlights, vermilion hanko seals as badges, cream wood tiles
+  and outlined paper buttons for actions, burgundy cards with pink rims for paid offers, dark lacquer plates with gold
+  for names, sakura blossoms as accents. Fonts Roblox can load: Permanent Marker titles, Kalam Bold buttons, Titillium
+  Web body. Drawn portraits stay in every character and Sidekick card (4.36).
+- Open: the panel unrolls from its centre. Both wooden rollers start together at the middle and travel out to the left
+  and right edges while the paper widens behind them (about 0.45 s, ease out). Content inks in as the paper reaches it;
+  each control is live as soon as it shows, so no input waits on the motion (meets 4.20's input rule). Close rolls the
+  paper back to the middle (about 0.25 s). Reduced effects (UiMotion): a short fade, no roll. Replaces 4.20's panel
+  open and close (scale 0.9 to 1 and 0.95) for every redesigned panel and popup. The 35% world dim (4.42) stays.
+- Kept from 4.42: the 1200 x 620 band and its fit between the HUD columns, the spacing grid, list counts in the footer,
+  the scroll-list fade rule. Replaced from 4.42: the AnimeSkin art, the slanted strip header and the GothamSSm heavy
+  italic type, for every redesigned GUI.
+- Per-GUI layouts: written here from the references the owner approves (pending).
+- Display only: the server decides every number, cost and claim, as before.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -797,6 +824,7 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-20: owner: game-wide Scroll Dojo look from the Summon and Team pages, center-out handscroll open about 0.45 s with input live, HUD and boss UI in scope; references first (4.46 draft; 4.20, 4.42 replaced for redesigned GUIs on approval).
 - 2026-11-20: owner: Sidekick summon Details list odds per rarity (section 6, SIDEKICK_SPEC); Team Setup stays full screen and the Team button does not close it (4.40, 4.45).
 - 2026-11-17: owner, after the rules audit: Team Setup asks Deploy or Discard before another page opens over an undeployed draft, and an untouched draft follows a saved Team change (4.45, TEAM_AND_STAMINA_SPEC).
 - 2026-11-17: owner: Sakura Dojo pages: shared petal transition for Summon and Team; Summon button in the right column (G) and the altar prompt "Summon"; Team opens from the button, the minibar and a new plaza Team altar at (-3.1, 83.9); Team Setup replaces panel A with three octagonal altars, a roster tray with relic and Sidekick icons, Quick Setup (highest cruise) and Deploy (staged draft) (4.45; replaces parts of 4.40 and 4.43).
