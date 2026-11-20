@@ -356,7 +356,7 @@ function SummonPanels.new(canvas, deps)
 				table.insert(shown, rarity)
 			end
 		end
-		begin("ShowChances", "Show Chances", nil, Icons.Quests.Image, 64 + #shown * (ROW + 8))
+		begin("ShowChances", "Details", nil, Icons.Quests.Image, 64 + #shown * (ROW + 8))
 		text("Heading", body, {
 			LayoutOrder = 0,
 			Size = UDim2.new(1, 0, 0, 26),
