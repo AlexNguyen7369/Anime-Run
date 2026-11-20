@@ -32,7 +32,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 ## Rolls
 
 - Same as IVS: free auto-roll every 3 s; rarest-first check `min(1, luck / Chance)`; else the catch-all Common.
-- Turbo luck every 10th roll x10; upgrade tiers raise both.
+- Turbo luck every 10th roll x30 (owner 2026-11-20, was x10; `UpgradeConfig.BASE_TURBO`); upgrade tiers raise both.
 - Bands (1 in N):
 
 | Rarity | Chance band | SpeedMulti band | Launch count (before Bleech) |
@@ -126,6 +126,8 @@ Robux-exclusive runner (owner 2026-11-04, design doc 4.35; never rolled, not in 
 |---|---|---|---|---|---|---|
 | Saitamo | Saitama (One-Punch Man) | Mythic (proposed) | B | `punch_hero` | 350 | `punch_hero` |
 
+Saitamo's stamina is its own 6 s (`Stamina`, proposed; owner 2026-11-20, was the Mythic 27 s).
+
 Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 9, Legendary 9, Mythic 9, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
@@ -140,11 +142,11 @@ Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; t
 | `jk_nails` | 120 | 2 | `leaf_avenger` | 2,500,000 | 16.5 |
 | `mha_float` | 200 | 2.2 | `leaf_hero` | 1e7 | 25 |
 | `leaf_copycat` | 500 | 2 | `db_prince` | 5e7 | 45 |
-| `db_scholar` | 1,000 | 2.6 | `sea_captain` | 1e8 | 60 |
+| `db_scholar` | 600 (was 1,000, 2026-11-20) | 2.6 | `sea_captain` | 1e8 | 60 |
 | `sea_swords` | 2,000 | 3.2 | `ds_hero` | 3e8 | 80 |
-| `ds_thunder` | 4,000 | 3.9 | `mha_hero` | 7.8e8 | 100 |
+| `ds_thunder` | 700 (was 4,000, 2026-11-20) | 3.9 | `mha_hero` | 7.8e8 | 100 |
 | `jk_shadows` | 8,000 | 4.6 | `leaf_crow` | 5e9 | 150 |
-| `mha_icefire` | 13,000 | 5.25 | `ds_flame` | 1e11 | 250 |
+| `mha_icefire` | 1,500 (was 13,000, 2026-11-20) | 5.25 | `ds_flame` | 1e11 | 250 |
 | | | | `jk_king` | 1e13 | 350 |
 | | | | `mha_symbol` | 1e15 | 425 |
 | | | | `db_hero` | 1.6e16 | 1,000 |

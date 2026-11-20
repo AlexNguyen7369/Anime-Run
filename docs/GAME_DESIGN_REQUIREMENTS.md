@@ -24,7 +24,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 3. Start a run on the start pad: the team auto-runs Track 1, 2, 3 ... against each track's NPC rival.
 4. Each track won pays its pad value straight into Money as the team crosses that track's finish (checkpoint), with a short "Cashed out +$X" notice (owner 2026-11-10, replaces the run bank / UNBANKED).
 5. The run ends:
-   - **Team exhausted** (all 3 at 0 stamina): the per-distance share of the current track (below) is paid into Money; the player returns to the spawn.
+   - **Team exhausted** (all 3 at 0 stamina): the per-distance share of the current track (below) is paid into Money; the player returns to the spawn. With Auto on, the next run then starts by itself (owner 2026-11-20, 4.3).
    - **Player stops** (Stop button, death, leave): nothing more is paid; every track already won was paid at its finish.
    - **Loss** (NPC reaches a track's finish first): loser screen; back to the start track. Money already paid at earlier checkpoints stays (owner 2026-11-10: there is no bank to empty).
 6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat.
@@ -39,7 +39,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 | One NPC rival per track, client-side only, left lane; player wins if they reach the finish before the NPC's known time | `NpcRacer`, `NpcConfig` |
 | Each won track pays into Money at its finish with a cash-out notice (owner 2026-11-10; no run bank) | `RaceService` |
 | The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
-| Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
+| Auto-roll every 3 s (placeholder), turbo luck every 10th roll x30 (placeholder; x10 until 2026-11-20), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money, unless sold (owner 2026-11-04, 4.36) | IVS 2026-10-22 |
 | Weather events (Rain, Night Race, Gold Rush, Clear, Aurora); 3 event-only characters, not rollable for now, listed in the Index as undiscovered tiles, kept in saves that own them (owner 2026-11-03) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
@@ -61,6 +61,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - The player equips a **team**: 3 ordered slots. The same character may not be in two slots. A team needs at least
   1 character. Spec: `docs/TEAM_AND_STAMINA_SPEC.md`.
 - Slot 1 starts every run; slot 2, then slot 3, take over when the one before is empty.
+- A kept roll (not auto sold) fills an empty slot, never a filled one (owner 2026-11-20). A run's team is fixed, so a roll
+  kept while running joins when the player is next on foot. Server side (`GachaService.FillTeam`).
 - The player fills and swaps the 3 slots on foot (owner 2026-11-02): pick a character in the Backpack, then tap slot
   1, 2 or 3 to put it there (a character already on another slot swaps places; tapping its own slot takes it off).
   The single equip (Index, roll toast) puts a character on slot 1.
@@ -68,7 +70,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.3 Stamina
 - Every character has a stamina bar (0-100%). It drains only while that character is running.
 - The drain rate depends on rarity (owner 2026-11-02): Commons tire at about 12-15 s and Secrets at 30 s. Seconds of
-  running (in-between values proposed): Common 13.5, Uncommon 15.5, Rare 18, Epic 21, Legendary 24, Mythic 27, Secret 30.
+  running (in-between values proposed): Common 13.5, Uncommon 17, Rare 21, Epic 21, Legendary 24, Mythic 27, Secret 30
+  (owner 2026-11-20: Uncommon 17 and Rare 21, were 15.5 and 18).
 - Speed matters more than stamina (owner 2026-10-30): the rarity spread in stamina is small. A team clears a few
   tracks per run and progresses track by track through checkpoints (4.15), not the whole chain in one run.
 - While a runner runs, a vertical blue stamina bar is fixed to the right of its visible character (owner 2026-11-02),
@@ -85,6 +88,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
   stamina on a thick arc, with its stamina seconds left as a number (orchestrator default); tired runners grey out with
   an animation; the tag-in plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
 - When the last character reaches 0 the run ends as a **soft end** (owner 2026-10-28).
+  With Auto on, the player returns to the spawn as usual and the next run starts by itself after a short wait (3 s,
+  **proposed**), unless the player, a duel or an event changed the state first (owner 2026-11-20). Nothing fakes input,
+  so Roblox's idle kick still applies.
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
   `PayoutCurve.Cash(n) x distance covered / track length` straight into Money, with the cash-out notice (share placeholder 1.0; no bank since 2026-11-10).
   Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Track 1 balance is fine as is: no retune of
@@ -157,7 +163,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.13 Fixed character speed, no Speed stat (owner 2026-11-01)
 - There is no Speed stat and no speed gain. Each character has a fixed cruise speed (studs/s) set only by its rarity
   and its category (4.5). New players run slow. The character's `SpeedMulti` never enters cruise.
-- Base cruise by rarity, Balanced (proposed; NPC formula, placeholder, `48 x 1.363^(n-1)`): Common 24, Uncommon 33,
+- Base cruise by rarity, Balanced (proposed; NPC formula, placeholder, `48 x 1.363^(n-1)`; owner 2026-11-20: Tracks 2-8
+  use set placeholders instead, 56 / 66 / 88 / 130 / 190 / 280 / 410 studs/s, `NpcConfig.Tracks[n].Speed`): Common 24, Uncommon 33,
   Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700. Category multiplies it: Sprinter x1.25, Balanced x1,
   Marathoner x0.8 (4.5).
 - Enemy speed (owner 2026-11-05): a starter or other Common with no multis never outruns the Track 1 enemy. A Rare is
@@ -196,7 +203,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Stat points are spent in the Rebirth panel's STATS tab (owner 2026-11-05; 4.40).
 - Rebirth resets Money.
 - Player levels and XP are removed. Rebirth n+1 needs Money >= `BASE_MONEY` x `MONEY_GROWTH`^n: $100K for rebirth 1,
-  x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP` unread. The rebirth XP multi is gone; the
+  x10 each up to rebirth 7, then x4 each (placeholder; owner 2026-11-20, was x10 throughout: `1e5 x 10^min(n,6) x
+  4^max(0,n-6)`; `RebirthConfig`). Old saves keep `Level` / `XP` unread. The rebirth XP multi is gone; the
   luck totals table is unchanged.
 
 ### 4.15 Sensei checkpoints (owner 2026-11-02)
@@ -215,7 +223,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
   runner back to the start of the checkpoint track; after the last track the run loops back to it.
 - **Checkpoint bonus**: in one run, each track won after the checkpoint track pays its pad cash x
   `min(BONUS_CAP, 1 + BONUS_PER_TRACK x k)`, k = tracks past the checkpoint track (placeholders +10% per track, cap
-  x2; `CheckpointConfig`). The checkpoint track itself pays x1. k restarts when the runner goes back to the
+  x3, owner 2026-11-20, was x2; `CheckpointConfig`). The checkpoint track itself pays x1. k restarts when the runner goes back to the
   checkpoint (loss, loop) or the run ends (stop, team exhausted).
 - A won track that paid the bonus shows a popup "CHECKPOINT BONUS x1.2 · $paid" (placeholder art and timing:
   0.25 s in, 1.5 s hold, 0.5 s out; client-only display).
@@ -254,6 +262,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
     is ever shown wrong (orchestrator default).
   - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
   - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
+- Low-end default (owner 2026-11-20): while the player has not chosen REDUCED EFFECTS this session (the toggle is not
+  saved), it starts on when Roblox's graphics level is 1-3 or the device is touch-only with a small screen (shorter
+  side 500 px or less, **proposed**). The toggle still flips it. Boss effects follow it as in 4.37.
 
 ### 4.21 Starter choice (owner 2026-11-03)
 - A new player gets a popup and chooses one of 3 starter characters: Ruffy, Karate Kid, Sayan. The pick is their first
@@ -409,6 +420,8 @@ before any Studio work.
 - A Sidekick is a small companion rolled from a gacha at the plaza's Sidekick summon altar (owner 2026-11-10; replaces the Sidekicks stall) for Gems. It is equipped per character, follows
   that character, deals its damage in boss events (4.37) and gives that character a speed or stamina gain while racing. Speed gain
   counts as an entry in the 4.13 speed multi, inside `MAX_CRUISE`.
+- HUD entries (owner 2026-11-20): below rebirth 1 the Summon button, the Bosses button, the plaza SIDEKICKS sign and
+  the Bag's Sidekicks and Relics tabs are hidden; from rebirth 1 they show (the summon page still shows its rebirth 2 lock).
 - The vendor unlocks at rebirth 2. A tutorial then gives one free summon (4.21 style spotlight), so a player at rebirth 2 can join events. The free summon's Sidekick is never auto-sold (**proposed**), and the tutorial's last step points the player to equip it in the Bag, since only an equipped Sidekick unlocks events. The tutorial may show during a normal track run; it waits only for a duel, a boss event, a showdown and a short transition (owner 2026-11-05).
 - First three Sidekicks, for testing: based on Pochita (Chainsaw Man), Igris and Kaisel (Solo Leveling). Tweaked names follow section 5,
   **proposed**: Pochito, Igriz, Kaizel. Each model is 30-40% of a character's size and made with the character design skill.
@@ -520,7 +533,7 @@ before any Studio work.
 - Dojo Master: removed 2026-11-11 with the Dojos (4.43), off sale; it had replaced the Gold, Diamond and Void Workshop passes, also gone.
 - Deep Stamina: +25% stamina, added to the additive stamina part (4.6).
 - + Inventory: +100 bag spaces (4.36).
-- Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. No license exists. The owner knows it is a close likeness sold directly through its own pass and advertised at the spawn, and accepts the takedown risk, which can remove the whole game (owner 2026-11-05). Base cruise 350, Balanced, Mythic look and stamina (**proposed**), no Series, not in the Index (**proposed**).
+- Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. No license exists. The owner knows it is a close likeness sold directly through its own pass and advertised at the spawn, and accepts the takedown risk, which can remove the whole game (owner 2026-11-05). Base cruise 350, Balanced, Mythic look (**proposed**), stamina 6 s (**proposed**; owner 2026-11-20, was the Mythic 27 s: it wins Tracks 1-2 at once and later tracks need progress), no Series, not in the Index (**proposed**).
 - Server Luck stays unsold until it is built. Auto Restart and Bank Insurance were offered and declined.
 
 ### 4.40 HUD entries and rarer big roll popup (owner 2026-11-05)
@@ -539,7 +552,8 @@ before any Studio work.
 - The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
 - A full bag stops rolling until there is space. Only rolling is blocked: passes, daily rewards, codes and gifts still land. A save already over the cap keeps everything and cannot roll until it is below the cap.
 - Full bag warning (owner 2026-11-05, replaces the fixed banner): auto roll is never turned off by a full bag and keeps trying at its normal pace. Each blocked try shows red "BAG FULL" text on the screen, with no background, gone within 1 second.
-- Auto sell: the player fills in N in "1 in N", in Settings only (owner 2026-11-09, replaces the auto-roll view and under-roll buttons of 2026-11-06). A sold roll shows no sale text or badge: the roll animation plays as usual and only Money moves (owner 2026-11-09). A roll whose `Chance` is at most N is sold for Money by rarity (prices **proposed**) and takes no space, a new discovery too (owner 2026-11-06, replaces duplicates only): it stays undiscovered. Default off.
+- Bag full tip (owner 2026-11-20): the first BAG FULL of a session also points a 4.21 style spotlight at the Items button with "Sell spares in your Bag, or turn on Auto Sell in Settings". Nothing is dimmed or blocked; it closes after 6 s (**proposed**) or when the Bag opens. Nothing is saved for it.
+- Auto sell: the player fills in N in "1 in N", in Settings only (owner 2026-11-09, replaces the auto-roll view and under-roll buttons of 2026-11-06). A sold roll shows no sale text or badge: the roll animation plays as usual and only Money moves (owner 2026-11-09). A roll whose `Chance` is at most N is sold for Money by rarity (prices **proposed**) and takes no space, a new discovery too (owner 2026-11-06, replaces duplicates only): it stays undiscovered. Default off; a brand new save starts with it on at N = 1, which sells Commons (owner 2026-11-20). A save already written keeps its own setting, a missing one being off.
 - With auto sell on, a full bag keeps rolling and selling what is at or under N, and still shows the BAG FULL text. A roll rarer than N needs a space, so at a full bag it does not happen, with Rolls and Turbo unmoved (owner 2026-11-06).
 - Selling never takes a copy a player already holds down to none: the last copy stays. Auto sell only ever sells the roll itself.
 - Sell spares (orchestrator proposal, owner approved the plan 2026-11-04): a Backpack card sells spare copies of that character, never the last one, so a full bag can always be emptied. The player chooses how many and confirms in a dialog (owner 2026-11-05).
@@ -914,3 +928,20 @@ None open here; 4.25 marks its own open question.
 - 2026-11-19: owner: the Summon page matches the owner's reference image 1:1 (4.45 "Summon 1:1 reference"); Team Select is being redrawn separately.
 - 2026-11-20: owner approved the Summon 1:1 page from the Studio capture (4.45 "Summon 1:1 reference").
 - 2026-11-20: owner approved the Team Select redesign from the Studio draft (4.45 "Team Select night dojo"): night-dojo plate, two-tier lacquer altars with gold-orange top rings, real models in an idle stance with breathing, Makimono layout with the Summon parchment scroll look, drawn icons (assets/ui/team_icons).
+- 2026-11-20: owner approved the audit fixes (unattended night run; tunable values cite the line that marks them):
+  - 4.41 auto sell starts on at N = 1 (Commons) for brand new saves only; written saves keep theirs. Bag full tip on the first BAG FULL of a session (4.21 style, no dim). Common sale price $5 -> $2 (4.41 "prices **proposed**", BAG_AND_AUTOSELL_SPEC).
+  - 4.3 with Auto on, the next run starts by itself 3 s (**proposed**) after the team tires; the idle kick still applies (TEAM_AND_STAMINA_SPEC).
+  - 4.2 kept rolls fill empty Team slots, never filled ones; while running they wait for the player to be on foot (TEAM_AND_STAMINA_SPEC).
+  - Rare `Chance` db_scholar 1,000 -> 600, ds_thunder 4,000 -> 700, mha_icefire 13,000 -> 1,500 (CHARACTER_GACHA_SPEC "Placeholder `Chance`", inside the Rare band 500-13,000).
+  - Turbo luck x10 -> x30 (section 3 table "turbo luck every 10th roll x10 (placeholder)"; `UpgradeConfig.BASE_TURBO`, CHARACTER_GACHA_SPEC).
+  - Stamina Uncommon 15.5 -> 17, Rare 18 -> 21 (4.3 "in-between values proposed"); Common stays 13.5.
+  - NPC speed Tracks 2-8 -> 56 / 66 / 88 / 130 / 190 / 280 / 410 studs/s; Tracks 1, 9 and 10 keep `48 x 1.363^(n-1)` (4.13 "NPC formula, placeholder"; NPC_RIVAL_SPEC, TRACKS_AND_BIOMES_SPEC).
+  - Power-up mix 50/50 -> 70% Stamina / 30% Speed (POWERUP_SPEC "Type 50/50 ... (**proposed**)").
+  - Rebirth price x10 each up to rebirth 7, then x4 (4.14 "x10 each after (placeholder)").
+  - Checkpoint bonus cap x2 -> x3 (4.15 "placeholders +10% per track, cap x2").
+  - Saitamo stamina 27 s -> 6 s, speed 350 unchanged (4.39 "Mythic look and stamina (**proposed**)"; MONETIZATION_SPEC).
+  - Quest names "Finish 3 races" / "Finish 20 races" -> "Win 3 races" / "Win 20 races": the count was always track wins.
+  - 4.36 Summon, Bosses, the plaza SIDEKICKS sign and the Bag's Sidekicks and Relics tabs hidden until rebirth 1.
+  - 4.20 REDUCED EFFECTS starts on for low graphics levels (1-3) and small touch-only screens when not chosen this session.
+  - Fixes with no rule change: Daily popup cards held at the top-left on the join popup (only Day 7 showed); the "+$X" money float starts right of the Money text, clear of the left column; loading screen bar colours moved to the palette (UiTheme.Dojo Cyan and Sakura).
+  - Not changed, waiting on the owner: Dojo look on every screen, potion length (4.7 15 min vs spec 60 s), Quick Setup effective vs base cruise, Speed III BestTrack 2 gate, early tier prices, soft cap, new-player boost, guaranteed Rare by roll 10, rebirth luck table.

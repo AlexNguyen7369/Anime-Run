@@ -4,7 +4,7 @@ return {
 	Id = "mha_icefire",
 	Name = "Todoroky",
 	Rarity = "Rare",
-	Chance = 13000,
+	Chance = 1500, -- audit 2026-11-20 (was 13,000)
 	SpeedMulti = 5.25,
 	Order = 15,
 	Category = "Balanced",

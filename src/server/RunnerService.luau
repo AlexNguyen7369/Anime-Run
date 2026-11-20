@@ -27,6 +27,7 @@ local RunnerEffects = require(Shared.RunnerEffects)
 local RunnerService = {}
 
 RunnerService.TOGGLE_COOLDOWN = 0.75 -- seconds between toggle requests from one player (remote only)
+RunnerService.RESTART_DELAY = 3 -- seconds on foot after an exhausted Auto run before the next starts (proposed, design doc 4.3)
 RunnerService.RUNNER_TAG = "RunnerRig" -- every player's server runner (Client/RunnerView draws it smoothly)
 
 local HIDDEN_GROUP = "HiddenAvatar" -- the hidden avatar while it rides: collides with nothing
@@ -385,6 +386,18 @@ function RunnerService.SetAutoRace(player, enabled, duel)
 		standUp(player, gen) -- removing the runner destroys its run; NPC wins were already paid at each finish
 	end
 	return RunnerService.IsAutoRacing(player)
+end
+
+-- The team tired while auto racing (design doc 4.3, owner 2026-11-20): back on foot at the walk spawn as usual, then Auto
+-- starts the next run by itself after RESTART_DELAY, unless anything changed the state first (a toggle, a respawn, a
+-- teleport, a duel, a boss event) or the player left. Nothing fakes input: Roblox's idle kick still applies. Yields.
+function RunnerService.RestartAfterExhausted(player)
+	RunnerService.SetAutoRace(player, false)
+	local gen = generation[player]
+	task.wait(RunnerService.RESTART_DELAY)
+	if generation[player] == gen and player.Parent and player:GetAttribute("BossEvent") ~= true then
+		RunnerService.SetAutoRace(player, true)
+	end
 end
 
 -- Puts the avatar on foot at cf (admin /tp vfxarea and /tp home, ADMIN_COMMANDS_SPEC): stops auto racing first,

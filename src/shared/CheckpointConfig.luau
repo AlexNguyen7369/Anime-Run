@@ -12,7 +12,7 @@ CheckpointConfig.NPC_FACE = Vector2.new(106.066, 51.170) -- hub-local point the 
 CheckpointConfig.PROMPT_DISTANCE = 10
 CheckpointConfig.TEXT_DISTANCE = 80
 CheckpointConfig.BONUS_PER_TRACK = 0.1 -- placeholder: +10% pad cash per track past the checkpoint in one run
-CheckpointConfig.BONUS_CAP = 2 -- placeholder: the bonus never pays more than x2
+CheckpointConfig.BONUS_CAP = 3 -- placeholder: the bonus never pays more than x3 (audit 2026-11-20, was x2)
 
 local function count(n)
 	return type(n) == "number" and n == n and math.floor(n) or 0

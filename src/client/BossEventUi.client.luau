@@ -1611,7 +1611,8 @@ local function drawBossButton(phase, inEvent, joinable)
 			end
 		end
 	end
-	bossButton.Visible = shown
+	-- hidden until rebirth 1 (owner 2026-11-20, design doc 4.36); Team keeps its place
+	bossButton.Visible = shown and (player:GetAttribute("RebirthLevel") or 0) >= SidekickConfig.HudFromRebirth
 	teamButton.Visible = shown -- the second column shows and hides as one (design doc 4.40)
 	bossesOpen = bossesOpen and shown
 	bossesPanel.Visible = bossesOpen and not PanelSwitch.AnyOpen()

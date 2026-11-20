@@ -535,12 +535,14 @@ local function showDaily()
 	anime:Layout()
 	task.defer(function()
 		anime:Layout() -- after UiTheme.Apply's and Skin.Button's deferred passes
-	end)
-	if opening then -- cards rise in, each a little later (section 10)
-		for day = 1, #dailyConfig.Rewards do
-			UiMotion.SlideIn(area["Day" .. day], Vector2.new(0, 24), 0.22 + 0.03 * day)
+		-- Cards rise in, each a little later (section 10), only once placeDaily has placed them: a slide taken from the
+		-- unplaced (0, 0) held every card there over the layout, Day 7 on top (the join popup's "only Day 7" bug).
+		if opening and anime.Rect and area.Parent then
+			for day = 1, #dailyConfig.Rewards do
+				UiMotion.SlideIn(area["Day" .. day], Vector2.new(0, 24), 0.22 + 0.03 * day)
+			end
 		end
-	end
+	end)
 	if claim.Active then
 		claim.Edge.Color = PALETTE.Speed
 		stopClaimPulse = UiMotion.Pulse(claim.Edge, { Transparency = 0.75 }, 0.7)

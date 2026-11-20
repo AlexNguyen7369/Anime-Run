@@ -12,7 +12,7 @@ GachaConfig.DISCOVERIES_PER_POINT = 3 -- every 3 unique characters in the index 
 -- Turbo luck: every TURBO_EVERY-th roll (Rolls = 10, 20, ...) rolls with TURBO_LUCK times the player's luck.
 -- Derived from the saved roll count, so nothing extra is saved.
 GachaConfig.TURBO_EVERY = 10
-GachaConfig.TURBO_LUCK = 10
+GachaConfig.TURBO_LUCK = 30 -- placeholder (audit 2026-11-20, was 10); UpgradeConfig.BASE_TURBO.Multi is the live value
 
 -- The Workshop stat retired 2026-11-03 (design doc 4.19): saved Alloc.Workshop points are never read, so they are free
 GachaConfig.STATS = { "Speed", "Money", "Luck", "Stamina" }

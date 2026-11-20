@@ -1004,6 +1004,13 @@ end
 for order, setLit in g.Tabs(tabButtons) do
 	tabs[TAB_NAMES[order]].SetLit = setLit
 end
+-- Sidekicks and Relics wait for rebirth 1 (owner 2026-11-20, design doc 4.36); they are the row's last two, so no gap opens.
+local function refreshUnlocks()
+	local open = (player:GetAttribute("RebirthLevel") or 0) >= SidekickConfig.HudFromRebirth
+	tabs.Sidekicks.Button.Visible, tabs.Relics.Button.Visible = open, open
+end
+player:GetAttributeChangedSignal("RebirthLevel"):Connect(refreshUnlocks)
+refreshUnlocks()
 for _, button in { sortButton, massSell, sellSpares, massAll, massGo, massCancel } do
 	button.BorderSizePixel = 0
 	g.Button(button, (button == massSell or button == massGo) and "Danger" or "Idle")
