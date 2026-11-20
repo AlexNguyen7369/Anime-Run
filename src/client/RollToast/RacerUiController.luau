@@ -996,7 +996,7 @@ local function indexFrame(refs, icon, content)
 			closeArt.AnchorPoint = Vector2.zero
 			closeArt.Position, closeArt.Size = UDim2.fromOffset(-8, -10), UDim2.new(1, 16, 1, 20)
 		end
-		g.W, g.H, g.Tabs = W, H, small and 90 or 98
+		g.W, g.H, g.Tabs, g.Phone = W, H, small and 90 or 98, small
 		g.Top = small and 144 or 164
 		g.Height = H - g.Top - 82
 		content(g)
@@ -1041,6 +1041,30 @@ local function footerLine(refs, g, value)
 	g.Role(line, "Body", true)
 end
 
+-- The phone-only scrolling middle of the Rebirth panel (rewards and requirements); nil on desktop, where both go back
+-- to the panel face. Styled like the Player Profile list.
+local function rebirthMiddle(phone)
+	local middle = rebirth.Panel:FindFirstChild("RebirthMiddle")
+	if phone and not middle then
+		middle = Instance.new("ScrollingFrame")
+		middle.Name = "RebirthMiddle"
+		middle.BackgroundTransparency = 1
+		middle.BorderSizePixel = 0
+		middle.ScrollBarThickness = 5
+		middle.ScrollBarImageColor3 = palette.Muted
+		middle.ScrollingDirection = Enum.ScrollingDirection.Y
+		middle.ClipsDescendants = true
+		middle.ZIndex = 3
+		middle.Parent = rebirth.Panel
+	end
+	if middle then
+		middle.Visible = phone
+	end
+	for _, part in { rebirth.Rewards, rebirth.Requirements } do
+		part.Parent = phone and middle or rebirth.Panel
+	end
+	return phone and middle or nil
+end
 indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
 	tabsRow(rebirth.Header.RebirthTabs, g)
 	footerLine(rebirth, g, string.format("REBIRTH LEVEL %d", player:GetAttribute("RebirthLevel") or 0))
@@ -1072,11 +1096,31 @@ indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
 	local rewardsTop = g.Top + warnH + gap
 	local cardH = math.max(0, reqTop - gap - rewardsTop - headH - inner)
 	local cardW = math.floor((width - 2 * gap) / 3)
+	local stepX, stepY, rewardsH = cardW + gap, 0, headH + inner + cardH
+	-- Phones: the content needs more height than the panel has (UI audit), so rewards and requirements scroll in a
+	-- list left of the REBIRTH button, under the warning; both stay fixed. Desktop keeps them on the panel face.
+	local middle = rebirthMiddle(g.Phone)
+	if middle then
+		buttonW = u(110)
+		local listW = width - buttonW - gap
+		place(rebirth.RebirthButton.Parent, left + width - buttonW, bottom - buttonH, buttonW, buttonH)
+		place(middle, left, rewardsTop, listW, bottom - rewardsTop)
+		left, rewardsTop, width = 0, 0, listW - u(12) -- clear of the scroll bar
+		cardH, cardW = lineH + 2 * inner, width
+		stepX, stepY = 0, cardH + inner
+		rewardsH = headH + inner + 3 * cardH + 2 * inner
+		reqW, reqTop = width, rewardsH + gap
+		place(rebirth.Requirements, 0, reqTop, reqW, reqH)
+		place(rebirth.RequirementsTitle, 0, 0, reqW, headH)
+		place(rebirth.Bar.Parent, 0, headH + inner, reqW, barH)
+		place(rebirth.BarText, 0, 0, reqW, barH)
+		middle.CanvasSize = UDim2.fromOffset(0, reqTop + reqH)
+	end
 	local iconSize = math.max(0, cardH - 2 * inner)
-	place(rebirth.Rewards, left, rewardsTop, width, headH + inner + cardH)
+	place(rebirth.Rewards, left, rewardsTop, width, rewardsH)
 	place(rebirth.RewardsTitle, 0, 0, width, headH)
 	for i, name in { "LuckReward", "SpeedReward", "PointReward" } do
-		place(rebirth[name].Parent, (i - 1) * (cardW + gap), headH + inner, cardW, cardH)
+		place(rebirth[name].Parent, (i - 1) * stepX, headH + inner + (i - 1) * stepY, cardW, cardH)
 		local icon, caption = rebirth[name .. "Icon"], rebirth[name .. "Caption"]
 		place(icon, pad, inner, iconSize, iconSize)
 		local x = pad + iconSize + inner
