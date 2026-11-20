@@ -886,6 +886,71 @@ function FX.prop(obj, name, ctx)
 	return value
 end
 
+-- UiResponsive.RuntimeLayout's input for a panel at ctx.vp (ctx = nil: the live window, from the live properties).
+-- Racer panels: the resting UIScale fitPanels gives them there, in its 0.01 steps (BaseScale); the Daily modal: its k.
+function FX.runtimeInput(obj, path, ctx)
+	local vp = ctx and ctx.vp or viewport()
+	local input = { Small = UiResponsive.VariantOf(vp) == "Phone", Scale = 1 }
+	if UiResponsive.IsRacerPanel(path) then
+		local scale = obj:GetAttribute("BaseScale")
+		if ctx then
+			simRect(obj, ctx)
+			scale = ctx.scaleOverride and ctx.scaleOverride[obj]
+			scale = scale and math.floor(scale * 100 + 0.5) / 100
+		end
+		if type(scale) ~= "number" or scale <= 0 then
+			return nil
+		end
+		input.Scale = scale
+	elseif UiSpec.BandPanels[path] then
+		local w, h = UiResponsive.FrameSize(vp)
+		local pw, ph = obj.Size.X.Offset, obj.Size.Y.Offset
+		if ctx then
+			local r = simRect(obj, ctx)
+			pw, ph = r.w, r.h
+		end
+		input.Scale = math.min(pw / w, ph / h)
+		if input.Scale <= 0 then
+			return nil
+		end
+	end
+	return input
+end
+
+-- Where the live properties differ from UiResponsive.RuntimeLayout at the live window: the port is stale, so the
+-- other variant's rects built from it cannot be trusted. { "path Property live x model y", ... }
+function FX.runtimeDrift(obj)
+	local path = pathOf(obj)
+	local input = FX.runtimeInput(obj, path, nil)
+	local layout = input and UiResponsive.RuntimeLayout(obj, path, input)
+	local bad = {}
+	local function same(a, b)
+		if typeof(a) == "UDim2" and typeof(b) == "UDim2" then
+			return math.abs(a.X.Scale - b.X.Scale) < 1e-3
+				and math.abs(a.Y.Scale - b.Y.Scale) < 1e-3
+				and math.abs(a.X.Offset - b.X.Offset) <= 1
+				and math.abs(a.Y.Offset - b.Y.Offset) <= 1
+		elseif typeof(a) == "UDim" and typeof(b) == "UDim" then
+			return math.abs(a.Scale - b.Scale) < 1e-3 and math.abs(a.Offset - b.Offset) <= 1
+		elseif typeof(a) == "Vector2" and typeof(b) == "Vector2" then
+			return (a - b).Magnitude < 1e-3
+		end
+		return a == b
+	end
+	for node, props in layout or {} do
+		for name, want in props do
+			if not same(node[name], want) then
+				table.insert(
+					bad,
+					("%s %s live %s model %s"):format(pathOf(node), name, tostring(node[name]), tostring(want))
+				)
+			end
+		end
+	end
+	table.sort(bad)
+	return bad
+end
+
 -- True when obj is an Index-frame panel measured at ctx.vp (measured on first use, once per ctx).
 function FX.measuredFrame(obj, ctx)
 	ctx.measuredPanels = ctx.measuredPanels or {}
@@ -894,6 +959,20 @@ function FX.measuredFrame(obj, ctx)
 		return done
 	end
 	ctx.measuredPanels[obj] = false
+	-- A panel whose runtime layout reads the camera: on the other variant its children take that layout's rects there
+	local path = pathOf(obj)
+	if UiResponsive.HasRuntimeLayout(path) and otherVariant(ctx.vp) then
+		local input = FX.runtimeInput(obj, path, ctx)
+		local layout = input and UiResponsive.RuntimeLayout(obj, path, input)
+		if layout and next(layout) then
+			ctx.measured = ctx.measured or {}
+			for node, props in layout do
+				ctx.measured[node] = props
+			end
+			ctx.measuredPanels[obj] = true
+			return true
+		end
+	end
 	local g = FX.AnimeSkin.Frames[obj]
 	if not g or FX.frameRatio(obj, ctx) == nil then
 		return false
@@ -963,8 +1042,10 @@ local function indexTabProps(path, variant)
 	}
 end
 
--- The layout props a node uses at ctx.vp: on the other variant than the live one a generated node takes the model's
--- variant props (UiResponsive.Nodes), else its live properties.
+-- The layout props a node uses at ctx.vp: a value measured or modelled there (ctx.measured: an Index frame's
+-- MeasureAt, a panel's UiResponsive.RuntimeLayout) first, since those layouts overwrite the generated rects; else on the
+-- other variant than the live one a generated node takes the model's variant props (UiResponsive.Nodes), else its live
+-- properties.
 local function variantProps(obj, ctx)
 	local path = pathOf(obj)
 	local node = otherVariant(ctx.vp) and UiResponsive.Nodes[path]
@@ -972,9 +1053,10 @@ local function variantProps(obj, ctx)
 	if otherVariant(ctx.vp) then
 		props = indexTabProps(path, UiResponsive.VariantOf(ctx.vp)) or props
 	end
-	return props.Size or FX.prop(obj, "Size", ctx),
-		props.Position or FX.prop(obj, "Position", ctx),
-		props.AnchorPoint or FX.prop(obj, "AnchorPoint", ctx)
+	local measured = ctx.measured and ctx.measured[obj] or {}
+	return measured.Size or props.Size or FX.prop(obj, "Size", ctx),
+		measured.Position or props.Position or FX.prop(obj, "Position", ctx),
+		measured.AnchorPoint or props.AnchorPoint or FX.prop(obj, "AnchorPoint", ctx)
 end
 
 -- UiResponsive.LiveAutoSize: an AutomaticSize node whose content does not depend on the viewport.
@@ -4428,6 +4510,19 @@ end
 
 function S.ui_layout(res)
 	waitGuis()
+	-- Summon and the Bosses button show from rebirth 1 (c80e4de): the HUD is judged as it stands from then on, and
+	-- RebirthLevel goes back at the end so later scenarios see the saved value.
+	local unlocked, unlockErr = UiScenarios.RequestSetup("hud_unlock")
+	if unlocked then
+		local summon, by = findPath(UiSpec.Hud.Summon), os.clock() + UiScenarios.SETUP_WAIT
+		while not (summon and summon.Visible) and os.clock() < by do
+			task.wait(0.1)
+			summon = findPath(UiSpec.Hud.Summon)
+		end
+		renderFrame()
+	else
+		stateMissing(res, "hud_unlock", "hud_unlock", unlockErr)
+	end
 	for _, state in K.STATES do
 		local restore = setPanels(state.Open)
 		for _, vpSpec in UiSpec.Viewports do
@@ -4980,6 +5075,16 @@ function S.ui_layout(res)
 			end
 		end
 		check(res, "layout_model_matches_engine_" .. state.Name, worst, TOL, worst <= TOL)
+		-- The runtime layouts the other variant is solved from (UiResponsive.RuntimeLayout) still match the live panel
+		for _, panelPath in state.Open do
+			local frame = findPath(panelPath)
+			if frame and not UiResponsive.HasRuntimeLayout(panelPath) then
+				frame = frame:FindFirstChild("Modal") -- DailyBoosts/ModalBackdrop opens DailyBoosts/ModalBackdrop/Modal
+			end
+			if frame and UiResponsive.HasRuntimeLayout(pathOf(frame)) then
+				checkList(res, "runtime_model_matches_live_" .. state.Name, FX.runtimeDrift(frame))
+			end
+		end
 		if worst > TOL then
 			check(res, "layout_model_worst_" .. state.Name, worstPath, "none", false)
 		end
@@ -4991,6 +5096,13 @@ function S.ui_layout(res)
 		restore()
 	end
 	hudPairChecks(res)
+	if unlocked then
+		local rf = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+		if rf then
+			pcall(rf.InvokeServer, rf, "restore:hud_unlock")
+		end
+		UiScenarios.Applied.hud_unlock = nil
+	end
 end
 
 -- docs/HUD_LAYOUT_SPEC.md section 6 / UPGRADE_TREE_SPEC.md section 5: while a full-screen overlay panel

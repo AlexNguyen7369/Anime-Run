@@ -403,8 +403,8 @@ function Module.Build(h)
 	-- Design doc 4.40 (owner 2026-11-12): in the second column under Bosses, level with the Items / Rebirth gap.
 	local function checkPlace(res)
 		local b, boss, grid = h.find(T.Button), h.find(BOSS_BUTTON), h.find(GRID)
-		local r = b and shown(b) and h.rect(b)
-		local br = boss and shown(boss) and h.rect(boss)
+		local r = b and shown(b) and h.rect(b) or nil
+		local br = boss and shown(boss) and h.rect(boss) or nil
 		h.check(
 			res,
 			"team_button_left_edge_as_bosses",

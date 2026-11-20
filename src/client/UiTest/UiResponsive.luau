@@ -21,7 +21,8 @@
 
 local Model = {}
 -- Client/IndexAnimeStyle.Frame (design doc 4.42 "Wider panels"): every panel frame's size in design units.
-local Units = require(script.Parent.Parent:WaitForChild("AnimeSkin")).Units
+local Skin = require(script.Parent.Parent:WaitForChild("AnimeSkin"))
+local Units = Skin.Units
 
 -- The generated fit(): phone = ViewportSize.Y <= PHONE_MAX_HEIGHT;
 -- k = phone and clamp(Y / 390, 0.85, 1.15) or clamp(Y / 720, 0.6, 1.4); UIScale.Scale = k x the node's zoom.
@@ -1692,6 +1693,305 @@ function Model.RacerPanelFit(viewport, band)
 		Band = { top = top, bottom = bottom, side = left },
 	}
 end
+-- The runtime layouts that replace the generated rects inside these panels, for a viewport the window is not at. They
+-- read the camera (phone or not) and the panel's resting scale, so the live properties only describe the live window,
+-- and the generated phone rows (Nodes) are the authored ones those layouts overwrite. Ported from:
+--   RacerIndex: Client/IndexAnimeStyle layout(); RacerStats / RacerSettings / RacerRebirth: RollToast/RacerUiController
+--   indexFrame() and its three content functions; DailyBoosts (Daily view): Client/QuestAnimeStyle layout() and
+--   BoostDailyUi placeDaily / placeCard.
+-- RuntimeLayout(frame, input) -> { [instance] = { Position, Size, AnchorPoint, Padding } } or nil for any other frame.
+-- input.Small: the phone layout; input.Scale: the Racer panel's resting UIScale (BaseScale, 0.01 steps), or the Daily
+-- modal's k (its px / frame units). ui_layout checks it against the live properties (runtime_model_matches_live_*).
+local function find(root, rel)
+	local node = root
+	for _, name in string.split(rel, "/") do
+		node = node and node:FindFirstChild(name)
+	end
+	return node
+end
+local function placeProps(x, y, w, h)
+	return { AnchorPoint = Vector2.zero, Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(w, h) }
+end
+local TOKEN, SPACE = Skin.Size, Skin.Space
+local RUNTIME = {}
+local function racerChrome(out, frame, small, units)
+	local W, H = small and Units.PhoneW or Units.W, small and Units.PhoneH or Units.H
+	local g = { W = W, H = H, Tabs = small and 90 or 98, Top = small and 144 or 164, u = units }
+	g.Height = H - g.Top - 82
+	local function put(rel, props)
+		local node = find(frame, rel)
+		if node then
+			out[node] = props
+		end
+		return node
+	end
+	g.put = put
+	put("Face/Header", placeProps(0, 0, W, 64))
+	put("Face/Header/Face/Title", placeProps(168, -23, W - 266, 76))
+	put("Face/Header/Face/AnimeLogo", placeProps(-19, -72, 188, 186))
+	put("Face/Header/Face/Close", placeProps(W - 74, 4, 58, 54))
+	function g.tabsRow(rel)
+		local strip = put(rel, placeProps(56, g.Tabs, W - 112, 40))
+		local width = math.min(300, math.floor((W - 120) / 2))
+		for _, tab in strip and strip:GetChildren() or {} do
+			if tab:IsA("TextButton") then
+				out[tab] = { Size = UDim2.fromOffset(width, 40) }
+				local badge = tab:FindFirstChild("Badge")
+				if badge then
+					out[badge] = { Size = UDim2.fromOffset(units(24), units(24)) }
+				end
+			end
+		end
+	end
+	function g.footer(rel)
+		put(rel, placeProps(math.floor(W * 303 / 920), H - 60, math.floor(W * 312 / 920), 28))
+	end
+	return g
+end
+local function racerUnits(small, baseScale)
+	return function(px)
+		local onScreen = small and math.floor(px * 0.75 + 0.5) or px -- AnimeSkin.Px (PHONE_SCALE)
+		return math.floor(onScreen / baseScale + 0.5)
+	end
+end
+RUNTIME["RacerIndex/Panel"] = function(out, frame, input)
+	local small = input.Small
+	local w, h = small and Units.PhoneW or Units.W, small and Units.PhoneH or Units.H
+	local function put(rel, position, size)
+		local node = find(frame, rel)
+		if node then
+			out[node] = { Position = position, Size = size }
+		end
+	end
+	put("Face/Header", UDim2.fromOffset(56, small and 90 or 98), UDim2.fromOffset(w - 112, 44))
+	local width = (w - 136) / 4
+	for i, name in { "CharactersTab", "EnemiesTab", "SidekicksTab", "RelicsTab" } do
+		put("Face/Header/Face/" .. name, UDim2.fromOffset((i - 1) * (width + 8), 0), UDim2.fromOffset(width, 40))
+	end
+	put("Face/Header/Face/Close", UDim2.fromOffset(w - 130, -94), UDim2.fromOffset(58, 54))
+	local top = small and 144 or 164
+	put("Face/GridHost", UDim2.fromOffset(56, top), UDim2.fromOffset(w - 112, h - top - 82))
+	put("Face/GridPlate", UDim2.fromOffset(48, top - 6), UDim2.fromOffset(w - 96, h - top - 74))
+	put("Face/IndexProgress", UDim2.fromOffset(w * 303 / 920, h - 60), UDim2.fromOffset(w * 312 / 920, 28))
+	put("Face/ProgressPlate", UDim2.fromOffset(18, h - 48), UDim2.fromOffset(w - 36, 42))
+end
+RUNTIME["RacerStats/Panel"] = function(out, frame, input)
+	local u = racerUnits(input.Small, input.Scale)
+	local g = racerChrome(out, frame, input.Small, u)
+	g.tabsRow("Face/Header/Face/RebirthTabs")
+	local width = g.W - 112
+	g.put("Face/StatsHost", placeProps(56, g.Top, width, g.Height))
+	g.put("Face/Header/Face/Points", placeProps(math.floor(g.W * 303 / 920), g.H - 60, math.floor(g.W * 312 / 920), 28))
+	local list = find(frame, "Face/StatsHost/Rows")
+	local rows = {}
+	for _, row in list and list:GetChildren() or {} do
+		if row:IsA("GuiObject") then
+			table.insert(rows, row)
+		end
+	end
+	if #rows == 0 then
+		return
+	end
+	local gap, inner = u(SPACE.Gap), u(SPACE.Inner)
+	local listLayout = list:FindFirstChildOfClass("UIListLayout")
+	if listLayout then
+		out[listLayout] = { Padding = UDim.new(0, gap) }
+	end
+	local rowH = math.floor((g.Height - gap * (#rows - 1)) / #rows)
+	local pad, lineGap, barH = inner, u(4), u(6)
+	local textH = rowH - 2 * pad - 2 * lineGap - barH
+	local nameH = math.floor(textH * 0.55)
+	local lineH = textH - nameH
+	local slant = u(24)
+	local artSize = rowH - 2 * pad
+	local plusSize = math.min(u(SPACE.Button), rowH - 2 * inner)
+	local x = slant + artSize + pad
+	local areaW = width - x - slant - plusSize - pad
+	local descW = math.floor(areaW * 0.5)
+	for _, row in rows do
+		out[row] = { Size = UDim2.new(1, 0, 0, rowH) }
+		local function put(name, props)
+			local node = row:FindFirstChild(name)
+			if node then
+				out[node] = props
+			end
+		end
+		put("Art", placeProps(slant, pad, artSize, artSize))
+		put("Plus", {
+			AnchorPoint = Vector2.zero,
+			Position = UDim2.new(1, -(plusSize + slant), 0, math.floor((rowH - plusSize) / 2)),
+			Size = UDim2.fromOffset(plusSize, plusSize),
+		})
+		put("StatName", placeProps(x, pad, areaW, nameH))
+		put("Description", placeProps(x, pad + nameH + lineGap, descW, lineH))
+		put("Value", placeProps(x + descW, pad + nameH + lineGap, areaW - descW, lineH))
+		put("Accent", placeProps(x, pad + nameH + lineGap + lineH + lineGap, areaW, barH))
+	end
+end
+RUNTIME["RacerSettings/Panel"] = function(out, frame, input)
+	local u = racerUnits(input.Small, input.Scale)
+	local g = racerChrome(out, frame, input.Small, u)
+	g.tabsRow("Face/Header/Face/CategoryTabs")
+	local left, width = 56 + u(SPACE.Inset), g.W - 112 - 2 * u(SPACE.Inset)
+	local keys = { "Sound", "Effects", "Auto", "TrackCamera", "AutoSell" }
+	local gap = u(SPACE.Gap)
+	local rowH = math.floor((g.Height - (#keys - 1) * gap) / #keys)
+	local toggleH = math.min(u(SPACE.ButtonSmall), rowH - u(SPACE.Inner))
+	local toggleW = 2 * toggleH
+	local slant = math.floor(rowH / 2) + u(SPACE.Inner)
+	for i, key in keys do
+		local row = key .. "Row"
+		g.put("Face/" .. row, placeProps(left, g.Top + (i - 1) * (rowH + gap), width, rowH))
+		g.put(
+			"Face/" .. row .. "/Face/" .. key .. "Name",
+			placeProps(slant, 0, width - 2 * slant - toggleW - u(SPACE.Inner), rowH)
+		)
+		g.put(
+			"Face/" .. row .. "/Face/" .. key .. "Toggle",
+			placeProps(width - slant - toggleW, math.floor((rowH - toggleH) / 2), toggleW, toggleH)
+		)
+	end
+	g.footer("Face/AnimeFooterLine")
+	local host = g.put("Face/PlayerProfile", placeProps(left, g.Top, width, g.Height))
+	local plates = {}
+	for _, row in host and host:GetChildren() or {} do
+		if row:IsA("Frame") then
+			table.insert(plates, row)
+		end
+	end
+	if #plates == 0 then
+		return
+	end
+	local rowGap = u(SPACE.Gap)
+	local hostLayout = host:FindFirstChildOfClass("UIListLayout")
+	if hostLayout then
+		out[hostLayout] = { Padding = UDim.new(0, rowGap) }
+	end
+	local plateH = math.floor((g.Height - (#plates - 1) * rowGap) / #plates)
+	local plateSlant = math.floor(plateH / 2) + u(SPACE.Inner)
+	local textW = width - 2 * plateSlant
+	local nameW = math.floor(textW * 0.55)
+	for _, row in plates do
+		out[row] = { Size = UDim2.new(1, 0, 0, plateH) }
+		local name, value = row:FindFirstChild("Name"), row:FindFirstChild("Value")
+		if name then
+			out[name] = placeProps(plateSlant, 0, nameW, plateH)
+		end
+		if value then
+			out[value] = placeProps(plateSlant + nameW, 0, textW - nameW, plateH)
+		end
+	end
+end
+RUNTIME["RacerRebirth/Panel"] = function(out, frame, input)
+	local u = racerUnits(input.Small, input.Scale)
+	local g = racerChrome(out, frame, input.Small, u)
+	g.tabsRow("Face/Header/Face/RebirthTabs")
+	g.footer("Face/AnimeFooterLine")
+	local left, width = 56 + u(SPACE.Inset), g.W - 112 - 2 * u(SPACE.Inset)
+	local gap, inner, pad = u(SPACE.Gap), u(SPACE.Inner), u(SPACE.Pad)
+	local headH, lineH = u(TOKEN.Section + 4), u(TOKEN.Body + 4)
+	local bottom = g.Top + g.Height
+	local warnH, headW = 2 * lineH, u(150)
+	g.put("Face/Warning", placeProps(left, g.Top, width, warnH))
+	g.put("Face/Warning/WarningTitle", placeProps(0, math.floor((warnH - headH) / 2), headW, headH))
+	g.put("Face/Warning/WarningText", placeProps(headW + gap, 0, width - headW - gap, warnH))
+	local buttonW, buttonH, barH = u(160), u(SPACE.Button), u(SPACE.ButtonSmall)
+	local reqW, reqH = width - buttonW - gap, headH + inner + barH
+	local reqTop = bottom - reqH
+	g.put("Face/Requirements", placeProps(left, reqTop, reqW, reqH))
+	g.put("Face/Requirements/RequirementsTitle", placeProps(0, 0, reqW, headH))
+	g.put("Face/Requirements/Bar", placeProps(0, headH + inner, reqW, barH))
+	g.put("Face/Requirements/Bar/Face/BarText", placeProps(0, 0, reqW, barH))
+	g.put("Face/RebirthButton", placeProps(left + width - buttonW, bottom - buttonH, buttonW, buttonH))
+	local rewardsTop = g.Top + warnH + gap
+	local cardH = math.max(0, reqTop - gap - rewardsTop - headH - inner)
+	local cardW = math.floor((width - 2 * gap) / 3)
+	local iconSize = math.max(0, cardH - 2 * inner)
+	g.put("Face/Rewards", placeProps(left, rewardsTop, width, headH + inner + cardH))
+	g.put("Face/Rewards/RewardsTitle", placeProps(0, 0, width, headH))
+	for i, name in { "LuckReward", "SpeedReward", "PointReward" } do
+		local card = "Face/Rewards/" .. name
+		g.put(card, placeProps((i - 1) * (cardW + gap), headH + inner, cardW, cardH))
+		g.put(card .. "/Face/" .. name .. "Icon", placeProps(pad, inner, iconSize, iconSize))
+		local x = pad + iconSize + inner
+		g.put(card .. "/Face/" .. name .. "Caption", placeProps(x, 0, cardW - x - pad, cardH))
+	end
+end
+-- Only the Daily view (QuestAnimeStyle active, BoostDailyUi's RewardCards built); the Quests view is not modelled.
+RUNTIME["DailyBoosts/ModalBackdrop/Modal"] = function(out, modal, input)
+	local layer, content = modal:FindFirstChild("AnimeQuests"), modal:FindFirstChild("Content")
+	local area = content and content:FindFirstChild("RewardCards")
+	if not (layer and layer.Visible and area) then
+		return
+	end
+	local small, k = input.Small, input.Scale
+	local W, H = small and Units.PhoneW or Units.W, small and Units.PhoneH or Units.H
+	local function px(x)
+		return math.floor(x * k + 0.5)
+	end
+	local function at(x, y)
+		return UDim2.fromOffset(px(x), px(y))
+	end
+	local function put(node, position, size)
+		if node then
+			out[node] = { Position = position, Size = size }
+		end
+	end
+	local banner = layer:FindFirstChild("Banner")
+	put(banner, at(-34, -18), UDim2.new(1, px(68), 0, px(86)))
+	put(banner and banner:FindFirstChild("Logo"), at(15, -54), at(188, 186))
+	put(banner and banner:FindFirstChild("Title"), at(202, -5), at(W - 312, 76))
+	put(layer:FindFirstChild("Close"), at(W - 82, -6), at(74, 74))
+	put(layer:FindFirstChild("Footer"), at(W * 303 / 920, H - 60), at(W * 312 / 920, 28))
+	local top = small and 144 or 164
+	local gridW, gridH = W - 112, H - top - 82
+	put(content, UDim2.fromOffset(px(56), px(top)), UDim2.fromOffset(px(gridW), px(gridH)))
+	local gap = Units.Gap
+	local colW = (gridW - 3 * gap) / 4
+	local cardH = math.max((gridH - gap - Units.Button - gap) / 2, 140)
+	local areaH = 2 * cardH + gap
+	put(area, UDim2.new(), at(gridW, areaH))
+	local days = 0
+	while area:FindFirstChild("Day" .. (days + 1)) do
+		days += 1
+	end
+	local size = Skin.UnitSize
+	for day = 1, days do
+		local card = area:FindFirstChild("Day" .. day)
+		local i, h = day - 1, cardH
+		if day == days then
+			h = areaH
+			put(card, at(3 * (colW + gap), 0), at(colW, areaH))
+		else
+			put(card, at(i % 3 * (colW + gap), math.floor(i / 3) * (cardH + gap)), at(colW, cardH))
+		end
+		local iconTop = Units.Pad + size.Item + Units.Inner
+		local iconH = math.max(0, h - iconTop - Units.Inner - size.Caption - Units.Pad)
+		put(card:FindFirstChild("Label"), at(Units.Pad, Units.Pad), UDim2.new(1, -px(2 * Units.Pad), 0, px(size.Item)))
+		for _, name in { "RewardIcon", "Completion" } do
+			put(card:FindFirstChild(name), at(Units.Pad, iconTop), UDim2.new(1, -px(2 * Units.Pad), 0, px(iconH)))
+		end
+		put(
+			card:FindFirstChild("RewardText"),
+			UDim2.new(0, px(Units.Pad), 1, -px(Units.Pad + size.Caption)),
+			UDim2.new(1, -px(2 * Units.Pad), 0, px(size.Caption))
+		)
+	end
+	put(content:FindFirstChild("Claim"), at(0, areaH + gap), at(gridW, Units.Button))
+end
+function Model.HasRuntimeLayout(path)
+	return RUNTIME[path] ~= nil
+end
+function Model.RuntimeLayout(frame, path, input)
+	local layout = RUNTIME[path]
+	if not layout then
+		return nil
+	end
+	local out = {}
+	layout(out, frame, input)
+	return out
+end
+
 -- Client/RollToast copies PreviewRunner's Position / Size into these enlarged-card parts (fitRollArt, on every viewport
 -- change).
 Model.Follow = {

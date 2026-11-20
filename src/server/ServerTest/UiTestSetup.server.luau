@@ -815,6 +815,11 @@ function setups.team_states_clear(player)
 	restoreHudUnlock(player)
 end
 
+-- ui_layout: the HUD as from rebirth 1 (Summon, the Bosses button), so the two-column grid holds all its tiles.
+function setups.hud_unlock(player)
+	unlockHud(player)
+end
+
 -- ui_feedback: clients cannot read ServerStorage, so publish what its sound folder holds (docs/UI_FEEDBACK_SPEC.md 1).
 function setups.impact_sounds_report()
 	local report = {}
@@ -1791,6 +1796,7 @@ local CLIENT_SETUPS = {
 	bag_spares_clear = true,
 	team_states = true, -- ui_team
 	team_states_clear = true,
+	hud_unlock = true, -- ui_layout; restore:hud_unlock puts RebirthLevel back
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1943,6 +1949,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			restoreBossUi(player)
 		elseif restoreId == "relic_states" then
 			restoreRelics(player)
+		elseif restoreId == "hud_unlock" then
+			restoreHudUnlock(player)
 		elseif restoreId == "team_states" then
 			setups.team_states_clear(player)
 		elseif restoreId == "bag_full_sold" then
