@@ -207,6 +207,8 @@ UiScenarios.Names = {
 	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
+	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
+	"ui_remote_guards",
 	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened
 	"ui_roll_emphasized",
 }
@@ -8814,6 +8816,118 @@ for name, fn in K.sidekickTutorial.Scenarios do
 end
 for cond, fn in K.sidekickTutorial.After do
 	access.After[cond] = fn
+end
+
+-- bb96973 (D7): while this player's save is loading the guarded remotes answer false, "Data not loaded" and change
+-- nothing; (D8) GetRollLuck answers nil and UseBoost "Please wait" to a second call inside their cooldowns (0.15 s and
+-- 0.25 s). The cooldown pairs are sent at once, so they arrive well inside the window; one of each pair is refused.
+S.ui_remote_guards = function(res)
+	local remotes = ReplicatedStorage:WaitForChild("Remotes", 10)
+	check(res, "remotes_folder", remotes ~= nil, true, remotes ~= nil)
+	if not remotes then
+		return
+	end
+	local function remote(name)
+		-- the click spy renames the real one to UiTestOriginal_<name> while it is installed
+		local rf = remotes:FindFirstChild("UiTestOriginal_" .. name) or remotes:FindFirstChild(name)
+		return rf and rf:IsA("RemoteFunction") and rf or nil
+	end
+	local guarded = {
+		{ "SetTeam", {} },
+		{ "TeamQuickPick", {} },
+		{ "QuestClaim", { false, "uitest_no_such_quest" } },
+		{ "BuyUpgrade", { "uitest_no_such_tile" } },
+		{ "MarketPurchase", { "Aura", "uitest_no_such_item" } },
+		{ "MarketEquip", { "Aura", "uitest_no_such_item", 1 } },
+	}
+	local okSetup, err = UiScenarios.RequestSetup("data_loading")
+	check(res, "setup_data_loading", okSetup and "ok" or tostring(err), "ok", okSetup == true)
+	if okSetup then
+		for _, case in guarded do
+			local rf = remote(case[1])
+			if not rf then
+				check(res, "guard_" .. case[1] .. "_present", false, true, false)
+				continue
+			end
+			local okCall, ok, message = pcall(rf.InvokeServer, rf, table.unpack(case[2]))
+			local got = okCall and (tostring(ok) .. "," .. tostring(message)) or ("error " .. tostring(ok))
+			check(
+				res,
+				"guard_" .. case[1] .. "_data_not_loaded",
+				got,
+				"false,Data not loaded",
+				got == "false,Data not loaded"
+			)
+		end
+	end
+	pcall(
+		ReplicatedStorage.UiTestSetupRequest.InvokeServer,
+		ReplicatedStorage.UiTestSetupRequest,
+		"restore:data_loading"
+	)
+	UiScenarios.Applied.data_loading = nil
+	local deadline = os.clock() + UiScenarios.SETUP_WAIT
+	while player:GetAttribute("DataLoaded") ~= true and os.clock() < deadline do
+		task.wait(0.1)
+	end
+	check(
+		res,
+		"data_loaded_restored",
+		player:GetAttribute("DataLoaded"),
+		true,
+		player:GetAttribute("DataLoaded") == true
+	)
+
+	-- both of a pair sent at once, after the previous calls' windows have passed
+	local function pair(rf, ...)
+		local args = table.pack(...)
+		local out, done = {}, 0
+		for i = 1, 2 do
+			task.spawn(function()
+				out[i] = table.pack(pcall(rf.InvokeServer, rf, table.unpack(args, 1, args.n)))
+				done += 1
+			end)
+		end
+		local stop = os.clock() + 10
+		while done < 2 and os.clock() < stop do
+			task.wait()
+		end
+		return out
+	end
+	local luck = remote("GetRollLuck")
+	check(res, "luck_remote_present", luck ~= nil, true, luck ~= nil)
+	if luck then
+		task.wait(0.3)
+		local out = pair(luck)
+		local answered, refused = 0, 0
+		for _, r in out do
+			if r[1] and r[2] ~= nil then
+				answered += 1
+			elseif r[1] and r[2] == nil then
+				refused += 1
+			end
+		end
+		check(
+			res,
+			"luck_second_call_nil",
+			("answered=%d nil=%d"):format(answered, refused),
+			"answered=1 nil=1",
+			answered == 1 and refused == 1
+		)
+	end
+	local boost = remote("UseBoost")
+	check(res, "boost_remote_present", boost ~= nil, true, boost ~= nil)
+	if boost then
+		task.wait(0.3)
+		local out = pair(boost, "uitest_no_such_boost") -- an unknown id: nothing is used
+		local waits = 0
+		for _, r in out do
+			if r[1] and r[2] == false and r[3] == "Please wait" then
+				waits += 1
+			end
+		end
+		check(res, "boost_second_call_please_wait", waits, 1, waits == 1)
+	end
 end
 
 -- BoostDailyUi now owns Daily Rewards plus a reference-driven Daily/Weekly

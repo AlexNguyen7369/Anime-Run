@@ -3606,6 +3606,28 @@ teamChain(TEAM_NEED, {
 	{ "team_confirm_close", "RacerTeam", "Panel/Header/Close", "team_confirm_shown" },
 	{ "team_confirm_deploy", "RacerTeam", "Panel/ConfirmClose/Deploy", "team_is_abc" },
 })
+-- 112999f: Back (PanelSwitch.Back, the path gamepad B and Escape take) on the question closes it, the page and draft stay;
+-- a second Close asks again and Discard closes.
+CLOSES.team_back_discard = true
+teamChain(TEAM_NEED, {
+	{ "team_back_select_altar3", "RacerTeam", "Panel/Altars/Altar3" },
+	{ "team_back_put_c", "RacerTeam", "Panel/Tray/Roster/{team_c}", nil, PICK },
+	{ "team_back_close", "RacerTeam", "Panel/Header/Close", "team_confirm_back" },
+	{ "team_back_close_again", "RacerTeam", "Panel/Header/Close", "team_confirm_shown" },
+	{ "team_back_discard", "RacerTeam", "Panel/ConfirmClose/Discard", "team_discarded" },
+})
+-- 112999f: the Sidekicks page asked for over a dirty draft opens once Discard answers the question.
+CLOSES.team_sidekicks_discard = true
+teamChain(TEAM_NEED, {
+	{ "team_sidekicks_select_altar3", "RacerTeam", "Panel/Altars/Altar3" },
+	{ "team_sidekicks_put_c", "RacerTeam", "Panel/Tray/Roster/{team_c}", "team_ask_sidekicks", PICK },
+	{ "team_sidekicks_discard", "RacerTeam", "Panel/ConfirmClose/Discard", "team_discard_opens_sidekicks" },
+})
+for _, click in UiSpec.Clicks do
+	if click.Id == "team_sidekicks_discard" then
+		click.Expect.Panels[UiSpec.Team.SummonPanel] = true
+	end
+end
 -- The Team Bonus popover and the tray tabs (no remote, the saved Team untouched).
 teamChain(TEAM_NEED, {
 	{ "team_bonus_open", "RacerTeam", "Panel/Header/BonusButton", "team_bonus_shown" },

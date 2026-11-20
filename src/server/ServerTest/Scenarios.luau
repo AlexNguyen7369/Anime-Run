@@ -43,18 +43,40 @@ function Runner.meter(pos0, skipTeleports)
 		return t > 0 and d / t or 0, step
 	end
 end
--- Every BasePart of the rig is Anchored (spec section 2: the server rig is anchored and authoritative).
+-- The rig is anchored and authoritative (spec section 2): its PrimaryPart is Anchored and every other BasePart is
+-- Anchored or rides in the PrimaryPart's assembly. 02c7e4e (P1): a server player rig welds its limbs to the anchored
+-- Torso (one assembly, one replicated CFrame per move); a factory or NPC rig is still anchored part by part.
 function Runner.anchored(model)
-	local any = false
-	for _, d in model and model:GetDescendants() or {} do
-		if d:IsA("BasePart") then
-			any = true
-			if not d.Anchored then
-				return false
+	local root = model and model.PrimaryPart
+	if not (root and root.Anchored) then
+		return false
+	end
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d ~= root and not d.Anchored and d.AssemblyRootPart ~= root then
+			return false
+		end
+	end
+	return true
+end
+-- 02c7e4e (P1): a RunnerService player rig is one assembly: the PrimaryPart (Torso) anchored, every other BasePart
+-- unanchored, held by a WeldConstraint "RigWeld" to it, so AssemblyRootPart is the PrimaryPart. Returns the count of
+-- parts that break it (-1 without a rig).
+function Runner.oneAssemblyBad(model)
+	local root = model and model.PrimaryPart
+	if not (root and root.Anchored) then
+		return -1
+	end
+	local bad = 0
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d ~= root then
+			local weld = d:FindFirstChild("RigWeld")
+			local welded = weld ~= nil and weld:IsA("WeldConstraint") and weld.Part0 == root and weld.Part1 == d
+			if d.Anchored or not welded or d.AssemblyRootPart ~= root then
+				bad += 1
 			end
 		end
 	end
-	return any
+	return bad
 end
 -- A player's runner in the world: a Model with the Owner attribute RunnerService sets and a Torso.
 function Runner.isRunner(m)
@@ -2193,6 +2215,8 @@ function Scenarios.auto_toggle()
 		-- the runner is anchored and moved by RaceService (spec section 2)
 		local anchored = Runner.anchored(runner)
 		check(checks, pre .. "_rig_anchored", anchored and 1 or 0, 1, anchored)
+		local looseParts = Runner.oneAssemblyBad(runner)
+		check(checks, pre .. "_rig_one_assembly", looseParts, 0, looseParts == 0)
 		-- NPC spec: a real player's run races Track 1's NPC from the start (RaceService.Attach passes Npc = true)
 		local raceTrack = type(run) == "table" and run.RaceTrack or nil
 		local npcOn = raceTrack == 1 and type(run.Results) == "table"
@@ -3404,7 +3428,7 @@ function Scenarios.data()
 	PlayerData.SetStore(store)
 
 	-- failing store: get throws
-	local failStore = { sets = 0 }
+	local failStore = { sets = 0, updates = 0 }
 	function failStore:GetAsync()
 		error("DataStore unavailable")
 	end
@@ -3412,12 +3436,19 @@ function Scenarios.data()
 		self.sets += 1
 	end
 	function failStore:UpdateAsync() -- VERSION 8: Load is one UpdateAsync (docs/SAVE_SPEC.md section 1)
+		self.updates += 1
 		error("DataStore unavailable")
 	end
 	PlayerData.SetStore(failStore)
 	local pf = newPlayer("ServerTestDataFail")
+	local failStarted = os.clock()
 	local okf, loadedf = pcall(PlayerData.Load, pf, 9301)
+	local failWaited = os.clock() - failStarted
 	check(checks, "failing_load_no_throw", okf and 1 or 0, 1, okf)
+	-- bb96973 (D2): a store error is asked again, LOAD_RETRIES attempts in all, waiting attempt x LOAD_RETRY_WAIT
+	-- (2 s, then 4 s) between them
+	check(checks, "failing_load_attempts", failStore.updates, 3, failStore.updates == 3)
+	check(checks, "failing_load_backoff_waits", failWaited, 6, failWaited >= 6 - 0.05)
 	check(checks, "failing_load_returns_false", loadedf == false and 1 or 0, 1, okf and loadedf == false)
 	check(
 		checks,
@@ -4041,6 +4072,14 @@ function Scenarios.data()
 		LOAD_RETRY_WAIT,
 		PlayerData.LOAD_RETRY_WAIT == LOAD_RETRY_WAIT
 	)
+	-- bb96973 (D2): a held lock is waited out up to LOCK_WAIT, by default LOCK_TIMEOUT
+	check(
+		checks,
+		"lock_wait_default_is_lock_timeout",
+		tonumber(PlayerData.LOCK_WAIT) or -1,
+		LOCK_TIMEOUT,
+		PlayerData.LOCK_WAIT == LOCK_TIMEOUT
+	)
 	local v8ApiOk = type(PlayerData.SessionId) == "function"
 		and type(PlayerData.SetSessionId) == "function"
 		and type(PlayerData.SetClock) == "function"
@@ -4342,12 +4381,19 @@ function Scenarios.data()
 				OfflineAt = now - 3600,
 				Lock = { Id = SESSION_B, At = now - (LOCK_TIMEOUT - 1) },
 			}
+			-- bb96973 (D2): a held lock is retried until LOCK_WAIT (default LOCK_TIMEOUT, 120 s) has passed. The test sets
+			-- LOCK_WAIT = 5 so the same 3 attempts happen in about 4 s: an attempt is made while elapsed + LOAD_RETRY_WAIT
+			-- <= LOCK_WAIT (0, 2, 4 s; 4 + 2 > 5 stops). 5, not 4: task.wait(2) returns a little after 2 s, so with 4 the
+			-- check at the second attempt (2.0x + 2 > 4) would already stop.
+			local lockWaitBefore = PlayerData.LOCK_WAIT
+			PlayerData.LOCK_WAIT = 5
 			local sLocked = makeStore({ ["Player_9805"] = deepCopy(lockedRec) })
 			PlayerData.SetStore(sLocked)
 			local pLocked = newPlayer("ServerTestDataV8Locked")
 			local startedAt = os.clock()
 			local okLocked, loadedLocked = pcall(PlayerData.Load, pLocked, 9805)
 			local waited = os.clock() - startedAt
+			PlayerData.LOCK_WAIT = lockWaitBefore
 			flag("locked_load_returns_false", okLocked and loadedLocked == false)
 			flag(
 				"locked_load_flags_data_failed",
@@ -4368,6 +4414,22 @@ function Scenarios.data()
 			flag(
 				"locked_player_save_writes_nothing",
 				okLs and savedLs == false and sLocked.sets == 0 and deepEqual(sLocked.data["Player_9805"], lockedRec)
+			)
+			-- A longer LOCK_WAIT keeps waiting: 7 s gives a 4th attempt (0, 2, 4, 6 s; 6 + 2 > 7 stops)
+			PlayerData.LOCK_WAIT = 7
+			local sLocked7 = makeStore({ ["Player_9808"] = deepCopy(lockedRec) })
+			PlayerData.SetStore(sLocked7)
+			local pLocked7 = newPlayer("ServerTestDataV8Locked7")
+			local started7 = os.clock()
+			local okLocked7, loaded7 = pcall(PlayerData.Load, pLocked7, 9808)
+			local waited7 = os.clock() - started7
+			PlayerData.LOCK_WAIT = lockWaitBefore
+			flag("locked_load_wait7_returns_false", okLocked7 and loaded7 == false)
+			check(checks, "locked_load_wait7_attempts", sLocked7.updates, 4, sLocked7.updates == 4)
+			check(checks, "locked_load_wait7_waits", waited7, 6, waited7 >= 6 - 0.05)
+			flag(
+				"locked_load_wait7_leaves_record_unchanged",
+				sLocked7.sets == 0 and deepEqual(sLocked7.data["Player_9808"], lockedRec)
 			)
 
 			-- The same record once the other server's lock is LOCK_TIMEOUT old: taken over at the first attempt.
@@ -4419,9 +4481,64 @@ function Scenarios.data()
 					and lockIs(sHop.data["Player_9807"], SESSION_A, now)
 			)
 			check(checks, "lock_released_during_retry_attempts", sHop.updates, 2, sHop.updates == 2)
+
+			-- bb96973 (D1): a record written by a newer VERSION loads read-only (DataReadOnly); Save returns false,
+			-- keeps every field and moves only the lock
+			local newerRec = { Money = 4242, Version = DATA_VERSION + 1, FutureField = { A = 1 } }
+			local sNewer = makeStore({ ["Player_9830"] = deepCopy(newerRec) })
+			PlayerData.SetStore(sNewer)
+			local pNewer = newPlayer("ServerTestDataNewer")
+			local loadedNewer = PlayerData.Load(pNewer, 9830)
+			flag("newer_version_loads", loadedNewer == true and val(pNewer, "Money") == 4242)
+			flag("newer_version_flags_read_only", pNewer:GetAttribute("DataReadOnly") == true)
+			now += 10
+			stat(pNewer, "Money").Value = 1
+			local savedNewer = PlayerData.Save(pNewer, 9830)
+			local recNewer = sNewer.data["Player_9830"]
+			flag("newer_version_save_returns_false", savedNewer == false)
+			flag("newer_version_save_keeps_fields", deepEqual(withoutLock(recNewer), newerRec))
+			flag("newer_version_save_moves_lock", lockIs(recNewer, SESSION_A, now))
+			flag("newer_version_stays_read_only", pNewer:GetAttribute("DataReadOnly") == true)
+
+			-- bb96973 (D1): a save starts from the stored record, so a key this version does not know is kept
+			local sKeep = makeStore({ ["Player_9831"] = { Money = 3, Version = 18, Mystery = { Keep = "yes" } } })
+			PlayerData.SetStore(sKeep)
+			local pKeep = newPlayer("ServerTestDataKeepUnknown")
+			PlayerData.Load(pKeep, 9831)
+			local savedKeep = PlayerData.Save(pKeep, 9831)
+			local recKeep = sKeep.data["Player_9831"]
+			flag(
+				"save_keeps_unknown_key",
+				savedKeep == true
+					and type(recKeep) == "table"
+					and recKeep.Version == DATA_VERSION
+					and deepEqual(recKeep.Mystery, { Keep = "yes" })
+			)
+			flag("current_version_not_read_only", pKeep:GetAttribute("DataReadOnly") ~= true)
+
+			-- bb96973 (D3): a player who leaves while the load is in flight hands the lock back; nothing is applied
+			local leaveRec = { Money = 999, Version = 18 }
+			local sLeave = makeStore({ ["Player_9832"] = deepCopy(leaveRec) })
+			local pLeave = newPlayer("ServerTestDataLeaveMidLoad")
+			sLeave.onUpdate = function(attempt)
+				if attempt == 1 then
+					pLeave.Parent = nil
+				end
+			end
+			PlayerData.SetStore(sLeave)
+			local okLeave, loadedLeave = pcall(PlayerData.Load, pLeave, 9832)
+			local recLeave = sLeave.data["Player_9832"]
+			flag("leave_mid_load_returns_false", okLeave and loadedLeave == false)
+			flag("leave_mid_load_lock_handed_back", type(recLeave) == "table" and recLeave.Lock == nil)
+			flag("leave_mid_load_record_unchanged", deepEqual(recLeave, leaveRec))
+			flag(
+				"leave_mid_load_money_not_applied",
+				val(pLeave, "Money") ~= 999 and pLeave:GetAttribute("DataLoaded") ~= true
+			)
 		end)
 		pcall(PlayerData.SetSessionId, nil)
 		pcall(PlayerData.SetClock, nil)
+		PlayerData.LOCK_WAIT = PlayerData.LOCK_TIMEOUT -- its default, also when an error skipped the restore above
 		if not okV8 then
 			check(checks, "data_v8_no_error", 0, tostring(errV8), false)
 		end
@@ -8260,6 +8377,8 @@ function Scenarios.spawn_area()
 		-- the runner is anchored and moved by RaceService (spec section 2)
 		local anchored = Runner.anchored(runner)
 		check(checks, pre .. "_rig_anchored", anchored and 1 or 0, 1, anchored)
+		local looseParts = Runner.oneAssemblyBad(runner)
+		check(checks, pre .. "_rig_one_assembly", looseParts, 0, looseParts == 0)
 		return runner, run
 	end
 	local function touch(part)

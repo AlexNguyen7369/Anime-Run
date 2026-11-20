@@ -402,7 +402,10 @@ function Access.Build(h)
 			if gui.Enabled then
 				local safe = guiRect(gui)
 				for _, d in gui:GetDescendants() do
-					local judged = d:IsA("GuiButton") or (d:IsA("TextLabel") and d.Text ~= "")
+					-- 112999f: a phone's see-through TouchHit area (Client/TouchTarget, 44 px) may reach past the safe
+					-- rect near a corner control; the control it serves is still judged here
+					local judged = (d:IsA("GuiButton") and d.Name ~= "TouchHit")
+						or (d:IsA("TextLabel") and d.Text ~= "")
 					if judged and h.visible(d) then
 						local r = h.clipped(d, h.rect)
 						if r and r.w > 0 and r.h > 0 and not h.contains(safe, r) then

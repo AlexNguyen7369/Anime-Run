@@ -301,13 +301,17 @@ function Tests.boss_paid()
 			idle()
 			local p = buyer()
 			local id = purchase()
+			-- bb96973 (D6): a failed save keeps the credit and the purchase id, no undo; the retry saves them and
+			-- grants nothing twice. The kept credit is "Boss ready" and starts the event when used.
 			failSave = true
 			eq("fail_retry", receipt(p, BOSS_PRODUCT, id), RETRY)
-			eq("fail_no_credit", credit(p), 0)
+			eq("fail_credit_kept", credit(p), 1)
 			eq("fail_no_event", active(), false)
-			flag("fail_receipt_dropped", table.find(Shop.Snapshot(p).Receipts, id) == nil)
+			flag("fail_receipt_kept", table.find(Shop.Snapshot(p).Receipts, id) ~= nil)
 			failSave = false
 			eq("fail_later_granted", receipt(p, BOSS_PRODUCT, id), GRANTED)
+			eq("fail_later_credit_once", credit(p), 1)
+			eq("fail_later_use", (Shop.UseBossCredit(p)), true)
 			eq("fail_later_started", active(), true)
 			eq("fail_later_credit", credit(p), 0)
 			-- The event is running; only the save of the use failed. The player paid and got it: the receipt stands.
@@ -427,8 +431,8 @@ function Tests.boss_paid()
 			local pack = Monetization.GemPacks[1]
 			failSave = true
 			eq("pack_fail_retry", receipt(p, PACK_PRODUCT_BASE + 1, id), RETRY)
-			eq("pack_fail_no_gems", gems(p), 0)
-			flag("pack_fail_receipt_dropped", table.find(Shop.Snapshot(p).Receipts, id) == nil)
+			eq("pack_fail_gems_kept", gems(p), pack.Gems) -- bb96973 (D6): the grant stays, no clamped undo
+			flag("pack_fail_receipt_kept", table.find(Shop.Snapshot(p).Receipts, id) ~= nil)
 			failSave = false
 			eq("pack_fail_later", receipt(p, PACK_PRODUCT_BASE + 1, id), GRANTED)
 			eq("pack_fail_later_once", gems(p), pack.Gems)

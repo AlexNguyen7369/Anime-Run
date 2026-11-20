@@ -65,6 +65,7 @@ local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has foll
 local TOL = 1 -- px
 local DOT_FILLED = 0.5 -- Dot BackgroundTransparency below this: filled
 local FILL_TOL = 0.02 -- Progress/Fill Size.X.Scale against n/3
+local GEAR_CLEAR = 4 -- px between an altar's Gear and its SlotLabel (112999f)
 
 local Module = {}
 
@@ -711,6 +712,23 @@ function Module.Build(h)
 		local worn = SidekickView.RelicGear(player)[ids[1]] ~= nil
 		check(res, "team_gear_fixture_relic_on_first", worn, true)
 		h.checkList(res, "team_gear_icons", wrong)
+		-- 112999f: an altar's gear icons sit right of the seal, GEAR_CLEAR px clear of its SlotLabel (the eye check
+		-- runs it at 4:3, where it is tightest)
+		local crowded = {}
+		for n = 1, 3 do
+			local a = altar(n)
+			local gear = ids[n] and a and a:FindFirstChild("Gear", true)
+			local label = a and a:FindFirstChild("SlotLabel", true)
+			if gear and label and shown(gear) and shown(label) then
+				local l = h.rect(label)
+				local grown =
+					{ x = l.x - GEAR_CLEAR, y = l.y - GEAR_CLEAR, w = l.w + 2 * GEAR_CLEAR, h = l.h + 2 * GEAR_CLEAR }
+				if overlaps(grown, h.rect(gear)) then
+					table.insert(crowded, "Altar" .. n .. ": Gear within " .. GEAR_CLEAR .. " px of SlotLabel")
+				end
+			end
+		end
+		h.checkList(res, "team_gear_clear_of_slot_label", crowded)
 		checkTooltip(res, icons[1])
 	end
 
@@ -734,6 +752,14 @@ function Module.Build(h)
 				return #rosterProblems({ ids[1], ids[2] }) == 0
 			end, true)
 			h.checkList(res, "team_ab_roster", wrong and {} or rosterProblems({ ids[1], ids[2] }))
+			-- 112999f: a gamepad starts on the first altar (FirstFocus), not on Close; only Altar1 carries it
+			local firstFocus = {}
+			for _, d in h.find(T.Panel) and h.find(T.Panel):GetDescendants() or {} do
+				if d:IsA("GuiButton") and d:GetAttribute("FirstFocus") then
+					table.insert(firstFocus, d.Name)
+				end
+			end
+			check(res, "team_first_focus_is_altar1", table.concat(firstFocus, ","), "Altar1")
 			for n = 1, 3 do
 				local a = altar(n)
 				check(
@@ -948,6 +974,62 @@ function Module.Build(h)
 		)
 		check(res, "team_confirm_page_open", shown(h.find(T.Panel)), true)
 		savedIs(res, "team_confirm", "ab", true)
+	end
+	-- 112999f: the question has a blocker behind it (ConfirmBlocker shown with ConfirmClose); Back (gamepad B, Escape:
+	-- PanelSwitch.Back) closes the question first and keeps the page and the draft. The real key press is an eye check.
+	local function blockerShown()
+		return shown(h.find(T.Panel .. "/ConfirmBlocker"))
+	end
+	function after.team_confirm_back(res)
+		local confirm = h.find(T.ConfirmClose)
+		check(
+			res,
+			"team_back_confirm_shown",
+			waitIs(function()
+				return shown(confirm)
+			end, true),
+			true
+		)
+		check(res, "team_back_blocker_with_confirm", waitIs(blockerShown, true), true)
+		panelSwitch().Back("Team")
+		check(
+			res,
+			"team_back_hides_confirm",
+			waitIs(function()
+				return shown(confirm)
+			end, false),
+			false
+		)
+		check(res, "team_back_hides_blocker", waitIs(blockerShown, false), false)
+		check(res, "team_back_keeps_page", shown(h.find(T.Panel)) and panelSwitch().IsOpen("Team"), true)
+		savedIs(res, "team_back", "ab", true)
+	end
+	-- 112999f: asking for the Sidekicks page over a dirty draft asks Deploy / Discard first (Team stays open) ...
+	function after.team_ask_sidekicks(res)
+		panelSwitch().Toggle("Sidekicks")
+		check(
+			res,
+			"team_ask_confirm_shown",
+			waitIs(function()
+				return shown(h.find(T.ConfirmClose))
+			end, true),
+			true
+		)
+		check(res, "team_ask_page_stays", shown(h.find(T.Panel)), true)
+		check(res, "team_ask_sidekicks_not_yet", panelSwitch().IsOpen("Sidekicks"), false)
+	end
+	-- ... and Discard then opens the Sidekicks page that was asked for
+	function after.team_discard_opens_sidekicks(res)
+		check(
+			res,
+			"team_discard_then_sidekicks_open",
+			waitIs(function()
+				return panelSwitch().IsOpen("Sidekicks") and shown(h.find(T.SummonPanel))
+			end, true),
+			true
+		)
+		check(res, "team_discard_then_team_closed", shown(h.find(T.Panel)), false)
+		savedIs(res, "team_discard_sidekicks", "ab", true)
 	end
 	function after.team_discarded(res)
 		savedIs(res, "team_discard", "ab", true)

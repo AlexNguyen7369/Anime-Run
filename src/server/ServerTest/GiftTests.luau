@@ -91,6 +91,61 @@ function Tests.gifting()
 			"gift_missing_purchase_id_retries",
 			service.ProcessReceipt({ ProductId = product.GiftProductId, PlayerId = sender.UserId }) == retry
 		)
+		-- bb96973 (D4, D5): an unpaid pending gift (no PurchaseId) stops blocking after PENDING_TIMEOUT; a paid one never
+		-- does. A routed receipt older than RECEIPT_DAYS is pruned; one with no time yet is stamped now.
+		local now = os.time()
+		local function routeKey(id)
+			return "Buyer_" .. tostring(id)
+		end
+		local function buyer(id, pending, receipts)
+			local p = player(id)
+			online[id] = p
+			store.data[routeKey(id)] = { Pending = pending, Receipts = receipts or {} }
+			return p
+		end
+		local function stub(at, purchaseId)
+			return {
+				ProductId = product.GiftProductId,
+				RecipientId = recipient.UserId,
+				SenderId = 0,
+				Grants = H.copy(product.Grants),
+				At = at,
+				PurchaseId = purchaseId,
+			}
+		end
+		online[recipient.UserId] = recipient
+		local stale = buyer(991121, stub(now - service.PENDING_TIMEOUT - 1))
+		flag("gift_stale_unpaid_pending_replaced", service.Prepare(stale, product.Id, recipient.UserId) == true)
+		local staleRec = store.data[routeKey(991121)]
+		flag(
+			"gift_stale_replaced_with_new_selection",
+			type(staleRec.Pending) == "table"
+				and staleRec.Pending.SenderId == 991121
+				and type(staleRec.Pending.At) == "number"
+				and now - staleRec.Pending.At <= 5
+		)
+		local fresh = buyer(991122, stub(now - 10))
+		flag("gift_fresh_unpaid_pending_blocks", service.Prepare(fresh, product.Id, recipient.UserId) == false)
+		local paid = buyer(991123, stub(now - service.PENDING_TIMEOUT - 1, "gift-paid-old"))
+		flag("gift_old_paid_pending_blocks", service.Prepare(paid, product.Id, recipient.UserId) == false)
+		local undated = buyer(991124, stub(nil))
+		flag("gift_undated_unpaid_pending_replaced", service.Prepare(undated, product.Id, recipient.UserId) == true)
+		local days = service.RECEIPT_DAYS * 86400
+		local pruner = buyer(991125, nil, {
+			old = { RecipientId = recipient.UserId, At = now - days - 60 },
+			kept = { RecipientId = recipient.UserId, At = now - days + 3600 },
+			undated = { RecipientId = recipient.UserId },
+		})
+		service.Prepare(pruner, product.Id, recipient.UserId)
+		local receipts = store.data[routeKey(991125)].Receipts
+		flag("gift_receipt_older_than_90_days_pruned", receipts.old == nil)
+		flag("gift_receipt_younger_kept", type(receipts.kept) == "table")
+		flag(
+			"gift_receipt_undated_stamped",
+			type(receipts.undated) == "table"
+				and type(receipts.undated.At) == "number"
+				and math.abs(receipts.undated.At - now) <= 5
+		)
 		service.COOLDOWN = 10
 		flag("gift_cooldown_enforced", service.Prepare(sender, product.Id, other.UserId) == false)
 		flag("gift_deposit_only_after_route", attempts >= 3)
@@ -155,7 +210,48 @@ function Tests.gift_mailbox()
 		store.fail = true
 		flag("mailbox_enqueue_failure", data.EnqueueGift(uid, "mail-c", gift) == false)
 		flag("mailbox_enqueue_failure_preserves", H.same(before, store.data[data.KeyFor(uid)]))
+		store.fail = false
+		-- bb96973 (D5): an enqueued entry gets At; a claimed entry and its receipt are pruned together once older
+		-- than 90 days, a younger one stays, an undated claimed one is stamped with the save's time.
+		local T = 1790000000
+		data.SetClock(function()
+			return T
+		end)
+		local stampId = 990078112
+		flag("mailbox_enqueue_stamps_at", data.EnqueueGift(stampId, "mail-at", gift) == true)
+		local stamped = store.data[data.KeyFor(stampId)]
+		flag("mailbox_entry_at_is_clock", stamped.GiftMailbox["mail-at"].At == T, stamped.GiftMailbox["mail-at"].At, T)
+		local pruneId = 990078113
+		local day = 86400
+		store.data[data.KeyFor(pruneId)] = {
+			Version = 19,
+			Money = 5,
+			Checkpoint = 1,
+			GiftMailbox = {
+				old = { Grants = { LuckIII = 1 }, At = T - 91 * day },
+				young = { Grants = { LuckIII = 1 }, At = T - 89 * day },
+				undated = { Grants = { LuckIII = 1 } },
+			},
+			GiftReceipts = { old = true, young = true, undated = true },
+		}
+		local pr = H.player(cleanup, pruneId)
+		flag("mailbox_prune_load", data.Load(pr, pruneId) == true)
+		flag("mailbox_prune_save", data.Save(pr, pruneId, true) == true)
+		local pruned = store.data[data.KeyFor(pruneId)]
+		flag("mailbox_old_entry_and_receipt_pruned", pruned.GiftMailbox.old == nil and pruned.GiftReceipts.old == nil)
+		flag(
+			"mailbox_young_entry_and_receipt_kept",
+			pruned.GiftMailbox.young ~= nil and pruned.GiftReceipts.young == true
+		)
+		flag(
+			"mailbox_undated_claimed_entry_stamped",
+			type(pruned.GiftMailbox.undated) == "table"
+				and pruned.GiftMailbox.undated.At == T
+				and pruned.GiftReceipts.undated == true
+		)
+		flag("mailbox_prune_no_regrant", boosts.Count(pr, "LuckIII") == 0, boosts.Count(pr, "LuckIII"), 0)
 	end)
+	pcall(data.SetClock, nil)
 	data.SetStore(nil)
 	for _, object in cleanup do
 		object:Destroy()
