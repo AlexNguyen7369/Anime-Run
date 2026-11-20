@@ -445,7 +445,66 @@ local function buildAltar(s)
 	return m, yaw, top
 end
 
--- ---------- members + idle breathing ----------
+-- ---------- members: idle stance + breathing ----------
+-- Static idle stance (owner 2026-11-20: "spread legs and arms", like the reference), applied under the breathing.
+-- The rigs are 6 rigid MeshParts (no elbows or knees), so each limb turns whole about its joint. Degrees; arm values
+-- are { left, right } for a little asymmetry. Live-tunable: edit _G.TSD.stance then _G.TSD.build(team).
+local STANCE = { legRoll = 13, armRoll = { 15, 19 }, armFwd = { 8, 14 }, lean = 3, headTilt = 2.5 }
+TSD.stance = STANCE
+local function rotAbout(pt, rot)
+	return CFrame.new(pt) * rot * CFrame.new(-pt)
+end
+-- Stance CFrame of one part in rig space (feet centre at the origin, front = -Z), applied as stance * cf.
+local function stanceOf(name, cf, size, legTop)
+	local A = STANCE
+	local sgn = cf.X >= 0 and 1 or -1
+	local i = sgn < 0 and 1 or 2
+	if name == "LeftLeg" or name == "RightLeg" then
+		return rotAbout(Vector3.new(cf.X, cf.Y + size.Y / 2, cf.Z), CFrame.Angles(0, 0, sgn * math.rad(A.legRoll)))
+	end
+	local lean = rotAbout(Vector3.new(0, legTop, cf.Z), CFrame.Angles(-math.rad(A.lean), 0, 0)) -- top toward -Z (camera)
+	if name == "LeftArm" or name == "RightArm" then
+		-- pivot at the arm's top inner corner (the armpit), so the arm swings out without poking above the shoulder
+		local pivot = Vector3.new(cf.X - sgn * size.X / 2, cf.Y + size.Y / 2, cf.Z)
+		local rot = CFrame.Angles(math.rad(A.armFwd[i]), 0, 0) * CFrame.Angles(0, 0, sgn * math.rad(A.armRoll[i]))
+		return lean * rotAbout(pivot, rot)
+	elseif name == "Head" then
+		return lean * rotAbout(Vector3.new(cf.X, cf.Y - size.Y / 2, cf.Z), CFrame.Angles(0, 0, math.rad(A.headTilt)))
+	end
+	return lean
+end
+local function boxMinY(cf, size)
+	local m = math.huge
+	for _, x in { -1, 1 } do
+		for _, y in { -1, 1 } do
+			for _, z in { -1, 1 } do
+				m = math.min(m, (cf * Vector3.new(x, y, z) * size / 2).Y)
+			end
+		end
+	end
+	return m
+end
+local function applyStance(r)
+	local legTop = 0
+	for p, info in r.parts do
+		if p.Name == "LeftLeg" or p.Name == "RightLeg" then
+			legTop = math.max(legTop, info.cf.Y + info.size.Y / 2)
+		end
+	end
+	local low = math.huge
+	for p, info in r.parts do
+		info.stance = stanceOf(p.Name, info.cf, info.size, legTop)
+		if p.Name == "LeftLeg" or p.Name == "RightLeg" then
+			low = math.min(low, boxMinY(info.stance * info.cf, info.size))
+		end
+	end
+	-- re-seat: the lowest foot corner touches the altar top
+	local seat = CFrame.new(0, low == math.huge and 0 or -low, 0)
+	for _, info in r.parts do
+		info.stance = seat * info.stance
+	end
+end
+
 local function placeMember(slot, id)
 	local s = SLOTS[slot]
 	local _, yaw, top = buildAltar(s)
@@ -478,6 +537,7 @@ local function placeMember(slot, id)
 	end
 	r.torso = rig:FindFirstChild("Torso")
 	r.head = rig:FindFirstChild("Head")
+	applyStance(r)
 	table.insert(rigs, r)
 	return rig
 end
@@ -493,7 +553,7 @@ local function pose(r, t)
 	local grow = torsoInfo and torsoInfo.size.Y * 0.022 * inhale or 0
 	local rise = 0.035 * k * inhale
 	for p, info in r.parts do
-		local cf, size = info.cf, info.size
+		local cf, size = info.stance * info.cf, info.size -- breathing plays on top of the stance
 		local name = p.Name
 		if name == "Torso" then
 			size = Vector3.new(size.X * (1 + 0.012 * inhale), size.Y * (1 + 0.022 * inhale), size.Z * (1 + 0.03 * inhale))
@@ -564,62 +624,139 @@ do
 	pill(h, "×", 1843, 9, 58, 50, 52, Color3.new(1, 1, 1), NUN, hex("4a1220"), hex("2a0810"), hex("d9707f"), 2, 10)
 end
 
--- Makimono scroll helpers (approved skin A)
-local function rodH(parent, x, y, w)
-	local r = F(parent, x, y, w, 26, hex("6a2a18"))
-	corner(r, 12)
-	grad(r, hex("170604"), hex("170604"), 90, { 0.42, hex("a2543a") })
-	for _, cx in { x - 6, x + w - 16 } do
-		local c = F(parent, cx, y - 3, 22, 32, GOLD)
-		corner(c, 7)
-		grad(c, hex("fff3b0"), hex("7a4a10"), 60, { 0.4, hex("e7b552") })
-	end
-	return r
+-- Parchment scroll skin (owner 2026-11-20: "consistent with the Summon UI"): the Summon page's tokens and fonts from
+-- UiTheme.Scroll / Scroll.Skins.Parchment (Client/SummonScroll + DojoScroll, Skin = "Parchment").
+local K = require(Shared.UiTheme).Scroll
+local PK = K.Skins.Parchment
+local KALAM = K.Script -- Kalam Bold
+local MARKER = K.Heading -- Permanent Marker
+local BODY = K.Body -- Titillium Web
+local BODYB = K.BodyBold
+local PINK = K.TileInk -- dark ink on paper
+local RIM = K.PaperRim -- #3A2A20 ink-brush rim
+local VERM = K.Accent -- vermilion
+local function paperFill(o, top, bottom)
+	grad(o, top or PK.Paper, bottom or PK.PaperShade, 90)
+	return o
 end
-local function rodV(parent, x, y, h)
-	local r = F(parent, x, y, 32, h, hex("6a2a18"))
-	corner(r, 12)
-	grad(r, hex("170604"), hex("170604"), 0, { 0.42, hex("a2543a") })
-	for _, cy in { y - 8, y + h - 14 } do
-		local c = F(parent, x - 3, cy, 38, 22, GOLD)
-		corner(c, 7)
-		grad(c, hex("fff3b0"), hex("7a4a10"), 60, { 0.4, hex("e7b552") })
-	end
-	return r
-end
+-- Parchment sheet edge to edge, a faint aged vignette and a thin dark outline.
 local function paper(parent, x, y, w, h)
-	local p = F(parent, x, y, w, h, hex("f3e2bf"))
-	grad(p, hex("fbf0d8"), hex("ddc093"), 90, { 0.55, hex("ecd6ad") })
-	stroke(p, hex("b98a4a"), 3)
-	local inner = F(p, 3, 3, w - 6, h - 6, nil)
-	stroke(inner, hex("e9d3a8"), 2)
+	local p = F(parent, x, y, w, h, Color3.new(1, 1, 1))
+	paperFill(p)
+	stroke(p, RIM, 1.5)
+	for _, e in { { 0, 0, w, 18, 90 }, { 0, h - 18, w, 18, 270 } } do -- top and bottom age shading
+		local s = F(p, e[1], e[2], e[3], e[4], PK.MountDark)
+		N("UIGradient", s, {
+			Rotation = e[5],
+			Transparency = NumberSequence.new(0.35, 1),
+		})
+	end
 	return p
 end
-local function band(parent, text, x, y, w)
-	local b = F(parent, x, y, w, 42, hex("b0242c"))
-	N("UIGradient", b, {
-		Color = ColorSequence.new(hex("8e1b23"), hex("b0242c")),
-		Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, 0),
-			NumberSequenceKeypoint.new(0.72, 0),
-			NumberSequenceKeypoint.new(1, 1),
-		}),
+-- Round wooden rod with darker rounded end caps sticking out past the paper.
+local function woodRod(parent, x, y, w, h, vertical)
+	local r = F(parent, x, y, w, h, Color3.new(1, 1, 1))
+	corner(r, UDim.new(0.5, 0))
+	grad(r, PK.RodTop, PK.RodBottom, vertical and 0 or 90, { 0.35, PK.RodTop:Lerp(Color3.new(1, 1, 1), 0.18) })
+	stroke(r, PK.CapDark, 1)
+	local caps = vertical and { { x - 4, y - 14, w + 8, 18 }, { x - 4, y + h - 4, w + 8, 18 } }
+		or { { x - 14, y - 4, 18, h + 8 }, { x + w - 4, y - 4, 18, h + 8 } }
+	for _, c in caps do
+		local cap = F(parent, c[1], c[2], c[3], c[4], Color3.new(1, 1, 1))
+		corner(cap, 6)
+		grad(cap, PK.CapLight, PK.CapDark, vertical and 90 or 0)
+	end
+	return r
+end
+-- Summon-style section heading: black ink Permanent Marker in small caps, a thin rule under it.
+local function smallCaps(text, big, small)
+	local out = {}
+	for word in text:gmatch("%S+") do
+		table.insert(out, ('<font size="%d">%s</font>%s'):format(big, word:sub(1, 1):upper(), word:sub(2):upper()))
+	end
+	return table.concat(out, " "), small
+end
+local function heading(parent, text, x, y, w)
+	local t, s = smallCaps(text, 34, 28)
+	T(parent, t, x, y, w, 38, s, PINK, MARKER)
+	F(parent, x, y + 40, w, 2, PK.RuleTop, { BackgroundTransparency = 0.55 })
+end
+local function rule(parent, x, y, w)
+	F(parent, x, y, w, 2, PK.RuleTop, { BackgroundTransparency = 0.6 })
+end
+-- Red square seal (like 選 on Summon): vermilion fill, cream glyph.
+local function redSeal(parent, text, x, y, s, font)
+	local b = T(parent, text, x, y, s, s, s * 0.7, K.SealText, font or NUM, {
+		TextXAlignment = Enum.TextXAlignment.Center,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = VERM,
 	})
-	local l = T(b, text, 28, 0, w - 30, 42, 30, Color3.new(1, 1, 1), NUNI)
-	textStroke(l, hex("4a0a0e"), 1.5)
+	corner(b, 4)
 	return b
 end
-local function divider(parent, x, y, w)
-	F(parent, x, y, w, 2, hex("c9a878"), { BackgroundTransparency = 0.2 })
+-- Red brush pill (like "Mythic, 0.5%"): vermilion swash with ragged ends.
+local function brushPill(parent, text, x, y, w, h, size)
+	local b = F(parent, x, y, w, h, VERM)
+	corner(b, UDim.new(0.5, 0))
+	N("UIGradient", b, {
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.35),
+			NumberSequenceKeypoint.new(0.06, 0),
+			NumberSequenceKeypoint.new(0.94, 0),
+			NumberSequenceKeypoint.new(1, 0.35),
+		}),
+	})
+	T(b, text, 0, 0, w, h, size or 24, K.SealText, KALAM, { TextXAlignment = Enum.TextXAlignment.Center })
+	return b
+end
+-- Summon paper button: parchment fill, ink-brush rim 3 px, Kalam Bold mixed case.
+local function paperButton(parent, text, x, y, w, h, size, rimColor, textColor, props, top, bottom)
+	local b = F(parent, x, y, w, h, Color3.new(1, 1, 1))
+	paperFill(b, top or K.Cream, bottom or PK.PaperShade)
+	corner(b, 10)
+	stroke(b, rimColor or RIM, 3)
+	local p = { TextXAlignment = Enum.TextXAlignment.Center }
+	for k, v in props or {} do
+		p[k] = v
+	end
+	local l = T(b, text, 0, 0, w, h, size, textColor or PINK, KALAM, p)
+	return b, l
 end
 
--- left panel frame
-local panel = F(ui, 0, 0, 1920, 1080, nil, { Name = "Panel" })
-paper(panel, 16, 102, 376, 954)
-rodH(panel, 6, 88, 396)
-rodH(panel, 6, 1044, 396)
+-- Kalam and Titillium read smaller than Nunito at the same TextSize; bring them up to the Summon page's weight.
+local function fontPass(root)
+	for _, l in root:GetDescendants() do
+		if l:IsA("TextLabel") and not l:GetAttribute("Sized") then
+			local fam = l.FontFace.Family
+			if fam:find("Kalam") then
+				l.TextSize = math.floor(l.TextSize * 1.22)
+			elseif fam:find("Titillium") then
+				l.TextSize = math.floor(l.TextSize * 1.1)
+			end
+			l:SetAttribute("Sized", true)
+		end
+	end
+end
 
--- nav arrows
+-- left panel: hanging parchment scroll
+local panel = F(ui, 0, 0, 1920, 1080, nil, { Name = "Panel" })
+do
+	paper(panel, 16, 100, 376, 956)
+	-- two leather strips hang the top rod and run a little onto the paper
+	for _, x in { 96, 300 } do
+		F(panel, x, 70, 12, 50, PK.Cord, { BorderSizePixel = 0 })
+		F(panel, x - 3, 112, 18, 10, PK.CapDark)
+	end
+	woodRod(panel, 10, 86, 388, 22, false)
+	woodRod(panel, 10, 1046, 388, 26, false)
+	-- vertical vermilion kanji pair (like 召喚): 編成 = team formation
+	T(panel, "編\n成", 350, 206, 36, 74, 30, VERM, KALAM, {
+		TextXAlignment = Enum.TextXAlignment.Center,
+		LineHeight = 0.95,
+	})
+end
+
+-- nav arrows (stage controls, unchanged)
 for _, n in { { 444, "‹" }, { 1791, "›" } } do
 	local b = pill(ui, "", n[1], 532, 74, 72, 10, Color3.new(1, 1, 1), NUN, hex("3a141a"), hex("1d080b"), hex("c9a6a0"), 3, 12)
 	b.Name = "Nav"
@@ -633,46 +770,40 @@ for _, n in { { 444, "‹" }, { 1791, "›" } } do
 	end
 end
 
--- tabs, search, sort
+-- tabs, search, sort: paper tabs and parchment fields with ink rims
 local tabs = F(ui, 0, 0, 1920, 1080, nil, { Name = "Tabs" })
 do
-	pill(tabs, "👤  Characters", 432, 690, 258, 64, 32, hex("c2223a"), NUNI, hex("fff2dc"), hex("f4d8b4"), hex("b98a4a"), 3, 10)
-	local b = pill(tabs, "        Sidekicks", 706, 690, 238, 64, 32, INK, NUNI, hex("f6e6c6"), hex("e2c69a"), hex("b98a4a"), 3, 10)
+	paperButton(tabs, "👤  Characters", 432, 690, 258, 64, 32, RIM, VERM, nil, PK.Paper, PK.Paper)
+	local b = paperButton(tabs, "        Sidekicks", 706, 690, 238, 64, 32, RIM, PINK, nil, PK.PaperShade, PK.MountDark)
 	I(b, SIDE.fox, 22, 14, 38, 38, { ScaleType = Enum.ScaleType.Fit })
-	sakura(tabs, 690, 744, 36, hex("ffb3cf"), 15)
-	local s = T(tabs, "Search character...", 981, 694, 553, 54, 26, hex("d8bcc0"), NUN, {
-		BackgroundTransparency = 0.15,
-		BackgroundColor3 = hex("2a0c12"),
+	local s = paperButton(tabs, "Search character...", 981, 694, 553, 54, 25, RIM, K.Muted, {
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(70, 0),
+		FontFace = BODY,
 	})
-	N("UIPadding", s, { PaddingLeft = UDim.new(0, 70) })
-	corner(s, 10)
-	stroke(s, hex("c9a6a0"), 2)
-	local lens = F(tabs, 1003, 708, 22, 22, nil)
+	local lens = F(s, 22, 14, 22, 22, nil)
 	corner(lens, UDim.new(0.5, 0))
-	stroke(lens, Color3.new(1, 1, 1), 3)
-	F(tabs, 1024, 733, 12, 4, Color3.new(1, 1, 1), { Rotation = 45 })
-	local so = T(tabs, "Sort: Rarity", 1572, 694, 324, 54, 28, Color3.new(1, 1, 1), NUN, {
-		BackgroundTransparency = 0.15,
-		BackgroundColor3 = hex("2a0c12"),
+	stroke(lens, PINK, 3)
+	F(s, 43, 39, 12, 4, PINK, { Rotation = 45 })
+	local so = paperButton(tabs, "Sort: Rarity", 1572, 694, 324, 54, 28, RIM, PINK, {
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Position = UDim2.fromOffset(84, 0),
 	})
-	N("UIPadding", so, { PaddingLeft = UDim.new(0, 84) })
-	corner(so, 10)
-	stroke(so, hex("c9a6a0"), 2)
 	for k = 0, 2 do
-		F(tabs, 1596, 708 + k * 10, 5, 5, Color3.new(1, 1, 1))
-		F(tabs, 1606, 708 + k * 10, 24 - k * 6, 4, Color3.new(1, 1, 1))
+		F(so, 24, 14 + k * 10, 5, 5, PINK)
+		F(so, 34, 14 + k * 10, 24 - k * 6, 4, PINK)
 	end
-	T(tabs, "›", 1852, 696, 30, 50, 44, Color3.new(1, 1, 1), NUN, {
-		Rotation = 90,
-		TextXAlignment = Enum.TextXAlignment.Center,
-	})
+	T(so, "›", 280, 2, 30, 50, 44, PINK, NUN, { Rotation = 90, TextXAlignment = Enum.TextXAlignment.Center })
 end
 
--- roster handscroll
+fontPass(panel)
+fontPass(tabs)
+
+-- roster: horizontal handscroll, the same wood rods standing at both ends
 local roster = F(ui, 0, 0, 1920, 1080, nil, { Name = "Roster" })
 paper(roster, 424, 762, 1470, 306)
-rodV(roster, 406, 750, 330)
-rodV(roster, 1880, 750, 330)
+woodRod(roster, 408, 752, 28, 326, true)
+woodRod(roster, 1882, 752, 28, 326, true)
 
 -- dynamic layer (rebuilt per team)
 local dyn = F(ui, 0, 0, 1920, 1080, nil, { Name = "Dyn" })
@@ -704,26 +835,24 @@ local function nameplate(parent, x, y, w, h, d, centre)
 	return p
 end
 
+-- Parchment roster card: thin ink rim, rarity colour band, Kalam name, Titillium details.
 local function card(parent, x, y, d, slot, cruise)
-	local c = F(parent, x, y, 170, 228, hex("fbf2de"), { ClipsDescendants = true })
-	corner(c, 12)
-	stroke(c, slot == 1 and hex("d6343c") or hex("e2c99c"), 3)
+	local c = F(parent, x, y, 170, 228, Color3.new(1, 1, 1), { ClipsDescendants = true })
+	paperFill(c, K.Cream, PK.PaperShade)
+	corner(c, 8)
+	stroke(c, slot == 1 and VERM or RIM, slot == 1 and 3 or 1.5)
 	local pic = F(c, 0, 0, 170, 128, Color3.new(1, 1, 1))
 	grad(pic, RAR_BG[d.Rarity]:Lerp(Color3.new(1, 1, 1), 0.35), RAR_BG[d.Rarity], 90)
 	I(pic, Portraits[d.Id] or "", 0, 0, 170, 128, { ScaleType = Enum.ScaleType.Crop })
+	F(c, 0, 128, 170, 5, RAR_BG[d.Rarity]) -- rarity colour band
 	if slot then
-		local no = T(c, tostring(slot), 8, 8, 34, 34, 26, Color3.new(1, 1, 1), NUM, {
-			TextXAlignment = Enum.TextXAlignment.Center,
-			BackgroundTransparency = 0,
-			BackgroundColor3 = hex("b0202a"),
-		})
-		corner(no, 6)
+		redSeal(c, tostring(slot), 8, 8, 34)
 	end
 	local g = GEAR[d.Id]
 	local icons = slot and { RELIC[g[1]], SIDE[g[2]], "ok" } or { RELIC[g[1]], SIDE[g[2]] }
 	for k, img in icons do
-		local ix = 170 - 6 - (#icons - k + 1) * 36 - (#icons - k) * 0
-		local b = F(c, ix + (k - 1) * 0, 6, 34, 34, img == "ok" and hex("2fa84f") or hex("2a0c0c"), {
+		local ix = 170 - 6 - (#icons - k + 1) * 36
+		local b = F(c, ix, 6, 34, 34, img == "ok" and hex("2fa84f") or hex("2a0c0c"), {
 			BackgroundTransparency = img == "ok" and 0 or 0.2,
 		})
 		corner(b, 7)
@@ -735,14 +864,14 @@ local function card(parent, x, y, d, slot, cruise)
 			I(b, img, 2, 2, 30, 30, { ScaleType = Enum.ScaleType.Fit })
 		end
 	end
-	local st = T(c, "★", 8, 130, 28, 30, 24, hex("f2b51e"), NUN)
+	local st = T(c, "★", 8, 136, 28, 30, 22, hex("f2b51e"), NUN)
 	textStroke(st, hex("7a4a00"), 1)
-	T(c, d.Name, 36, 128, 132, 32, 26, INK, NUN, { TextTruncate = Enum.TextTruncate.AtEnd })
-	T(c, d.Rarity, 38, 156, 130, 22, 19, RAR_CREAM[d.Rarity], NUNI)
+	T(c, d.Name, 34, 132, 134, 34, 26, PINK, KALAM, { TextTruncate = Enum.TextTruncate.AtEnd })
+	T(c, d.Rarity, 36, 162, 130, 22, 19, RAR_CREAM[d.Rarity], BODYB)
 	if slot then
-		seal(c, 10, 186, 30)
+		redSeal(c, "桜", 10, 188, 28, KALAM)
 	end
-	T(c, cruise .. ' <font size="15">st/s</font>', 50, 186, 112, 32, 21, INK, NUN, {
+	T(c, cruise .. ' <font size="15">st/s</font>', 50, 186, 112, 32, 22, PINK, BODYB, {
 		TextXAlignment = Enum.TextXAlignment.Right,
 	})
 	return c
@@ -750,17 +879,10 @@ end
 
 function TSD.build(team)
 	team = team or "A"
-	for _, ch in dyn:GetChildren() do
-		ch:Destroy()
-	end
-	for _, ch in plates:GetChildren() do
-		ch:Destroy()
-	end
-	for _, ch in world:GetChildren() do
-		ch:Destroy()
-	end
-	for _, ch in glowL:GetChildren() do
-		ch:Destroy()
+	for _, f in { dyn, plates, world, glowL } do
+		for _, ch in f:GetChildren() do
+			ch:Destroy()
+		end
 	end
 	table.clear(rigs)
 
@@ -791,7 +913,7 @@ function TSD.build(team)
 		placeMember(slot, id)
 	end
 
-	-- nameplates, badges, selected plate
+	-- nameplates, badges, selected plate (stage, unchanged)
 	nameplate(plates, 940, 123, 328, 80, specs[1], true)
 	nameplate(plates, 598, 219, 256, 64, specs[2], false)
 	nameplate(plates, 1362, 219, 262, 64, specs[3], false)
@@ -825,7 +947,6 @@ function TSD.build(team)
 		corner(no, 7)
 		T(p, "Selected", 56, 0, 180, 56, 36, hex("2a0a08"), NUNI, { TextXAlignment = Enum.TextXAlignment.Center })
 		seal(p, 244, 9, 38)
-		-- sakura emblem on the centre altar's base front
 		local ex, ey = project(0, s.hb * 0.5, s.Z + s.rb * AP)
 		sakura(plates, ex, ey, 44, hex("ffb3cf"), 0)
 	end
@@ -834,88 +955,77 @@ function TSD.build(team)
 	local rnd = Random.new(7)
 	for _ = 1, 16 do
 		local px, py = rnd:NextNumber(470, 1880), rnd:NextNumber(90, 680)
-		local p = F(plates, px, py, 16, 10, hex("ffb0cc"), {
-			Rotation = rnd:NextNumber(0, 180),
-			BackgroundTransparency = 0.15,
-		})
-		corner(p, UDim.new(0.5, 0))
+		if not (px > 930 and px < 1250 and py > 500 and py < 580) then -- keep clear of the Selected plate
+			local p = F(plates, px, py, 16, 10, hex("ffb0cc"), {
+				Rotation = rnd:NextNumber(0, 180),
+				BackgroundTransparency = 0.15,
+			})
+			corner(p, UDim.new(0.5, 0))
+		end
 	end
 
-	-- left panel contents
+	-- left panel contents (Summon parchment look)
 	do
-		pill(dyn, "Team 1", 50, 140, 252, 52, 30, Color3.new(1, 1, 1), NUN, hex("4a1a18"), hex("2a0a0a"), hex("7a3a2a"), 2, 9, {
+		local _, ddl = paperButton(dyn, "Team 1", 50, 140, 252, 52, 30, RIM, PINK, {
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Position = UDim2.fromOffset(22, 0),
 		})
-		T(dyn, "›", 266, 140, 30, 52, 40, Color3.new(1, 1, 1), NUN, { Rotation = 90, TextXAlignment = Enum.TextXAlignment.Center })
-		pill(dyn, "✏️", 312, 140, 56, 52, 28, Color3.new(1, 1, 1), NUN, hex("4a1a18"), hex("2a0a0a"), hex("7a3a2a"), 2, 9)
-		divider(dyn, 50, 206, 318)
-		sakura(dyn, 356, 222, 30, hex("ffb3cf"), 0)
+		_ = ddl
+		T(dyn, "›", 266, 140, 30, 52, 40, PINK, NUN, { Rotation = 90, TextXAlignment = Enum.TextXAlignment.Center })
+		paperButton(dyn, "✏️", 312, 140, 56, 52, 26, RIM, PINK)
 
-		band(dyn, "Team Status", 36, 228, 330)
-		local ok = F(dyn, 54, 279, 32, 32, hex("2fa84f"))
+		heading(dyn, "Team Status", 50, 226, 290)
+		local ok = F(dyn, 54, 281, 32, 32, hex("2fa84f"))
 		corner(ok, UDim.new(0.5, 0))
 		stroke(ok, hex("1e7a30"), 2)
 		T(ok, "✓", 0, 0, 32, 32, 24, Color3.new(1, 1, 1), NUN, { TextXAlignment = Enum.TextXAlignment.Center })
-		T(dyn, "Ready to Deploy", 104, 275, 260, 40, 27, hex("2a8a3a"), NUN)
-		T(dyn, "👥", 52, 313, 40, 40, 28, INK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
-		T(dyn, #ids .. " / 3 Members", 104, 313, 260, 40, 27, INK, NUN)
-		T(dyn, "⚔", 52, 353, 40, 40, 30, INK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
-		local cr = T(dyn, 'Cruise: <font color="#b07a00" size="34"><i>' .. total .. '</i></font> <font size="17">st/s</font>', 104, 351, 260, 44, 27, INK, NUN)
-		_ = cr
-		seal(dyn, 330, 330, 38)
-		divider(dyn, 50, 404, 318)
+		T(dyn, "Ready to Deploy", 104, 277, 260, 40, 27, hex("2a8a3a"), BODYB)
+		T(dyn, "👥", 52, 315, 40, 40, 28, PINK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+		T(dyn, #ids .. " / 3 Members", 104, 315, 260, 40, 27, PINK, BODYB)
+		T(dyn, "⚔", 52, 355, 40, 40, 30, PINK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+		T(dyn, 'Cruise: <font family="rbxasset://fonts/families/Kalam.json" size="32">' .. total .. '</font> <font size="17">st/s</font>', 104, 353, 230, 44, 27, PINK, BODYB)
+		redSeal(dyn, "桜", 334, 332, 34, KALAM)
 
-		band(dyn, "Team Members", 36, 422, 330)
+		heading(dyn, "Team Members", 50, 418, 318)
 		for i, s in specs do
 			local y = 470 + (i - 1) * 61
 			local pbg = F(dyn, 50, y, 58, 56, RAR_BG[s.Rarity])
 			corner(pbg, 7)
-			stroke(pbg, hex("d8bf98"), 2)
+			stroke(pbg, RIM, 1.5)
 			local im = I(pbg, Portraits[s.Id] or "", 0, 0, 58, 56)
 			corner(im, 7)
-			local no = T(dyn, tostring(i), 122, y + 12, 32, 32, 24, Color3.new(1, 1, 1), NUM, {
-				TextXAlignment = Enum.TextXAlignment.Center,
-				BackgroundTransparency = 0,
-				BackgroundColor3 = hex("b0202a"),
-			})
-			corner(no, 7)
-			T(dyn, s.Name, 168, y, 140, 56, 28, INK, NUN)
-			T(dyn, cruise[i] .. ' <font size="15">st/s</font>', 270, y, 96, 56, 22, INK, NUN, {
+			redSeal(dyn, tostring(i), 122, y + 12, 32)
+			T(dyn, s.Name, 168, y, 140, 56, 29, PINK, KALAM)
+			T(dyn, cruise[i] .. ' <font size="15">st/s</font>', 270, y, 96, 56, 22, PINK, BODYB, {
 				TextXAlignment = Enum.TextXAlignment.Right,
-				TextTransparency = 0.1,
 			})
 			if i < #specs then
-				divider(dyn, 50, y + 59, 318)
+				rule(dyn, 50, y + 59, 318)
 			end
 		end
-		divider(dyn, 50, 660, 318)
 
-		band(dyn, "Team Bonus", 36, 682, 330)
-		seal(dyn, 330, 690, 38)
+		heading(dyn, "Team Bonus", 50, 678, 270)
+		redSeal(dyn, "桜", 334, 684, 34, KALAM)
 		if kind then
 			local stam = math.floor((StaminaConfig.TEAM_BONUS[kind] - 1) * 100 + 0.5)
-			T(dyn, "🌸", 50, 736, 44, 40, 30, INK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
 			local label = kind == "Preset" and (series.Preset and series.Preset.Name or "Preset") or (series.Name or "Series")
-			T(dyn, kind .. ": " .. label, 104, 736, 270, 40, 27, INK, NUN)
-			T(dyn, "💚", 50, 782, 44, 40, 28, INK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
-			T(dyn, 'Stamina <font color="#2a8a3a" size="30"><i>+' .. stam .. "%</i></font>", 104, 782, 270, 40, 27, INK, NUN)
+			brushPill(dyn, kind .. ": " .. label, 50, 734, 300, 40, 25) -- the highlight, like "Mythic, 0.5%"
+			T(dyn, "💚", 50, 784, 44, 40, 28, PINK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+			T(dyn, 'Stamina <font color="#2a8a3a" size="30">+' .. stam .. "%</font>", 104, 784, 270, 40, 27, PINK, BODYB)
 			if kind == "Preset" then
-				T(dyn, "⚡", 50, 828, 44, 40, 28, INK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
-				T(dyn, 'Cruise <font color="#2a6ad0" size="30"><i>×' .. RaceConfig.PRESET_CRUISE .. "</i></font>", 104, 828, 270, 40, 27, INK, NUN)
+				T(dyn, "⚡", 50, 828, 44, 40, 28, PINK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+				T(dyn, 'Cruise <font color="#2a6ad0" size="30">×' .. RaceConfig.PRESET_CRUISE .. "</font>", 104, 828, 270, 40, 27, PINK, BODYB)
 			end
 		else
-			T(dyn, "🌸", 50, 736, 44, 40, 30, INK, NUN, { TextXAlignment = Enum.TextXAlignment.Center, TextTransparency = 0.55 })
-			T(dyn, "No team bonus", 104, 736, 270, 40, 27, INK, NUN)
-			T(dyn, "Mixed series", 104, 778, 270, 34, 22, hex("8a6a50"), NUNI)
-			T(dyn, "3 of one series: Stamina +20%", 104, 812, 270, 34, 19, hex("8a6a50"), NUN)
+			T(dyn, "No team bonus", 54, 736, 300, 40, 29, PINK, KALAM)
+			T(dyn, "Mixed series", 54, 778, 300, 34, 23, K.Muted, BODYB)
+			T(dyn, "3 of one series: Stamina +20%", 54, 812, 310, 34, 20, K.Muted, BODY)
 		end
-		divider(dyn, 50, 884, 318)
-		sakura(dyn, 362, 900, 30, hex("ffb3cf"), 0)
+		rule(dyn, 50, 884, 318)
 
-		pill(dyn, "⚡Quick Setup", 24, 936, 172, 68, 24, hex("3a1a0a"), NUNI, hex("f6e2b8"), hex("ddb878"), hex("9a6a2a"), 3, 12)
-		local _, dl = pill(dyn, "▶ Deploy", 206, 936, 178, 68, 34, Color3.new(1, 1, 1), NUNI, hex("d33a30"), hex("8e1a1a"), hex("5a0a0a"), 3, 12)
-		textStroke(dl, hex("4a0606"), 1.5)
+		paperButton(dyn, "⚡ Quick Setup", 24, 936, 172, 68, 25, RIM, PINK)
+		local dep = paperButton(dyn, "▶ Deploy", 206, 936, 178, 68, 32, VERM, VERM)
+		redSeal(dep, "出", 150, -12, 30, KALAM) -- seal on the primary, like 選 on Details
 	end
 
 	-- roster cards: team first, then others
@@ -930,6 +1040,7 @@ function TSD.build(team)
 	for k, e in list do
 		card(dyn, 452 + (k - 1) * 178, 792, e[1], e[2], e[3])
 	end
+	fontPass(dyn)
 	return { kind = kind, total = total, cruise = cruise }
 end
 
