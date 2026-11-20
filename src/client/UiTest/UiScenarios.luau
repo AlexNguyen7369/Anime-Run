@@ -9003,12 +9003,16 @@ S.ui_daily_boosts = function(res)
 	check(res, "quest_tabs_visible", tabs and effectivelyVisible(tabs), true, tabs ~= nil and effectivelyVisible(tabs))
 	for _, category in { "Daily", "Weekly" } do
 		local tab = tabs and tabs:FindFirstChild(category)
+		-- 408b545: the button's own Text is transparent and the AnimeCaption over it shows the same word, so allText
+		-- read it twice ("DAILY DAILY"); judge the one visible label once.
+		local label = tab and (tab:FindFirstChild("AnimeCaption") or tab)
+		local shownText = label and label:IsA("GuiObject") and label.Visible and label.Text or nil
 		check(
 			res,
 			"quest_tab_" .. string.lower(category),
-			tab and allText(tab) or "missing",
+			shownText or "missing",
 			string.upper(category),
-			tab ~= nil and tab:IsA("GuiButton") and allText(tab) == string.upper(category)
+			tab ~= nil and tab:IsA("GuiButton") and shownText == string.upper(category)
 		)
 	end
 	local rows = {}
