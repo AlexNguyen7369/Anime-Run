@@ -3230,6 +3230,10 @@ table.insert(UiSpec.Clicks, {
 })
 -- docs/QUESTS_SPEC.md: the server decides progress and claims. quest_incomplete / quest_complete set today's
 -- daily_races quest (UiSpec.ServerSetup); Intercept keeps the real claim (a potion reward) from ever running.
+-- BoostDailyUi draws the quest rows only when the Quests view opens (showQuests reads QuestDailyProgress then), so a
+-- fixture set while rows are drawn leaves them stale: each claim click reopens the view by a real press on the pill.
+local QUEST_REOPEN =
+	{ Path = "HudChrome/ShopColumn/Quests", Until = "DailyBoosts/ModalBackdrop/Modal/AnimeQuests/Close" }
 for _, item in
 	{
 		{ Id = "quest_incomplete", What = "Today's daily_races quest unclaimed at progress 0: its Claim is disabled." },
@@ -3243,7 +3247,13 @@ table.insert(UiSpec.Clicks, {
 	Id = "quest_claim_disabled_fires_nothing",
 	Gui = "DailyBoosts",
 	Path = "ModalBackdrop/Modal/Content/daily_races/Claim",
-	Prepare = { Open = { DAILY }, Showcase = false, Intercept = "QuestClaim", TargetActive = false },
+	Prepare = {
+		Closed = CLOSED,
+		Showcase = false,
+		PressFirst = QUEST_REOPEN,
+		Intercept = "QuestClaim",
+		TargetActive = false,
+	},
 	NeedSetup = { "quest_incomplete", "spy", "progression_spy" },
 	Expect = { Panels = { [DAILY] = true }, Remote = false },
 })
@@ -3252,7 +3262,13 @@ table.insert(UiSpec.Clicks, {
 	Id = "quest_claim_asks_server",
 	Gui = "DailyBoosts",
 	Path = "ModalBackdrop/Modal/Content/daily_races/Claim",
-	Prepare = { Open = { DAILY }, Showcase = false, Intercept = "QuestClaim", TargetActive = true },
+	Prepare = {
+		Closed = CLOSED,
+		Showcase = false,
+		PressFirst = QUEST_REOPEN,
+		Intercept = "QuestClaim",
+		TargetActive = true,
+	},
 	NeedSetup = { "quest_complete", "spy", "progression_spy" },
 	Expect = { Panels = { [DAILY] = true }, Remote = { Name = "QuestClaim", Args = { false, "daily_races" } } },
 })
@@ -4035,7 +4051,9 @@ UiSpec.AddMenuChain({ "spy", "relic_states" }, "RacerIndex/Panel", {
 			.. require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("RelicConfig")).Bosses.big_raga[1].Id,
 		"item_menu_shown",
 	},
-	{ "index_relics_scrim", MENU, "Scrim", "item_menu_closed", nil, "corner" },
+	-- ItemMenu's Scrim is a 0.55-transparent dimmer with no text (a3c19af), which Click.shownNow never counts as drawn:
+	-- index_relics_tile's item_menu_shown proves the menu is up, and the press must still land on the Scrim topmost.
+	{ "index_relics_scrim", MENU, "Scrim", "item_menu_closed", { RequireShown = false }, "corner" },
 })
 table.insert(UiSpec.Guis.RacerIndex.Buttons, {
 	Path = "Panel/Face/Header/Face/CharactersTab/Face",
@@ -4314,7 +4332,8 @@ table.insert(UiSpec.Clicks, {
 -- A real summon on fixture Gems: the reveal needs its results. SidekickSummon is deliberately not in
 -- UiSpec.RemoteFunctions (progression_spy would block it), so the spy logs no remote here. Each reveal stays until its
 -- Tap is pressed at the end, so each summon click has a close click right after it. The screen steps aside behind the reveal
--- (it closes and comes back after), so the summon clicks expect no panel state; the After checks judge it.
+-- (it closes and comes back after): a summon click leaves the page hidden behind the reveal and its close brings it back
+-- (SIDEKICK_SPEC "Summon reveal": the summon page steps aside while it plays); the After checks judge the rest.
 local REVEAL_CLOSE = { KeepPanels = true, Showcase = false }
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_models",
@@ -4322,14 +4341,14 @@ table.insert(UiSpec.Clicks, {
 	Path = "Canvas/Once",
 	Prepare = only(SIDEKICKS),
 	NeedSetup = { "spy", "sidekick_states" },
-	Expect = { Remote = false, After = { "sidekicks_reveal_models" } },
+	Expect = { Panels = { [SIDEKICKS] = false }, Remote = false, After = { "sidekicks_reveal_models" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_close",
 	Gui = "RacerSidekickReveal",
 	Path = "Tap",
 	Prepare = REVEAL_CLOSE,
-	Expect = { Remote = false, After = { "sidekicks_reveal_closed" } },
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_reveal_closed" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_big",
@@ -4337,21 +4356,26 @@ table.insert(UiSpec.Clicks, {
 	Path = "Canvas/Many",
 	Prepare = only(SIDEKICKS),
 	NeedSetup = { "spy", "sidekick_big_reveal" },
-	Expect = { Remote = false, After = { "sidekicks_reveal_big" } },
+	Expect = { Panels = { [SIDEKICKS] = false }, Remote = false, After = { "sidekicks_reveal_big" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_big_close",
 	Gui = "RacerSidekickReveal",
 	Path = "Tap",
 	Prepare = REVEAL_CLOSE,
-	Expect = { Remote = false, After = { "sidekicks_reveal_closed" } },
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_reveal_closed" } },
 })
 -- Tutorial (UiSidekickTutorial): step 1's GoButton, step 2's free summon, the result's reveal, then the equip step.
 table.insert(UiSpec.Clicks, {
 	Id = "sidekick_tutorial_go",
 	Gui = "SidekickTutorial",
 	Path = "Layer/Card/GoButton",
-	Prepare = only(),
+	-- WaitSeconds: the tutorial's spotlight settles after the Sakura wash (1267f95), as team_bonus_open waits
+	Prepare = (function()
+		local prepare = only()
+		prepare.WaitSeconds = 1.5
+		return prepare
+	end)(),
 	NeedSetup = { "spy", "sidekick_tutorial_ready" },
 	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekick_tutorial_go" } },
 })
@@ -4359,16 +4383,20 @@ table.insert(UiSpec.Clicks, {
 	Id = "sidekick_tutorial_free",
 	Gui = "RacerSidekicks",
 	Path = "Canvas/AutoFuse",
-	Prepare = only(SIDEKICKS),
+	Prepare = (function()
+		local prepare = only(SIDEKICKS)
+		prepare.WaitSeconds = 1.5 -- the page opens under the Sakura wash (1267f95): the button settles after it
+		return prepare
+	end)(),
 	NeedSetup = { "spy", "sidekick_tutorial_ready" },
-	Expect = { Remote = false, After = { "sidekick_tutorial_free" } },
+	Expect = { Panels = { [SIDEKICKS] = false }, Remote = false, After = { "sidekick_tutorial_free" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "sidekick_tutorial_result_close",
 	Gui = "RacerSidekickReveal",
 	Path = "Tap",
 	Prepare = REVEAL_CLOSE,
-	Expect = { Remote = false, After = { "sidekick_tutorial_equip" } },
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekick_tutorial_equip" } },
 })
 
 -- The click menu for Sidekicks and Relics, and the sale confirmation (Client/ItemMenu; design doc 4.36, 4.41). A module the Backpack
@@ -4543,7 +4571,10 @@ local function watchTeamWarning()
 		if label.Visible then
 			watch.ShownAt, watch.Text, watch.Transparency = os.clock(), label.Text, label.TextTransparency
 			task.defer(function() -- after BossEventUi's own Visible handler, whatever the connection order
-				watch.NoteShown = label.Visible and label.Parent.Note.Visible or nil
+				-- (was `label.Visible and Note.Visible or nil`: a hidden Note read as nil, never false)
+				if label.Visible then
+					watch.NoteShown = label.Parent.Note.Visible
+				end
 			end)
 		else
 			watch.HiddenAt = os.clock()
@@ -4903,7 +4934,7 @@ for _, click in
 		},
 	}
 do
-	click.Gui = "RacerBossEvent"
+	click.Gui = click.Path == "BossButton" and "RacerSecondColumn" or "RacerBossEvent" -- 4.42: as the mage's loop
 	table.insert(UiSpec.Clicks, click)
 end
 table.insert(UiSpec.ServerSetup, {

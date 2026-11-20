@@ -188,7 +188,10 @@ function Module.Build(h)
 		local counts = bagCounts()
 		check(res, "chest_fixture_raga", counts.relic_chest_raga, 2)
 		check(res, "chest_fixture_adapted", counts.relic_chest_adapted, 1)
-		for id, chest in Config.Chests do
+		-- The chests the fixture holds: Config.Chests also lists the Elf Mage's and the Golden King's (4ddb307, 24bc0e9),
+		-- which relic_chest_states never grants, so they have no tile.
+		for _, id in { "relic_chest_raga", "relic_chest_adapted" } do
+			local chest = Config.Chests[id]
 			local problem = waitFor(function()
 				return not (items and items:FindFirstChild(id)) and "no tile" or nil
 			end)
@@ -403,12 +406,21 @@ function Module.Build(h)
 		check(res, "index_relics_hides_gallery", gallery ~= nil and h.visible(gallery), false)
 		local sidekicks = panel and panel:FindFirstChild("SidekicksPage", true)
 		check(res, "index_relics_hides_sidekicks", sidekicks ~= nil and h.visible(sidekicks), false)
-		local total = #Config.Bosses.big_raga
+		-- The page lists every boss's Relics once each (RacerComponents.RelicsPage, World Core shared; 4ddb307 added the
+		-- Elf Mage's); the relic_states fixture owns Big Raga's six.
+		local ownedCount, seen = #Config.Bosses.big_raga, {}
+		local total = 0
+		for _, boss in Config.Order do
+			for _, row in Config.Bosses[boss] do
+				total += seen[row.Id] and 0 or 1
+				seen[row.Id] = true
+			end
+		end
 		check(
 			res,
 			"index_relics_progress",
 			gui and gui:GetAttribute("RelicsProgress"),
-			("%d / %d OWNED"):format(total, total)
+			("%d / %d OWNED"):format(ownedCount, total)
 		)
 		local owned = {}
 		for _, row in Config.Bosses.big_raga do

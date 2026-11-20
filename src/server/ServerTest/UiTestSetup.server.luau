@@ -530,6 +530,8 @@ function setups.boss_ui_idle(player)
 	bossUiGear(player, 1)
 	clearBossUi(player)
 	player:SetAttribute("BossCredit", 0)
+	-- boss_ui_restricted (the click before boss_paid_coming_soon) sets it; restoreBossUi clears it the same way
+	player:SetAttribute("PaidRandomRestricted", nil)
 end
 function setups.boss_ui_credit(player)
 	setups.boss_ui_idle(player)
