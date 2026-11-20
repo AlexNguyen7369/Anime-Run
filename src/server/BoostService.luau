@@ -165,7 +165,15 @@ function BoostService.Start()
 	local use = remotes:FindFirstChild("UseBoost") or Instance.new("RemoteFunction")
 	use.Name = "UseBoost"
 	use.Parent = remotes
-	use.OnServerInvoke = BoostService.Use
+	local lastUse = setmetatable({}, { __mode = "k" })
+	use.OnServerInvoke = function(player, id)
+		local at = os.clock()
+		if lastUse[player] and at - lastUse[player] < BoostService.REMOTE_COOLDOWN then
+			return false, "Please wait"
+		end
+		lastUse[player] = at
+		return BoostService.Use(player, id)
+	end
 	Players.PlayerAdded:Connect(BoostService.Setup)
 	for _, player in Players:GetPlayers() do
 		BoostService.Setup(player)

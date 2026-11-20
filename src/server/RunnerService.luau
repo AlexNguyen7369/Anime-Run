@@ -480,6 +480,12 @@ local function forget(player)
 	lastPadStart[player] = nil
 end
 
+-- A remote call before this player's save loaded is refused: the load would overwrite what it changed. A failed load
+-- (Studio without API access) plays on unsaved.
+local function loading(player)
+	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+end
+
 function RunnerService.Start()
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 	if not remotes then
@@ -494,7 +500,7 @@ function RunnerService.Start()
 		remote.Parent = remotes
 	end
 	remote.OnServerEvent:Connect(function(player, enabled)
-		if type(enabled) ~= "boolean" or player:GetAttribute("BossEvent") == true then
+		if type(enabled) ~= "boolean" or player:GetAttribute("BossEvent") == true or loading(player) then
 			return -- an event's runner is the event's: BossEventLeave or dying is the way out
 		end
 		local now = os.clock()
