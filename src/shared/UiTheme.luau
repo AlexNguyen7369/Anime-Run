@@ -74,6 +74,19 @@ UiTheme.Dojo = {
 	Cyan = Color3.fromRGB(46, 200, 208),
 	Stroke = 1.5, -- px: medium-thin outlines
 	Petal = "rbxassetid://130260166899982", -- the plaza petal (tools/blender/plaza/plaza_assets.json)
+	-- Moved here from the two pages' scripts (audit 2026-11-20), same values.
+	Ready = Color3.fromRGB(62, 142, 106), -- Team Setup's "Ready" green on paper
+	Warn = Color3.fromRGB(176, 104, 20), -- "Unsaved changes" on paper
+	Card = Color3.fromRGB(255, 250, 240), -- a roster paper card
+	ArtTop = Color3.fromRGB(249, 230, 234), -- behind a drawn portrait, top
+	ArtBottom = Color3.fromRGB(242, 201, 211),
+	DeployTop = Color3.fromRGB(226, 82, 92), -- the vermilion Deploy button
+	DeployBottom = Color3.fromRGB(157, 31, 43),
+	DeployRim = Color3.fromRGB(255, 213, 138),
+	SealRim = Color3.fromRGB(120, 22, 20), -- the Summon timer seal's rim
+	BrushRed = Color3.fromRGB(168, 38, 42), -- the featured rate's brush pill
+	FeaturedPill = Color3.fromRGB(118, 18, 26), -- "Featured!" pill
+	FeaturedText = Color3.fromRGB(255, 214, 92),
 }
 
 -- Hanging-scroll kit, Sumi ink skin (design doc 4.45 "Hanging-scroll look", owner 2026-11-19), read by Client/DojoScroll.

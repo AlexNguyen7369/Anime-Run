@@ -245,6 +245,13 @@ local openTeam = make("TextButton", {
 openTeam.Activated:Connect(function()
 	if not inEvent() then
 		PanelSwitch.Action("Team")
+		return
+	end
+	-- In an event the row shows the event roster: say where it is edited instead of doing nothing (audit 2026-11-20).
+	UiFeedback.Play("Denied")
+	local notice = player.PlayerGui:FindFirstChild("TeamToast")
+	if notice then
+		notice:SetAttribute("Message", "Edit your event team with Edit Team")
 	end
 end)
 

@@ -86,6 +86,12 @@ end
 
 local function onPlayer(player)
 	PassService.Setup(player)
+	-- VIP landing mid-session (a purchase, a late ownership check) updates the Sidekick summon costs it discounts.
+	player:GetAttributeChangedSignal("Pass_vip"):Connect(function()
+		local Sidekicks = require(script.Parent.SidekickService) -- at call time: SidekickService requires this module
+		player:SetAttribute("SidekickCost1", Sidekicks.CostFor(player, 1))
+		player:SetAttribute("SidekickCost10", Sidekicks.CostFor(player, 10))
+	end)
 	task.spawn(function()
 		-- Wait for the save: the exclusive runner's grant must land after GachaService.Apply clears GachaData.
 		while player.Parent and not player:GetAttribute("DataLoaded") and not player:GetAttribute("DataFailed") do

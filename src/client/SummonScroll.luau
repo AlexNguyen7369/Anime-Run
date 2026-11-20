@@ -10,6 +10,7 @@ local UiTheme = require(shared:WaitForChild("UiTheme"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local DojoScroll = require(script.Parent:WaitForChild("DojoScroll"))
 
+local D = UiTheme.Dojo
 local K = UiTheme.Scroll
 local SummonScroll = {}
 
@@ -159,8 +160,7 @@ function SummonScroll.Apply(canvas)
 		UDim.new(0.4, 0), UDim.new(0.06, 0), UDim.new(0.1, 0), UDim.new(0.1, 0)
 	pad.Parent = timer
 	local rim = timer:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
-	rim.ApplyStrokeMode, rim.Color, rim.Thickness, rim.Transparency =
-		Enum.ApplyStrokeMode.Border, Color3.fromRGB(120, 22, 20), 2, 0
+	rim.ApplyStrokeMode, rim.Color, rim.Thickness, rim.Transparency = Enum.ApplyStrokeMode.Border, D.SealRim, 2, 0
 	rim.Parent = timer
 	local tc = timer:FindFirstChildOfClass("UICorner") or Instance.new("UICorner")
 	tc.CornerRadius, tc.Parent = UDim.new(0, 6), timer
@@ -181,7 +181,7 @@ function SummonScroll.Apply(canvas)
 		or DojoScroll.Pill(
 			"FeatRate",
 			canvas,
-			Color3.fromRGB(168, 38, 42),
+			D.BrushRed,
 			{ FontFace = K.BodyBold, TextColor3 = K.SealText, Text = "" }
 		) -- the reference's darker brush red
 	place(featRate, 151, 490, 164, 27, true)
@@ -497,8 +497,8 @@ function SummonScroll.Apply(canvas)
 	end
 	local featured = canvas.Featured
 	place(featured, 758, 549, 240, 44)
-	featured.BackgroundColor3, featured.BackgroundTransparency = Color3.fromRGB(118, 18, 26), 0.08
-	featured.TextColor3, featured.TextScaled = Color3.fromRGB(255, 214, 92), true
+	featured.BackgroundColor3, featured.BackgroundTransparency = D.FeaturedPill, 0.08
+	featured.TextColor3, featured.TextScaled = D.FeaturedText, true
 	local fg = featured:FindFirstChild("FeaturedGradient")
 	if fg then
 		fg.Enabled = false -- it would tint the pill as well as the text
@@ -516,7 +516,7 @@ function SummonScroll.Apply(canvas)
 	end
 
 	-- Server values in, text out. state: { Featured (row or nil), FeaturedOdds, Sums (rarity -> percent),
-	-- Unlocked, UnlockRebirth, OnceCost, ManyCost, Auto }.
+	-- Unlocked, UnlockRebirth, OnceCost, ManyCost, Auto, Busy (a summon request is on its way) }.
 	function page.Refresh(state)
 		local row = state.Featured
 		featName.Text = row and row.Name or "Loading rotation…"
@@ -532,9 +532,11 @@ function SummonScroll.Apply(canvas)
 		tiles.Auto.Cost.Text = "until stop"
 		tiles.Auto.Label.Text = state.Auto and "Stop" or "Auto"
 		for _, tile in tiles do
-			tile.SetLocked(not state.Unlocked)
+			tile.SetLocked(not state.Unlocked or state.Busy == true)
 		end
-		tagline.Text = state.Unlocked and "This rotation" or string.format("Unlocks at Rebirth %d", state.UnlockRebirth)
+		tagline.Text = state.Busy and "Summoning..."
+			or state.Unlocked and "This rotation"
+			or string.format("Unlocks at Rebirth %d", state.UnlockRebirth)
 		tagline.TextColor3 = state.Unlocked and K.Muted or K.Accent
 	end
 

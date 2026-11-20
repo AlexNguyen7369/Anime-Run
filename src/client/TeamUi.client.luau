@@ -12,6 +12,7 @@
 -- (TeamQuickPick) for the best owned characters for the empty altars; Deploy sends the draft through the unchanged
 -- SetTeam and closes with the altars' activation. Closing with an undeployed draft asks Deploy or Discard. The Sidekicks
 -- tab equips a Sidekick on a member at once (SidekickEquip). The server decides every figure; the client only displays.
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -32,6 +33,7 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local RosterCard = require(script.Parent:WaitForChild("RosterCard"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
+local TouchTarget = require(script.Parent:WaitForChild("TouchTarget"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local UiTooltip = require(script.Parent:WaitForChild("UiTooltip"))
@@ -48,10 +50,10 @@ local CARD_W, CARD_H = 100, 130 -- roster paper cards, design units
 local DESIGN_H = 720 -- the full-screen page is laid out in units of a 720-tall screen (owner 2026-11-17 mockup)
 local MIN_TEXT = 11 -- px: the smallest paper text at any screen (a phone's 390 px height would scale it to ~6 px)
 local KANJI = { "一", "二", "三" } -- decoration only (4.45); every label stays English
-local READY = Color3.fromRGB(62, 142, 106) -- the ledger's "Ready" green on paper (T2)
-local WARN = Color3.fromRGB(176, 104, 20) -- "Unsaved changes" on paper
-local CARD = Color3.fromRGB(255, 250, 240) -- a roster paper card
-local ART_TOP, ART_BOTTOM = Color3.fromRGB(249, 230, 234), Color3.fromRGB(242, 201, 211) -- behind a drawn portrait
+local READY = D.Ready -- the ledger's "Ready" green on paper (T2)
+local WARN = D.Warn -- "Unsaved changes" on paper
+local CARD = D.Card -- a roster paper card
+local ART_TOP, ART_BOTTOM = D.ArtTop, D.ArtBottom -- behind a drawn portrait
 local BACKDROP = "rbxassetid://119528763151983" -- the approved blossom-shrine clean plate (assets/ui/summon_shrine)
 local BACKDROP_SHIFT = 170 -- units: the stage view shifts right beside the ledger (T2; an offset, no new art)
 -- The ledger scroll in units (DojoScroll design px = units): its top-left, size and bottom mount (Quick Setup, Deploy).
@@ -104,8 +106,8 @@ local function lacquer(button, primary)
 	})
 	UiTheme.Corner(button, 5)
 	if primary then
-		gradient(button, Color3.fromRGB(226, 82, 92), Color3.fromRGB(157, 31, 43))
-		edge(button, Color3.fromRGB(255, 213, 138), 2)
+		gradient(button, D.DeployTop, D.DeployBottom)
+		edge(button, D.DeployRim, 2)
 	else
 		gradient(button, K.Lacquer, K.LacquerDark)
 		edge(button, K.Accent, 2)
@@ -539,7 +541,18 @@ DojoScroll.Slip(popover)
 local bonusName = caption("Name", popover, { ZIndex = 21 })
 local bonusEffect = caption("Effect", popover, { ZIndex = 21, TextWrapped = true })
 local bonusTotal = caption("Total", popover, { ZIndex = 21 })
+-- While the question shows, a see-through blocker under it takes every tap on the page behind.
+local confirmBlocker = make("Frame", "ConfirmBlocker", panel, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	Active = true,
+	Visible = false,
+	ZIndex = 29,
+})
 local confirm = make("Frame", "ConfirmClose", panel, { Visible = false, ZIndex = 30 })
+confirm:GetPropertyChangedSignal("Visible"):Connect(function()
+	confirmBlocker.Visible = confirm.Visible
+end)
 DojoScroll.Slip(confirm)
 local confirmText = caption("Question", confirm, { Text = "Deploy your changes?", ZIndex = 31 })
 local confirmDeploy = lacquer(make("TextButton", "Deploy", confirm, { Text = "Deploy", ZIndex = 31 }), true)
@@ -639,8 +652,8 @@ local function layout()
 		g.Place(a.Plus, aw / 2 - 60, 160, 120, 120)
 		g.Role(a.Plus, "Title").TextColor3 = D.Cyan
 		a.Plus:FindFirstChild("RoleLimit").MaxTextSize = g.px(120)
-		-- The icons sit at the figure's top-right; Remove under them.
-		a.GearPos = g.at(aw * 0.78, 104)
+		-- The icons sit at the figure's top-right, right of the seal (clear of it at 4:3); Remove under them.
+		a.GearPos = g.at(math.min(aw / 2 + 30 + 2 * 24 + 6, aw), 104)
 		a.GearSize = g.px(24)
 		g.Place(a.Remove, aw - 104, 140, 96, 30)
 		g.Ink(a.Remove, "Caption", K.BodyBold, K.Accent)
@@ -883,6 +896,8 @@ end
 
 -- Marks, strokes and seals follow the draft in place; the cards are rebuilt only when what they list changes.
 local rosterKey = nil
+local gearKey = nil -- the gear the Characters cards show; a change redraws their icons in place
+local views = nil -- RosterCard.Views for the render under way (four JSON decodes, once)
 local function markRoster()
 	for _, card in roster:GetChildren() do
 		if not card:IsA("GuiButton") then
@@ -955,20 +970,34 @@ local function rarityStrip(card, color)
 	})
 end
 local function drawRoster()
+	-- Gear lives on the Characters cards (updated in place below); the Sidekicks cards list the bag and who wears what.
 	local key = table.concat({
 		tab,
 		sortMode,
 		tostring(g.k),
 		ownedKey(),
+		tab == "Sidekicks" and (player:GetAttribute("SidekickBag") or "") or "",
+		tab == "Sidekicks" and (player:GetAttribute("SidekickGear") or "") or "",
+	}, "|")
+	local worn = table.concat({
 		player:GetAttribute("SidekickBag") or "",
 		player:GetAttribute("SidekickGear") or "",
+		player:GetAttribute("RelicBag") or "",
 		player:GetAttribute("RelicGear") or "",
 	}, "|")
 	if key == rosterKey then
+		if tab == "Characters" and worn ~= gearKey then
+			gearKey = worn
+			for _, card in roster:GetChildren() do
+				if card:IsA("GuiButton") then
+					RosterCard.Gear(card, card.Name, player, g.px(5), g.px(18), views)
+				end
+			end
+		end
 		markRoster()
 		return
 	end
-	rosterKey = key
+	rosterKey, gearKey = key, worn
 	for _, child in roster:GetChildren() do
 		if child:IsA("GuiObject") then
 			child:Destroy()
@@ -1010,7 +1039,7 @@ local function drawRoster()
 				FontFace = K.BodyBold,
 				ZIndex = 7,
 			})
-			RosterCard.Gear(card, spec.Id, player, g.px(5), g.px(18))
+			RosterCard.Gear(card, spec.Id, player, g.px(5), g.px(18), views)
 			card.Activated:Connect(function()
 				chosenSidekick = nil
 				if selected then
@@ -1032,7 +1061,20 @@ local function drawRoster()
 		for id, entry in gear do
 			wearer[entry] = id
 		end
-		for order, row in SidekickView.Bag(player) do
+		-- Highest rarity first, then bag order (Sort's Speed / Stamina are character stats; a Sidekick sorts by rarity).
+		local bag = SidekickView.Bag(player)
+		local rank = {}
+		for i, row in bag do
+			local spec = SidekickConfig.Get(row.Id)
+			rank[row] = { table.find(GachaConfig.RARITY_ORDER, spec and spec.Rarity) or 0, i }
+		end
+		table.sort(bag, function(a, b)
+			if rank[a][1] ~= rank[b][1] then
+				return rank[a][1] > rank[b][1]
+			end
+			return rank[a][2] < rank[b][2]
+		end)
+		for order, row in bag do
 			local spec = SidekickConfig.Get(row.Id)
 			local card = paperCard(row.Entry, order, size)
 			card:SetAttribute("SidekickId", row.Id)
@@ -1060,6 +1102,7 @@ local function drawRoster()
 end
 
 function render()
+	views = RosterCard.Views(player)
 	for n, a in altars do
 		local id = draft[n]
 		local spec = id and CharacterCatalog.Get(id)
@@ -1071,7 +1114,8 @@ function render()
 		a.SlotLabel.Edge.Color = isSelected and D.Cyan or K.Accent
 		a.SlotLabel.Edge.Thickness = isSelected and 3 or 2
 		paintEdges(n)
-		if a.ShownId ~= id or not a.View:FindFirstChild("Figure") and spec then
+		-- A failed build is not retried every render; CharacterModels.Ready clears it (and ShownId) to build again.
+		if a.ShownId ~= id or (spec and not a.View:FindFirstChild("Figure") and a.FailedId ~= id) then
 			figureOn(a, spec)
 		end
 		if spec then
@@ -1079,7 +1123,7 @@ function render()
 			a.Portrait.Image = Components.PortraitImage(spec) or ""
 			a.Name.Text = spec.Name
 			a.Info.Text = string.format("%s · %s", spec.Rarity, HudFormat.RateText(RaceConfig.Cruise(spec)))
-			RosterCard.Gear(a.Button, id, player, 0, a.GearSize or g.px(22)).Position = a.GearPos or UDim2.new()
+			RosterCard.Gear(a.Button, id, player, 0, a.GearSize or g.px(22), views).Position = a.GearPos or UDim2.new()
 		else
 			local gearFrame = a.Button:FindFirstChild("Gear")
 			if gearFrame then
@@ -1098,7 +1142,7 @@ function render()
 		r.Rarity.TextColor3 = spec and (GachaConfig.RARITY_COLORS[spec.Rarity] or K.Muted) or K.Muted
 		r.Cruise.Text = spec and HudFormat.RateText(RaceConfig.Cruise(spec)) or ""
 		if spec then
-			RosterCard.Gear(r.Button, id, player, r.GearY or 0, r.GearSize or g.px(26))
+			RosterCard.Gear(r.Button, id, player, r.GearY or 0, r.GearSize or g.px(26), views)
 		else
 			local gearFrame = r.Button:FindFirstChild("Gear")
 			if gearFrame then
@@ -1149,12 +1193,15 @@ for n, a in altars do
 	rows[n].Button.Activated:Connect(function()
 		tapSlot(n) -- a ledger row picks its slot as its altar does (T2)
 	end)
-	a.Remove.Activated:Connect(function()
+	local function remove()
 		place(n, nil)
 		selected = nil
 		render()
-	end)
+	end
+	a.Remove.Activated:Connect(remove)
+	TouchTarget.Add(a.Remove, remove) -- phones: a 44 px tap area (audit 2026-11-20)
 end
+altars[1].Button:SetAttribute("FirstFocus", true) -- a gamepad starts on the first altar, not on Close
 quick.Activated:Connect(function()
 	if busy or filled() >= SLOTS then
 		return
@@ -1207,23 +1254,30 @@ confirmDiscard.Activated:Connect(function()
 	draft = saved()
 	PanelSwitch.ForceClose("Team")
 end)
-bonusButton.Activated:Connect(function()
+local function toggleBonus()
 	popover.Visible = not popover.Visible
 	if popover.Visible then
 		drawBonus()
 		UiMotion.Pop(popover, 0.04)
 	end
-end)
+end
+bonusButton.Activated:Connect(toggleBonus)
+TouchTarget.Add(bonusButton, toggleBonus)
+local function setTab(i)
+	tab = i == 1 and "Characters" or "Sidekicks"
+	chosen, chosenSidekick = nil, nil
+	render()
+end
 for i, t in tabButtons do
 	t.Activated:Connect(function()
-		tab = i == 1 and "Characters" or "Sidekicks"
-		chosen, chosenSidekick = nil, nil
-		render()
+		setTab(i)
 	end)
 end
-close.Activated:Connect(function()
+local function closePage()
 	PanelSwitch.Close("Team")
-end)
+end
+close.Activated:Connect(closePage)
+TouchTarget.Add(close, closePage)
 sortButton.Activated:Connect(function()
 	sortMode = RosterCard.Sorts[table.find(RosterCard.Sorts, sortMode) % #RosterCard.Sorts + 1]
 	sortButton.Text = "Sort: " .. sortMode
@@ -1237,10 +1291,37 @@ PanelSwitch.SetCloseGuard("Team", function()
 		confirm.Visible = true
 		popover.Visible = false
 		UiMotion.Pop(confirm, 0.04)
+		if GuiService.SelectedObject then -- a gamepad moves onto the question
+			GuiService.SelectedObject = confirmDeploy
+		end
 		return true
 	end
 	return false
 end)
+-- Back (gamepad B, Escape): the question or the bonus popover closes first, then the page (U6, audit 2026-11-20).
+PanelSwitch.SetBack("Team", function()
+	if confirm.Visible then
+		confirm.Visible = false
+		if GuiService.SelectedObject then
+			GuiService.SelectedObject = deploy
+		end
+		return true
+	end
+	if popover.Visible then
+		popover.Visible = false
+		return true
+	end
+	return false
+end)
+-- L1 / R1 switch the roster's tabs while the page is open.
+local TAB_ACTION = "TeamSetupTabs"
+local function bumper(_, state, input)
+	if state == Enum.UserInputState.Begin and not confirm.Visible then
+		setTab(input.KeyCode == Enum.KeyCode.ButtonL1 and 1 or 2)
+		UiFeedback.Play("TabSwitch")
+	end
+	return Enum.ContextActionResult.Sink
+end
 
 -- Open: the ledger drops and unrolls, its words ink in, the seals and Close fade in, the roster handscroll unrolls left
 -- to right (4.45 motion; reduced effects: fades only). Close: the ledger rolls up and the rest fades, under the wash.
@@ -1294,7 +1375,9 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		setStatus("Ready")
 		render()
 		openScroll()
+		ContextActionService:BindAction(TAB_ACTION, bumper, false, Enum.KeyCode.ButtonL1, Enum.KeyCode.ButtonR1)
 	else
+		ContextActionService:UnbindAction(TAB_ACTION)
 		UiTooltip.Hide()
 		confirm.Visible = false
 	end
@@ -1334,6 +1417,10 @@ task.spawn(function()
 	if models:GetAttribute("Ready") ~= true then
 		models:GetAttributeChangedSignal("Ready"):Wait()
 	end
+	-- The figures built before the models arrived are placeholders: build every altar's again.
+	for _, a in altars do
+		a.ShownId, a.FailedId = false, nil
+	end
 	changed()
 end)
 
@@ -1352,8 +1439,10 @@ function figureOn(a, spec)
 		return require(shared:WaitForChild("RunnerFactory")).build(spec.Id)
 	end)
 	if not ok or not rig then
+		a.FailedId = spec.Id
 		return
 	end
+	a.FailedId = nil
 	rig.Name = "Figure"
 	local label = rig:FindFirstChild("NameLabel")
 	if label then

@@ -12,8 +12,10 @@ local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
 local SummonAltarFx = require(script.Parent:WaitForChild("SummonAltarFx"))
 local SummonPanels = require(script.Parent:WaitForChild("SummonPanels"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SummonScroll = require(script.Parent:WaitForChild("SummonScroll"))
+local TouchTarget = require(script.Parent:WaitForChild("TouchTarget"))
 local SummonHybrid = require(script.Parent:WaitForChild("SummonHybrid"))
 local assets = ReplicatedStorage:WaitForChild("SummonScreenAssets")
 local LegendaryAuraStyle = require(assets:WaitForChild("LegendaryAuraStyle"))
@@ -23,13 +25,24 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
-local gui = player:WaitForChild("PlayerGui"):WaitForChild("RacerSidekicks")
-local canvas = gui:WaitForChild("Canvas")
-local savedStage = assets:WaitForChild("SummoningStage")
+-- The authored page and stage: a missing part warns instead of waiting forever with no message.
+local function need(parent, name)
+	local child = parent and parent:WaitForChild(name, 30)
+	if not child then
+		warn("SidekickUi: " .. (parent and parent:GetFullName() or "?") .. "." .. name .. " is missing")
+	end
+	return child
+end
+local gui = need(player:WaitForChild("PlayerGui"), "RacerSidekicks")
+local canvas = need(gui, "Canvas")
+local savedStage = need(assets, "SummoningStage")
+if not (canvas and savedStage) then
+	return
+end
 for i = 1, 3 do
-	local unit = savedStage:WaitForChild("Units"):WaitForChild("Unit" .. i)
-	unit:WaitForChild("Root")
-	unit:WaitForChild("ImportedAura"):WaitForChild("RightArm")
+	local unit = need(need(savedStage, "Units"), "Unit" .. i)
+	need(unit, "Root")
+	need(need(unit, "ImportedAura"), "RightArm")
 end
 local template = savedStage:Clone()
 template.Parent = nil
@@ -116,11 +129,6 @@ local function toast(text)
 			canvas.Toast.Visible = false
 		end
 	end)
-end
-local function dialog(title, text)
-	canvas.Modal.Panel.Heading.Text = title
-	canvas.Modal.Panel.DetailsScroll.Body.Text = text
-	canvas.Modal.Visible = true
 end
 -- Pose the independent mesh groups together, including blade and emissive armor pieces.
 local function poseFeatured(model, id)
@@ -307,6 +315,23 @@ local function freezePlayer(freeze)
 		end
 	end
 end
+-- The world's BillboardGuis, kept up to date from one scan at start, so opening never walks the whole workspace.
+local worldLabels = setmetatable({}, { __mode = "k" })
+task.defer(function()
+	workspace.DescendantAdded:Connect(function(label)
+		if label:IsA("BillboardGui") then
+			worldLabels[label] = true
+		end
+	end)
+	workspace.DescendantRemoving:Connect(function(label)
+		worldLabels[label] = nil
+	end)
+	for _, label in workspace:GetDescendants() do
+		if label:IsA("BillboardGui") then
+			worldLabels[label] = true
+		end
+	end
+end)
 local function open()
 	if opened then
 		return
@@ -314,8 +339,8 @@ local function open()
 	previousCamera =
 		{ kind = camera.CameraType, cf = camera.CFrame, fov = camera.FieldOfView, subject = camera.CameraSubject }
 	opened = true
-	for _, label in workspace:GetDescendants() do
-		if label:IsA("BillboardGui") then
+	for label in worldLabels do
+		if label.Parent and not (stage and label:IsDescendantOf(stage)) then
 			hiddenWorldLabels[label] = label.Enabled
 			label.Enabled = false
 		end
@@ -491,36 +516,6 @@ local rowLayout = Instance.new("UIListLayout")
 rowLayout.Padding = UDim.new(0, 12)
 rowLayout.Parent = modalRows
 
-local baseDialog = dialog
-dialog = function(title, text)
-	for _, child in modalRows:GetChildren() do
-		if child:IsA("GuiObject") then
-			child:Destroy()
-		end
-	end
-	modalRows.Visible = false
-	modalBody.Visible = true
-	scroll.CanvasPosition = Vector2.zero
-	baseDialog(title, text)
-end
-local function actionRow(text, callback)
-	local button = canvas.AutoSell:Clone()
-	button.Name = "Option"
-	button:SetAttribute("PopButton", false)
-	button:SetAttribute("DesignPosition", nil)
-	button.AnchorPoint = Vector2.zero
-	button.Position = UDim2.new()
-	button.Size = UDim2.new(1, 0, 0, 48)
-	button.Visible = true
-	button.ZIndex = modalRows.ZIndex + 1
-	button.Text = text
-	button.Caption.Text = text
-	button.Caption.Size = UDim2.fromScale(1, 1)
-	button.Parent = modalRows
-	button.Activated:Connect(callback)
-	return button
-end
-
 local rotation = {}
 local panels -- SummonPanels, the reference sheet's panels (design doc 4.45); made below
 local function refresh()
@@ -563,6 +558,7 @@ local function refresh()
 		OnceCost = player:GetAttribute("SidekickCost1") or Config.SummonCost,
 		ManyCost = player:GetAttribute("SidekickCost10") or Config.TenCost,
 		Auto = auto,
+		Busy = busy, -- a summon request is on its way: the tiles lock and the tagline says so
 	})
 end
 local function renderRotation()
@@ -600,18 +596,23 @@ local function setAuto(on)
 	canvas.Auto.Text = on and "Stop Auto" or "Auto"
 	refresh()
 end
+local closedMidRequest = false -- the player closed the page while a summon was on its way: it stays closed after
 local function requestSummon(count, free)
 	if busy or revealing or not opened or canvas.Modal.Visible or (panels and panels.IsOpen()) then
 		return
 	end
 	if (player:GetAttribute("RebirthLevel") or 0) < Config.UnlockRebirth then
 		setAuto(false)
+		UiFeedback.Play("Denied")
 		toast(string.format("Unlocks at rebirth %d", Config.UnlockRebirth))
 		return
 	end
 	busy = true
+	closedMidRequest = false
 	gui:SetAttribute("Summoning", true) -- SidekickTutorial waits on it from the request to the reveal's end
 	lastAuto = os.clock()
+	UiFeedback.Play("Toggle")
+	refresh()
 	local ok, done, results = pcall(function()
 		if free then
 			return remotes:WaitForChild("SidekickFreeSummon"):InvokeServer()
@@ -622,6 +623,7 @@ local function requestSummon(count, free)
 		busy = false
 		gui:SetAttribute("Summoning", nil)
 		setAuto(false)
+		UiFeedback.Play("Denied")
 		toast(ok and tostring(results or "Summon unavailable") or "Connection error. Please try again.")
 		return
 	end
@@ -647,10 +649,11 @@ local function requestSummon(count, free)
 	end
 	close()
 	gui.Enabled = false
-	SidekickReveal.Play(results, function()
+	local function revealed()
 		revealing, busy = false, false
 		gui.Enabled = true
-		if not PanelSwitch.AnyOpen() then
+		lastAuto = os.clock() -- the page shows a moment before the next Auto summon, so Stop can be pressed
+		if not PanelSwitch.AnyOpen() and not closedMidRequest then
 			canvas:SetAttribute("SkipTransition", true) -- back from a reveal: no page transition (design doc 4.45)
 			PanelSwitch.Action("Sidekicks")
 			canvas:SetAttribute("SkipTransition", nil)
@@ -662,34 +665,22 @@ local function requestSummon(count, free)
 		end
 		gui:SetAttribute("Summoning", nil)
 		refresh()
-	end)
+	end
+	-- Auto runs on without a click: its reveal closes itself (owner approved the audit fixes 2026-11-20).
+	local played, problem = pcall(SidekickReveal.Play, results, revealed, nil, continueAuto)
+	if not played then
+		warn("SidekickUi: reveal failed: " .. tostring(problem))
+		local left = player.PlayerGui:FindFirstChild("RacerSidekickReveal")
+		if left then
+			left:Destroy()
+		end
+		continueAuto = false
+		revealed()
+		toast("Summoned! Your Sidekicks are in your Bag.")
+	end
 	refresh()
 end
 
-local showAutoSell
-showAutoSell = function()
-	dialog("AUTO SELL", "")
-	modalBody.Visible = false
-	modalRows.Visible = true
-	for _, rarity in { "Common", "Rare", "Legendary", "Mythic", "Secret" } do
-		local on = SidekickView.AutoSell(player)[rarity] == true
-		actionRow(rarity .. (on and "  •  ON" or "  •  OFF"), function()
-			if busy then
-				return
-			end
-			busy = true
-			local ok, done = pcall(function()
-				return remotes:WaitForChild("SidekickAutoSell"):InvokeServer(rarity, not on)
-			end)
-			busy = false
-			if ok and done == true then
-				task.defer(showAutoSell)
-			else
-				toast("Could not update Auto Sell")
-			end
-		end)
-	end
-end
 local function buyPack(pack)
 	if busy then
 		return
@@ -717,6 +708,9 @@ panels = SummonPanels.new(canvas, {
 	Remotes = remotes,
 	-- Equip from the result: the new Sidekick goes on the Team's first runner (SidekickEquip; the server checks it).
 	Equip = function(id)
+		if busy then
+			return
+		end
 		local entry
 		for _, item in SidekickView.Bag(player) do
 			if item.Id == id then
@@ -724,9 +718,12 @@ panels = SummonPanels.new(canvas, {
 			end
 		end
 		local leader = string.split(player:GetAttribute("Team") or "", ",")[1]
+		busy = true
 		local ok, done, message = pcall(function()
 			return remotes:WaitForChild("SidekickEquip"):InvokeServer(leader, entry)
 		end)
+		busy = false
+		UiFeedback.Play(ok and done and "Equip" or "Denied")
 		toast(ok and done and "Equipped on your first runner" or tostring(ok and message or "Connection error"))
 	end,
 })
@@ -754,20 +751,40 @@ canvas.Banner1.Caption.Text = "Featured"
 canvas.Banner1.Activated:Connect(function()
 	panels.Featured()
 end)
-canvas.Close.Activated:Connect(function()
-	PanelSwitch.Close("Sidekicks")
-end)
-canvas.Chances.Activated:Connect(function()
-	panels.Chances()
-end)
-canvas.Info.Activated:Connect(function()
-	panels.Info()
-end)
-canvas.AutoSell.Activated:Connect(function()
-	panels.AutoSell()
-end)
-canvas.AutoFuse.Activated:Connect(function()
-	requestSummon(nil, true)
+-- The small controls also get a 44 px tap area on phones (audit 2026-11-20, U1); the page's look stays as drawn.
+for name, fn in
+	{
+		Close = function()
+			PanelSwitch.Close("Sidekicks")
+		end,
+		Chances = function()
+			panels.Chances()
+		end,
+		Info = function()
+			panels.Info()
+		end,
+		AutoSell = function()
+			panels.AutoSell()
+		end,
+		AutoFuse = function()
+			requestSummon(nil, true)
+		end,
+	}
+do
+	canvas[name].Activated:Connect(fn)
+	TouchTarget.Add(canvas[name], fn)
+end
+-- Back (gamepad B, Escape): an open panel or dialog closes first, then the page (U6, audit 2026-11-20).
+PanelSwitch.SetBack("Sidekicks", function()
+	if panels.IsOpen() then
+		panels.Hide()
+		return true
+	end
+	if canvas.Modal.Visible then
+		canvas.Modal.Visible = false
+		return true
+	end
+	return false
 end)
 canvas.Once.Activated:Connect(function()
 	requestSummon(1, false)
@@ -794,6 +811,9 @@ canvas:GetPropertyChangedSignal("Visible"):Connect(function()
 		open()
 		page.Open()
 	else
+		if busy and not revealing then
+			closedMidRequest = true
+		end
 		panels.Hide()
 		close()
 	end

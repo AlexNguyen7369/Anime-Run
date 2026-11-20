@@ -3,6 +3,7 @@
 -- on moving graphics; 10x drops 10 cards that flip one by one, and a Mythic or Secret interrupts with its own showcase. A tap
 -- skips to the end; a click at the end continues. Reduced effects start at the end. Display only: the server already decided every
 -- result. Textures are original: vfx/summon_reveal/textures.py.
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -47,6 +48,8 @@ local RAY_SPEED, TURN_SPEED, MODEL_SWAY = 28, math.rad(40), math.rad(14)
 local BOB_SPEED, BOB_HEIGHT = 2.2, 0.012
 local BIG_MOMENT = { Mythic = true, Secret = true }
 local CENTRE = UDim2.fromScale(0.5, 0.4)
+local AUTO_HOLD = 1.2 -- s the end stays up before an Auto summon's reveal closes itself (placeholder)
+local TAP_ACTION = "SidekickRevealTap"
 
 local Reveal = {}
 
@@ -86,7 +89,8 @@ end
 
 -- Plays `results` ({ Id, Sold }, or { Row } for a catalog row of another kind) over the game world. onClose runs when the player clicks
 -- to continue. With `chestImage`, a chest opening (docs/RELIC_SPEC.md "Chests"): results play one after another on the 1x sequence.
-function Reveal.Play(results, onClose, chestImage)
+-- `autoClose`: an Auto summon's reveal closes itself AUTO_HOLD s after its end (owner approved the audit fixes 2026-11-20).
+function Reveal.Play(results, onClose, chestImage, autoClose)
 	local player = Players.LocalPlayer
 	local gui = make("ScreenGui", "RacerSidekickReveal", player:WaitForChild("PlayerGui"), {
 		ResetOnSpawn = false,
@@ -117,13 +121,29 @@ function Reveal.Play(results, onClose, chestImage)
 		AutoButtonColor = false,
 		ZIndex = 7,
 	})
-	tap.Activated:Connect(function()
+	local function pressed()
 		if ended then
 			close()
 		else
 			skip = true
 		end
-	end)
+	end
+	tap.Activated:Connect(pressed)
+	-- A gamepad or keyboard has no "anywhere" to click: A, B and Space do the same as a tap while the reveal is up.
+	ContextActionService:BindActionAtPriority(
+		TAP_ACTION,
+		function(_, state)
+			if state == Enum.UserInputState.Begin then
+				pressed()
+			end
+			return Enum.ContextActionResult.Sink
+		end,
+		false,
+		Enum.ContextActionPriority.High.Value + 10,
+		Enum.KeyCode.ButtonA,
+		Enum.KeyCode.ButtonB,
+		Enum.KeyCode.Space
+	)
 	local flash = make("Frame", "Flash", gui, {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = WHITE,
@@ -212,6 +232,7 @@ function Reveal.Play(results, onClose, chestImage)
 			return
 		end
 		closed = true
+		ContextActionService:UnbindAction(TAP_ACTION)
 		turning:Disconnect()
 		gui:Destroy()
 		onClose()
@@ -538,6 +559,9 @@ function Reveal.Play(results, onClose, chestImage)
 			TextSize = 22,
 			ZIndex = 9,
 		})
+		if autoClose then
+			task.delay(AUTO_HOLD, close)
+		end
 	end
 
 	local function playOne()
@@ -780,10 +804,16 @@ function Reveal.Play(results, onClose, chestImage)
 
 	UiTheme.Apply(gui)
 	task.spawn(function()
-		if #results > 1 and not chestImage then
-			playMany()
-		else
-			playOne()
+		-- A failed step still reaches the end, so the reveal can always be closed.
+		local ok, problem = pcall(function()
+			if #results > 1 and not chestImage then
+				playMany()
+			else
+				playOne()
+			end
+		end)
+		if not ok then
+			warn("SidekickReveal: " .. tostring(problem))
 		end
 		if not closed then
 			finish()
