@@ -76,6 +76,42 @@ UiTheme.Dojo = {
 	Petal = "rbxassetid://130260166899982", -- the plaza petal (tools/blender/plaza/plaza_assets.json)
 }
 
+-- Hanging-scroll kit, Sumi ink skin (design doc 4.45 "Hanging-scroll look", owner 2026-11-19), read by Client/DojoScroll.
+-- Proposed values. Images: assets/ui/hanging_scroll/asset.json (white art, tinted by ImageColor3).
+UiTheme.Scroll = {
+	Mount = Color3.fromRGB(207, 201, 189),
+	MountDark = Color3.fromRGB(184, 177, 164),
+	RuleTop = Color3.fromRGB(165, 157, 144),
+	RuleBottom = Color3.fromRGB(109, 103, 93),
+	Paper = Color3.fromRGB(251, 249, 243),
+	PaperShade = Color3.fromRGB(238, 233, 222),
+	Ink = Color3.fromRGB(20, 18, 20),
+	Muted = Color3.fromRGB(109, 104, 98),
+	Accent = Color3.fromRGB(200, 48, 44), -- vermilion #C8302C
+	SealText = Color3.fromRGB(255, 248, 238),
+	RodTop = Color3.fromRGB(44, 38, 38),
+	RodBottom = Color3.fromRGB(10, 8, 8),
+	CapLight = Color3.fromRGB(122, 122, 122),
+	CapDark = Color3.fromRGB(20, 20, 20),
+	Cord = Color3.fromRGB(58, 52, 52),
+	Lacquer = Color3.fromRGB(42, 37, 38),
+	LacquerDark = Color3.fromRGB(15, 12, 13),
+	Slip = Color3.fromRGB(251, 249, 243),
+	-- Gem-pack tags: burgundy with pink rims (the owner's one change to R3).
+	TagTop = Color3.fromRGB(110, 34, 56),
+	TagBottom = Color3.fromRGB(69, 16, 31),
+	TagRim = Color3.fromRGB(244, 145, 171),
+	TagCord = Color3.fromRGB(194, 51, 77),
+	TagText = Color3.fromRGB(255, 243, 216),
+	TagPrice = Color3.fromRGB(246, 196, 150), -- pink-gold
+	Body = Font.fromEnum(Enum.Font.TitilliumWeb),
+	BodyBold = Font.new("rbxasset://fonts/families/TitilliumWeb.json", Enum.FontWeight.Bold),
+	Heading = Font.fromEnum(Enum.Font.PermanentMarker),
+	Wordmarks = "rbxassetid://98796658340171", -- Kaushan Script "Summon" over "Team", 1024x512
+	WordmarkRects = { Summon = { 150, 30, 750, 200 }, Team = { 330, 286, 410, 200 } },
+	Enso = "rbxassetid://123264633411621",
+}
+
 local function child(parent, class, name)
 	local value = parent:FindFirstChild(name)
 	if not value then

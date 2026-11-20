@@ -1,0 +1,17 @@
+{
+  "Method": "Studio MCP upload_image (2 images), each inspected before upload; no repo upload script",
+  "Spec": "docs/GAME_DESIGN_REQUIREMENTS.md 4.45 Hanging-scroll look (owner 2026-11-19)",
+  "Wordmarks": {
+    "Image": "rbxassetid://98796658340171",
+    "Source": "dojo_wordmarks.png",
+    "Render": "wordmarks_source.html, Kaushan Script (Google Fonts, OFL), white on transparent, 1024x512, headless Chrome",
+    "Rects": { "Summon": [150, 30, 750, 200], "Team": [330, 286, 410, 200] }
+  },
+  "Enso": {
+    "Image": "rbxassetid://123264633411621",
+    "Source": "dojo_enso.png",
+    "Render": "enso_source.html, R3 brush path, white on transparent, 512x512, headless Chrome"
+  },
+  "Tint": "Both are white: ImageColor3 colours them (UiTheme.Scroll.Ink on paper)",
+  "Used": "Client/DojoScroll (ids in src/shared/UiTheme.luau UiTheme.Scroll)"
+}
