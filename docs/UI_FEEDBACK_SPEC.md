@@ -40,4 +40,6 @@ Design doc 4.20, 4.27, 4.28; ROLL_ANIMATION_SPEC. Harness values stay: hover 1.0
   with up to 22 large plaza petal images drifting and turning through it, holds 0.12 s, and clears over 0.3 s.
   `PanelSwitch` switches the page at `UiTransition.COVER` (full cover), on open and on close. Reduced motion: a 0.15 s
   fade, no petals; the page switches at once. A second call while one runs is ignored. Timings **proposed**.
+- Faster pages (owner approved the audit fixes 2026-11-20; replaces 0.22 s above): the wash covers the screen at 0.15 s, so a
+  page shows 0.15 s after the press; a closing page hides at once under the full wash (no 0.12 s close fade there).
 - Hover 0.12 s, press 0.1 s, panel entrance 0.3 s, tooltip 0.2 s (**proposed**, inside 4.20's ranges).

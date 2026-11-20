@@ -122,6 +122,7 @@ In the style common to anime tower defense games: all effects original, no copie
 - Summon 1x: a vortex winds up with sparks pouring in and a growing shake, and turns the rarity's colour partway; it collapses and hits with a flash, comic burst, shock rings and sparks. The model pops in, about 56% of screen height, on turning rays with rising glints. Below it: name, a divider, rarity.
 - Summon 10x: 10 cards drop in and flip one by one with rings and sparks. A Legendary, Mythic or Secret card first trembles and glows its colour. A Mythic or Secret then interrupts with the 1x showcase.
 - End: "(Click anywhere to continue)". No buttons.
+- Auto and gamepad (owner approved the audit fixes 2026-11-20): while Auto is on, the reveal closes itself 1.2 s after its end (**placeholder**) and the next Auto summon waits 3 s on the page so Stop can be pressed; gamepad A or B and the Space key do what a click does.
 
 ## Bag and equip
 - Backpack gets a Sidekicks tab holding 50 entries. Each summon is one entry, saved in `Sidekicks`. This replaces the earlier copies rule.

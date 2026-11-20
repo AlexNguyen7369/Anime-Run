@@ -19,6 +19,8 @@ local wanted = {} -- name -> true while PanelSwitch opened it
 local accents = {}
 local openedAt = {}
 local closeGuards = {} -- name -> fn() returning true to keep the panel open (it asks the player first)
+local backs = {} -- name -> fn() returning true when Back closed one of the panel's own overlays instead
+local afterGuard = nil -- the page asked for while another page's close guard asked first: it opens after that closes
 local OPEN_GUARD = 0.3
 local changed = Instance.new("BindableEvent")
 PanelSwitch.Changed = changed.Event -- fires after any panel opens or closes (deferred)
@@ -94,11 +96,14 @@ local function shown(inst, root)
 	return true
 end
 
--- The top-left visible, selectable button in the panel.
+-- The visible, selectable button marked FirstFocus (Team Setup's first altar), else the top-left one in the panel.
 local function firstButton(panel)
 	local best
 	for _, inst in panel:GetDescendants() do
 		if inst:IsA("GuiButton") and inst.Selectable and inst.Name ~= "Backdrop" and shown(inst, panel) then
+			if inst:GetAttribute("FirstFocus") then
+				return inst
+			end
 			local p = inst.AbsolutePosition
 			if
 				inst.AbsoluteSize.X > 0
@@ -137,7 +142,7 @@ local function takeFocus(panel)
 	GuiService:AddSelectionParent(FOCUS_GROUP, panel)
 	ContextActionService:BindActionAtPriority(CLOSE_ACTION, function(_, state)
 		if state == Enum.UserInputState.Begin and focused == panel then
-			-- Through Close, so a page's close guard (Team Setup's unsaved draft) still asks first.
+			-- Through Back, so an open overlay closes first and a page's close guard still asks first.
 			local name = nil
 			for n, p in panels do
 				if p == panel then
@@ -145,7 +150,7 @@ local function takeFocus(panel)
 				end
 			end
 			if name then
-				PanelSwitch.Close(name)
+				PanelSwitch.Back(name)
 			else
 				panel.Visible = false
 			end
@@ -265,11 +270,11 @@ local function openMotion(panel)
 	motion.Tween:Play()
 end
 
--- Hides `panel` with the close motion (instant while reduced).
-local function closeMotion(panel)
+-- Hides `panel` with the close motion (instant while reduced, or under a Sakura wash that already covers it).
+local function closeMotion(panel, instant)
 	local target = motionTarget(panel)
 	stopMotion(target)
-	if UiMotion.Reduced() then
+	if instant or UiMotion.Reduced() then
 		panel.Visible = false
 		return
 	end
@@ -353,9 +358,12 @@ function PanelSwitch.Toggle(name)
 		return true
 	end
 	if open then
-		-- Another open page with an unsaved draft asks first (Team Setup's Deploy / Discard, design doc 4.45).
+		-- Another open page with an unsaved draft asks first (Team Setup's Deploy / Discard, design doc 4.45);
+		-- this page opens once that one closes (Deploy or Discard).
+		afterGuard = nil
 		for other, p in panels do
 			if other ~= name and p.Visible and closeGuards[other] and closeGuards[other]() then
+				afterGuard = name
 				return false
 			end
 		end
@@ -381,7 +389,7 @@ function PanelSwitch.Toggle(name)
 			end
 			panel.Visible = true
 		else
-			closeMotion(panel)
+			closeMotion(panel, covered)
 		end
 	end
 	if covered then
@@ -423,16 +431,42 @@ function PanelSwitch.SetCloseGuard(name, fn)
 	closeGuards[name] = fn
 end
 
--- Closes `name` past its close guard (the guard's own "Discard" / "Deploy" answers).
+-- Closes `name` past its close guard (the guard's own "Discard" / "Deploy" answers), then opens the page that was asked
+-- for while the guard asked, if any.
 function PanelSwitch.ForceClose(name)
 	local guard = closeGuards[name]
 	closeGuards[name] = nil
 	PanelSwitch.Close(name)
 	closeGuards[name] = guard
+	local pending = afterGuard
+	afterGuard = nil
+	if pending and pending ~= name then
+		task.delay(UiTransition.Cover(), function() -- under the closing page's wash
+			if not PanelSwitch.IsOpen(pending) then
+				PanelSwitch.Toggle(pending)
+			end
+		end)
+	end
+end
+
+-- `fn()` runs on Back (gamepad B, Escape) before `name` closes; returning true means it closed one of the page's own
+-- overlays (a dialog, a popover) and the page stays open.
+function PanelSwitch.SetBack(name, fn)
+	backs[name] = fn
+end
+
+-- Back on `name`: its top overlay closes first, else the page closes (past its close guard's question).
+function PanelSwitch.Back(name)
+	if backs[name] and backs[name]() then
+		afterGuard = nil -- backing out of Team Setup's question also drops the page it was asked for
+		return
+	end
+	PanelSwitch.Close(name)
 end
 
 function PanelSwitch.Close(name)
-	if PanelSwitch.IsOpen(name) then
+	-- wanted false while still shown: a close is already under way (two Escape handlers), so it runs once.
+	if PanelSwitch.IsOpen(name) and wanted[name] then
 		if closeGuards[name] and closeGuards[name]() then
 			return
 		end
@@ -440,7 +474,7 @@ function PanelSwitch.Close(name)
 		if accents[name] and UiTransition.Play(accents[name]) then
 			task.delay(UiTransition.Cover(), function()
 				if wanted[name] == false then
-					closeMotion(panels[name])
+					closeMotion(panels[name], true) -- the wash covers it: hide at once (audit 2026-11-20, U7)
 					notify()
 				end
 			end)
@@ -450,5 +484,17 @@ function PanelSwitch.Close(name)
 		notify()
 	end
 end
+
+-- Escape backs out of any open registered page (RacerUiController and ProgressionUi also close their own panels on it;
+-- Close runs once either way).
+UserInputService.InputBegan:Connect(function(input, consumed)
+	if not consumed and input.KeyCode == Enum.KeyCode.Escape then
+		for name in panels do
+			if PanelSwitch.IsOpen(name) then
+				PanelSwitch.Back(name)
+			end
+		end
+	end
+end)
 
 return PanelSwitch

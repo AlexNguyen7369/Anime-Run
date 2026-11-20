@@ -46,6 +46,15 @@ local function show(text, seconds)
 	end)
 end
 
+-- Another client script's short notice: it sets this gui's Message attribute (Client/TeamHud, the minibar in an event).
+gui:GetAttributeChangedSignal("Message"):Connect(function()
+	local text = gui:GetAttribute("Message")
+	if type(text) == "string" and text ~= "" then
+		show(text, 2)
+		gui:SetAttribute("Message", nil) -- the same notice again still shows
+	end
+end)
+
 ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent:Connect(function(ev)
 	if type(ev) ~= "table" then
 		return
