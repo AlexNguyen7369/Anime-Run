@@ -4064,6 +4064,9 @@ UiSpec.RunVisual = {
 	StuckDegrees = 0.01,
 	StuckStuds = 0.001,
 	MaxStuckFrames = 2,
+	-- Render steps per Heartbeat below this: Studio is not the front window (15 fps against 60). Stuck-frame and swap
+	-- failures then name the throttle as their cause. A front window draws about 1 per Heartbeat.
+	MinRenderShare = 0.75,
 	PhaseShare = 0.7, -- RightLeg's mid crossings against 2 per stride (the window's edges and hitches lose a few)
 	SwingShare = 0.8, -- RightLeg's measured swing against the pose's own (0.92 even when sampled at 30 fps)
 	-- Mesh bugs
