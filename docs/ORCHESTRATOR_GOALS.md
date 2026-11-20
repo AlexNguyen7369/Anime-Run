@@ -358,7 +358,7 @@ Owner-confirmed: 2026-11-19 ("preserve the summon page for now, work solely on t
 Branch: orch/team-dojo/backdrop (from feature/alex/sakura-polish e987c91; Team Setup T2 lives there, not in main)
 Spec: design doc 4.45 (Team Setup), docs/TEAM_AND_STAMINA_SPEC.md "Team Setup page"; owner reference image + Team Select brief (2026-11-19)
 Deliverables:
-- d1 | Night-dojo clean plate for the Team page (Blender, original build matching the reference's hall: red torii, lanterns, shoji, sakura, dark wood floor; no altars, characters or UI) | renders shown to the owner; owner approves before upload
-- d2 | Several Team Select UI drafts over that plate, closer to the reference, with open rule questions marked | owner picks one
-- d3 | Rules written for the picked draft (4.45, spec), then build on the hanging-scroll TeamUi | after owner pick
+- d1 | DONE 2026-11-20 (owner approved; uploaded 84852553726102) | Night-dojo clean plate for the Team page (Blender, original build matching the reference's hall: red torii, lanterns, shoji, sakura, dark wood floor; no altars, characters or UI) | renders shown to the owner; owner approves before upload
+- d2 | DONE 2026-11-20 (owner approved the Studio draft) | Several Team Select UI drafts over that plate, closer to the reference, with open rule questions marked | owner picks one
+- d3 | Rules WRITTEN 2026-11-20 (4.45 "Team Select night dojo", spec pointer); build in TeamUi next | Rules written for the picked draft (4.45, spec), then build on the hanging-scroll TeamUi | after owner pick
 Out of scope: the Summon page (preserved), team rules (SetTeam, 3 members), new stats (level, power, new bonus kinds) until the owner rules on them.

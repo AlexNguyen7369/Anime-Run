@@ -695,7 +695,11 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     search at its left end; cards are paper cards with portrait, name, rarity strip, the team-slot seal, and the relic
     and Sidekick icons as before. Close at the top right. The top-centre slot dots go (the ledger shows the slots).
 
-- Team Select night dojo (owner 2026-11-19/20; replaces T2 "Ledger scroll" where they differ; approved from the Studio captures
+- Team Select night dojo (owner 2026-11-19/20; replaces T2 "Ledger scroll" where they differ, and in the base Team Setup bullet above
+  it replaces the blossom-shrine backdrop, the pink / cyan light columns (a soft red-pink aura behind the centre member
+  instead), the equal one-slab altars (pink top, cyan rim, sakura emblem) and the diamond / circle relic and Sidekick
+  icons (square icons as drawn); the plaza Team altar keeps its slab until the owner rules on it (**open question**);
+  approved from the Studio captures
   https://claude.ai/artifact/16AdtJyLjWfV8AUwD2mo4D on 2026-11-20). Reference: the owner's Team Select image (in
   assets/ui/team_dojo/drafts and the review pages). Sizes, offsets and timings are **proposed**; the look is fixed.
   - Backdrop: the night-dojo plate (assets/ui/team_dojo, `rbxassetid://84852553726102`), floor vanishing point (1089, 242)

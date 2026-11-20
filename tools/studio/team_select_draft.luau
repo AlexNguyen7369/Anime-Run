@@ -2,7 +2,7 @@
 -- Team Select DRAFT (goal team-dojo): the redesigned screen built client-side at runtime in a Play session, for owner
 -- screenshots only. Paste into Studio's execute_luau on the Client datamodel. Not a game script: it saves nothing,
 -- uploads nothing and edits no script. Matches the owner reference (1920x1080 design canvas) and the approved
--- "A · Makimono" skin (artifact 894a7735). After a run: _G.TSD.build("A"|"B"), _G.TSD.mode("full"|"stage"),
+-- "A · Makimono" skin (artifact https://claude.ai/artifact/HxHn7rXzL3VSMb7hyADaCJ). After a run: _G.TSD.build("A"|"B"), _G.TSD.mode("full"|"stage"),
 -- _G.TSD.freeze(t or nil), _G.TSD.teardown(), _G.TSD.restoreOthers().
 
 local Players = game:GetService("Players")
