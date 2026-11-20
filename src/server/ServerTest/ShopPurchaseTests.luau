@@ -53,8 +53,8 @@ local IN_FLIGHT_WAIT_LIMIT = 3
 -- test codes injected into CodeConfig.Codes (keys upper case, as the spec requires)
 local CODE = "SERVERTESTCODE"
 local CODE_GRANTS = { LuckI = 2, MoneyII = 1 }
-local CODE_32 = string.rep("Z", MAX_CODE_LENGTH - 7) .. "SERVERTEST" -- exactly 32 characters
-local CODE_33 = string.rep("Y", MAX_CODE_LENGTH + 1 - 7) .. "SERVERTEST" -- 33: refused even though configured
+local CODE_32 = string.rep("Z", MAX_CODE_LENGTH - 10) .. "SERVERTEST" -- exactly 32 characters
+local CODE_33 = string.rep("Y", MAX_CODE_LENGTH + 1 - 10) .. "SERVERTEST" -- 33: refused even though configured
 
 local function module(parent, name)
 	local source = parent:FindFirstChild(name)
@@ -533,7 +533,7 @@ function Tests.shop_purchases()
 			moneyValue.Value = 500
 		end
 		local bc = counts(pc)
-		local okC, msgC = redeem(pc, "  cartestcode \t")
+		local okC, msgC = redeem(pc, "  servertestcode \t")
 		flag("shop_code_case_trim_insensitive", okC == true and msgC == MSG_OK, tostring(msgC), MSG_OK)
 		flag("shop_code_grants_exact", changedBy(bc, counts(pc), CODE_GRANTS))
 		-- the Speed half is retired with the Speed stat (design doc 4.13, owner 2026-11-01); codes still pay no Money

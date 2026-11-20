@@ -411,7 +411,7 @@ UiSpec.Rebirth = {
 		{ Name = "Title", Parent = "Header", Class = "TextLabel" },
 		{ Name = "Close", Parent = "Header", Class = "Frame" },
 		{ Name = "Warning", Parent = "Panel", Class = "Frame" },
-		{ Name = "WarningTitle", Parent = "Warning", Class = "TextLabel", Text = "WARNING", Colour = "red" },
+		{ Name = "WarningTitle", Parent = "Warning", Class = "TextLabel", Text = "WARNING", Colour = "gold" },
 		{
 			Name = "WarningText",
 			Parent = "Warning",
@@ -425,7 +425,7 @@ UiSpec.Rebirth = {
 			Parent = "Rewards",
 			Class = "TextLabel",
 			Text = "NEXT REBIRTH", -- UI audit A25: these are the next rebirth's rewards
-			Colour = "yellow",
+			Colour = "gold",
 		},
 		{ Name = "LuckReward", Parent = "Rewards", Class = "Frame" },
 		{ Name = "SpeedReward", Parent = "Rewards", Class = "Frame" },
@@ -442,7 +442,7 @@ UiSpec.Rebirth = {
 			Parent = "Requirements",
 			Class = "TextLabel",
 			Text = "REQUIREMENTS",
-			Colour = "purple",
+			Colour = "gold",
 		},
 		{ Name = "Bar", Parent = "Requirements", Class = "Frame" },
 		{ Name = "Fill", Parent = "Bar", Class = "Frame" },
@@ -489,8 +489,12 @@ UiSpec.Rebirth = {
 		"Data not loaded",
 		"Stats not ready",
 	},
-	-- TextColor3 / BackgroundColor3 families (0..1 channels): red, yellow, purple headings; green = the met bar fill.
+	-- TextColor3 / BackgroundColor3 families (0..1 channels): gold = the one heading colour (AnimeSkin Section role,
+	-- UI audit G11, c56aaf3; were red, yellow, purple); green = the met bar fill.
 	Colours = {
+		gold = function(c)
+			return c.R >= 0.8 and c.G >= 0.6 and c.B <= 0.45 and c.R >= c.G
+		end,
 		red = function(c)
 			return c.R >= 0.6 and c.G <= 0.45 and c.B <= 0.45
 		end,
@@ -1409,6 +1413,7 @@ UiSpec.Waits = {
 	TurboRoll = 35, -- a turbo roll comes every TurboEvery (10) rolls x ROLL_INTERVAL (3 s) = 30 s at most
 	TurboPopShow = 0.5, -- the TURBO label must show "TURBO x<multi>!" this soon after a turbo RollResult
 	TurboPopHide = 2, -- and be back to "TURBO LUCK 0/<every>" (bar empty) this soon after it
+	TurboFillSettle = 1.5, -- s after a turbo RollResult: the pop holds the bar full 1.2 s, then a 0.2 s tween empties it (RacerUiController)
 	TurboBeforeNext = 0.1, -- s: a faster roll interval (2x Auto-Roll) reads that this long before its next roll: the pop lasts 1.2 s
 	TurboStable = 6, -- ui_turbo waits at most this long for a moment HudSettle s after the last turbo change
 }
@@ -3371,7 +3376,7 @@ UiSpec.Backpack = {
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
 	Slots = "RacerBackpack/Panel/Slots", -- slot buttons Slot1..3 (Client/SlotPicker; u4): Trails / Auras only since 2026-11-12
-	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks", "Relics" }, -- top to bottom; button <Name>Tab, label text <Name>
+	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks", "Relics" }, -- left to right on one row; button <Name>Tab, label text <Name>
 	-- Path tokens of the click machinery: a tile's name known only at the click. Each returns it, or nil while it has not arrived.
 	EntryTokens = {
 		["{relic_first}"] = function(player)

@@ -1772,6 +1772,7 @@ local CLIENT_SETUPS = {
 	lose_event = true,
 	cash_out_notice = true, -- ui_hud: fake CashOut RunEvent, no state to restore
 	emphasized_next = true,
+	turbo_next = true, -- ui_roll_anim, click showcase_card_click_stays_open; the turbo roll resets TurboCount itself
 	showdown_start = true,
 	showdown_win = true,
 	run_visual = true,
@@ -1941,7 +1942,7 @@ setupRequest.OnServerInvoke = function(player, request)
 		elseif restoreId == "bag_full_sold" then
 			setups.bag_spares_clear(player)
 		elseif restoreId then
-			return -- lose_event and emphasized_next put themselves back
+			return -- lose_event, emphasized_next and turbo_next put themselves back
 		elseif CLIENT_SETUPS[request] then
 			if request == "auto_racing" and before.auto_racing == nil then
 				before.auto_racing = live("RunnerService").IsAutoRacing(player) == true

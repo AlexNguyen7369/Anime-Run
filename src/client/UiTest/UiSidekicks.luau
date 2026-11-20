@@ -156,13 +156,14 @@ function Module.Build(h)
 		return label and label.Text or "missing"
 	end
 	-- Texts of the screen a player can read: shown labels and buttons, outside the dialog.
-	local function shownTexts(holder, skip)
+	local function shownTexts(holder, skip, skip2)
 		local words = {}
 		for _, d in holder:GetDescendants() do
 			if
 				(d:IsA("TextLabel") or d:IsA("TextButton"))
 				and h.visible(d)
 				and not (skip and d:IsDescendantOf(skip))
+				and not (skip2 and d:IsDescendantOf(skip2))
 			then
 				table.insert(words, d.Text)
 			end
@@ -210,7 +211,11 @@ function Module.Build(h)
 			featured[row.Id] = true
 		end
 		local text = table.concat(shownTexts(canvas, canvas:FindFirstChild("Modal")), " ")
-		check(res, "sidekick_screen_no_secret_word", string.find(text, "Secret", 1, true) ~= nil, false)
+		-- The Rates column lists "Secret" as a rarity with its rate (design doc 4.45 "Summon 1:1 reference", approved
+		-- 2026-11-20); the word must not show anywhere else. Names are still judged on the whole screen below.
+		local outside =
+			table.concat(shownTexts(canvas, canvas:FindFirstChild("Modal"), canvas:FindFirstChild("Rates")), " ")
+		check(res, "sidekick_screen_no_secret_word", string.find(outside, "Secret", 1, true) ~= nil, false)
 		for _, rows in { Config.List, Config.BossDrops } do
 			for _, row in rows do
 				if not featured[row.Id] then
@@ -448,7 +453,7 @@ function Module.Build(h)
 	local function checkDetails(res, canvas)
 		local button = canvas:FindFirstChild("Chances")
 		check(res, "sidekick_odds_button_shown", button ~= nil and h.visible(button), true)
-		check(res, "sidekick_odds_button_label", labelText(button, "Caption"), "Details")
+		check(res, "sidekick_odds_button_label", labelText(button, "PaperLabel"), "Details")
 		local view = public()
 		check(res, "sidekick_public_has_odds", view and type(view.Odds), "table")
 		if view then

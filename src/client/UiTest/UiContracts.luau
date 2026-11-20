@@ -831,7 +831,7 @@ function Contracts.Build(h)
 		local charactersTab = h.find(B.CharactersTab)
 		local tabEdge = charactersTab and charactersTab:FindFirstChildOfClass("UIStroke")
 		check(res, "backpack_opens_on_characters", tabEdge ~= nil and tabEdge.Color == Color3.new(1, 1, 1), true)
-		-- Exactly the tabs of B.TabOrder, top to bottom in the spec's order, each labelled with its name
+		-- Exactly the tabs of B.TabOrder, left to right in the spec's order on one row, each labelled with its name
 		local buttons = {}
 		for _, child in rail:GetChildren() do
 			if child:IsA("GuiButton") then
@@ -859,21 +859,22 @@ function Contracts.Build(h)
 			local order = {}
 			for i = 2, #tabs do
 				local a, b = h.realRect(tabs[i - 1]), h.realRect(tabs[i])
-				if b.y < a.y + a.h - Spec.Tolerance then
-					table.insert(order, tabs[i].Name .. " not below " .. tabs[i - 1].Name)
+				if b.x < a.x + a.w - Spec.Tolerance then
+					table.insert(order, tabs[i].Name .. " not right of " .. tabs[i - 1].Name)
+				end
+				if math.abs(b.y - a.y) > Spec.Tolerance then
+					table.insert(order, tabs[i].Name .. " not on " .. tabs[i - 1].Name .. "'s row")
 				end
 			end
-			h.checkList(res, "backpack_tabs_top_to_bottom" .. variant, order)
+			h.checkList(res, "backpack_tabs_left_to_right" .. variant, order)
 		end
-		-- Live geometry: every tab inside the rail and the panel, apart from each other and from the Items grid,
-		-- and the topmost clickable object at its own centre
-		local railRect, panelRect, gridRect = h.realRect(rail), h.realRect(panel), h.realRect(grid)
+		-- Live geometry: every tab inside the panel, apart from each other and from the Items grid, and the topmost
+		-- clickable object at its own centre. Panel/Tabs is a zero-size holder at the panel's origin since the tabs row
+		-- (AnimeSkin g.Tabs, cd733fd), so the panel bounds them, not the holder.
+		local panelRect, gridRect = h.realRect(panel), h.realRect(grid)
 		local outside, overlaps, covered = {}, {}, {}
 		for i, tab in tabs do
 			local r = h.realRect(tab)
-			if not inside(railRect, r) then
-				table.insert(outside, tab.Name .. rstr(r) .. " outside Tabs" .. rstr(railRect))
-			end
 			if not inside(panelRect, r) then
 				table.insert(outside, tab.Name .. rstr(r) .. " outside Panel" .. rstr(panelRect))
 			end
@@ -891,7 +892,7 @@ function Contracts.Build(h)
 				table.insert(covered, tab.Name .. " under " .. (top and h.pathOf(top) or "nothing"))
 			end
 		end
-		h.checkList(res, "backpack_tabs_inside_rail" .. variant, outside)
+		h.checkList(res, "backpack_tabs_inside_panel" .. variant, outside)
 		h.checkList(res, "backpack_tabs_no_overlap" .. variant, overlaps)
 		h.checkList(res, "backpack_tabs_topmost" .. variant, covered)
 		-- The Characters view itself is judged after the backpack_characters click (After backpack_characters_grid); when the grid
