@@ -629,7 +629,8 @@ local savedCameraSubject, savedFieldOfView
 local function restoreTopDownCamera(camera)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local wasScripted = topDownWasActive or camera.CameraType == Enum.CameraType.Scriptable
+	-- Only a camera this view took: the Summon page and the arrival sweep own a Scriptable camera of their own
+	local wasScripted = topDownWasActive
 	topDownWasActive = false
 	if wasScripted then
 		camera.CameraType = Enum.CameraType.Custom

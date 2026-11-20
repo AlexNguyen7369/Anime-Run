@@ -485,6 +485,14 @@ function Controller.Attach(hud, player, remote)
 		end
 		local right = camera.ViewportSize.Y <= 500 and 10 or 20
 		local y = camera.ViewportSize.Y <= 500 and 64 or 68
+		-- Left of the right button column (Quests and its badge, Shop, Summon), 8 px clear at any size: at the edge the
+		-- map and its rival name sat over Quests.
+		local playerGui = player:FindFirstChildOfClass("PlayerGui")
+		local hudChrome = playerGui and playerGui:FindFirstChild("HudChrome")
+		local column = hudChrome and hudChrome.Enabled and hudChrome:FindFirstChild("ShopColumn")
+		if column and column.Visible and hudChrome.AbsoluteSize.X > 0 then -- both ScreenGuis share the insets
+			right = math.max(right, hudChrome.AbsoluteSize.X - column.AbsolutePosition.X + 8)
+		end
 		-- The map has a fixed authored anchor. It must not push the persistent HUD
 		-- (especially the Backpack/Items entry) when a race starts.
 		card.Position = UDim2.new(1, -right, 0, y)

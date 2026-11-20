@@ -138,6 +138,9 @@ function TutorialSpotlight.new(guiName, displayOrder)
 		ZIndex = 6,
 	}, card)
 	UiTheme.Stroke(textLabel, 2)
+	-- A long line (the bag full tip) shrinks to fit the card instead of running past its foot; short ones keep full size
+	textLabel.TextScaled = true
+	local textMax = new("UITextSizeConstraint", "Fit", {}, textLabel)
 
 	root.Parent = player:WaitForChild("PlayerGui")
 
@@ -152,7 +155,7 @@ function TutorialSpotlight.new(guiName, displayOrder)
 		head.Size = UDim2.fromOffset(headSize, headSize)
 		local left = headSize + 24
 		stepLabel.TextSize = small and 14 or 17
-		textLabel.TextSize = small and 19 or 25
+		textMax.MaxTextSize = small and 19 or 25
 		place(stepLabel, left, small and 6 or 10, width - left - 10, small and 16 or 22)
 		place(textLabel, left, small and 22 or 32, width - left - 10, size.Y - (small and 26 or 40))
 		return width, size.Y + extra
