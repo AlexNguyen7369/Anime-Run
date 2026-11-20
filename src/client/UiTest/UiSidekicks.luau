@@ -235,7 +235,12 @@ function Module.Build(h)
 		end
 		local mythic, legendaries = rowsOf(view, "Mythic")[1], rowsOf(view, "Legendary")
 		check(res, "sidekick_featured_mythic_is_igriz", mythic and mythic.Id, Config.FeaturedMythic)
-		local slots = { [2] = mythic, [1] = legendaries[1], [3] = legendaries[2] }
+		-- 4.45 "Summon 1:1 reference": the stage shows the Legendaries sorted by Name.
+		local sorted = table.clone(legendaries)
+		table.sort(sorted, function(a, b)
+			return a.Name < b.Name
+		end)
+		local slots = { [2] = mythic, [1] = sorted[1], [3] = sorted[2] }
 		for index = 1, 3 do
 			local row = slots[index]
 			if row then
@@ -514,8 +519,8 @@ function Module.Build(h)
 	local function checkGuarantee(res, canvas)
 		local request = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
 		check(res, "sidekick_guarantee_parts", request ~= nil, true)
-		check(res, "sidekick_legendary_pity_label", string.lower(labelText(canvas, "Pity1")), "legendary")
-		check(res, "sidekick_mythic_pity_label", string.lower(labelText(canvas, "Pity2")), "mythic")
+		check(res, "sidekick_legendary_pity_label", string.lower(labelText(canvas, "Pity1")), "legendary pity")
+		check(res, "sidekick_mythic_pity_label", string.lower(labelText(canvas, "Pity2")), "mythic pity")
 		if not request then
 			return
 		end
