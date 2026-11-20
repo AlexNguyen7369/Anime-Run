@@ -694,7 +694,8 @@ task.spawn(function()
 	while true do
 		local camera = Workspace.CurrentCamera
 		local eye = camera and camera.CFrame.Position
-		for _, inst in CollectionService:GetTagged("BiomeDetail") do
+		-- full effects with nothing hidden: nothing to scan
+		for _, inst in (reduced() or next(hidden) ~= nil) and CollectionService:GetTagged("BiomeDetail") or {} do
 			local pos = inst:IsA("Model") and inst:GetPivot().Position or inst:IsA("BasePart") and inst.Position
 			local hide = reduced() and eye ~= nil and pos ~= nil and (pos - eye).Magnitude > Env.DETAIL_DISTANCE
 			if (hidden[inst] or false) ~= hide then

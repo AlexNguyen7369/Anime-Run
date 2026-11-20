@@ -940,25 +940,40 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		ItemMenu.Close()
 	end
 end)
+-- Data changes redraw an open grid once per frame at most, and only for the tab that shows them: boost counts are on
+-- Misc only, owned cosmetics on Trails / Auras only (race wins and rolls change them often).
+local renderQueued = false
+local function renderSoon()
+	if renderQueued then
+		return
+	end
+	renderQueued = true
+	task.defer(function()
+		renderQueued = false
+		if panel.Visible then
+			render()
+		end
+	end)
+end
 player.AttributeChanged:Connect(function(attr)
 	local watched = attr == "SidekickBag"
 		or attr == "SidekickGear"
 		or attr == "RelicBag"
 		or attr == "RelicGear"
-		or attr:sub(1, 6) == "Boost_"
-		or attr:sub(1, 3) == "Own"
+		or attr:sub(1, 6) == "Boost_" and current == "Misc"
+		or attr:sub(1, 3) == "Own" and (current == "Trails" or current == "Auras")
 		or attr:sub(1, 8) == "Equipped"
 		or attr:match("^Slot%d") ~= nil
 		or attr == "Team"
 	if panel.Visible and watched then
-		render()
+		renderSoon()
 	end
 end)
 task.spawn(function()
 	local data = player:WaitForChild("GachaData")
 	local function changed()
 		if panel.Visible and current == "Characters" then
-			render()
+			renderSoon()
 		end
 	end
 	data.ChildAdded:Connect(changed)

@@ -48,6 +48,9 @@ local function watchLate(late)
 		return
 	end
 	local function arrived(child)
+		if child:IsA("ModuleScript") then
+			task.defer(pcall, require, child) -- compile the big pose tables now (prep), not on the event's first frame
+		end
 		for _, id in BossCatalog.Order do
 			if BossCatalog.Get(id).Poses == child.Name then
 				preload(id)

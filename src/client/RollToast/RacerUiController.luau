@@ -1292,16 +1292,17 @@ end
 -- HudChrome icon grid on the left (and the same margin on the right). The generated fit sizes them;
 -- here their UIScale shrinks below the generated k only when the band is too small (owner decision 2026-10-08;
 -- the compact roll hides while a panel is open). All these ScreenGuis ignore the top-bar inset.
+-- Returns true once it has fitted them.
 local function fitPanels()
 	local camera = workspace.CurrentCamera
 	if not camera or camera.ViewportSize.X <= 1 then
-		return
+		return false
 	end
 	local viewport = camera.ViewportSize
 	-- docs/HUD_LAYOUT_SPEC.md section 6: below Race, above TURBO LUCK and Money, between the icon grid and Shop.
 	local side, top, right, bottom = PanelBand.Rect()
 	if not side then
-		return
+		return false
 	end
 	local width, height = right - side, bottom - top
 	local k = if viewport.Y <= 500
@@ -1324,16 +1325,56 @@ local function fitPanels()
 			frame.Position = UDim2.fromOffset((side + right) / 2, top + height / 2)
 		end
 	end
+	return true
+end
+-- Fit runs while a panel is open (its open / close motion and the band move with it), for one frame after the last one
+-- closes, and once after a viewport change; closed panels need no per-frame layout.
+local fitDirty, fitWasShown = true, false
+local function panelShown()
+	for _, refs in pairs(racerPanels) do
+		if refs.Panel.Parent.Visible then
+			return true
+		end
+	end
+	return false
+end
+local function watchViewport()
+	local camera = workspace.CurrentCamera
+	fitDirty = true
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			fitDirty = true
+		end)
+	end
+end
+watchViewport()
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watchViewport)
+local function fitIfNeeded()
+	local shown = panelShown()
+	if shown or fitWasShown or fitDirty then
+		if fitPanels() then
+			fitDirty = false
+		end
+	end
+	fitWasShown = shown
 end
 
 -- The numbers count up towards the server's values (HudFormat.Approach) and pop when they grow (section 9, 10).
+-- Texts are written only when they change; the gems plate follows MoneyValue's layout when that changes.
+local function setText(textLabel, text)
+	if textLabel.Text ~= text then
+		textLabel.Text = text
+	end
+end
 local function refreshReadouts(dt)
 	shownMoney = format.Approach(shownMoney, money.Value, dt)
-	hud.MoneyValue.Text = readable(shownMoney, true)
+	setText(hud.MoneyValue, readable(shownMoney, true))
 	shownGems = format.Approach(shownGems, player:GetAttribute("Gems") or 0, dt)
-	gemsValue.Text = format.Short(shownGems)
-	placeGems()
+	setText(gemsValue, format.Short(shownGems))
 end
+placeGems()
+hud.MoneyValue:GetPropertyChangedSignal("Position"):Connect(placeGems)
+hud.MoneyValue:GetPropertyChangedSignal("Size"):Connect(placeGems)
 -- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
 local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
 local moneyBigOwed = false -- a big gain that landed during a roll: its coins wait for the roll to end
@@ -1394,7 +1435,7 @@ money.Changed:Connect(function(value)
 end)
 
 RunService.Heartbeat:Connect(function(dt)
-	fitPanels()
+	fitIfNeeded()
 	refreshReadouts(dt)
 	local wrapper = hud.Turbo.Parent
 	local position = wrapper.Position
@@ -1411,18 +1452,25 @@ local function applySound(sound)
 		sound.Volume = muted and 0 or volumes[sound]
 	end
 end
+local addedHook = nil -- game.DescendantAdded, connected only while muted
 settings.SoundToggle.Activated:Connect(function()
 	muted = not muted
-	for _, descendant in ipairs(game:GetDescendants()) do
-		applySound(descendant)
+	if muted then
+		addedHook = game.DescendantAdded:Connect(applySound)
+		for _, descendant in ipairs(game:GetDescendants()) do
+			applySound(descendant)
+		end
+	else
+		addedHook:Disconnect()
+		addedHook = nil
+		for sound, volume in volumes do -- only sounds muted this session hold a stored volume
+			if sound.Parent then
+				sound.Volume = volume
+			end
+		end
 	end
 	switch(settings.SoundToggle, not muted)
 	UiFeedback.Play("Toggle")
-end)
-game.DescendantAdded:Connect(function(descendant)
-	if muted then
-		applySound(descendant)
-	end
 end)
 settings.EffectsToggle.Activated:Connect(function()
 	local reduced = player:GetAttribute("ReduceEffects") ~= true
