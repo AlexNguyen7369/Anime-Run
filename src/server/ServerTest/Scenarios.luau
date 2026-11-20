@@ -3436,8 +3436,12 @@ function Scenarios.data()
 	function failStore:SetAsync()
 		self.sets += 1
 	end
-	function failStore:UpdateAsync() -- VERSION 8: Load is one UpdateAsync (docs/SAVE_SPEC.md section 1)
-		self.updates += 1
+	-- VERSION 8: Load is one UpdateAsync (docs/SAVE_SPEC.md section 1). Only the fake player's key counts: the real
+	-- Studio player's 60 s autosave can land on this store while it is swapped in.
+	function failStore:UpdateAsync(key)
+		if key == PlayerData.KeyFor(9301) then
+			self.updates += 1
+		end
 		error("DataStore unavailable")
 	end
 	PlayerData.SetStore(failStore)

@@ -23,10 +23,29 @@ end
 
 -- Pixel tolerance for geometry comparisons (rounding of AbsolutePosition / AbsoluteSize).
 UiSpec.Tolerance = 1
+-- ui_layout layout_model_matches_engine: the model rounds each offset on its own (Index-frame px at a resting UIScale in
+-- 0.01 steps) while the engine rounds the sum, so a nested node may land up to 1.5 px from the engine.
+UiSpec.ModelDrift = 1.5
 
 -- A button may be at most this many px larger than its visible content on each side (only matters for buttons
 -- whose background is invisible: an opaque background IS the visible content).
 UiSpec.MaxHitboxPadding = 8
+-- ui_hitboxes exceptions, each a shipped design:
+--  RowButtons: a transparent button laid under a row of drawn parts that takes the row's click; its content is its
+--    parent's drawn parts. RacerHud/Level/Team/OpenTeam (design doc 4.45, 1267f95 / 112999f: Team Setup opens from the
+--    team row, the circles keep their own hover card).
+--  PanelBodies: an Active frame that is the panel's face over its drawn chrome (AnimeChrome behind it), so a click on
+--    the panel never reaches the world. RacerIndex/Panel/Face (cd733fd, the Index frame).
+--  Art closes (a close button holding AnimeSkin's AnimeCloseArt, or an ImageButton showing the Index close art like
+--    QuestAnimeStyle's; 5541c3f / cd733fd / c56aaf3) sit over the panel's top-right corner by design: they must stay on
+--    screen instead of inside their parent.
+--  A parent with no area (a zero-height Header or Tabs anchor of the Index frame) is an anchor, not a box: a button is
+--    judged against the nearest ancestor that has an area.
+UiSpec.Hitbox = {
+	RowButtons = { ["RacerHud/Level/Team/OpenTeam"] = true },
+	PanelBodies = { ["RacerIndex/Panel/Face"] = true },
+	ArtClose = "AnimeCloseArt",
+}
 
 -- Viewports the layout is checked at. "current" is the live Studio viewport (engine AbsolutePosition: the emulated
 -- phone screen under Device emulation, the real game view at a desktop size with Device = none); the others
@@ -408,7 +427,9 @@ UiSpec.Rebirth = {
 	TitleText = "REBIRTH",
 	Nodes = {
 		{ Name = "Header", Parent = "Panel", Class = "Frame" },
-		{ Name = "Title", Parent = "Header", Class = "TextLabel" },
+		-- Overhangs: the Index-frame title sits over the header's top edge by design (c56aaf3, RacerUiController
+		-- indexFrame places it at (168, -23, W - 266, 76)); it is judged apart from Close, not inside Header / Panel.
+		{ Name = "Title", Parent = "Header", Class = "TextLabel", Overhangs = true },
 		{ Name = "Close", Parent = "Header", Class = "Frame" },
 		{ Name = "Warning", Parent = "Panel", Class = "Frame" },
 		{ Name = "WarningTitle", Parent = "Warning", Class = "TextLabel", Text = "WARNING", Colour = "gold" },
@@ -461,6 +482,10 @@ UiSpec.Rebirth = {
 		{ Name = "SpeedReward", Next = "SpeedBonus", Percent = true, Format = "+%d%% Speed" }, -- owner 2026-11-03
 		{ Name = "PointReward", Config = "POINTS_PER_REBIRTH", Format = "+%d Stat Point", Plural = "+%d Stat Points" },
 	},
+	-- Phones (afff07c): these sections scroll in RebirthMiddle, from Rewards' top to the REBIRTH button's bottom, left of
+	-- the button. There a node is judged by what the scroll window shows of it: clipped to that window for the panel
+	-- and overlap checks, left out when scrolled out of view entirely.
+	PhoneScrolled = { Rewards = true, Requirements = true },
 	-- The panel's sections, shown together: no two may overlap (at every viewport).
 	Sections = { "Header", "Warning", "Rewards", "Requirements", "RebirthButton" },
 	-- Groups of nodes inside one section, shown together: no two of a group may overlap (at every viewport).
@@ -737,6 +762,8 @@ UiSpec.Guis.RacerTeam = {
 		-- Altar<n> selects that slot; Remove (shown on the selected occupied altar) takes its member off the draft
 		{ Path = "Panel/Altars/*", Does = "local", Effect = "team_select_altar", Count = "dynamic" },
 		{ Path = "Panel/Altars/*/Remove", Does = "local", Effect = "team_draft_remove", Count = "dynamic" },
+		-- Ledger rows (owner 2026-11-19, 4.45 T2, 4106ece): a tap on Row<n> picks that slot, as a tap on Altar<n> does
+		{ Path = "Panel/LedgerRows/*", Does = "local", Effect = "team_select_altar", Count = "dynamic" },
 		{ Path = "Panel/Tray/Tabs/Characters", Does = "local", Effect = "team_tab" },
 		{ Path = "Panel/Tray/Tabs/Sidekicks", Does = "local", Effect = "team_tab" },
 		{ Path = "Panel/Tray/Sort", Does = "local", Effect = "team_sort", ClickCoverage = "ui_team" },
@@ -1049,7 +1076,14 @@ UiSpec.Motion = {
 -- (below roll / race, above turbo) do not apply. Overlaps INSIDE its ScreenGui (tile vs tile, tile vs chrome) and
 -- every other panel's rules stay checked.
 -- Owner 2026-11-17 (design doc 4.45): Team Setup is a full-screen page over the blossom-shrine scene.
-UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true, ["RacerTeam/Panel"] = true }
+UiSpec.FullScreenPanels = {
+	["RacerUpgrades/Panel"] = true,
+	["RacerTeam/Panel"] = true,
+	["RacerSidekicks/Canvas"] = true, -- the full-screen summon stage (c4580fb, SIDEKICK_SPEC; design doc 4.45)
+}
+-- Full-screen pages that turn the HUD ScreenGuis off while open (Client/SidekickUi HUD_NAMES, c4580fb: the summon stage
+-- covers the world). The world dim lives inside HudChrome, so it is off too; ui_panels expects the HUD hidden there.
+UiSpec.HudHiddenPanels = { ["RacerSidekicks/Canvas"] = true }
 
 -- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the second left column (Bosses, and
 -- Team once its button has a path), drawn above it (ui_layout no_overlap_* / text_clear_of_buttons_* allow it only
@@ -1296,7 +1330,18 @@ UiSpec.Remotes = {
 UiSpec.PhoneViewsHidden = { "MarketUi/Backdrop/Panel/Detail" }
 -- BagFullTip (Client/BagFullTip, commit c80e4de, design doc 4.41): waits disabled until the session's first BAG FULL,
 -- shows for 6 s and is destroyed; judged by ui_bag_full.
-UiSpec.TransientGuis = { LoadingScreen = true, ArrivalReveal = true, RacerSidekickReveal = true, BagFullTip = true }
+-- Display-only guis made late or on first use, so gui_exists_* cannot ask for them either: TrackLoadingLabel (f7b25ee,
+-- the "Loading next track" notice), SidekickAltarLock (cb67aab, the plaza altar's lock BillboardGui, made once the plaza
+-- streams in) and BossVfxScreen (60657fc, BossVfx's screen-edge flashes, made on the first boss attack).
+UiSpec.TransientGuis = {
+	LoadingScreen = true,
+	ArrivalReveal = true,
+	RacerSidekickReveal = true,
+	BagFullTip = true,
+	TrackLoadingLabel = true,
+	SidekickAltarLock = true,
+	BossVfxScreen = true,
+}
 
 UiSpec.IgnoreGuis = {
 	Freecam = true,
@@ -1843,11 +1888,13 @@ UiSpec.Clicks = {
 		Expect = { Panels = { ["ShopUi/Backdrop"] = true, ["RacerIndex/Panel"] = false }, Remote = false },
 	},
 	-- Id 0 price buttons ("Coming soon") do nothing: no remote, the Shop stays open (LabelHas refuses the click if
-	-- the item got a real id, so no real purchase prompt is ever opened by the suite)
+	-- the item got a real id, so no real purchase prompt is ever opened by the suite). ec228cf gave every gamepass and
+	-- the Potion Bundle a real id, so the two clicks press the Server Luck tiers, the products still at id 0
+	-- (MonetizationConfig; the ids stay as the clicks' names).
 	{
 		Id = "shop_gamepass_coming_soon",
 		Gui = "ShopUi",
-		Path = "Backdrop/Panel/Items/Gamepasses/**/vip/Buy",
+		Path = "Backdrop/Panel/Items/ServerLuck/**/server_luck_2x/Buy",
 		Prepare = (function()
 			local p = only("ShopUi/Backdrop")
 			p.LabelHas = "Coming soon"
@@ -1859,7 +1906,7 @@ UiSpec.Clicks = {
 	{
 		Id = "shop_bundle_coming_soon",
 		Gui = "ShopUi",
-		Path = "Backdrop/Panel/Items/Potions/**/Bundle/**/Buy",
+		Path = "Backdrop/Panel/Items/ServerLuck/**/server_luck_4x/Buy",
 		Prepare = (function()
 			local p = only("ShopUi/Backdrop")
 			p.LabelHas = "Coming soon"
@@ -2829,10 +2876,19 @@ UiSpec.Guis.DailyBoosts = {
 	Panels = { "ModalBackdrop" },
 	Buttons = {
 		{
+			-- Kept but hidden under the art close in both views (QuestAnimeStyle, 5541c3f): no click can reach it, so the
+			-- close clicks press AnimeQuests/Close (close_daily_modal, close_quests_modal).
 			Path = "ModalBackdrop/Modal/Close",
 			Does = "close_panel",
 			Panel = "DailyBoosts/ModalBackdrop",
 			Text = "×",
+			ClickCoverage = "close_daily_modal",
+		},
+		{
+			-- QuestAnimeStyle (5541c3f): the Quests view's art close, in place of the modal's Close while Quests show
+			Path = "ModalBackdrop/Modal/AnimeQuests/Close",
+			Does = "close_panel",
+			Panel = "DailyBoosts/ModalBackdrop",
 		},
 		{
 			Path = "ModalBackdrop/Modal/QuestTabs/Daily",
@@ -3076,11 +3132,17 @@ table.insert(UiSpec.Clicks, {
 	NeedSetup = { "spy", "index_states" },
 	Expect = { Remote = false, After = { "backpack_characters_grid" } },
 })
+-- QuestAnimeStyle (5541c3f) dresses the Daily view too: its art close AnimeQuests/Close shows there and the modal's own
+-- Close stays hidden under it. So the Daily close is pressed in the Daily view, opened by a real press on the pill.
 table.insert(UiSpec.Clicks, {
 	Id = "close_daily_modal",
 	Gui = "DailyBoosts",
-	Path = "ModalBackdrop/Modal/Close",
-	Prepare = { Open = { DAILY }, Showcase = false },
+	Path = "ModalBackdrop/Modal/AnimeQuests/Close",
+	Prepare = {
+		Closed = CLOSED,
+		Showcase = false,
+		PressFirst = { Path = "HudChrome/TopRight/Daily", Until = "DailyBoosts/ModalBackdrop/Modal/AnimeQuests/Close" },
+	},
 	NeedSetup = { "spy" },
 	Expect = { Panels = { [DAILY] = false }, Remote = false },
 })
@@ -3119,6 +3181,22 @@ table.insert(UiSpec.Clicks, {
 	Prepare = { Open = { DAILY }, Showcase = false, Intercept = "DailyClaim", TargetActive = false },
 	NeedSetup = { "daily_claimed", "spy", "progression_spy" },
 	Expect = { Remote = false, After = { "daily_not_optimistic" } },
+})
+-- The Quests view's own close (QuestAnimeStyle art close): opened by a real press on the Quests button first.
+table.insert(UiSpec.Clicks, {
+	Id = "close_quests_modal",
+	Gui = "DailyBoosts",
+	Path = "ModalBackdrop/Modal/AnimeQuests/Close",
+	Prepare = {
+		Closed = CLOSED,
+		Showcase = false,
+		PressFirst = {
+			Path = "HudChrome/ShopColumn/Quests",
+			Until = "DailyBoosts/ModalBackdrop/Modal/AnimeQuests/Close",
+		},
+	},
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [DAILY] = false }, Remote = false },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "open_quests",
@@ -3575,19 +3653,27 @@ teamChain(TEAM_NEED, {
 	{ "team_remove_a", "RacerTeam", "Panel/Altars/Altar2/Remove", "team_draft_b" },
 	{ "team_deploy_b", "RacerTeam", "Panel/Deploy", "team_is_b" },
 })
--- Never fewer than 1 member: an empty draft turns Deploy off and a press saves nothing.
+-- Never fewer than 1 member: an empty draft turns Deploy off and a press saves nothing. The draft is still dirty, so
+-- the chain ends through the 4.45 close question (Close, then Discard): a teardown close would leave ConfirmClose up.
+CLOSES.team_empty_discard = true
 teamChain(TEAM_NEED, {
 	{ "team_empty_select_altar2", "RacerTeam", "Panel/Altars/Altar2" },
 	{ "team_empty_remove_b", "RacerTeam", "Panel/Altars/Altar2/Remove" },
 	{ "team_empty_select_altar1", "RacerTeam", "Panel/Altars/Altar1" },
 	{ "team_empty_remove_a", "RacerTeam", "Panel/Altars/Altar1/Remove", "team_draft_empty" },
 	{ "team_empty_deploy", "RacerTeam", "Panel/Deploy", "team_empty_kept" },
+	{ "team_empty_close", "RacerTeam", "Panel/Header/Close", "team_confirm_shown" },
+	{ "team_empty_discard", "RacerTeam", "Panel/ConfirmClose/Discard", "team_discarded" },
 })
 -- During a run SetTeam refuses: the page stays open, the draft is kept and Footer/Status shows the server's notice.
+-- The kept draft is dirty: Close then Discard end the chain (as team_empty).
+CLOSES.team_run_discard = true
 teamChain({ "spy", "team_states", "auto_racing" }, {
 	{ "team_run_select_altar3", "RacerTeam", "Panel/Altars/Altar3" },
 	{ "team_run_put_c", "RacerTeam", "Panel/Tray/Roster/{team_c}", nil, PICK },
 	{ "team_run_deploy", "RacerTeam", "Panel/Deploy", "team_locked_in_run" },
+	{ "team_run_close", "RacerTeam", "Panel/Header/Close", "team_confirm_shown" },
+	{ "team_run_discard", "RacerTeam", "Panel/ConfirmClose/Discard", "team_discarded" },
 })
 -- Quick Setup: with the draft at A only, TeamQuickPick fills slots 2 and 3 (draft only); Deploy saves exactly that draft.
 CLOSES.team_quick_deploy = true
@@ -3637,8 +3723,12 @@ for _, click in UiSpec.Clicks do
 end
 -- The Team Bonus popover and the tray tabs (no remote, the saved Team untouched).
 teamChain(TEAM_NEED, {
-	{ "team_bonus_open", "RacerTeam", "Panel/Header/BonusButton", "team_bonus_shown" },
+	-- The ledger's paper inks in after the scroll unrolls (4.45 "Hanging-scroll look": ink-in from 0.5 s), so the View
+	-- link draws nothing just after the page opens: wait for it before the first press.
+	{ "team_bonus_open", "RacerTeam", "Panel/Header/BonusButton", "team_bonus_shown", { WaitSeconds = 1.5 } },
 	{ "team_bonus_close", "RacerTeam", "Panel/Header/BonusButton", "team_bonus_hidden" },
+	-- 4.45 T2: a ledger row tap picks its slot like the altar (draft untouched, so the chain stays clean)
+	{ "team_ledger_row3", "RacerTeam", "Panel/LedgerRows/Row3", "team_altar3_selected" },
 	{ "team_tab_sidekicks", "RacerTeam", "Panel/Tray/Tabs/Sidekicks", "team_tab_sidekicks_active" },
 	{ "team_tab_characters", "RacerTeam", "Panel/Tray/Tabs/Characters", "team_tab_characters_active" },
 })
@@ -4096,8 +4186,14 @@ UiSpec.RunVisual = {
 }
 -- Every TextLabel / TextButton in the game's ScreenGuis (not UiSpec.IgnoreGuis, not the UiTest's own) uses this font
 -- family (section 8: FredokaOne everywhere; Enum.Font.FredokaOne's FontFace family is ".../FredokaOne.json").
+-- 5541c3f / cd733fd: the AnimeSkin Index look sets GothamSSm (Heavy Italic titles, Bold body) game-wide, so it is
+-- accepted too, and so are the hanging-scroll pages' fonts (design doc 4.45, UiTheme.Scroll: Titillium Web body,
+-- Permanent Marker headings, Kalam Bold on Summon's parchment). FontFamilies is the accepted list; FontFamily stays the
+-- first entry for older readers. ui_theme judges the text a player can see: every drawn label (Text set, not fully
+-- transparent) while each declared panel is open in turn (AnimeSkin sets a hidden panel's fonts at its first layout).
 UiSpec.Theme = {
 	FontFamily = "Fredoka",
+	FontFamilies = { "Fredoka", "GothamSSm", "TitilliumWeb", "PermanentMarker", "Kalam" },
 	-- Every multiplier token is HudFormat.Multi style: "x" + digits, at most 2 decimals, no trailing zero after the
 	-- point; never the old "25x" (number before x). Labels that show a multi (ui_theme theme_multi_format):
 	-- The roll card, index tiles and Backpack character tiles show cruise in studs/s now, not a multi (design doc 4.13,

@@ -1906,12 +1906,44 @@ RUNTIME["RacerRebirth/Panel"] = function(out, frame, input)
 	local rewardsTop = g.Top + warnH + gap
 	local cardH = math.max(0, reqTop - gap - rewardsTop - headH - inner)
 	local cardW = math.floor((width - 2 * gap) / 3)
+	local stepX, stepY, rewardsH = cardW + gap, 0, headH + inner + cardH
+	-- Phones (afff07c): Rewards (cards stacked) and Requirements scroll in RebirthMiddle, a ScrollingFrame left of a
+	-- narrower REBIRTH button, under the warning. On a desktop window the two still hang off Face, so their phone rects
+	-- are given in Face's space (the middle's offset added); under a live RebirthMiddle they are in its canvas.
+	local mx, my = 0, 0
+	if input.Small then
+		buttonW = u(110)
+		local listW = width - buttonW - gap
+		g.put("Face/RebirthButton", placeProps(left + width - buttonW, bottom - buttonH, buttonW, buttonH))
+		local middle = find(frame, "Face/RebirthMiddle")
+		if middle then
+			out[middle] = placeProps(left, rewardsTop, listW, bottom - rewardsTop)
+		end
+		local rewards = find(frame, "Face/Rewards") or find(frame, "Face/RebirthMiddle/Rewards")
+		if not (rewards and rewards.Parent and rewards.Parent.Name == "RebirthMiddle") then
+			mx, my = left, rewardsTop
+		end
+		left, rewardsTop, width = 0, 0, listW - u(12) -- clear of the scroll bar
+		cardH, cardW = lineH + 2 * inner, width
+		stepX, stepY = 0, cardH + inner
+		rewardsH = headH + inner + 3 * cardH + 2 * inner
+		reqW, reqTop = width, rewardsH + gap
+		for _, base in { "Face/Requirements", "Face/RebirthMiddle/Requirements" } do
+			g.put(base, placeProps(mx, my + reqTop, reqW, reqH))
+			g.put(base .. "/RequirementsTitle", placeProps(0, 0, reqW, headH))
+			g.put(base .. "/Bar", placeProps(0, headH + inner, reqW, barH))
+			g.put(base .. "/Bar/Face/BarText", placeProps(0, 0, reqW, barH))
+		end
+	end
 	local iconSize = math.max(0, cardH - 2 * inner)
-	g.put("Face/Rewards", placeProps(left, rewardsTop, width, headH + inner + cardH))
-	g.put("Face/Rewards/RewardsTitle", placeProps(0, 0, width, headH))
+	for _, base in input.Small and { "Face/Rewards", "Face/RebirthMiddle/Rewards" } or { "Face/Rewards" } do
+		g.put(base, placeProps(mx + left, my + rewardsTop, width, rewardsH))
+		g.put(base .. "/RewardsTitle", placeProps(0, 0, width, headH))
+	end
 	for i, name in { "LuckReward", "SpeedReward", "PointReward" } do
-		local card = "Face/Rewards/" .. name
-		g.put(card, placeProps((i - 1) * (cardW + gap), headH + inner, cardW, cardH))
+		local card = (find(frame, "Face/RebirthMiddle/Rewards") and "Face/RebirthMiddle/Rewards/" or "Face/Rewards/")
+			.. name
+		g.put(card, placeProps((i - 1) * stepX, headH + inner + (i - 1) * stepY, cardW, cardH))
 		g.put(card .. "/Face/" .. name .. "Icon", placeProps(pad, inner, iconSize, iconSize))
 		local x = pad + iconSize + inner
 		g.put(card .. "/Face/" .. name .. "Caption", placeProps(x, 0, cardW - x - pad, cardH))
