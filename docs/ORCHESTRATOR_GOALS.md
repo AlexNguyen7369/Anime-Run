@@ -351,3 +351,14 @@ Deliverables:
 - v2 | Gates dome radius 85, random firing; Enuma beam along Ea, 370 sweep, energy look, Ea re-key and re-bake | done; `ui_boss_king_vfx` 108/108, `boss_king_anim` fail=0
 - v3 | Audit, PR into main, fresh review, merge, play build | done
 Out of scope: server, costs, timings, other moves.
+
+## team-dojo: Team Select follows the owner's night-dojo reference (owner 2026-11-19)
+Status: active
+Owner-confirmed: 2026-11-19 ("preserve the summon page for now, work solely on team select ... implement the correct backdrop that is within the reference image and propose more ui changes. give me several drafts")
+Branch: orch/team-dojo/backdrop (from feature/alex/sakura-polish e987c91; Team Setup T2 lives there, not in main)
+Spec: design doc 4.45 (Team Setup), docs/TEAM_AND_STAMINA_SPEC.md "Team Setup page"; owner reference image + Team Select brief (2026-11-19)
+Deliverables:
+- d1 | Night-dojo clean plate for the Team page (Blender, original build matching the reference's hall: red torii, lanterns, shoji, sakura, dark wood floor; no altars, characters or UI) | renders shown to the owner; owner approves before upload
+- d2 | Several Team Select UI drafts over that plate, closer to the reference, with open rule questions marked | owner picks one
+- d3 | Rules written for the picked draft (4.45, spec), then build on the hanging-scroll TeamUi | after owner pick
+Out of scope: the Summon page (preserved), team rules (SetTeam, 3 members), new stats (level, power, new bonus kinds) until the owner rules on them.

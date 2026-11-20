@@ -185,3 +185,13 @@ Answered by the owner 2026-11-12 ("questions: your recommendation"): item 14, ye
 ## 2026-11-13 boss-vfx-360
 21. Owner rule "Blender renders are the final look": the 2026-11-13 changes (Zoltraak lasers with black mist, the 360 degree portal wall, the 360 degree Enuma sweep) were approved from schematic mock-ups (https://claude.ai/artifact/6LT1q5EMEAPvXo63p3QQP7), not Blender renders. Built in game first; the barrage, gates and enuma Blender sheets are not re-rendered. Choose: re-render those sheets to match, or let the game captures stand as the new target. Item 19 (hip-only sweep) is superseded by design doc 4.37 "Boss effects after playing".
 Answered by the owner 2026-11-13 (later): item 21, re-render the barrage, gates and enuma sheets in Blender and approve them before the game is changed (design doc 4.37 "Boss effects after playing").
+
+## 2026-11-19 team-dojo: Team Select night-dojo drafts (review https://claude.ai/artifact/HxHn7rXzL3VSMb7hyADaCJ)
+Blocks: d3 (rules and build). Summon is preserved (owner 2026-11-19).
+1. Pick draft A (reference 1:1), B (reference + brief: carousel, paper plates, rule altars) or C (A + carousel, gear section, swap preview, rarity chips); plate main or alt and fixes (lantern orange, bluer windows, hall detail).
+2. Altars: the reference's dark-wood, gold two-tier altars replace 4.45's pink top / cyan rim / sakura emblem?
+3. Relic and Sidekick icons: reference squares or 4.45's diamond and circle?
+4. "Team 1" dropdown and pencil: 4.45 says one team, no rename. Decoration, add renaming, or drop?
+5. Lv. and Power: no such stats; drafts show cruise. Keep cruise, or a level system as its own feature?
+6. Team Bonus: only 4.8's series/preset stamina and cruise. The brief's damage, HP, drop-rate, pity bonuses would be new economy rules.
+7. Carousel (picked member rotates to the centre) or fixed order as in the reference?
