@@ -326,10 +326,12 @@ UiScenarios.Needs = {
 	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
 	ui_bag_full = { "auto_roll_on" },
+	-- The minibar row with three members (OpenTeam's padding is judged against its drawn circles; team_full, FillTeam)
+	ui_hitboxes = { "team_full" },
 }
 -- Put back right after the scenario that asked (RestoreSetups runs only at the end of a full run), so later scenarios
 -- see the saved RebirthLevel again.
-FX.RESTORE_AFTER = { hud_unlock = true }
+FX.RESTORE_AFTER = { hud_unlock = true, team_full = true }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
 UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
@@ -4224,6 +4226,9 @@ function S.ui_inventory(res)
 				local found = false
 				for _, c in UiSpec.Clicks do
 					found = found or (c.Gui == guiName and pathMatches(spec.Path, c.Path))
+					-- A PressFirst press is a real click on its Path too (the Many press before its Confirm)
+					local first = c.Prepare and c.Prepare.PressFirst
+					found = found or (first ~= nil and pathMatches(guiName .. "/" .. spec.Path, first.Path))
 				end
 				if not found then
 					table.insert(missing, guiName .. "/" .. spec.Path)
@@ -9699,8 +9704,13 @@ function UiScenarios.RunClick(id)
 		local sg = playerGui:FindFirstChild(spec.Gui)
 		button = sg and sg:FindFirstChild(path, true) -- the card may sit inside the backdrop
 	end
-	check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
-	if not button then
+	-- Prepare.PressFirst: the target may only exist once that popup has drawn (the Many confirmation's Confirm, a panel's
+	-- red X): it is looked up again after the press.
+	local lateTarget = button == nil and prep.PressFirst ~= nil
+	if not lateTarget then
+		check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
+	end
+	if not button and not lateTarget then
 		if earlyPanels then
 			earlyPanels()
 		end
@@ -9721,7 +9731,7 @@ function UiScenarios.RunClick(id)
 	local probe = nil
 	frames(2)
 	-- Opening a panel may re-render its view (the Backpack rebuilds its tiles on show): use the button there now
-	if button.Parent == nil then
+	if button and button.Parent == nil then
 		button = findPath(spec.Gui .. "/" .. path) or button
 	end
 	if tileId and grid then
@@ -9738,7 +9748,7 @@ function UiScenarios.RunClick(id)
 		frames(2)
 	end
 	-- Prepare.ScrollIntoView: the target's ScrollingFrame scrolled so the target is fully shown (put back after)
-	local scroller = prep.ScrollIntoView and button:FindFirstAncestorWhichIsA("ScrollingFrame") or nil
+	local scroller = prep.ScrollIntoView and button and button:FindFirstAncestorWhichIsA("ScrollingFrame") or nil
 	local savedScroll = scroller and scroller.CanvasPosition
 	if scroller then
 		local rel = button.AbsolutePosition - scroller.AbsolutePosition + scroller.CanvasPosition
@@ -9831,6 +9841,14 @@ function UiScenarios.RunClick(id)
 			return res
 		end
 		task.wait(UiSpec.Waits.PanelMotion) -- its pop has ended: the click point below is where it stays
+	end
+	if lateTarget then
+		button = findPath(spec.Gui .. "/" .. path)
+		check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
+		if not button then
+			restore()
+			return res
+		end
 	end
 	if prep.LabelIs ~= nil then
 		local actual = allText(button)

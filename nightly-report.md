@@ -1,5 +1,40 @@
 # Nightly report
 
+## Nightly run 2026-11-20 04:55 → 13:30 (audit fixes, compatibility harness, Team Select)
+
+### Blocked (needs you)
+- Arena textures: `boss_king_arena` `arena_ids_listed` stays red until the arena textures are uploaded. Question: upload them (owner only)?
+- side_wyvern / side_ant ColorMaps (rbxassetid://139314244595009, 132777992085253) fail Preload; asset 203785492 is unknown (likely engine or plugin). Question: re-upload the two ColorMaps?
+- Owner calls left open from the audit, code unchanged: Dojo look on every screen (4.42); potion length (4.7 15 min vs spec 60 s); Quick Setup effective vs base cruise; Speed III BestTrack 2 gate; early tier prices; soft cap 1 + ln(m); new-player boost; guaranteed Rare by roll 10; rebirth luck table; auto-sell default selling never-owned Commons; Team phone tabs/Sort/Search; cramped Rebirth phone layout; Saitamo pass 27 to 6 s (confirm or revert); low-end ReduceEffects turns off boss VFX; WORLD_REDESIGN "anchored" read as assembly; Bosses panel outside PanelSwitch; P8 boss shockwave skipped.
+- Team Select open questions (4.45): Team 1 dropdown and pencil, nav arrows (left out, no rule); drawn-portrait badge dropped (approved nameplates have none).
+- Auto Sell panel has no Secret row, but the server accepts Secret auto-sell. Question: add the row, or refuse it on the server?
+- Not covered: 2-player network test, real phone and 4:3 devices, the 9 Manual clicks (Escape and gamepad).
+
+### Done
+- Audit fixes waves 1A, 1B, 1C, 2 and fixes 2-4 (data safety, performance, UI, economy package A, rebirth phone scroll): commits bb96973, 02c7e4e, 112999f, c80e4de, a21b925, b108da9, 048b55b, ac89b46, afff07c; targeted Studio scenarios green.
+- Full harness run 1: server 64/6, UI 60/16; one game bug fixed (item picker lists every owned character, 81d4c45).
+- Stale tests (15 changes plus 5) after the audit fixes and owner changes: e9835be; reds rerun green (data 151, sidekick_rotation 231, sidekick_pity 203, sidekick_tutorial 54, relics 703; 16 UI scenarios).
+- Shop Server Luck tiers stay one row at 4:3 and phone (6ab72c2); ui_shop 78/78.
+- Item menu Scrim closes on any press (86709eb); click run 3 tests (b470aca, 69b7d3e).
+- Owner rules 2026-11-20: Sidekick odds per rarity with every banner Sidekick listed (6b615f1, 3abadda; listing build is on the board); Team Setup full screen, closed by its own Close (6b615f1).
+- Summon Details shows a due pity guarantee; Bosses card Phases label clears Details (7e509c7); click tests follow the shipped summon panels (53a7513, 829ee98).
+- Team Select night dojo built into Client/TeamUi (30520e5, merged 98ee9bc); stylua, selene and rojo build clean. Not run in Studio.
+- Last harness: `[SERVERTEST] END pass=69 fail=1` (only arena_ids_listed) plus powerups 29/29; `[UITEST] END pass=74 fail=2` (both fixed in 829ee98, then 73/3 with two passing alone); clicks: Part A 15/15 green, final pass stopped at #24 of 264 on the owner's word.
+- Owner approved the build as green on 2026-11-20 and asked for the merge into main.
+
+### Decisions I made for you
+- D6 failed save keeps the grant (no debt key); D5 no bag caps; S5 BillboardGui set; page transition 0.15 s; far-runner 15 Hz pose off (FAR_STUDS = math.huge); P7 coalesced redraws instead of a key cache.
+- Auto-sell on only for brand-new saves (no Version, Rolls or Cars); Turbo x30 in TURBO_LUCK and BASE_TURBO; E11 hides Summon, Bosses, plaza sign and Bag tabs below rebirth 1 (Index tabs kept).
+- ReduceEffects default on at quality 1-3 or touch screens with a short side of 500 px or less; Rebirth phone layout scrolls.
+- Saitamo pass 27 to 6 s from the simulator (Tracks 1-2 at once, Track 3 10%). Revert: SpeedPass value back to 27.
+- Bosses popup: the reward "1x" Count badge is exempt from the overlap check; the Phases label was a real overlap and was fixed.
+- Team Select: Cruise where the reference shows Lv./Power; Team Bonus reads the saved Team's server bonus; no-bonus text "Only full teams of 3" / "Mixed series".
+
+### Not green when merged (owner approved)
+- ui_roll_anim "roll 2 cut": depends on rolls recorded by earlier scenarios; passes in a full run A (62/62), red alone.
+- shop_redeem_invalid_code: `fires_nothing=RedeemCode`, not diagnosed (a leftover progression_spy proxy may intercept it).
+- Clicks #24-#264 not re-pressed after the last test changes; Team Select has no Studio check (list: scratchpad audit/teamsel_verify.md), and `team_altars_in_a_row` plus the altar gear check will fail by design until updated.
+
 ## Nightly run 2026-11-17 → 01:21
 
 ### Blocked (needs you)

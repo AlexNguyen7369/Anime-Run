@@ -1491,6 +1491,12 @@ UiSpec.ServerSetup = {
 			.. "{ user = UserId, args = {...} } per OnServerEvent. The real handlers still run.",
 	},
 	{
+		Id = "no_passes",
+		When = "before UiTestRun (PlayWithoutPasses asks for it) and first in the showcase clicks' NeedSetup",
+		What = "Takes every Pass_<id> off this player and makes PassService own none, so the UI is judged as a player with no "
+			.. "gamepasses. Ownership is never saved; 'restore:no_passes' puts them back.",
+	},
+	{
 		Id = "index_states",
 		When = "before UiTestRun (ui_index needs a discovered, an undiscovered AND an equipped catalog tile)",
 		What = "Owns every catalog character but the rarest (stays '???'), equips the first owned one, sets every "
@@ -1834,6 +1840,10 @@ UiSpec.Clicks = {
 			local p = only("MarketUi/Backdrop")
 			p.PhoneOnly = true
 			p.LeavePanels = true
+			-- As market_select_tile: the tile is scrolled into the phone grid's window (it starts below the fold at
+			-- <= 500 px) and looked up after the Market drew its grid (MarketUi builds tiles on open).
+			p.ScrollIntoView = true
+			p.OpenFirst = true
 			return p
 		end)(),
 		Expect = {
@@ -2315,14 +2325,15 @@ UiSpec.Clicks = {
 		Expect = { Remote = false, After = { "track_camera_flipped", "track_camera_label_follows_attr" } },
 	},
 	-- Compact roll -> enlarged view (docs/ROLL_ANIMATION_SPEC.md). Run these eleven in this order, with
-	-- auto_racing active and AutoRoll on; 'restore' afterwards puts AutoRoll back too.
+	-- auto_racing active and AutoRoll on; 'restore' afterwards puts AutoRoll back too. Each needs no_passes first: the creator's
+	-- passes make the roll interval 1.5 s and the result is gone before the after-exit checks (UiTestRun plays without passes too).
 	{
 		Id = "open_showcase_from_toast",
 		Gui = "RollToast",
 		Path = "Toast",
 		Prepare = { Closed = CLOSED, Showcase = false, WaitShown = true, AttrIs = { AutoRoll = true } },
 		Retries = 4,
-		NeedSetup = { "spy", "auto_racing" },
+		NeedSetup = { "no_passes", "spy", "auto_racing" },
 		Expect = {
 			Showcase = true,
 			Remote = false,
@@ -2343,7 +2354,7 @@ UiSpec.Clicks = {
 		Gui = "RollShowcase",
 		Path = "Card", -- an Active Frame, not a button: the click must be swallowed by the card, not the backdrop
 		Prepare = { Showcase = true },
-		NeedSetup = { "spy", "turbo_next" }, -- the next auto roll is a turbo roll
+		NeedSetup = { "no_passes", "spy", "turbo_next" }, -- the next auto roll is a turbo roll
 		Expect = {
 			Showcase = true,
 			Remote = false,
@@ -2365,7 +2376,7 @@ UiSpec.Clicks = {
 		Path = "Backdrop",
 		ClickAt = "corner",
 		Prepare = { Showcase = true },
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = false,
 			Remote = false,
@@ -2380,7 +2391,7 @@ UiSpec.Clicks = {
 		Path = "Toast",
 		Prepare = { Closed = CLOSED, Showcase = false, WaitShown = true, AttrIs = { AutoRoll = true } },
 		Retries = 4,
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = true,
 			Remote = false,
@@ -2398,7 +2409,7 @@ UiSpec.Clicks = {
 		Gui = "RollShowcase",
 		Path = "AutoButton",
 		Prepare = { Showcase = true, AttrIs = { AutoRoll = true } },
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = true,
 			Remote = { Name = "SetAutoRoll", Arg = "not_attr:AutoRoll" },
@@ -2417,7 +2428,7 @@ UiSpec.Clicks = {
 		Path = "Backdrop",
 		ClickAt = "corner",
 		Prepare = { Showcase = true },
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = false,
 			Remote = false,
@@ -2436,7 +2447,7 @@ UiSpec.Clicks = {
 		Gui = "RollToast",
 		Path = "Toast",
 		Prepare = { Closed = CLOSED, Showcase = false, RequireShown = true, AttrIs = { AutoRoll = false } },
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = true,
 			Remote = false,
@@ -2448,7 +2459,7 @@ UiSpec.Clicks = {
 		Gui = "RollShowcase",
 		Path = "AutoButton",
 		Prepare = { Showcase = true, AttrIs = { AutoRoll = false } },
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = true,
 			Remote = { Name = "SetAutoRoll", Arg = "not_attr:AutoRoll" },
@@ -2462,7 +2473,7 @@ UiSpec.Clicks = {
 		Path = "Backdrop",
 		ClickAt = "HudChrome/Grid/Index",
 		Prepare = { Showcase = true },
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = false,
 			Panels = { ["RacerIndex/Panel"] = false },
@@ -2476,7 +2487,7 @@ UiSpec.Clicks = {
 		Path = "Toast",
 		Prepare = { Closed = CLOSED, Showcase = false, WaitShown = true, AttrIs = { AutoRoll = true } },
 		Retries = 4,
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = true,
 			Remote = false,
@@ -2489,7 +2500,7 @@ UiSpec.Clicks = {
 		Path = "Backdrop",
 		ClickAt = "corner",
 		Prepare = { Showcase = true },
-		NeedSetup = { "spy" },
+		NeedSetup = { "no_passes", "spy" },
 		Expect = {
 			Showcase = false,
 			Remote = false,
@@ -3617,13 +3628,37 @@ table.insert(UiSpec.Clicks, {
 	NeedSetup = { "spy" },
 	Expect = { Panels = { [TEAM_PANEL] = true }, Remote = false, After = { "team_dim_on" } },
 })
+-- Owner 2026-11-20 (4.40, 4.45): Team Setup is full screen and covers the Team button, so the button does not close it; the
+-- page's own Close does. Before the press the harness notes what is frontmost over the Team button (UiSpec.Team.CoverWatch).
+UiSpec.Team.CoverWatch = {}
 table.insert(UiSpec.Clicks, {
 	Id = "team_button_closes",
-	Gui = "RacerSecondColumn",
-	Path = "TeamButton",
-	Prepare = only(TEAM_PANEL),
+	Gui = "RacerTeam",
+	Path = "Panel/Header/Close",
+	Prepare = (function()
+		local prepare = only(TEAM_PANEL)
+		prepare.Before = function()
+			local watch = UiSpec.Team.CoverWatch
+			table.clear(watch)
+			local gui = game:GetService("Players").LocalPlayer.PlayerGui
+			local button = gui.RacerSecondColumn.TeamButton
+			local c = button.AbsolutePosition + button.AbsoluteSize / 2
+			local front = nil -- the frontmost object that takes a click there, in a shown ScreenGui (as the harness's topAt)
+			for _, o in gui:GetGuiObjectsAtPosition(c.X, c.Y) do
+				local screen = o:FindFirstAncestorWhichIsA("ScreenGui")
+				local takes = o:IsA("GuiButton") or o:IsA("TextBox") or o.Active
+				if not front and takes and screen and screen.Enabled then
+					front = o
+				end
+			end
+			watch.Front = front and front:GetFullName() or "nothing"
+			watch.Covered = front ~= nil and front:IsDescendantOf(gui.RacerTeam)
+			return nil
+		end
+		return prepare
+	end)(),
 	NeedSetup = { "spy" },
-	Expect = { Panels = { [TEAM_PANEL] = false }, Remote = false },
+	Expect = { Panels = { [TEAM_PANEL] = false }, Remote = false, After = { "team_page_covers_button" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "close_team",
@@ -3794,10 +3829,12 @@ UiSpec.Guis.RacerSidekicks = {
 		{ Path = "Canvas/Info", Does = "local" },
 		{ Path = "Canvas/More", Does = "local" },
 		{ Path = "Canvas/AutoSell", Does = "local" },
-		{ Path = "Canvas/Modal/Panel/Dismiss", Does = "local" },
-		-- Rows of the Auto-Sell and More Gems dialogs: Auto-Sell reaches the server in ui_sidekicks, the packs are judged there.
+		-- The reference-sheet panels (91113d3, Client/SummonPanels; the old Canvas/Modal no longer opens): each panel's red X.
+		{ Path = "Canvas/SummonPanels/*/Header/Close", Does = "local" },
+		-- Rows and footer buttons of the panels (Keep / Sell, Save, More's rows, gem packs): Auto-Sell reaches the server
+		-- in ui_sidekicks, the packs are judged there.
 		{
-			Path = "Canvas/Modal/Panel/DetailsScroll/Actions/*",
+			Path = "Canvas/SummonPanels/*/*/*",
 			Does = "remote",
 			Remote = "SidekickAutoSell|GemPackBuy",
 			Count = "dynamic",
@@ -4279,15 +4316,21 @@ table.insert(UiSpec.Clicks, {
 	Prepare = only(SIDEKICKS),
 	Expect = { Panels = { [SIDEKICKS] = false }, Remote = false },
 })
--- Details and the featured banner both open Details (section 6; SIDEKICK_SPEC "Summon page").
-for id, path in { sidekicks_details_button = "Chances", sidekicks_details_tap = "Banner1" } do
+-- Details opens the odds per rarity (section 6, owner 2026-11-20); the Featured tile opens Featured Banner (SIDEKICK_SPEC
+-- "Panels", 91113d3).
+for id, click in
+	{
+		sidekicks_details_button = { "Chances", "sidekicks_details_open" },
+		sidekicks_details_tap = { "Banner1", "sidekicks_featured_open" },
+	}
+do
 	table.insert(UiSpec.Clicks, {
 		Id = id,
 		Gui = "RacerSidekicks",
-		Path = "Canvas/" .. path,
+		Path = "Canvas/" .. click[1],
 		Prepare = only(SIDEKICKS),
 		NeedSetup = { "spy", "sidekick_states" },
-		Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_details_open" } },
+		Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { click[2] } },
 	})
 end
 -- With the Mythic due: Details shows the guaranteed odds (design doc section 6, pity shows the updated odds).
@@ -4312,6 +4355,7 @@ table.insert(UiSpec.Clicks, {
 	Gui = "RacerSidekicks",
 	Path = "Canvas/More",
 	Prepare = only(SIDEKICKS),
+	NeedSetup = { "spy" },
 	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_more_gems" } },
 })
 table.insert(UiSpec.Clicks, {
@@ -4321,13 +4365,19 @@ table.insert(UiSpec.Clicks, {
 	Prepare = only(SIDEKICKS),
 	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false },
 })
--- Right after sidekicks_info: the dialog it opened closes, the screen stays.
+-- The panel Info opens (Summon Info, 91113d3) closes on its red X, the screen stays. Info is pressed first for real (PressFirst):
+-- the X only exists once a panel is drawn.
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_dialog_dismiss",
 	Gui = "RacerSidekicks",
-	Path = "Canvas/Modal/Panel/Dismiss",
-	Prepare = { KeepPanels = true, Showcase = false },
-	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false },
+	Path = "Canvas/SummonPanels/SummonInfo/Header/Close",
+	Prepare = (function()
+		local prepare = only(SIDEKICKS)
+		prepare.WaitSeconds = 1.5 -- the page opens under the Sakura wash (1267f95): its buttons show after it
+		prepare.PressFirst = { Path = SIDEKICKS .. "/Info", Until = SIDEKICKS .. "/SummonPanels" }
+		return prepare
+	end)(),
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_panel_closed" } },
 })
 -- A real summon on fixture Gems: the reveal needs its results. SidekickSummon is deliberately not in
 -- UiSpec.RemoteFunctions (progression_spy would block it), so the spy logs no remote here. Each reveal stays until its
@@ -4353,8 +4403,14 @@ table.insert(UiSpec.Clicks, {
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_big",
 	Gui = "RacerSidekicks",
-	Path = "Canvas/Many",
-	Prepare = only(SIDEKICKS),
+	-- Many asks first (SIDEKICK_SPEC "Panels", 91113d3 ConfirmMany): Many is pressed for real, then its Confirm sends the 10x.
+	Path = "Canvas/SummonPanels/SummonConfirmation/Buttons/Confirm",
+	Prepare = (function()
+		local prepare = only(SIDEKICKS)
+		prepare.WaitSeconds = 1.5 -- the page opens under the Sakura wash (1267f95): its buttons show after it
+		prepare.PressFirst = { Path = SIDEKICKS .. "/Many", Until = SIDEKICKS .. "/SummonPanels" }
+		return prepare
+	end)(),
 	NeedSetup = { "spy", "sidekick_big_reveal" },
 	Expect = { Panels = { [SIDEKICKS] = false }, Remote = false, After = { "sidekicks_reveal_big" } },
 })
@@ -4370,9 +4426,13 @@ table.insert(UiSpec.Clicks, {
 	Id = "sidekick_tutorial_go",
 	Gui = "SidekickTutorial",
 	Path = "Layer/Card/GoButton",
-	-- WaitSeconds: the tutorial's spotlight settles after the Sakura wash (1267f95), as team_bonus_open waits
+	-- WaitSeconds: the tutorial's spotlight settles after the Sakura wash (1267f95), as team_bonus_open waits.
+	-- The summon page closed: GoButton (step 1) shows only while it is (SidekickTutorial `goButton.Visible = not open`); with
+	-- the page left open step 2 aims at FreeSummon and its Active Top strip, which swallows clicks by design
+	-- (TutorialSpotlight), lies over the card.
 	Prepare = (function()
 		local prepare = only()
+		table.insert(prepare.Closed, SIDEKICKS)
 		prepare.WaitSeconds = 1.5
 		return prepare
 	end)(),

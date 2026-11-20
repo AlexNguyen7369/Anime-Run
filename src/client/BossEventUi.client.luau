@@ -899,7 +899,8 @@ local function placeCard(g, e, x, y, w, h, s, large)
 		local rw = w - rx - pad
 		g.Place(e.Portrait, pad, (h - side) / 2, side, side)
 		g.Place(e.Title, rx, pad, rw, 40 * s)
-		g.Place(e.Phases, rx, pad + 40 * s, rw, 26 * s)
+		-- Phases ends before Details' column: on a short strip card Details reaches up into its row.
+		g.Place(e.Phases, rx, pad + 40 * s, math.max(1, w - pad - 140 * s - gap - rx), 26 * s)
 		g.Place(e.Pill, rx, pad + 66 * s + gap, rw, 36 * s)
 		g.Place(e.Details, w - pad - 140 * s, h - pad - stripH, 140 * s, stripH)
 		g.Role(e.Title, "Item")

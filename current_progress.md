@@ -209,7 +209,8 @@
 205. 2026-11-20 — Alex Nguyen — Rebuilt the Summon page 1:1 to the owner's reference (parchment scroll, paper buttons, wood summon tiles, burgundy gem packs, outlined stage labels) and the owner approved it from the Studio capture.
 206. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
 207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
-208. 2026-11-20 — Alex Nguyen — ui-scroll: drafted design doc 4.46 and UI_SCROLL_SPEC, and built reference frames for every GUI, HUD options A and B and the center-out unroll strip on feature/alex/ui-scroll-redesign (review page https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe).
+208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
+209. 2026-11-20 — Alex Nguyen — ui-scroll: drafted design doc 4.46 and UI_SCROLL_SPEC, and built reference frames for every GUI, HUD options A and B and the center-out unroll strip on feature/alex/ui-scroll-redesign (review page https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe).
 
 ## What's next
 **Get the owner's approval on the Scroll Dojo reference frames (per frame, HUD A / B / none, and the 7 listed decisions), then write the approved layouts into 4.46 and UI_SCROLL_SPEC.**

@@ -14,11 +14,12 @@
 --   Canvas/Balance shows the Gems (HudFormat.Short) with CurrencyGem; Canvas/Once and Canvas/Many show their cost with
 --   CurrencyGem; Canvas/Timer shows m:ss to EndsAt; Canvas/Pity1+PityCount1+PityCard1 is Legendary pity, Pity2+PityCount2+
 --   PityCard2 Mythic pity ("%d / %d", Track/Progress filled count / limit); Canvas/Featured is the sticker.
---   Canvas/Chances ("Details", owner 2026-11-19) opens Canvas/Modal, whose Panel/DetailsScroll/Body lists every outcome of the rotation, one
---   line each holding the Sidekick's name (the Secret as "Secret") and its percent with 3 decimals. While a guarantee is due
---   (design doc 4.36, section 6: Mythic at SidekickPity >= PityCount - 1, else Legendary) the tier's lines share 100% evenly,
---   the others read 0.000%, and the text says "guaranteed". No silhouette row and no exact-100% rounding (owner 2026-11-12).
---   Auto Sell and More open the same Modal with rows under Panel/DetailsScroll/Actions.
+--   Canvas/Chances ("Details", owner 2026-11-19) opens Canvas/SummonPanels/ShowChances: one row per rarity, the rotation's
+--   odds summed, the Secret first (section 6, owner 2026-11-20). While a guarantee is due (design doc 4.36: Mythic at
+--   SidekickPity >= PityCount - 1, else Legendary) the tier reads 100%, the rest 0%, and a line says "<tier> guaranteed".
+--   Canvas/Banner1 (the Featured tile) opens FeaturedBanner. No exact-100% rounding (owner 2026-11-12).
+--   Auto Sell, More, Info and Many open Canvas/SummonPanels (91113d3): one panel named AutoSell, More, SummonInfo or
+--   SummonConfirmation, its red X at <panel>/Header/Close; Many sends its summon only from SummonConfirmation/Buttons/Confirm.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("SidekickConfig"))
@@ -35,8 +36,7 @@ local UiMotion = require(Client:WaitForChild("UiMotion"))
 
 local GUI = "RacerSidekicks"
 local CANVAS = GUI .. "/Canvas"
-local MODAL = CANVAS .. "/Modal"
-local ACTIONS = MODAL .. "/Panel/DetailsScroll/Actions"
+local PANELS = CANVAS .. "/SummonPanels" -- the reference-sheet panels (91113d3)
 local STAGE = "SummoningStageLocal"
 local REVEAL = "RacerSidekickReveal"
 local BIG_REVEAL_WAIT = 20 -- s: the whole 10x, flips and both showcases
@@ -402,51 +402,67 @@ function Module.Build(h)
 		check(res, "sidekick_slot_change_back", back or "back", "back")
 	end
 
-	-- Name -> percent each outcome must show. tier: the rarity a due guarantee pays; it shares 100%, the rest read 0.
+	-- Rarity -> percent Details must show (SIDEKICK_SPEC "Panels", design doc section 6 owner 2026-11-20): the rotation's
+	-- odds summed per rarity, the Secret its own line. tier: the rarity a due guarantee pays; it reads 100%, the rest 0.
 	local function wantOdds(view, tier)
 		local odds = {}
-		if tier then
-			local inTier = 0
-			for _, id in view.Ids do
-				inTier += Config.Get(id).Rarity == tier and 1 or 0
-			end
-			for _, id in view.Ids do
-				odds[Config.Get(id).Name] = Config.Get(id).Rarity == tier and 100 / inTier or 0
-			end
-			odds.Secret = 0
-			return odds
-		end
-		-- What the server rolls, from the replicated view alone.
 		local served = view.Odds or {}
-		odds.Secret = served[view.SecretId] or 0
 		for _, id in view.Ids do
-			odds[Config.Get(id).Name] = served[id] or 0
+			local rarity = Config.Get(id).Rarity
+			odds[rarity] = tier and (rarity == tier and 100 or 0) or (odds[rarity] or 0) + (served[id] or 0)
 		end
+		odds.Secret = tier and 0 or served[view.SecretId] or 0
 		return odds
 	end
-	-- nil when the dialog has a line per outcome with its percent to 3 decimals (no exact-sum rule, owner 2026-11-12).
-	local function dialogProblem(text, want)
-		local lines = string.split(text, "\n")
-		for name, percent in want do
-			local shown = nil
-			for _, line in lines do
-				local starts = string.find(line, name, 1, true) == 1
-				if starts and not (name == "Secret" and string.find(line, "•", 1, true)) then
-					shown = tonumber(string.match(line, "([%d%.]+)%%%s*$"))
-				end
+	-- The panel's rows in order: { rarity, shown percent }.
+	local function panelRows(panel)
+		local rows = {}
+		local body = panel and panel:FindFirstChild("Body")
+		for _, r in body and body:GetChildren() or {} do
+			local name, value = r:FindFirstChild("Name"), r:FindFirstChild("Value")
+			if r:IsA("Frame") and name and value then
+				table.insert(rows, { order = r.LayoutOrder, name = name.Text, value = value.Text })
 			end
-			if not shown then
-				return "no line with a percent for " .. name
+		end
+		table.sort(rows, function(x, y)
+			return x.order < y.order
+		end)
+		return rows
+	end
+	-- nil when the rows are the Secret first, then the rarities high to low, each with its summed percent (2 decimals,
+	-- 4 under 0.01%, SummonPanels percent; no exact-sum rule, owner 2026-11-12).
+	local function dialogProblem(rows, want)
+		local order = { "Secret", "Mythic", "Legendary", "Epic", "Rare", "Common" }
+		local wantNames = {}
+		for _, rarity in order do
+			if want[rarity] then
+				table.insert(wantNames, rarity)
 			end
-			if math.abs(shown - percent) > 0.0006 then
-				return ("%s shows %.3f%%, want %.3f%%"):format(name, shown, percent)
+		end
+		local names = {}
+		for _, row in rows do
+			table.insert(names, row.name)
+		end
+		if table.concat(names, ",") ~= table.concat(wantNames, ",") then
+			return "rows " .. table.concat(names, ",") .. " want " .. table.concat(wantNames, ",")
+		end
+		for _, row in rows do
+			local shown = tonumber(string.match(row.value, "^([%d%.]+)%%$"))
+			local slack = string.match(row.value, "%.%d%d%d%d%%") and 0.00006 or 0.0051
+			if not shown or math.abs(shown - want[row.name]) > slack then
+				return ("%s shows %s, want %.4f%%"):format(row.name, row.value, want[row.name])
 			end
 		end
 		return nil
 	end
-	local function dialogText()
-		local body = h.find(MODAL .. "/Panel/DetailsScroll/Body")
-		return body and h.visible(body) and body.Text or ""
+	local function panelText(panel)
+		local texts = {}
+		for _, d in panel and panel:GetDescendants() or {} do
+			if d:IsA("TextLabel") then
+				table.insert(texts, d.Text)
+			end
+		end
+		return table.concat(texts, "\n")
 	end
 	-- Section 6: every outcome with its percent before any summon, behind the odds button. It reads "Details"
 	-- (owner 2026-11-19); the dialog is judged after its press.
@@ -466,31 +482,34 @@ function Module.Build(h)
 	end
 	-- After a real press of the odds button: tier nil, or the guarantee the fixture made due.
 	local function checkDialogOdds(res, tag, tier)
-		local modal, view = h.find(MODAL), public()
-		check(res, "sidekick_odds_dialog_opened" .. tag, modal ~= nil and h.visible(modal), true)
+		local overlay, view = h.find(PANELS), public()
+		local panel = overlay and overlay:FindFirstChild("ShowChances")
+		check(res, "sidekick_odds_dialog_opened" .. tag, panel ~= nil and h.visible(overlay), true)
+		check(
+			res,
+			"sidekick_odds_dialog_title" .. tag,
+			labelText(panel and panel:FindFirstChild("Header"), "Title"),
+			"Details"
+		)
 		check(res, "sidekick_odds_rotation_readable" .. tag, view ~= nil, true)
 		if not view then
 			return
 		end
 		local problem = waitFor(function()
-			return dialogProblem(dialogText(), wantOdds(view, tier))
+			return dialogProblem(panelRows(panel), wantOdds(view, tier))
 		end)
-		check(res, "sidekick_odds_dialog_lists_outcomes" .. tag, problem or "right", "right")
-		local text = dialogText()
-		-- The Secret's line never tells which one is live; boss drops and Sidekicks out of the slot are not outcomes.
+		check(res, "sidekick_odds_dialog_per_rarity" .. tag, problem or "right", "right")
+		local text = panelText(panel)
+		check(
+			res,
+			"sidekick_odds_no_luck_note" .. tag,
+			string.find(text, "Luck and potions never change Sidekick odds.", 1, true) ~= nil,
+			true
+		)
+		-- Per rarity: no Sidekick is named, so the live Secret and the boss drops never show.
 		for _, rows in { secretRows(), Config.BossDrops } do
 			for _, row in rows do
 				check(res, "sidekick_odds_hides_" .. row.Id .. tag, string.find(text, row.Name, 1, true) ~= nil, false)
-			end
-		end
-		for _, row in Config.List do
-			if row.Rarity ~= "Secret" and not table.find(view.Ids, row.Id) then
-				check(
-					res,
-					"sidekick_odds_out_of_rotation_" .. row.Id .. tag,
-					string.find(text, row.Name, 1, true) ~= nil,
-					false
-				)
 			end
 		end
 		local says = string.find(string.lower(text), "guaranteed", 1, true) ~= nil
@@ -848,15 +867,63 @@ function Module.Build(h)
 	-- dialog lists every outcome with its percent, and no summon can be pressed through it.
 	function after.sidekicks_details_open(res)
 		checkDialogOdds(res, "", nil)
-		local modal, once = h.find(MODAL), h.find(CANVAS .. "/Once")
+		local overlay, once = h.find(PANELS), h.find(CANVAS .. "/Once")
 		local r = once and h.rect(once)
 		local top = r and h.topAt(r.x + r.w / 2, r.y + r.h / 2)
 		check(
 			res,
 			"sidekick_page_steps_aside_for_details",
-			top ~= nil and modal ~= nil and top:IsDescendantOf(modal),
+			top ~= nil and overlay ~= nil and (top == overlay or top:IsDescendantOf(overlay)),
 			true
 		)
+	end
+	-- After a real press of the Featured tile (Canvas/Banner1): Featured Banner (SIDEKICK_SPEC "Panels", 91113d3): the
+	-- rotation's top five non-Common, non-Secret units, rarest first, each with its name and its own rate.
+	function after.sidekicks_featured_open(res)
+		local overlay, view = h.find(PANELS), public()
+		local panel = overlay and overlay:FindFirstChild("FeaturedBanner")
+		check(res, "sidekick_featured_opened", panel ~= nil and h.visible(overlay), true)
+		check(res, "sidekick_featured_rotation_readable", view ~= nil, true)
+		if not (panel and view) then
+			return
+		end
+		local rank = { Mythic = 5, Legendary = 4, Epic = 3, Rare = 2, Common = 1 }
+		local list = {}
+		for _, id in view.Ids do
+			local row = Config.Get(id)
+			if row.Rarity ~= "Common" and row.Rarity ~= "Secret" then
+				table.insert(list, { row = row, odds = (view.Odds or {})[id] or 0 })
+			end
+		end
+		table.sort(list, function(x, y)
+			if x.row.Rarity ~= y.row.Rarity then
+				return (rank[x.row.Rarity] or 0) > (rank[y.row.Rarity] or 0)
+			end
+			return x.odds < y.odds
+		end)
+		-- Units of one rarity with the same rate may come in either order (the panel's sort has no tie-break): each row is
+		-- judged by its rarity and rate against the expected row at its place, and names a unit of the rotation.
+		local want, got = {}, {}
+		for i = 1, math.min(5, #list) do
+			table.insert(want, list[i].row.Rarity .. " " .. list[i].odds)
+		end
+		local problem = nil
+		for i, row in panelRows(panel) do
+			local unit = nil
+			for _, item in list do
+				if item.row.Name == row.name then
+					unit = item
+				end
+			end
+			table.insert(got, unit and (unit.row.Rarity .. " " .. unit.odds) or (row.name .. " not featured"))
+			local shown = tonumber(string.match(row.value, "^([%d%.]+)%%$"))
+			local slack = string.match(row.value, "%.%d%d%d%d%%") and 0.00006 or 0.0051
+			if not (shown and unit and list[i] and math.abs(shown - list[i].odds) <= slack) then
+				problem = problem or (row.name .. " shows " .. row.value)
+			end
+		end
+		check(res, "sidekick_featured_units", table.concat(got, ", "), table.concat(want, ", "))
+		check(res, "sidekick_featured_rates", problem or "right", "right")
 	end
 	-- The same press with the Mythic due (fixture sidekick_pity_due): the updated odds (section 6).
 	function after.sidekicks_details_guaranteed(res)
@@ -864,39 +931,84 @@ function Module.Build(h)
 		checkDialogOdds(res, "_due", "Mythic")
 	end
 
-	-- After a real press of More: the More Gems dialog offers every pack, with its Gems and price.
-	function after.sidekicks_more_gems(res)
-		local modal, actions = h.find(MODAL), h.find(ACTIONS)
-		check(res, "sidekick_more_gems_opened", modal ~= nil and h.visible(modal), true)
-		local text = table.concat(actions and shownTexts(actions) or {}, "\n")
-		for _, pack in Monetization.GemPacks do
-			local line = string.find(text, pack.Name, 1, true) ~= nil
-				and string.find(text, "R$" .. pack.RobuxPrice, 1, true) ~= nil
-			check(res, "sidekick_more_gems_lists_" .. pack.Id, line, true)
-		end
+	-- The reference-sheet panel open over the page (91113d3, Client/SummonPanels): Canvas/SummonPanels with one panel,
+	-- named after it (AutoSell, More, SummonInfo, ...).
+	local function summonPanel(res, name)
+		local overlay = h.find(PANELS)
+		check(res, "sidekick_panel_overlay_shown", overlay ~= nil and h.visible(overlay), true)
+		local panel = overlay and overlay:FindFirstChild(name)
+		check(res, "sidekick_panel_" .. name .. "_shown", panel ~= nil and h.visible(panel), true)
+		return panel
 	end
 
-	-- After a real press of Auto Sell: one line per rarity, each off on the fresh fixture, and no odds list in the way.
-	function after.sidekicks_autosell_open(res)
-		local modal, actions = h.find(MODAL), h.find(ACTIONS)
-		check(res, "sidekick_autosell_opened", modal ~= nil and h.visible(modal), true)
-		local body = h.find(MODAL .. "/Panel/DetailsScroll/Body")
-		check(res, "sidekick_autosell_hides_odds", body ~= nil and h.visible(body), false)
-		local lines = actions and shownTexts(actions) or {}
-		local rarities = {}
-		for _, row in Config.List do
-			if not table.find(rarities, row.Rarity) then
-				table.insert(rarities, row.Rarity)
-				local found = "missing"
-				for _, text in lines do
-					if string.find(text, row.Rarity, 1, true) == 1 then
-						found = string.upper(text)
-					end
-				end
-				check(res, "sidekick_autosell_line_" .. row.Rarity, found ~= "missing", true)
-				check(res, "sidekick_autosell_line_off_" .. row.Rarity, string.find(found, "OFF", 1, true) ~= nil, true)
+	-- After a real press of More: the compact More menu (SIDEKICK_SPEC "Panels": Banner Details, Pity, History, Settings,
+	-- Gem Packs, Help), in that order, each a button.
+	function after.sidekicks_more_gems(res)
+		local panel = summonPanel(res, "More")
+		local names = {}
+		local body = panel and panel:FindFirstChild("Body")
+		for _, b in body and body:GetChildren() or {} do
+			if b:IsA("GuiButton") then
+				table.insert(names, b)
 			end
 		end
+		table.sort(names, function(x, y)
+			return x.LayoutOrder < y.LayoutOrder
+		end)
+		local labels = {}
+		for _, b in names do
+			local label = b:FindFirstChild("Label")
+			table.insert(labels, label and label.Text or b.Name)
+		end
+		check(
+			res,
+			"sidekick_more_menu_items",
+			table.concat(labels, ", "),
+			"Banner Details, Pity, History, Settings, Gem Packs, Help"
+		)
+	end
+
+	-- After a real press of Auto Sell: Keep / Sell per rarity (SIDEKICK_SPEC "Panels"), Keep chosen for each on the
+	-- fresh fixture (auto-sell off), Cancel and Save below.
+	function after.sidekicks_autosell_open(res)
+		local panel = summonPanel(res, "AutoSell")
+		local body = panel and panel:FindFirstChild("Body")
+		local seen = {}
+		for _, row in Config.List do
+			-- The reference sheet's panel 5 lists Mythic to Common (SummonPanels RARITIES, 91113d3): no Secret line.
+			if not seen[row.Rarity] and row.Rarity ~= "Secret" then
+				seen[row.Rarity] = true
+				local line = nil
+				for _, r in body and body:GetChildren() or {} do
+					local name = r:FindFirstChild("Name")
+					if r:FindFirstChild("Keep") and name and name.Text == row.Rarity then
+						line = r
+					end
+				end
+				check(res, "sidekick_autosell_line_" .. row.Rarity, line ~= nil, true)
+				check(
+					res,
+					"sidekick_autosell_keep_" .. row.Rarity,
+					line ~= nil
+						and line.Keep:GetAttribute("Selected") == true
+						and line.Sell:GetAttribute("Selected") == false,
+					true
+				)
+			end
+		end
+		local footer = panel and panel:FindFirstChild("Buttons")
+		check(
+			res,
+			"sidekick_autosell_cancel_save",
+			footer ~= nil and footer:FindFirstChild("Cancel") ~= nil and footer:FindFirstChild("Save") ~= nil,
+			true
+		)
+	end
+
+	-- After the panel's red X (Header/Close): the panel is gone and the page stays.
+	function after.sidekicks_panel_closed(res)
+		local overlay = h.find(PANELS)
+		check(res, "sidekick_panel_closed", overlay ~= nil and overlay.Visible, false)
 	end
 
 	local function revealPart(name)

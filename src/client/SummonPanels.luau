@@ -369,9 +369,18 @@ function SummonPanels.new(canvas, deps)
 
 	-- 3. Show Chances: the odds summed per rarity (and the Secret), shown before any summon.
 	function self.Chances()
+		-- A due pity guarantee is the odds now (SIDEKICK_SPEC "No luck ... only pity does, and Details shows it"; section 6):
+		-- the tier reads 100%, every other rarity (the Secret too) 0%.
+		local tier = nil
+		if (player:GetAttribute("SidekickPity") or 0) >= SidekickConfig.PityCount - 1 then
+			tier = "Mythic"
+		elseif (player:GetAttribute("SidekickLegendaryPity") or 0) >= SidekickConfig.LegendaryPityCount - 1 then
+			tier = "Legendary"
+		end
 		local sums = {}
 		for _, item in oddsList(deps.Rotation()) do
-			sums[item.Row.Rarity] = (sums[item.Row.Rarity] or 0) + item.Odds
+			local odds = tier and (item.Row.Rarity == tier and 100 or 0) or item.Odds
+			sums[item.Row.Rarity] = tier and odds or (sums[item.Row.Rarity] or 0) + odds
 		end
 		local order = table.clone(RARITIES)
 		table.insert(order, 1, "Secret")
@@ -381,7 +390,7 @@ function SummonPanels.new(canvas, deps)
 				table.insert(shown, rarity)
 			end
 		end
-		begin("ShowChances", "Details", nil, Icons.Quests.Image, 64 + #shown * (ROW + 8))
+		begin("ShowChances", "Details", nil, Icons.Quests.Image, 64 + #shown * (ROW + 8) + (tier and 30 or 0))
 		text("Heading", body, {
 			LayoutOrder = 0,
 			Size = UDim2.new(1, 0, 0, 26),
@@ -397,6 +406,14 @@ function SummonPanels.new(canvas, deps)
 			TextColor3 = D.Gold,
 			Font = Enum.Font.GothamBold,
 		})
+		if tier then
+			text("Guarantee", body, {
+				LayoutOrder = 100,
+				Size = UDim2.new(1, 0, 0, 22),
+				Text = tier .. " guaranteed on the next summon",
+				TextColor3 = D.Gold,
+			})
+		end
 	end
 
 	-- 4. Summon Info: how it works, banner rules, pity with the player's counts, the currency.

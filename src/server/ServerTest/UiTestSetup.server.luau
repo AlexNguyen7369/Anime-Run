@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, team_states, team_states_clear, no_passes, sidekick_states, sidekick_pity_due, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
+-- Ids: snapshot, restore, spy, team_states, team_states_clear, team_full, no_passes, sidekick_states, sidekick_pity_due, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -815,6 +815,55 @@ function setups.team_states_clear(player)
 		setAutoRoll(player, roll.on == true)
 	end
 	restoreHudUnlock(player)
+end
+
+-- ui_hitboxes: a full Team of three, the minibar row as a player with three kept characters sees it (FillTeam, c80e4de).
+-- With two members the empty third circle draws smaller than a portrait and the row's OpenTeam padding depends on the save.
+-- Team changes are locked during a run, so the run stops first; restore:team_full puts the Team and the run back.
+local teamFullRacing = {} -- [Player] = was auto racing
+function setups.team_full(player)
+	local team = string.split(player:GetAttribute("Team") or "", ",")
+	if #team >= 3 and team[3] ~= "" then
+		return
+	end
+	local G, C, RunnerService = live("GachaService"), require(Shared.CharacterCatalog), live("RunnerService")
+	if teamBefore[player] == nil then
+		teamBefore[player] = player:GetAttribute("Team") or ""
+	end
+	teamFullRacing[player] = RunnerService.IsAutoRacing(player) == true
+	RunnerService.SetAutoRace(player, false)
+	local start = os.clock()
+	while RunnerService.IsAutoRacing(player) or player:GetAttribute("AutoRacing") == true do
+		if player.Parent ~= Players or os.clock() - start > 5 then
+			error("team_full: still racing after 5 s")
+		end
+		RunService.Heartbeat:Wait()
+	end
+	local data, ids = player:FindFirstChild("GachaData"), {}
+	for _, id in team do
+		if id ~= "" then
+			table.insert(ids, id)
+		end
+	end
+	for _, spec in C.All() do
+		if #ids < 3 and spec.Rollable and data and data:FindFirstChild(spec.Id) and not table.find(ids, spec.Id) then
+			table.insert(ids, spec.Id)
+		end
+	end
+	assert(#ids == 3, "team_full: fewer than 3 owned rollable characters")
+	local ok, why = G.SetTeam(player, ids)
+	assert(ok, "team_full: SetTeam refused: " .. tostring(why))
+end
+local function restoreTeamFull(player)
+	local before = teamBefore[player]
+	teamBefore[player] = nil
+	if before and before ~= "" then
+		live("GachaService").SetTeam(player, string.split(before, ","))
+	end
+	if teamFullRacing[player] then
+		live("RunnerService").SetAutoRace(player, true)
+	end
+	teamFullRacing[player] = nil
 end
 
 -- ui_layout: the HUD as from rebirth 1 (Summon, the Bosses button), so the two-column grid holds all its tiles.
@@ -1799,6 +1848,7 @@ local CLIENT_SETUPS = {
 	team_states = true, -- ui_team
 	team_states_clear = true,
 	hud_unlock = true, -- ui_layout; restore:hud_unlock puts RebirthLevel back
+	team_full = true, -- ui_hitboxes; restore:team_full puts the Team (and a stopped run) back
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1955,6 +2005,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			restoreHudUnlock(player)
 		elseif restoreId == "team_states" then
 			setups.team_states_clear(player)
+		elseif restoreId == "team_full" then
+			restoreTeamFull(player)
 		elseif restoreId == "bag_full_sold" then
 			setups.bag_spares_clear(player)
 		elseif restoreId then

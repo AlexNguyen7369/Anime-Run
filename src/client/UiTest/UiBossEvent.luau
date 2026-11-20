@@ -375,7 +375,17 @@ function Module.Build(h)
 					and a.Parent == h.find(BAR)
 					and (a.Name == "BossTimer" or b.Name == "BossTimer")
 					and (a.Name == "Title" or b.Name == "Title")
-				if not sameRow and not a:IsAncestorOf(b) and not b:IsAncestorOf(a) and crossing(ra, h.rect(b)) then
+				-- A reward tile's Count is the badge drawn on its Art by design (BossEventUi rewardTile: Count ZIndex 3 over the "$" Art).
+				local badge = a.Parent == b.Parent
+					and a.Parent.Name:match("^Reward_") ~= nil
+					and (a.Name == "Count" and b.Name == "Art" or a.Name == "Art" and b.Name == "Count")
+				if
+					not sameRow
+					and not badge
+					and not a:IsAncestorOf(b)
+					and not b:IsAncestorOf(a)
+					and crossing(ra, h.rect(b))
+				then
 					table.insert(overlaps, a.Name .. " x " .. b.Name)
 				end
 			end

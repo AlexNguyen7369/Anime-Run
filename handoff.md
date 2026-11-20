@@ -1,3 +1,12 @@
+## RESUME HERE (2026-11-20, audit-fixes): merged into main on the owner's word
+- Branch `feature/alex/audit-fixes` (contains sakura-polish, PR #22 Summon, PR #23 Team Select assets) merged into main. Full results: nightly-report.md 2026-11-20 section; audit report https://claude.ai/artifact/9UcXdm3HgDirovPXAfXgNs.
+- Team Select night dojo now lives in Client/TeamUi (30520e5) but was never run in Studio. Next: Studio check per the 12-point list (copied below), update UiTeam `team_altars_in_a_row` (Altar2 left of Altar1 left of Altar3) and the altar gear check (judge against Altar<n>/Nameplate), rerun ui_team, team_* clicks, ui_entry_points, ui_sidekicks.
+  Points: Panel size == ScreenGui within 2 px at 1920x1080, 1024x768, 844x390; plate and altars match the approved captures; 4:3 Search fits; phone text legible and 44 px taps; breathing off with ReduceEffects and Pedestal/World empty after close; slot 2/3 scale 0.905; picked altar plate and ring; nameplate icons and tooltips; scroll rows and "n / 3"; petals clear Close; roster cards and Search/Sort.
+  Name changes for tests: Pedestal/Figure -> Pedestal/World/Figure; Gear -> Altar<n>/Nameplate/Face/Gear; Ledger is a plain Frame; card SlotSeal is a TextLabel; removed Header/Wordmark, Brush1/2, Tray/Mount, tab Underline.
+- Then: Sidekick Details lists every Sidekick of the live banner under its rarity (board Next; SIDEKICK_SPEC Panels, design doc 6, owner 2026-11-20).
+- Known reds: arena_ids_listed (owner upload), ui_roll_anim alone (order dependency), shop_redeem_invalid_code (undiagnosed), clicks #24-#264 not re-pressed.
+- Studio: script edits to this cloud place persist on their own (seen in run 3); Studio holds 829ee98 sources plus the Team Select change is NOT synced. scroll-dojo-ui-redesign session (feature/alex/ui-scroll-redesign) was told to rebase on main and that Studio is free.
+
 ## RESUME HERE (2026-11-20, team-dojo): Team Select redesign APPROVED (Studio draft); not yet built into TeamUi
 - Owner approved 2026-11-20 from https://claude.ai/artifact/16AdtJyLjWfV8AUwD2mo4D with gold-orange rings and drawn icons. Rule: design doc 4.45 "Team Select night dojo" (open questions: Team 1 dropdown/pencil, cruise in place of Lv./Power, real bonus only, nav arrows, picked-altar look, plaza Team altar look).
 - Assets: plate `rbxassetid://84852553726102` (assets/ui/team_dojo/asset.json), icons assets/ui/team_icons/asset.json (13 ids), Blender plate script tools/blender/team_dojo/, icon script tools/team_icons/make_icons.py.
