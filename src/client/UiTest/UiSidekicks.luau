@@ -443,7 +443,7 @@ function Module.Build(h)
 	local function checkDetails(res, canvas)
 		local button = canvas:FindFirstChild("Chances")
 		check(res, "sidekick_odds_button_shown", button ~= nil and h.visible(button), true)
-		check(res, "sidekick_odds_button_label", labelText(button, "Caption"), "Show Chances")
+		check(res, "sidekick_odds_button_label", labelText(button, "Caption"), "Details")
 		local view = public()
 		check(res, "sidekick_public_has_odds", view and type(view.Odds), "table")
 		if view then
