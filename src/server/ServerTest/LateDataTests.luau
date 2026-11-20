@@ -69,6 +69,20 @@ function Tests.late_data()
 		flag(name .. "_in_ServerStorage_LateData", H.lateData(name) ~= nil)
 	end
 
+	-- bb96973 (C1): the remotes of services that start after the track build are made at boot, one each, so a joining
+	-- client's WaitForChild (ui_duel's Duel) never yields on the build. The services reuse them by name.
+	local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+	for _, name in { "Duel", "BossHits", "AdminMessage", "BossEventChat", "MarketOpen" } do
+		local count, isEvent = 0, true
+		for _, child in remotes and remotes:GetChildren() or {} do
+			if child.Name == name then
+				count += 1
+				isEvent = isEvent and child:IsA("RemoteEvent")
+			end
+		end
+		flag("boot_remote_" .. name, count == 1 and isEvent, count, 1)
+	end
+
 	local dodge = H.module(Shared, "BossDodge")
 	flag("server_reads_boss_dodge", dodge ~= nil)
 	local poses = H.lateData("BossRagaPoses")

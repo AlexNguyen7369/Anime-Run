@@ -17,7 +17,7 @@ UpgradeConfig.BASE_ROLL_INTERVAL = 3 -- seconds (GachaConfig.ROLL_INTERVAL today
 UpgradeConfig.MIN_ROLL_INTERVAL = 2 -- the fastest roll speed ever: interval = BASE / product(1 + tier bonus), never below this
 
 UpgradeConfig.BASE_WALKSPEED = 16
-UpgradeConfig.BASE_TURBO = { Multi = 10, Every = 10 } -- no Turbo tier owned
+UpgradeConfig.BASE_TURBO = { Multi = 30, Every = 10 } -- no Turbo tier owned (Multi placeholder, audit 2026-11-20, was 10)
 
 -- Hex grid: axial (q, r), Start at (0, 0). A branch's tier I sits at Origin + Direction, tier n at
 -- Origin + n * Direction. `Parent` is the tile tier I needs (Start, or a fork off another branch).

@@ -17,7 +17,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local Server = script.Parent.Parent
 local Tests = {}
 local UID = 990136000
-local VERSION = 18 -- 18: BossCredit (BossPaidTests); 17: pity (SidekickPityTests); 16: Relics (RelicTests)
+local VERSION = 19 -- 19: Dojos removed (design doc 4.43); 18: BossCredit (BossPaidTests); 17: pity (SidekickPityTests); 16: Relics (RelicTests)
 local CLOCK = 1800000123 -- one fixed rotation slot for the whole scenario
 -- Design doc section 5: the real names no id or name may show, from each docs/char_evidence/side_*.md "Based on" line.
 local SOURCE_NAMES = {
@@ -683,6 +683,22 @@ function Tests.sidekicks()
 		refused("auto_sell_rarity_unknown", S.SetAutoSell, "NoSuchRarity", true)
 		refused("auto_sell_value_text", S.SetAutoSell, List[1].Rarity, "yes")
 		refused("auto_sell_value_nil", S.SetAutoSell, List[1].Rarity, nil)
+		-- 112999f: one map { [rarity] = on } per Save; a map with any bad key or value is refused whole
+		refused("auto_sell_map_unknown_rarity", S.SetAutoSell, { Bogus = true })
+		refused("auto_sell_map_value_text", S.SetAutoSell, { Common = "yes" })
+		refused("auto_sell_map_one_bad_key", S.SetAutoSell, { Common = true, Bogus = true })
+		do
+			local mapped = unlocked()
+			S.SetAutoSell(mapped, "Rare", true)
+			local okMap = S.SetAutoSell(mapped, { Common = true, Rare = false })
+			local m = snap(mapped).SidekickAutoSell or {}
+			flag("auto_sell_map_accepted", okMap == true)
+			flag("auto_sell_map_sets_both", m.Common == true and m.Rare ~= true)
+			-- the old (rarity, on) form still works next to it
+			local okOld = S.SetAutoSell(mapped, "Rare", true)
+			m = snap(mapped).SidekickAutoSell or {}
+			flag("auto_sell_old_form_still_works", okOld == true and m.Rare == true and m.Common == true)
+		end
 
 		-- Save: round trip through a real save, in a form a DataStore can hold.
 		local saver, saverId = unlocked()

@@ -9,9 +9,12 @@ RebirthConfig.DEFAULT_LEVEL = 0
 -- one. Rebirth gives no XP (owner 2026-11-01, design doc 4.14).
 RebirthConfig.TOTALS = { 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7.5, 10, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11 }
 RebirthConfig.MAX_LEVEL = #RebirthConfig.TOTALS
--- Money needed for the next rebirth (owner 2026-11-01, placeholder): $100K for rebirth 1, x10 each after.
+-- Money needed for the next rebirth (owner 2026-11-01, placeholder): $100K for rebirth 1, x10 each up to rebirth 7, then x4
+-- each (audit 2026-11-20, was x10 all the way).
 RebirthConfig.BASE_MONEY = 1e5
 RebirthConfig.MONEY_GROWTH = 10
+RebirthConfig.MONEY_GROWTH_UNTIL = 6 -- the x10 steps: levels above this grow by LATE_MONEY_GROWTH
+RebirthConfig.LATE_MONEY_GROWTH = 4
 RebirthConfig.SPEED_PER_REBIRTH = 0.05 -- +5 % cruise per rebirth level (placeholder, owner 2026-11-03, design doc 4.14)
 RebirthConfig.POINTS_PER_REBIRTH = 1 -- stat points per rebirth (placeholder, owner 2026-10-15; docs/REBIRTH_SPEC.md)
 
@@ -52,7 +55,9 @@ end
 function RebirthConfig.Requirements(level)
 	level = math.min(RebirthConfig.CleanLevel(level), RebirthConfig.MAX_LEVEL - 1) -- past the last: the final value
 	return {
-		Money = RebirthConfig.BASE_MONEY * RebirthConfig.MONEY_GROWTH ^ level,
+		Money = RebirthConfig.BASE_MONEY
+			* RebirthConfig.MONEY_GROWTH ^ math.min(level, RebirthConfig.MONEY_GROWTH_UNTIL)
+			* RebirthConfig.LATE_MONEY_GROWTH ^ math.max(0, level - RebirthConfig.MONEY_GROWTH_UNTIL),
 	}
 end
 

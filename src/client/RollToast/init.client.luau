@@ -803,20 +803,32 @@ task.spawn(function()
 	portraitsReady = true
 end)
 
--- Loads every character's meshes, then builds a rig per frame, so neither an empty figure nor a hitch reaches a roll.
--- A character with a portrait gets no rig unless its image fails to load (play builds one then).
+-- Loads the meshes of every character without a portrait, then builds a rig per frame, so neither an empty figure nor a
+-- hitch reaches a roll. A character with a portrait gets no rig unless its image fails to load (play builds one then);
+-- its meshes are left to First/LoadingScreen's staged loads.
 task.spawn(function()
 	local root = ReplicatedStorage:WaitForChild("CharacterModels")
 	while not root:GetAttribute("Ready") do
 		root:GetAttributeChangedSignal("Ready"):Wait()
 	end
-	pcall(ContentProvider.PreloadAsync, ContentProvider, { root })
-	modelsReady = true
+	local bare = {}
 	for _, spec in CharacterCatalog.Rollable() do
 		if not Components.PortraitImage(spec) then
-			rigFor(spec.Id)
-			task.wait()
+			table.insert(bare, spec)
 		end
+	end
+	local folders = {}
+	for _, spec in bare do
+		local folder = root:FindFirstChild(spec.Model or tostring(spec.Id))
+		if folder then
+			table.insert(folders, folder)
+		end
+	end
+	pcall(ContentProvider.PreloadAsync, ContentProvider, folders)
+	modelsReady = true
+	for _, spec in bare do
+		rigFor(spec.Id)
+		task.wait()
 	end
 end)
 

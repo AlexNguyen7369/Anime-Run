@@ -638,8 +638,10 @@ local function layoutLuck(g)
 	place(luckBanner.Title, g.at(132, 12), UDim2.new(0.45, -P(144), 0, P(62)))
 	place(luckBanner.Note, g.at(132, 86), UDim2.new(0.45, -P(144), 0, P(22)))
 	place(tiers, UDim2.new(0.45, 0, 0, P(12)), UDim2.new(0.55, -P(24), 0, P(96)))
-	tiers.Layout.CellPadding = UDim2.fromOffset(P(12), 0)
-	tiers.Layout.CellSize = UDim2.new(1 / 3, -P(8), 1, 0)
+	local pad = P(12)
+	tiers.Layout.CellPadding = UDim2.fromOffset(pad, 0)
+	-- each cell gives back 2/3 of a pad, rounded up, so 3 tiers always fit one row (P rounds; -P(8) wrapped at 4:3 and phone)
+	tiers.Layout.CellSize = UDim2.new(1 / 3, -math.ceil(pad * 2 / 3), 1, 0)
 	for _, tier in tiers:GetChildren() do
 		if tier:IsA("Frame") then
 			place(tier:FindFirstChild("Name"), UDim2.new(), UDim2.new(1, 0, 0, P(34)))

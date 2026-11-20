@@ -227,7 +227,21 @@ function SidekickService.Sell(player, entry)
 	return true, spec.SellGems
 end
 
+-- (rarity, on), or one map { [rarity] = on } so the Summon page's Save is one request under the remote cooldown.
 function SidekickService.SetAutoSell(player, rarity, on)
+	if type(rarity) == "table" then
+		for key, value in rarity do
+			if type(key) ~= "string" or not RARITIES[key] or type(value) ~= "boolean" then
+				return false, "Invalid setting"
+			end
+		end
+		local saved = ensure(player).SidekickAutoSell
+		for key, value in rarity do
+			saved[key] = value or nil
+		end
+		publish(player)
+		return true
+	end
 	if type(rarity) ~= "string" or not RARITIES[rarity] or type(on) ~= "boolean" then
 		return false, "Invalid setting"
 	end

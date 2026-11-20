@@ -6,9 +6,10 @@ local BagConfig = {}
 BagConfig.BASE = 80
 BagConfig.PASS_BONUS = 100
 BagConfig.MAX_SELL_CHANCE = 1e18
+BagConfig.NEW_SAVE_CHANCE = 1 -- a brand new save's auto sell N: Commons, 1 in 1 (owner 2026-11-20, design doc 4.41)
 
 BagConfig.SELL_PRICE = {
-	Common = 5,
+	Common = 2, -- audit 2026-11-20 (was 5)
 	Uncommon = 10,
 	Rare = 25,
 	Epic = 100,

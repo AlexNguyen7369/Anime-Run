@@ -15,6 +15,21 @@ end
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
+-- Remotes whose services start after the track build: made now, so a joining client's WaitForChild never waits on
+-- the build. Each service reuses its remote by name.
+do
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes") or Instance.new("Folder")
+	remotes.Name = "Remotes"
+	remotes.Parent = ReplicatedStorage
+	for _, name in { "Duel", "BossHits", "AdminMessage", "BossEventChat", "MarketOpen" } do
+		if not remotes:FindFirstChild(name) then
+			local remote = Instance.new("RemoteEvent")
+			remote.Name = name
+			remote.Parent = remotes
+		end
+	end
+end
+
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BiomeDressing = require(Shared.BiomeDressing)
 local TrackBuilder = require(Shared.TrackBuilder)

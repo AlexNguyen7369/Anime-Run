@@ -3,14 +3,14 @@
 -- "Close / return transition": page, then a full-screen wash of sakura petals, then the next view). A soft pink wash
 -- fills the screen with large petals drifting through it while the page opens or closes behind, then clears. One reused
 -- ScreenGui; never takes input. Reduced motion: a short pink fade, no petals. A call while one runs is ignored.
--- About 0.65 s in all (proposed).
+-- About 0.57 s in all (proposed); the wash covers the screen at 0.15 s (audit 2026-11-20, was 0.22).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local D = UiTheme.Dojo
-local IN, HOLD, OUT = 0.22, 0.12, 0.3
+local IN, HOLD, OUT = 0.15, 0.12, 0.3
 local FADE = 0.15
 local PETALS = 22
 local WASH_TOP = Color3.fromRGB(255, 196, 214)

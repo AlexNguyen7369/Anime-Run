@@ -66,7 +66,7 @@ do
 end
 
 -- The Robux-exclusive runner (design doc 4.35): granted by its gamepass, never rolled, not in the Index. Rarity sets
--- the look and stamina (proposed).
+-- the look; Stamina overrides its stamina (proposed).
 CharacterCatalog.EXCLUSIVE_ID = "punch_hero"
 PICKS[CharacterCatalog.EXCLUSIVE_ID] = {
 	Id = CharacterCatalog.EXCLUSIVE_ID,
@@ -75,6 +75,7 @@ PICKS[CharacterCatalog.EXCLUSIVE_ID] = {
 	Chance = nil,
 	SpeedMulti = 1,
 	BaseCruise = 350, -- studs/s (owner 2026-11-04)
+	Stamina = 6, -- seconds (proposed, audit 2026-11-20; was the Mythic 27): wins Tracks 1-2 at once, later ones need progress
 	Order = 0,
 	Category = "Balanced",
 	Model = "punch_hero",

@@ -12,8 +12,10 @@ local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
 local SummonAltarFx = require(script.Parent:WaitForChild("SummonAltarFx"))
 local SummonPanels = require(script.Parent:WaitForChild("SummonPanels"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
-local SummonShrineTheme = require(script.Parent:WaitForChild("SummonShrineTheme"))
+local SummonScroll = require(script.Parent:WaitForChild("SummonScroll"))
+local TouchTarget = require(script.Parent:WaitForChild("TouchTarget"))
 local SummonHybrid = require(script.Parent:WaitForChild("SummonHybrid"))
 local assets = ReplicatedStorage:WaitForChild("SummonScreenAssets")
 local LegendaryAuraStyle = require(assets:WaitForChild("LegendaryAuraStyle"))
@@ -21,16 +23,26 @@ local featuredRows = {}
 local busy, revealing = false, false
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
-local gui = player:WaitForChild("PlayerGui"):WaitForChild("RacerSidekicks")
-local canvas = gui:WaitForChild("Canvas")
-local savedStage = assets:WaitForChild("SummoningStage")
+-- The authored page and stage: a missing part warns instead of waiting forever with no message.
+local function need(parent, name)
+	local child = parent and parent:WaitForChild(name, 30)
+	if not child then
+		warn("SidekickUi: " .. (parent and parent:GetFullName() or "?") .. "." .. name .. " is missing")
+	end
+	return child
+end
+local gui = need(player:WaitForChild("PlayerGui"), "RacerSidekicks")
+local canvas = need(gui, "Canvas")
+local savedStage = need(assets, "SummoningStage")
+if not (canvas and savedStage) then
+	return
+end
 for i = 1, 3 do
-	local unit = savedStage:WaitForChild("Units"):WaitForChild("Unit" .. i)
-	unit:WaitForChild("Root")
-	unit:WaitForChild("ImportedAura"):WaitForChild("RightArm")
+	local unit = need(need(savedStage, "Units"), "Unit" .. i)
+	need(unit, "Root")
+	need(need(unit, "ImportedAura"), "RightArm")
 end
 local template = savedStage:Clone()
 template.Parent = nil
@@ -69,6 +81,7 @@ local HUD_NAMES = {
 	EnemyShowdown = true,
 }
 local camera = workspace.CurrentCamera
+local page -- SummonScroll, the R3 hanging-scroll layout (design doc 4.45); made below
 local function fit()
 	local view = camera.ViewportSize
 	canvas.ResponsiveScale.Scale = math.min(view.X / 1600, view.Y / 900)
@@ -85,11 +98,15 @@ local function fit()
 			elseif x >= 1060 then
 				x += width - 1600
 			end
-			if y >= 650 then
+			if y >= 650 and not obj:GetAttribute("ScrollItem") then -- the scroll's content stays on the scroll
 				y += height - 900
 			end
 			obj.Position = UDim2.fromOffset(x, y)
+			obj:SetAttribute("DojoHome", obj.Position)
 		end
+	end
+	if page then
+		page.Scroll.SetHome(page.Scroll.Root.Position)
 	end
 	local aspect = view.X / math.max(view.Y, 1)
 	local distance = 18 * math.max(1, (16 / 9) / aspect)
@@ -112,11 +129,6 @@ local function toast(text)
 			canvas.Toast.Visible = false
 		end
 	end)
-end
-local function dialog(title, text)
-	canvas.Modal.Panel.Heading.Text = title
-	canvas.Modal.Panel.DetailsScroll.Body.Text = text
-	canvas.Modal.Visible = true
 end
 -- Pose the independent mesh groups together, including blade and emissive armor pieces.
 local function poseFeatured(model, id)
@@ -303,6 +315,23 @@ local function freezePlayer(freeze)
 		end
 	end
 end
+-- The world's BillboardGuis, kept up to date from one scan at start, so opening never walks the whole workspace.
+local worldLabels = setmetatable({}, { __mode = "k" })
+task.defer(function()
+	workspace.DescendantAdded:Connect(function(label)
+		if label:IsA("BillboardGui") then
+			worldLabels[label] = true
+		end
+	end)
+	workspace.DescendantRemoving:Connect(function(label)
+		worldLabels[label] = nil
+	end)
+	for _, label in workspace:GetDescendants() do
+		if label:IsA("BillboardGui") then
+			worldLabels[label] = true
+		end
+	end
+end)
 local function open()
 	if opened then
 		return
@@ -310,8 +339,8 @@ local function open()
 	previousCamera =
 		{ kind = camera.CameraType, cf = camera.CFrame, fov = camera.FieldOfView, subject = camera.CameraSubject }
 	opened = true
-	for _, label in workspace:GetDescendants() do
-		if label:IsA("BillboardGui") then
+	for label in worldLabels do
+		if label.Parent and not (stage and label:IsDescendantOf(stage)) then
 			hiddenWorldLabels[label] = label.Enabled
 			label.Enabled = false
 		end
@@ -411,7 +440,7 @@ local function close()
 		camera.CameraSubject = previousCamera.subject
 	end
 end
-SummonShrineTheme.Apply(gui)
+page = SummonScroll.Apply(canvas)
 for _, button in gui:GetDescendants() do
 	if button:IsA("TextButton") then
 		local caption = button:FindFirstChild("Caption")
@@ -419,125 +448,26 @@ for _, button in gui:GetDescendants() do
 			button:GetPropertyChangedSignal("Text"):Connect(function()
 				caption.Text = button.Text:gsub("%s*" .. utf8.char(0x25C6), "")
 			end)
-			button:GetPropertyChangedSignal("TextColor3"):Connect(function()
-				caption.TextColor3 = button.TextColor3
-			end)
-		end
-		if button:GetAttribute("PopButton") then
-			local scale = button.HoverScale
-			local glow = button.HoverGlow.Light
-			local hovering = false
-			local basePosition = UDim2.fromOffset(
-				button:GetAttribute("DesignPosition").X + canvas.Size.X.Offset - 1600,
-				button:GetAttribute("DesignPosition").Y + canvas.Size.Y.Offset - 900
-			)
-			local scaleTween, positionTween, glowTween
-			local function animate(size, lift, light, pressed)
-				if scaleTween then
-					scaleTween:Cancel()
-				end
-				if positionTween then
-					positionTween:Cancel()
-				end
-				if glowTween then
-					glowTween:Cancel()
-				end
-				local info = TweenInfo.new(
-					pressed and 0.08 or 0.16,
-					pressed and Enum.EasingStyle.Quad or Enum.EasingStyle.Back,
-					Enum.EasingDirection.Out
-				)
-				scaleTween = TweenService:Create(scale, info, { Scale = size })
-				positionTween =
-					TweenService:Create(button, info, { Position = basePosition + UDim2.fromOffset(0, lift) })
-				glowTween = TweenService:Create(glow, TweenInfo.new(0.12), { Transparency = light })
-				scaleTween:Play()
-				positionTween:Play()
-				glowTween:Play()
-				button.ZIndex = hovering and 6 or 3
-			end
-			button.MouseEnter:Connect(function()
-				hovering = true
-				basePosition = UDim2.fromOffset(
-					button:GetAttribute("DesignPosition").X + canvas.Size.X.Offset - 1600,
-					button:GetAttribute("DesignPosition").Y + canvas.Size.Y.Offset - 900
-				)
-				animate(1.055, -4, 0.45, false)
-			end)
-			button.MouseLeave:Connect(function()
-				hovering = false
-				animate(1, 0, 1, false)
-			end)
-			button.MouseButton1Down:Connect(function()
-				animate(0.97, 2, 0.65, true)
-			end)
-			button.MouseButton1Up:Connect(function()
-				animate(hovering and 1.055 or 1, hovering and -4 or 0, hovering and 0.45 or 1, false)
-			end)
-			button.SelectionGained:Connect(function()
-				hovering = true
-				basePosition = UDim2.fromOffset(
-					button:GetAttribute("DesignPosition").X + canvas.Size.X.Offset - 1600,
-					button:GetAttribute("DesignPosition").Y + canvas.Size.Y.Offset - 900
-				)
-				animate(1.055, -4, 0.45, false)
-			end)
-			button.SelectionLost:Connect(function()
-				hovering = false
-				animate(1, 0, 1, false)
-			end)
-		else
-			local original = button.BackgroundColor3
-			button.MouseEnter:Connect(function()
-				TweenService
-					:Create(
-						button,
-						TweenInfo.new(0.12),
-						{ BackgroundColor3 = original:Lerp(Color3.new(1, 1, 1), 0.17) }
-					)
-					:Play()
-			end)
-			button.MouseLeave:Connect(function()
-				TweenService:Create(button, TweenInfo.new(0.18), { BackgroundColor3 = original }):Play()
-			end)
 		end
 	end
 end
-
-require(assets.SummonFooter).Bind(canvas)
-require(assets.SummonHover).Bind(gui)
-local potionCards = {}
+-- Hanging tags sway a little on hover (R1 tags, design doc 4.45).
 for i = 1, 2 do
 	local offer = canvas["Offer" .. i]
-	local record = { card = offer, index = i, hover = false, tweens = {} }
-	table.insert(potionCards, record)
-	local function hover(on)
-		record.hover = on
-		for _, tw in record.tweens do
-			tw:Cancel()
-		end
-		local t = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-		record.tweens = {
-			TweenService:Create(offer.CardScale, t, { Scale = on and 1.07 or 1 }),
-			TweenService:Create(offer.Glow.Light, TweenInfo.new(0.15), { Transparency = on and 0.5 or 1 }),
-			TweenService:Create(offer.PotionIcon, t, { Rotation = on and (i == 1 and -8 or 8) or 0 }),
-		}
-		for _, tw in record.tweens do
-			tw:Play()
-		end
-		offer.ZIndex = on and 6 or 3
+	local function sway(on)
+		UiMotion.Create(offer, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Rotation = on and -3 or 0 }):Play()
 	end
 	offer.MouseEnter:Connect(function()
-		hover(true)
+		sway(true)
 	end)
 	offer.MouseLeave:Connect(function()
-		hover(false)
+		sway(false)
 	end)
 	offer.Buy.SelectionGained:Connect(function()
-		hover(true)
+		sway(true)
 	end)
 	offer.Buy.SelectionLost:Connect(function()
-		hover(false)
+		sway(false)
 	end)
 end
 -- Bind the imported presentation to existing Anime Run services.
@@ -586,36 +516,6 @@ local rowLayout = Instance.new("UIListLayout")
 rowLayout.Padding = UDim.new(0, 12)
 rowLayout.Parent = modalRows
 
-local baseDialog = dialog
-dialog = function(title, text)
-	for _, child in modalRows:GetChildren() do
-		if child:IsA("GuiObject") then
-			child:Destroy()
-		end
-	end
-	modalRows.Visible = false
-	modalBody.Visible = true
-	scroll.CanvasPosition = Vector2.zero
-	baseDialog(title, text)
-end
-local function actionRow(text, callback)
-	local button = canvas.AutoSell:Clone()
-	button.Name = "Option"
-	button:SetAttribute("PopButton", false)
-	button:SetAttribute("DesignPosition", nil)
-	button.AnchorPoint = Vector2.zero
-	button.Position = UDim2.new()
-	button.Size = UDim2.new(1, 0, 0, 48)
-	button.Visible = true
-	button.ZIndex = modalRows.ZIndex + 1
-	button.Text = text
-	button.Caption.Text = text
-	button.Caption.Size = UDim2.fromScale(1, 1)
-	button.Parent = modalRows
-	button.Activated:Connect(callback)
-	return button
-end
-
 local rotation = {}
 local panels -- SummonPanels, the reference sheet's panels (design doc 4.45); made below
 local function refresh()
@@ -641,7 +541,25 @@ local function refresh()
 		or string.format("Sidekick summoning unlocks at rebirth %d", Config.UnlockRebirth)
 	local seconds =
 		math.max(0, math.floor((rotation.EndsAt or workspace:GetServerTimeNow()) - workspace:GetServerTimeNow()))
-	canvas.Timer.Text = string.format("⌛  %02d:%02d", seconds // 60, seconds % 60)
+	canvas.Timer.Text = string.format("%02d:%02d", seconds // 60, seconds % 60)
+	local sums = {}
+	for id, odds in rotation.Odds or {} do
+		local row = Config.Get(id)
+		if row and (table.find(rotation.Ids or {}, id) or id == rotation.SecretId) then
+			sums[row.Rarity] = (sums[row.Rarity] or 0) + odds
+		end
+	end
+	page.Refresh({
+		Featured = featuredRows[2],
+		FeaturedOdds = featuredRows[2] and (rotation.Odds or {})[featuredRows[2].Id],
+		Sums = sums,
+		Unlocked = unlocked,
+		UnlockRebirth = Config.UnlockRebirth,
+		OnceCost = player:GetAttribute("SidekickCost1") or Config.SummonCost,
+		ManyCost = player:GetAttribute("SidekickCost10") or Config.TenCost,
+		Auto = auto,
+		Busy = busy, -- a summon request is on its way: the tiles lock and the tagline says so
+	})
 end
 local function renderRotation()
 	rotation = SidekickView.Rotation()
@@ -656,6 +574,10 @@ local function renderRotation()
 			end
 		end
 	end
+	-- Presentation order only (4.45 "Summon 1:1 reference": Beroo left, Ryuuk right); the rotation itself is untouched.
+	table.sort(legendaries, function(a, b)
+		return a.Name < b.Name
+	end)
 	featuredRows = { legendaries[1], mythics[1], legendaries[2] }
 	local art = featuredRows[2] and SidekickArt[featuredRows[2].Id]
 	canvas.Banner1.UnitArtwork.Image = art and art.Portrait or ""
@@ -672,19 +594,25 @@ end
 local function setAuto(on)
 	auto = on
 	canvas.Auto.Text = on and "Stop Auto" or "Auto"
+	refresh()
 end
+local closedMidRequest = false -- the player closed the page while a summon was on its way: it stays closed after
 local function requestSummon(count, free)
 	if busy or revealing or not opened or canvas.Modal.Visible or (panels and panels.IsOpen()) then
 		return
 	end
 	if (player:GetAttribute("RebirthLevel") or 0) < Config.UnlockRebirth then
 		setAuto(false)
+		UiFeedback.Play("Denied")
 		toast(string.format("Unlocks at rebirth %d", Config.UnlockRebirth))
 		return
 	end
 	busy = true
+	closedMidRequest = false
 	gui:SetAttribute("Summoning", true) -- SidekickTutorial waits on it from the request to the reveal's end
 	lastAuto = os.clock()
+	UiFeedback.Play("Toggle")
+	refresh()
 	local ok, done, results = pcall(function()
 		if free then
 			return remotes:WaitForChild("SidekickFreeSummon"):InvokeServer()
@@ -695,6 +623,7 @@ local function requestSummon(count, free)
 		busy = false
 		gui:SetAttribute("Summoning", nil)
 		setAuto(false)
+		UiFeedback.Play("Denied")
 		toast(ok and tostring(results or "Summon unavailable") or "Connection error. Please try again.")
 		return
 	end
@@ -720,10 +649,11 @@ local function requestSummon(count, free)
 	end
 	close()
 	gui.Enabled = false
-	SidekickReveal.Play(results, function()
+	local function revealed()
 		revealing, busy = false, false
 		gui.Enabled = true
-		if not PanelSwitch.AnyOpen() then
+		lastAuto = os.clock() -- the page shows a moment before the next Auto summon, so Stop can be pressed
+		if not PanelSwitch.AnyOpen() and not closedMidRequest then
 			canvas:SetAttribute("SkipTransition", true) -- back from a reveal: no page transition (design doc 4.45)
 			PanelSwitch.Action("Sidekicks")
 			canvas:SetAttribute("SkipTransition", nil)
@@ -735,34 +665,22 @@ local function requestSummon(count, free)
 		end
 		gui:SetAttribute("Summoning", nil)
 		refresh()
-	end)
+	end
+	-- Auto runs on without a click: its reveal closes itself (owner approved the audit fixes 2026-11-20).
+	local played, problem = pcall(SidekickReveal.Play, results, revealed, nil, continueAuto)
+	if not played then
+		warn("SidekickUi: reveal failed: " .. tostring(problem))
+		local left = player.PlayerGui:FindFirstChild("RacerSidekickReveal")
+		if left then
+			left:Destroy()
+		end
+		continueAuto = false
+		revealed()
+		toast("Summoned! Your Sidekicks are in your Bag.")
+	end
 	refresh()
 end
 
-local showAutoSell
-showAutoSell = function()
-	dialog("AUTO SELL", "")
-	modalBody.Visible = false
-	modalRows.Visible = true
-	for _, rarity in { "Common", "Rare", "Legendary", "Mythic", "Secret" } do
-		local on = SidekickView.AutoSell(player)[rarity] == true
-		actionRow(rarity .. (on and "  •  ON" or "  •  OFF"), function()
-			if busy then
-				return
-			end
-			busy = true
-			local ok, done = pcall(function()
-				return remotes:WaitForChild("SidekickAutoSell"):InvokeServer(rarity, not on)
-			end)
-			busy = false
-			if ok and done == true then
-				task.defer(showAutoSell)
-			else
-				toast("Could not update Auto Sell")
-			end
-		end)
-	end
-end
 local function buyPack(pack)
 	if busy then
 		return
@@ -790,6 +708,9 @@ panels = SummonPanels.new(canvas, {
 	Remotes = remotes,
 	-- Equip from the result: the new Sidekick goes on the Team's first runner (SidekickEquip; the server checks it).
 	Equip = function(id)
+		if busy then
+			return
+		end
 		local entry
 		for _, item in SidekickView.Bag(player) do
 			if item.Id == id then
@@ -797,9 +718,12 @@ panels = SummonPanels.new(canvas, {
 			end
 		end
 		local leader = string.split(player:GetAttribute("Team") or "", ",")[1]
+		busy = true
 		local ok, done, message = pcall(function()
 			return remotes:WaitForChild("SidekickEquip"):InvokeServer(leader, entry)
 		end)
+		busy = false
+		UiFeedback.Play(ok and done and "Equip" or "Denied")
 		toast(ok and done and "Equipped on your first runner" or tostring(ok and message or "Connection error"))
 	end,
 })
@@ -807,7 +731,7 @@ for i = 1, 2 do
 	local offer = canvas["Offer" .. i]
 	local pack = Monetization.GemPacks[i]
 	offer.Title.Text = pack.Name .. " Gems"
-	offer.Luck.Text = "+" .. HudFormat.Short(pack.Gems) .. " Gems"
+	offer.Luck.Text = "+" .. string.upper(HudFormat.Short(pack.Gems)) .. " Gems" -- "+1K Gems" as the reference
 	offer.Price.Text = "R$" .. tostring(pack.RobuxPrice)
 	offer.PotionIcon.Image = "rbxassetid://136720019410378"
 	offer.Buy.Activated:Connect(function()
@@ -827,20 +751,40 @@ canvas.Banner1.Caption.Text = "Featured"
 canvas.Banner1.Activated:Connect(function()
 	panels.Featured()
 end)
-canvas.Close.Activated:Connect(function()
-	PanelSwitch.Close("Sidekicks")
-end)
-canvas.Chances.Activated:Connect(function()
-	panels.Chances()
-end)
-canvas.Info.Activated:Connect(function()
-	panels.Info()
-end)
-canvas.AutoSell.Activated:Connect(function()
-	panels.AutoSell()
-end)
-canvas.AutoFuse.Activated:Connect(function()
-	requestSummon(nil, true)
+-- The small controls also get a 44 px tap area on phones (audit 2026-11-20, U1); the page's look stays as drawn.
+for name, fn in
+	{
+		Close = function()
+			PanelSwitch.Close("Sidekicks")
+		end,
+		Chances = function()
+			panels.Chances()
+		end,
+		Info = function()
+			panels.Info()
+		end,
+		AutoSell = function()
+			panels.AutoSell()
+		end,
+		AutoFuse = function()
+			requestSummon(nil, true)
+		end,
+	}
+do
+	canvas[name].Activated:Connect(fn)
+	TouchTarget.Add(canvas[name], fn)
+end
+-- Back (gamepad B, Escape): an open panel or dialog closes first, then the page (U6, audit 2026-11-20).
+PanelSwitch.SetBack("Sidekicks", function()
+	if panels.IsOpen() then
+		panels.Hide()
+		return true
+	end
+	if canvas.Modal.Visible then
+		canvas.Modal.Visible = false
+		return true
+	end
+	return false
 end)
 canvas.Once.Activated:Connect(function()
 	requestSummon(1, false)
@@ -865,7 +809,11 @@ canvas:GetPropertyChangedSignal("Visible"):Connect(function()
 	if canvas.Visible then
 		renderRotation()
 		open()
+		page.Open()
 	else
+		if busy and not revealing then
+			closedMidRequest = true
+		end
 		panels.Hide()
 		close()
 	end
@@ -906,7 +854,15 @@ task.spawn(function()
 		end
 	end
 end)
-SummonShrineTheme.Apply(gui)
+-- Any close runs under the Sakura wash: the scroll rolls up as the wash starts (design doc 4.45).
+task.spawn(function()
+	local wash = player:WaitForChild("PlayerGui"):WaitForChild("UiTransition")
+	wash:GetAttributeChangedSignal("Playing"):Connect(function()
+		if wash:GetAttribute("Playing") and opened and canvas.Visible then
+			page.Close()
+		end
+	end)
+end)
 renderRotation()
 fit()
 camera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
@@ -949,12 +905,6 @@ RunService:BindToRenderStep("SummonDisplay", Enum.RenderPriority.Camera.Value + 
 
 	camera.Focus = CFrame.new(0, 10000, 0)
 	elapsed += math.min(dt, 0.1)
-	for _, record in potionCards do
-		local offer = record.card
-		offer.Border.Prism.Rotation = (elapsed * 38 + record.index * 90) % 360
-		offer.Gradient.Rotation = 35 + math.sin(elapsed * 0.65 + record.index) * 22
-		offer.Sheen.Sweep.Offset = Vector2.new(((elapsed * 0.25 + record.index * 0.5) % 1) * 2.6 - 1.3, 0)
-	end
 	for _, record in motion do
 		local phase = UiMotion.Reduced() and record.index * 1.5 or elapsed * 0.75 + record.index * 1.5
 		local cf = record.base

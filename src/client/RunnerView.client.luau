@@ -115,8 +115,13 @@ local function rebuild(view)
 	local lighter = player:GetAttribute("BossEvent") == true
 	view.Lighter = lighter
 	for _, d in copy:GetDescendants() do
-		if d:IsA("BasePart") or d:IsA("Decal") then
+		if d:IsA("BasePart") then
 			d.LocalTransparencyModifier = 0
+			d.Anchored = true -- RunnerVisual poses each part: drop the server rig's single-assembly welds
+		elseif d:IsA("Decal") then
+			d.LocalTransparencyModifier = 0
+		elseif d:IsA("WeldConstraint") and d.Name == "RigWeld" then -- RIG_WELD in Server/RunnerService
+			d:Destroy()
 		elseif isEffect(d) then
 			d.Enabled = true -- RunnerEffects never adds a disabled effect; hide() turned them off on the rig
 			if lighter then
@@ -209,8 +214,8 @@ for _, rig in CollectionService:GetTagged(SERVER_TAG) do
 	task.spawn(add, rig)
 end
 
--- Puts the drawn copy where the run is at time `now` (os.clock). Called from the render step (before the camera) and
--- again before the physics step, so every frame moves it even when this client renders less often than it steps.
+-- Puts the drawn copy where the run is at time `now` (os.clock). Called from the render step (before the camera) and,
+-- for the local runner the camera follows, again before the physics step.
 local function step(view, now)
 	local rig, copy = view.Rig, view.Copy
 	if not rig.Parent then
@@ -288,9 +293,22 @@ local function step(view, now)
 	end
 end
 
-local function stepAll()
+-- Every runner each render step; one farther than FAR_STUDS from the camera at FAR_RATE only (its dt adds up, so it
+-- keeps its place). `localOnly` steps just this player's runner (the PreSimulation pass that carries the camera).
+local FAR_STUDS, FAR_RATE = math.huge, 15 -- off: the 15 Hz far pose made far runners pop (ui_run_visual pos_no_pop); set a distance to re-enable
+local function stepAll(localOnly)
 	local now = os.clock()
+	local camera = Workspace.CurrentCamera
+	local eye = camera and camera.CFrame.Position
 	for _, view in views do
+		local mine = view.Rig:GetAttribute("Owner") == player.UserId
+		if localOnly and not mine then
+			continue
+		end
+		local root = not mine and view.Copy and view.Copy.PrimaryPart
+		if root and eye and now - (view.At or 0) < 1 / FAR_RATE and (root.Position - eye).Magnitude > FAR_STUDS then
+			continue
+		end
 		step(view, now)
 	end
 end
@@ -463,7 +481,7 @@ end)
 
 -- Between render steps the runner keeps moving; the camera is carried along by the same amount
 RunService.PreSimulation:Connect(function()
-	stepAll()
+	stepAll(true)
 	local camera = Workspace.CurrentCamera
 	if followed and camera and camera.CameraSubject == followed.Part and followed.Part.Parent then
 		local delta = followed.Part.Position - followed.Position
@@ -476,12 +494,16 @@ end)
 -- The event's locked distance (BOSS_EVENT_SPEC "Run rules"), after the default camera: ARENA_PITCH looks up from a low runner, so the
 -- default camera would pop in front of the deck, to about 10 studs. Same view line, moved up to stay on top of the deck.
 local ABOVE_DECK = 6 -- studs, placeholder (2 until 2026-11-10: at the steeper pitch the deck filled the lower frame)
+local DECK_NEAR = 100 -- studs under the deck's top at most for the focus to count as on the deck (dais 50 under), placeholder
 RunService:BindToRenderStep("BossEventCamera", Enum.RenderPriority.Camera.Value + 1, function()
 	local camera = Workspace.CurrentCamera
 	if not camera or camera.CameraType ~= Enum.CameraType.Custom or player:GetAttribute("BossEvent") ~= true then
 		return
 	end
 	local _, _, zoom, arena, above = arenaView()
+	if camera.Focus.Position.Y < arena.Y - DECK_NEAR then
+		return -- not on the deck yet (BossEvent is set before the teleport): lifting here would throw the eye 1,200 studs up
+	end
 	local eye = camera.Focus.Position - camera.CFrame.LookVector * zoom
 	camera.CFrame = camera.CFrame.Rotation + Vector3.new(eye.X, math.max(eye.Y, arena.Y + (above or ABOVE_DECK)), eye.Z)
 end)

@@ -27,6 +27,15 @@ local UiDuel = require(script.Parent:WaitForChild("UiDuel"))
 local UiBoostsRebirth = require(script.Parent:WaitForChild("UiBoostsRebirth"))
 local UiShopMarket = require(script.Parent:WaitForChild("UiShopMarket"))
 local FX = {} -- frame-model helpers in one table: UiScenarios is near Luau's 200 local limit
+-- UiSpec.Theme.FontFamilies: a TextLabel's FontFace family holds one of the accepted names
+function FX.themeFont(family)
+	for _, name in UiSpec.Theme.FontFamilies do
+		if string.find(family, name, 1, true) then
+			return true
+		end
+	end
+	return false
+end
 FX.AnimeSkin = require(script.Parent.Parent:WaitForChild("AnimeSkin"))
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
@@ -110,6 +119,8 @@ UiScenarios.Names = {
 	"ui_reduced_motion",
 	-- docs/HUD_LAYOUT_SPEC.md section 10 (owner 2026-10-27): UiMotion presets land at once while reduced
 	"ui_motion_reduced",
+	-- design doc 4.20 (commit c80e4de): REDUCED EFFECTS starts on for low graphics levels and small touch-only screens
+	"ui_reduce_effects_default",
 	-- design doc 4.33, docs/UI_FEEDBACK_SPEC.md: cue sounds, the sound ledger, Slam / Impact / Burst / Fly / Fill, UiFx
 	"ui_feedback",
 	-- retired: ui_speed_float (no Speed stat, design doc 4.13, owner 2026-11-01)
@@ -207,6 +218,8 @@ UiScenarios.Names = {
 	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
+	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
+	"ui_remote_guards",
 	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened
 	"ui_roll_emphasized",
 }
@@ -301,13 +314,24 @@ UiScenarios.Needs = {
 	ui_camera_follows_runner = { "auto_racing" },
 	ui_toast = { "auto_racing", "auto_roll_on" },
 	ui_rolls = { "auto_roll_on" },
-	ui_roll_anim = { "auto_roll_on" },
+	ui_roll_anim = { "auto_roll_on", "turbo_next" }, -- section 2 judges a turbo roll on the compact roll
 	ui_billboards = { "auto_racing" }, -- the main run judges the racing part (win pads, NPC label)
 	ui_roll_emphasized = { "auto_roll_on" },
-	ui_sidekicks = { "sidekick_states" },
+	-- hud_unlock (49bc653): Summon, the Bosses button and the Bag's Sidekicks / Relics tabs show from rebirth 1 (c80e4de,
+	-- design doc 4.36); these scenarios judge them, and the saved test player may be below it.
+	ui_sidekicks = { "hud_unlock", "sidekick_states" },
+	ui_entry_points = { "hud_unlock" },
+	ui_backpack_characters = { "hud_unlock" },
+	ui_team = { "hud_unlock" },
+	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
 	ui_bag_full = { "auto_roll_on" },
+	-- The minibar row with three members (OpenTeam's padding is judged against its drawn circles; team_full, FillTeam)
+	ui_hitboxes = { "team_full" },
 }
+-- Put back right after the scenario that asked (RestoreSetups runs only at the end of a full run), so later scenarios
+-- see the saved RebirthLevel again.
+FX.RESTORE_AFTER = { hud_unlock = true, team_full = true }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
 UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
@@ -882,6 +906,71 @@ function FX.prop(obj, name, ctx)
 	return value
 end
 
+-- UiResponsive.RuntimeLayout's input for a panel at ctx.vp (ctx = nil: the live window, from the live properties).
+-- Racer panels: the resting UIScale fitPanels gives them there, in its 0.01 steps (BaseScale); the Daily modal: its k.
+function FX.runtimeInput(obj, path, ctx)
+	local vp = ctx and ctx.vp or viewport()
+	local input = { Small = UiResponsive.VariantOf(vp) == "Phone", Scale = 1 }
+	if UiResponsive.IsRacerPanel(path) then
+		local scale = obj:GetAttribute("BaseScale")
+		if ctx then
+			simRect(obj, ctx)
+			scale = ctx.scaleOverride and ctx.scaleOverride[obj]
+			scale = scale and math.floor(scale * 100 + 0.5) / 100
+		end
+		if type(scale) ~= "number" or scale <= 0 then
+			return nil
+		end
+		input.Scale = scale
+	elseif UiSpec.BandPanels[path] then
+		local w, h = UiResponsive.FrameSize(vp)
+		local pw, ph = obj.Size.X.Offset, obj.Size.Y.Offset
+		if ctx then
+			local r = simRect(obj, ctx)
+			pw, ph = r.w, r.h
+		end
+		input.Scale = math.min(pw / w, ph / h)
+		if input.Scale <= 0 then
+			return nil
+		end
+	end
+	return input
+end
+
+-- Where the live properties differ from UiResponsive.RuntimeLayout at the live window: the port is stale, so the
+-- other variant's rects built from it cannot be trusted. { "path Property live x model y", ... }
+function FX.runtimeDrift(obj)
+	local path = pathOf(obj)
+	local input = FX.runtimeInput(obj, path, nil)
+	local layout = input and UiResponsive.RuntimeLayout(obj, path, input)
+	local bad = {}
+	local function same(a, b)
+		if typeof(a) == "UDim2" and typeof(b) == "UDim2" then
+			return math.abs(a.X.Scale - b.X.Scale) < 1e-3
+				and math.abs(a.Y.Scale - b.Y.Scale) < 1e-3
+				and math.abs(a.X.Offset - b.X.Offset) <= 1
+				and math.abs(a.Y.Offset - b.Y.Offset) <= 1
+		elseif typeof(a) == "UDim" and typeof(b) == "UDim" then
+			return math.abs(a.Scale - b.Scale) < 1e-3 and math.abs(a.Offset - b.Offset) <= 1
+		elseif typeof(a) == "Vector2" and typeof(b) == "Vector2" then
+			return (a - b).Magnitude < 1e-3
+		end
+		return a == b
+	end
+	for node, props in layout or {} do
+		for name, want in props do
+			if not same(node[name], want) then
+				table.insert(
+					bad,
+					("%s %s live %s model %s"):format(pathOf(node), name, tostring(node[name]), tostring(want))
+				)
+			end
+		end
+	end
+	table.sort(bad)
+	return bad
+end
+
 -- True when obj is an Index-frame panel measured at ctx.vp (measured on first use, once per ctx).
 function FX.measuredFrame(obj, ctx)
 	ctx.measuredPanels = ctx.measuredPanels or {}
@@ -890,6 +979,20 @@ function FX.measuredFrame(obj, ctx)
 		return done
 	end
 	ctx.measuredPanels[obj] = false
+	-- A panel whose runtime layout reads the camera: on the other variant its children take that layout's rects there
+	local path = pathOf(obj)
+	if UiResponsive.HasRuntimeLayout(path) and otherVariant(ctx.vp) then
+		local input = FX.runtimeInput(obj, path, ctx)
+		local layout = input and UiResponsive.RuntimeLayout(obj, path, input)
+		if layout and next(layout) then
+			ctx.measured = ctx.measured or {}
+			for node, props in layout do
+				ctx.measured[node] = props
+			end
+			ctx.measuredPanels[obj] = true
+			return true
+		end
+	end
 	local g = FX.AnimeSkin.Frames[obj]
 	if not g or FX.frameRatio(obj, ctx) == nil then
 		return false
@@ -959,8 +1062,10 @@ local function indexTabProps(path, variant)
 	}
 end
 
--- The layout props a node uses at ctx.vp: on the other variant than the live one a generated node takes the model's
--- variant props (UiResponsive.Nodes), else its live properties.
+-- The layout props a node uses at ctx.vp: a value measured or modelled there (ctx.measured: an Index frame's
+-- MeasureAt, a panel's UiResponsive.RuntimeLayout) first, since those layouts overwrite the generated rects; else on the
+-- other variant than the live one a generated node takes the model's variant props (UiResponsive.Nodes), else its live
+-- properties.
 local function variantProps(obj, ctx)
 	local path = pathOf(obj)
 	local node = otherVariant(ctx.vp) and UiResponsive.Nodes[path]
@@ -968,9 +1073,10 @@ local function variantProps(obj, ctx)
 	if otherVariant(ctx.vp) then
 		props = indexTabProps(path, UiResponsive.VariantOf(ctx.vp)) or props
 	end
-	return props.Size or FX.prop(obj, "Size", ctx),
-		props.Position or FX.prop(obj, "Position", ctx),
-		props.AnchorPoint or FX.prop(obj, "AnchorPoint", ctx)
+	local measured = ctx.measured and ctx.measured[obj] or {}
+	return measured.Size or props.Size or FX.prop(obj, "Size", ctx),
+		measured.Position or props.Position or FX.prop(obj, "Position", ctx),
+		measured.AnchorPoint or props.AnchorPoint or FX.prop(obj, "AnchorPoint", ctx)
 end
 
 -- UiResponsive.LiveAutoSize: an AutomaticSize node whose content does not depend on the viewport.
@@ -1045,7 +1151,18 @@ end
 local function contentBox(parent, pr, c, ctx)
 	local base = pr
 	if parent:IsA("ScrollingFrame") then
-		base = R(pr.x - parent.CanvasPosition.X, pr.y - parent.CanvasPosition.Y, pr.w, pr.h)
+		-- VerticalScrollBarInset ScrollBar / Always: the shown bar takes its thickness off the canvas width (the Shop's
+		-- Items list: 663 px frame, 659 px window), so {1, 0}-wide children are that much narrower. Whether the bar
+		-- shows is read live (the window narrower than the frame).
+		local w = pr.w
+		local barInset = parent.VerticalScrollBarInset
+		if
+			barInset == Enum.ScrollBarInset.Always
+			or (barInset == Enum.ScrollBarInset.ScrollBar and parent.AbsoluteWindowSize.X < parent.AbsoluteSize.X - 0.5)
+		then
+			w -= c * parent.ScrollBarThickness
+		end
+		base = R(pr.x - parent.CanvasPosition.X, pr.y - parent.CanvasPosition.Y, w, pr.h)
 	end
 	local pad = parent:FindFirstChildWhichIsA("UIPadding")
 	if pad then
@@ -1671,9 +1788,7 @@ local function recordLose(event)
 			and countdown:FindFirstChild("Fill") ~= nil
 			and countdown.Fill:IsA("GuiObject")
 		for _, o in gui:GetDescendants() do
-			if
-				(o:IsA("TextLabel") or o:IsA("TextButton")) and not string.find(o.FontFace.Family, "Fredoka", 1, true)
-			then
+			if (o:IsA("TextLabel") or o:IsA("TextButton")) and not FX.themeFont(o.FontFace.Family) then
 				table.insert(recap.fonts, pathOf(o))
 			end
 		end
@@ -2006,12 +2121,21 @@ function UiScenarios.SampleTurbo(ev)
 	task.wait(hideBy - UiSpec.Waits.TurboPopShow)
 	local _, _, gone = popState()
 	rec.gone = gone
-	rec.fill = fillFraction()
 	rec.rolls = attr("Rolls")
 	rec.isolated = true
 	for _, other in events.rolls do
 		if other ~= ev and other.t >= ev.t and other.t <= os.clock() then
 			rec.isolated = false
+		end
+	end
+	-- The pop holds the bar full (RacerUiController turboPopUntil), so the fill is read once the pop has ended; rolls
+	-- that arrive by then may each add one step to it.
+	task.wait(math.max(0, ev.t + UiSpec.Waits.TurboFillSettle - os.clock()))
+	rec.fill = fillFraction()
+	rec.laterRolls = 0
+	for _, other in events.rolls do
+		if other ~= ev and other.t >= ev.t and other.t <= os.clock() then
+			rec.laterRolls += 1
 		end
 	end
 	rec.done = true
@@ -2345,16 +2469,18 @@ local function cardProblems(card, ev, skipGeometry)
 	end
 	-- Duplicates are kept as copies (docs/WORKSHOP_SPEC.md "5b. Showcase", owner 2026-10-22): the server pays $0 and
 	-- the copy badge says "+1 COPY" on a duplicate (never a Money amount); hidden on a new character.
-	if ev.scrapMoney ~= nil and ev.scrapMoney ~= 0 then
+	-- An auto sold roll (design doc 4.41, owner 2026-11-09, ea04044) pays its sale as scrapMoney and shows no badge.
+	local sold = type(ev.scrapMoney) == "number" and ev.scrapMoney > 0
+	if ev.scrapMoney ~= nil and ev.scrapMoney ~= 0 and not sold then
 		table.insert(bad, ("RollResult scrapMoney %s want 0"):format(tostring(ev.scrapMoney)))
 	end
 	local copyBadge = part(UiSpec.Showcase.CopyBadge)
 	local copyText = UiSpec.Showcase.CopyBadgeText
 	if not copyBadge then
 		table.insert(bad, "no " .. UiSpec.Showcase.CopyBadge)
-	elseif isNew then
+	elseif isNew or sold then
 		if effectivelyVisible(copyBadge) then
-			table.insert(bad, UiSpec.Showcase.CopyBadge .. " shown on a new character")
+			table.insert(bad, UiSpec.Showcase.CopyBadge .. " shown on a new or sold roll")
 		end
 	else
 		local text = allText(copyBadge)
@@ -3922,7 +4048,11 @@ function S.ui_motion(res)
 			and target.GuiState == Enum.GuiState.Hover
 	end
 	for _, descendant in playerGui:GetDescendants() do
-		local eligible = descendant:IsA("GuiButton") and descendant.Name ~= "Backdrop" and descendant.Name ~= "Toast"
+		-- RacerMotion skips the full-screen click catchers (Backdrop, Toast, ItemMenu's Scrim): they never scale
+		local eligible = descendant:IsA("GuiButton")
+				and descendant.Name ~= "Backdrop"
+				and descendant.Name ~= "Toast"
+				and descendant.Name ~= "Scrim"
 			or descendant:IsA("Frame")
 				and (descendant:GetAttribute("CharacterId") ~= nil or descendant:GetAttribute("RacerHover") == true)
 		if eligible then
@@ -4096,6 +4226,9 @@ function S.ui_inventory(res)
 				local found = false
 				for _, c in UiSpec.Clicks do
 					found = found or (c.Gui == guiName and pathMatches(spec.Path, c.Path))
+					-- A PressFirst press is a real click on its Path too (the Many press before its Confirm)
+					local first = c.Prepare and c.Prepare.PressFirst
+					found = found or (first ~= nil and pathMatches(guiName .. "/" .. spec.Path, first.Path))
 				end
 				if not found then
 					table.insert(missing, guiName .. "/" .. spec.Path)
@@ -4124,7 +4257,13 @@ function S.ui_inventory(res)
 				table.insert(bad, guiName .. ": no " .. partName)
 			else
 				for _, d in { part, table.unpack(part:GetDescendants()) } do
-					if d:IsA("GuiObject") and swallows(d) then
+					-- A declared button inside the part is a real control (BossDetails/Back, owner 2026-11-11 draft B)
+					local rel = string.sub(pathOf(d), #guiName + 2)
+					local declared = false
+					for _, spec in d:IsA("GuiButton") and g.Buttons or {} do
+						declared = declared or pathMatches(spec.Path, rel)
+					end
+					if d:IsA("GuiObject") and swallows(d) and not declared then
 						table.insert(bad, pathOf(d))
 					end
 				end
@@ -4415,6 +4554,19 @@ end
 
 function S.ui_layout(res)
 	waitGuis()
+	-- Summon and the Bosses button show from rebirth 1 (c80e4de): the HUD is judged as it stands from then on, and
+	-- RebirthLevel goes back at the end so later scenarios see the saved value.
+	local unlocked, unlockErr = UiScenarios.RequestSetup("hud_unlock")
+	if unlocked then
+		local summon, by = findPath(UiSpec.Hud.Summon), os.clock() + UiScenarios.SETUP_WAIT
+		while not (summon and summon.Visible) and os.clock() < by do
+			task.wait(0.1)
+			summon = findPath(UiSpec.Hud.Summon)
+		end
+		renderFrame()
+	else
+		stateMissing(res, "hud_unlock", "hud_unlock", unlockErr)
+	end
 	for _, state in K.STATES do
 		local restore = setPanels(state.Open)
 		for _, vpSpec in UiSpec.Viewports do
@@ -4966,8 +5118,24 @@ function S.ui_layout(res)
 				end
 			end
 		end
-		check(res, "layout_model_matches_engine_" .. state.Name, worst, TOL, worst <= TOL)
-		if worst > TOL then
+		check(
+			res,
+			"layout_model_matches_engine_" .. state.Name,
+			worstPath .. " d=" .. tostring(worst),
+			UiSpec.ModelDrift,
+			worst <= UiSpec.ModelDrift
+		)
+		-- The runtime layouts the other variant is solved from (UiResponsive.RuntimeLayout) still match the live panel
+		for _, panelPath in state.Open do
+			local frame = findPath(panelPath)
+			if frame and not UiResponsive.HasRuntimeLayout(panelPath) then
+				frame = frame:FindFirstChild("Modal") -- DailyBoosts/ModalBackdrop opens DailyBoosts/ModalBackdrop/Modal
+			end
+			if frame and UiResponsive.HasRuntimeLayout(pathOf(frame)) then
+				checkList(res, "runtime_model_matches_live_" .. state.Name, FX.runtimeDrift(frame))
+			end
+		end
+		if worst > UiSpec.ModelDrift then
 			check(res, "layout_model_worst_" .. state.Name, worstPath, "none", false)
 		end
 		for scale, value in hovered do
@@ -4978,6 +5146,13 @@ function S.ui_layout(res)
 		restore()
 	end
 	hudPairChecks(res)
+	if unlocked then
+		local rf = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+		if rf then
+			pcall(rf.InvokeServer, rf, "restore:hud_unlock")
+		end
+		UiScenarios.Applied.hud_unlock = nil
+	end
 end
 
 -- docs/HUD_LAYOUT_SPEC.md section 6 / UPGRADE_TREE_SPEC.md section 5: while a full-screen overlay panel
@@ -5046,8 +5221,25 @@ function S.ui_hitboxes(res)
 			local r = realRect(b)
 			local visible = effectivelyVisible(b)
 			if visible then
-				-- inside the visible parent (or the ScreenGui's area)
+				-- inside the visible parent (or the ScreenGui's area); a parent with no area is an anchor (UiSpec.Hitbox)
 				local parent = b.Parent
+				while
+					parent:IsA("GuiObject")
+					and (parent.AbsoluteSize.X <= 0 or parent.AbsoluteSize.Y <= 0)
+					and parent.Parent
+				do
+					parent = parent.Parent
+				end
+				local artClose = b:FindFirstChild(UiSpec.Hitbox.ArtClose)
+				-- (QuestAnimeStyle's close is itself an ImageButton showing the Index close art)
+				FX.indexCloseArt = FX.indexCloseArt
+					or require(script.Parent.Parent:WaitForChild("IndexAnimeStyle")).Art.Close
+				if
+					(artClose and artClose:IsA("ImageLabel")) or (b:IsA("ImageButton") and b.Image == FX.indexCloseArt)
+				then
+					local gui = b:FindFirstAncestorWhichIsA("LayerCollector")
+					parent = gui or parent -- over the panel corner by design: judged inside the screen
+				end
 				local pr = parent:IsA("LayerCollector") and rootRect(parent, vp) or realRect(parent)
 				if parent:IsA("ScrollingFrame") then
 					-- Any scrolling parent (the panning Upgrades tree, the Backpack Items list, ...): the button must lie
@@ -5077,7 +5269,16 @@ function S.ui_hitboxes(res)
 						local tr = textRect(b, r)
 						content = tr and intersection(tr, hitbox) or nil
 					end
-					for _, d in b:GetDescendants() do
+					local drawnParts = b:GetDescendants()
+					if UiSpec.Hitbox.RowButtons[path] then
+						drawnParts = {}
+						for _, d in b.Parent:GetDescendants() do
+							if d ~= b and not b:IsAncestorOf(d) then
+								table.insert(drawnParts, d)
+							end
+						end
+					end
+					for _, d in drawnParts do
 						if d:IsA("GuiObject") and effectivelyVisible(d) then
 							local drawn = d.BackgroundTransparency < 0.95
 								or ((d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text ~= "" and d.TextTransparency < 0.95)
@@ -5150,7 +5351,7 @@ function S.ui_hitboxes(res)
 						local drawn = d.BackgroundTransparency < 0.95
 							or ((d:IsA("TextLabel") or d:IsA("TextBox")) and d.Text ~= "" and d.TextTransparency < 0.95)
 							or (d:IsA("ImageLabel") and d.Image ~= "" and d.ImageTransparency < 0.95)
-						if not drawn and not d:IsA("ScrollingFrame") then
+						if not drawn and not d:IsA("ScrollingFrame") and not UiSpec.Hitbox.PanelBodies[pathOf(d)] then
 							table.insert(sinks, pathOf(d))
 						end
 					end
@@ -5222,7 +5423,7 @@ function S.ui_buttons(res)
 	-- Design doc 4.40 (owner 2026-11-10): on keyboard each column button shows its keybind letter in a TextLabel Key, in
 	-- the tile's top-right quarter, clear of the tile's label text
 	if UserInputService.KeyboardEnabled then
-		local keyLetters = { "X", "B", "R", "Q", "P" }
+		local keyLetters = { "X", "B", "R", "Q", "P", "G" } -- G: Summon tile (1ff09dd, design doc 4.45)
 		local badKeys = {}
 		for index, path in UiSpec.Hud.NavButtons do
 			local tile = findPath(path)
@@ -5734,21 +5935,36 @@ end
 function S.ui_theme(res)
 	waitGuis()
 	local cfg = UiSpec.Theme
-	local wrongFont = {}
-	for _, name in declaredGuis() do
-		local gui = playerGui:FindFirstChild(name)
-		for _, o in gui and gui:GetDescendants() or {} do
-			if
-				(o:IsA("TextLabel") or o:IsA("TextButton"))
-				and not string.find(o.FontFace.Family, cfg.FontFamily, 1, true)
-			then
-				table.insert(
-					wrongFont,
-					pathOf(o) .. " " .. (string.match(o.FontFace.Family, "([^/]+)%.json$") or o.FontFace.Family)
-				)
+	local wrongFont, seenFont = {}, {}
+	local function judgeFonts()
+		frames(2)
+		for _, name in declaredGuis() do
+			local gui = playerGui:FindFirstChild(name)
+			for _, o in gui and gui:GetDescendants() or {} do
+				if
+					(o:IsA("TextLabel") or o:IsA("TextButton"))
+					and o.Text ~= ""
+					and o.TextTransparency < 1
+					and effectivelyVisible(o)
+					and not FX.themeFont(o.FontFace.Family)
+					and not seenFont[o]
+				then
+					seenFont[o] = true
+					table.insert(
+						wrongFont,
+						pathOf(o) .. " " .. (string.match(o.FontFace.Family, "([^/]+)%.json$") or o.FontFace.Family)
+					)
+				end
 			end
 		end
 	end
+	local restoreFonts = setPanels({})
+	judgeFonts()
+	for _, panelPath in allPanels() do
+		setPanels({ panelPath })
+		judgeFonts()
+	end
+	restoreFonts()
 	checkList(res, "theme_fonts_fredoka", wrongFont)
 	local badMulti, found = {}, 0
 	for _, spec in cfg.MultiLabels do
@@ -6076,19 +6292,25 @@ function S.ui_settings_profile(res)
 		true,
 		settingsTab ~= nil and settingsTab:IsA("GuiButton") and profileTab ~= nil and profileTab:IsA("GuiButton")
 	)
+	-- 408b545: the tab's own Text is transparent and the AnimeCaption over it shows the same words, so allText read
+	-- them twice; judge the one visible label once (as the Daily quest tab test does).
+	local function shownText(tab)
+		local label = tab and (tab:FindFirstChild("AnimeCaption") or tab)
+		return label and label:IsA("GuiObject") and label.Visible and label.Text or nil
+	end
 	check(
 		res,
 		"settings_tab_text",
-		settingsTab and allText(settingsTab),
+		shownText(settingsTab) or "missing",
 		"SETTINGS",
-		settingsTab ~= nil and allText(settingsTab) == "SETTINGS"
+		shownText(settingsTab) == "SETTINGS"
 	)
 	check(
 		res,
 		"player_profile_tab_text",
-		profileTab and allText(profileTab),
+		shownText(profileTab) or "missing",
 		"PLAYER PROFILE",
-		profileTab ~= nil and allText(profileTab) == "PLAYER PROFILE"
+		shownText(profileTab) == "PLAYER PROFILE"
 	)
 	check(
 		res,
@@ -6227,6 +6449,22 @@ function S.ui_toast(res)
 			end
 		end
 	end
+	-- A Sakura page switches under the petal wash, UiTransition.Cover() s after the press (0.15 s, audit 2026-11-20,
+	-- 112999f): until then the page is not shown yet, or still shown while closing, so reads wait for the wash.
+	local transitionModule = script.Parent.Parent:FindFirstChild("UiTransition")
+	local Transition = nil
+	if transitionModule and transitionModule:IsA("ModuleScript") then
+		local ok, m = pcall(require, transitionModule)
+		if ok and type(m) == "table" and type(m.Cover) == "function" and type(m.Playing) == "function" then
+			Transition = m
+		end
+	end
+	local function waitWash()
+		if Transition and Transition.Playing() then
+			task.wait(Transition.Cover())
+			RunService.Heartbeat:Wait() -- the switch's own task.delay(Cover) runs first
+		end
+	end
 	local want = table.concat(UiSpec.RollAnim.Phases, ",")
 	for _, p in allPanels() do
 		local restorePanel = setPanels({})
@@ -6237,6 +6475,7 @@ function S.ui_toast(res)
 			local serial0 = toast:GetAttribute("RollSerial")
 			local shownBefore = effectivelyVisible(toast)
 			setPanel(p, true)
+			waitWash()
 			local panelObj = findPath(p)
 			local opened = panelObj ~= nil and panelObj.Visible
 			-- PanelSwitch.Changed -> refreshToast runs as the panel's Visible changes: hidden in the next frame
@@ -6272,6 +6511,7 @@ function S.ui_toast(res)
 				opened and shownBefore and shownFrames == 0 and clickFrames == 0
 			)
 			setPanel(p, false)
+			waitWash()
 			frames(2)
 			local phaseNow = toast:GetAttribute("Phase")
 			local back = effectivelyVisible(toast)
@@ -6557,12 +6797,13 @@ function S.ui_rolls(res)
 	-- Extra rolls count for Turbo (docs/MONETIZATION_SPEC.md "Extra rolls"), and GachaService.RollTick makes them before this
 	-- roll's RollResult, so the bar may already hold them.
 	local extras = (attr("Pass_extra_roll_1") == true and 1 or 0) + (attr("Pass_extra_roll_2") == true and 1 or 0)
-	local fillLimit = extras / turboEvery() + UiSpec.Turbo.FillTolerance
+	local steps = extras + (rec.laterRolls or 0)
+	local fillLimit = steps / turboEvery() + UiSpec.Turbo.FillTolerance
 	check(
 		res,
 		"turbo_fill_empty_after_turbo",
 		rec.fill or "missing",
-		("<= %.2f (%d extras)"):format(fillLimit, extras),
+		("<= %.2f (%d extras, %d later rolls)"):format(fillLimit, extras, rec.laterRolls or 0),
 		rec.fill ~= nil and rec.fill <= fillLimit
 	)
 end
@@ -7706,18 +7947,28 @@ function S.ui_panels(res)
 			table.insert(registered, p)
 		end
 	end
+	-- 1267f95: a Sakura page (Team, Summon) switches under the UiTransition wash, and PanelSwitch ignores a second press
+	-- within OPEN_GUARD (0.3 s) while it plays. A person presses again once the page shows, so wait for the wash to end.
+	local function toggle(name)
+		Switch.Toggle(name)
+		local wash = playerGui:FindFirstChild(UiSpec.Team.Transition)
+		local by = os.clock() + 3
+		while wash and wash:GetAttribute("Playing") == true and os.clock() < by do
+			task.wait(0.05)
+		end
+	end
 	for _, a in registered do
 		for _, b in registered do
 			if a ~= b then
 				setPanels({})
-				Switch.Toggle(UiSpec.PanelSwitch.Names[a])
+				toggle(UiSpec.PanelSwitch.Names[a])
 				local afterA = openSet()
 				check(res, "open_" .. a .. "_alone", afterA, a, afterA == a)
-				Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+				toggle(UiSpec.PanelSwitch.Names[b])
 				waitHidden({ findPath(a) }) -- a's close motion (design doc 4.20)
 				local afterB = openSet()
 				check(res, "open_" .. b .. "_closes_" .. a, afterB, b, afterB == b)
-				Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+				toggle(UiSpec.PanelSwitch.Names[b])
 				waitHidden({ findPath(b) })
 				local afterToggle = openSet()
 				check(res, "toggle_" .. b .. "_closes_it", afterToggle, "", afterToggle == "")
@@ -7906,7 +8157,9 @@ function S.ui_panels(res)
 	for i, panelPath in registered do
 		setPanels({ panelPath })
 		frames(2)
-		if isDimGui then
+		if isDimGui and UiSpec.HudHiddenPanels[panelPath] then
+			check(res, "panel_dim_enabled_while_" .. panelPath, "exempt", "exempt (HUD hidden by the page)", true)
+		elseif isDimGui then
 			local on = waitUntil(dimShown)
 			check(res, "panel_dim_enabled_while_" .. panelPath, dimState(), "Enabled, Dim shown", on)
 		end
@@ -7959,7 +8212,9 @@ function S.ui_panels(res)
 	-- Panel A open, then B: the world dim stays enabled through the switch, never off in between
 	for i, b in registered do
 		local a = registered[(i - 2) % #registered + 1]
-		if a ~= b and isDimGui then
+		if a ~= b and isDimGui and (UiSpec.HudHiddenPanels[a] or UiSpec.HudHiddenPanels[b]) then
+			check(res, "panel_dim_no_flash_" .. a .. "_to_" .. b, "exempt", "exempt (HUD hidden by the page)", true)
+		elseif a ~= b and isDimGui then
 			setPanels({ a })
 			waitUntil(dimShown)
 			local gaps = 0
@@ -8023,7 +8278,7 @@ function S.ui_panels(res)
 	for _, panelPath in panels do
 		setPanels({ panelPath })
 		local function wantHidden(path)
-			return hiddenByPanel(path, { panelPath }, viewport())
+			return UiSpec.HudHiddenPanels[panelPath] ~= nil or hiddenByPanel(path, { panelPath }, viewport())
 		end
 		waitFor(function()
 			for _, path in elems do
@@ -8816,6 +9071,118 @@ for cond, fn in K.sidekickTutorial.After do
 	access.After[cond] = fn
 end
 
+-- bb96973 (D7): while this player's save is loading the guarded remotes answer false, "Data not loaded" and change
+-- nothing; (D8) GetRollLuck answers nil and UseBoost "Please wait" to a second call inside their cooldowns (0.15 s and
+-- 0.25 s). The cooldown pairs are sent at once, so they arrive well inside the window; one of each pair is refused.
+S.ui_remote_guards = function(res)
+	local remotes = ReplicatedStorage:WaitForChild("Remotes", 10)
+	check(res, "remotes_folder", remotes ~= nil, true, remotes ~= nil)
+	if not remotes then
+		return
+	end
+	local function remote(name)
+		-- the click spy renames the real one to UiTestOriginal_<name> while it is installed
+		local rf = remotes:FindFirstChild("UiTestOriginal_" .. name) or remotes:FindFirstChild(name)
+		return rf and rf:IsA("RemoteFunction") and rf or nil
+	end
+	local guarded = {
+		{ "SetTeam", {} },
+		{ "TeamQuickPick", {} },
+		{ "QuestClaim", { false, "uitest_no_such_quest" } },
+		{ "BuyUpgrade", { "uitest_no_such_tile" } },
+		{ "MarketPurchase", { "Aura", "uitest_no_such_item" } },
+		{ "MarketEquip", { "Aura", "uitest_no_such_item", 1 } },
+	}
+	local okSetup, err = UiScenarios.RequestSetup("data_loading")
+	check(res, "setup_data_loading", okSetup and "ok" or tostring(err), "ok", okSetup == true)
+	if okSetup then
+		for _, case in guarded do
+			local rf = remote(case[1])
+			if not rf then
+				check(res, "guard_" .. case[1] .. "_present", false, true, false)
+				continue
+			end
+			local okCall, ok, message = pcall(rf.InvokeServer, rf, table.unpack(case[2]))
+			local got = okCall and (tostring(ok) .. "," .. tostring(message)) or ("error " .. tostring(ok))
+			check(
+				res,
+				"guard_" .. case[1] .. "_data_not_loaded",
+				got,
+				"false,Data not loaded",
+				got == "false,Data not loaded"
+			)
+		end
+	end
+	pcall(
+		ReplicatedStorage.UiTestSetupRequest.InvokeServer,
+		ReplicatedStorage.UiTestSetupRequest,
+		"restore:data_loading"
+	)
+	UiScenarios.Applied.data_loading = nil
+	local deadline = os.clock() + UiScenarios.SETUP_WAIT
+	while player:GetAttribute("DataLoaded") ~= true and os.clock() < deadline do
+		task.wait(0.1)
+	end
+	check(
+		res,
+		"data_loaded_restored",
+		player:GetAttribute("DataLoaded"),
+		true,
+		player:GetAttribute("DataLoaded") == true
+	)
+
+	-- both of a pair sent at once, after the previous calls' windows have passed
+	local function pair(rf, ...)
+		local args = table.pack(...)
+		local out, done = {}, 0
+		for i = 1, 2 do
+			task.spawn(function()
+				out[i] = table.pack(pcall(rf.InvokeServer, rf, table.unpack(args, 1, args.n)))
+				done += 1
+			end)
+		end
+		local stop = os.clock() + 10
+		while done < 2 and os.clock() < stop do
+			task.wait()
+		end
+		return out
+	end
+	local luck = remote("GetRollLuck")
+	check(res, "luck_remote_present", luck ~= nil, true, luck ~= nil)
+	if luck then
+		task.wait(0.3)
+		local out = pair(luck)
+		local answered, refused = 0, 0
+		for _, r in out do
+			if r[1] and r[2] ~= nil then
+				answered += 1
+			elseif r[1] and r[2] == nil then
+				refused += 1
+			end
+		end
+		check(
+			res,
+			"luck_second_call_nil",
+			("answered=%d nil=%d"):format(answered, refused),
+			"answered=1 nil=1",
+			answered == 1 and refused == 1
+		)
+	end
+	local boost = remote("UseBoost")
+	check(res, "boost_remote_present", boost ~= nil, true, boost ~= nil)
+	if boost then
+		task.wait(0.3)
+		local out = pair(boost, "uitest_no_such_boost") -- an unknown id: nothing is used
+		local waits = 0
+		for _, r in out do
+			if r[1] and r[2] == false and r[3] == "Please wait" then
+				waits += 1
+			end
+		end
+		check(res, "boost_second_call_please_wait", waits, 1, waits == 1)
+	end
+end
+
 -- BoostDailyUi now owns Daily Rewards plus a reference-driven Daily/Weekly
 -- quest browser; Backpack moved to RacerBackpack and its old Bag view is not a
 -- valid contract anymore.
@@ -8859,12 +9226,16 @@ S.ui_daily_boosts = function(res)
 	check(res, "quest_tabs_visible", tabs and effectivelyVisible(tabs), true, tabs ~= nil and effectivelyVisible(tabs))
 	for _, category in { "Daily", "Weekly" } do
 		local tab = tabs and tabs:FindFirstChild(category)
+		-- 408b545: the button's own Text is transparent and the AnimeCaption over it shows the same word, so allText
+		-- read it twice ("DAILY DAILY"); judge the one visible label once.
+		local label = tab and (tab:FindFirstChild("AnimeCaption") or tab)
+		local shownText = label and label:IsA("GuiObject") and label.Visible and label.Text or nil
 		check(
 			res,
 			"quest_tab_" .. string.lower(category),
-			tab and allText(tab) or "missing",
+			shownText or "missing",
 			string.upper(category),
-			tab ~= nil and tab:IsA("GuiButton") and allText(tab) == string.upper(category)
+			tab ~= nil and tab:IsA("GuiButton") and shownText == string.upper(category)
 		)
 	end
 	local rows = {}
@@ -8958,6 +9329,13 @@ function UiScenarios.Run(name)
 		end
 	end
 	fn(res)
+	for _, id in UiScenarios.Needs[name] or {} do
+		local rf = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+		if FX.RESTORE_AFTER[id] and UiScenarios.Applied[id] and rf then
+			pcall(rf.InvokeServer, rf, "restore:" .. id)
+			UiScenarios.Applied[id] = nil
+		end
+	end
 	for _, m in UiScenarios.ManualScenarios() do
 		if m.Name == name then
 			res.manual = m.Manual -- run by hand (UiSpec.ManualScenarios): same checks, marked as the manual one
@@ -9196,6 +9574,10 @@ function UiScenarios.RunClick(id)
 		check(res, "click_declared", id, "UiSpec.Clicks id", false)
 		return res
 	end
+	if string.sub(id, 1, 15) == "effects_reduce_" then
+		-- local only (never replicates): ui_reduce_effects_default no longer judges the low-end default after a choice
+		Players.LocalPlayer:SetAttribute("UiTestEffectsChosen", true)
+	end
 	-- A MANUAL check (UiSpec.Clicks Manual) run by hand: same checks; the result says it is the manual one
 	res.manual = spec.Manual
 	if spec.Key then
@@ -9322,8 +9704,13 @@ function UiScenarios.RunClick(id)
 		local sg = playerGui:FindFirstChild(spec.Gui)
 		button = sg and sg:FindFirstChild(path, true) -- the card may sit inside the backdrop
 	end
-	check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
-	if not button then
+	-- Prepare.PressFirst: the target may only exist once that popup has drawn (the Many confirmation's Confirm, a panel's
+	-- red X): it is looked up again after the press.
+	local lateTarget = button == nil and prep.PressFirst ~= nil
+	if not lateTarget then
+		check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
+	end
+	if not button and not lateTarget then
 		if earlyPanels then
 			earlyPanels()
 		end
@@ -9344,7 +9731,7 @@ function UiScenarios.RunClick(id)
 	local probe = nil
 	frames(2)
 	-- Opening a panel may re-render its view (the Backpack rebuilds its tiles on show): use the button there now
-	if button.Parent == nil then
+	if button and button.Parent == nil then
 		button = findPath(spec.Gui .. "/" .. path) or button
 	end
 	if tileId and grid then
@@ -9361,7 +9748,7 @@ function UiScenarios.RunClick(id)
 		frames(2)
 	end
 	-- Prepare.ScrollIntoView: the target's ScrollingFrame scrolled so the target is fully shown (put back after)
-	local scroller = prep.ScrollIntoView and button:FindFirstAncestorWhichIsA("ScrollingFrame") or nil
+	local scroller = prep.ScrollIntoView and button and button:FindFirstAncestorWhichIsA("ScrollingFrame") or nil
 	local savedScroll = scroller and scroller.CanvasPosition
 	if scroller then
 		local rel = button.AbsolutePosition - scroller.AbsolutePosition + scroller.CanvasPosition
@@ -9454,6 +9841,14 @@ function UiScenarios.RunClick(id)
 			return res
 		end
 		task.wait(UiSpec.Waits.PanelMotion) -- its pop has ended: the click point below is where it stays
+	end
+	if lateTarget then
+		button = findPath(spec.Gui .. "/" .. path)
+		check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
+		if not button then
+			restore()
+			return res
+		end
 	end
 	if prep.LabelIs ~= nil then
 		local actual = allText(button)
@@ -9675,6 +10070,18 @@ function UiScenarios.RunClick(id)
 					if opened then
 						hit = top
 					end
+				elseif
+					-- The toast opens the showcase on the press itself (RollToast toast.InputBegan, before this
+					-- listener), hiding itself: nothing is left at the point. A showcase this press opened is its result.
+					not hit
+					and top
+					and math.abs(px - cx) <= 1
+					and math.abs(py - cy) <= 1
+					and spec.Expect.Showcase == true
+					and preShowcase == "closed"
+					and showcaseState() ~= "closed"
+				then
+					hit = top
 				end
 				press = { x = px, y = py, hit = hit, targetShown = Click.shownNow(button), t = os.clock() }
 				press.target = button

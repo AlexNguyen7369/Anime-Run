@@ -246,7 +246,7 @@ function Tests.weather()
 					limit
 				)
 			end
-			-- TurboCount 9 makes this the turbo roll (x10 with no Turbo tier): the multi is the 3rd value, never in luck.
+			-- TurboCount 9 makes this the turbo roll (x30 with no Turbo tier since c80e4de): the multi is the 3rd value, never in luck.
 			local turboLuck, turboWant, turboMulti = rollLuck("rain", 9)
 			flag(
 				"weather_roll_luck_excludes_turbo",
@@ -887,13 +887,18 @@ function Tests.rebirth()
 	)
 	flag("rebirth_rev3_step_removed", config.EARLY_STEP == nil and config.ADD_UNTIL == nil)
 	-- Owner 2026-11-01 (Level/XP removed): Money needed for the next rebirth = $100K x 10^RebirthLevel, flat past
-	-- the last rebirth. Pinned as literals.
+	-- the last rebirth. Pinned as literals. Audit 2026-11-20 (commit c80e4de, design doc 4.14): x10 each up to
+	-- rebirth 7, then x4 each: 1e5 x 10^min(n,6) x 4^max(0,n-6), so level 19 (and past) = 1e11 x 4^13 = 6.7108864e18
+	-- (was 1e24).
 	flag(
 		"rebirth_money_requirement",
 		config.Requirements(0).Money == 1e5
 			and config.Requirements(1).Money == 1e6
-			and config.Requirements(19).Money == 1e24
-			and config.Requirements(25).Money == 1e24
+			and config.Requirements(6).Money == 1e11
+			and config.Requirements(7).Money == 4e11
+			and config.Requirements(8).Money == 1.6e12
+			and config.Requirements(19).Money == 6.7108864e18
+			and config.Requirements(25).Money == 6.7108864e18
 			and config.Requirements(0).Level == nil,
 		config.Requirements(0).Money,
 		1e5
@@ -902,8 +907,8 @@ function Tests.rebirth()
 		"rebirth_cannot_rebirth_at_max",
 		config.CanRebirth(20, math.huge) == false
 			and config.CanRebirth(25, math.huge) == false
-			and config.CanRebirth(19, 1e24) == true
-			and config.CanRebirth(19, 1e24 - 1e9) == false
+			and config.CanRebirth(19, 6.7108864e18) == true -- c80e4de (was 1e24)
+			and config.CanRebirth(19, 6.7108864e18 - 1e9) == false
 	)
 	flag("rebirth_old_x10_totals_removed", config.REBIRTH_TOTALS == nil and config.REPEAT_FACTOR == nil)
 	-- design doc 4.14: the old SpeedGainMulti stays gone; the cruise gain is SpeedBonus (owner 2026-11-03)
@@ -1250,6 +1255,7 @@ function Tests.checkpoints()
 	local want = 1 + 3 * C.BONUS_PER_TRACK
 	flag("checkpoint_bonus_per_track", near(C.Bonus(3), math.min(C.BONUS_CAP, want), 1e-9), C.Bonus(3), want)
 	flag("checkpoint_bonus_capped", C.Bonus(1000) == C.BONUS_CAP, C.Bonus(1000), C.BONUS_CAP)
+	flag("checkpoint_bonus_cap_x3", C.BONUS_CAP == 3, C.BONUS_CAP, 3) -- commit c80e4de (design doc 4.15, was x2)
 	return r
 end
 

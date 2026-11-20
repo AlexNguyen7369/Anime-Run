@@ -20,7 +20,7 @@ local Server = script.Parent.Parent
 local Tests = {}
 
 local UID = 990138000
-local VERSION = 18 -- 18: BossCredit; 17: SidekickPity, SidekickLegendaryPity
+local VERSION = 19 -- 19: Dojos removed (design doc 4.43); 18: BossCredit; 17: SidekickPity, SidekickLegendaryPity
 local SLOT0 = 1000000 -- far from today, so the live slot cannot pass by accident
 local MYTHIC_AT, LEGENDARY_AT = 300, 100 -- design doc 4.36
 
@@ -52,29 +52,34 @@ function Tests.sidekick_pity()
 	end
 	Admin.AllowStudio = true
 
-	-- One slot for most sections, and two with different Mythics for the carry across a slot change.
-	local slotA, slotB
-	for slot = SLOT0, SLOT0 + 200 do
-		if Rotation.For(slot).Mythic[1] ~= Rotation.For(slot + 1).Mythic[1] then
-			slotA, slotB = slot, slot + 1
-			break
-		end
-	end
-	flag("test_found_mythic_change", slotA ~= nil)
+	-- One slot for most sections, and two whose rotations differ for the carry across a slot change. The Mythic is the
+	-- featured one in every slot (owner 2026-11-12, c4580fb), so the change is a Legendary's place or the Secret.
+	local slotA, slotB, mythicOf, data, store
 	local function at(slot)
 		S.SetClock(function()
 			return slot * Rotation.SLOT_SECONDS + 60
 		end)
 	end
-	at(slotA)
-	local mythicOf = Rotation.For(slotA).Mythic[1]
+	-- Inside a section, so a setup error still reaches the stub and clock reset at the end.
+	section("setup", function()
+		for slot = SLOT0, SLOT0 + 200 do
+			local a, b = Rotation.For(slot), Rotation.For(slot + 1)
+			if a.Legendary[1] ~= b.Legendary[1] or a.Secret ~= b.Secret then
+				slotA, slotB = slot, slot + 1
+				break
+			end
+		end
+		flag("test_found_rotation_change", slotA ~= nil)
+		at(slotA)
+		mythicOf = Rotation.For(slotA).Mythic[1]
 
-	local module = Server.PlayerData:Clone()
-	module.Name, module.Parent = "ServerTestPityData", Server
-	table.insert(cleanup, module)
-	local data = require(module)
-	local store = H.store()
-	data.SetStore(store)
+		local module = Server.PlayerData:Clone()
+		module.Name, module.Parent = "ServerTestPityData", Server
+		table.insert(cleanup, module)
+		data = require(module)
+		store = H.store()
+		data.SetStore(store)
+	end)
 
 	local nextId = UID
 	local function loaded(saved)
@@ -166,7 +171,6 @@ function Tests.sidekick_pity()
 		local last = one(p)
 		local mythicB = Rotation.For(slotB).Mythic[1]
 		flag("run_300th_new_slots_mythic", last.Id == mythicB and last.Pity == true, last.Id, mythicB)
-		flag("run_300th_not_old_slots_mythic", last.Id ~= Rotation.For(slotA).Mythic[1])
 		flag("run_mythic_count_reset", p:GetAttribute("SidekickPity") == 0, p:GetAttribute("SidekickPity"), 0)
 		local after = one(p)
 		flag("run_legendary_pays_next", rarity(after) == "Legendary" and after.Pity == true, after.Id)

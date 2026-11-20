@@ -8,11 +8,13 @@ Owner update 2026-11-14: replace the galaxy environment with the approved blosso
 - Every summonable catalog Sidekick has its own collected aura composition and character palette, from Anime auras pack 18515382827. Beroo uses blue lightning, Ryuuk white spectral wisps, and Igriz crimson flame. Other templates vary source presets, accent layers, masks, rates and colors.
 - Larger character framing, names centered on side models, a continuous galaxy backdrop, stronger smooth mouse panning, and softer character lighting. Closing restores camera, movement and lighting and removes the local stage.
 - Native screen and stage/templates are mapped separately in default.project.json, preserving them through Rojo sync.
-- The galaxy screen as built is the rule (owner 2026-11-12, "rules follow the new screen"; replaces the lines below where they differ): the stage shows three featured units (two Legendaries and the Mythic Igriz in the centre) with no Rares and no rates under them; the odds button reads "Show Chances" and opens a text dialog of the outcomes (no silhouette row, no exact-100% rounding required; the odds are still shown before any summon); the banner may show the Mythic's drawn portrait; More Gems shows two packs and a "More" dialog, no badges; the summon buttons read "Once" and "Many". Older lines on Details, the Secret silhouette, the four-pack column with "+N% More!" badges and "Summon 1x / 10x" labels are superseded for this screen.
+- The galaxy screen as built is the rule (owner 2026-11-12, "rules follow the new screen"; replaces the lines below where they differ): the stage shows three featured units (two Legendaries and the Mythic Igriz in the centre) with no Rares and no rates under them; the odds button reads "Details" (owner 2026-11-19, design doc 4.45 and section 6; was "Show Chances") and opens a text dialog of the outcomes (no silhouette row, no exact-100% rounding required; the odds are still shown before any summon); the banner may show the Mythic's drawn portrait; More Gems shows two packs and a "More" dialog, no badges; the summon buttons read "Once" and "Many". Older lines on Details, the Secret silhouette, the four-pack column with "+N% More!" badges and "Summon 1x / 10x" labels are superseded for this screen.
 - Tutorial on the galaxy screen (owner 2026-11-12): step 1 spotlights the tutorial card's own open button (the galaxy look stays on the summon page only, design doc 4.36), step 2 the screen's free-summon button, the result plays with the tutorial waiting, then the tutorial closes the summon screen itself and spotlights the Items tile with the equip text.
 - Tutorial and tests follow the galaxy screen (owner 2026-11-12): the rebirth-2 free-summon spotlight tutorial (design doc 4.36, 4.21 style) is rewritten to point at the galaxy screen's own open button, summon button and the result, then at equipping the new Sidekick; its steps, texts and the one free summon stay as the design doc fixes them. The Sidekick UI tests check the galaxy screen's real elements.
 
 Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.35, 4.36, 4.13, 6 and section 5. Numbers here are **placeholders** unless a design doc rule fixes them.
+
+- Summon 1:1 reference (owner 2026-11-19): the page matches `assets/ui/summon_ref/owner_reference_2026-11-19.png`; the list of differences from the R3 build is in design doc 4.45 "Summon 1:1 reference". Behaviour, costs, odds, pity and the tutorial steps are unchanged.
 
 ## Gems
 - Track n pays n Gems per win, plus 10 x n on first clear, judged by `BestTrack`. Paid in `RaceService`'s `if win then` branch, next to `rewardTrackWin`.
@@ -92,8 +94,10 @@ Every boss drops its own downsized Sidekick this way (owner 2026-11-11, design d
   (Common ring only up to Mythic two pulses and a light screen flash); all of it is off under reduced effects.
 - Panels (owner 2026-11-17, "Summon UI State Reference" panels 2-9; `Client/SummonPanels`): one dark-burgundy panel at a
   time over the page with a gold edge, a title and a red X. Featured Banner (Featured tile, More > Banner Details): the
-  rotation's featured units with portrait, rarity and rate. Show Chances: the rate summed per rarity, the Secret first,
-  then "Luck and potions never change Sidekick odds". Summon Info: How It Works, Banner Rules, Pity / Progression with the
+  rotation's featured units with portrait, rarity and rate. Details (was Show Chances): the rate summed per rarity, the Secret first,
+  then "Luck and potions never change Sidekick odds". Under each rarity total, every Sidekick in the current
+  rotation slot's pool with its own rate (owner 2026-11-20). The list is built from the live banner, so it follows the
+  rotation; the shown rates sum to exactly 100%. Layout of the rows **proposed**. Summon Info: How It Works, Banner Rules, Pity / Progression with the
   player's counts, Currency (Gems). Auto Sell: Keep / Sell per rarity, Cancel / Save (only changed rarities are sent),
   then an "Auto Sell Saved!" notice. More: Banner Details, Pity, History (this session's summons, not saved), Settings
   (opens Auto Sell, the page's one setting), Gem Packs, Help. Many asks first: 10 summons, the cost and the Gems before
@@ -103,6 +107,7 @@ Every boss drops its own downsized Sidekick this way (owner 2026-11-11, design d
 
 ## Summon page
 Layout ideas from the owner's reference (redesign 2026-11-05), no copied art. Motion through `Client/UiMotion`. This look stays on this page; moving it elsewhere needs the owner's approval.
+- Layout and look from 2026-11-19: design doc 4.45 "Hanging-scroll look", Summon (R3). Where this list differs, 4.45 wins.
 - Top: Gem balance, a timer bar counting to the next rotation, and Mythic Pity and Legendary Pity with their counts.
 - Poster: one view with the Mythic's actual 3D model large in the centre, the Legendaries beside it and the Rares at the ends. Big names in front, each with its rarity and rate (owner 2026-11-05), and a FEATURED sticker that makes no odds claim. Tapping it, or its **Details** button, opens Details.
 - Details also shows the Secret: only this rotation's one Secret, as a blacked-out silhouette, with "Secret" and its chance and no name column (owner 2026-11-05). Details lists rates only, no stats. `SidekickRotation` publishes the live `SecretId`; the owner accepts that clients can read it.
@@ -119,6 +124,7 @@ In the style common to anime tower defense games: all effects original, no copie
 - Summon 1x: a vortex winds up with sparks pouring in and a growing shake, and turns the rarity's colour partway; it collapses and hits with a flash, comic burst, shock rings and sparks. The model pops in, about 56% of screen height, on turning rays with rising glints. Below it: name, a divider, rarity.
 - Summon 10x: 10 cards drop in and flip one by one with rings and sparks. A Legendary, Mythic or Secret card first trembles and glows its colour. A Mythic or Secret then interrupts with the 1x showcase.
 - End: "(Click anywhere to continue)". No buttons.
+- Auto and gamepad (owner approved the audit fixes 2026-11-20): while Auto is on, the reveal closes itself 1.2 s after its end (**placeholder**) and the next Auto summon waits 3 s on the page so Stop can be pressed; gamepad A or B and the Space key do what a click does.
 
 ## Bag and equip
 - Backpack gets a Sidekicks tab holding 50 entries. Each summon is one entry, saved in `Sidekicks`. This replaces the earlier copies rule.

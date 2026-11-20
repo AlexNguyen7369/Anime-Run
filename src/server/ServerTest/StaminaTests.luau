@@ -629,6 +629,9 @@ function Tests.stamina()
 			and config.BASE.Common <= COMMON_RANGE[2]
 			and config.BASE.Secret == SECRET_BASE
 	)
+	-- Commit c80e4de (design doc 4.3 "in-between values proposed"): Uncommon 17, Rare 21 (were 15.5, 18)
+	flag("stamina_base_uncommon_17", config.BASE.Uncommon == 17, config.BASE.Uncommon, 17)
+	flag("stamina_base_rare_21", config.BASE.Rare == 21, config.BASE.Rare, 21)
 	local fromRarity = true
 	for _, spec in catalog.All() do
 		if spec.Stamina == nil and config.Base(spec) ~= config.BASE[spec.Rarity] then

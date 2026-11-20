@@ -14,13 +14,18 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
   Rate limit: 1 call per 0.5 s.
 - Player attribute `Team` (comma-joined ids) is the replicated truth for the UI.
 - On load, ids the player no longer owns are removed; an empty team falls back to `{ "starter" }`.
+- Auto-fill (owner 2026-11-20, design doc 4.2): a roll that adds a copy (not auto sold) is appended to `Team` when a slot
+  is empty and it is not already in it; filled slots never change. While `AutoRacing` is on the id waits in a
+  session-only list and joins when `AutoRacing` turns off (`GachaService.FillTeam`). Not saved separately: `Team` is.
 
 ## Team Setup page (owner 2026-11-17, design doc 4.45)
 Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
+- Layout and look from 2026-11-20: design doc 4.45 "Team Select night dojo" (owner-approved Studio draft; replaces T2 ledger scroll
+  and the base layout where they differ). Where this list differs, 4.45 wins.
 - Opens from the Team button (T), a click on the team minibar, or the plaza Team altar prompt; all call
   `PanelSwitch.Action("Team")`. The shared Sakura transition (`Client/UiTransition`, cyan accent) covers the open and close;
   movement is locked while open (`Client/InputLock`).
-- On open the draft is a copy of the saved `Team`. Tap an altar to select it (cyan glow), then a roster card: the member's
+- On open the draft is a copy of the saved `Team`. Tap an altar to select it (it takes the "Selected" plate and a brighter ring; 4.45 "Team Select night dojo", open question), then a roster card: the member's
   portrait flies to the altar and lands with a ring pulse. A member already in another slot swaps. Tapping a member's
   portrait offers Remove. The draft never drops below 1 member at Deploy (the button stays off at 0).
 - `TeamQuickPick(draftIds)` (RemoteFunction, read-only, 0.5 s cooldown): the server returns owned ids for the empty slots,
@@ -32,7 +37,7 @@ Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
   2026-11-17).
 - The saved Team changing while the page is open: an untouched draft takes the new saved Team; an edited draft stays
   (owner 2026-11-17).
-- Cards and altars show the member's relic emblem (diamond, from `RelicGear`) and Sidekick icon (circle, from
+- Cards and altars show the member's relic emblem and Sidekick icon (square icons as drawn, 4.45 "Team Select night dojo"; from `RelicGear` and
   `SidekickGear`) at the top-right; tooltips name the item, rarity and effect. The Sidekicks tab equips through
   `SidekickEquip` at once. Relics are inspect-only here.
 - Team bonus moves into a popover behind the Team Bonus button.
@@ -45,8 +50,8 @@ Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
 | Rarity | Stamina (s, placeholder) |
 |---|---|
 | Common | 13.5 (owner 2026-11-02: about 12-15 s) |
-| Uncommon | 15.5 |
-| Rare | 18 |
+| Uncommon | 17 (owner 2026-11-20, was 15.5) |
+| Rare | 21 (owner 2026-11-20, was 18) |
 | Epic | 21 |
 | Legendary | 24 |
 | Mythic | 27 |
@@ -123,6 +128,9 @@ Stamina = Base(rarity or override)
 
 - When the last slot reaches 0: the per-distance share is paid straight into Money, then the player is sent to the
   walk spawn (owner 2026-11-10: no run bank, pay at each checkpoint).
+- Auto restart (owner 2026-11-20, design doc 4.3): after that return `RunnerService.RestartAfterExhausted` waits
+  `RESTART_DELAY` (3 s, **proposed**) and starts the next run, unless the state changed in between (toggle, respawn,
+  teleport, duel, boss event) or the player left. A duel's exhaustion does not restart. No input is faked.
 - `RunEvent { Kind = "Exhausted", Banked = n }` to the owner, `n` the share just paid; the client shows a short "TEAM
   EXHAUSTED" result with that amount (owner 2026-11-10: no run bank, pay at each checkpoint).
 - Exhaustion is not a loss: the share is paid, earlier checkpoint payouts stay, and no loser screen shows (owner 2026-11-10: no run bank, pay at each checkpoint).
@@ -173,7 +181,9 @@ Stamina = Base(rarity or override)
 
 ## Balance check (placeholders, owner 2026-11-01)
 
-NPC speeds (owner 2026-11-05, `48 x 1.363^(n-1)`: 48, 65, 89, 122, 166, 226, 308, 420, 572, 779). On speed alone, with no
+NPC speeds (owner 2026-11-05, `48 x 1.363^(n-1)`: 48, 65, 89, 122, 166, 226, 308, 420, 572, 779; owner 2026-11-20:
+Tracks 2-8 set to 56, 66, 88, 130, 190, 280, 410, so the list is 48, 56, 66, 88, 130, 190, 280, 410, 572, 779; the
+band counts below are from before that change). On speed alone, with no
 multis, a Balanced runner reaches: Common and Uncommon no track, Rare level with Track 1, Epic Track 3 (90 > 89), Legendary
 Track 5, Mythic Track 8, Secret Track 9. Sprinters reach about one band further; multis push teams the rest of
 the way. Stamina numbers unchanged. Owner retunes after a playtest.

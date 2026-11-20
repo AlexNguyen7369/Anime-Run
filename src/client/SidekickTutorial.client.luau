@@ -123,7 +123,8 @@ local function stepThree(dt)
 	end
 end
 
-RunService.RenderStepped:Connect(function(dt)
+local stepper = nil
+local function frame(dt)
 	if player:GetAttribute("DataLoaded") ~= true then
 		return
 	end
@@ -147,6 +148,10 @@ RunService.RenderStepped:Connect(function(dt)
 		if showing then
 			hide()
 		end
+		if used and player:GetAttribute("SidekickFreeUsed") == true then
+			stepper:Disconnect() -- the free summon is spent: no per-frame work until the flag turns false again
+			stepper = nil
+		end
 		return
 	end
 	if not showing then
@@ -162,5 +167,11 @@ RunService.RenderStepped:Connect(function(dt)
 	else
 		spot.SetStep("Go", STEPS.Go)
 		spot.Aim(goButton, dt, { FixedCard = true, CardExtra = GO_ROOM })
+	end
+end
+stepper = RunService.RenderStepped:Connect(frame)
+player:GetAttributeChangedSignal("SidekickFreeUsed"):Connect(function()
+	if not stepper and player:GetAttribute("SidekickFreeUsed") ~= true then
+		stepper = RunService.RenderStepped:Connect(frame)
 	end
 end)

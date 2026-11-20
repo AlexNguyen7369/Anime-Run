@@ -24,7 +24,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 3. Start a run on the start pad: the team auto-runs Track 1, 2, 3 ... against each track's NPC rival.
 4. Each track won pays its pad value straight into Money as the team crosses that track's finish (checkpoint), with a short "Cashed out +$X" notice (owner 2026-11-10, replaces the run bank / UNBANKED).
 5. The run ends:
-   - **Team exhausted** (all 3 at 0 stamina): the per-distance share of the current track (below) is paid into Money; the player returns to the spawn.
+   - **Team exhausted** (all 3 at 0 stamina): the per-distance share of the current track (below) is paid into Money; the player returns to the spawn. With Auto on, the next run then starts by itself (owner 2026-11-20, 4.3).
    - **Player stops** (Stop button, death, leave): nothing more is paid; every track already won was paid at its finish.
    - **Loss** (NPC reaches a track's finish first): loser screen; back to the start track. Money already paid at earlier checkpoints stays (owner 2026-11-10: there is no bank to empty).
 6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat.
@@ -39,7 +39,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 | One NPC rival per track, client-side only, left lane; player wins if they reach the finish before the NPC's known time | `NpcRacer`, `NpcConfig` |
 | Each won track pays into Money at its finish with a cash-out notice (owner 2026-11-10; no run bank) | `RaceService` |
 | The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
-| Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
+| Auto-roll every 3 s (placeholder), turbo luck every 10th roll x30 (placeholder; x10 until 2026-11-20), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money, unless sold (owner 2026-11-04, 4.36) | IVS 2026-10-22 |
 | Weather events (Rain, Night Race, Gold Rush, Clear, Aurora); 3 event-only characters, not rollable for now, listed in the Index as undiscovered tiles, kept in saves that own them (owner 2026-11-03) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
@@ -61,6 +61,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - The player equips a **team**: 3 ordered slots. The same character may not be in two slots. A team needs at least
   1 character. Spec: `docs/TEAM_AND_STAMINA_SPEC.md`.
 - Slot 1 starts every run; slot 2, then slot 3, take over when the one before is empty.
+- A kept roll (not auto sold) fills an empty slot, never a filled one (owner 2026-11-20). A run's team is fixed, so a roll
+  kept while running joins when the player is next on foot. Server side (`GachaService.FillTeam`).
 - The player fills and swaps the 3 slots on foot (owner 2026-11-02): pick a character in the Backpack, then tap slot
   1, 2 or 3 to put it there (a character already on another slot swaps places; tapping its own slot takes it off).
   The single equip (Index, roll toast) puts a character on slot 1.
@@ -68,7 +70,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.3 Stamina
 - Every character has a stamina bar (0-100%). It drains only while that character is running.
 - The drain rate depends on rarity (owner 2026-11-02): Commons tire at about 12-15 s and Secrets at 30 s. Seconds of
-  running (in-between values proposed): Common 13.5, Uncommon 15.5, Rare 18, Epic 21, Legendary 24, Mythic 27, Secret 30.
+  running (in-between values proposed): Common 13.5, Uncommon 17, Rare 21, Epic 21, Legendary 24, Mythic 27, Secret 30
+  (owner 2026-11-20: Uncommon 17 and Rare 21, were 15.5 and 18).
 - Speed matters more than stamina (owner 2026-10-30): the rarity spread in stamina is small. A team clears a few
   tracks per run and progresses track by track through checkpoints (4.15), not the whole chain in one run.
 - While a runner runs, a vertical blue stamina bar is fixed to the right of its visible character (owner 2026-11-02),
@@ -85,6 +88,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
   stamina on a thick arc, with its stamina seconds left as a number (orchestrator default); tired runners grey out with
   an animation; the tag-in plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
 - When the last character reaches 0 the run ends as a **soft end** (owner 2026-10-28).
+  With Auto on, the player returns to the spawn as usual and the next run starts by itself after a short wait (3 s,
+  **proposed**), unless the player, a duel or an event changed the state first (owner 2026-11-20). Nothing fakes input,
+  so Roblox's idle kick still applies.
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
   `PayoutCurve.Cash(n) x distance covered / track length` straight into Money, with the cash-out notice (share placeholder 1.0; no bank since 2026-11-10).
   Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Track 1 balance is fine as is: no retune of
@@ -157,7 +163,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.13 Fixed character speed, no Speed stat (owner 2026-11-01)
 - There is no Speed stat and no speed gain. Each character has a fixed cruise speed (studs/s) set only by its rarity
   and its category (4.5). New players run slow. The character's `SpeedMulti` never enters cruise.
-- Base cruise by rarity, Balanced (proposed; NPC formula, placeholder, `48 x 1.363^(n-1)`): Common 24, Uncommon 33,
+- Base cruise by rarity, Balanced (proposed; NPC formula, placeholder, `48 x 1.363^(n-1)`; owner 2026-11-20: Tracks 2-8
+  use set placeholders instead, 56 / 66 / 88 / 130 / 190 / 280 / 410 studs/s, `NpcConfig.Tracks[n].Speed`): Common 24, Uncommon 33,
   Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700. Category multiplies it: Sprinter x1.25, Balanced x1,
   Marathoner x0.8 (4.5).
 - Enemy speed (owner 2026-11-05): a starter or other Common with no multis never outruns the Track 1 enemy. A Rare is
@@ -196,7 +203,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Stat points are spent in the Rebirth panel's STATS tab (owner 2026-11-05; 4.40).
 - Rebirth resets Money.
 - Player levels and XP are removed. Rebirth n+1 needs Money >= `BASE_MONEY` x `MONEY_GROWTH`^n: $100K for rebirth 1,
-  x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP` unread. The rebirth XP multi is gone; the
+  x10 each up to rebirth 7, then x4 each (placeholder; owner 2026-11-20, was x10 throughout: `1e5 x 10^min(n,6) x
+  4^max(0,n-6)`; `RebirthConfig`). Old saves keep `Level` / `XP` unread. The rebirth XP multi is gone; the
   luck totals table is unchanged.
 
 ### 4.15 Sensei checkpoints (owner 2026-11-02)
@@ -215,7 +223,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
   runner back to the start of the checkpoint track; after the last track the run loops back to it.
 - **Checkpoint bonus**: in one run, each track won after the checkpoint track pays its pad cash x
   `min(BONUS_CAP, 1 + BONUS_PER_TRACK x k)`, k = tracks past the checkpoint track (placeholders +10% per track, cap
-  x2; `CheckpointConfig`). The checkpoint track itself pays x1. k restarts when the runner goes back to the
+  x3, owner 2026-11-20, was x2; `CheckpointConfig`). The checkpoint track itself pays x1. k restarts when the runner goes back to the
   checkpoint (loss, loop) or the run ends (stop, team exhausted).
 - A won track that paid the bonus shows a popup "CHECKPOINT BONUS x1.2 · $paid" (placeholder art and timing:
   0.25 s in, 1.5 s hold, 0.5 s out; client-only display).
@@ -254,6 +262,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
     is ever shown wrong (orchestrator default).
   - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
   - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
+- Low-end default (owner 2026-11-20): while the player has not chosen REDUCED EFFECTS this session (the toggle is not
+  saved), it starts on when Roblox's graphics level is 1-3 or the device is touch-only with a small screen (shorter
+  side 500 px or less, **proposed**). The toggle still flips it. Boss effects follow it as in 4.37.
 
 ### 4.21 Starter choice (owner 2026-11-03)
 - A new player gets a popup and chooses one of 3 starter characters: Ruffy, Karate Kid, Sayan. The pick is their first
@@ -409,6 +420,8 @@ before any Studio work.
 - A Sidekick is a small companion rolled from a gacha at the plaza's Sidekick summon altar (owner 2026-11-10; replaces the Sidekicks stall) for Gems. It is equipped per character, follows
   that character, deals its damage in boss events (4.37) and gives that character a speed or stamina gain while racing. Speed gain
   counts as an entry in the 4.13 speed multi, inside `MAX_CRUISE`.
+- HUD entries (owner 2026-11-20): below rebirth 1 the Summon button, the Bosses button, the plaza SIDEKICKS sign and
+  the Bag's Sidekicks and Relics tabs are hidden; from rebirth 1 they show (the summon page still shows its rebirth 2 lock).
 - The vendor unlocks at rebirth 2. A tutorial then gives one free summon (4.21 style spotlight), so a player at rebirth 2 can join events. The free summon's Sidekick is never auto-sold (**proposed**), and the tutorial's last step points the player to equip it in the Bag, since only an equipped Sidekick unlocks events. The tutorial may show during a normal track run; it waits only for a duel, a boss event, a showdown and a short transition (owner 2026-11-05).
 - First three Sidekicks, for testing: based on Pochita (Chainsaw Man), Igris and Kaisel (Solo Leveling). Tweaked names follow section 5,
   **proposed**: Pochito, Igriz, Kaizel. Each model is 30-40% of a character's size and made with the character design skill.
@@ -520,7 +533,7 @@ before any Studio work.
 - Dojo Master: removed 2026-11-11 with the Dojos (4.43), off sale; it had replaced the Gold, Diamond and Void Workshop passes, also gone.
 - Deep Stamina: +25% stamina, added to the additive stamina part (4.6).
 - + Inventory: +100 bag spaces (4.36).
-- Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. No license exists. The owner knows it is a close likeness sold directly through its own pass and advertised at the spawn, and accepts the takedown risk, which can remove the whole game (owner 2026-11-05). Base cruise 350, Balanced, Mythic look and stamina (**proposed**), no Series, not in the Index (**proposed**).
+- Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. No license exists. The owner knows it is a close likeness sold directly through its own pass and advertised at the spawn, and accepts the takedown risk, which can remove the whole game (owner 2026-11-05). Base cruise 350, Balanced, Mythic look (**proposed**), stamina 6 s (**proposed**; owner 2026-11-20, was the Mythic 27 s: it wins Tracks 1-2 at once and later tracks need progress), no Series, not in the Index (**proposed**).
 - Server Luck stays unsold until it is built. Auto Restart and Bank Insurance were offered and declined.
 
 ### 4.40 HUD entries and rarer big roll popup (owner 2026-11-05)
@@ -532,14 +545,15 @@ before any Studio work.
 - Icon style (owner 2026-11-10, third pick of the day; replaces the Gold badge): "Tab tilt", rendition 4 of https://claude.ai/artifact/5QMx5w44ZWhRhMXkNxqJty: each HUD icon is today's object standing on a slanted cyan art tab, the same shape as the Index's tabs and header strip, keeping each object's colour. No tile frame and no badge. Covers Index, Items, Rebirth, Quests, Shop, Auto, Upgrade, Daily, Market, Settings, Stats, Gem and Boss (the Boss icon is the purple horned mask). The label sits under the icon (white, dark outline).
 - Turbo bar and Team minibar (owner 2026-11-10, replaces the gold Turbo and minibar look of the same day): both keep their look from before that change, except the minibar stamina arc, which stays a smooth curved band with both ends cut on a slant, a curved parallelogram (owner 2026-11-10; slant about 30 degrees off the radial, **proposed**). Sizes, positions and behaviour unchanged.
 - HUD layout (owner 2026-11-10, "split L/R"; replaces the gold frame tiles and the L2 block of the same day): one column on the left edge holds Index, Items and Rebirth, top to bottom; one column on the right edge holds Quests, Shop and Market. Daily and Settings stay as the top-right pills, Auto and Upgrade stay as the bottom pair beside the LEVEL / TURBO LUCK bars, all with the Tab tilt icons. The red count badge stays at the icon's top-left. Panels (4.42) centre between the two columns, 8 px clear of each. Phones shrink both columns (4.27). Keybind letters stay (owner 2026-11-10): each column button shows its key letter at its top-right (white heavy text, dark outline), and on keyboard that key opens the panel, the same as a click, only while the button could be clicked: Index X, Items B, Rebirth R, Quests Q, Shop P, Market M (not S and I: S walks backward, I zooms). Letters show only when a keyboard is in use. No NEW tag. Sizes and gaps are **proposed**. Owner approved the Tab tilt icons and this layout from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG). During a boss event (the local player in the event) both columns hide; the Daily and Settings pills, Auto and Upgrade and the event UI stay (owner 2026-11-10).
-- Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**. Owner approved from Studio screenshots 2026-11-10 (https://claude.ai/artifact/BXmkHjXQaPcXy4xod9fPKD). The Bosses button uses the column buttons' exact cell, icon and label sizes, phone scale included (owner 2026-11-11). At that size it no longer fits in Roblox's top bar, so it sits just below the top bar (gap 6 px, **proposed**), left-aligned with the left column when it fits above the column with room for its pulse. Where it would reach the left column (phones, short desktop windows) it starts right of Roblox's buttons instead (TopbarInset.Min.X plus the gap, never over the column) (owner 2026-11-11). It stays clear of the left column, the Money / Gems readout and the roll at the top centre. Owner 2026-11-12, from a screenshot (replaces the 2026-11-11 placement below the top bar and the same day's top-bar idea): the Bosses button moves into a second column directly right of the left column, placed half a row down, level with the gap between Index and Items. Below it in that second column, level with the gap between Items and Rebirth, sits a new Team button (same cell, icon and label sizes; icon and key letter **proposed**). Team opens the team selection and formation panel, which leaves Items. Owner 2026-11-12, from the drafts (https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp): icon 1 "Trio" (three runners, the lead in front) in more neutral colours (variant N3, sand lead with a grey pair, picked and uploaded on the owner's word 2026-11-12: `assets/ui/hud_tabtilt/Team_N3.png`), and panel A "Line-up" (`assets/ui/team_draft/A_desktop.png`, `A_phone.png`): three big slot cards across the top in run order (runs first, tags in 2nd, tags in last) with each member's portrait, category, cruise and stamina, the team bonus box at their right, and below them the owned roster grid with Sort and Search; tap a character, then a slot; members swap places; tapping a member's own slot removes it. Owner 2026-11-12, after seeing the first build: the panel matches draft A closely: each slot card carries its number badge (1, 2, 3) and its own coloured border and tint (gold, purple, green as drawn), a stamina bar under the member, arrows between the slots; roster cards at the draft's size (two rows of eight on desktop); the green TEAM n badge sits clear of the category dot. The rules of choosing a team do not change (`docs/TEAM_AND_STAMINA_SPEC.md` Team: `SetTeam`, at least 1 member, locked during a run). (Owner 2026-11-17: panel A's layout is replaced by Team Setup, 4.45; the Best team button becomes Quick Setup there.) Not ruled by the owner, so left out or **proposed**: the Best team button (left out: needs a rule), the summed team stamina figure (**proposed**, display only), key letter T (**proposed**), the per-slot aura and trail buttons (stay in Items). Offsets and the phone layout are **proposed**. Picked-slot lighting (only the slot holding the picked character lightens; draft A's caption lights every slot) and the "+" glyph on an empty slot are **proposed** (orchestrator 2026-11-12, owner to confirm from the Studio capture).
+- Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**. Owner approved from Studio screenshots 2026-11-10 (https://claude.ai/artifact/BXmkHjXQaPcXy4xod9fPKD). The Bosses button uses the column buttons' exact cell, icon and label sizes, phone scale included (owner 2026-11-11). At that size it no longer fits in Roblox's top bar, so it sits just below the top bar (gap 6 px, **proposed**), left-aligned with the left column when it fits above the column with room for its pulse. Where it would reach the left column (phones, short desktop windows) it starts right of Roblox's buttons instead (TopbarInset.Min.X plus the gap, never over the column) (owner 2026-11-11). It stays clear of the left column, the Money / Gems readout and the roll at the top centre. Owner 2026-11-12, from a screenshot (replaces the 2026-11-11 placement below the top bar and the same day's top-bar idea): the Bosses button moves into a second column directly right of the left column, placed half a row down, level with the gap between Index and Items. Below it in that second column, level with the gap between Items and Rebirth, sits a new Team button (same cell, icon and label sizes; icon and key letter **proposed**). Team opens the team selection and formation panel, which leaves Items. Owner 2026-11-12, from the drafts (https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp): icon 1 "Trio" (three runners, the lead in front) in more neutral colours (variant N3, sand lead with a grey pair, picked and uploaded on the owner's word 2026-11-12: `assets/ui/hud_tabtilt/Team_N3.png`), and panel A "Line-up" (`assets/ui/team_draft/A_desktop.png`, `A_phone.png`): three big slot cards across the top in run order (runs first, tags in 2nd, tags in last) with each member's portrait, category, cruise and stamina, the team bonus box at their right, and below them the owned roster grid with Sort and Search; tap a character, then a slot; members swap places; tapping a member's own slot removes it. Owner 2026-11-12, after seeing the first build: the panel matches draft A closely: each slot card carries its number badge (1, 2, 3) and its own coloured border and tint (gold, purple, green as drawn), a stamina bar under the member, arrows between the slots; roster cards at the draft's size (two rows of eight on desktop); the green TEAM n badge sits clear of the category dot. The rules of choosing a team do not change (`docs/TEAM_AND_STAMINA_SPEC.md` Team: `SetTeam`, at least 1 member, locked during a run). (Owner 2026-11-17: panel A's layout is replaced by Team Setup, 4.45; the Best team button becomes Quick Setup there.) (Owner 2026-11-20: Team Setup is a full-screen page that covers the Team button; the page's own Close or Back closes it, not the Team button.) Not ruled by the owner, so left out or **proposed**: the Best team button (left out: needs a rule), the summed team stamina figure (**proposed**, display only), key letter T (**proposed**), the per-slot aura and trail buttons (stay in Items). Offsets and the phone layout are **proposed**. Picked-slot lighting (only the slot holding the picked character lightens; draft A's caption lights every slot) and the "+" glyph on an empty slot are **proposed** (orchestrator 2026-11-12, owner to confirm from the Studio capture).
 - Money and Gems counters (owner 2026-11-10): no dark box or border behind Money or Gems; the Gems counter sits directly under the Money counter (bottom-left); the UNBANKED line is removed. Each checkpoint payout shows a short "Cashed out +$X" notice by the Money counter as the Money counts up. Sizes and timing **proposed**.
 
 ### 4.41 Character bag and auto sell (owner 2026-11-04)
 - The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
 - A full bag stops rolling until there is space. Only rolling is blocked: passes, daily rewards, codes and gifts still land. A save already over the cap keeps everything and cannot roll until it is below the cap.
 - Full bag warning (owner 2026-11-05, replaces the fixed banner): auto roll is never turned off by a full bag and keeps trying at its normal pace. Each blocked try shows red "BAG FULL" text on the screen, with no background, gone within 1 second.
-- Auto sell: the player fills in N in "1 in N", in Settings only (owner 2026-11-09, replaces the auto-roll view and under-roll buttons of 2026-11-06). A sold roll shows no sale text or badge: the roll animation plays as usual and only Money moves (owner 2026-11-09). A roll whose `Chance` is at most N is sold for Money by rarity (prices **proposed**) and takes no space, a new discovery too (owner 2026-11-06, replaces duplicates only): it stays undiscovered. Default off.
+- Bag full tip (owner 2026-11-20): the first BAG FULL of a session also points a 4.21 style spotlight at the Items button with "Sell spares in your Bag, or turn on Auto Sell in Settings". Nothing is dimmed or blocked; it closes after 6 s (**proposed**) or when the Bag opens. Nothing is saved for it.
+- Auto sell: the player fills in N in "1 in N", in Settings only (owner 2026-11-09, replaces the auto-roll view and under-roll buttons of 2026-11-06). A sold roll shows no sale text or badge: the roll animation plays as usual and only Money moves (owner 2026-11-09). A roll whose `Chance` is at most N is sold for Money by rarity (prices **proposed**) and takes no space, a new discovery too (owner 2026-11-06, replaces duplicates only): it stays undiscovered. Default off; a brand new save starts with it on at N = 1, which sells Commons (owner 2026-11-20). A save already written keeps its own setting, a missing one being off.
 - With auto sell on, a full bag keeps rolling and selling what is at or under N, and still shows the BAG FULL text. A roll rarer than N needs a space, so at a full bag it does not happen, with Rolls and Turbo unmoved (owner 2026-11-06).
 - Selling never takes a copy a player already holds down to none: the last copy stays. Auto sell only ever sells the roll itself.
 - Sell spares (orchestrator proposal, owner approved the plan 2026-11-04): a Backpack card sells spare copies of that character, never the last one, so a full bag can always be emptied. The player chooses how many and confirms in a dialog (owner 2026-11-05).
@@ -648,6 +662,78 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     never a duplicate; the server picks them (replaces "the Best team button (left out: needs a rule)", 4.40).
   - On the Sidekicks tab, picking a Sidekick and then a placed member equips it at once through the existing Sidekick equip
     (not part of the draft). Relics are inspect-only here; equipping relics stays in Items.
+- Hanging-scroll look (owner 2026-11-19). The owner picked, from the round-2 drafts
+  (https://claude.ai/artifact/VGWPRegzUqHKEJDNr74scm), R3 "Enso and seals" for Summon and T2 "Ledger scroll" for Team
+  Setup, both in the Sumi ink skin, type pairing P5 and the brush title. This replaces the layouts above where they
+  differ; behaviour, controls, server rules, the staged draft and the shared transition stay. Every size, timing and
+  colour here is **proposed**.
+  - Kit: a mounted hanging scroll: cord and hook from the top edge, black lacquer top rod, grey linen top mount with two
+    hanging strips, a thin grey rule, white washi paper, a grey bottom mount, black roller with dark end caps. Paper ink
+    near-black, accent vermilion (#C8302C). Body text Titillium Web; headings and button labels Permanent Marker. The
+    titles "Summon" and "Team" are a baked brush wordmark image, each with a vertical vermilion kanji (召喚, 編成). Kanji
+    are decoration only; every label stays English.
+  - Motion: on open the scroll drops in (0.22 s), unrolls (0.5 s from 0.12 s, the roller travelling down), its text inks
+    in from 0.5 s and the other controls rise from 0.48 s; close rolls it up in reverse in 0.3 s. It runs inside the
+    shared Sakura transition. Reduced effects: a fade only.
+  - Summon (R3): the scroll on the left holds the wordmark, the banner name and rotation, the featured Mythic's drawn
+    portrait inside a brushed enso ring with the rotation timer as a red seal, its name and rate, the rate of each rarity,
+    both pity counters, and the Details and Auto Sell links. Adds the Summon page's featured unit to the 4.36 portrait
+    list. The three summons are red hanko seals at the bottom right: 十 Many 500, 一 Once 50 (largest, centre), 自 Auto;
+    a press scales to 0.94 in 0.12 s. The gem balance sits on a paper slip above them. Top right: Close, and under it the
+    gem packs the page sells, as hanging burgundy tags with pink rims (the owner's one change to R3).
+  - Summon 1:1 reference (owner 2026-11-19: "Set this reference image for 1-1 redesign or implementation of summon
+    screen. Current summon screen is close to reference but make it 1-1"; image `assets/ui/summon_ref/owner_reference_2026-11-19.png`).
+    The page matches that image; where it differs from the R3 lines above, the image wins. Layout, kit, motion, controls,
+    costs, odds, pity and server rules are unchanged. Differences from the R3 build: the rotation timer is a larger red
+    seal ("Ends in" over the time) at the enso's lower right; the featured rate sits in a red brush pill in white
+    ("Mythic, 0.5%"); under a thin rule the rarity rates and the pity counters are two columns split by a thin vertical
+    rule, the counters labelled "Legendary Pity" and "Mythic Pity", each with its bar; Details, Auto Sell and Info are
+    three outlined paper buttons in the brush face (Details with a vermilion rim and a small red 選 seal at its corner),
+    replacing the links; the three summon buttons are equal cream paper tiles with a brown rim, a dark ink glyph
+    (+ Many, - Once, 自 Auto), the label, and the cost or "until stop" (replaces the red hanko seals and the larger Once);
+    the gem packs are burgundy cards with pink rims hung on one cord from the top right, each with gem art at its left,
+    the pack name, "+1K Gems" / "+2.5K Gems", the Robux price in gold and a cream Buy pill; More shows a chest of gems and
+    a cream arrow pill; on the stage the names are white with a dark outline, rarities in their colour with a dark
+    outline, and the centre's "Featured!" sits with a star in a dark red pill above the Mythic's name; the two
+    Legendaries stand Beroo left, Ryuuk right as drawn. Sizes and colours are **proposed** within the image's look.
+    Owner approved the built page from the Studio capture on 2026-11-20 ("summon page looks good to me for now, can mark
+    as approved"): parchment scroll skin edge to edge with brown wood rods and leather strips, Kalam Bold on the paper
+    buttons and pack titles, equal wood-plank summon tiles, burgundy pack cards on a red beaded cord. The More card's
+    chest of gems stays a gem cluster until a chest image is uploaded (**open question**).
+  - Team Setup (T2): one tall scroll on the left is the team ledger: wordmark, "Team 1" and its status, n / 3, three
+    numbered rows (seal 一 二 三, portrait, name, rarity, cruise, relic and Sidekick icons with their tooltips; the picked
+    row has a cyan bar), Team Bonus with View (opens the popover), and on its bottom mount Quick Setup and Deploy. The
+    stage view shifts right so the three altars stand beside the scroll. Each altar carries a numbered seal (the picked
+    one glows cyan) instead of the SLOT label and the name line; an empty altar keeps "+" and "Add Character". The roster
+    is a horizontal handscroll along the bottom, right of the ledger, with the Characters and Sidekicks tabs, Sort and
+    search at its left end; cards are paper cards with portrait, name, rarity strip, the team-slot seal, and the relic
+    and Sidekick icons as before. Close at the top right. The top-centre slot dots go (the ledger shows the slots).
+
+- Team Select night dojo (owner 2026-11-19/20; replaces T2 "Ledger scroll" where they differ, and in the base Team Setup bullet above
+  it replaces the blossom-shrine backdrop, the pink / cyan light columns (a soft red-pink aura behind the centre member
+  instead), the equal one-slab altars (pink top, cyan rim, sakura emblem) and the diamond / circle relic and Sidekick
+  icons (square icons as drawn); the plaza Team altar keeps its slab until the owner rules on it (**open question**);
+  approved from the Studio captures
+  https://claude.ai/artifact/16AdtJyLjWfV8AUwD2mo4D on 2026-11-20). Reference: the owner's Team Select image (in
+  assets/ui/team_dojo/drafts and the review pages). Sizes, offsets and timings are **proposed**; the look is fixed.
+  - Backdrop: the night-dojo plate (assets/ui/team_dojo, `rbxassetid://84852553726102`), floor vanishing point (1089, 242)
+    on 1920x1080. Stage: one ViewportFrame camera matched to it (level, 6.52 studs up, focal 1870 px). Altars: two-tier
+    octagons in dark lacquered wood with gold trim, a flat face to the camera, a glowing gold-orange ring on top. Slot 1
+    centre X 0 depth 35.1 (r 5.9/4.9, h 1.42, scale 1.0); slots 2 and 3 at X -9.37 / 10.26, depth 47.5 (r 3.5/3.1,
+    h 0.60, scale 0.905), turned 11 deg / -12 deg toward the camera.
+  - Members: the real character models in an idle stance (legs out 13 deg, arms out 15/19 deg and forward 8/14 deg,
+    3 deg lean, head tilt 2.5 deg) with breathing on top (3.4 s sine; torso Y +2.2 %, Z +3 %, rise 0.035; shoulders
+    rise 0.05 and roll 2 deg; head nod 2 deg; sway 0.46 deg over two breaths; slots offset 1.12 s and 2.24 s).
+  - UI (Makimono layout, Summon parchment look): header bar, left parchment scroll (Team 1 row, Team Status, Team
+    Members, Team Bonus with the preset name in a red brush pill, Quick Setup, Deploy), nameplates in dark lacquer with
+    gold (centre pink with a star) over each member, the "1 Selected" plate and 2 / 3 badges on the altars, pink ring
+    arrows on the ellipse centred (1102, 442) 555 x 149, nav arrows, Characters / Sidekicks tabs, Search, Sort, and the
+    roster handscroll of parchment cards. Drawn icons from assets/ui/team_icons.
+  - **Open questions** (the look shows them; behaviour unchanged until the owner rules): the Team 1 dropdown and pencil
+    (one team, no rename today); cruise shown where the reference shows Lv. and Power; Team Bonus shows only the
+    4.8 series / preset bonus; what the ‹ › nav arrows do (the approved captures show the reference's fixed order,
+    slot 1 in the centre); how a picked altar shows now that the rings are gold-orange (until ruled, the picked slot keeps
+    the "Selected" plate and a brighter ring); the plaza Team altar's look.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -693,7 +779,7 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 - Free auto-spins stay the main source of characters.
 - Any spin bought with Robux, or with a currency bought with Robux, shows every outcome with its odds as a percentage
   (summing to exactly 100%) before purchase, behind a button labelled "Info" or "Details" (not a bare icon).
-- Paid luck boosts and any pity system show the updated odds while active. The roll view and the luck Shop cards have a "Details" button listing every outcome as a percentage at the player's current luck (owner 2026-11-04).
+- Paid luck boosts and any pity system show the updated odds while active. The roll view and the luck Shop cards have a "Details" button listing every outcome as a percentage at the player's current luck (owner 2026-11-04). Sidekick summons (Gems) list their odds per rarity, each rarity summed, the Secret first, as SIDEKICK_SPEC Details says (owner 2026-11-20), with every Sidekick on the current banner listed under its rarity at its own rate, so every outcome shows (owner 2026-11-20).
 - Users flagged by `PolicyService:GetPolicyInfoForPlayerAsync` (`ArePaidRandomItemsRestricted`) get a free earnable
   path to every paid-random item, or see fixed disclosed outcomes; such items are not tradable.
 
@@ -711,6 +797,7 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-20: owner: Sidekick summon Details list odds per rarity (section 6, SIDEKICK_SPEC); Team Setup stays full screen and the Team button does not close it (4.40, 4.45).
 - 2026-11-17: owner, after the rules audit: Team Setup asks Deploy or Discard before another page opens over an undeployed draft, and an untouched draft follows a saved Team change (4.45, TEAM_AND_STAMINA_SPEC).
 - 2026-11-17: owner: Sakura Dojo pages: shared petal transition for Summon and Team; Summon button in the right column (G) and the altar prompt "Summon"; Team opens from the button, the minibar and a new plaza Team altar at (-3.1, 83.9); Team Setup replaces panel A with three octagonal altars, a roster tray with relic and Sidekick icons, Quick Setup (highest cruise) and Deploy (staged draft) (4.45; replaces parts of 4.40 and 4.43).
 - 2026-11-16: owner: both power-ups are timed boosts and there are more per track: Speed is x1.2 for 1 s (was 2 s); Stamina stops the running character's stamina from draining for 2 s (was +3 s / +2 s of extra seconds, no more overfill); about 1 per 500 studs (was 1,000) (4.3, 4.18, 4.44, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC).
@@ -839,3 +926,23 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: playtest notes: Big Raga's rise is 1.5 s, replacing 2-3 s; Bosses button and popup; separate event roster on the minibar, greyed with a revive fill during the wait (4.37). Sidekick and Relic click menu, character picker, sale confirmation (4.36). Relics sell for Money; Index Relics page (4.38). Auto icon stays green, arrows spin when on (4.40). Red fading BAG FULL text replaces the banner; click and mass sell of spares (4.41).
 - 2026-11-05: owner: enemies much faster. A Common does not outrun the Track 1 enemy and a Rare is about level with it; NPC formula `48 x 1.363^(n-1)` (placeholder), replacing `16 x 1.51^(n-1)` and the 2026-11-03 "Track 1 balance kept" (4.13).
 - 2026-11-04: owner: Tracks panel is one list of long horizontal cards with a road screenshot, a brief anime-context definition, recommended speed and enemy name; a card click picks the checkpoint; no 3D render, detail pane or START HERE (4.15).
+- 2026-11-19: owner: the Summon page matches the owner's reference image 1:1 (4.45 "Summon 1:1 reference"); Team Select is being redrawn separately.
+- 2026-11-20: owner approved the Summon 1:1 page from the Studio capture (4.45 "Summon 1:1 reference").
+- 2026-11-20: owner approved the Team Select redesign from the Studio draft (4.45 "Team Select night dojo"): night-dojo plate, two-tier lacquer altars with gold-orange top rings, real models in an idle stance with breathing, Makimono layout with the Summon parchment scroll look, drawn icons (assets/ui/team_icons).
+- 2026-11-20: owner approved the audit fixes (unattended night run; tunable values cite the line that marks them):
+  - 4.41 auto sell starts on at N = 1 (Commons) for brand new saves only; written saves keep theirs. Bag full tip on the first BAG FULL of a session (4.21 style, no dim). Common sale price $5 -> $2 (4.41 "prices **proposed**", BAG_AND_AUTOSELL_SPEC).
+  - 4.3 with Auto on, the next run starts by itself 3 s (**proposed**) after the team tires; the idle kick still applies (TEAM_AND_STAMINA_SPEC).
+  - 4.2 kept rolls fill empty Team slots, never filled ones; while running they wait for the player to be on foot (TEAM_AND_STAMINA_SPEC).
+  - Rare `Chance` db_scholar 1,000 -> 600, ds_thunder 4,000 -> 700, mha_icefire 13,000 -> 1,500 (CHARACTER_GACHA_SPEC "Placeholder `Chance`", inside the Rare band 500-13,000).
+  - Turbo luck x10 -> x30 (section 3 table "turbo luck every 10th roll x10 (placeholder)"; `UpgradeConfig.BASE_TURBO`, CHARACTER_GACHA_SPEC).
+  - Stamina Uncommon 15.5 -> 17, Rare 18 -> 21 (4.3 "in-between values proposed"); Common stays 13.5.
+  - NPC speed Tracks 2-8 -> 56 / 66 / 88 / 130 / 190 / 280 / 410 studs/s; Tracks 1, 9 and 10 keep `48 x 1.363^(n-1)` (4.13 "NPC formula, placeholder"; NPC_RIVAL_SPEC, TRACKS_AND_BIOMES_SPEC).
+  - Power-up mix 50/50 -> 70% Stamina / 30% Speed (POWERUP_SPEC "Type 50/50 ... (**proposed**)").
+  - Rebirth price x10 each up to rebirth 7, then x4 (4.14 "x10 each after (placeholder)").
+  - Checkpoint bonus cap x2 -> x3 (4.15 "placeholders +10% per track, cap x2").
+  - Saitamo stamina 27 s -> 6 s, speed 350 unchanged (4.39 "Mythic look and stamina (**proposed**)"; MONETIZATION_SPEC).
+  - Quest names "Finish 3 races" / "Finish 20 races" -> "Win 3 races" / "Win 20 races": the count was always track wins.
+  - 4.36 Summon, Bosses, the plaza SIDEKICKS sign and the Bag's Sidekicks and Relics tabs hidden until rebirth 1.
+  - 4.20 REDUCED EFFECTS starts on for low graphics levels (1-3) and small touch-only screens when not chosen this session.
+  - Fixes with no rule change: Daily popup cards held at the top-left on the join popup (only Day 7 showed); the "+$X" money float starts right of the Money text, clear of the left column; loading screen bar colours moved to the palette (UiTheme.Dojo Cyan and Sakura).
+  - Not changed, waiting on the owner: Dojo look on every screen, potion length (4.7 15 min vs spec 60 s), Quick Setup effective vs base cruise, Speed III BestTrack 2 gate, early tier prices, soft cap, new-player boost, guaranteed Rare by roll 10, rebirth luck table.

@@ -940,25 +940,40 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 		ItemMenu.Close()
 	end
 end)
+-- Data changes redraw an open grid once per frame at most, and only for the tab that shows them: boost counts are on
+-- Misc only, owned cosmetics on Trails / Auras only (race wins and rolls change them often).
+local renderQueued = false
+local function renderSoon()
+	if renderQueued then
+		return
+	end
+	renderQueued = true
+	task.defer(function()
+		renderQueued = false
+		if panel.Visible then
+			render()
+		end
+	end)
+end
 player.AttributeChanged:Connect(function(attr)
 	local watched = attr == "SidekickBag"
 		or attr == "SidekickGear"
 		or attr == "RelicBag"
 		or attr == "RelicGear"
-		or attr:sub(1, 6) == "Boost_"
-		or attr:sub(1, 3) == "Own"
+		or attr:sub(1, 6) == "Boost_" and current == "Misc"
+		or attr:sub(1, 3) == "Own" and (current == "Trails" or current == "Auras")
 		or attr:sub(1, 8) == "Equipped"
 		or attr:match("^Slot%d") ~= nil
 		or attr == "Team"
 	if panel.Visible and watched then
-		render()
+		renderSoon()
 	end
 end)
 task.spawn(function()
 	local data = player:WaitForChild("GachaData")
 	local function changed()
 		if panel.Visible and current == "Characters" then
-			render()
+			renderSoon()
 		end
 	end
 	data.ChildAdded:Connect(changed)
@@ -989,6 +1004,13 @@ end
 for order, setLit in g.Tabs(tabButtons) do
 	tabs[TAB_NAMES[order]].SetLit = setLit
 end
+-- Sidekicks and Relics wait for rebirth 1 (owner 2026-11-20, design doc 4.36); they are the row's last two, so no gap opens.
+local function refreshUnlocks()
+	local open = (player:GetAttribute("RebirthLevel") or 0) >= SidekickConfig.HudFromRebirth
+	tabs.Sidekicks.Button.Visible, tabs.Relics.Button.Visible = open, open
+end
+player:GetAttributeChangedSignal("RebirthLevel"):Connect(refreshUnlocks)
+refreshUnlocks()
 for _, button in { sortButton, massSell, sellSpares, massAll, massGo, massCancel } do
 	button.BorderSizePixel = 0
 	g.Button(button, (button == massSell or button == massGo) and "Danger" or "Idle")

@@ -18,11 +18,14 @@
 --     BonusPopover (hidden until BonusButton; a second press hides it): Name (bonus or "No team bonus"), Effect, Total
 --     ("Total <n> s"). Dots/Dot1..3: BackgroundTransparency < 0.5 when that draft slot is filled, else >= 0.5.
 --     Altars/Altar1..3 (TextButtons, left to right, same Y, not overlapping): SlotLabel "SLOT n"; Pedestal (ViewportFrame
---     holding a Model "Altar", and a Model "Figure" (the member's 3D model) only on a member altar); a member shows Portrait (ImageLabel, its CharacterPortraits image), Name (character name),
---     Info ("<Rarity> · <n> studs/s") and hides Plus / Add; an empty altar shows Plus "+" and Add "Add Character" and hides
---     Portrait / Name / Info. Remove "Remove" shows only on the selected altar holding a member; attribute Selected on it.
+--     holding a Model "Altar", and a Model "Figure" (the member's 3D model) only on a member altar); its Portrait, Name and
+--     Info stay hidden (owner 2026-11-19, 4.45 T2: a numbered seal instead of the name line); a member hides Plus / Add;
+--     an empty altar shows Plus "+" and Add "Add Character". Remove "Remove" shows only on the selected altar holding a
+--     member; attribute Selected on it. LedgerRows/Row1..3 (GuiButtons): a member shows Portrait (ImageLabel, its
+--     CharacterPortraits image), Name (character name), Rarity (its rarity), Cruise ("<n> studs/s"); an empty row shows no
+--     portrait image, no character name, no Rarity / Cruise text.
 --     Footer: TeamName "Team 1", Status "Ready" (draft == saved Team) or "Unsaved changes" (or the server's refusal),
---     Count "<n> / 3 Slots Filled", Progress/Fill Size.X.Scale = n/3. Tray: Tabs/Characters, Tabs/Sidekicks (attribute
+--     Count "<n> / 3", Progress/Fill Size.X.Scale = n/3. Tray: Tabs/Characters, Tabs/Sidekicks (attribute
 --     Active on the shown one), Sort (GuiButton), Search (TextBox), Roster (ScrollingFrame): one card per owned character
 --     named by its id with a green TextLabel Badge "TEAM n" on draft members. QuickSetup, Deploy (attribute Enabled false
 --     while draft == saved Team or the draft is empty). ConfirmClose (hidden; Deploy, Discard). No BestTeam anywhere; no
@@ -62,6 +65,7 @@ local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has foll
 local TOL = 1 -- px
 local DOT_FILLED = 0.5 -- Dot BackgroundTransparency below this: filled
 local FILL_TOL = 0.02 -- Progress/Fill Size.X.Scale against n/3
+local GEAR_CLEAR = 4 -- px between an altar's Gear and its SlotLabel (112999f)
 
 local Module = {}
 
@@ -133,13 +137,17 @@ function Module.Build(h)
 		end
 		return ids
 	end
-	-- The ids the altars show, in slot order (nil for an empty altar), read from Name against the catalog.
+	local function row(n)
+		return h.find(T.Ledger .. "/Row" .. n)
+	end
+	-- The ids the ledger rows show, in slot order (nil for an empty slot), read from Name against the catalog
+	-- (owner 2026-11-19, 4.45 T2: the member's name shows in its ledger row, not on the altar).
 	local function draftShown()
 		local out = {}
 		for n = 1, 3 do
-			local a = altar(n)
-			local name = a and shown(a:FindFirstChild("Name")) and textOf(a:FindFirstChild("Name"))
-			if name then
+			local r = row(n)
+			local name = r and shown(r:FindFirstChild("Name")) and textOf(r:FindFirstChild("Name"))
+			if name and name ~= T.AddText and name ~= "" then
 				for _, spec in Catalog.All() do
 					if spec.Name == name then
 						out[n] = spec.Id
@@ -152,7 +160,7 @@ function Module.Build(h)
 		return out
 	end
 
-	-- What the altars show against the draft `ids` (slot n empty when ids[n] is nil).
+	-- What the altars and ledger rows show against the draft `ids` (slot n empty when ids[n] is nil).
 	local function altarProblems(ids)
 		local wrong = {}
 		for n = 1, 3 do
@@ -183,8 +191,20 @@ function Module.Build(h)
 					)
 				)
 			end
-			local portrait, name, info =
-				a:FindFirstChild("Portrait"), a:FindFirstChild("Name"), a:FindFirstChild("Info")
+			-- Owner 2026-11-19 (4.45 T2): the altar carries a numbered seal instead of the name line; the member's
+			-- portrait, name, rarity and cruise show in its ledger row
+			for _, part in { "Portrait", "Name", "Info" } do
+				if shown(a:FindFirstChild(part)) then
+					table.insert(wrong, ("%s: %s shown (T2: the ledger row shows it)"):format(tag, part))
+				end
+			end
+			local r, rowTag = row(n), "Ledger Row" .. n
+			if not (r and r:IsA("GuiButton")) then
+				table.insert(wrong, rowTag .. " missing (GuiButton)")
+				continue
+			end
+			local portrait, name = r:FindFirstChild("Portrait"), r:FindFirstChild("Name")
+			local rarity, cruise = r:FindFirstChild("Rarity"), r:FindFirstChild("Cruise")
 			local plus, add = a:FindFirstChild("Plus"), a:FindFirstChild("Add")
 			local spec = ids[n] and Catalog.Get(ids[n])
 			if not spec then
@@ -194,9 +214,16 @@ function Module.Build(h)
 				if not (shown(add) and textOf(add) == T.AddText) then
 					table.insert(wrong, tag .. ': empty, Add "Add Character" not shown')
 				end
-				for _, o in { portrait, name, info } do
-					if shown(o) then
-						table.insert(wrong, tag .. ": empty, " .. o.Name .. " shown")
+				if shown(portrait) and portrait:IsA("ImageLabel") and portrait.Image ~= "" then
+					table.insert(wrong, rowTag .. ": empty, Portrait image " .. portrait.Image .. " shown")
+				end
+				local shownName = shown(name) and textOf(name)
+				if shownName and shownName ~= T.AddText and shownName ~= "" then
+					table.insert(wrong, ("%s: empty, Name %q shown"):format(rowTag, shownName))
+				end
+				for _, o in { rarity, cruise } do
+					if shown(o) and (textOf(o) or "") ~= "" then
+						table.insert(wrong, ("%s: empty, %s %q shown"):format(rowTag, o.Name, textOf(o)))
 					end
 				end
 				continue
@@ -206,16 +233,20 @@ function Module.Build(h)
 			end
 			local image = Portraits[spec.Id] or Portraits[spec.Model or spec.Id]
 			if not (portrait and portrait:IsA("ImageLabel") and shown(portrait)) then
-				table.insert(wrong, tag .. ": Portrait not a shown ImageLabel")
+				table.insert(wrong, rowTag .. ": Portrait not a shown ImageLabel")
 			elseif image and portrait.Image ~= image then
-				table.insert(wrong, ("%s Portrait %s, want %s's %s"):format(tag, portrait.Image, spec.Id, image))
+				table.insert(wrong, ("%s Portrait %s, want %s's %s"):format(rowTag, portrait.Image, spec.Id, image))
 			end
 			if textOf(name) ~= spec.Name or not shown(name) then
-				table.insert(wrong, ("%s Name %q, want %q"):format(tag, tostring(textOf(name)), spec.Name))
+				table.insert(wrong, ("%s Name %q, want %q"):format(rowTag, tostring(textOf(name)), spec.Name))
 			end
-			local infoText = shown(info) and textOf(info) or ""
-			if not (string.find(infoText, spec.Rarity, 1, true) and string.find(infoText, "studs/s", 1, true)) then
-				table.insert(wrong, ('%s Info %q, want "%s · <n> studs/s"'):format(tag, infoText, spec.Rarity))
+			local rarityText = shown(rarity) and textOf(rarity) or ""
+			if rarityText ~= spec.Rarity then
+				table.insert(wrong, ("%s Rarity %q, want %q"):format(rowTag, rarityText, spec.Rarity))
+			end
+			local cruiseText = shown(cruise) and textOf(cruise) or ""
+			if not string.find(cruiseText, "studs/s", 1, true) then
+				table.insert(wrong, ('%s Cruise %q, want "<n> studs/s"'):format(rowTag, cruiseText))
 			end
 		end
 		return wrong
@@ -372,14 +403,14 @@ function Module.Build(h)
 	-- Design doc 4.40 (owner 2026-11-12): in the second column under Bosses, level with the Items / Rebirth gap.
 	local function checkPlace(res)
 		local b, boss, grid = h.find(T.Button), h.find(BOSS_BUTTON), h.find(GRID)
-		local r = b and shown(b) and h.rect(b)
-		local br = boss and shown(boss) and h.rect(boss)
+		local r = b and shown(b) and h.rect(b) or nil
+		local br = boss and shown(boss) and h.rect(boss) or nil
 		h.check(
 			res,
 			"team_button_left_edge_as_bosses",
 			r and r.x or "no " .. T.Button,
 			br and ("%.1f +/- %d"):format(br.x, X_TOL) or "no " .. BOSS_BUTTON,
-			r ~= nil and br ~= nil and math.abs(r.x - br.x) <= X_TOL
+			(r and br and math.abs(r.x - br.x) <= X_TOL) == true
 		)
 		local cells = {}
 		for i, name in COLUMN_CELLS do
@@ -394,7 +425,7 @@ function Module.Build(h)
 			"team_button_between_items_and_rebirth",
 			mid or "no " .. T.Button,
 			wantMid and ("%.1f +/- %d"):format(wantMid, MID_TOL) or "no " .. GRID .. " Items / Rebirth",
-			mid ~= nil and wantMid ~= nil and math.abs(mid - wantMid) <= MID_TOL
+			(mid and wantMid and math.abs(mid - wantMid) <= MID_TOL) == true
 		)
 		for i, name in COLUMN_CELLS do
 			local cell, hit = cells[i], nil
@@ -524,7 +555,9 @@ function Module.Build(h)
 		end
 		check(res, "team_quick_setup_text", textOf(h.find(T.QuickSetup)), "Quick Setup")
 		check(res, "team_deploy_text", textOf(h.find(T.Deploy)), "Deploy")
-		check(res, "team_bonus_button_text", textOf(h.find(T.BonusButton)), "Team Bonus")
+		-- Team Bonus with its View link (design doc 4.45 T2 "Ledger scroll"): the button reads View, the label beside it.
+		check(res, "team_bonus_button_text", textOf(h.find(T.BonusButton)), "View")
+		check(res, "team_bonus_label_text", textOf(h.find(T.Panel .. "/Header/BonusLabel")), "Team Bonus")
 		check(res, "team_bonus_popover_hidden_at_open", shown(h.find(T.BonusPopover)), false)
 		check(res, "team_confirm_close_hidden_at_open", shown(h.find(T.ConfirmClose)), false)
 		for _, name in T.Gone do
@@ -681,6 +714,23 @@ function Module.Build(h)
 		local worn = SidekickView.RelicGear(player)[ids[1]] ~= nil
 		check(res, "team_gear_fixture_relic_on_first", worn, true)
 		h.checkList(res, "team_gear_icons", wrong)
+		-- 112999f: an altar's gear icons sit right of the seal, GEAR_CLEAR px clear of its SlotLabel (the eye check
+		-- runs it at 4:3, where it is tightest)
+		local crowded = {}
+		for n = 1, 3 do
+			local a = altar(n)
+			local gear = ids[n] and a and a:FindFirstChild("Gear", true)
+			local label = a and a:FindFirstChild("SlotLabel", true)
+			if gear and label and shown(gear) and shown(label) then
+				local l = h.rect(label)
+				local grown =
+					{ x = l.x - GEAR_CLEAR, y = l.y - GEAR_CLEAR, w = l.w + 2 * GEAR_CLEAR, h = l.h + 2 * GEAR_CLEAR }
+				if overlaps(grown, h.rect(gear)) then
+					table.insert(crowded, "Altar" .. n .. ": Gear within " .. GEAR_CLEAR .. " px of SlotLabel")
+				end
+			end
+		end
+		h.checkList(res, "team_gear_clear_of_slot_label", crowded)
 		checkTooltip(res, icons[1])
 	end
 
@@ -704,6 +754,14 @@ function Module.Build(h)
 				return #rosterProblems({ ids[1], ids[2] }) == 0
 			end, true)
 			h.checkList(res, "team_ab_roster", wrong and {} or rosterProblems({ ids[1], ids[2] }))
+			-- 112999f: a gamepad starts on the first altar (FirstFocus), not on Close; only Altar1 carries it
+			local firstFocus = {}
+			for _, d in h.find(T.Panel) and h.find(T.Panel):GetDescendants() or {} do
+				if d:IsA("GuiButton") and d:GetAttribute("FirstFocus") then
+					table.insert(firstFocus, d.Name)
+				end
+			end
+			check(res, "team_first_focus_is_altar1", table.concat(firstFocus, ","), "Altar1")
 			for n = 1, 3 do
 				local a = altar(n)
 				check(
@@ -821,6 +879,11 @@ function Module.Build(h)
 			false
 		)
 	end
+	-- team_button_closes (owner 2026-11-20): the open page was frontmost over the Team button before its Close was pressed.
+	function after.team_page_covers_button(res)
+		local watch = Spec.Team.CoverWatch
+		h.check(res, "team_page_covers_team_button", watch.Front, "inside RacerTeam", watch.Covered == true)
+	end
 	function after.team_dim_on(res)
 		check(res, "team_open_dims_world", waitIs(dimOn, true), true)
 	end
@@ -918,6 +981,62 @@ function Module.Build(h)
 		)
 		check(res, "team_confirm_page_open", shown(h.find(T.Panel)), true)
 		savedIs(res, "team_confirm", "ab", true)
+	end
+	-- 112999f: the question has a blocker behind it (ConfirmBlocker shown with ConfirmClose); Back (gamepad B, Escape:
+	-- PanelSwitch.Back) closes the question first and keeps the page and the draft. The real key press is an eye check.
+	local function blockerShown()
+		return shown(h.find(T.Panel .. "/ConfirmBlocker"))
+	end
+	function after.team_confirm_back(res)
+		local confirm = h.find(T.ConfirmClose)
+		check(
+			res,
+			"team_back_confirm_shown",
+			waitIs(function()
+				return shown(confirm)
+			end, true),
+			true
+		)
+		check(res, "team_back_blocker_with_confirm", waitIs(blockerShown, true), true)
+		panelSwitch().Back("Team")
+		check(
+			res,
+			"team_back_hides_confirm",
+			waitIs(function()
+				return shown(confirm)
+			end, false),
+			false
+		)
+		check(res, "team_back_hides_blocker", waitIs(blockerShown, false), false)
+		check(res, "team_back_keeps_page", shown(h.find(T.Panel)) and panelSwitch().IsOpen("Team"), true)
+		savedIs(res, "team_back", "ab", true)
+	end
+	-- 112999f: asking for the Sidekicks page over a dirty draft asks Deploy / Discard first (Team stays open) ...
+	function after.team_ask_sidekicks(res)
+		panelSwitch().Toggle("Sidekicks")
+		check(
+			res,
+			"team_ask_confirm_shown",
+			waitIs(function()
+				return shown(h.find(T.ConfirmClose))
+			end, true),
+			true
+		)
+		check(res, "team_ask_page_stays", shown(h.find(T.Panel)), true)
+		check(res, "team_ask_sidekicks_not_yet", panelSwitch().IsOpen("Sidekicks"), false)
+	end
+	-- ... and Discard then opens the Sidekicks page that was asked for
+	function after.team_discard_opens_sidekicks(res)
+		check(
+			res,
+			"team_discard_then_sidekicks_open",
+			waitIs(function()
+				return panelSwitch().IsOpen("Sidekicks") and shown(h.find(T.SummonPanel))
+			end, true),
+			true
+		)
+		check(res, "team_discard_then_team_closed", shown(h.find(T.Panel)), false)
+		savedIs(res, "team_discard_sidekicks", "ab", true)
 	end
 	function after.team_discarded(res)
 		savedIs(res, "team_discard", "ab", true)

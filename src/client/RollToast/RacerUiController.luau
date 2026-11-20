@@ -629,7 +629,8 @@ local savedCameraSubject, savedFieldOfView
 local function restoreTopDownCamera(camera)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local wasScripted = topDownWasActive or camera.CameraType == Enum.CameraType.Scriptable
+	-- Only a camera this view took: the Summon page and the arrival sweep own a Scriptable camera of their own
+	local wasScripted = topDownWasActive
 	topDownWasActive = false
 	if wasScripted then
 		camera.CameraType = Enum.CameraType.Custom
@@ -995,7 +996,7 @@ local function indexFrame(refs, icon, content)
 			closeArt.AnchorPoint = Vector2.zero
 			closeArt.Position, closeArt.Size = UDim2.fromOffset(-8, -10), UDim2.new(1, 16, 1, 20)
 		end
-		g.W, g.H, g.Tabs = W, H, small and 90 or 98
+		g.W, g.H, g.Tabs, g.Phone = W, H, small and 90 or 98, small
 		g.Top = small and 144 or 164
 		g.Height = H - g.Top - 82
 		content(g)
@@ -1040,6 +1041,30 @@ local function footerLine(refs, g, value)
 	g.Role(line, "Body", true)
 end
 
+-- The phone-only scrolling middle of the Rebirth panel (rewards and requirements); nil on desktop, where both go back
+-- to the panel face. Styled like the Player Profile list.
+local function rebirthMiddle(phone)
+	local middle = rebirth.Panel:FindFirstChild("RebirthMiddle")
+	if phone and not middle then
+		middle = Instance.new("ScrollingFrame")
+		middle.Name = "RebirthMiddle"
+		middle.BackgroundTransparency = 1
+		middle.BorderSizePixel = 0
+		middle.ScrollBarThickness = 5
+		middle.ScrollBarImageColor3 = palette.Muted
+		middle.ScrollingDirection = Enum.ScrollingDirection.Y
+		middle.ClipsDescendants = true
+		middle.ZIndex = 3
+		middle.Parent = rebirth.Panel
+	end
+	if middle then
+		middle.Visible = phone
+	end
+	for _, part in { rebirth.Rewards, rebirth.Requirements } do
+		part.Parent = phone and middle or rebirth.Panel
+	end
+	return phone and middle or nil
+end
 indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
 	tabsRow(rebirth.Header.RebirthTabs, g)
 	footerLine(rebirth, g, string.format("REBIRTH LEVEL %d", player:GetAttribute("RebirthLevel") or 0))
@@ -1071,11 +1096,31 @@ indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
 	local rewardsTop = g.Top + warnH + gap
 	local cardH = math.max(0, reqTop - gap - rewardsTop - headH - inner)
 	local cardW = math.floor((width - 2 * gap) / 3)
+	local stepX, stepY, rewardsH = cardW + gap, 0, headH + inner + cardH
+	-- Phones: the content needs more height than the panel has (UI audit), so rewards and requirements scroll in a
+	-- list left of the REBIRTH button, under the warning; both stay fixed. Desktop keeps them on the panel face.
+	local middle = rebirthMiddle(g.Phone)
+	if middle then
+		buttonW = u(110)
+		local listW = width - buttonW - gap
+		place(rebirth.RebirthButton.Parent, left + width - buttonW, bottom - buttonH, buttonW, buttonH)
+		place(middle, left, rewardsTop, listW, bottom - rewardsTop)
+		left, rewardsTop, width = 0, 0, listW - u(12) -- clear of the scroll bar
+		cardH, cardW = lineH + 2 * inner, width
+		stepX, stepY = 0, cardH + inner
+		rewardsH = headH + inner + 3 * cardH + 2 * inner
+		reqW, reqTop = width, rewardsH + gap
+		place(rebirth.Requirements, 0, reqTop, reqW, reqH)
+		place(rebirth.RequirementsTitle, 0, 0, reqW, headH)
+		place(rebirth.Bar.Parent, 0, headH + inner, reqW, barH)
+		place(rebirth.BarText, 0, 0, reqW, barH)
+		middle.CanvasSize = UDim2.fromOffset(0, reqTop + reqH)
+	end
 	local iconSize = math.max(0, cardH - 2 * inner)
-	place(rebirth.Rewards, left, rewardsTop, width, headH + inner + cardH)
+	place(rebirth.Rewards, left, rewardsTop, width, rewardsH)
 	place(rebirth.RewardsTitle, 0, 0, width, headH)
 	for i, name in { "LuckReward", "SpeedReward", "PointReward" } do
-		place(rebirth[name].Parent, (i - 1) * (cardW + gap), headH + inner, cardW, cardH)
+		place(rebirth[name].Parent, (i - 1) * stepX, headH + inner + (i - 1) * stepY, cardW, cardH)
 		local icon, caption = rebirth[name .. "Icon"], rebirth[name .. "Caption"]
 		place(icon, pad, inner, iconSize, iconSize)
 		local x = pad + iconSize + inner
@@ -1292,16 +1337,17 @@ end
 -- HudChrome icon grid on the left (and the same margin on the right). The generated fit sizes them;
 -- here their UIScale shrinks below the generated k only when the band is too small (owner decision 2026-10-08;
 -- the compact roll hides while a panel is open). All these ScreenGuis ignore the top-bar inset.
+-- Returns true once it has fitted them.
 local function fitPanels()
 	local camera = workspace.CurrentCamera
 	if not camera or camera.ViewportSize.X <= 1 then
-		return
+		return false
 	end
 	local viewport = camera.ViewportSize
 	-- docs/HUD_LAYOUT_SPEC.md section 6: below Race, above TURBO LUCK and Money, between the icon grid and Shop.
 	local side, top, right, bottom = PanelBand.Rect()
 	if not side then
-		return
+		return false
 	end
 	local width, height = right - side, bottom - top
 	local k = if viewport.Y <= 500
@@ -1324,16 +1370,56 @@ local function fitPanels()
 			frame.Position = UDim2.fromOffset((side + right) / 2, top + height / 2)
 		end
 	end
+	return true
+end
+-- Fit runs while a panel is open (its open / close motion and the band move with it), for one frame after the last one
+-- closes, and once after a viewport change; closed panels need no per-frame layout.
+local fitDirty, fitWasShown = true, false
+local function panelShown()
+	for _, refs in pairs(racerPanels) do
+		if refs.Panel.Parent.Visible then
+			return true
+		end
+	end
+	return false
+end
+local function watchViewport()
+	local camera = workspace.CurrentCamera
+	fitDirty = true
+	if camera then
+		camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+			fitDirty = true
+		end)
+	end
+end
+watchViewport()
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watchViewport)
+local function fitIfNeeded()
+	local shown = panelShown()
+	if shown or fitWasShown or fitDirty then
+		if fitPanels() then
+			fitDirty = false
+		end
+	end
+	fitWasShown = shown
 end
 
 -- The numbers count up towards the server's values (HudFormat.Approach) and pop when they grow (section 9, 10).
+-- Texts are written only when they change; the gems plate follows MoneyValue's layout when that changes.
+local function setText(textLabel, text)
+	if textLabel.Text ~= text then
+		textLabel.Text = text
+	end
+end
 local function refreshReadouts(dt)
 	shownMoney = format.Approach(shownMoney, money.Value, dt)
-	hud.MoneyValue.Text = readable(shownMoney, true)
+	setText(hud.MoneyValue, readable(shownMoney, true))
 	shownGems = format.Approach(shownGems, player:GetAttribute("Gems") or 0, dt)
-	gemsValue.Text = format.Short(shownGems)
-	placeGems()
+	setText(gemsValue, format.Short(shownGems))
 end
+placeGems()
+hud.MoneyValue:GetPropertyChangedSignal("Position"):Connect(placeGems)
+hud.MoneyValue:GetPropertyChangedSignal("Size"):Connect(placeGems)
 -- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
 local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
 local moneyBigOwed = false -- a big gain that landed during a roll: its coins wait for the roll to end
@@ -1353,12 +1439,17 @@ task.spawn(function()
 		end
 	end)
 end)
+-- Right of the Money text, level with its foot: rising from its top-left it ran over the left button column.
 local function floatAtMoney(text)
+	local value = hud.MoneyValue
 	UiMotion.Float(
-		hud.MoneyValue.Parent,
+		value.Parent,
 		text,
 		palette.Money,
-		UDim2.fromOffset(hud.MoneyValue.Position.X.Offset, hud.MoneyValue.Position.Y.Offset)
+		UDim2.fromOffset(
+			value.Position.X.Offset + value.TextBounds.X + 10,
+			value.Position.Y.Offset + value.Size.Y.Offset
+		)
 	)
 end
 -- Owner 2026-11-10 (design doc 4.40): a checkpoint payout floats "Cashed out +$X", the server's amount, by Money while
@@ -1394,7 +1485,7 @@ money.Changed:Connect(function(value)
 end)
 
 RunService.Heartbeat:Connect(function(dt)
-	fitPanels()
+	fitIfNeeded()
 	refreshReadouts(dt)
 	local wrapper = hud.Turbo.Parent
 	local position = wrapper.Position
@@ -1411,18 +1502,25 @@ local function applySound(sound)
 		sound.Volume = muted and 0 or volumes[sound]
 	end
 end
+local addedHook = nil -- game.DescendantAdded, connected only while muted
 settings.SoundToggle.Activated:Connect(function()
 	muted = not muted
-	for _, descendant in ipairs(game:GetDescendants()) do
-		applySound(descendant)
+	if muted then
+		addedHook = game.DescendantAdded:Connect(applySound)
+		for _, descendant in ipairs(game:GetDescendants()) do
+			applySound(descendant)
+		end
+	else
+		addedHook:Disconnect()
+		addedHook = nil
+		for sound, volume in volumes do -- only sounds muted this session hold a stored volume
+			if sound.Parent then
+				sound.Volume = volume
+			end
+		end
 	end
 	switch(settings.SoundToggle, not muted)
 	UiFeedback.Play("Toggle")
-end)
-game.DescendantAdded:Connect(function(descendant)
-	if muted then
-		applySound(descendant)
-	end
 end)
 settings.EffectsToggle.Activated:Connect(function()
 	local reduced = player:GetAttribute("ReduceEffects") ~= true
@@ -1430,6 +1528,16 @@ settings.EffectsToggle.Activated:Connect(function()
 	switch(settings.EffectsToggle, reduced)
 	UiFeedback.Play("Toggle")
 end)
+-- Low-end default (owner 2026-11-20, design doc 4.20): with no choice yet this session (nothing is saved), REDUCED EFFECTS
+-- starts on at a low graphics level (1-3) or on a small touch-only screen. The toggle still flips it.
+if player:GetAttribute("ReduceEffects") == nil then
+	local level = UserSettings():GetService("UserGameSettings").SavedQualityLevel.Value -- 0 = Automatic
+	local view = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+	local touchOnly = UserInputService.TouchEnabled
+		and not UserInputService.KeyboardEnabled
+		and not UserInputService.MouseEnabled
+	player:SetAttribute("ReduceEffects", (level >= 1 and level <= 3) or (touchOnly and math.min(view.X, view.Y) <= 500))
+end
 switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
 

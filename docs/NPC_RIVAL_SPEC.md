@@ -5,7 +5,8 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 
 - One enemy per track, from the anime of that track's biome (design doc 4.26, section 5): `Shared/NpcConfig.Tracks[n]`, its own name (`Label`), colour and `Model`.
 - Speed (placeholder; owner 2026-11-05, design doc 4.13): Track 1 = 48 studs/s, about level with a Rare, so a Common
-  does not outrun it; x1.363 per later track (Track 10 = 779 studs/s), always below `RaceConfig.MAX_CRUISE`.
+  does not outrun it; x1.363 per later track (Track 10 = 779 studs/s), always below `RaceConfig.MAX_CRUISE`. Owner
+  2026-11-20: Tracks 2-8 use set placeholders instead (`NpcConfig.Tracks[n].Speed`): 56, 66, 88, 130, 190, 280, 410.
 - NPC rivals have no stamina: they run the whole track at their speed.
 - Runs the LEFT lane; the player's runner keeps the right lane.
 - Pure maths (`NpcRacer.LanePath`, `Profile`, `PoseAt`): its track time is known when the track starts.

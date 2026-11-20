@@ -4,6 +4,7 @@
 -- the Many summon confirmation, the "You Obtained!" result and the Buy Gems focus state. Display and asks only: the server
 -- decides odds, costs, summons, auto-sell and purchases; this reads the attributes and rotation it already publishes.
 -- One overlay over the summon canvas; one panel at a time. Sizes and colours proposed.
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -13,6 +14,7 @@ local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
 local SidekickConfig = require(Shared:WaitForChild("SidekickConfig"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local Icons = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 
@@ -186,8 +188,14 @@ function SummonPanels.new(canvas, deps)
 	local footer -- the panel's bottom buttons (Cancel / Save ...), when it has some
 	local onClose = nil
 
+	local restoreTo = nil -- the gamepad selection before a panel opened (given back on hide)
 	local function hide()
 		overlay.Visible = false
+		local selected = GuiService.SelectedObject
+		if restoreTo and restoreTo:IsDescendantOf(game) and (selected == nil or selected:IsDescendantOf(overlay)) then
+			GuiService.SelectedObject = restoreTo
+		end
+		restoreTo = nil
 		local after = onClose
 		onClose = nil
 		if after then
@@ -218,7 +226,24 @@ function SummonPanels.new(canvas, deps)
 		icon.Image = iconImage or ""
 		panel.Size = UDim2.fromOffset(W, height + 88)
 		make("UIListLayout", "List", body, { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder })
+		local selected = GuiService.SelectedObject
+		if not overlay.Visible and selected and not selected:IsDescendantOf(overlay) then
+			restoreTo = selected
+		end
 		overlay.Visible = true
+		-- A gamepad (something is selected) starts on the panel's first button: the footer's, a menu row, else the X.
+		task.defer(function()
+			if not (overlay.Visible and GuiService.SelectedObject) then
+				return
+			end
+			local first = nil
+			for _, b in (footer or body):GetDescendants() do
+				if b:IsA("GuiButton") and (not first or b.LayoutOrder < first.LayoutOrder) then
+					first = b
+				end
+			end
+			GuiService.SelectedObject = first or close
+		end)
 		panel.Position = UDim2.new(0.5, 0, 0.5, 12)
 		panel.BackgroundTransparency = 0
 		UiMotion.Create(panel, SHOW, { Position = UDim2.fromScale(0.5, 0.5) }):Play()
@@ -344,9 +369,18 @@ function SummonPanels.new(canvas, deps)
 
 	-- 3. Show Chances: the odds summed per rarity (and the Secret), shown before any summon.
 	function self.Chances()
+		-- A due pity guarantee is the odds now (SIDEKICK_SPEC "No luck ... only pity does, and Details shows it"; section 6):
+		-- the tier reads 100%, every other rarity (the Secret too) 0%.
+		local tier = nil
+		if (player:GetAttribute("SidekickPity") or 0) >= SidekickConfig.PityCount - 1 then
+			tier = "Mythic"
+		elseif (player:GetAttribute("SidekickLegendaryPity") or 0) >= SidekickConfig.LegendaryPityCount - 1 then
+			tier = "Legendary"
+		end
 		local sums = {}
 		for _, item in oddsList(deps.Rotation()) do
-			sums[item.Row.Rarity] = (sums[item.Row.Rarity] or 0) + item.Odds
+			local odds = tier and (item.Row.Rarity == tier and 100 or 0) or item.Odds
+			sums[item.Row.Rarity] = tier and odds or (sums[item.Row.Rarity] or 0) + odds
 		end
 		local order = table.clone(RARITIES)
 		table.insert(order, 1, "Secret")
@@ -356,7 +390,7 @@ function SummonPanels.new(canvas, deps)
 				table.insert(shown, rarity)
 			end
 		end
-		begin("ShowChances", "Show Chances", nil, Icons.Quests.Image, 64 + #shown * (ROW + 8))
+		begin("ShowChances", "Details", nil, Icons.Quests.Image, 64 + #shown * (ROW + 8) + (tier and 30 or 0))
 		text("Heading", body, {
 			LayoutOrder = 0,
 			Size = UDim2.new(1, 0, 0, 26),
@@ -372,6 +406,14 @@ function SummonPanels.new(canvas, deps)
 			TextColor3 = D.Gold,
 			Font = Enum.Font.GothamBold,
 		})
+		if tier then
+			text("Guarantee", body, {
+				LayoutOrder = 100,
+				Size = UDim2.new(1, 0, 0, 22),
+				Text = tier .. " guaranteed on the next summon",
+				TextColor3 = D.Gold,
+			})
+		end
 	end
 
 	-- 4. Summon Info: how it works, banner rules, pity with the player's counts, the currency.
@@ -481,6 +523,7 @@ function SummonPanels.new(canvas, deps)
 					b:SetAttribute("Selected", dot.Visible)
 				end
 				b.Activated:Connect(function()
+					UiFeedback.Play("Toggle", b)
 					choice[rarity] = sell
 					for _, other in r:GetChildren() do
 						if other:IsA("TextButton") and other:FindFirstChild("Ring") then
@@ -501,16 +544,22 @@ function SummonPanels.new(canvas, deps)
 				"Save",
 				"Go",
 				function()
-					local ok = true
+					-- Only the changed rarities, in one request (the server's 0.25 s remote cooldown refuses a second).
+					local changed = {}
 					for rarity, sell in choice do
 						if (now[rarity] == true) ~= sell then
-							local fine, done = pcall(function()
-								return deps.Remotes:WaitForChild("SidekickAutoSell"):InvokeServer(rarity, sell)
-							end)
-							ok = ok and fine and done == true
+							changed[rarity] = sell
 						end
 					end
+					local ok = true
+					if next(changed) then
+						local fine, done = pcall(function()
+							return deps.Remotes:WaitForChild("SidekickAutoSell"):InvokeServer(changed)
+						end)
+						ok = fine and done == true
+					end
 					hide()
+					UiFeedback.Play(ok and "Equip" or "Denied")
 					deps.Toast(ok and "Auto Sell Saved!" or "Could not update Auto Sell")
 				end,
 			},
@@ -637,7 +686,7 @@ function SummonPanels.new(canvas, deps)
 		})
 	end
 
-	-- 8. The result: "You Obtained!" with the unit, Keep / Equip / Close. Equip opens the usual equip menu on the new entry.
+	-- 8. The result: "You Obtained!" with the unit, Keep / Equip / Close. Equip puts the new entry on the Team's first runner.
 	function self.Result(result)
 		local spec = SidekickConfig.Get(result.Id)
 		if not spec then

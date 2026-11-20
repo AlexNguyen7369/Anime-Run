@@ -81,6 +81,29 @@ function Tests.powerups()
 	flag("powerups_min_gap", gapOk, worstGap, cfg.MIN_GAP)
 	flag("powerups_kinds", kindsOk)
 
+	-- Mix (commit c80e4de, POWERUP_SPEC: 70% Stamina / 30% Speed, was 50/50): the share, the draw's cut and a seeded mix.
+	flag("powerups_stamina_share_0_7", cfg.STAMINA_SHARE == 0.7, cfg.STAMINA_SHARE, 0.7)
+	local function kindAt(draw)
+		local fixed = {
+			NextNumber = function(_, a, b)
+				return a and (a + b) / 2 or draw
+			end,
+		}
+		local list = cfg.Roll(0, cfg.PER_STUDS, fixed)
+		return list[1] and list[1].Kind
+	end
+	flag("powerups_draw_under_share_is_stamina", kindAt(0.69) == "Stamina", kindAt(0.69), "Stamina")
+	flag("powerups_draw_over_share_is_speed", kindAt(0.71) == "Speed", kindAt(0.71), "Speed")
+	local rng, stamina, total = Random.new(20261120), 0, 0
+	for _ = 1, 400 do
+		for _, p in cfg.Roll(0, 10 * cfg.PER_STUDS, rng) do
+			total += 1
+			stamina += p.Kind == "Stamina" and 1 or 0
+		end
+	end
+	local mix = total > 0 and stamina / total or -1
+	flag("powerups_seeded_mix_near_70", math.abs(mix - 0.7) <= 0.03, mix, "0.7 +- 0.03")
+
 	local cleanup, runs = {}, {}
 	local ok, err = pcall(function()
 		local secret

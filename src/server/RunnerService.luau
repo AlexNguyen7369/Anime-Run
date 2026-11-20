@@ -27,11 +27,28 @@ local RunnerEffects = require(Shared.RunnerEffects)
 local RunnerService = {}
 
 RunnerService.TOGGLE_COOLDOWN = 0.75 -- seconds between toggle requests from one player (remote only)
+RunnerService.RESTART_DELAY = 3 -- seconds on foot after an exhausted Auto run before the next starts (proposed, design doc 4.3)
 RunnerService.RUNNER_TAG = "RunnerRig" -- every player's server runner (Client/RunnerView draws it smoothly)
 
 local HIDDEN_GROUP = "HiddenAvatar" -- the hidden avatar while it rides: collides with nothing
 local PLACE_HOLD = 2 -- seconds the server keeps putting a real player's avatar back at the walk spawn after a teleport
 local PLACE_SLACK = 8 -- studs (horizontal) the avatar may be from the walk spawn before it is put back
+
+-- One assembly: only the Torso stays anchored and the other parts are welded to it, so each RaceService move replicates
+-- one CFrame instead of one per part. The pose is unchanged; Client/RunnerView anchors its drawn copy again.
+local RIG_WELD = "RigWeld"
+local function weldToTorso(runner)
+	local torso = runner.PrimaryPart
+	for _, d in runner:GetDescendants() do
+		if d:IsA("BasePart") and d ~= torso then
+			local weld = Instance.new("WeldConstraint")
+			weld.Name = RIG_WELD
+			weld.Part0, weld.Part1 = torso, d
+			weld.Parent = d
+			d.Anchored = false
+		end
+	end
+end
 
 local runners = {} -- player -> runner model
 local carryWelds = {} -- player -> Weld holding the hidden avatar to its runner
@@ -248,6 +265,7 @@ local function spawnRunner(player, character, gen, duel)
 	local runner = RunnerFactory.build(characterIdOf(player))
 	runner.Name = "Runner_" .. tostring(player.Name)
 	RaceService.SetRunnerGroup(runner)
+	weldToTorso(runner)
 	runner:SetAttribute("AutoRace", true)
 	RunnerEffects.Apply(runner, player, activeSlot(player))
 	runner:PivotTo(start)
@@ -354,6 +372,9 @@ end
 -- `duel` (server only, DuelService): see spawnRunner.
 function RunnerService.SetAutoRace(player, enabled, duel)
 	if type(enabled) ~= "boolean" or enabled == RunnerService.IsAutoRacing(player) then
+		if enabled == false then
+			generation[player] = (generation[player] or 0) + 1 -- an Off while on foot still cancels a pending auto restart
+		end
 		return RunnerService.IsAutoRacing(player)
 	end
 	local character = characters[player]
@@ -368,6 +389,18 @@ function RunnerService.SetAutoRace(player, enabled, duel)
 		standUp(player, gen) -- removing the runner destroys its run; NPC wins were already paid at each finish
 	end
 	return RunnerService.IsAutoRacing(player)
+end
+
+-- The team tired while auto racing (design doc 4.3, owner 2026-11-20): back on foot at the walk spawn as usual, then Auto
+-- starts the next run by itself after RESTART_DELAY, unless anything changed the state first (a toggle, a respawn, a
+-- teleport, a duel, a boss event) or the player left. Nothing fakes input: Roblox's idle kick still applies. Yields.
+function RunnerService.RestartAfterExhausted(player)
+	RunnerService.SetAutoRace(player, false)
+	local gen = generation[player]
+	task.wait(RunnerService.RESTART_DELAY)
+	if generation[player] == gen and player.Parent and player:GetAttribute("BossEvent") ~= true then
+		RunnerService.SetAutoRace(player, true)
+	end
 end
 
 -- Puts the avatar on foot at cf (admin /tp vfxarea and /tp home, ADMIN_COMMANDS_SPEC): stops auto racing first,
@@ -480,6 +513,12 @@ local function forget(player)
 	lastPadStart[player] = nil
 end
 
+-- A remote call before this player's save loaded is refused: the load would overwrite what it changed. A failed load
+-- (Studio without API access) plays on unsaved.
+local function loading(player)
+	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+end
+
 function RunnerService.Start()
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 	if not remotes then
@@ -494,7 +533,7 @@ function RunnerService.Start()
 		remote.Parent = remotes
 	end
 	remote.OnServerEvent:Connect(function(player, enabled)
-		if type(enabled) ~= "boolean" or player:GetAttribute("BossEvent") == true then
+		if type(enabled) ~= "boolean" or player:GetAttribute("BossEvent") == true or loading(player) then
 			return -- an event's runner is the event's: BossEventLeave or dying is the way out
 		end
 		local now = os.clock()

@@ -202,8 +202,16 @@
 198. 2026-11-17 — Alex Nguyen — Reworked Team Setup to the owner's full-screen mockup (3D members on the altars) and the transition to the pink petal wash, and verified both flows in Studio: team, spawn_area, ui_team and ui_entry_points green.
 199. 2026-11-17 — Alex Nguyen — Made power-ups timed boosts on feature/alex/powerup-boost (62b797d, stacked on the refactor): Speed x1.2 for 1 s, Stamina holds the drain for 2 s with no overfill, 1 per 500 studs; Studio `powerups` 25/25 fail=0, rules audit PASS.
 200. 2026-11-17 — Alex Nguyen — Merged PR #21 into main (car-vocab rename, power-up boosts, Sakura Dojo pages) after Studio runs (runner 88/88 and 12 more scenarios fail=0), fixes for the Team draft and tooltip layering, rules audits PASS and a fresh review APPROVE.
+201. 2026-11-19 — Alex Nguyen — Wrote the owner's hanging-scroll pick (Summon R3 Enso and seals, Team T2 Ledger scroll, Sumi skin, P5 type, brush title) into design doc 4.45 and pointed the Sidekick and Team specs to it.
+202. 2026-11-19 — Alex Nguyen — Built the shared hanging-scroll kit (Client/DojoScroll, UiTheme.Scroll, wordmark and enso images uploaded) and dressed the Summon page as R3 Enso and seals, checked in Studio Play with captures.
+203. 2026-11-19 — Alex Nguyen — Rebuilt Team Setup as T2 "Ledger scroll" on the scroll kit (ledger rows, seal altars, paper handscroll roster, 11 px text floor), verified in Studio Play from all four entry points.
+204. 2026-11-19 — Alex Nguyen — Set the Summon odds label to Details (owner ruling 2026-11-19) and moved the UI tests to the new rules: odds caption, Team ledger rows showing the draft, hidden altar name line, "n / 3" count.
+205. 2026-11-20 — Alex Nguyen — Rebuilt the Summon page 1:1 to the owner's reference (parchment scroll, paper buttons, wood summon tiles, burgundy gem packs, outlined stage labels) and the owner approved it from the Studio capture.
+206. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
+207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
+208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
 
 ## What's next
-**Owner plays main: Team Setup (Deploy, Quick Setup, the Deploy / Discard question), the Summon entry points and the timed power-up boosts, and reports what to change.**
+**Run the new Team Select page in Studio against the approved captures (desktop, 4:3, phone), update the UiTeam altar order and gear checks, and rerun ui_team, the team_* clicks, ui_entry_points and ui_sidekicks.**
 
-**Why this is next:** all three pieces are verified only by tests and hand clicks in Studio; the owner's play check decides the follow-ups, including the three review notes left open in handoff.md.
+**Why this is next:** Team Select is in main but was never run in Studio, two Team checks fail by design until updated, and the per-Sidekick odds list in Details touches the same Summon tests after it.

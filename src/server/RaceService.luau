@@ -810,7 +810,11 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 						task.defer(function()
 							local RunnerService = require(script.Parent.RunnerService)
 							if RunnerService.GetRun(player) == run then
-								RunnerService.SetAutoRace(player, false) -- back on foot at the walk spawn
+								if duel then
+									RunnerService.SetAutoRace(player, false) -- back on foot at the walk spawn
+								else
+									RunnerService.RestartAfterExhausted(player) -- on foot, then Auto runs again (4.3)
+								end
 							end
 						end)
 					end

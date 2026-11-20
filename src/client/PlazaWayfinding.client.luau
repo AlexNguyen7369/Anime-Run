@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Layout = require(Shared:WaitForChild("PlazaAssets"))
 local PlazaHeader = require(Shared:WaitForChild("PlazaHeader"))
+local SidekickConfig = require(Shared:WaitForChild("SidekickConfig"))
 
 local MAX_DISTANCE = 260
 local HIDE_WITHIN = 20
@@ -101,16 +102,20 @@ for _, spec in LABELS do
 	anchor.WorldPosition = spec.At
 
 	local gui = PlazaHeader.Build(anchor, "Label", spec.Text, spec.Shape, spec.Color, spec.Size, spec.MaxDistance)
-	table.insert(shown, { Gui = gui, Position = spec.At, HideWithin = spec.HideWithin })
+	table.insert(shown, { Gui = gui, Position = spec.At, HideWithin = spec.HideWithin, Key = spec.Key })
 end
 
 while true do
 	local camera = Workspace.CurrentCamera
 	local focus = camera and camera.Focus.Position or Vector3.zero
 	local racing = player:GetAttribute("AutoRacing") == true
+	-- the altar's sign waits for rebirth 1 (owner 2026-11-20, design doc 4.36)
+	local early = (player:GetAttribute("RebirthLevel") or 0) < SidekickConfig.HudFromRebirth
 	for _, label in shown do
 		local flat = (label.Position - focus) * Vector3.new(1, 0, 1)
-		label.Gui.Enabled = not racing and flat.Magnitude > label.HideWithin
+		label.Gui.Enabled = not racing
+			and flat.Magnitude > label.HideWithin
+			and not (early and label.Key == "Sidekicks")
 	end
 	task.wait(0.25)
 end

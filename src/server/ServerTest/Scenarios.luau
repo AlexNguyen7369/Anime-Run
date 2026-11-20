@@ -43,18 +43,40 @@ function Runner.meter(pos0, skipTeleports)
 		return t > 0 and d / t or 0, step
 	end
 end
--- Every BasePart of the rig is Anchored (spec section 2: the server rig is anchored and authoritative).
+-- The rig is anchored and authoritative (spec section 2): its PrimaryPart is Anchored and every other BasePart is
+-- Anchored or rides in the PrimaryPart's assembly. 02c7e4e (P1): a server player rig welds its limbs to the anchored
+-- Torso (one assembly, one replicated CFrame per move); a factory or NPC rig is still anchored part by part.
 function Runner.anchored(model)
-	local any = false
-	for _, d in model and model:GetDescendants() or {} do
-		if d:IsA("BasePart") then
-			any = true
-			if not d.Anchored then
-				return false
+	local root = model and model.PrimaryPart
+	if not (root and root.Anchored) then
+		return false
+	end
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d ~= root and not d.Anchored and d.AssemblyRootPart ~= root then
+			return false
+		end
+	end
+	return true
+end
+-- 02c7e4e (P1): a RunnerService player rig is one assembly: the PrimaryPart (Torso) anchored, every other BasePart
+-- unanchored, held by a WeldConstraint "RigWeld" to it, so AssemblyRootPart is the PrimaryPart. Returns the count of
+-- parts that break it (-1 without a rig).
+function Runner.oneAssemblyBad(model)
+	local root = model and model.PrimaryPart
+	if not (root and root.Anchored) then
+		return -1
+	end
+	local bad = 0
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d ~= root then
+			local weld = d:FindFirstChild("RigWeld")
+			local welded = weld ~= nil and weld:IsA("WeldConstraint") and weld.Part0 == root and weld.Part1 == d
+			if d.Anchored or not welded or d.AssemblyRootPart ~= root then
+				bad += 1
 			end
 		end
 	end
-	return any
+	return bad
 end
 -- A player's runner in the world: a Model with the Owner attribute RunnerService sets and a Torso.
 function Runner.isRunner(m)
@@ -1791,7 +1813,8 @@ end
 local AUTO_BESIDE_START = 150 -- studs (horizontal) from Track 1's Start: "beside the start of Track 1"
 local AUTO_SPAWN_MAX_HEIGHT = 8 -- studs the walk spawn may be above the ground under it ("a few studs")
 local AUTO_SPAWN_MATCH = 4 -- studs (horizontal) the avatar may be from WalkSpawnCFrame after the stop
-local AUTO_FLOOR_TOP = 1 -- SPAWN_AND_ROLLS_SPEC: the walk spawn stands on Workspace.SpawnArea, floor top SpawnArea.TOP_Y
+-- design doc 4.43 (941c65f): the walk spawn stands on the terrace top step, SpawnArea.SPAWN_TOP (3.4), not the floor
+local AUTO_FLOOR_TOP = (sharedModule("SpawnArea") or {}).SPAWN_TOP or 3.4
 local AUTO_START_RADIUS = 25 -- studs: a resumed runner spawns at the Track 1 start
 local AUTO_WALK_SPEED = 16 -- StarterPlayer defaults
 -- SPAWN_AND_ROLLS_SPEC section 2, "Start is an event" (owner, 2026-10-01: a fast Stop then Auto Race made the car
@@ -2193,6 +2216,8 @@ function Scenarios.auto_toggle()
 		-- the runner is anchored and moved by RaceService (spec section 2)
 		local anchored = Runner.anchored(runner)
 		check(checks, pre .. "_rig_anchored", anchored and 1 or 0, 1, anchored)
+		local looseParts = Runner.oneAssemblyBad(runner)
+		check(checks, pre .. "_rig_one_assembly", looseParts, 0, looseParts == 0)
 		-- NPC spec: a real player's run races Track 1's NPC from the start (RaceService.Attach passes Npc = true)
 		local raceTrack = type(run) == "table" and run.RaceTrack or nil
 		local npcOn = raceTrack == 1 and type(run.Results) == "table"
@@ -3404,20 +3429,31 @@ function Scenarios.data()
 	PlayerData.SetStore(store)
 
 	-- failing store: get throws
-	local failStore = { sets = 0 }
+	local failStore = { sets = 0, updates = 0 }
 	function failStore:GetAsync()
 		error("DataStore unavailable")
 	end
 	function failStore:SetAsync()
 		self.sets += 1
 	end
-	function failStore:UpdateAsync() -- VERSION 8: Load is one UpdateAsync (docs/SAVE_SPEC.md section 1)
+	-- VERSION 8: Load is one UpdateAsync (docs/SAVE_SPEC.md section 1). Only the fake player's key counts: the real
+	-- Studio player's 60 s autosave can land on this store while it is swapped in.
+	function failStore:UpdateAsync(key)
+		if key == PlayerData.KeyFor(9301) then
+			self.updates += 1
+		end
 		error("DataStore unavailable")
 	end
 	PlayerData.SetStore(failStore)
 	local pf = newPlayer("ServerTestDataFail")
+	local failStarted = os.clock()
 	local okf, loadedf = pcall(PlayerData.Load, pf, 9301)
+	local failWaited = os.clock() - failStarted
 	check(checks, "failing_load_no_throw", okf and 1 or 0, 1, okf)
+	-- bb96973 (D2): a store error is asked again, LOAD_RETRIES attempts in all, waiting attempt x LOAD_RETRY_WAIT
+	-- (2 s, then 4 s) between them
+	check(checks, "failing_load_attempts", failStore.updates, 3, failStore.updates == 3)
+	check(checks, "failing_load_backoff_waits", failWaited, 6, failWaited >= 6 - 0.05)
 	check(checks, "failing_load_returns_false", loadedf == false and 1 or 0, 1, okf and loadedf == false)
 	check(
 		checks,
@@ -4041,6 +4077,14 @@ function Scenarios.data()
 		LOAD_RETRY_WAIT,
 		PlayerData.LOAD_RETRY_WAIT == LOAD_RETRY_WAIT
 	)
+	-- bb96973 (D2): a held lock is waited out up to LOCK_WAIT, by default LOCK_TIMEOUT
+	check(
+		checks,
+		"lock_wait_default_is_lock_timeout",
+		tonumber(PlayerData.LOCK_WAIT) or -1,
+		LOCK_TIMEOUT,
+		PlayerData.LOCK_WAIT == LOCK_TIMEOUT
+	)
 	local v8ApiOk = type(PlayerData.SessionId) == "function"
 		and type(PlayerData.SetSessionId) == "function"
 		and type(PlayerData.SetClock) == "function"
@@ -4342,12 +4386,19 @@ function Scenarios.data()
 				OfflineAt = now - 3600,
 				Lock = { Id = SESSION_B, At = now - (LOCK_TIMEOUT - 1) },
 			}
+			-- bb96973 (D2): a held lock is retried until LOCK_WAIT (default LOCK_TIMEOUT, 120 s) has passed. The test sets
+			-- LOCK_WAIT = 5 so the same 3 attempts happen in about 4 s: an attempt is made while elapsed + LOAD_RETRY_WAIT
+			-- <= LOCK_WAIT (0, 2, 4 s; 4 + 2 > 5 stops). 5, not 4: task.wait(2) returns a little after 2 s, so with 4 the
+			-- check at the second attempt (2.0x + 2 > 4) would already stop.
+			local lockWaitBefore = PlayerData.LOCK_WAIT
+			PlayerData.LOCK_WAIT = 5
 			local sLocked = makeStore({ ["Player_9805"] = deepCopy(lockedRec) })
 			PlayerData.SetStore(sLocked)
 			local pLocked = newPlayer("ServerTestDataV8Locked")
 			local startedAt = os.clock()
 			local okLocked, loadedLocked = pcall(PlayerData.Load, pLocked, 9805)
 			local waited = os.clock() - startedAt
+			PlayerData.LOCK_WAIT = lockWaitBefore
 			flag("locked_load_returns_false", okLocked and loadedLocked == false)
 			flag(
 				"locked_load_flags_data_failed",
@@ -4368,6 +4419,22 @@ function Scenarios.data()
 			flag(
 				"locked_player_save_writes_nothing",
 				okLs and savedLs == false and sLocked.sets == 0 and deepEqual(sLocked.data["Player_9805"], lockedRec)
+			)
+			-- A longer LOCK_WAIT keeps waiting: 7 s gives a 4th attempt (0, 2, 4, 6 s; 6 + 2 > 7 stops)
+			PlayerData.LOCK_WAIT = 7
+			local sLocked7 = makeStore({ ["Player_9808"] = deepCopy(lockedRec) })
+			PlayerData.SetStore(sLocked7)
+			local pLocked7 = newPlayer("ServerTestDataV8Locked7")
+			local started7 = os.clock()
+			local okLocked7, loaded7 = pcall(PlayerData.Load, pLocked7, 9808)
+			local waited7 = os.clock() - started7
+			PlayerData.LOCK_WAIT = lockWaitBefore
+			flag("locked_load_wait7_returns_false", okLocked7 and loaded7 == false)
+			check(checks, "locked_load_wait7_attempts", sLocked7.updates, 4, sLocked7.updates == 4)
+			check(checks, "locked_load_wait7_waits", waited7, 6, waited7 >= 6 - 0.05)
+			flag(
+				"locked_load_wait7_leaves_record_unchanged",
+				sLocked7.sets == 0 and deepEqual(sLocked7.data["Player_9808"], lockedRec)
 			)
 
 			-- The same record once the other server's lock is LOCK_TIMEOUT old: taken over at the first attempt.
@@ -4419,9 +4486,64 @@ function Scenarios.data()
 					and lockIs(sHop.data["Player_9807"], SESSION_A, now)
 			)
 			check(checks, "lock_released_during_retry_attempts", sHop.updates, 2, sHop.updates == 2)
+
+			-- bb96973 (D1): a record written by a newer VERSION loads read-only (DataReadOnly); Save returns false,
+			-- keeps every field and moves only the lock
+			local newerRec = { Money = 4242, Version = DATA_VERSION + 1, FutureField = { A = 1 } }
+			local sNewer = makeStore({ ["Player_9830"] = deepCopy(newerRec) })
+			PlayerData.SetStore(sNewer)
+			local pNewer = newPlayer("ServerTestDataNewer")
+			local loadedNewer = PlayerData.Load(pNewer, 9830)
+			flag("newer_version_loads", loadedNewer == true and val(pNewer, "Money") == 4242)
+			flag("newer_version_flags_read_only", pNewer:GetAttribute("DataReadOnly") == true)
+			now += 10
+			stat(pNewer, "Money").Value = 1
+			local savedNewer = PlayerData.Save(pNewer, 9830)
+			local recNewer = sNewer.data["Player_9830"]
+			flag("newer_version_save_returns_false", savedNewer == false)
+			flag("newer_version_save_keeps_fields", deepEqual(withoutLock(recNewer), newerRec))
+			flag("newer_version_save_moves_lock", lockIs(recNewer, SESSION_A, now))
+			flag("newer_version_stays_read_only", pNewer:GetAttribute("DataReadOnly") == true)
+
+			-- bb96973 (D1): a save starts from the stored record, so a key this version does not know is kept
+			local sKeep = makeStore({ ["Player_9831"] = { Money = 3, Version = 18, Mystery = { Keep = "yes" } } })
+			PlayerData.SetStore(sKeep)
+			local pKeep = newPlayer("ServerTestDataKeepUnknown")
+			PlayerData.Load(pKeep, 9831)
+			local savedKeep = PlayerData.Save(pKeep, 9831)
+			local recKeep = sKeep.data["Player_9831"]
+			flag(
+				"save_keeps_unknown_key",
+				savedKeep == true
+					and type(recKeep) == "table"
+					and recKeep.Version == DATA_VERSION
+					and deepEqual(recKeep.Mystery, { Keep = "yes" })
+			)
+			flag("current_version_not_read_only", pKeep:GetAttribute("DataReadOnly") ~= true)
+
+			-- bb96973 (D3): a player who leaves while the load is in flight hands the lock back; nothing is applied
+			local leaveRec = { Money = 999, Version = 18 }
+			local sLeave = makeStore({ ["Player_9832"] = deepCopy(leaveRec) })
+			local pLeave = newPlayer("ServerTestDataLeaveMidLoad")
+			sLeave.onUpdate = function(attempt)
+				if attempt == 1 then
+					pLeave.Parent = nil
+				end
+			end
+			PlayerData.SetStore(sLeave)
+			local okLeave, loadedLeave = pcall(PlayerData.Load, pLeave, 9832)
+			local recLeave = sLeave.data["Player_9832"]
+			flag("leave_mid_load_returns_false", okLeave and loadedLeave == false)
+			flag("leave_mid_load_lock_handed_back", type(recLeave) == "table" and recLeave.Lock == nil)
+			flag("leave_mid_load_record_unchanged", deepEqual(recLeave, leaveRec))
+			flag(
+				"leave_mid_load_money_not_applied",
+				val(pLeave, "Money") ~= 999 and pLeave:GetAttribute("DataLoaded") ~= true
+			)
 		end)
 		pcall(PlayerData.SetSessionId, nil)
 		pcall(PlayerData.SetClock, nil)
+		PlayerData.LOCK_WAIT = PlayerData.LOCK_TIMEOUT -- its default, also when an error skipped the restore above
 		if not okV8 then
 			check(checks, "data_v8_no_error", 0, tostring(errV8), false)
 		end
@@ -5478,9 +5600,9 @@ function Scenarios.gacha()
 		-- auto rolls one roll gets multiplied luck." Every TURBO_EVERY-th roll (Rolls = 10, 20, ...) rolls at
 		-- Luck * TURBO_LUCK; Roll returns (id, isNew, turboMulti).
 		-- Owner, 2026-10-12 (docs/UPGRADE_TREE_SPEC.md section 4, design doc "Jett Fuel"): without a Turbo tier the
-		-- 10th roll is x10 (was x5).
+		-- 10th roll is x10 (was x5). Audit 2026-11-20 (commit c80e4de, design doc 4.21): x30 (was x10).
 		check(checks, "turbo_every", GachaConfig.TURBO_EVERY or -1, 10, GachaConfig.TURBO_EVERY == 10)
-		check(checks, "turbo_luck", GachaConfig.TURBO_LUCK or -1, 10, GachaConfig.TURBO_LUCK == 10)
+		check(checks, "turbo_luck", GachaConfig.TURBO_LUCK or -1, 30, GachaConfig.TURBO_LUCK == 30)
 		local turboApi = type(GachaConfig.IsTurbo) == "function" and type(GachaConfig.TurboProgress) == "function"
 		check(checks, "turbo_api_exists", turboApi and 1 or 0, 1, turboApi)
 		if turboApi then
@@ -5521,18 +5643,18 @@ function Scenarios.gacha()
 		local multiBad, turboRolls = 0, 0
 		for k = 1, 25 do
 			local okT, _, _, multi = pcall(GachaService.Roll, tp, Random.new(7000 + k))
-			local want = k % 10 == 0 and 10 or 1
+			local want = k % 10 == 0 and 30 or 1
 			if not okT or multi ~= want then
 				multiBad += 1
 			end
-			if okT and multi == 10 then
+			if okT and multi == 30 then
 				turboRolls += 1
 			end
 		end
 		check(checks, "turbo_multi_every_10th_roll", multiBad, 0, multiBad == 0 and turboRolls == 2)
 		check(checks, "turbo_rolls_counted", tp:GetAttribute("Rolls") or -1, 25, tp:GetAttribute("Rolls") == 25)
-		-- The turbo roll really uses Luck * 10: with a seed where luck and luck * 10 pick different characters, the service's
-		-- 10th roll matches GachaConfig.Roll at luck * 10 and its 11th roll matches it at plain luck.
+		-- The turbo roll really uses Luck * 30 (x10 before c80e4de): with a seed where luck and luck * 30 pick different characters, the service's
+		-- 10th roll matches GachaConfig.Roll at luck * 30 and its 11th roll matches it at plain luck.
 		-- Upgrade tree phase 2 (docs/UPGRADE_TREE_DESIGN.md "Turbo"): the turbo rhythm comes from the saved
 		-- TurboCount (rolls since the last turbo roll, player attribute), no longer from Rolls, so the jump to "9
 		-- rolls done" sets both (a design change, not a loosening: the 10th roll is still the turbo roll).
@@ -5541,7 +5663,7 @@ function Scenarios.gacha()
 		local luck = GachaService.Luck(tq)
 		local seed, idTurbo, idPlain = nil, nil, nil
 		for sd = 1, 5000 do
-			local a = GachaConfig.Roll(Random.new(sd), luck * 10)
+			local a = GachaConfig.Roll(Random.new(sd), luck * 30)
 			local b = GachaConfig.Roll(Random.new(sd), luck)
 			if a ~= b then
 				seed, idTurbo, idPlain = sd, a, b
@@ -5554,7 +5676,7 @@ function Scenarios.gacha()
 			tq:SetAttribute("Rolls", 9)
 			tq:SetAttribute("TurboCount", 9)
 			local okA, idA, _, mA = pcall(GachaService.Roll, tq, Random.new(seed))
-			local turboOk = okA and idA == idTurbo and mA == 10 and tq:GetAttribute("Rolls") == 10
+			local turboOk = okA and idA == idTurbo and mA == 30 and tq:GetAttribute("Rolls") == 10
 			check(checks, "turbo_roll_uses_luck_x10", turboOk and 1 or 0, 1, turboOk)
 			local okB, idB, _, mB = pcall(GachaService.Roll, tq, Random.new(seed))
 			local plainOk = okB and idB == idPlain and mB == 1 and tq:GetAttribute("Rolls") == 11
@@ -5562,7 +5684,7 @@ function Scenarios.gacha()
 			tq:SetAttribute("Rolls", 19)
 			tq:SetAttribute("TurboCount", 9)
 			local okC, idC, _, mC = pcall(GachaService.Roll, tq, Random.new(seed))
-			local turbo20 = okC and idC == idTurbo and mC == 10 and tq:GetAttribute("Rolls") == 20
+			local turbo20 = okC and idC == idTurbo and mC == 30 and tq:GetAttribute("Rolls") == 20
 			check(checks, "turbo_roll_20th_uses_luck_x10", turbo20 and 1 or 0, 1, turbo20)
 		end
 		-- BRIEF (owner, 2026-10-13; ROLL_ANIMATION_SPEC `RollResult` bullet): Roll returns the roll's luck as its
@@ -5576,8 +5698,9 @@ function Scenarios.gacha()
 			check(checks, "service_roll_returns_luck", type(luckL) == "number" and luckL or -1, wantLuck, plainLuckOk)
 			tl:SetAttribute("TurboCount", 9)
 			local okM, _, _, mM, _, _, luckM = pcall(GachaService.Roll, tl, Random.new(8002))
+			-- turbo x30 since c80e4de (UpgradeConfig.BASE_TURBO.Multi, no Turbo tier owned)
 			local turboLuckOk = okM
-				and mM == 10
+				and mM == sharedModule("UpgradeConfig").BASE_TURBO.Multi
 				and type(luckM) == "number"
 				and luckM == wantLuck
 				and luckM == GachaService.Luck(tl)
@@ -6456,9 +6579,24 @@ function Scenarios.npc()
 				isFiniteNumber(cfgBase) and cfgBase or -1,
 				isFiniteNumber(cfgBase) and math.abs(s1 - cfgBase) <= 1e-6
 			)
-			local growth = infos[2].Speed / infos[1].Speed
+			-- Audit 2026-11-20 (commit c80e4de, design doc 4.13): Tracks 2-8 have their own Speed in NpcConfig.Tracks
+			-- (Track 2 = 56, growth 1.1667 off Track 1), so the formula growth shows from Track 9 to Track 10.
+			local growth = NpcConfig.For(10).Speed / NpcConfig.For(9).Speed
 			local growthOk = isFiniteNumber(cfgGrowth) and cfgGrowth > 1 and math.abs(growth - cfgGrowth) <= 1e-6
 			check(checks, "npc_speed_growth_is_config", growth, isFiniteNumber(cfgGrowth) and cfgGrowth or -1, growthOk)
+			check(checks, "npc_speed_growth_is_1_363", cfgGrowth or -1, 1.363, cfgGrowth == 1.363)
+			local track9Ok = math.abs(NpcConfig.For(9).Speed - cfgBase * cfgGrowth ^ 8) <= 1e-6
+			check(checks, "npc_track9_is_formula", NpcConfig.For(9).Speed, cfgBase * cfgGrowth ^ 8, track9Ok)
+			local wantSpeeds = { [2] = 56, [3] = 66, [4] = 88, [5] = 130, [6] = 190, [7] = 280, [8] = 410 }
+			local speedOff = 0
+			for n, want in wantSpeeds do
+				if NpcConfig.Tracks[n].Speed ~= want or NpcConfig.For(n).Speed ~= want then
+					speedOff += 1
+				end
+			end
+			check(checks, "npc_tracks_2_to_8_speed_overrides", speedOff, 0, speedOff == 0)
+			local served2 = infos[2].Speed
+			check(checks, "npc_track2_served_56", served2, 56, served2 == 56)
 			-- retired: npc_track1_rec_speed_below_10k (no Speed requirement, design doc 4.13, owner 2026-11-01)
 			-- the enemy's own name (design doc 4.26), never the LABEL_FORMAT fallback
 			local function enemyNamed(n)
@@ -8260,6 +8398,8 @@ function Scenarios.spawn_area()
 		-- the runner is anchored and moved by RaceService (spec section 2)
 		local anchored = Runner.anchored(runner)
 		check(checks, pre .. "_rig_anchored", anchored and 1 or 0, 1, anchored)
+		local looseParts = Runner.oneAssemblyBad(runner)
+		check(checks, pre .. "_rig_one_assembly", looseParts, 0, looseParts == 0)
 		return runner, run
 	end
 	local function touch(part)
@@ -10140,16 +10280,17 @@ function Scenarios.roll_anim()
 		check(checks, "service_roll_owned_not_emphasized", second and 1 or 0, 1, second)
 		check(checks, "announce_not_on_owned_roll", #calls, 1, #calls == 1)
 
-		-- Design doc 4.40: 3rd-rarest owned is leaf_medic (1 in 10), bar 1 in 1000: db_scholar, exactly on it, is
-		-- emphasized; the catch-all is not
+		-- Design doc 4.40: 3rd-rarest owned is db_green (1 in 20), bar 1 in 2000: sea_swords, exactly on it, is
+		-- emphasized; the catch-all is not. Audit 2026-11-20 (commit c80e4de): db_scholar dropped to 1 in 600, under
+		-- the old leaf_medic bar of 1 in 1000, so the fixture owns db_green and rolls sea_swords instead.
 		local r2 = newTestPlayer(cleanup, "ServerTestRollAnimP2")
 		GachaService.Setup(r2)
-		for _, id in { "db_hero", "leaf_crow", "leaf_medic" } do
+		for _, id in { "db_hero", "leaf_crow", "db_green" } do
 			GachaService.Grant(r2, id)
 		end
 		local before = #calls
 		local barDraws = {}
-		local barChance = CharacterCatalog.Get("db_scholar").Chance
+		local barChance = CharacterCatalog.Get("sea_swords").Chance
 		for _, spec in GACHA_CATALOG do
 			if not spec.Event and spec.Chance and spec.Chance > barChance then
 				table.insert(barDraws, 0.99)
@@ -10157,11 +10298,11 @@ function Scenarios.roll_anim()
 		end
 		table.insert(barDraws, 0)
 		local okB, idB, newB, _, emphB = pcall(GachaService.Roll, r2, seqRoller(barDraws))
-		local atBar = okB and idB == "db_scholar" and newB == true and emphB == true
+		local atBar = okB and idB == "sea_swords" and newB == true and emphB == true
 		check(checks, "service_roll_100x_third_rarest_emphasized", atBar and 1 or 0, 1, atBar)
 		local annB = #calls == before + 1
 			and calls[#calls].player == r2
-			and calls[#calls].id == "db_scholar"
+			and calls[#calls].id == "sea_swords"
 			and calls[#calls].rolls == r2:GetAttribute("Rolls")
 		check(checks, "announce_100x_third_rarest", #calls - before, 1, annB)
 		before = #calls
@@ -10671,7 +10812,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 		local okAuto, handle = try("StartAutoRoll", GachaService.StartAutoRoll, pAuto)
 		autoHandle = okAuto and handle or nil
 
-		-- Setup: one Upgrades folder, attributes at their fresh values (base turbo x10 every 10)
+		-- Setup: one Upgrades folder, attributes at their fresh values (base turbo x30 every 10; x10 before c80e4de)
 		local p0 = fake("Setup")
 		svc("Setup", p0)
 		local folders = 0
@@ -10688,7 +10829,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 			and p0:GetAttribute("BestTrack") == 0
 			and p0:GetAttribute("TurboCount") == 0
 			and p0:GetAttribute("TurboEvery") == 10
-			and p0:GetAttribute("TurboMulti") == 10
+			and p0:GetAttribute("TurboMulti") == 30 -- c80e4de (was 10)
 			and p0:GetAttribute("UpgradesBuyable") == 0
 		flag("upgrades_setup_folder_and_attributes", setupOk)
 		local okO, owned0 = svc("Owned", p0)
@@ -10891,7 +11032,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 			and near(bb.RollSpeed, 0)
 			and near(bri, 3)
 			and type(btu) == "table"
-			and btu.Multi == 10
+			and btu.Multi == 30 -- c80e4de (was 10)
 			and btu.Every == 10
 			and bws == 16
 		flag("upgrades_effects_bare_player_base", bareOk)
@@ -10971,14 +11112,14 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 		local seqOk = true
 		for k = 1, 10 do
 			local okR, _, _, m = try("Roll", GachaService.Roll, pT, Random.new(8100 + k))
-			local wantM = k == 10 and 10 or 1
+			local wantM = k == 10 and 30 or 1 -- base Multi 30 since c80e4de (was 10)
 			local wantC = k == 10 and 0 or k
 			seqOk = seqOk and okR and m == wantM and pT:GetAttribute("TurboCount") == wantC
 		end
 		seqOk = seqOk
 			and pT:GetAttribute("Rolls") == 10
 			and pT:GetAttribute("TurboEvery") == 10
-			and pT:GetAttribute("TurboMulti") == 10
+			and pT:GetAttribute("TurboMulti") == 30
 		flag("upgrades_turbo_base_every_10_x10", seqOk)
 		local pT1 = fake("TurboTier1")
 		apply(pT1, { Upgrades = { "rollspeed_1", "turbo_1" }, TurboCount = 48 })
@@ -10991,7 +11132,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 		local pOver = fake("TurboOver")
 		apply(pOver, { Upgrades = {}, TurboCount = 50 })
 		local _, _, _, mo = try("Roll", GachaService.Roll, pOver, Random.new(8301))
-		flag("upgrades_turbo_count_at_or_over_every_is_turbo", mo == 10 and pOver:GetAttribute("TurboCount") == 0)
+		flag("upgrades_turbo_count_at_or_over_every_is_turbo", mo == 30 and pOver:GetAttribute("TurboCount") == 0)
 		-- the turbo roll really rolls at Luck x tier Multi (Turbo IV: x1000)
 		local pT4 = fake("TurboTier4")
 		apply(pT4, { Upgrades = { "rollspeed_1", "turbo_1", "turbo_2", "turbo_3", "turbo_4" }, TurboCount = 999 })
@@ -11340,7 +11481,7 @@ function Scenarios.upgrades()
 		and UpgradeConfig.MIN_ROLL_INTERVAL == 2
 		and UpgradeConfig.BASE_WALKSPEED == 16
 		and type(UpgradeConfig.BASE_TURBO) == "table"
-		and UpgradeConfig.BASE_TURBO.Multi == 10
+		and UpgradeConfig.BASE_TURBO.Multi == 30 -- c80e4de (was 10)
 		and UpgradeConfig.BASE_TURBO.Every == 10
 		and #UpgradeConfig.Branches == #UPG.BRANCH_ORDER
 	local configTierTotal = 0
@@ -11725,7 +11866,7 @@ function Scenarios.upgrades()
 		local okc, v = call("Turbo", UPG.idSet(ids))
 		return okc and type(v) == "table" and v.Multi == multi and v.Every == every
 	end
-	flag("upgrades_turbo_base", turboIs({}, 10, 10))
+	flag("upgrades_turbo_base", turboIs({}, 30, 10)) -- base Multi 30 since c80e4de (was 10)
 	local turboTiersOk = true
 	for k, want in UPG.TURBO do
 		turboTiersOk = turboIs(UPG.tierIds("turbo", k), want.Multi, want.Every) and turboTiersOk
@@ -11735,7 +11876,7 @@ function Scenarios.upgrades()
 		and turboIs({ "turbo_2" }, 200, 200)
 		and turboIs({ "turbo_1", "turbo_3" }, 500, 500)
 		and turboIs({ "turbo_4" }, 1000, 1000)
-		and turboIs({ "rollspeed_1", "luck_5" }, 10, 10)
+		and turboIs({ "rollspeed_1", "luck_5" }, 30, 10)
 	flag("upgrades_turbo_highest_owned_wins", turboHighOk)
 
 	-- WalkSpeed: highest owned tier wins.
@@ -11878,6 +12019,16 @@ Scenarios.runner_effects = require(script.Parent.RunnerEffectTests).make({
 	newFakeCharacter = newFakeCharacter,
 	clearSpawnOfRealPlayers = clearSpawnOfRealPlayers,
 })
+-- Audit fixes 2026-11-20 (commit c80e4de, design doc 4.2 and 4.3): kept rolls fill empty Team slots; Auto restarts after
+-- an exhausted run. No new local here.
+do
+	local auditFix = require(script.Parent.AuditFixTests).make({
+		newFakeCharacter = newFakeCharacter,
+		clearSpawnOfRealPlayers = clearSpawnOfRealPlayers,
+	})
+	Scenarios.team_fill = auditFix.team_fill
+	Scenarios.auto_restart = auditFix.auto_restart
+end
 -- docs/WORLD_REDESIGN_SPEC.md sections 1, 2 and 7: the placeholder anime runner and the car scrap list
 Scenarios.runner = require(script.Parent.RunnerTests).runner
 Scenarios.scrap = require(script.Parent.RunnerTests).scrap

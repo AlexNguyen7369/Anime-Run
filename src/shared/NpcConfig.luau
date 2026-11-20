@@ -27,16 +27,17 @@ NpcConfig.PALETTE = {
 	Color3.fromRGB(245, 245, 245), -- white
 }
 
--- One enemy per track (docs/NPC_RIVAL_SPEC.md). Model: an id in Shared/CharacterModelAssets; rollable characters share them (design doc 4.32).
+-- One enemy per track (docs/NPC_RIVAL_SPEC.md). Speed on Tracks 2-8: placeholders set by the 2026-11-20 audit (design doc
+-- 4.13); Tracks 1, 9 and 10 keep the formula. Model: an id in Shared/CharacterModelAssets; rollable characters share them (design doc 4.32).
 NpcConfig.Tracks = {
 	[1] = { Label = "Paine", Color = Color3.fromRGB(230, 45, 45), Model = "foe_leaf" },
-	[2] = { Label = "Selle", Model = "foe_db" },
-	[3] = { Label = "Arlon", Model = "foe_sea" },
-	[4] = { Label = "Akazo", Model = "foe_ds" },
-	[5] = { Label = "Jogoh", Model = "foe_jk" },
-	[6] = { Label = "Shigaraky", Model = "foe_mha" },
-	[7] = { Label = "Mahitoh", Model = "foe_jk2" },
-	[8] = { Label = "Enelu", Model = "foe_sea2" },
+	[2] = { Label = "Selle", Speed = 56, Model = "foe_db" },
+	[3] = { Label = "Arlon", Speed = 66, Model = "foe_sea" },
+	[4] = { Label = "Akazo", Speed = 88, Model = "foe_ds" },
+	[5] = { Label = "Jogoh", Speed = 130, Model = "foe_jk" },
+	[6] = { Label = "Shigaraky", Speed = 190, Model = "foe_mha" },
+	[7] = { Label = "Mahitoh", Speed = 280, Model = "foe_jk2" },
+	[8] = { Label = "Enelu", Speed = 410, Model = "foe_sea2" },
 	[9] = { Label = "Ulquiorro", Model = "foe_soul" },
 	[10] = { Label = "Freezo", Model = "db_tyrant" },
 }

@@ -53,8 +53,8 @@ local IN_FLIGHT_WAIT_LIMIT = 3
 -- test codes injected into CodeConfig.Codes (keys upper case, as the spec requires)
 local CODE = "SERVERTESTCODE"
 local CODE_GRANTS = { LuckI = 2, MoneyII = 1 }
-local CODE_32 = string.rep("Z", MAX_CODE_LENGTH - 7) .. "SERVERTEST" -- exactly 32 characters
-local CODE_33 = string.rep("Y", MAX_CODE_LENGTH + 1 - 7) .. "SERVERTEST" -- 33: refused even though configured
+local CODE_32 = string.rep("Z", MAX_CODE_LENGTH - 10) .. "SERVERTEST" -- exactly 32 characters
+local CODE_33 = string.rep("Y", MAX_CODE_LENGTH + 1 - 10) .. "SERVERTEST" -- 33: refused even though configured
 
 local function module(parent, name)
 	local source = parent:FindFirstChild(name)
@@ -407,22 +407,39 @@ function Tests.shop_purchases()
 				tostring(d2)
 			)
 
-			-- a failed save rolls everything back
+			-- a failed save keeps the grant and the purchase id (bb96973, D6: no clamped undo); Roblox's retry is
+			-- answered by a new save and grants nothing a second time
 			saveResult = false
 			local b3 = counts(rp)
 			local d3 = receipt(FAKE_LUCK_PRODUCT, "cartest_shop_c")
 			flag("shop_receipt_save_failure_not_processed", d3 == NOT_YET, tostring(d3))
-			flag("shop_receipt_save_failure_rolls_back_grants", changedBy(b3, counts(rp), {}))
+			flag("shop_receipt_save_failure_keeps_grant", changedBy(b3, counts(rp), { LuckIII = PACK_COUNT }))
+			flag("shop_receipt_save_failure_keeps_purchase_id", contains(snapshot(rp).Receipts, "cartest_shop_c"))
+			local d3f = receipt(FAKE_LUCK_PRODUCT, "cartest_shop_c")
 			flag(
-				"shop_receipt_save_failure_rolls_back_purchase_id",
-				not contains(snapshot(rp).Receipts, "cartest_shop_c")
+				"shop_receipt_retry_save_still_failing_not_processed",
+				d3f == NOT_YET and changedBy(b3, counts(rp), { LuckIII = PACK_COUNT }),
+				tostring(d3f)
 			)
 			saveResult = true
+			local savesBeforeRetry = saveCalls
 			local d3b = receipt(FAKE_LUCK_PRODUCT, "cartest_shop_c")
 			flag(
-				"shop_receipt_retry_after_failure_grants",
+				"shop_receipt_retry_after_failure_granted_once",
 				d3b == GRANTED and changedBy(b3, counts(rp), { LuckIII = PACK_COUNT }),
 				tostring(d3b)
+			)
+			flag(
+				"shop_receipt_retry_after_failure_saves",
+				saveCalls > savesBeforeRetry,
+				saveCalls - savesBeforeRetry,
+				1
+			)
+			local d3c = receipt(FAKE_LUCK_PRODUCT, "cartest_shop_c")
+			flag(
+				"shop_receipt_after_saved_retry_no_new_save",
+				d3c == GRANTED and changedBy(b3, counts(rp), { LuckIII = PACK_COUNT }),
+				tostring(d3c)
 			)
 
 			-- the same PurchaseId while the first is still saving
@@ -516,7 +533,7 @@ function Tests.shop_purchases()
 			moneyValue.Value = 500
 		end
 		local bc = counts(pc)
-		local okC, msgC = redeem(pc, "  cartestcode \t")
+		local okC, msgC = redeem(pc, "  servertestcode \t")
 		flag("shop_code_case_trim_insensitive", okC == true and msgC == MSG_OK, tostring(msgC), MSG_OK)
 		flag("shop_code_grants_exact", changedBy(bc, counts(pc), CODE_GRANTS))
 		-- the Speed half is retired with the Speed stat (design doc 4.13, owner 2026-11-01); codes still pay no Money

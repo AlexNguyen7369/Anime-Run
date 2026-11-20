@@ -7,7 +7,7 @@ orchestrator defaults the owner may change.
 - Regular track runs on Tracks 1-10 only. None in boss arenas or duels (**proposed**).
 - Rolled by the server for each player when a track starts, fresh every run (a loss reset rerolls) (**proposed**).
 - Count `ceil(trackLength / 500)` (owner 2026-11-16 "more per track"; the number is a placeholder, design doc). Spots
-  between 10% and 90% of the track, at least 150 studs apart (**proposed**; was 300 at 1 per 1,000). Type 50/50 Speed / Stamina (**proposed**).
+  between 10% and 90% of the track, at least 150 studs apart (**proposed**; was 300 at 1 per 1,000). Type 70% Stamina / 30% Speed (**proposed**; owner 2026-11-20, was 50/50; `PowerUpConfig.STAMINA_SHARE`).
 - On the player's lane, on the rail the runner follows, so each one is picked up when the runner's distance passes it.
 
 ## Types

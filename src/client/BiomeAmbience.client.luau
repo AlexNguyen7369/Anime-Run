@@ -51,15 +51,27 @@ end
 track("BiomeSpin")
 track("BiomeBob")
 
+local NEAR_INTERVAL = 0.25 -- s between distance checks; the near props still move every frame
+local near, nearAt = {}, -math.huge -- model -> base, within AMBIENCE_DISTANCE at the last check
+
 RunService.RenderStepped:Connect(function()
 	local camera = Workspace.CurrentCamera
 	if not camera then
 		return
 	end
-	local eye = camera.CFrame.Position
 	local t = os.clock()
-	for model, base in bases do
-		if (base.Pivot.Position - eye).Magnitude < AMBIENCE_DISTANCE then
+	if t - nearAt >= NEAR_INTERVAL then
+		nearAt = t
+		local eye = camera.CFrame.Position
+		table.clear(near)
+		for model, base in bases do
+			if (base.Pivot.Position - eye).Magnitude < AMBIENCE_DISTANCE then
+				near[model] = base
+			end
+		end
+	end
+	for model, base in near do
+		if bases[model] == base then
 			local target
 			if base.Kind == "BiomeSpin" then
 				target = base.Pivot * CFrame.Angles(0, t * SPIN_SPEED, 0)

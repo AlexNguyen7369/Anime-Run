@@ -434,15 +434,19 @@ local function watch(out, label, ctx, copy, seconds, minFrames)
 	local restRun, restMost, stuckRun, stuckMost, frames = 0, 0, 0, 0, 0
 	local started = os.clock()
 	local up = PhysicsTargets.lap.MinUpYStrict
-	-- The clock RunnerView poses by: its last step each frame is on PreSimulation. A hitch between PreSimulation and
-	-- Heartbeat would otherwise shorten the next Heartbeat gap against the stride phase really advanced.
-	local poseClock = started
-	local poseClockConn = RunService.PreSimulation:Connect(function()
+	-- The clock RunnerView poses by. 02c7e4e (P4): only the local player's runner is stepped again on PreSimulation;
+	-- this rig (Owner = 0) is posed in the render-step pass only, so its clock is stamped there. A hitch between that
+	-- step and Heartbeat would otherwise shorten the next Heartbeat gap against the stride phase really advanced.
+	local poseClock = nil
+	local poseClockConn = RunService.RenderStepped:Connect(function()
 		poseClock = os.clock()
 	end)
 	while os.clock() - started < seconds do
 		RunService.Heartbeat:Wait()
 		local now = poseClock
+		if not now then
+			continue -- no render step since the watch began
+		end
 		if findCopy(ctx.Rig) ~= copy then
 			note("copy_not_rebuilt_mid_run", now - started)
 			break
@@ -689,6 +693,15 @@ function UiRunVisual.Build(deps)
 			out[name] = {}
 		end
 		local started = os.clock()
+		-- Studio draws ~15 fps when it is not the front window while Heartbeat stays at 60, so the frame checks below
+		-- would fail for the window, not the game. Counted here so such a failure names its cause.
+		local renders, beats = 0, 0
+		local renderConn = RunService.RenderStepped:Connect(function()
+			renders += 1
+		end)
+		local beatConn = RunService.Heartbeat:Connect(function()
+			beats += 1
+		end)
 		local rows = buildRows()
 		local covered, drawn = {}, 0
 		local function runRow(row, label, seconds, minFrames)
@@ -805,6 +818,19 @@ function UiRunVisual.Build(deps)
 		end
 		deps.checkList(res, "each_style_each_effect", gaps)
 		deps.check(res, "slot_swaps_run", swaps, 2, swaps == 2)
+		renderConn:Disconnect()
+		beatConn:Disconnect()
+		if beats > 0 and renders / beats < cfg.MinRenderShare then
+			local cause = (" [window throttled: %d render steps per %d heartbeats; keep Studio the front window]"):format(
+				renders,
+				beats
+			)
+			for _, name in { "no_lost_animation_frames", "swap_no_pop" } do
+				for i, entry in out[name] do
+					out[name][i] = entry .. cause
+				end
+			end
+		end
 		for _, name in CHECKS do
 			deps.checkList(res, name, out[name])
 		end

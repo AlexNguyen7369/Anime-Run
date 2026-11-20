@@ -115,6 +115,9 @@ function GachaService.Setup(player)
 			then
 				refresh()
 			end
+			if name == "AutoRacing" and player:GetAttribute("AutoRacing") ~= true then
+				GachaService.FillTeam(player) -- rolls kept during the run join now
+			end
 			if name == "Pass_" .. EXCLUSIVE_PASS then
 				GachaService.GrantExclusive(player)
 			end
@@ -294,6 +297,32 @@ function GachaService.Announce(player, id, rolls)
 	end
 end
 
+-- A kept roll fills an empty Team slot, never a filled one (owner 2026-11-20, TEAM_AND_STAMINA_SPEC "Team"). A run's Team
+-- is fixed, so a roll kept while racing waits (session only) until the player is on foot; `id` nil just applies the wait.
+local pendingFill = setmetatable({}, { __mode = "k" }) -- player -> ids, oldest first
+
+function GachaService.FillTeam(player, id)
+	local list = pendingFill[player] or {}
+	if id and not table.find(list, id) then
+		table.insert(list, id)
+	end
+	pendingFill[player] = list
+	if #list == 0 or player:GetAttribute("AutoRacing") == true then
+		return
+	end
+	pendingFill[player] = nil
+	local team = GachaService.TeamList(player)
+	for _, want in list do
+		if #team < TEAM_SIZE and owns(player, want) and not table.find(team, want) then
+			table.insert(team, want)
+		end
+	end
+	local value = table.concat(team, ",")
+	if value ~= player:GetAttribute("Team") then
+		player:SetAttribute("Team", value)
+	end
+end
+
 -- One roll at the player's luck, times the Turbo tier's Multi on every turbo roll (UpgradeService.AdvanceTurbo: the
 -- player's TurboCount reaches the tier's Every; x5 every 10th roll with no Turbo tier). Returns the character Id,
 -- whether it was new, the turbo multi (1 on a normal roll), whether it is emphasized (GachaConfig.IsEmphasized:
@@ -330,6 +359,7 @@ local function rollOnce(player, roller, bagLimited)
 		require(script.Parent.MoneyService).Award(player, soldFor)
 	else
 		isNew = GachaService.Grant(player, id)
+		GachaService.FillTeam(player, id)
 	end
 	GachaService.RefreshBag(player)
 	QuestService.Progress(player, "Rolls")
@@ -889,8 +919,12 @@ function GachaService.Apply(player, saved)
 	player:SetAttribute("Team", table.concat(team, ","))
 	player:SetAttribute("EquippedCharacter", team[1])
 	player:SetAttribute("Rolls", cleanCount(saved.Rolls))
-	player:SetAttribute("AutoSellChance", BagConfig.CleanChance(saved.AutoSellChance))
-	player:SetAttribute("AutoSell", saved.AutoSell == true and BagConfig.CleanChance(saved.AutoSellChance) ~= nil)
+	-- A brand new save (never written: no Version, Rolls or Cars) starts with auto sell on for Commons (design doc 4.41,
+	-- owner 2026-11-20). Any save already written keeps its own setting, a missing one being off.
+	local newSave = saved.Version == nil and saved.Rolls == nil and saved.Cars == nil
+	local sellChance = BagConfig.CleanChance(saved.AutoSellChance) or (newSave and BagConfig.NEW_SAVE_CHANCE or nil)
+	player:SetAttribute("AutoSellChance", sellChance)
+	player:SetAttribute("AutoSell", (saved.AutoSell == true or newSave) and sellChance ~= nil)
 
 	local a = {}
 	local savedAlloc = type(saved.StatAlloc) == "table" and saved.StatAlloc or {}
@@ -982,6 +1016,12 @@ local function accept(player)
 	return true
 end
 
+-- A remote call before this player's save loaded is refused: the load would overwrite what it changed. A failed load
+-- (Studio without API access) plays on unsaved.
+local function loading(player)
+	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+end
+
 -- What Remotes.SetAutoRoll does: rate-limited like AllocateStat, booleans only. Returns true if applied.
 function GachaService.RequestSetAutoRoll(player, on)
 	return accept(player) and GachaService.SetAutoRoll(player, on)
@@ -1014,7 +1054,7 @@ function GachaService.Start()
 	extraRollsRemote = remote(remotes, "ExtraRolls")
 	bagFullRemote = remote(remotes, "BagFullHit")
 	remote(remotes, "SetAutoSell").OnServerEvent:Connect(function(player, on, chance)
-		if accept(player) then
+		if not loading(player) and accept(player) then
 			GachaService.SetAutoSell(player, on, chance)
 		end
 	end)
@@ -1040,17 +1080,27 @@ function GachaService.Start()
 	local luckRemote = remotes:FindFirstChild("GetRollLuck") or Instance.new("RemoteFunction")
 	luckRemote.Name = "GetRollLuck"
 	luckRemote.Parent = remotes
+	local lastLuck = setmetatable({}, { __mode = "k" })
 	luckRemote.OnServerInvoke = function(player)
+		local now = os.clock()
+		if lastLuck[player] and now - lastLuck[player] < GachaService.REMOTE_COOLDOWN then
+			return nil -- the Details list keeps what it shows
+		end
+		lastLuck[player] = now
 		return GachaService.Luck(player), UpgradeService.Turbo(player).Multi
 	end
-	remote(remotes, "SetAutoRoll").OnServerEvent:Connect(GachaService.RequestSetAutoRoll)
+	remote(remotes, "SetAutoRoll").OnServerEvent:Connect(function(player, on)
+		if not loading(player) then
+			GachaService.RequestSetAutoRoll(player, on)
+		end
+	end)
 	remote(remotes, "EquipCharacter").OnServerEvent:Connect(function(player, id)
-		if accept(player) then
+		if not loading(player) and accept(player) then
 			GachaService.Equip(player, id)
 		end
 	end)
 	remote(remotes, "AllocateStat").OnServerEvent:Connect(function(player, stat)
-		if accept(player) then
+		if not loading(player) and accept(player) then
 			GachaService.Allocate(player, stat)
 		end
 	end)
@@ -1065,6 +1115,9 @@ function GachaService.Start()
 	teamRemote.Parent = remotes
 	local lastTeam = setmetatable({}, { __mode = "k" })
 	teamRemote.OnServerInvoke = function(player, ids)
+		if loading(player) then
+			return false, "Data not loaded"
+		end
 		local now = os.clock()
 		if lastTeam[player] and now - lastTeam[player] < GachaService.TEAM_COOLDOWN then
 			return false, "Please wait"
@@ -1078,6 +1131,9 @@ function GachaService.Start()
 	quickRemote.Parent = remotes
 	local lastQuick = setmetatable({}, { __mode = "k" })
 	quickRemote.OnServerInvoke = function(player, draft)
+		if loading(player) then
+			return false, "Data not loaded"
+		end
 		local now = os.clock()
 		if lastQuick[player] and now - lastQuick[player] < GachaService.TEAM_COOLDOWN then
 			return false, "Please wait"

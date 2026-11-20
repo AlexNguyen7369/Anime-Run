@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, team_states, team_states_clear, no_passes, sidekick_states, sidekick_pity_due, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
+-- Ids: snapshot, restore, spy, team_states, team_states_clear, team_full, no_passes, sidekick_states, sidekick_pity_due, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -260,7 +260,14 @@ function setups.snapshot(player)
 		autoRoll = player:GetAttribute("AutoRoll"),
 		-- Upgrade tree state (owned upgrades, BestTrack, TurboCount): turbo_next and the progression fixtures change it
 		upgrades = live("UpgradeService").Snapshot(player),
+		-- RebirthLevel: the baseline raises it to HudFromRebirth at least, so the HUD entries the checks judge show
+		-- (commit c80e4de, design doc 4.36: hidden below rebirth 1); 'restore' puts it back
+		rebirth = { level = player:GetAttribute("RebirthLevel") },
 	}
+	local from = require(Shared.SidekickConfig).HudFromRebirth or 1
+	if (player:GetAttribute("RebirthLevel") or 0) < from then
+		player:SetAttribute("RebirthLevel", from)
+	end
 end
 
 -- Sidekick fixture (UiSpec.ServerSetup sidekick_states): what it replaced, until 'restore' or restore:sidekick_states.
@@ -410,6 +417,27 @@ local function installBossOsuSpy()
 	proxy.Parent = remotes
 	bossOsuSpy = { original = original, proxy = proxy, name = "BossOsu" }
 end
+-- HUD entries wait for rebirth 1 (commit c80e4de, design doc 4.36): the Bosses button, Summon, the plaza sign and the
+-- Bag's Sidekicks and Relics tabs. Fixtures that judge them raise RebirthLevel to SidekickConfig.HudFromRebirth at least
+-- (never lower it) and put the first value back when they are restored.
+local hudUnlockBefore = {} -- [Player] = { level = RebirthLevel before the first raise }
+local function unlockHud(player)
+	if not hudUnlockBefore[player] then
+		hudUnlockBefore[player] = { level = player:GetAttribute("RebirthLevel") }
+	end
+	local from = require(Shared.SidekickConfig).HudFromRebirth or 1
+	if (player:GetAttribute("RebirthLevel") or 0) < from then
+		player:SetAttribute("RebirthLevel", from)
+	end
+end
+local function restoreHudUnlock(player)
+	local saved = hudUnlockBefore[player]
+	if saved then
+		hudUnlockBefore[player] = nil
+		player:SetAttribute("RebirthLevel", saved.level)
+	end
+end
+
 local function clearBossUi(player)
 	for _, name in BOSS_UI_ATTRIBUTES do
 		ReplicatedStorage:SetAttribute(name, nil)
@@ -434,6 +462,7 @@ local function restoreBossUi(player)
 		setAutoRoll(player, saved.autoRoll == true)
 		bossUiSnapshots[player] = nil
 	end
+	restoreHudUnlock(player)
 end
 
 -- how: a count of characters each wearing a Sidekick, plus one owned without any; or "bag", one Sidekick worn by nobody.
@@ -450,6 +479,7 @@ local function bossUiGear(player, how)
 			lastBossTeam = player:GetAttribute("LastBossTeam"),
 		}
 	end
+	unlockHud(player) -- the Bosses button shows from rebirth 1 (c80e4de)
 	player:SetAttribute("LastBossTeam", "") -- a real saved team would fill the HUD's slots before the first pick
 	-- Past the starter pick and the roll tutorial: Client/BossEventUi holds the Invite back during them.
 	player:SetAttribute("NeedsStarter", nil)
@@ -500,6 +530,8 @@ function setups.boss_ui_idle(player)
 	bossUiGear(player, 1)
 	clearBossUi(player)
 	player:SetAttribute("BossCredit", 0)
+	-- boss_ui_restricted (the click before boss_paid_coming_soon) sets it; restoreBossUi clears it the same way
+	player:SetAttribute("PaidRandomRestricted", nil)
 end
 function setups.boss_ui_credit(player)
 	setups.boss_ui_idle(player)
@@ -564,12 +596,14 @@ local function restoreRelics(player)
 		live("RelicService").Apply(player, saved)
 		relicSnapshots[player] = nil
 	end
+	restoreHudUnlock(player)
 end
 
 -- One of every Big Raga Relic in the bag, nothing worn. New entries each time, so the Backpack picks the first again.
 function setups.relic_states_bare(player)
 	local service, config = live("RelicService"), require(Shared.RelicConfig)
 	relicSnapshots[player] = relicSnapshots[player] or service.Snapshot(player)
+	unlockHud(player) -- the Bag's Relics tab shows from rebirth 1 (c80e4de)
 	service.Apply(player, { SidekickFreeUsed = true }) -- keeps Client/SidekickTutorial out of this fixture
 	for _, row in config.Bosses.big_raga do
 		assert(service.Grant(player, row.Id), "could not grant " .. row.Id)
@@ -719,6 +753,9 @@ function setups.restore(player)
 		setAutoRoll(player, snap.autoRoll == true)
 	end
 	player:SetAttribute("UiTestRollOdds", nil) -- UiSpec.RollOdds.Attr
+	if snap.rebirth then
+		player:SetAttribute("RebirthLevel", snap.rebirth.level) -- last: restoreSidekicks sets its own saved level
+	end
 	snapshots[player] = nil
 	removeSpy()
 end
@@ -730,6 +767,9 @@ end
 -- Team panel (UiSpec.Team, Client/UiTest/UiTeam; design doc 4.40): index_states, on foot, Team = A,B of three owned
 -- rollable ids A,B,C that are off the Dojo squad, published as UiTestTeamIds = "A,B,C". team_states_clear puts it back.
 local teamBefore = {} -- [Player] = the Team attribute before team_states
+-- A kept roll fills an empty Team slot (commit c80e4de, design doc 4.2): the A,B Team would gain a third member from the
+-- next auto roll, so auto roll pauses for the fixture and team_states_clear puts it back.
+local teamAutoRollBefore = {} -- [Player] = { on = AutoRoll before team_states }
 function setups.team_states(player)
 	indexStates(player)
 	local G, C, RunnerService = live("GachaService"), require(Shared.CharacterCatalog), live("RunnerService")
@@ -744,6 +784,11 @@ function setups.team_states(player)
 	if teamBefore[player] == nil then
 		teamBefore[player] = player:GetAttribute("Team") or ""
 	end
+	if teamAutoRollBefore[player] == nil then
+		teamAutoRollBefore[player] = { on = player:GetAttribute("AutoRoll") }
+	end
+	setAutoRoll(player, false)
+	unlockHud(player) -- checkPlace measures against the Bosses button, shown from rebirth 1 (c80e4de)
 	-- No Dojo squad since design doc 4.43 (GachaService.ShowcaseIds removed): nothing is excluded.
 	local data, squad, ids = player:FindFirstChild("GachaData"), {}, {}
 	for _, spec in C.All() do
@@ -764,6 +809,66 @@ function setups.team_states_clear(player)
 	if before and before ~= "" then
 		live("GachaService").SetTeam(player, string.split(before, ","))
 	end
+	local roll = teamAutoRollBefore[player]
+	teamAutoRollBefore[player] = nil
+	if roll and roll.on ~= nil then
+		setAutoRoll(player, roll.on == true)
+	end
+	restoreHudUnlock(player)
+end
+
+-- ui_hitboxes: a full Team of three, the minibar row as a player with three kept characters sees it (FillTeam, c80e4de).
+-- With two members the empty third circle draws smaller than a portrait and the row's OpenTeam padding depends on the save.
+-- Team changes are locked during a run, so the run stops first; restore:team_full puts the Team and the run back.
+local teamFullRacing = {} -- [Player] = was auto racing
+function setups.team_full(player)
+	local team = string.split(player:GetAttribute("Team") or "", ",")
+	if #team >= 3 and team[3] ~= "" then
+		return
+	end
+	local G, C, RunnerService = live("GachaService"), require(Shared.CharacterCatalog), live("RunnerService")
+	if teamBefore[player] == nil then
+		teamBefore[player] = player:GetAttribute("Team") or ""
+	end
+	teamFullRacing[player] = RunnerService.IsAutoRacing(player) == true
+	RunnerService.SetAutoRace(player, false)
+	local start = os.clock()
+	while RunnerService.IsAutoRacing(player) or player:GetAttribute("AutoRacing") == true do
+		if player.Parent ~= Players or os.clock() - start > 5 then
+			error("team_full: still racing after 5 s")
+		end
+		RunService.Heartbeat:Wait()
+	end
+	local data, ids = player:FindFirstChild("GachaData"), {}
+	for _, id in team do
+		if id ~= "" then
+			table.insert(ids, id)
+		end
+	end
+	for _, spec in C.All() do
+		if #ids < 3 and spec.Rollable and data and data:FindFirstChild(spec.Id) and not table.find(ids, spec.Id) then
+			table.insert(ids, spec.Id)
+		end
+	end
+	assert(#ids == 3, "team_full: fewer than 3 owned rollable characters")
+	local ok, why = G.SetTeam(player, ids)
+	assert(ok, "team_full: SetTeam refused: " .. tostring(why))
+end
+local function restoreTeamFull(player)
+	local before = teamBefore[player]
+	teamBefore[player] = nil
+	if before and before ~= "" then
+		live("GachaService").SetTeam(player, string.split(before, ","))
+	end
+	if teamFullRacing[player] then
+		live("RunnerService").SetAutoRace(player, true)
+	end
+	teamFullRacing[player] = nil
+end
+
+-- ui_layout: the HUD as from rebirth 1 (Summon, the Bosses button), so the two-column grid holds all its tiles.
+function setups.hud_unlock(player)
+	unlockHud(player)
 end
 
 -- ui_feedback: clients cannot read ServerStorage, so publish what its sound folder holds (docs/UI_FEEDBACK_SPEC.md 1).
@@ -810,21 +915,54 @@ end
 -- UiSpec.ServerSetup on_foot (ui_speed_dial at rest): auto race stopped through the real Stop path, avatar on foot
 -- with no runner. Done is only set once that holds; 'restore' puts AutoRacing back (snap.autoRacing).
 local ON_FOOT_TIMEOUT = 5 -- seconds
+-- Auto restart (commit c80e4de, design doc 4.3): an exhausted Auto run starts again RESTART_DELAY s later. A stop while
+-- already on foot does not cancel that, so on_foot notes each pending restart and, when one is due, lets it land and
+-- stops it again. Real play is unchanged: the wrapper only records the time and calls through.
+local restartDue = {} -- [Player] = os.clock() the pending restart is due
+local wrappedRestart = false
+local function wrapRestart()
+	if wrappedRestart then
+		return
+	end
+	wrappedRestart = true
+	local RunnerService = live("RunnerService")
+	local orig = RunnerService.RestartAfterExhausted
+	if type(orig) ~= "function" then
+		return
+	end
+	RunnerService.RestartAfterExhausted = function(p, ...)
+		restartDue[p] = os.clock() + (RunnerService.RESTART_DELAY or 3)
+		return orig(p, ...)
+	end
+end
+wrapRestart()
+
 function setups.on_foot(player)
 	assert(snapshots[player], "snapshot required before on_foot ('restore' consumes it: take a fresh 'snapshot')")
 	local RunnerService = live("RunnerService")
-	RunnerService.SetAutoRace(player, false)
-	local start = os.clock()
-	while
-		RunnerService.IsAutoRacing(player)
-		or player:GetAttribute("AutoRacing") == true
-		or RunnerService.GetRunner(player) ~= nil
-	do
-		if player.Parent ~= Players or os.clock() - start > ON_FOOT_TIMEOUT then
-			error("on_foot: player still racing or still has a runner after " .. ON_FOOT_TIMEOUT .. " s")
+	local function stopAndWait()
+		local start = os.clock()
+		RunnerService.SetAutoRace(player, false)
+		while
+			RunnerService.IsAutoRacing(player)
+			or player:GetAttribute("AutoRacing") == true
+			or RunnerService.GetRunner(player) ~= nil
+		do
+			if player.Parent ~= Players or os.clock() - start > ON_FOOT_TIMEOUT then
+				error("on_foot: player still racing or still has a runner after " .. ON_FOOT_TIMEOUT .. " s")
+			end
+			RunService.Heartbeat:Wait()
 		end
-		RunService.Heartbeat:Wait()
 	end
+	stopAndWait()
+	local due = restartDue[player]
+	if due and os.clock() < due + 0.5 then
+		while os.clock() < due + 0.5 and player:GetAttribute("AutoRacing") ~= true do
+			RunService.Heartbeat:Wait()
+		end
+		stopAndWait()
+	end
+	restartDue[player] = nil
 end
 
 -- ui_sidekick_follow (design doc 4.36; Client/UiTest/UiSidekickFollow): a rig of this player's, drawn by the real Client/RunnerView,
@@ -1105,6 +1243,9 @@ function setups.emphasized_next(player)
 	local GachaConfig = require(game:GetService("ReplicatedStorage").Shared.GachaConfig)
 	local multi = GachaConfig.EMPHASIS_MULTI
 	GachaConfig.EMPHASIS_MULTI = 0
+	-- Auto sell on (new saves since c80e4de) would sell the emphasized roll (isNew false): off until that roll happened.
+	local sellOn = player:GetAttribute("AutoSell")
+	player:SetAttribute("AutoSell", false)
 	local rolls0 = player:GetAttribute("Rolls")
 	task.spawn(function()
 		local deadline = os.clock() + 60
@@ -1117,6 +1258,7 @@ function setups.emphasized_next(player)
 		end
 		before.Rolls = player:GetAttribute("Rolls")
 		G.Apply(player, before)
+		player:SetAttribute("AutoSell", sellOn)
 	end)
 end
 
@@ -1664,14 +1806,35 @@ local function restoreNoPasses(player)
 	player:SetAttribute("UiTestNoPasses", nil)
 end
 
+-- ui_remote_guards (bb96973, D7): this player's save shown as still loading (DataLoaded and DataFailed off) so the
+-- guarded remotes answer "Data not loaded"; restore:data_loading puts both back. Nothing is saved in between.
+local dataLoadingBefore = {} -- [Player] = { loaded, failed }
+function setups.data_loading(player)
+	if not dataLoadingBefore[player] then
+		dataLoadingBefore[player] = { player:GetAttribute("DataLoaded"), player:GetAttribute("DataFailed") }
+	end
+	player:SetAttribute("DataFailed", nil)
+	player:SetAttribute("DataLoaded", nil)
+end
+local function restoreDataLoading(player)
+	local before = dataLoadingBefore[player]
+	if before then
+		dataLoadingBefore[player] = nil
+		player:SetAttribute("DataFailed", before[2])
+		player:SetAttribute("DataLoaded", before[1])
+	end
+end
+
 local CLIENT_SETUPS = {
 	no_passes = true,
+	data_loading = true, -- ui_remote_guards
 	sidekick_tutorial_ready = true,
 	auto_racing = true,
 	auto_roll_on = true,
 	lose_event = true,
 	cash_out_notice = true, -- ui_hud: fake CashOut RunEvent, no state to restore
 	emphasized_next = true,
+	turbo_next = true, -- ui_roll_anim, click showcase_card_click_stays_open; the turbo roll resets TurboCount itself
 	showdown_start = true,
 	showdown_win = true,
 	run_visual = true,
@@ -1684,6 +1847,8 @@ local CLIENT_SETUPS = {
 	bag_spares_clear = true,
 	team_states = true, -- ui_team
 	team_states_clear = true,
+	hud_unlock = true, -- ui_layout; restore:hud_unlock puts RebirthLevel back
+	team_full = true, -- ui_hitboxes; restore:team_full puts the Team (and a stopped run) back
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1804,6 +1969,8 @@ setupRequest.OnServerInvoke = function(player, request)
 		clientBefore[player] = before
 		if restoreId == "no_passes" then
 			restoreNoPasses(player)
+		elseif restoreId == "data_loading" then
+			restoreDataLoading(player)
 		elseif restoreId == "run_visual" then
 			RUN_VISUAL.clear()
 			local routes = ReplicatedStorage:FindFirstChild("RunRoutes")
@@ -1834,12 +2001,16 @@ setupRequest.OnServerInvoke = function(player, request)
 			restoreBossUi(player)
 		elseif restoreId == "relic_states" then
 			restoreRelics(player)
+		elseif restoreId == "hud_unlock" then
+			restoreHudUnlock(player)
 		elseif restoreId == "team_states" then
 			setups.team_states_clear(player)
+		elseif restoreId == "team_full" then
+			restoreTeamFull(player)
 		elseif restoreId == "bag_full_sold" then
 			setups.bag_spares_clear(player)
 		elseif restoreId then
-			return -- lose_event and emphasized_next put themselves back
+			return -- lose_event, emphasized_next and turbo_next put themselves back
 		elseif CLIENT_SETUPS[request] then
 			if request == "auto_racing" and before.auto_racing == nil then
 				before.auto_racing = live("RunnerService").IsAutoRacing(player) == true

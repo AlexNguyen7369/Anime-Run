@@ -175,28 +175,54 @@ function Extras.Build(h)
 
 	-- Every declared node (tile icons and captions included) inside its parent node and inside the panel, the sections
 	-- and the UiSpec.Rebirth.Disjoint groups apart, at every UiSpec.Viewports entry (the panel is open).
+	local function clip(r, w)
+		local x0, y0 = math.max(r.x, w.x), math.max(r.y, w.y)
+		local x1, y1 = math.min(r.x + r.w, w.x + w.w), math.min(r.y + r.h, w.y + w.h)
+		if x1 <= x0 or y1 <= y0 then
+			return nil
+		end
+		return { x = x0, y = y0, w = x1 - x0, h = y1 - y0 }
+	end
 	local function rebirthGeometry(res, nodes)
+		local scrolledOf = {} -- node name -> true when it is (under) a PhoneScrolled section
+		for _, spec in RB.Nodes do
+			scrolledOf[spec.Name] = RB.PhoneScrolled[spec.Name] or scrolledOf[spec.Parent] or nil
+		end
 		for _, vpSpec in h.viewports do
-			local rectOf = h.provider(vpSpec)
+			local rectOf, vp = h.provider(vpSpec)
 			local panelRect = rectOf(nodes.Panel)
 			local outside, spill, overlaps = {}, {}, {}
-			local function place(name, obj, parent)
+			-- The phone scroll window (afff07c): Rewards' left and top to the REBIRTH button's left and bottom
+			local window = nil
+			if UiResponsive.VariantOf(vp) == "Phone" and nodes.Rewards and nodes.RebirthButton then
+				local rw, bt = rectOf(nodes.Rewards), rectOf(nodes.RebirthButton)
+				window = { x = rw.x, y = rw.y, w = bt.x - rw.x, h = bt.y + bt.h - rw.y }
+			end
+			local function place(spec, obj, parent)
+				local name = spec.Name
 				local r = rectOf(obj)
-				if not h.contains(panelRect, r) then
-					table.insert(outside, name .. h.rstr(r) .. " outside panel " .. h.rstr(panelRect))
+				local seen = r
+				if window and scrolledOf[name] then
+					seen = clip(r, window)
+					if not seen then
+						return nil -- scrolled out of view
+					end
 				end
-				if parent and parent ~= nodes.Panel then
+				if not spec.Overhangs and not h.contains(panelRect, seen) then
+					table.insert(outside, name .. h.rstr(seen) .. " outside panel " .. h.rstr(panelRect))
+				end
+				if parent and parent ~= nodes.Panel and not spec.Overhangs then
 					local pr = rectOf(parent)
 					if not h.contains(pr, r) then
 						table.insert(spill, name .. h.rstr(r) .. " outside " .. parent.Name .. h.rstr(pr))
 					end
 				end
-				return r
+				return seen
 			end
 			local rects = {}
 			for _, spec in RB.Nodes do
 				if nodes[spec.Name] then
-					rects[spec.Name] = place(spec.Name, nodes[spec.Name], nodes[spec.Parent])
+					rects[spec.Name] = place(spec, nodes[spec.Name], nodes[spec.Parent])
 				end
 			end
 			local groups = { RB.Sections }
@@ -256,7 +282,11 @@ function Extras.Build(h)
 					and o.Size.Y.Offset == 0
 					and o.Position.X.Offset == 0
 					and o.Position.Y.Offset == 0
-				if not UiResponsive.Nodes[h.pathOf(o)] and not scaleOnly then
+				-- On a phone the scrolled sections hang off Panel/Face/RebirthMiddle (afff07c): the same model node
+				local path = h.pathOf(o)
+				local modelled = UiResponsive.Nodes[path]
+					or UiResponsive.Nodes[(string.gsub(path, "/RebirthMiddle/", "/"))]
+				if not modelled and not scaleOnly then
 					table.insert(unmodelled, h.pathOf(o))
 				end
 				if o:IsA("TextLabel") then
@@ -480,8 +510,45 @@ function Extras.Build(h)
 			return h.visible(label)
 		end
 		h.check(res, "bag_full_hidden_at_rest", untilShown(false, 1.5), false, untilShown(false, 0) == false)
+		-- Bag full tip (commit c80e4de, design doc 4.41): the first BAG FULL of a session spotlights the Items button for
+		-- 6 s, with no dim and no click block, then the gui goes. A session that already had its hit has no BagFullTip.
+		local tip = h.find("BagFullTip")
+		local tipFirst = tip ~= nil and tip:IsA("ScreenGui") and not tip.Enabled
+		local tipShownAt, tipClosedAt = nil, nil
 		local fired, why = h.requestSetup("bag_full_hit")
 		h.check(res, "bag_full_hit_setup", tostring(why), "ok", fired == true)
+		if tipFirst then
+			local deadline = os.clock() + 1
+			while not tip.Enabled and tip.Parent and os.clock() < deadline do
+				task.wait()
+			end
+			tipShownAt = os.clock()
+			local gone = tip.AncestryChanged:Connect(function()
+				if not tip.Parent and not tipClosedAt then
+					tipClosedAt = os.clock()
+				end
+			end)
+			task.delay(10, function()
+				gone:Disconnect()
+			end)
+			h.check(res, "bag_full_tip_shows_on_first_hit", tip.Enabled, true, tip.Enabled == true)
+			local step, text = h.find("BagFullTip/Layer/Card/Step"), h.find("BagFullTip/Layer/Card/Text")
+			h.check(res, "bag_full_tip_step", step and step.Text, "BAG FULL", step ~= nil and step.Text == "BAG FULL")
+			local tipText = "Sell spares in your Bag, or turn on Auto Sell in Settings"
+			h.check(res, "bag_full_tip_text", text and text.Text, tipText, text ~= nil and text.Text == tipText)
+			local dim = h.find("BagFullTip/Layer/Shade/Dim")
+			h.check(res, "bag_full_tip_no_dim", dim and dim.Transparency, 1, dim ~= nil and dim.Transparency == 1)
+			local blocking = {}
+			for _, name in { "Top", "Bottom", "Left", "Right" } do
+				local strip = h.find("BagFullTip/Layer/" .. name)
+				if strip and strip.Visible then
+					table.insert(blocking, name)
+				end
+			end
+			h.checkList(res, "bag_full_tip_no_click_block", blocking)
+		else
+			h.check(res, "bag_full_tip_already_used_this_session", tip, "nil", tip == nil)
+		end
 		h.check(res, "bag_full_shows_on_a_hit", untilShown(true, 2), true, h.visible(label))
 		local shownAt = os.clock()
 		h.check(res, "bag_full_solid_at_first", label.TextTransparency, "< 0.5", label.TextTransparency < 0.5)
@@ -522,6 +589,18 @@ function Extras.Build(h)
 			string.find(noRoll, "bag full", 1, true) ~= nil
 		)
 		h.check(res, "bag_full_autoroll_stays_on", attr("AutoRoll"), true, attr("AutoRoll") == true)
+		if tipShownAt then
+			-- 6 s (proposed) after it showed the tip closes by itself; later hits this session show nothing
+			while h.find("BagFullTip") and os.clock() < tipShownAt + 7 do
+				task.wait(0.1)
+			end
+			local open = (tipClosedAt or os.clock()) - tipShownAt
+			h.check(res, "bag_full_tip_closes_by_itself", h.find("BagFullTip"), "nil", h.find("BagFullTip") == nil)
+			h.check(res, "bag_full_tip_closes_within_6_s", open, "<= 6.5", open <= 6.5)
+		end
+		h.requestSetup("bag_full_hit")
+		task.wait(0.5)
+		h.check(res, "bag_full_tip_once_per_session", h.find("BagFullTip"), "nil", h.find("BagFullTip") == nil)
 		h.requestSetup("bag_spares_clear")
 		untilShown(false, 1.5)
 	end

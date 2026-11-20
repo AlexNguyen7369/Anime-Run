@@ -18,7 +18,9 @@ function Motion.Attach(root)
 		pressSound.Parent = root
 	end
 	local function attach(object)
-		if object.Name == "Backdrop" or object.Name == "Toast" then
+		-- Full-screen click catchers never scale: a UIScale grows / shrinks from the top-left, so the press shrink
+		-- (0.97) pulled ItemMenu's Scrim off its right and bottom edges and a press there never released on it.
+		if object.Name == "Backdrop" or object.Name == "Toast" or object.Name == "Scrim" then
 			return
 		end
 		if

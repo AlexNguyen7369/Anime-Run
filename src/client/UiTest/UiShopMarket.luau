@@ -13,6 +13,7 @@ local MarketConfig = require(Shared:WaitForChild("MarketConfig"))
 local MonetizationConfig = require(Shared:WaitForChild("MonetizationConfig"))
 local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local Spec = require(script.Parent.UiSpec)
+local IndexArt = require(script.Parent.Parent:WaitForChild("IndexAnimeStyle")).Art
 
 local ShopMarket = {}
 
@@ -69,6 +70,12 @@ function ShopMarket.Build(h)
 
 	local function attr(name)
 		return h.player:GetAttribute(name)
+	end
+	-- An AnimeSkin art close (cd733fd): the ImageLabel AnimeCloseArt it holds, else nil
+	local ART_CLOSE = IndexArt.Close
+	local function closeArtOf(close)
+		local art = close and close:FindFirstChild("AnimeCloseArt")
+		return art and art:IsA("ImageLabel") and art or nil
 	end
 	local function has(text, piece)
 		return string.find(string.upper(text), string.upper(piece), 1, true) ~= nil
@@ -185,6 +192,18 @@ function ShopMarket.Build(h)
 				if (d:IsA("GuiButton") or d:IsA("TextBox")) and h.visible(d) and not (leaveOut and leaveOut(d, vp)) then
 					table.insert(controls, { obj = d, r = rectOf(d) })
 					local parent = d.Parent
+					-- A parent with no area is an anchor of the Index frame (zero-height Header): judge the next box up
+					while
+						parent
+						and parent:IsA("GuiObject")
+						and not parent:IsA("ScrollingFrame")
+						and (parent.AbsoluteSize.X <= 0 or parent.AbsoluteSize.Y <= 0)
+					do
+						parent = parent.Parent
+					end
+					if closeArtOf(d) then
+						parent = nil -- over the panel corner by design: closeAtCorner judges it
+					end
 					if parent and parent:IsA("GuiObject") and not parent:IsA("ScrollingFrame") then
 						local parentRect = rectOf(parent)
 						if not h.contains(parentRect, rectOf(d)) then
@@ -285,6 +304,9 @@ function ShopMarket.Build(h)
 		h.checkList(res, prefix .. "_buttons_topmost", covered)
 	end
 
+	-- cd733fd "Every panel in the Index frame" (AnimeSkin.Close, 5541c3f): the close is the Index's red X art, an
+	-- ImageLabel AnimeCloseArt over a transparent button whose own text and X caption are hidden. An art close is
+	-- judged by that art: shown, with the Index close image. A plain close keeps the text and red background rule.
 	local function closeChecks(res, prefix, close, want)
 		local text = shownText(close)
 		h.check(
@@ -294,17 +316,54 @@ function ShopMarket.Build(h)
 			"TextButton",
 			close ~= nil and close:IsA("TextButton")
 		)
-		h.check(res, prefix .. "_close_text", text, want, text == want)
+		local art = closeArtOf(close)
+		if art then
+			local shown = h.visible(art) and art.Image ~= ""
+			h.check(
+				res,
+				prefix .. "_close_text",
+				shown and "AnimeCloseArt shown" or "art hidden",
+				"AnimeCloseArt shown",
+				shown
+			)
+		else
+			h.check(res, prefix .. "_close_text", text, want, text == want)
+		end
 		if close and close:IsA("GuiObject") then
 			local s = close.AbsoluteSize
 			h.check(res, prefix .. "_close_square", ("%dx%d"):format(s.X, s.Y), "w = h", math.abs(s.X - s.Y) <= TOL)
-			local c = close.BackgroundColor3
+			if art then
+				h.check(res, prefix .. "_close_red", art.Image, "Index close art " .. ART_CLOSE, art.Image == ART_CLOSE)
+			else
+				local c = close.BackgroundColor3
+				h.check(
+					res,
+					prefix .. "_close_red",
+					tostring(c),
+					"red",
+					close.BackgroundTransparency < 0.5 and redFamily(c)
+				)
+			end
+		end
+	end
+	-- An art close sits over the panel's top-right corner (cd733fd, c56aaf3): its centre in the right half of the panel
+	-- and within one close height of the panel's top edge, and the whole close on screen, at every viewport.
+	local function closeAtCorner(res, name, panel, close)
+		for _, vpSpec in h.viewports do
+			local rectOf, vp = h.provider(vpSpec)
+			local pr, cr = rectOf(panel), rectOf(close)
+			local cx, cy = cr.x + cr.w / 2, cr.y + cr.h / 2
+			local screen = { x = 0, y = 0, w = vp.X, h = vp.Y }
+			local ok = h.contains(screen, cr)
+				and cx >= pr.x + pr.w / 2
+				and cx <= pr.x + pr.w + cr.w
+				and math.abs(cy - pr.y) <= cr.h
 			h.check(
 				res,
-				prefix .. "_close_red",
-				tostring(c),
-				"red",
-				close.BackgroundTransparency < 0.5 and redFamily(c)
+				name .. "_inside_" .. vpSpec.Name,
+				h.rstr(cr),
+				"on screen at the top-right corner of " .. h.rstr(pr),
+				ok
 			)
 		end
 	end
@@ -507,7 +566,10 @@ function ShopMarket.Build(h)
 			end
 		end
 		local close = h.find(SH.Close)
-		if close then
+		if close and closeArtOf(close) then
+			groupGeometry(res, "shop_header", panel, { items })
+			closeAtCorner(res, "shop_header_close", panel, close)
+		elseif close then
 			groupGeometry(res, "shop_header", panel, { close, items })
 		end
 		topmostChecks(res, "shop", panel, items)
@@ -670,7 +732,8 @@ function ShopMarket.Build(h)
 		h.checkList(res, "market_parts_present", parts)
 		closeChecks(res, "market", h.find(MK.Close), MK.CloseText)
 
-		-- Side tabs: one TextButton per kind, stacked top to bottom, left of the grid
+		-- Tabs: one TextButton per kind in a row along the top, left to right, above the grid (cd733fd: the Index frame's
+		-- tab row; were side tabs stacked left of the grid)
 		local tabBad, tabList = {}, {}
 		for _, name in MK.TabOrder do
 			local t = tabs and tabs:FindFirstChild(name)
@@ -684,15 +747,18 @@ function ShopMarket.Build(h)
 			end
 		end
 		for i = 2, #tabList do
-			if
-				tabList[i].AbsolutePosition.Y
-				< tabList[i - 1].AbsolutePosition.Y + tabList[i - 1].AbsoluteSize.Y - TOL
-			then
-				table.insert(tabBad, tabList[i].Name .. " not below " .. tabList[i - 1].Name)
+			local a, b = tabList[i - 1], tabList[i]
+			if b.AbsolutePosition.X < a.AbsolutePosition.X + a.AbsoluteSize.X - TOL then
+				table.insert(tabBad, b.Name .. " not right of " .. a.Name)
+			end
+			if math.abs(b.AbsolutePosition.Y - a.AbsolutePosition.Y) > TOL then
+				table.insert(tabBad, b.Name .. " not in " .. a.Name .. "'s row")
 			end
 		end
-		if tabs and grid and tabs.AbsolutePosition.X + tabs.AbsoluteSize.X > grid.AbsolutePosition.X + TOL then
-			table.insert(tabBad, "Tabs not left of Grid")
+		for _, t in tabList do
+			if grid and t.AbsolutePosition.Y + t.AbsoluteSize.Y > grid.AbsolutePosition.Y + TOL then
+				table.insert(tabBad, t.Name .. " not above Grid")
+			end
 		end
 		h.checkList(res, "market_tabs", tabBad)
 
@@ -736,9 +802,13 @@ function ShopMarket.Build(h)
 		local function desktop(vp)
 			return not phone(vp)
 		end
+		-- The Tabs frame is a full-panel holder (cd733fd): its tab buttons are the section judged apart from the rest.
 		if header and tabs and grid and detail then
-			groupGeometry(res, "market_sections", panel, { header, tabs, grid, detail }, desktop)
-			groupGeometry(res, "market_phone_grid_view", panel, { header, tabs, grid }, phone)
+			local sections, phoneView = { header, grid, detail }, { header, grid }
+			table.move(tabList, 1, #tabList, #sections + 1, sections)
+			table.move(tabList, 1, #tabList, #phoneView + 1, phoneView)
+			groupGeometry(res, "market_sections", panel, sections, desktop)
+			groupGeometry(res, "market_phone_grid_view", panel, phoneView, phone)
 		end
 		if phone(h.viewport()) then
 			-- The live phone view as it opens: Grid shown, Detail hidden
@@ -759,7 +829,9 @@ function ShopMarket.Build(h)
 			return phone(vp) and detail ~= nil and detail:IsAncestorOf(d)
 		end)
 		local close = h.find(MK.Close)
-		if close and header then
+		if close and closeArtOf(close) then
+			closeAtCorner(res, "market_close_in_header", panel, close)
+		elseif close and header then
 			groupGeometry(res, "market_close_in_header", header, { close })
 		end
 		if #tabList == #MK.TabOrder then

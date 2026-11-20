@@ -28,13 +28,23 @@ UiTheme.Stroke(label, 2.5)
 label.Parent = root
 root.Parent = player:WaitForChild("PlayerGui")
 
-while true do
-	local held = false
-	for _, rig in CollectionService:GetTagged("RunnerRig") do -- Server/RunnerService.RUNNER_TAG
-		if rig:GetAttribute("Owner") == player.UserId and rig:GetAttribute("RunHold") then
-			held = true
-		end
+local TAG = "RunnerRig" -- Server/RunnerService.RUNNER_TAG
+local function watch(rig)
+	if rig:GetAttribute("Owner") ~= player.UserId then
+		return
 	end
-	label.Visible = held
-	task.wait(0.2)
+	local function update()
+		label.Visible = rig:GetAttribute("RunHold") ~= nil
+	end
+	rig:GetAttributeChangedSignal("RunHold"):Connect(update)
+	update()
+end
+CollectionService:GetInstanceAddedSignal(TAG):Connect(watch)
+CollectionService:GetInstanceRemovedSignal(TAG):Connect(function(rig)
+	if rig:GetAttribute("Owner") == player.UserId then
+		label.Visible = false
+	end
+end)
+for _, rig in CollectionService:GetTagged(TAG) do
+	watch(rig)
 end

@@ -4,7 +4,7 @@ return {
 	Id = "ds_thunder",
 	Name = "Zenitsa",
 	Rarity = "Rare",
-	Chance = 4000,
+	Chance = 700, -- audit 2026-11-20 (was 4,000)
 	SpeedMulti = 3.9,
 	Order = 13,
 	Category = "Sprinter",

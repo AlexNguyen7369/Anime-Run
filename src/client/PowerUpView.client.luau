@@ -19,6 +19,7 @@ local HEIGHT = 6 -- studs of the ring centre over the rail, proposed
 local BITS = 16 -- rim pieces, alternating colour and white: the dashed pattern that turns
 local TURN = math.pi * 2 / 4 -- rad/s: one turn per 4 s
 local BREATH = 1.6 -- s per glow breath
+local TURN_DISTANCE = 250 -- placeholder: studs from the camera focus; farther away a ring holds still (as SidekickAltarView)
 local POP_SECONDS = 0.25
 local POP_SCALE = 1.4
 local SYMBOL = { Speed = "»", Stamina = "+" } -- plain text symbols, no image asset
@@ -158,6 +159,8 @@ RunService.RenderStepped:Connect(function(dt)
 	clock += dt
 	local calm = reduced()
 	local breath = 0.5 + 0.5 * math.sin(clock * math.pi * 2 / BREATH)
+	local camera = Workspace.CurrentCamera
+	local focus = camera and camera.Focus.Position
 	for id, ring in rings do
 		local spin = CFrame.Angles(0, 0, clock * TURN)
 		if ring.Popped then
@@ -174,6 +177,9 @@ RunService.RenderStepped:Connect(function(dt)
 				end
 			end
 			ring.Label.TextTransparency = t
+		elseif focus and (ring.Base.Position - focus).Magnitude > TURN_DISTANCE then
+			ring.Light.Enabled = not calm
+			continue
 		end
 		ring.Model:PivotTo(ring.Base * spin)
 		ring.Light.Enabled = not calm

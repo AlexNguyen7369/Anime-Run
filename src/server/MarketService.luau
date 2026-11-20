@@ -136,6 +136,12 @@ local function allowed(player)
 	return true
 end
 
+-- A remote call before this player's save loaded is refused: the load would overwrite what it changed. A failed load
+-- (Studio without API access) plays on unsaved.
+local function loading(player)
+	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+end
+
 function MarketService.Start()
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes") or Instance.new("Folder")
 	remotes.Name = "Remotes"
@@ -147,6 +153,9 @@ function MarketService.Start()
 	purchase.Name = "MarketPurchase"
 	purchase.Parent = remotes
 	purchase.OnServerInvoke = function(player, kind, id)
+		if loading(player) then
+			return false, "Data not loaded"
+		end
 		if not allowed(player) then
 			return false, "Please wait"
 		end
@@ -156,6 +165,9 @@ function MarketService.Start()
 	equip.Name = "MarketEquip"
 	equip.Parent = remotes
 	equip.OnServerInvoke = function(player, kind, id, slot)
+		if loading(player) then
+			return false, "Data not loaded"
+		end
 		if not allowed(player) then
 			return false, "Please wait"
 		end

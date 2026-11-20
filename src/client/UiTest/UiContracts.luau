@@ -213,7 +213,8 @@ function Contracts.Build(h)
 		h.geometry.Panel(res, "checkpoint", panel)
 		h.geometry.Topmost(res, "checkpoint", panel, cards)
 		local header = required(res, Spec.Checkpoints.Panel .. "/Header", "Frame")
-		local hint = required(res, Spec.Checkpoints.Panel .. "/Hint", "TextLabel")
+		-- cd733fd (Index frame): the hint is the frame's footer line, AnimeFooterLine (was Panel/Hint)
+		local hint = required(res, Spec.Checkpoints.Panel .. "/AnimeFooterLine", "TextLabel")
 		if header and hint then
 			-- No section overlaps another
 			h.geometry.Group(res, "checkpoint_sections", panel, { header, hint, cards })
@@ -578,14 +579,16 @@ function Contracts.Build(h)
 		return false
 	end
 	-- What is wrong with a card's Art for `spec`: its portrait (ImageLabel, the card's top 3/4), or with none its rig.
-	local function cardArtProblem(art, spec)
+	-- size: the portrait's Size, fromScale(1, 0.75) unless given (the Index tile's is 8807c71's fromScale(0.86, 0.67)).
+	local function cardArtProblem(art, spec, size)
 		local image = portraitOf(spec)
+		local want = size or UDim2.fromScale(1, 0.75)
 		if image then
 			if not (art and art:IsA("ImageLabel") and art.Image == image) then
 				return ("Art is %s, want ImageLabel of %s"):format(art and art.ClassName or "missing", image)
 			end
-			if art.Size ~= UDim2.fromScale(1, 0.75) then
-				return "portrait size " .. tostring(art.Size) .. ", want fromScale(1, 0.75)"
+			if art.Size ~= want then
+				return "portrait size " .. tostring(art.Size) .. ", want " .. tostring(want)
 			end
 			return nil
 		end
@@ -831,7 +834,7 @@ function Contracts.Build(h)
 		local charactersTab = h.find(B.CharactersTab)
 		local tabEdge = charactersTab and charactersTab:FindFirstChildOfClass("UIStroke")
 		check(res, "backpack_opens_on_characters", tabEdge ~= nil and tabEdge.Color == Color3.new(1, 1, 1), true)
-		-- Exactly the tabs of B.TabOrder, top to bottom in the spec's order, each labelled with its name
+		-- Exactly the tabs of B.TabOrder, left to right in the spec's order on one row, each labelled with its name
 		local buttons = {}
 		for _, child in rail:GetChildren() do
 			if child:IsA("GuiButton") then
@@ -859,21 +862,22 @@ function Contracts.Build(h)
 			local order = {}
 			for i = 2, #tabs do
 				local a, b = h.realRect(tabs[i - 1]), h.realRect(tabs[i])
-				if b.y < a.y + a.h - Spec.Tolerance then
-					table.insert(order, tabs[i].Name .. " not below " .. tabs[i - 1].Name)
+				if b.x < a.x + a.w - Spec.Tolerance then
+					table.insert(order, tabs[i].Name .. " not right of " .. tabs[i - 1].Name)
+				end
+				if math.abs(b.y - a.y) > Spec.Tolerance then
+					table.insert(order, tabs[i].Name .. " not on " .. tabs[i - 1].Name .. "'s row")
 				end
 			end
-			h.checkList(res, "backpack_tabs_top_to_bottom" .. variant, order)
+			h.checkList(res, "backpack_tabs_left_to_right" .. variant, order)
 		end
-		-- Live geometry: every tab inside the rail and the panel, apart from each other and from the Items grid,
-		-- and the topmost clickable object at its own centre
-		local railRect, panelRect, gridRect = h.realRect(rail), h.realRect(panel), h.realRect(grid)
+		-- Live geometry: every tab inside the panel, apart from each other and from the Items grid, and the topmost
+		-- clickable object at its own centre. Panel/Tabs is a zero-size holder at the panel's origin since the tabs row
+		-- (AnimeSkin g.Tabs, cd733fd), so the panel bounds them, not the holder.
+		local panelRect, gridRect = h.realRect(panel), h.realRect(grid)
 		local outside, overlaps, covered = {}, {}, {}
 		for i, tab in tabs do
 			local r = h.realRect(tab)
-			if not inside(railRect, r) then
-				table.insert(outside, tab.Name .. rstr(r) .. " outside Tabs" .. rstr(railRect))
-			end
 			if not inside(panelRect, r) then
 				table.insert(outside, tab.Name .. rstr(r) .. " outside Panel" .. rstr(panelRect))
 			end
@@ -891,7 +895,7 @@ function Contracts.Build(h)
 				table.insert(covered, tab.Name .. " under " .. (top and h.pathOf(top) or "nothing"))
 			end
 		end
-		h.checkList(res, "backpack_tabs_inside_rail" .. variant, outside)
+		h.checkList(res, "backpack_tabs_inside_panel" .. variant, outside)
 		h.checkList(res, "backpack_tabs_no_overlap" .. variant, overlaps)
 		h.checkList(res, "backpack_tabs_topmost" .. variant, covered)
 		-- The Characters view itself is judged after the backpack_characters click (After backpack_characters_grid); when the grid
@@ -920,7 +924,8 @@ function Contracts.Build(h)
 			for _, character in Catalog.All() do
 				local tile = h.find(B.IndexGallery .. "/" .. character.Id)
 				local art = tile and tile:FindFirstChild("Art")
-				local artProblem = cardArtProblem(art, character)
+				-- Index tiles: IndexAnimeStyle sets the portrait to fromScale(0.86, 0.67) (8807c71, design doc 4.42)
+				local artProblem = cardArtProblem(art, character, UDim2.fromScale(0.86, 0.67))
 				if artProblem then
 					table.insert(p.index_tiles_runner_art, character.Id .. ": " .. artProblem)
 				end

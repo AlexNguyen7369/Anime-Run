@@ -1,0 +1,19 @@
+{
+  "Spec": "design doc 4.45 Team Select (owner approved 2026-11-20: \"draw the icons\")",
+  "Method": "tools/team_icons/make_icons.py (SVG) rendered 256x256 transparent with headless Chrome; Studio MCP upload_image 2026-11-20",
+  "Icons": {
+    "bolt": "rbxassetid://125367337236897",
+    "check": "rbxassetid://80155502075768",
+    "cruise": "rbxassetid://90390164671669",
+    "flower": "rbxassetid://109103491597058",
+    "fox": "rbxassetid://80346729214213",
+    "heart": "rbxassetid://121022170152825",
+    "members": "rbxassetid://120701226138389",
+    "pencil": "rbxassetid://126773689674292",
+    "person": "rbxassetid://134691081100736",
+    "search": "rbxassetid://101694582811922",
+    "sort": "rbxassetid://98275488757200",
+    "stamina": "rbxassetid://90685209894294",
+    "star": "rbxassetid://138766078045247"
+  }
+}
