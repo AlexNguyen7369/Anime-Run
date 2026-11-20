@@ -3829,10 +3829,12 @@ UiSpec.Guis.RacerSidekicks = {
 		{ Path = "Canvas/Info", Does = "local" },
 		{ Path = "Canvas/More", Does = "local" },
 		{ Path = "Canvas/AutoSell", Does = "local" },
-		{ Path = "Canvas/Modal/Panel/Dismiss", Does = "local" },
-		-- Rows of the Auto-Sell and More Gems dialogs: Auto-Sell reaches the server in ui_sidekicks, the packs are judged there.
+		-- The reference-sheet panels (91113d3, Client/SummonPanels; the old Canvas/Modal no longer opens): each panel's red X.
+		{ Path = "Canvas/SummonPanels/*/Header/Close", Does = "local" },
+		-- Rows and footer buttons of the panels (Keep / Sell, Save, More's rows, gem packs): Auto-Sell reaches the server
+		-- in ui_sidekicks, the packs are judged there.
 		{
-			Path = "Canvas/Modal/Panel/DetailsScroll/Actions/*",
+			Path = "Canvas/SummonPanels/*/*/*",
 			Does = "remote",
 			Remote = "SidekickAutoSell|GemPackBuy",
 			Count = "dynamic",

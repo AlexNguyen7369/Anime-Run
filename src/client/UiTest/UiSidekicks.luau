@@ -14,10 +14,10 @@
 --   Canvas/Balance shows the Gems (HudFormat.Short) with CurrencyGem; Canvas/Once and Canvas/Many show their cost with
 --   CurrencyGem; Canvas/Timer shows m:ss to EndsAt; Canvas/Pity1+PityCount1+PityCard1 is Legendary pity, Pity2+PityCount2+
 --   PityCard2 Mythic pity ("%d / %d", Track/Progress filled count / limit); Canvas/Featured is the sticker.
---   Canvas/Chances ("Details", owner 2026-11-19) opens Canvas/Modal, whose Panel/DetailsScroll/Body lists every outcome of the rotation, one
---   line each holding the Sidekick's name (the Secret as "Secret") and its percent with 3 decimals. While a guarantee is due
---   (design doc 4.36, section 6: Mythic at SidekickPity >= PityCount - 1, else Legendary) the tier's lines share 100% evenly,
---   the others read 0.000%, and the text says "guaranteed". No silhouette row and no exact-100% rounding (owner 2026-11-12).
+--   Canvas/Chances ("Details", owner 2026-11-19) opens Canvas/SummonPanels/ShowChances: one row per rarity, the rotation's
+--   odds summed, the Secret first (section 6, owner 2026-11-20). While a guarantee is due (design doc 4.36: Mythic at
+--   SidekickPity >= PityCount - 1, else Legendary) the tier reads 100%, the rest 0%, and a line says "<tier> guaranteed".
+--   Canvas/Banner1 (the Featured tile) opens FeaturedBanner. No exact-100% rounding (owner 2026-11-12).
 --   Auto Sell, More, Info and Many open Canvas/SummonPanels (91113d3): one panel named AutoSell, More, SummonInfo or
 --   SummonConfirmation, its red X at <panel>/Header/Close; Many sends its summon only from SummonConfirmation/Buttons/Confirm.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

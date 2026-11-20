@@ -326,10 +326,12 @@ UiScenarios.Needs = {
 	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
 	ui_bag_full = { "auto_roll_on" },
+	-- The minibar row with three members (OpenTeam's padding is judged against its drawn circles; team_full, FillTeam)
+	ui_hitboxes = { "team_full" },
 }
 -- Put back right after the scenario that asked (RestoreSetups runs only at the end of a full run), so later scenarios
 -- see the saved RebirthLevel again.
-FX.RESTORE_AFTER = { hud_unlock = true }
+FX.RESTORE_AFTER = { hud_unlock = true, team_full = true }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
 UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
@@ -4224,6 +4226,9 @@ function S.ui_inventory(res)
 				local found = false
 				for _, c in UiSpec.Clicks do
 					found = found or (c.Gui == guiName and pathMatches(spec.Path, c.Path))
+					-- A PressFirst press is a real click on its Path too (the Many press before its Confirm)
+					local first = c.Prepare and c.Prepare.PressFirst
+					found = found or (first ~= nil and pathMatches(guiName .. "/" .. spec.Path, first.Path))
 				end
 				if not found then
 					table.insert(missing, guiName .. "/" .. spec.Path)
