@@ -206,8 +206,9 @@
 202. 2026-11-19 — Alex Nguyen — Built the shared hanging-scroll kit (Client/DojoScroll, UiTheme.Scroll, wordmark and enso images uploaded) and dressed the Summon page as R3 Enso and seals, checked in Studio Play with captures.
 203. 2026-11-19 — Alex Nguyen — Rebuilt Team Setup as T2 "Ledger scroll" on the scroll kit (ledger rows, seal altars, paper handscroll roster, 11 px text floor), verified in Studio Play from all four entry points.
 204. 2026-11-19 — Alex Nguyen — Set the Summon odds label to Details (owner ruling 2026-11-19) and moved the UI tests to the new rules: odds caption, Team ledger rows showing the draft, hidden altar name line, "n / 3" count.
+205. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
 
 ## What's next
-**Run the targeted UI checks (ui_sidekicks, ui_team) in Studio on feature/alex/sakura-polish, then give the Summon page the same minimum text size as Team for phones.**
+**Owner picks a Team Select draft (A, B or C), a plate and answers OWNER_QUESTIONS 2026-11-19 team-dojo; then write the picked look into design doc 4.45 and TEAM_AND_STAMINA_SPEC before any TeamUi code.**
 
-**Why this is next:** the rewritten Team and odds-label checks have not run yet, and on a phone the Summon scroll text is about 6 px; both block opening the PR into main.
+**Why this is next:** the altar look, icons, carousel and team-name controls conflict with rule 4.45 until the owner rules, and the plate upload and TeamUi restyle both depend on that pick.
