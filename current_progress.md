@@ -206,8 +206,9 @@
 202. 2026-11-19 — Alex Nguyen — Built the shared hanging-scroll kit (Client/DojoScroll, UiTheme.Scroll, wordmark and enso images uploaded) and dressed the Summon page as R3 Enso and seals, checked in Studio Play with captures.
 203. 2026-11-19 — Alex Nguyen — Rebuilt Team Setup as T2 "Ledger scroll" on the scroll kit (ledger rows, seal altars, paper handscroll roster, 11 px text floor), verified in Studio Play from all four entry points.
 204. 2026-11-19 — Alex Nguyen — Set the Summon odds label to Details (owner ruling 2026-11-19) and moved the UI tests to the new rules: odds caption, Team ledger rows showing the draft, hidden altar name line, "n / 3" count.
+205. 2026-11-20 — Alex Nguyen — Rebuilt the Summon page 1:1 to the owner's reference (parchment scroll, paper buttons, wood summon tiles, burgundy gem packs, outlined stage labels) and the owner approved it from the Studio capture.
 
 ## What's next
-**Run the targeted UI checks (ui_sidekicks, ui_team) in Studio on feature/alex/sakura-polish, then give the Summon page the same minimum text size as Team for phones.**
+**Rewrite the two Summon UI checks the 1:1 page broke (UiSidekicks.luau:517-518 pity labels, :238-247 Legendary stage order by name), run ui_sidekicks and ui_sidekick_tutorial in Studio, then PR orch/summon-ref/s1 with a fresh review.**
 
-**Why this is next:** the rewritten Team and odds-label checks have not run yet, and on a phone the Summon scroll text is about 6 px; both block opening the PR into main.
+**Why this is next:** the approved Summon page cannot merge while its UI tests expect the old labels and order.
