@@ -209,6 +209,34 @@ function Access.Build(h)
 		end
 	end
 
+	-- Low-end default (commit c80e4de, design doc 4.20): with no choice yet this session, REDUCED EFFECTS starts on at
+	-- graphics level 1-3 or on a touch-only screen whose short side is 500 px or less, and off otherwise. The rule runs
+	-- once at join while the attribute is unset, so the value is always a boolean afterwards. Once an effects_reduce_*
+	-- click (or a person) chose, the value is theirs: only the boolean is judged then.
+	function scenarios.ui_reduce_effects_default(res)
+		local value = player:GetAttribute(cfg.ReduceAttr)
+		h.check(res, "reduce_effects_set_at_join", typeof(value), "boolean", type(value) == "boolean")
+		if player:GetAttribute("UiTestEffectsChosen") == true then
+			return
+		end
+		local okLevel, level = pcall(function()
+			return UserSettings():GetService("UserGameSettings").SavedQualityLevel.Value
+		end)
+		local view = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+		local touchOnly = UserInputService.TouchEnabled
+			and not UserInputService.KeyboardEnabled
+			and not UserInputService.MouseEnabled
+		local lowLevel = okLevel and level >= 1 and level <= 3
+		local want = lowLevel or (touchOnly and math.min(view.X, view.Y) <= 500)
+		h.check(
+			res,
+			"reduce_effects_default_from_device",
+			tostring(value) .. " (level " .. tostring(level) .. ", touch only " .. tostring(touchOnly) .. ")",
+			tostring(want),
+			value == want
+		)
+	end
+
 	---------------------------------------------------------------------------------------------------------------
 	-- Motion presets while reduced (section 10)
 

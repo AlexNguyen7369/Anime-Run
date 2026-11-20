@@ -214,6 +214,20 @@ function Tests.gems()
 			end
 		end
 
+		-- Quest names say Win (commit c80e4de): the Races count was always track wins.
+		local function questName(rows, id)
+			for _, quest in rows do
+				if quest.Id == id then
+					return quest.Name
+				end
+			end
+			return nil
+		end
+		local dailyName, weeklyName =
+			questName(QuestConfig.Daily, "daily_races"), questName(QuestConfig.Weekly, "weekly_races")
+		flag("quest_name_daily_races_win_3", dailyName == "Win 3 races", dailyName, "Win 3 races")
+		flag("quest_name_weekly_races_win_20", weeklyName == "Win 20 races", weeklyName, "Win 20 races")
+
 		-- /gems sets the balance; /wipe resets it (both reached through the real command path).
 		local admin = newPlayer()
 		flag("admin_gems_sets", Admin.Run(admin, "/gems 500") == true and admin:GetAttribute("Gems") == 500)

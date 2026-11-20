@@ -480,8 +480,45 @@ function Extras.Build(h)
 			return h.visible(label)
 		end
 		h.check(res, "bag_full_hidden_at_rest", untilShown(false, 1.5), false, untilShown(false, 0) == false)
+		-- Bag full tip (commit c80e4de, design doc 4.41): the first BAG FULL of a session spotlights the Items button for
+		-- 6 s, with no dim and no click block, then the gui goes. A session that already had its hit has no BagFullTip.
+		local tip = h.find("BagFullTip")
+		local tipFirst = tip ~= nil and tip:IsA("ScreenGui") and not tip.Enabled
+		local tipShownAt, tipClosedAt = nil, nil
 		local fired, why = h.requestSetup("bag_full_hit")
 		h.check(res, "bag_full_hit_setup", tostring(why), "ok", fired == true)
+		if tipFirst then
+			local deadline = os.clock() + 1
+			while not tip.Enabled and tip.Parent and os.clock() < deadline do
+				task.wait()
+			end
+			tipShownAt = os.clock()
+			local gone = tip.AncestryChanged:Connect(function()
+				if not tip.Parent and not tipClosedAt then
+					tipClosedAt = os.clock()
+				end
+			end)
+			task.delay(10, function()
+				gone:Disconnect()
+			end)
+			h.check(res, "bag_full_tip_shows_on_first_hit", tip.Enabled, true, tip.Enabled == true)
+			local step, text = h.find("BagFullTip/Layer/Card/Step"), h.find("BagFullTip/Layer/Card/Text")
+			h.check(res, "bag_full_tip_step", step and step.Text, "BAG FULL", step ~= nil and step.Text == "BAG FULL")
+			local tipText = "Sell spares in your Bag, or turn on Auto Sell in Settings"
+			h.check(res, "bag_full_tip_text", text and text.Text, tipText, text ~= nil and text.Text == tipText)
+			local dim = h.find("BagFullTip/Layer/Shade/Dim")
+			h.check(res, "bag_full_tip_no_dim", dim and dim.Transparency, 1, dim ~= nil and dim.Transparency == 1)
+			local blocking = {}
+			for _, name in { "Top", "Bottom", "Left", "Right" } do
+				local strip = h.find("BagFullTip/Layer/" .. name)
+				if strip and strip.Visible then
+					table.insert(blocking, name)
+				end
+			end
+			h.checkList(res, "bag_full_tip_no_click_block", blocking)
+		else
+			h.check(res, "bag_full_tip_already_used_this_session", tip, "nil", tip == nil)
+		end
 		h.check(res, "bag_full_shows_on_a_hit", untilShown(true, 2), true, h.visible(label))
 		local shownAt = os.clock()
 		h.check(res, "bag_full_solid_at_first", label.TextTransparency, "< 0.5", label.TextTransparency < 0.5)
@@ -522,6 +559,18 @@ function Extras.Build(h)
 			string.find(noRoll, "bag full", 1, true) ~= nil
 		)
 		h.check(res, "bag_full_autoroll_stays_on", attr("AutoRoll"), true, attr("AutoRoll") == true)
+		if tipShownAt then
+			-- 6 s (proposed) after it showed the tip closes by itself; later hits this session show nothing
+			while h.find("BagFullTip") and os.clock() < tipShownAt + 7 do
+				task.wait(0.1)
+			end
+			local open = (tipClosedAt or os.clock()) - tipShownAt
+			h.check(res, "bag_full_tip_closes_by_itself", h.find("BagFullTip"), "nil", h.find("BagFullTip") == nil)
+			h.check(res, "bag_full_tip_closes_within_6_s", open, "<= 6.5", open <= 6.5)
+		end
+		h.requestSetup("bag_full_hit")
+		task.wait(0.5)
+		h.check(res, "bag_full_tip_once_per_session", h.find("BagFullTip"), "nil", h.find("BagFullTip") == nil)
 		h.requestSetup("bag_spares_clear")
 		untilShown(false, 1.5)
 	end

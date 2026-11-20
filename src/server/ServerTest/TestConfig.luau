@@ -68,6 +68,8 @@ return {
 		"race_progress_map",
 		"world_layout",
 		"track_loading",
+		"team_fill", -- audit fixes 2026-11-20 (commit c80e4de): kept rolls fill empty Team slots
+		"auto_restart", -- audit fixes 2026-11-20 (commit c80e4de): Auto restarts 3 s after an exhausted run
 	},
 	-- Not in the full suite (each takes minutes). Run on demand during play:
 	--   ReplicatedStorage:SetAttribute("ServerTestOnly", "speed_probe"); ReplicatedStorage:SetAttribute("ServerTestRun", true)

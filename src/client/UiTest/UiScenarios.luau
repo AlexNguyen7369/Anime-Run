@@ -110,6 +110,8 @@ UiScenarios.Names = {
 	"ui_reduced_motion",
 	-- docs/HUD_LAYOUT_SPEC.md section 10 (owner 2026-10-27): UiMotion presets land at once while reduced
 	"ui_motion_reduced",
+	-- design doc 4.20 (commit c80e4de): REDUCED EFFECTS starts on for low graphics levels and small touch-only screens
+	"ui_reduce_effects_default",
 	-- design doc 4.33, docs/UI_FEEDBACK_SPEC.md: cue sounds, the sound ledger, Slam / Impact / Burst / Fly / Fill, UiFx
 	"ui_feedback",
 	-- retired: ui_speed_float (no Speed stat, design doc 4.13, owner 2026-11-01)
@@ -9309,6 +9311,10 @@ function UiScenarios.RunClick(id)
 	if not spec then
 		check(res, "click_declared", id, "UiSpec.Clicks id", false)
 		return res
+	end
+	if string.sub(id, 1, 15) == "effects_reduce_" then
+		-- local only (never replicates): ui_reduce_effects_default no longer judges the low-end default after a choice
+		Players.LocalPlayer:SetAttribute("UiTestEffectsChosen", true)
 	end
 	-- A MANUAL check (UiSpec.Clicks Manual) run by hand: same checks; the result says it is the manual one
 	res.manual = spec.Manual
