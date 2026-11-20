@@ -204,8 +204,9 @@
 200. 2026-11-17 — Alex Nguyen — Merged PR #21 into main (car-vocab rename, power-up boosts, Sakura Dojo pages) after Studio runs (runner 88/88 and 12 more scenarios fail=0), fixes for the Team draft and tooltip layering, rules audits PASS and a fresh review APPROVE.
 201. 2026-11-19 — Alex Nguyen — Wrote the owner's hanging-scroll pick (Summon R3 Enso and seals, Team T2 Ledger scroll, Sumi skin, P5 type, brush title) into design doc 4.45 and pointed the Sidekick and Team specs to it.
 202. 2026-11-19 — Alex Nguyen — Built the shared hanging-scroll kit (Client/DojoScroll, UiTheme.Scroll, wordmark and enso images uploaded) and dressed the Summon page as R3 Enso and seals, checked in Studio Play with captures.
+203. 2026-11-19 — Alex Nguyen — Rebuilt Team Setup as T2 "Ledger scroll" on the scroll kit (ledger rows, seal altars, paper handscroll roster, 11 px text floor), verified in Studio Play from all four entry points.
 
 ## What's next
-**Build Team Setup T2 "Ledger scroll" on feature/alex/sakura-polish with Client/DojoScroll, then bring Summon and Team captures to the owner.**
+**Bring the Summon R3 and Team T2 captures to the owner, and have the test-writer settle the two ui_team expectations T2 changes (altar name line, "n / 3" count).**
 
-**Why this is next:** the owner approved T2 with R3 on 2026-11-19; the scroll kit T2 reuses now exists, and every other panel waits on these two pages.
+**Why this is next:** both pages are built and must read as one set before any other panel moves to the scroll look; ui_team stays red until its expectations follow rule 4.45 T2.
