@@ -203,8 +203,9 @@
 199. 2026-11-17 — Alex Nguyen — Made power-ups timed boosts on feature/alex/powerup-boost (62b797d, stacked on the refactor): Speed x1.2 for 1 s, Stamina holds the drain for 2 s with no overfill, 1 per 500 studs; Studio `powerups` 25/25 fail=0, rules audit PASS.
 200. 2026-11-17 — Alex Nguyen — Merged PR #21 into main (car-vocab rename, power-up boosts, Sakura Dojo pages) after Studio runs (runner 88/88 and 12 more scenarios fail=0), fixes for the Team draft and tooltip layering, rules audits PASS and a fresh review APPROVE.
 201. 2026-11-19 — Alex Nguyen — Wrote the owner's hanging-scroll pick (Summon R3 Enso and seals, Team T2 Ledger scroll, Sumi skin, P5 type, brush title) into design doc 4.45 and pointed the Sidekick and Team specs to it.
+202. 2026-11-19 — Alex Nguyen — Built the shared hanging-scroll kit (Client/DojoScroll, UiTheme.Scroll, wordmark and enso images uploaded) and dressed the Summon page as R3 Enso and seals, checked in Studio Play with captures.
 
 ## What's next
-**Build the shared hanging-scroll kit and the Summon page R3 layout in Studio on feature/alex/sakura-polish, then Team Setup T2, and bring Studio captures to the owner.**
+**Build Team Setup T2 "Ledger scroll" on feature/alex/sakura-polish with Client/DojoScroll, then bring Summon and Team captures to the owner.**
 
-**Why this is next:** the owner approved R3 and T2 on 2026-11-19 and the rules are written; Team T2 reuses the scroll kit built for Summon, and every other panel waits on these two pages.
+**Why this is next:** the owner approved T2 with R3 on 2026-11-19; the scroll kit T2 reuses now exists, and every other panel waits on these two pages.
