@@ -1,0 +1,68 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Toasts</title><link rel="stylesheet" href="kit.css">
+<style>
+.it { position:absolute; display:flex; flex-direction:column; align-items:center; gap:12px; }
+.cp { font:600 15px var(--body); color:#f3e6d0; background:#0009; padding:3px 10px; border-radius:4px; }
+/* biome welcome */
+.biome { display:flex; align-items:center; gap:16px; padding:18px 34px 18px 20px; border-left:6px solid var(--verm); box-shadow:0 6px 14px #0006; }
+.biome .seal { width:54px; height:54px; font-size:30px; }
+.biome small { display:block; font:700 16px var(--btn); color:var(--muted); letter-spacing:1px; }
+.biome b { font:400 46px/1 var(--title); color:var(--ink); }
+/* checkpoint bonus */
+.bonus { font-size:28px; padding:10px 30px; gap:12px; box-shadow:0 4px 0 var(--verm-deep), 0 6px 14px #0006; }
+.bonus b { color:var(--gold); }
+/* team toast */
+.team { display:flex; align-items:center; gap:14px; padding:12px 28px; font:700 30px var(--btn); color:var(--gold); }
+.team .w { color:#fff3e0; }
+/* showdown */
+.show { width:720px; height:160px; display:flex; align-items:center; gap:24px; padding:0 30px 0 0; overflow:hidden; position:relative; }
+.show .por { width:170px; height:100%; background:linear-gradient(180deg,#5a1e2a,#2a0c14); display:grid; place-items:end center; border-right:3px solid var(--gold-soft); }
+.show .por img { height:150px; }
+.show .vs { font:400 92px/1 var(--title); color:var(--verm); -webkit-text-stroke:2px #fff3e0; transform:rotate(-6deg); }
+.show .tx b { display:block; font:400 52px/1 var(--title); color:var(--cream); }
+.show .tx span { font:700 20px var(--btn); color:var(--gold-soft); letter-spacing:1px; }
+.def { font:400 64px/1 var(--title); color:var(--gold); padding:14px 44px; transform:rotate(-3deg); -webkit-text-stroke:1.5px var(--lacquer-dark); }
+/* loser card */
+.lost { width:470px; padding:0 0 18px; overflow:hidden; }
+.lost .ban { background:linear-gradient(180deg,#d53a33,var(--verm-deep)); color:#fff3e0; font:400 44px/1 var(--title); text-align:center; padding:12px 0; border-bottom:3px solid var(--tile-rim); }
+.lost .who { display:flex; align-items:center; gap:14px; padding:14px 20px 6px; }
+.lost .who img { width:84px; height:84px; object-fit:cover; object-position:top; border:2.5px solid var(--tile-rim); border-radius:6px; background:linear-gradient(180deg,#f9e6ea,#f2c9d3); }
+.lost .who b { display:block; font:700 32px/1 var(--btn); }
+.lost .who span { font:700 15px var(--body); color:var(--muted); letter-spacing:.5px; }
+.lost .tm { display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; padding:8px 20px; }
+.lost .tm div { background:#fbf9f3; border:1.5px solid #c9b996; border-radius:4px; padding:6px 12px; font:700 14px var(--body); color:var(--muted); }
+.lost .tm div b { display:block; font:900 24px var(--body); color:var(--ink); }
+.lost .tm .gap b { color:var(--verm); }
+.lost .back { margin:8px 20px 0; display:flex; justify-content:center; }
+.lost .back .pbtn { width:100%; }
+/* roll toast */
+.roll { width:360px; overflow:visible; }
+.roll .art { height:260px; }
+.roll .art img { height:254px; }
+.roll .nm { font-size:34px; text-align:center; padding-top:10px; }
+.roll .odds { text-align:center; font:900 26px var(--body); color:var(--ink); }
+.roll .meta { justify-content:center; gap:16px; font-size:18px; padding-bottom:14px; }
+.roll .badge { position:absolute; top:-14px; padding:6px 14px; font:700 20px var(--btn); border-radius:16px 6px 16px 6px; transform:rotate(-4deg); }
+.roll .turbo { left:-16px; background:var(--lacquer); color:var(--gold); border:2px solid var(--gold-soft); }
+.roll .copy { right:-16px; background:var(--brush); color:#fff; transform:rotate(4deg); }
+.tap { font:700 20px var(--btn); color:#f3e6d0; }
+</style></head><body>
+<div class="screen plaza"><div class="dim" style="background:rgba(0,0,0,.45)"></div><span class="label">Toasts and banners</span>
+
+<div class="it" style="left:80px;top:60px"><div class="slip biome"><span class="seal">渋</span><div><b>Shibuyo Underground</b></div></div><span class="cp">BiomeWelcome (biome name on arrival)</span></div>
+<div class="it" style="left:80px;top:220px"><span class="pill bonus">CHECKPOINT BONUS <b>x1.2</b> · <b>$4.5K</b></span><span class="cp">CheckpointBonusPopup (below the biome welcome)</span></div>
+<div class="it" style="left:80px;top:340px"><div class="lacq team"><span class="seal sm">疲</span><span class="w">TEAM EXHAUSTED</span> +$12.4K</div><span class="cp">TeamToast</span></div>
+
+<div class="it" style="left:760px;top:60px"><div class="lacq show"><div class="por"><img src="../../../characters_avatar/leaf_rings/portrait.png"></div><span class="vs">VS</span><div class="tx"><b>Paine</b><span>TRACK 1 · Leafwind Village</span></div></div><span class="cp">EnemyShowdown - race start</span></div>
+<div class="it" style="left:1440px;top:330px"><div class="lacq def">DEFEATED!</div><span class="cp">EnemyShowdown - track won</span></div>
+
+<div class="it" style="left:80px;top:480px"><div class="card lost"><div class="ban">YOU LOST</div>
+ <div class="who"><img src="../../../characters_avatar/leaf_rings/portrait.png"><div><b>Paine</b><span>TRACK 1 · LEAFWIND VILLAGE</span></div></div>
+ <div class="tm"><div>YOUR TIME<b>0:42.18</b></div><div>ENEMY TIME<b>0:39.90</b></div><div class="gap">GAP<b>+2.28s</b></div><div>PB<b>0:40.55</b></div></div>
+ <div class="back"><span class="pbtn red">Back to checkpoint 3</span></div></div><span class="cp">Loser card (NpcRacerView)</span></div>
+
+<div class="it" style="left:800px;top:340px"><div class="card roll r-Legendary"><span class="badge turbo">TURBO x30</span><span class="badge copy">+1 COPY</span>
+ <div class="art"><img src="../../../characters_avatar/leaf_hero/portrait.png"></div><div class="strip"></div>
+ <div class="nm">Narito</div><div class="odds">1 in 400</div><div class="meta"><span class="rar">Legendary</span><span>Cruise 120 studs/s</span></div></div>
+ <span class="tap">Tap anywhere to close</span><span class="cp">RollToast (roll result)</span></div>
+</div>
+<script src="kit.js"></script></body></html>

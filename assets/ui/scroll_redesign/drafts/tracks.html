@@ -1,0 +1,43 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tracks</title><link rel="stylesheet" href="kit.css">
+<style>
+.hdr .bigseal { width:70px; height:70px; font-size:40px; }
+.hint { font:600 20px var(--body); color:var(--ink-soft); padding:8px 16px; }
+.body { bottom:26px; }
+.list { display:flex; flex-direction:column; gap:12px; }
+.trk { height:112px; flex:none; display:flex; align-items:center; gap:20px; padding:0 22px 0 18px; }
+.trk.cp { border-color:var(--verm); box-shadow:0 3px 0 var(--verm-deep), 0 0 0 3px #c8302c55; background:linear-gradient(180deg,#fff6ee,#f7dcd2); }
+.num { width:54px; height:54px; flex:none; display:grid; place-items:center; transform:rotate(45deg); border-radius:6px; background:linear-gradient(180deg,#3a3233,var(--lacquer-dark)); border:2px solid var(--gold-soft); }
+.num span { transform:rotate(-45deg); font:400 32px/1 var(--title); color:var(--gold); }
+.road { width:200px; height:90px; flex:none; border:2.5px solid var(--tile-rim); border-radius:6px; overflow:hidden; }
+.road img { width:100%; height:100%; object-fit:cover; display:block; }
+.tx { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; padding-top:4px; }
+.tx b { font:700 27px/1.05 var(--btn); }
+.tx p { font:600 18px/1.25 var(--body); color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.meta { display:flex; gap:40px; font:700 16px var(--body); color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
+.meta em { font-style:normal; color:var(--ink); font-size:19px; text-transform:none; letter-spacing:0; margin-left:4px; }
+.side { width:210px; flex:none; display:flex; justify-content:center; }
+.chip { font-size:20px; padding:8px 18px; }
+.stamp { width:60px; height:60px; display:grid; place-items:center; border:3px solid var(--verm); color:var(--verm); border-radius:50%; font:400 32px/1 "Yuji Syuku",serif; transform:rotate(-12deg); opacity:.85; }
+.trk.lock { background:linear-gradient(180deg,#e9dcc0,#d8c7a3); }
+.trk.lock .road img, .trk.lock .num { filter:grayscale(1) brightness(.75); }
+.trk.lock .tx { opacity:.6; }
+.lock { display:flex; align-items:center; gap:10px; font:700 20px var(--btn); color:var(--ink); }
+.lock .seal { background:var(--lacquer); width:40px; height:40px; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Tracks (Sensei Tracks / checkpoints)</span>
+<div class="hs" style="left:300px;top:190px;width:1320px;height:700px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><span class="seal bigseal">道</span><span class="wordmark">Tracks</span><span class="kanji">道場</span><span class="sub">Pick where your runs start</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="toolbar"><span class="slip hint">Click a track: your runs start there. Tracks past it in one run pay a bonus.</span></div>
+  <div class="body fade"><div class="list"><div class="card trk done"><div class="num"><span>2</span></div><div class="road"><img src="../../../track_roads/t2.png"></div>
+<div class="tx"><b>Tournament Wasteland</b><p>Selle's tournament ring on the wasteland, where the fate of the world is fought.</p><div class="meta"><span>Recommended speed <em>56 studs/s</em></span><span>Enemy <em>Selle</em></span></div></div><div class="side"></div></div><div class="card trk cp"><div class="num"><span>3</span></div><div class="road"><img src="../../../track_roads/t3.png"></div>
+<div class="tx"><b>Pirate Harbor Isle</b><p>Island harbor ruled by Arlon's fish-man crew, until Lufy's pirates land.</p><div class="meta"><span>Recommended speed <em>66 studs/s</em></span><span>Enemy <em>Arlon</em></span></div></div><div class="side"><span class="pill chip">Your Checkpoint</span></div></div><div class="card trk open"><div class="num"><span>4</span></div><div class="road"><img src="../../../track_roads/t4.png"></div>
+<div class="tx"><b>Wisteria Night Mountain</b><p>Wisteria-ringed mountain where slayers train and demons like Akazo hunt by moonlight.</p><div class="meta"><span>Recommended speed <em>88 studs/s</em></span><span>Enemy <em>Akazo</em></span></div></div><div class="side"></div></div><div class="card trk lock"><div class="num"><span>5</span></div><div class="road"><img src="../../../track_roads/t5.png"></div>
+<div class="tx"><b>Burning Cursed City</b><p>Sukana fights Jogoh and Mahoraka here, and the streets burn to molten rock.</p><div class="meta"><span>Recommended speed <em>130 studs/s</em></span><span>Enemy <em>Jogoh</em></span></div></div><div class="side"><div class="lock"><span class="seal">錠</span><b>Beat Track 4</b></div></div></div><div class="card trk lock"><div class="num"><span>6</span></div><div class="road"><img src="../../../track_roads/t6.png"></div>
+<div class="tx"><b>Hero Academy City</b><p>Home of the hero academy, where Shigaraky's villains strike at the next generation.</p><div class="meta"><span>Recommended speed <em>190 studs/s</em></span><span>Enemy <em>Shigaraky</em></span></div></div><div class="side"><div class="lock"><span class="seal">錠</span><b>Beat Track 5</b></div></div></div></div></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div></div>
+<script src="kit.js"></script></body></html>

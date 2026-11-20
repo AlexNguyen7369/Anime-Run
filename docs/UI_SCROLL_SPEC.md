@@ -13,7 +13,7 @@ Status: DRAFT, 2026-11-20. Every value is **proposed** until the owner approves 
 - Paid offers: burgundy cards with pink rims, gold Robux price, cream Buy pill.
 
 ## Motion
-- Open 0.45 s, Quint out: both rollers from the centre to the edges; the paper is a clipping frame whose width follows
+- Open 0.45 s, Quad out: both rollers from the centre to the edges; the paper is a clipping frame whose width follows
   the rollers; content inks in over 0.15 s as the paper passes it; controls are live once shown.
 - Close 0.25 s, Quad in, the reverse.
 - Reduced effects: 0.15 s fade.

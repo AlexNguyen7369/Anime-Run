@@ -1,0 +1,34 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Starter</title><link rel="stylesheet" href="kit.css">
+<style>
+.pop { --roll:24px; }
+.pop .hdr { left:30px; right:30px; top:10px; height:70px; gap:12px; }
+.pop .hdr .icon { width:56px; height:56px; }
+.pop .hdr .seal.big { width:52px; height:52px; font-size:30px; flex:none; }
+.pop .wordmark { font-size:44px; }
+.pop .kanji { font-size:22px; }
+.pop .sub { font-size:18px; margin-bottom:10px; }
+.pop .close { width:46px; height:46px; top:18px; right:40px; font-size:26px; }
+.pop .hdr-rule { left:30px; right:30px; top:86px; }
+.pop .pb { position:absolute; left:30px; right:30px; top:100px; bottom:22px; }
+
+.pop .wordmark { font-size:50px; }
+.st { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:4px; }
+.st .card { display:flex; flex-direction:column; }
+.st .card .art { height:250px; }
+.st .card .art img { height:244px; }
+.st .card .nm { font-size:30px; padding:10px 14px 0; text-align:center; }
+.st .card .meta { justify-content:center; font-size:18px; padding:2px 0 12px; }
+.st .tile { margin:0 18px 18px; height:60px; font-size:28px; }
+.subl { position:absolute; left:0; right:0; bottom:-6px; text-align:center; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Starter choice (first join)</span>
+<div class="hs pop" style="left:440px;top:225px;width:1040px;height:630px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><span class="seal big">始</span><span class="wordmark">Choose Your Starter</span><span class="kanji">選択</span></div>
+  <div class="hdr-rule"></div>
+  <div class="pb"><div class="st"><div class="card r-Common"><div class="art"><img src="../../../characters_avatar/sea_captain/portrait.png"></div><div class="strip"></div><div class="nm">Ruffy</div><div class="meta"><span class="rar">Common</span></div><span class="tile go">Choose</span></div><div class="card r-Common"><div class="art"><img src="../../../characters_avatar/leaf_hero/portrait.png"></div><div class="strip"></div><div class="nm">Karate Kid</div><div class="meta"><span class="rar">Common</span></div><span class="tile go">Choose</span></div><div class="card r-Common"><div class="art"><img src="../../../characters_avatar/db_hero/portrait.png"></div><div class="strip"></div><div class="nm">Sayan</div><div class="meta"><span class="rar">Common</span></div><span class="tile go">Choose</span></div></div><div class="subl"><span class="slip" style="font:700 22px var(--btn);color:var(--ink-soft)">Roll the next two to fill your team</span></div></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div>
+</div>
+<script src="kit.js"></script></body></html>

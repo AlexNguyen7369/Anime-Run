@@ -1,0 +1,78 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Backpack</title><link rel="stylesheet" href="kit.css">
+<style>
+/* Backpack frame-local parts: roster card (Client/RosterCard) in the scroll look, the search line and the bottom row. */
+.line { display: flex; gap: 12px; align-items: center; height: 46px; }
+.line .field { height: 46px; }
+.pbtn.fill { background: var(--brush); color: var(--cream); border-color: var(--verm-deep); box-shadow: 0 3px 0 var(--verm-deep); }
+.rgrid { margin-top: 12px; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: 1fr 1fr; gap: 10px; height: 392px; }
+.body { bottom: 20px; }
+.rc { position: relative; background: linear-gradient(180deg, #fffaf0, #f3e6c8); border: 2px solid var(--tile-rim); border-radius: 6px; box-shadow: 0 3px 0 var(--tile-edge); overflow: hidden; }
+.rc .art { height: 100px; background: linear-gradient(180deg, #f9e6ea, #f2c9d3); display: grid; place-items: end center; overflow: hidden; border-bottom: 2px solid var(--tile-rim); }
+.rc .art img { height: 98px; }
+.rc .strip { height: 5px; }
+.rc .nm { font: 700 19px/1.1 var(--btn); padding: 5px 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rc .cr { padding: 0 8px; font: 700 15px/1.2 var(--body); color: #a2701c; }
+.rc .gl { padding: 2px 8px 0; display: flex; flex-direction: column; font: 700 14px/1.25 var(--body); white-space: nowrap; overflow: hidden; }
+.rc .gl span { color: var(--rc); overflow: hidden; text-overflow: ellipsis; }
+.rc .badge { position: absolute; left: 6px; top: 6px; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.rc .badge span { font: 900 15px/1 var(--body); padding: 3px 7px; border-radius: 3px; background: #fbf5e6; border: 1.5px solid var(--tile-rim); }
+.rc .badge .team { background: #2f7a3e; color: #f4ffe9; border-color: #1c4a25; }
+.rc .badge .cp { color: #9a6410; }
+.rc .badge .gear { font-size: 12px; font-weight: 700; background: #fbf5e6e6; color: var(--rc); border-color: var(--rc); }
+.rc .dot { position: absolute; right: 6px; top: 6px; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--ink); }
+.Balanced { background: #e2a530; } .Sprinter { background: #d8443c; } .Marathoner { background: #3d8fd6; }
+.rc.team { border-color: #2f7a3e; box-shadow: 0 3px 0 #1c4a25; }
+.rc.pick { border: 3px solid var(--verm); box-shadow: 0 0 0 3px #fff8ee, 0 3px 0 var(--verm-deep); }
+.rc.pick::after { content: "選"; position: absolute; right: 4px; top: 4px; width: 26px; height: 26px; display: grid; place-items: center; background: var(--verm); color: #fff8ee; font: 400 15px/1 "Yuji Syuku", serif; border-radius: 4px; transform: rotate(-6deg); box-shadow: inset 0 0 0 2px #fff8ee66; }
+.rc.pick .dot { display: none; }
+.brow { position: absolute; left: 0; right: 0; bottom: 0; height: 46px; display: flex; gap: 12px; align-items: center; }
+.brow .note { font: 700 18px var(--btn); color: var(--ink-soft); }
+.legend { display: flex; gap: 14px; align-items: center; font: 600 15px var(--body); color: var(--ink-soft); }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--ink); vertical-align: -2px; margin-right: 4px; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Backpack (Items) - Characters tab, Kakashe picked</span>
+<div class="hs" style="left:300px;top:165px;width:1320px;height:750px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Items.png"><span class="wordmark">Backpack</span><span class="kanji">道具</span><span class="sub">Your characters, potions and gear</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="toolbar"><span class="tab">Misc</span><span class="tab">Trails</span><span class="tab">Auras</span><span class="tab on">Characters</span><span class="tab">Sidekicks</span><span class="tab">Relics</span></div>
+  <div class="body">
+   <div class="line"><span class="field grow">⌕ Search</span><span class="field" style="width:220px;color:var(--ink)">Sort: Rarity ▾</span><span class="pbtn fill" style="width:180px">Mass sell</span></div>
+   <div class="rgrid" id="g"></div>
+   <div class="brow"><span class="grow"></span><span class="tile go sm" style="width:220px">SELL 3 SPARES</span></div>
+  </div>
+  <div class="footer"><span class="seal sm">袋</span>BAG <b>87 / 180</b></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div></div>
+<script>
+// [id, name, rarity, category, studs/s, copies, team slot, sidekick [name, rarity], relic [name, rarity]]
+const C = [
+ ["sea_navigator","Nammi","Common","Balanced",40,4],
+ ["leaf_medic","Sakara","Uncommon","Sprinter",55,2],
+ ["sea_cook","Sanjy","Uncommon","Marathoner",56,1],
+ ["ds_boar","Inosuki","Uncommon","Sprinter",58,3],
+ ["db_green","Pikolo","Uncommon","Balanced",54,1],
+ ["jk_nails","Nobora","Uncommon","Balanced",55,2],
+ ["mha_float","Ochaku","Uncommon","Marathoner",53,1],
+ ["soul_healer","Orihima","Uncommon","Balanced",54,1],
+ ["leaf_copycat","Kakashe","Rare","Balanced",82,4,3,null,["Gold Coin","Common"]],
+ ["sea_swords","Zoru","Rare","Sprinter",86,1],
+ ["ds_thunder","Zenitsa","Rare","Sprinter",88,2],
+ ["jk_shadows","Megumo","Rare","Balanced",80,1],
+ ["db_scholar","Gohon","Rare","Marathoner",79,1],
+ ["leaf_avenger","Saske","Epic","Sprinter",124,1,2,["Hawke","Common"]],
+ ["jk_vessel","Yuuji","Epic","Balanced",120,2],
+ ["sea_captain","Lufy","Legendary","Marathoner",182,1,1,["Igriz","Mythic"],["Sukana's Finger","Legendary"]],
+];
+const PICK = "leaf_copycat";
+document.getElementById("g").innerHTML = C.map(([id,n,r,cat,sp,cp,team,sk,rl]) => {
+ const b = [];
+ if (team) b.push(`<span class="team">TEAM ${team}</span>`); else if (cp > 1) b.push(`<span class="cp">x${cp}</span>`);
+ const gl = [sk, rl].filter(Boolean).map(([n2, r2]) => `<span class="r-${r2}">${n2}</span>`).join("");
+ return `<div class="rc r-${r}${team?" team":""}${id===PICK?" pick":""}"><div class="art"><img src="../../../characters_avatar/${id}/portrait.png"></div><div class="strip"></div>
+ <div class="badge">${b.join("")}</div><span class="dot ${cat}"></span><div class="nm">${n}</div><div class="cr">${sp} studs/s</div><div class="gl">${gl || '&nbsp;'}</div></div>`;
+}).join("");
+</script>
+<script src="kit.js"></script></body></html>

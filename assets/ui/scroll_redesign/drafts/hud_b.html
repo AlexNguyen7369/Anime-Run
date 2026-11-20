@@ -1,0 +1,86 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>HUD B - Hanko and slips</title><link rel="stylesheet" href="kit.css">
+<style>
+/* HUD option B "Hanko and slips". Same positions as option A (HudChrome / BossEventUi / RacerHud / TeamHud at 1920x1080, design doc 4.40):
+   cell 84x94; seal 70 on top, paper slip label under it. Panel buttons are vermilion seals, Bosses / Team ink seals (the second column), Auto / Upgrade ink. */
+.b { position: absolute; width: 84px; height: 94px; display: flex; flex-direction: column; align-items: center; }
+.b .sl { position: relative; width: 70px; height: 70px; border-radius: 14px; display: grid; place-items: center; transform: rotate(-3deg);
+	background: radial-gradient(circle at 30% 25%, #e0473f, var(--verm) 55%, #a8221f); box-shadow: inset 0 0 0 3px #fff8ee55, inset 0 0 0 6px #b8282400, 0 4px 0 var(--verm-deep), 0 6px 10px #0007; }
+.b .sl::before { content: ""; position: absolute; inset: 5px; border-radius: 10px; border: 2px solid #fff3e0aa; }
+.b .sl.ink { background: radial-gradient(circle at 30% 25%, #4a3d3a, #2a2223 55%, #141011); box-shadow: inset 0 0 0 3px #f1ddb444, 0 4px 0 #000, 0 6px 10px #0007; }
+.b .sl.ink::before { border-color: #edb75d99; }
+.b .sl img { width: 54px; height: 54px; object-fit: contain; transform: rotate(3deg); filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+.b .l { margin-top: -4px; position: relative; z-index: 1; padding: 1px 10px 2px; background: #fbf7ec; border: 1.5px solid #c9b996; border-radius: 2px; box-shadow: 0 2px 0 #0005;
+	font: 700 17px/1 var(--btn); color: var(--ink); transform: rotate(1.5deg); }
+.b .k { position: absolute; right: -4px; top: -6px; width: 22px; height: 22px; border-radius: 50%; background: #fbf7ec; color: var(--ink); display: grid; place-items: center;
+	font: 900 13px/1 var(--body); box-shadow: 0 0 0 2px var(--ink), 0 2px 0 #0006; z-index: 2; }
+.badge { position: absolute; left: -4px; top: -8px; width: 26px; height: 26px; border-radius: 50%; background: #e2343a; color: #fff; display: grid; place-items: center;
+	font: 900 16px/1 var(--body); box-shadow: 0 0 0 2.5px #fff8ee, 0 2px 0 #0006; z-index: 3; }
+.b.pair { transform: scale(.75); transform-origin: 0 0; }
+.stack { position: relative; width: 54px; height: 54px; transform: rotate(3deg); } .stack img { position: absolute; inset: 0; transform: none; }
+/* top-right: slips */
+.tr { position: absolute; right: 12px; top: 7px; display: flex; gap: 8px; }
+.pl { position: relative; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px 0 8px; background: #fbf7ec; border: 1.5px solid #c9b996; border-radius: 2px;
+	box-shadow: 0 3px 0 #0006; font: 700 21px var(--btn); color: var(--ink); }
+.pl::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--verm); }
+.pl img { width: 32px; height: 32px; object-fit: contain; margin-left: 4px; }
+.pl.w { width: 146px; } .pl.sq { width: 44px; padding: 0; justify-content: center; } .pl.sq img { margin: 0; }
+/* counters on slips */
+.cnt { position: absolute; left: 22px; display: flex; align-items: center; gap: 10px; padding: 4px 18px 4px 12px; background: #fbf7ec; border: 1.5px solid #c9b996; border-radius: 2px; box-shadow: 0 3px 0 #0006; }
+.cnt::after { content: ""; position: absolute; right: 8px; top: -8px; width: 18px; height: 18px; border-radius: 3px; background: var(--verm); transform: rotate(-8deg); box-shadow: inset 0 0 0 1.5px #fff8ee88; }
+.cnt.m { top: 950px; font: 400 42px/1 var(--title); color: #23803a; transform: rotate(-1deg); }
+.cnt.g { top: 1012px; font: 700 23px var(--btn); color: #6a2aa8; transform: rotate(.8deg); }
+.cnt.g::after { display: none; }
+.cnt img { width: 30px; }
+/* thin ink brush bars */
+.turbo { position: absolute; left: 835px; top: 1026px; width: 250px; height: 32px; }
+.turbo .stroke { position: absolute; left: 0; right: 0; top: 17px; height: 15px; border-radius: 10px 3px 12px 2px; background: #1e1614; border: 1.5px solid #fbf7ec88; box-shadow: 0 2px 0 #0006; }
+.turbo .stroke i { position: absolute; left: 3px; top: 3px; bottom: 3px; width: 58%; border-radius: 6px 2px 6px 2px; background: linear-gradient(90deg, #a8262a, #e2525c); }
+.turbo span { position: absolute; left: 0; right: 0; top: -2px; text-align: center; font: 400 16px/1 var(--title); color: #fff; letter-spacing: 1px; text-shadow: 0 2px 0 #000, 0 0 4px #000; }
+/* team minibar: paper discs with an ink arc */
+.team { position: absolute; left: 960px; top: 944px; }
+.slot { position: absolute; top: 0; width: 52px; height: 52px; transform: translateX(-50%); }
+.slot .disc { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #fffaf0, #e9d9b6); box-shadow: 0 0 0 2px var(--ink), 0 3px 0 #0007; }
+.slot .hd { position: absolute; left: -4px; right: -4px; bottom: 2px; height: 62px; object-fit: contain; object-position: bottom; }
+.slot .arc { position: absolute; inset: -9px; border-radius: 50%; background: conic-gradient(from 80deg, var(--verm) 0 var(--f), #1e1614 var(--f) 43%, transparent 43%); -webkit-mask: radial-gradient(circle, transparent 30px, #000 31px 36px, transparent 37px); }
+.slot .n { position: absolute; right: -22px; bottom: -6px; font: italic 900 16px var(--body); color: #fff; -webkit-text-stroke: .6px #000; text-shadow: 0 2px 0 #000; }
+.slot.on { transform: translateX(-50%) scale(1.18); transform-origin: 50% 100%; }
+.slot.on .disc { box-shadow: 0 0 0 2.5px var(--verm), 0 0 14px 4px #ffcc4888; }
+.slot .mk { position: absolute; left: 50%; top: -20px; transform: translateX(-50%); width: 14px; height: 14px; background: var(--verm); border-radius: 2px; transform: translateX(-50%) rotate(45deg); box-shadow: inset 0 0 0 1.5px #fff8ee88; }
+.bonus { position: absolute; left: 960px; top: 884px; transform: translateX(-50%) rotate(-.5deg); white-space: nowrap; height: 24px; padding: 0 12px; display: flex; align-items: center; gap: 6px;
+	background: #fbf7ec; border: 1.5px solid #c9b996; border-radius: 2px; box-shadow: 0 2px 0 #0005; font: 700 14px var(--body); color: var(--brush); }
+</style></head><body>
+<div class="screen plaza"><span class="label">HUD option B - Hanko and slips</span>
+
+<div class="tr">
+ <div class="pl w"><img src="../../hud_tabtilt/Daily.png">Daily<span class="badge" style="left:6px;top:-8px;width:20px;height:20px;font-size:13px">!</span></div>
+ <div class="pl w"><img src="../../hud_tabtilt/Market.png">Market</div>
+ <div class="pl sq"><img src="../../hud_tabtilt/Settings.png"></div>
+</div>
+
+<!-- left column -->
+<div class="b" style="left:14px;top:367px"><span class="sl"><img src="../../hud_tabtilt/Index.png"></span><span class="l">Index</span><span class="k">X</span></div>
+<div class="b" style="left:14px;top:469px"><span class="sl"><img src="../../hud_tabtilt/Items.png"></span><span class="l">Items</span><span class="k">B</span></div>
+<div class="b" style="left:14px;top:571px"><span class="badge">5</span><span class="sl"><img src="../../hud_tabtilt/Rebirth.png"></span><span class="l">Rebirth</span><span class="k">R</span></div>
+<!-- second column -->
+<div class="b" style="left:106px;top:418px"><span class="sl ink"><img src="../../hud_tabtilt/Boss.png"></span><span class="l">Bosses</span></div>
+<div class="b" style="left:106px;top:520px"><span class="sl ink"><img src="../../hud_tabtilt/Team_N3.png"></span><span class="l">Team</span><span class="k">T</span></div>
+<!-- right column -->
+<div class="b" style="left:1822px;top:367px"><span class="badge">2</span><span class="sl"><img src="../../hud_tabtilt/Quests.png"></span><span class="l">Quests</span><span class="k">Q</span></div>
+<div class="b" style="left:1822px;top:469px"><span class="sl"><img src="../../hud_tabtilt/Shop.png"></span><span class="l">Shop</span><span class="k">P</span></div>
+<div class="b" style="left:1822px;top:571px"><span class="sl"><img src="../../hud_tabtilt/Gem.png"></span><span class="l">Summon</span><span class="k">G</span></div>
+
+<!-- bottom -->
+<div class="bonus"><span>★</span>TEAM SEVEN&nbsp; +40% STAMINA&nbsp; +10% SPEED</div>
+<div class="team">
+ <div class="slot on" style="left:-78px;--f:34%"><div class="mk"></div><div class="arc"></div><div class="disc"></div><img class="hd" src="../../../characters_avatar/leaf_hero/head.png"><span class="n">7.4</span></div>
+ <div class="slot" style="left:0;--f:43%"><div class="arc"></div><div class="disc"></div><img class="hd" src="../../../characters_avatar/leaf_avenger/head.png"><span class="n">12</span></div>
+ <div class="slot" style="left:78px;--f:43%"><div class="arc"></div><div class="disc"></div><img class="hd" src="../../../characters_avatar/leaf_medic/head.png"><span class="n">10</span></div>
+</div>
+<div class="b pair" style="left:765px;top:996px"><span class="sl ink"><span class="stack"><img src="../../hud_tabtilt/AutoArrows.png"><img src="../../hud_tabtilt/AutoPlay.png"></span></span><span class="l">Auto</span></div>
+<div class="turbo"><div class="stroke"><i></i></div><span>TURBO LUCK 6/10</span></div>
+<div class="b pair" style="left:1092px;top:996px"><span class="sl ink"><img src="../../hud_tabtilt/Upgrade.png"></span><span class="l">Upgrade</span></div>
+
+<div class="cnt m">$12.4M</div>
+<div class="cnt g"><img src="../../gem.png">1,250 Gems</div>
+</div>
+<script src="kit.js"></script></body></html>

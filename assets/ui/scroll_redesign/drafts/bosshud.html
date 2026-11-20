@@ -1,0 +1,106 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boss event HUD</title><link rel="stylesheet" href="kit.css">
+<style>
+/* In-event HUD (BossEventUi BossBar / Status / LeaveButton, BossDodgeUi DodgeBar, TeamHud row in the event). Positions are the code's at 1920x1080:
+   bar 62% wide centred at y 58 (title 40 + track 60), Leave right -8 y 56 62x44, Dodge bar 640x36 above the team row, team row in the hidden Level bar's place.
+   The left and right button columns hide in an event (4.40); Daily / Market / Settings, Auto, Upgrade, Turbo and Money stay. */
+.arena { background: radial-gradient(ellipse at 50% 38%, #4a2230 0%, #24121a 45%, #0d0709 100%); }
+.arena .floor { position: absolute; left: -10%; right: -10%; bottom: -30%; height: 75%; border-radius: 50%; background: radial-gradient(ellipse at 50% 30%, #3b2a22, #1a120d 70%); box-shadow: 0 0 0 6px #4b3420, 0 0 0 10px #1a120d, 0 0 0 14px #6b4a2a; }
+.arena .ghost { position: absolute; left: 50%; top: 250px; transform: translateX(-50%); width: 460px; opacity: .22; filter: drop-shadow(0 0 40px #c8302c88) saturate(1.2); }
+/* top-right pills: lacquer */
+.tr { position: absolute; right: 12px; top: 7px; display: flex; gap: 8px; }
+.pl { height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 16px 0 10px; border-radius: 22px 6px 22px 6px; font: 700 21px var(--btn); }
+.pl img { width: 30px; height: 30px; object-fit: contain; }
+.pl.w { width: 146px; }
+.pl.sq { width: 44px; padding: 0; justify-content: center; border-radius: 8px; }
+.badge { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: var(--verm); color: #fff; font: 900 14px/22px var(--body); text-align: center; box-shadow: 0 0 0 2px var(--cream); }
+/* boss bar */
+.bb { position: absolute; left: 365px; top: 58px; width: 1190px; }
+.bb .tl { height: 40px; display: flex; align-items: center; justify-content: center; position: relative; }
+.bb .tl .nm { font: 400 38px/1 var(--title); color: #ff3a3a; -webkit-text-stroke: 1px #2a0606; text-shadow: 0 3px 0 #000a; letter-spacing: 1px; }
+.bb .tl .tm { position: absolute; left: 0; bottom: 2px; display: flex; align-items: center; gap: 8px; padding: 2px 14px 2px 6px; border-radius: 18px 4px 18px 4px; background: var(--lacquer-dark); border: 2px solid var(--gold-soft); font: 900 26px/1 var(--body); color: var(--gold); }
+.bb .tl .ph { position: absolute; right: 0; bottom: 2px; }
+.trk { position: relative; margin-top: 2px; height: 60px; border-radius: 6px; padding: 6px; background: linear-gradient(180deg, var(--wood-top), var(--wood-bot)); border: 2px solid var(--gold-soft); box-shadow: 0 5px 0 var(--wood-dark), 0 8px 18px #0008; }
+.trk .in { position: relative; height: 100%; border-radius: 3px; background: #1d1012; overflow: hidden; box-shadow: inset 0 2px 4px #000c; }
+.trk .in > i { position: absolute; left: 0; top: 0; bottom: 0; width: 64%; background: linear-gradient(180deg, #e2414a 0 50%, #9d1f2b 50% 100%); }
+.trk .in > i::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: #ffd7c0; }
+.trk .val { position: absolute; inset: 0; display: grid; place-items: center; font: 900 30px var(--body); color: #fff; -webkit-text-stroke: 1px #000; text-shadow: 0 2px 0 #000; letter-spacing: .5px; }
+.trk .cap { position: absolute; top: -7px; width: 18px; height: 74px; border-radius: 4px; background: linear-gradient(90deg, #0b0705, #3b2a1e 40%, var(--cap)); }
+.trk .cap.l { left: -12px; } .trk .cap.r { right: -12px; }
+.st { position: absolute; left: 365px; top: 170px; display: flex; gap: 8px; }
+.st .c { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.st .ic { width: 44px; height: 44px; border-radius: 5px; display: grid; place-items: center; font: 900 28px/1 var(--body); color: #fff; box-shadow: inset 0 0 0 2px #fff8ee66, 0 3px 0 #0008; transform: rotate(-4deg); }
+.st .ic img { width: 34px; }
+.st .s { font: 900 18px var(--body); color: var(--gold); -webkit-text-stroke: .5px #000; }
+.st .x { position: absolute; margin: -8px 0 0 30px; font: 900 15px var(--body); color: #fff; background: var(--lacquer-dark); border: 1.5px solid var(--gold-soft); border-radius: 8px; padding: 0 5px; }
+/* leave */
+.leave { position: absolute; right: 8px; top: 56px; width: 62px; height: 44px; border-radius: 6px; transform: rotate(-3deg); background: linear-gradient(180deg, #d53a33, var(--verm-deep)); color: #fff8ee; display: grid; place-items: center; font: 400 17px/1 var(--title); box-shadow: inset 0 0 0 2px #fff8ee66, 0 4px 0 #5a0f0d; }
+/* dodge */
+.dg { position: absolute; left: 640px; top: 818px; width: 640px; }
+.dg .sub { text-align: center; font: 400 28px/1 var(--title); color: #fff; text-shadow: 0 3px 0 #000, 0 0 10px #000; margin-bottom: 10px; }
+.dg .dbar { position: relative; height: 36px; border-radius: 6px; background: linear-gradient(180deg, #2a1a0e, #140c06); border: 2px solid var(--gold); box-shadow: 0 4px 0 var(--wood-dark), inset 0 2px 4px #000; }
+.dg .spot { position: absolute; left: 62%; top: 2px; bottom: 2px; width: 12%; border-radius: 2px; background: linear-gradient(90deg, var(--gold), #ffec82 30%, #fff 50%, #ffec82 70%, var(--gold)); }
+.dg .sl { position: absolute; left: 40%; top: -9px; bottom: -9px; width: 6px; border-radius: 3px; background: #fff; box-shadow: 0 0 0 2px #000; }
+.dg .wh { position: absolute; left: -27px; top: -2px; width: 60px; filter: drop-shadow(0 3px 0 #000a); }
+/* team row */
+.team { position: absolute; left: 960px; top: 974px; }
+.slot { position: absolute; top: 0; width: 52px; height: 52px; transform: translateX(-50%); }
+.slot .disc { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #3a2a2c, var(--lacquer-dark)); box-shadow: 0 0 0 2px var(--gold-soft), 0 3px 0 #000; }
+.slot .hd { position: absolute; left: -4px; right: -4px; bottom: 2px; height: 64px; object-fit: contain; object-position: bottom; }
+.slot .arc { position: absolute; inset: -9px; border-radius: 50%; background: conic-gradient(from 80deg, var(--a, #ffcc48) 0 var(--f, 30%), #1c1414 var(--f) 43%, transparent 43%); -webkit-mask: radial-gradient(circle, transparent 30px, #000 31px 37px, transparent 38px); }
+.slot .n { position: absolute; right: -22px; bottom: -6px; font: italic 900 17px var(--body); color: #fff; -webkit-text-stroke: .6px #000; transform: skewX(-12deg); }
+.slot.on { transform: translateX(-50%) scale(1.18); transform-origin: 50% 100%; }
+.slot.on .disc { box-shadow: 0 0 0 2.5px var(--gold), 0 0 16px 4px #ffcc48aa; }
+.slot .mk { position: absolute; left: 50%; top: -24px; transform: translateX(-50%); width: 0; height: 0; border: 8px solid transparent; border-top: 11px solid var(--gold); filter: drop-shadow(0 2px 0 #000); }
+.bonus { position: absolute; left: 960px; top: 910px; transform: translateX(-50%); white-space: nowrap; height: 22px; padding: 0 12px; display: flex; align-items: center; gap: 6px; border-radius: 12px 4px 12px 4px; font: 700 14px var(--body); color: var(--gold); }
+/* bottom: turbo, auto, upgrade, money */
+.turbo { position: absolute; left: 835px; top: 1026px; width: 250px; height: 32px; border-radius: 5px; padding: 4px; background: linear-gradient(180deg, var(--wood-top), var(--wood-bot)); border: 2px solid var(--wood-dark); }
+.turbo .in { position: relative; height: 100%; border-radius: 3px; background: #24160c; overflow: hidden; }
+.turbo .in i { position: absolute; left: 0; top: 0; bottom: 0; width: 60%; background: linear-gradient(180deg, #e2525c, var(--verm-deep)); }
+.turbo .in span { position: absolute; inset: 0; display: grid; place-items: center; font: 400 15px/1 var(--title); color: #fff; text-shadow: 0 1px 0 #000, 0 0 3px #000; letter-spacing: 1px; }
+.wt { position: absolute; width: 60px; height: 60px; display: grid; place-items: center; border-radius: 6px; background: linear-gradient(180deg, var(--tile-top), var(--tile-bot)); border: 3px solid var(--tile-rim); box-shadow: 0 4px 0 var(--tile-edge); }
+.wt img { width: 46px; height: 46px; object-fit: contain; position: absolute; }
+.wt b { position: absolute; bottom: -22px; font: 700 17px var(--btn); color: #fff; text-shadow: 0 2px 0 #000, 0 0 3px #000; }
+.money { position: absolute; left: 22px; top: 966px; }
+.money .m, .money .g { display: flex; align-items: center; gap: 10px; padding: 4px 18px 4px 8px; border-radius: 4px; }
+.money .m { font: 400 46px/1 var(--title); color: #6ee27a; text-shadow: 0 3px 0 #0b3a14; }
+.money .g { margin-top: 0; font: 700 26px var(--btn); color: #d8a4ff; text-shadow: 0 2px 0 #2a0b40; width: max-content; }
+.money img { height: 46px; }
+.money .g img { height: 28px; }
+</style></head><body>
+<div class="screen arena"><div class="floor"></div><img class="ghost" src="../../../characters_avatar/side_raga/portrait.png"><span class="label">Boss event HUD - Phase 2 (Fully Adapted Raga), dodge prompt up</span>
+
+<div class="tr">
+ <div class="pl w lacq" style="position:relative"><img src="../../hud_tabtilt/Daily.png">Daily<span class="badge" style="left:26px;top:2px;width:18px;height:18px;font-size:12px;line-height:18px">!</span></div>
+ <div class="pl w lacq"><img src="../../hud_tabtilt/Market.png">Market</div>
+ <div class="pl sq lacq"><img src="../../hud_tabtilt/Settings.png"></div>
+</div>
+
+<div class="bb">
+ <div class="tl"><span class="tm"><span class="seal sm">時</span>3:47</span><span class="nm">Fully Adapted Raga</span></div>
+ <div class="trk"><span class="cap l"></span><span class="cap r"></span><div class="in"><i></i></div><div class="val">7,680,000/12,000,000</div></div>
+</div>
+<div class="st">
+ <div class="c" style="position:relative"><div class="ic" style="background:#e0a020"><img src="../../raga_wheel.png"></div><span class="x">x2</span><span class="s">&nbsp;</span></div>
+ <div class="c"><div class="ic" style="background:var(--verm)">!</div><span class="s">3s</span></div>
+</div>
+<div class="leave">LEAVE</div>
+
+<div class="dg">
+ <div class="sub">Press SPACE when the bar hits the white!</div>
+ <div class="dbar"><div class="spot"></div><div class="sl"><img class="wh" src="../../raga_wheel.png"></div></div>
+</div>
+
+<div class="bonus lacq"><span>★</span>TEAM SEVEN&nbsp; +40% STAMINA&nbsp; +10% SPEED</div>
+<div class="team">
+ <div class="slot on" style="left:-78px;--f:34%"><div class="mk"></div><div class="arc"></div><div class="disc"></div><img class="hd" src="../../../characters_avatar/leaf_hero/head.png"><span class="n">7.4</span></div>
+ <div class="slot" style="left:0;--f:43%"><div class="arc"></div><div class="disc"></div><img class="hd" src="../../../characters_avatar/leaf_avenger/head.png"><span class="n">12</span></div>
+ <div class="slot" style="left:78px;--f:43%"><div class="arc"></div><div class="disc"></div><img class="hd" src="../../../characters_avatar/leaf_medic/head.png"><span class="n">10</span></div>
+</div>
+
+<div class="wt" style="left:762px;top:996px"><img src="../../hud_tabtilt/AutoArrows.png"><img src="../../hud_tabtilt/AutoPlay.png"><b>Auto</b></div>
+<div class="turbo"><div class="in"><i></i><span>TURBO LUCK 6/10</span></div></div>
+<div class="wt" style="left:1098px;top:996px"><img src="../../hud_tabtilt/Upgrade.png"><b>Upgrade</b></div>
+
+<div class="money"><div class="m">$12.4M</div><div class="g"><img src="../../gem.png">1,250 Gems</div></div>
+</div>
+<script src="kit.js"></script></body></html>

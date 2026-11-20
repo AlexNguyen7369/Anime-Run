@@ -1,0 +1,45 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Boss rewards</title><link rel="stylesheet" href="kit.css">
+<style>
+/* Boss rewards popup (BossRewardPopup R1 "Victory banner"): TOTAL DAMAGE, the count, the share bar with the 5% mark, one card per reward. */
+.rb { position: absolute; left: 44px; right: 44px; top: 128px; bottom: 26px; display: flex; flex-direction: column; align-items: center; }
+.capt { font: 400 30px/1 var(--title); color: var(--ink-soft); letter-spacing: 2px; display: flex; align-items: center; gap: 14px; }
+.capt::before, .capt::after { content: ""; width: 120px; height: 2px; background: var(--ink-soft); opacity: .45; }
+.dmg { font: 400 84px/1 var(--title); color: var(--brush); margin: 8px 0 14px; text-shadow: 2px 3px 0 rgba(0,0,0,.12); }
+.share { width: 100%; display: flex; align-items: center; gap: 16px; }
+.share .track { position: relative; flex: 1; height: 26px; border-radius: 4px; background: linear-gradient(180deg, #3a2a1c, #22170e); border: 2px solid var(--wood-dark); box-shadow: inset 0 2px 3px rgba(0,0,0,.5); }
+.share .track > i { position: absolute; left: 0; top: 0; bottom: 0; width: 12.4%; border-radius: 3px; background: linear-gradient(180deg, #e2525c, var(--verm-deep)); }
+.share .mark { position: absolute; left: 5%; top: -7px; bottom: -7px; width: 4px; background: #eb141e; box-shadow: 0 0 0 1px var(--cream); }
+.share .mk { position: absolute; left: 5%; top: 30px; transform: translateX(-50%); font: 700 15px var(--body); color: var(--muted); white-space: nowrap; }
+.share b { font: 700 30px var(--btn); color: var(--ink); width: 110px; text-align: right; }
+.cards { margin-top: 40px; display: flex; gap: 16px; }
+.rc { position: relative; width: 168px; height: 170px; display: grid; place-items: center; border-radius: 6px; border: 3px solid var(--tile-rim); box-shadow: 0 4px 0 var(--tile-edge); background: linear-gradient(180deg, var(--tile-top), var(--tile-bot)); }
+.rc.gold { background: radial-gradient(circle at 50% 40%, #fff3c8, #f3d589 60%, #e2b65a); border-color: #8a5a1c; }
+.rc img { width: 118px; height: 118px; object-fit: contain; filter: drop-shadow(0 3px 0 rgba(0,0,0,.25)); }
+.rc .amt { font: 900 30px var(--body); display: flex; align-items: center; gap: 6px; }
+.rc .amt img { width: 38px; height: 38px; }
+.rc .seal { position: absolute; top: -10px; right: -10px; }
+.blossom.a { left: -26px; top: -30px; transform: scale(.7); }
+.blossom.b { right: -20px; bottom: -26px; transform: scale(.55); }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Boss rewards - Big Raga, both phases cleared</span>
+<div class="hs" style="left:500px;top:250px;width:920px;height:580px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Boss.png"><span class="wordmark" style="font-size:54px">Raga Defeated!</span><span class="kanji">勝利</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="rb">
+   <div class="capt">TOTAL DAMAGE</div>
+   <div class="dmg">1,284,500</div>
+   <div class="share"><div class="track"><i></i><span class="mark"></span></div><b>12.4%</b></div>
+   <div class="cards">
+    <div class="rc gold"><img src="../../chest_raga.png"><span class="seal sm">壱</span></div>
+    <div class="rc"><span class="amt" style="color:#2f9a45">$100,000</span></div>
+    <div class="rc gold"><img src="../../chest_adapted.png"><span class="seal sm">弐</span></div>
+    <div class="rc"><span class="amt" style="color:#7a2fc0"><img src="../../gem.png">1,000</span></div>
+   </div>
+  </div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+ 
+</div></div>
+<script src="kit.js"></script></body></html>

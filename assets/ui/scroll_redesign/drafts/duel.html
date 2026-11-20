@@ -1,0 +1,45 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Duel</title><link rel="stylesheet" href="kit.css">
+<style>
+.pop { --roll:24px; }
+.pop .hdr { left:30px; right:30px; top:10px; height:70px; gap:12px; }
+.pop .hdr .icon { width:56px; height:56px; }
+.pop .hdr .seal.big { width:52px; height:52px; font-size:30px; flex:none; }
+.pop .wordmark { font-size:44px; }
+.pop .kanji { font-size:22px; }
+.pop .sub { font-size:18px; margin-bottom:10px; }
+.pop .close { width:46px; height:46px; top:18px; right:40px; font-size:26px; }
+.pop .hdr-rule { left:30px; right:30px; top:86px; }
+.pop .pb { position:absolute; left:30px; right:30px; top:100px; bottom:22px; }
+
+.vs { display:flex; align-items:center; gap:12px; font:700 24px var(--btn); color:var(--ink-soft); }
+.vs b { font:400 34px/1 var(--title); color:var(--verm); }
+.tracks { margin-top:18px; display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.tracks .tile { height:92px; font-size:34px; flex-direction:row; gap:12px; }
+.tracks .tile .seal { width:40px; height:40px; font-size:20px; }
+.inv { display:flex; flex-direction:column; align-items:center; gap:18px; padding-top:10px; }
+.inv .who { display:flex; align-items:center; gap:16px; }
+.inv .who .seal { width:56px; height:56px; font-size:30px; }
+.inv p { font:600 28px/1.25 var(--body); color:var(--ink); text-align:center; }
+.inv p b { color:var(--verm); }
+.inv .btns { display:flex; gap:22px; margin-top:6px; }
+.inv .btns .tile { min-width:200px; }
+.inv .btns .pbtn { height:64px; min-width:200px; font-size:26px; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Duel - Pick a Track (challenger) and Duel Request (invited player)</span>
+<div class="hs pop" style="left:170px;top:330px;width:860px;height:400px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><span class="seal big">決</span><span class="wordmark">Pick a Track</span><span class="kanji">決闘</span></div>
+  <div class="close">✕</div><div class="hdr-rule"></div>
+  <div class="pb"><div class="vs"><span class="seal">対</span>vs <b>Hana_Runs</b></div><div class="tracks"><span class="tile">Track 1</span><span class="tile">Track 2</span><span class="tile">Track 3</span><span class="tile">Track 4</span><span class="tile">Track 5</span><span class="tile">Track 6</span></div></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div><div class="hs pop" style="left:1090px;top:380px;width:680px;height:310px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><span class="seal big">闘</span><span class="wordmark">Duel Request</span><span class="kanji">挑戦</span></div>
+  <div class="hdr-rule"></div>
+  <div class="pb"><div class="inv"><p><b>Hana_Runs</b> challenges you on Track 3</p><div class="btns"><span class="tile go">Accept</span><span class="pbtn red">Decline</span></div></div></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div>
+</div>
+<script src="kit.js"></script></body></html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Settings</title><link rel="stylesheet" href="kit.css">
+<style>
+.body { bottom:26px; }
+.list { display:flex; flex-direction:column; gap:14px; }
+.row { height:80px; display:flex; align-items:center; gap:20px; padding:0 22px; }
+.row .seal { width:46px; height:46px; font-size:26px; }
+.row b { flex:1; font:700 30px/1 var(--btn); }
+.sw { position:relative; width:150px; height:52px; border-radius:8px; background:linear-gradient(180deg,#3a3233,var(--lacquer-dark)); border:2px solid var(--gold-soft); }
+.sw i { position:absolute; top:3px; width:86px; height:42px; border-radius:6px; display:grid; place-items:center; font:700 22px/1 var(--btn); font-style:normal; }
+.sw.on i { right:3px; background:linear-gradient(180deg,#e2525c,#9d1f2b); color:#fff3e0; box-shadow:inset 0 0 0 2px #ffd58a; }
+.sw.off i { left:3px; background:linear-gradient(180deg,var(--tile-top),var(--tile-bot)); color:var(--muted); box-shadow:inset 0 0 0 2px var(--tile-rim); }
+.prof { display:grid; grid-template-columns:1fr 1fr; gap:18px 22px; }
+.pr { height:132px; display:flex; flex-direction:column; justify-content:center; padding:0 26px; gap:10px; border-left:8px solid var(--verm); }
+.pr span { font:700 22px var(--btn); color:var(--ink-soft); display:flex; align-items:center; gap:10px; }
+.pr b { font:900 44px/1 var(--body); color:var(--ink); }
+.pr b small { font-size:24px; color:var(--muted); }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Settings (HUD Settings) - Settings tab</span>
+<div class="hs" style="left:300px;top:190px;width:1320px;height:700px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Settings.png"><span class="wordmark">Settings</span><span class="kanji">設定</span><span class="sub">Sound, camera and selling</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="toolbar"><span class="tab on">Settings</span><span class="tab">Player Profile</span></div>
+  <div class="body"><div class="list"><div class="card row"><span class="seal">音</span><b>Sound</b><span class="sw on"><i>ON</i></span></div><div class="card row"><span class="seal">効</span><b>Reduced Effects</b><span class="sw off"><i>OFF</i></span></div><div class="card row"><span class="seal">俯</span><b>Top-Down View</b><span class="sw off"><i>OFF</i></span></div><div class="card row"><span class="seal">撮</span><b>Track Camera</b><span class="sw on"><i>ON</i></span></div><div class="card row"><span class="seal">売</span><b>Auto Sell</b><span class="sw on"><i>ON</i></span></div></div></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div></div>
+<script src="kit.js"></script></body></html>

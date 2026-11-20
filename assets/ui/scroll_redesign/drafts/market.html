@@ -1,0 +1,74 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Market</title><link rel="stylesheet" href="kit.css">
+<style>
+/* Market frame-local parts: cosmetic swatches (stand-ins for MarketArt), item tiles, the detail sheet and slot buttons. */
+.body { bottom: 22px; display: flex; gap: 16px; }
+.tgrid { width: 640px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 12px; align-content: start; }
+.it { position: relative; background: linear-gradient(180deg, #fffaf0, #f3e6c8); border: 2px solid var(--tile-rim); border-radius: 6px; box-shadow: 0 3px 0 var(--tile-edge); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding: 10px 8px 10px; }
+.it .bd { position: absolute; left: 10px; top: 8px; font: 900 19px var(--body); color: #9a6410; }
+.it .bd.own { color: #2f7a3e; }
+.it .nm { font: 700 23px/1.1 var(--btn); margin-top: 12px; }
+.it.pick { border: 3px solid var(--verm); box-shadow: 0 0 0 3px #fff8ee, 0 3px 0 var(--verm-deep); }
+.it.slot:not(.pick) { border-color: #2f7a3e; box-shadow: 0 3px 0 #1c4a25; }
+.it.pick::after { content: "選"; position: absolute; right: 6px; top: 6px; width: 26px; height: 26px; display: grid; place-items: center; background: var(--verm); color: #fff8ee; font: 400 15px/1 "Yuji Syuku", serif; border-radius: 4px; transform: rotate(-6deg); }
+.empty { border: 2px dashed #c9b996; border-radius: 6px; }
+/* swatches: a trail is a ribbon, an aura a ring (flat gradients: buildable as one image each) */
+.trail { width: 150px; height: 40px; border-radius: 17px 4px 17px 4px; background: linear-gradient(90deg, transparent, var(--c) 30%, var(--a)); border: 2px solid var(--ink); transform: skewX(-12deg); margin-bottom: 30px; }
+.aura { width: 84px; height: 84px; border-radius: 50%; background: radial-gradient(circle, transparent 40%, var(--a) 42%, var(--c) 70%, transparent 72%); border: 2px solid var(--ink); }
+.tab .mini { width: 34px; height: 12px; border-radius: 6px 2px 6px 2px; border: 1.5px solid var(--ink); }
+.tab.on .mini { border-color: var(--cream); }
+.detail { flex: 1; padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+.detail .rl { font: 700 17px var(--body); color: var(--ink-soft); }
+.detail .nm { font: 400 40px/1 var(--title); }
+.prev { height: 200px; display: grid; place-items: center; background: linear-gradient(180deg, #f9e6ea, #f2c9d3); border: 2px solid var(--tile-rim); border-radius: 6px; position: relative; }
+.prev .trail { width: 300px; height: 62px; margin: 0; border-radius: 31px 8px 31px 8px; }
+.prev .reply { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font: 700 17px var(--btn); color: #2f7a3e; background: #fbf5e6; padding: 1px 12px; border: 1.5px solid #2f7a3e; border-radius: 4px; }
+.pr { display: flex; align-items: center; gap: 12px; }
+.pr .v { font: 700 22px var(--btn); flex: 1; }
+.slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: auto; }
+.sb { height: 50px; padding: 3px 12px; background: linear-gradient(180deg, var(--tile-top), var(--tile-bot)); border: 2.5px solid var(--tile-rim); border-radius: 6px; box-shadow: 0 3px 0 var(--tile-edge); }
+.sb b { display: block; font: 700 18px/1.1 var(--btn); }
+.sb span { display: block; font: 600 14px var(--body); color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb.here { background: linear-gradient(180deg, #6fc27f, #2f7a3e); border-color: #1c4a25; box-shadow: 0 3px 0 #123018; }
+.sb.here b, .sb.here span { color: #f4ffe9; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Market - Trails tab, an owned trail picked</span>
+<div class="hs" style="left:300px;top:190px;width:1320px;height:700px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Market.png"><span class="wordmark">Market</span><span class="kanji">市場</span><span class="sub">Trails, auras and potions for Money</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="toolbar">
+   <span class="tab on"><i class="mini" style="background:linear-gradient(90deg,#ff78eb,#5adcff)"></i>Trails</span>
+   <span class="tab"><i class="mini" style="border-radius:50%;width:16px;height:16px;background:#50beff"></i>Auras</span>
+   <span class="tab"><i class="mini" style="border-radius:5px 5px 3px 3px;width:14px;height:18px;background:#b46bf0"></i>Potions</span>
+  </div>
+  <div class="body">
+   <div class="tgrid" id="g"></div>
+   <div class="slip detail">
+    <div class="rl">Trail &nbsp;•&nbsp; x1.5 cruise speed on its slot</div>
+    <div class="nm">Rainbow Trail</div>
+    <div class="prev"><div class="trail" style="--c:#ff78eb;--a:#5adcff"></div><span class="reply">Equipped on slot 1</span></div>
+    <div class="pr"><span class="v">$500 &nbsp;•&nbsp; Owned x2</span><span class="tile go sm" style="width:130px">BUY</span></div>
+    <div class="slots">
+     <div class="sb here"><b>REMOVE 1</b><span>Azure · Rainbow</span></div>
+     <div class="sb"><b>SLOT 2</b><span>Ember · Solar</span></div>
+     <div class="sb"><b>SLOT 3</b><span>-</span></div>
+    </div>
+   </div>
+  </div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div></div>
+<script>
+// MarketConfig.Items.Trail: [name, colour, accent, badge (price or owned copies), state]
+const T = [
+ ["Rainbow Trail","#ff78eb","#5adcff","x2","pick slot"],
+ ["Solar Trail","#ffbc30","#fff591","x1","slot"],
+ ["Void Trail","#6834dc","#22e6d2","$12.5K"],
+ ["Frost Trail","#50beff","#b4f5ff","$60K"],
+ ["Prism Trail","#ba8cff","#ffffff","$300K"],
+];
+document.getElementById("g").innerHTML = T.map(([n,c,a,b,st]) => `<div class="it ${st||""}"><span class="bd ${b[0]==="x"?"own":""}">${b}</span><div class="trail" style="--c:${c};--a:${a}"></div><span class="nm">${n}</span></div>`).join("")
+;
+</script>
+<script src="kit.js"></script></body></html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Stats</title><link rel="stylesheet" href="kit.css">
+<style>
+.tab .badge { display:inline-grid; place-items:center; min-width:28px; height:28px; padding:0 6px; border-radius:14px; background:var(--verm); color:#fff; font:900 18px var(--body); box-shadow:0 0 0 2px #fff8ee; }
+.pts { height:46px; padding:0 22px; display:flex; align-items:center; gap:10px; font:700 24px var(--btn); }
+.pts b { color:var(--gold); font-size:28px; }
+.body { bottom:26px; }
+.list { display:flex; flex-direction:column; gap:14px; }
+.srow { height:96px; display:flex; align-items:center; gap:22px; padding:0 18px 0 0; border-left:10px solid var(--ac); }
+.srow .ico { width:96px; height:100%; display:grid; place-items:center; background:linear-gradient(180deg,#f9e6ea,#f2c9d3); border-right:2px solid var(--tile-rim); }
+.srow .ico img { width:62px; height:62px; object-fit:contain; }
+.srow .tx { flex:1; display:flex; flex-direction:column; gap:4px; }
+.srow .tx b { font:700 28px/1 var(--btn); }
+.srow .tx span { font:600 18px var(--body); color:var(--muted); }
+.srow .bar { width:420px; height:10px; }
+.srow .bar i { background:var(--ac); }
+.srow .val { font:900 26px var(--body); color:var(--ink); }
+.srow .plus { min-width:0; width:64px; height:64px; font-size:40px; padding:0; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Rebirth panel - Stats tab</span>
+<div class="hs" style="left:300px;top:190px;width:1320px;height:700px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Stats.png"><span class="wordmark">Stats</span><span class="kanji">能力</span><span class="sub">Spend points from rebirths and the index</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="toolbar"><span class="tab">Rebirth</span><span class="tab on">Stats <span class="badge">3</span></span><span class="grow"></span>
+   <span class="lacq pts"><span class="seal sm">点</span><b>3</b> FREE POINTS</span></div>
+  <div class="body"><div class="list"><div class="card srow" style="--ac:#18caef"><span class="ico"><img src="../../team_icons/cruise.png"></span><div class="tx"><b>Cruise Multiplier</b><span>+2% Speed per point</span><div class="bar"><i style="width:40%"></i></div></div><span class="val">4 pts · x1.08 > x1.10</span><span class="tile go plus">+</span></div><div class="card srow" style="--ac:#ffc212"><span class="ico"><img src="../../hud_tabtilt/Shop.png"></span><div class="tx"><b>Money Multiplier</b><span>+10% Money per point</span><div class="bar"><i style="width:20%"></i></div></div><span class="val">2 pts · x1.20 > x1.30</span><span class="tile go plus">+</span></div><div class="card srow" style="--ac:#58e150"><span class="ico"><img src="../../team_icons/star.png"></span><div class="tx"><b>Luck Multiplier</b><span>+5% Luck per point</span><div class="bar"><i style="width:30%"></i></div></div><span class="val">3 pts · x1.15 > x1.20</span><span class="tile go plus">+</span></div><div class="card srow" style="--ac:#4678ff"><span class="ico"><img src="../../team_icons/stamina.png"></span><div class="tx"><b>Stamina Multiplier</b><span>+5% Stamina per point</span><div class="bar"><i style="width:10%"></i></div></div><span class="val">1 pt · x1.05 > x1.10</span><span class="tile go plus">+</span></div></div></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div></div>
+<script src="kit.js"></script></body></html>

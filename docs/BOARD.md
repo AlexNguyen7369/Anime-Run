@@ -1,6 +1,7 @@
 # Board
 
 ## Doing
+- ui-scroll s1: Scroll Dojo references published (https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe), waiting on owner approval; build t1-t6 after
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server

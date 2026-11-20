@@ -1,0 +1,85 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>HUD A - Wood plaques</title><link rel="stylesheet" href="kit.css">
+<style>
+/* HUD option A "Wood plaques". Positions are HudChrome / BossEventUi / RacerHud / TeamHud at 1920x1080 (design doc 4.40):
+   cell 84x94, gap 8; left column x 14 centred at y 516 (Index, Items, Rebirth); second column x 106 (Bosses level with Index/Items gap,
+   Team level with Items/Rebirth gap); right column x 1822 (Quests, Shop, Summon); top-right row Daily, Market, Settings at y 7;
+   Turbo 250x32 centred at bottom -22; team row in the hidden Level bar's place above it; Auto / Upgrade beside the bars at 0.75 scale. */
+.b { position: absolute; width: 84px; height: 94px; border-radius: 7px; background: linear-gradient(180deg, var(--tile-top), var(--tile-bot));
+	border: 3px solid var(--tile-rim); box-shadow: 0 4px 0 var(--tile-edge), 0 6px 10px #0006; display: flex; flex-direction: column; align-items: center; }
+.b::before { content: ""; position: absolute; inset: 3px; border-radius: 4px; border: 1px solid #ffffff66; pointer-events: none;
+	background: repeating-linear-gradient(90deg, rgba(120,80,40,.06) 0 2px, transparent 2px 9px); }
+.b img { width: 60px; height: 60px; object-fit: contain; margin-top: 2px; filter: drop-shadow(0 2px 0 rgba(0,0,0,.2)); }
+.b .l { font: 700 19px/1 var(--btn); color: var(--tile-ink); margin-top: 1px; }
+.b .k { position: absolute; right: -9px; top: -9px; width: 24px; height: 24px; border-radius: 4px; background: var(--verm); color: #fff8ee; display: grid; place-items: center;
+	font: 900 14px/1 var(--body); box-shadow: inset 0 0 0 1.5px #fff8ee88, 0 2px 0 var(--verm-deep); transform: rotate(-6deg); }
+.badge { position: absolute; left: -10px; top: -10px; width: 26px; height: 26px; border-radius: 50%; background: #e2343a; color: #fff; display: grid; place-items: center;
+	font: 900 16px/1 var(--body); box-shadow: 0 0 0 2.5px #fff8ee, 0 2px 0 #0006; z-index: 2; }
+.b.pair { width: 63px; height: 70px; border-radius: 6px; }
+.b.pair img { width: 42px; height: 42px; margin-top: 3px; }
+.b.pair .l { font-size: 15px; }
+.stack { position: relative; width: 42px; height: 42px; margin-top: 3px; } .stack img { position: absolute; inset: 0; width: 42px; height: 42px; margin: 0; }
+/* top-right plaques */
+.tr { position: absolute; right: 12px; top: 7px; display: flex; gap: 8px; }
+.pl { position: relative; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px 0 8px; border-radius: 6px;
+	background: linear-gradient(180deg, var(--tile-top), var(--tile-bot)); border: 2.5px solid var(--tile-rim); box-shadow: 0 3px 0 var(--tile-edge); font: 700 21px var(--btn); color: var(--tile-ink); }
+.pl img { width: 32px; height: 32px; object-fit: contain; }
+.pl.w { width: 146px; } .pl.sq { width: 44px; padding: 0; justify-content: center; }
+/* counters on lacquer */
+.cnt { position: absolute; left: 22px; display: flex; align-items: center; gap: 10px; padding: 4px 18px 4px 10px; border-radius: 4px 18px 4px 18px; }
+.cnt.m { top: 950px; font: 400 44px/1 var(--title); color: #7be38a; }
+.cnt.g { top: 1012px; font: 700 24px var(--btn); color: var(--gold); }
+.cnt .ic { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #8ef09a, #2f9a45); border: 2px solid var(--gold); display: grid; place-items: center; font: 900 24px var(--body); color: #0b3a14; }
+.cnt.g img { width: 30px; }
+/* turbo: wooden bar, vermilion fill */
+.turbo { position: absolute; left: 835px; top: 1026px; width: 250px; height: 32px; border-radius: 5px; padding: 4px; background: linear-gradient(180deg, #9a6a40, var(--wood-bot)); border: 2px solid var(--wood-dark); box-shadow: 0 3px 0 #000a; }
+.turbo .in { position: relative; height: 100%; border-radius: 3px; background: #2c1a0e; overflow: hidden; box-shadow: inset 0 2px 3px #000; }
+.turbo .in i { position: absolute; left: 0; top: 0; bottom: 0; width: 60%; background: linear-gradient(180deg, #e2525c, var(--verm-deep)); }
+.turbo .in span { position: absolute; inset: 0; display: grid; place-items: center; font: 900 15px/1 var(--body); color: #fff; letter-spacing: 1px; text-shadow: 0 1px 0 #000, 0 0 3px #000; }
+.turbo .nail { position: absolute; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--gold-soft); box-shadow: 0 1px 0 #000; }
+/* team minibar: lacquer nameplates */
+.team { position: absolute; left: 960px; top: 934px; transform: translateX(-50%); display: flex; gap: 8px; align-items: flex-end; }
+.np { position: relative; width: 150px; height: 46px; padding-left: 50px; border-radius: 4px 16px 4px 16px; }
+.np .pt { position: absolute; left: -2px; bottom: -2px; width: 48px; height: 58px; object-fit: contain; object-position: bottom; }
+.np .nm { font: 700 17px/1 var(--btn); color: var(--cream); margin-top: 5px; }
+.np .sb { display: flex; align-items: center; gap: 5px; margin-top: 5px; padding-right: 8px; }
+.np .sb .tr2 { flex: 1; height: 8px; border-radius: 4px; background: #1a1213; border: 1px solid #6b5a3a; overflow: hidden; } .np .sb .tr2 i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), #ffe58a); }
+.np .sb b { font: italic 900 14px/1 var(--body); color: #fff; }
+.np.on { transform: scale(1.12); transform-origin: 50% 100%; box-shadow: 0 0 0 2px var(--gold), 0 0 14px 3px #ffcc4888; margin: 0 8px; }
+.np.on::after { content: ""; position: absolute; left: 50%; top: -18px; margin-left: -7px; border: 7px solid transparent; border-top: 10px solid var(--gold); }
+.bonus { position: absolute; left: 960px; top: 884px; transform: translateX(-50%); white-space: nowrap; height: 22px; padding: 0 12px; display: flex; align-items: center; gap: 6px; border-radius: 12px 4px 12px 4px; font: 700 14px var(--body); color: var(--gold); }
+</style></head><body>
+<div class="screen plaza"><span class="label">HUD option A - Wood plaques</span>
+
+<div class="tr">
+ <div class="pl w"><img src="../../hud_tabtilt/Daily.png">Daily<span class="badge" style="left:-6px;top:-8px;width:20px;height:20px;font-size:13px">!</span></div>
+ <div class="pl w"><img src="../../hud_tabtilt/Market.png">Market</div>
+ <div class="pl sq"><img src="../../hud_tabtilt/Settings.png"></div>
+</div>
+
+<!-- left column -->
+<div class="b" style="left:14px;top:367px"><img src="../../hud_tabtilt/Index.png"><span class="l">Index</span><span class="k">X</span></div>
+<div class="b" style="left:14px;top:469px"><img src="../../hud_tabtilt/Items.png"><span class="l">Items</span><span class="k">B</span></div>
+<div class="b" style="left:14px;top:571px"><span class="badge">5</span><img src="../../hud_tabtilt/Rebirth.png"><span class="l">Rebirth</span><span class="k">R</span></div>
+<!-- second column -->
+<div class="b" style="left:106px;top:418px"><img src="../../hud_tabtilt/Boss.png"><span class="l">Bosses</span></div>
+<div class="b" style="left:106px;top:520px"><img src="../../hud_tabtilt/Team_N3.png"><span class="l">Team</span><span class="k">T</span></div>
+<!-- right column -->
+<div class="b" style="left:1822px;top:367px"><span class="badge">2</span><img src="../../hud_tabtilt/Quests.png"><span class="l">Quests</span><span class="k">Q</span></div>
+<div class="b" style="left:1822px;top:469px"><img src="../../hud_tabtilt/Shop.png"><span class="l">Shop</span><span class="k">P</span></div>
+<div class="b" style="left:1822px;top:571px"><img src="../../hud_tabtilt/Gem.png"><span class="l">Summon</span><span class="k">G</span></div>
+
+<!-- bottom -->
+<div class="bonus lacq"><span>★</span>TEAM SEVEN&nbsp; +40% STAMINA&nbsp; +10% SPEED</div>
+<div class="team">
+ <div class="np lacq on"><img class="pt" src="../../../characters_avatar/leaf_hero/head.png"><div class="nm">Narito</div><div class="sb"><span class="tr2"><i style="width:62%"></i></span><b>7.4</b></div></div>
+ <div class="np lacq"><img class="pt" src="../../../characters_avatar/leaf_avenger/head.png"><div class="nm">Saske</div><div class="sb"><span class="tr2"><i style="width:100%"></i></span><b>12</b></div></div>
+ <div class="np lacq"><img class="pt" src="../../../characters_avatar/leaf_medic/head.png"><div class="nm">Sakara</div><div class="sb"><span class="tr2"><i style="width:100%"></i></span><b>10</b></div></div>
+</div>
+<div class="b pair" style="left:764px;top:990px"><span class="stack"><img src="../../hud_tabtilt/AutoArrows.png"><img src="../../hud_tabtilt/AutoPlay.png"></span><span class="l">Auto</span></div>
+<div class="turbo"><span class="nail" style="left:-1px"></span><div class="in"><i></i><span>TURBO LUCK 6/10</span></div></div>
+<div class="b pair" style="left:1093px;top:990px"><img src="../../hud_tabtilt/Upgrade.png"><span class="l">Upgrade</span></div>
+
+<div class="cnt m lacq"><span class="ic">$</span>$12.4M</div>
+<div class="cnt g lacq"><img src="../../gem.png">1,250 Gems</div>
+</div>
+<script src="kit.js"></script></body></html>
