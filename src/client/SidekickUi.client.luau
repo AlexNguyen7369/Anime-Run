@@ -578,6 +578,10 @@ local function renderRotation()
 			end
 		end
 	end
+	-- Presentation order only (4.45 "Summon 1:1 reference": Beroo left, Ryuuk right); the rotation itself is untouched.
+	table.sort(legendaries, function(a, b)
+		return a.Name < b.Name
+	end)
 	featuredRows = { legendaries[1], mythics[1], legendaries[2] }
 	local art = featuredRows[2] and SidekickArt[featuredRows[2].Id]
 	canvas.Banner1.UnitArtwork.Image = art and art.Portrait or ""
@@ -730,7 +734,7 @@ for i = 1, 2 do
 	local offer = canvas["Offer" .. i]
 	local pack = Monetization.GemPacks[i]
 	offer.Title.Text = pack.Name .. " Gems"
-	offer.Luck.Text = "+" .. HudFormat.Short(pack.Gems) .. " Gems"
+	offer.Luck.Text = "+" .. string.upper(HudFormat.Short(pack.Gems)) .. " Gems" -- "+1K Gems" as the reference
 	offer.Price.Text = "R$" .. tostring(pack.RobuxPrice)
 	offer.PotionIcon.Image = "rbxassetid://136720019410378"
 	offer.Buy.Activated:Connect(function()

@@ -1,5 +1,6 @@
 --!nonstrict
--- The Summon page's layout R3 "Enso and seals" (design doc 4.45 "Hanging-scroll look", owner 2026-11-19), dressed onto
+-- The Summon page's layout R3 "Enso and seals" (design doc 4.45 "Hanging-scroll look", owner 2026-11-19), made to match
+-- the owner's reference image 1:1 (4.45 "Summon 1:1 reference", assets/ui/summon_ref/owner_reference_2026-11-19.png), dressed onto
 -- the native template's controls (StarterGui.RacerSidekicks.Canvas) with Client/DojoScroll. Every control keeps its name
 -- and its parent (the canvas) so the page script and the UI tests still find it; only looks and places change. The
 -- client only displays: costs, odds, pity and the rotation come from the server's attributes. Sizes proposed.
@@ -62,7 +63,7 @@ end
 -- Builds the scroll and dresses the template. Returns the page object: Refresh(state), Open(), Close(), InkItems.
 function SummonScroll.Apply(canvas)
 	local page = {}
-	local scrollItems, riseItems, sealItems = {}, {}, {}
+	local scrollItems, riseItems, tileItems = {}, {}, {}
 	local function add(list, ...)
 		for _, o in { ... } do
 			table.insert(list, o)
@@ -143,53 +144,67 @@ function SummonScroll.Apply(canvas)
 	art.ScaleType = Enum.ScaleType.Fit
 	art.BackgroundTransparency = 1
 
-	-- Rotation timer as a red seal at the enso's lower right.
+	-- Rotation timer as a larger red seal at the enso's lower right: "Ends in" small over the time large.
 	local timer = canvas.Timer
-	place(timer, 318, 392, 70, 46, true)
-	timer.ZIndex, timer.Rotation = CONTENT_Z + 2, -3
+	place(timer, 306, 410, 90, 54, true)
+	timer.ZIndex, timer.Rotation = CONTENT_Z + 2, 0
 	timer.BackgroundColor3, timer.BackgroundTransparency, timer.BorderSizePixel = K.Accent, 0, 0
-	timer.FontFace, timer.TextColor3, timer.TextScaled = K.BodyBold, K.Paper, true
+	timer.FontFace, timer.TextColor3, timer.TextScaled = K.BodyBold, K.SealText, true
 	timer.TextStrokeTransparency, timer.TextXAlignment = 1, Enum.TextXAlignment.Center
-	timer.TextYAlignment = Enum.TextYAlignment.Bottom
+	timer.TextYAlignment = Enum.TextYAlignment.Center
 	local pad = timer:FindFirstChildOfClass("UIPadding") or Instance.new("UIPadding")
 	pad.PaddingTop, pad.PaddingBottom, pad.PaddingLeft, pad.PaddingRight =
-		UDim.new(0.38, 0), UDim.new(0.08, 0), UDim.new(0.08, 0), UDim.new(0.08, 0)
+		UDim.new(0.4, 0), UDim.new(0.06, 0), UDim.new(0.1, 0), UDim.new(0.1, 0)
 	pad.Parent = timer
 	local rim = timer:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke")
-	rim.ApplyStrokeMode, rim.Color, rim.Thickness, rim.Transparency = Enum.ApplyStrokeMode.Border, K.Paper, 1.5, 0.2
+	rim.ApplyStrokeMode, rim.Color, rim.Thickness, rim.Transparency =
+		Enum.ApplyStrokeMode.Border, Color3.fromRGB(120, 22, 20), 2, 0
 	rim.Parent = timer
 	local tc = timer:FindFirstChildOfClass("UICorner") or Instance.new("UICorner")
 	tc.CornerRadius, tc.Parent = UDim.new(0, 6), timer
-	if not timer:FindFirstChild("EndsIn") then
-		DojoScroll.Text("EndsIn", timer, {
-			Position = UDim2.fromScale(0, -0.62),
-			Size = UDim2.fromScale(1, 0.5),
-			Text = "ends in",
-			TextColor3 = K.Paper,
-			ZIndex = CONTENT_Z + 2,
-		})
-	end
+	-- The padding moves children too: the label sits over the time, inside the seal's top 0.08..0.38.
+	local endsIn = timer:FindFirstChild("EndsIn") or DojoScroll.Text("EndsIn", timer, {})
+	endsIn.Position, endsIn.Size = UDim2.fromScale(0, -0.59), UDim2.fromScale(1, 0.52)
+	endsIn.Text, endsIn.TextColor3, endsIn.FontFace = "Ends in", K.SealText, K.BodyBold
+	endsIn.ZIndex = CONTENT_Z + 3
 	add(scrollItems, enso, timer)
 
-	-- The featured name and rate, the brush line, rates per rarity, both pity counters, the links.
+	-- The featured name and its rate in a red brush pill, the thin rule, rates per rarity, both pity counters, the buttons.
 	local featName = label("FeatName", canvas, 65, 454, 332, 32, {
 		FontFace = K.Heading,
 		Text = "",
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
-	local featRate = label("FeatRate", canvas, 65, 486, 332, 19, {
-		FontFace = K.BodyBold,
-		Text = "",
-		TextColor3 = SidekickView.RarityColor("Mythic"),
-	})
+	local featRate = canvas:FindFirstChild("FeatRate")
+		or DojoScroll.Pill("FeatRate", canvas, K.Accent, { FontFace = K.BodyBold, TextColor3 = K.SealText, Text = "" })
+	place(featRate, 151, 490, 164, 27, true)
+	featRate.ZIndex = CONTENT_Z
+	if not featRate:FindFirstChild("Brushed") then
+		-- Dry-brush ends on the pill.
+		local g = Instance.new("UIGradient")
+		g.Name = "Brushed"
+		g.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.45),
+			NumberSequenceKeypoint.new(0.05, 0.05),
+			NumberSequenceKeypoint.new(0.5, 0),
+			NumberSequenceKeypoint.new(0.95, 0.05),
+			NumberSequenceKeypoint.new(1, 0.45),
+		})
+		g.Parent = featRate
+	end
 	local brush = canvas:FindFirstChild("Brush") or DojoScroll.Brush("Brush", canvas, {})
-	place(brush, 68, 520, 328, 4, true)
+	place(brush, 68, 528, 328, 3, true)
 	brush.ZIndex = CONTENT_Z
-	add(scrollItems, featName, featRate, brush)
+	-- The thin vertical rule between the rates and the pity counters.
+	local split = canvas:FindFirstChild("RateRule") or DojoScroll.Brush("RateRule", canvas, {})
+	place(split, 226, 542, 2, 132, true)
+	split.ZIndex = CONTENT_Z
+	split.Fade.Rotation = 90
+	add(scrollItems, featName, featRate, brush, split)
 
 	local rates = canvas:FindFirstChild("Rates") or Instance.new("Frame")
 	rates.Name, rates.BackgroundTransparency, rates.Parent = "Rates", 1, canvas
-	place(rates, 67, 540, 160, 128, true)
+	place(rates, 67, 542, 150, 132, true)
 	rates.ZIndex = CONTENT_Z
 	local rateRows = {}
 	for i, rarity in RARITIES do
@@ -213,19 +228,20 @@ function SummonScroll.Apply(canvas)
 	end
 	add(scrollItems, rates)
 
-	for i, y in { 548, 612 } do
+	for i, y in { 544, 620 } do
 		local title_ = canvas["Pity" .. i]
-		place(title_, 240, y, 100, 22, true)
+		place(title_, 236, y, 104, 18, true)
+		title_.Text = i == 1 and "Legendary Pity" or "Mythic Pity"
 		title_.ZIndex, title_.FontFace, title_.TextColor3 = CONTENT_Z, K.Body, K.Ink
 		title_.TextScaled, title_.TextStrokeTransparency = true, 1
 		title_.TextXAlignment = Enum.TextXAlignment.Left
 		local count = canvas["PityCount" .. i]
-		place(count, 300, y, 97, 22, true)
+		place(count, 340, y, 57, 18, true)
 		count.ZIndex, count.FontFace, count.TextColor3 = CONTENT_Z, K.BodyBold, K.Ink
 		count.TextScaled, count.TextStrokeTransparency = true, 1
 		count.TextXAlignment = Enum.TextXAlignment.Right
 		local card = canvas["PityCard" .. i]
-		place(card, 240, y + 30, 157, 8, true)
+		place(card, 236, y + 26, 161, 8, true)
 		card.ZIndex, card.BackgroundTransparency = CONTENT_Z, 1
 		for _, d in card:GetChildren() do
 			if d:IsA("UIStroke") or d:IsA("UIGradient") then
@@ -251,34 +267,51 @@ function SummonScroll.Apply(canvas)
 		add(scrollItems, title_, count, card)
 	end
 
-	-- Links: Details (the chances), Auto Sell, Summon Info.
+	-- Details (the chances), Auto Sell and Info: outlined paper buttons in one row at the scroll's foot.
 	for _, spec in
-		{ { "Chances", "Details", 67, 64 }, { "AutoSell", "Auto Sell", 147, 86 }, { "Info", "Info", 249, 40 } }
+		{
+			{ "Chances", "Details", 65, 112, K.Accent, "選" },
+			{ "AutoSell", "Auto Sell", 193, 104 },
+			{ "Info", "Info", 313, 84 },
+		}
 	do
 		local button = canvas[spec[1]]
 		strip(button)
 		button:SetAttribute("PopButton", nil)
-		place(button, spec[3], 678, spec[4], 28, true)
+		place(button, spec[3], 704, spec[4], 42, true)
 		button.ZIndex = CONTENT_Z
-		for _, d in button:GetChildren() do
-			if d:IsA("UIStroke") or d:IsA("UIGradient") then
-				d.Enabled = false
-			end
-		end
 		button.Text = spec[2]
-		DojoScroll.Link(button, spec[2])
+		DojoScroll.PaperButton(button, spec[2], { Rim = spec[5], Seal = spec[6] })
 		add(scrollItems, button)
 	end
 
-	-- Right column: knot Close, burgundy gem-pack tags and More under it.
+	-- Right column: knot Close; under it the gem packs as burgundy cards hung on one cord from the top, knotted between
+	-- the cards (each card's own cord segment), and More.
 	local close = canvas.Close
 	strip(close)
 	place(close, 1523, 26, 52, 52)
 	close.ZIndex = CONTENT_Z
 	DojoScroll.Knot(close)
-	for i, y in { 125, 240 } do
+	-- Gem art: overlapped copies of the page's own gem icon (no new upload). Each: x, y, size (scale of the art frame).
+	local gemImage = canvas.Balance.CurrencyGem.Image
+	local CLUSTER = { { 0.26, 0.62, 0.52 }, { 0.78, 0.66, 0.46 }, { 0.5, 0.5, 0.74 }, { 0.5, 0.86, 0.4 } }
+	local function gemArt(holder, count, x, y, w, h)
+		local cluster = holder:FindFirstChild("GemArt") or Instance.new("Frame")
+		cluster.Name, cluster.BackgroundTransparency, cluster.Active, cluster.Parent = "GemArt", 1, false, holder
+		cluster.Position, cluster.Size, cluster.ZIndex = UDim2.fromScale(x, y), UDim2.fromScale(w, h), CONTENT_Z + 1
+		for i = 1, count do
+			local spec = CLUSTER[i]
+			local gem = cluster:FindFirstChild("Gem" .. i) or Instance.new("ImageLabel")
+			gem.Name, gem.BackgroundTransparency, gem.Image, gem.Parent = "Gem" .. i, 1, gemImage, cluster
+			gem.AnchorPoint, gem.Position = Vector2.new(0.5, 0.5), UDim2.fromScale(spec[1], spec[2])
+			gem.Size, gem.ScaleType = UDim2.fromScale(spec[3], spec[3]), Enum.ScaleType.Fit
+			gem.ZIndex = CONTENT_Z + (i == 3 and 2 or 1)
+		end
+		return cluster
+	end
+	for i, y in { 118, 227 } do
 		local offer = canvas["Offer" .. i]
-		place(offer, 1421, y, 152, 86)
+		place(offer, 1394, y, 189, 95)
 		offer.ZIndex = CONTENT_Z
 		for _, n in { "Symbol", "PotionIcon", "Glow", "Sheen" } do
 			local o = offer:FindFirstChild(n)
@@ -290,27 +323,38 @@ function SummonScroll.Apply(canvas)
 		if prism then
 			prism.Enabled = false
 		end
-		DojoScroll.Tag(offer, 22)
+		DojoScroll.Tag(offer, i == 1 and 30 or 14)
+		gemArt(offer, i == 1 and 2 or 3, 0.03, 0.22, 0.36, 0.7)
 		for n, spec in
 			{
-				Title = { 0.1, 0.36, K.Heading, K.TagText },
-				Luck = { 0.43, 0.22, K.Body, K.TagText },
-				Price = { 0.66, 0.24, K.BodyBold, K.TagPrice },
+				Title = { 0.38, 0.06, 0.58, 0.28, K.Heading, K.TagText, Enum.TextXAlignment.Right },
+				Luck = { 0.38, 0.36, 0.58, 0.2, K.Body, K.TagText, Enum.TextXAlignment.Center },
+				Price = { 0.38, 0.64, 0.3, 0.26, K.BodyBold, K.TagGold, Enum.TextXAlignment.Left },
 			}
 		do
 			local t = offer[n]
 			t.AnchorPoint, t.Position, t.Size =
-				Vector2.zero, UDim2.fromScale(0.05, spec[1]), UDim2.fromScale(0.9, spec[2])
-			t.FontFace, t.TextColor3, t.TextScaled, t.ZIndex = spec[3], spec[4], true, CONTENT_Z + 1
+				Vector2.zero, UDim2.fromScale(spec[1], spec[2]), UDim2.fromScale(spec[3], spec[4])
+			t.FontFace, t.TextColor3, t.TextScaled, t.ZIndex = spec[5], spec[6], true, CONTENT_Z + 1
 			t.TextStrokeTransparency, t.BackgroundTransparency = 1, 1
-			t.TextXAlignment = Enum.TextXAlignment.Center
+			t.TextXAlignment = spec[7]
 			for _, d in t:GetChildren() do
 				if d:IsA("UIStroke") then
 					d.Enabled = false
 				end
 			end
 		end
-		-- The whole tag is the Buy button (opens the Buy Gems focus state first, as before).
+		if not offer:FindFirstChild("BuyPill") then
+			DojoScroll.Pill("BuyPill", offer, K.Cream, {
+				Position = UDim2.fromScale(0.7, 0.62),
+				Size = UDim2.fromScale(0.26, 0.28),
+				Text = "Buy",
+				FontFace = K.BodyBold,
+				TextColor3 = K.TileInk,
+				ZIndex = CONTENT_Z + 1,
+			})
+		end
+		-- The whole card is the Buy button (opens the Buy Gems focus state first, as before); the pill only shows it.
 		local buy = offer.Buy
 		strip(buy)
 		buy.AnchorPoint, buy.Position, buy.Size = Vector2.zero, UDim2.new(), UDim2.fromScale(1, 1)
@@ -325,17 +369,30 @@ function SummonScroll.Apply(canvas)
 	end
 	local more = canvas.More
 	strip(more)
-	place(more, 1421, 352, 152, 36)
+	place(more, 1394, 336, 189, 79)
 	more.ZIndex = CONTENT_Z
 	more.TextStrokeTransparency, more.TextTransparency, more.Text = 1, 1, "More"
 	-- The tag's gradient would tint the button's own text: its Caption child carries the label.
 	local moreCaption = more.Caption
 	moreCaption.Visible, moreCaption.Text, moreCaption.ZIndex = true, "More", CONTENT_Z + 1
-	moreCaption.AnchorPoint, moreCaption.Position, moreCaption.Size = Vector2.zero, UDim2.new(), UDim2.fromScale(1, 1)
-	moreCaption.FontFace, moreCaption.TextColor3, moreCaption.TextScaled = K.Heading, K.TagText, false
-	moreCaption.TextSize, moreCaption.TextStrokeTransparency = 18, 1
-	DojoScroll.Tag(more, 14)
+	moreCaption.AnchorPoint, moreCaption.Position = Vector2.zero, UDim2.fromScale(0.44, 0.1)
+	moreCaption.Size, moreCaption.TextXAlignment = UDim2.fromScale(0.5, 0.36), Enum.TextXAlignment.Right
+	moreCaption.FontFace, moreCaption.TextColor3, moreCaption.TextScaled = K.Heading, K.TagText, true
+	moreCaption.TextStrokeTransparency = 1
+	DojoScroll.Tag(more, 16)
 	more.AutoButtonColor = false
+	-- shortcut: no uploaded chest-of-gems image exists (the relic chests are boss art); a 4-gem cluster stands in until one is uploaded.
+	gemArt(more, 4, 0.03, 0.08, 0.4, 0.84)
+	if not more:FindFirstChild("ArrowPill") then
+		DojoScroll.Pill("ArrowPill", more, K.Cream, {
+			Position = UDim2.fromScale(0.68, 0.52),
+			Size = UDim2.fromScale(0.26, 0.34),
+			Text = ">",
+			FontFace = K.BodyBold,
+			TextColor3 = K.TileInk,
+			ZIndex = CONTENT_Z + 1,
+		})
+	end
 	add(riseItems, more)
 
 	-- Gem balance on a paper slip; the free summon on a slip beside it when it is offered.
@@ -381,38 +438,70 @@ function SummonScroll.Apply(canvas)
 	free.Text = "Free summon"
 	add(riseItems, balance, free)
 
-	-- The three summons as hanko seals: Many 500, Once 50 (largest, centre), Auto.
-	local seals = {}
+	-- The three summons as equal cream paper tiles, no tilt: + Many 500, - Once 50, 自 Auto until stop.
+	local tiles = {}
 	for name, spec in
 		{
-			Many = { "十", "Many", 1156, 804, 137, 2 },
-			Once = { "一", "Once", 1329, 793, 160, -2 },
-			Auto = { "自", "Auto", 1501, 804, 137, 1.5 },
+			Many = { "+", "Many", 1080 },
+			Once = { utf8.char(0x2212), "Once", 1254 },
+			Auto = { "自", "Auto", 1428 },
 		}
 	do
 		local button = canvas[name]
 		strip(button)
 		button:SetAttribute("PopButton", nil)
-		place(button, spec[3] - spec[5] / 2, spec[4] - spec[5] / 2, spec[5], spec[5])
+		place(button, spec[3], 736, 148, 130)
 		button.ZIndex = CONTENT_Z
 		for _, d in button:GetChildren() do
 			if d:IsA("UIScale") and d.Name == "HoverScale" then
 				d.Scale = 1
 			end
 		end
-		seals[name] = DojoScroll.Seal(button, { Kanji = spec[1], Label = spec[2], Rotation = spec[6] })
-		local cost = seals[name].Cost
+		tiles[name] = DojoScroll.Tile(button, { Glyph = spec[1], Label = spec[2] })
+		local cost = tiles[name].Cost
 		local gemIcon = button:FindFirstChild("CurrencyGem")
 		if gemIcon then
-			gemIcon.AnchorPoint, gemIcon.Position = Vector2.new(0, 0.5), UDim2.fromScale(0.6, 0.785)
-			gemIcon.Size, gemIcon.ZIndex = UDim2.fromScale(0.13, 0.13), button.ZIndex + 2
+			gemIcon.AnchorPoint, gemIcon.Position = Vector2.new(0, 0.5), UDim2.fromScale(0.56, 0.78)
+			gemIcon.Size, gemIcon.ZIndex = UDim2.fromOffset(18, 18), button.ZIndex + 2
 			gemIcon.Visible = name ~= "Auto"
-			cost.Position, cost.Size = UDim2.fromScale(0.1, 0.72), UDim2.fromScale(name ~= "Auto" and 0.48 or 0.8, 0.13)
+			cost.Position, cost.Size =
+				UDim2.fromScale(0.08, 0.71), UDim2.fromScale(name ~= "Auto" and 0.45 or 0.84, 0.14)
 			cost.TextXAlignment = name ~= "Auto" and Enum.TextXAlignment.Right or Enum.TextXAlignment.Center
 		end
-		add(sealItems, button)
+		add(tileItems, button)
 	end
-	page.Seals = seals
+	page.Tiles = tiles
+
+	-- Stage labels: names white and rarities in their colour, both with a dark outline; "Featured!" with its star in a
+	-- dark red pill above the Mythic's name.
+	for i = 1, 3 do
+		local unitLabel, rarity = canvas["Unit" .. i], canvas["Rarity" .. i]
+		unitLabel.TextColor3 = Color3.new(1, 1, 1)
+		for _, d in rarity:GetChildren() do
+			if d:IsA("UIGradient") then
+				d.Enabled = false -- the label's TextColor3 (the rarity colour, set by the page) shows as is
+			end
+		end
+	end
+	local featured = canvas.Featured
+	place(featured, 758, 549, 240, 44)
+	featured.BackgroundColor3, featured.BackgroundTransparency = Color3.fromRGB(118, 18, 26), 0.08
+	featured.TextColor3, featured.TextScaled = Color3.fromRGB(255, 214, 92), true
+	local fg = featured:FindFirstChild("FeaturedGradient")
+	if fg then
+		fg.Enabled = false -- it would tint the pill as well as the text
+	end
+	local fc = featured:FindFirstChildOfClass("UICorner") or Instance.new("UICorner")
+	fc.CornerRadius, fc.Parent = UDim.new(0.5, 0), featured
+	local fpadding = featured:FindFirstChildOfClass("UIPadding") or Instance.new("UIPadding")
+	fpadding.PaddingTop, fpadding.PaddingBottom = UDim.new(0.14, 0), UDim.new(0.14, 0)
+	fpadding.PaddingLeft, fpadding.PaddingRight = UDim.new(0, 44), UDim.new(0, 14)
+	fpadding.Parent = featured
+	local star = featured:FindFirstChild("FeaturedStar")
+	if star then
+		star.AnchorPoint, star.Position, star.Size =
+			Vector2.new(0, 0.5), UDim2.new(0, -36, 0.5, 0), UDim2.fromOffset(30, 30)
+	end
 
 	-- Server values in, text out. state: { Featured (row or nil), FeaturedOdds, Sums (rarity -> percent),
 	-- Unlocked, UnlockRebirth, OnceCost, ManyCost, Auto }.
@@ -420,18 +509,18 @@ function SummonScroll.Apply(canvas)
 		local row = state.Featured
 		featName.Text = row and row.Name or "Loading rotation…"
 		featRate.Text = row and string.format("%s, %s", row.Rarity, percent(state.FeaturedOdds or 0)) or ""
-		featRate.TextColor3 = SidekickView.RarityColor(row and row.Rarity or "Mythic")
+		featRate.Visible = row ~= nil
 		for rarity, item in rateRows do
 			local sum = state.Sums[rarity]
 			item.Row.Visible = sum ~= nil
 			item.Value.Text = sum and percent(sum) or ""
 		end
-		seals.Once.Cost.Text = tostring(state.OnceCost)
-		seals.Many.Cost.Text = tostring(state.ManyCost)
-		seals.Auto.Cost.Text = "until stop"
-		seals.Auto.Label.Text = state.Auto and "Stop" or "Auto"
-		for _, seal in seals do
-			seal.SetLocked(not state.Unlocked)
+		tiles.Once.Cost.Text = tostring(state.OnceCost)
+		tiles.Many.Cost.Text = tostring(state.ManyCost)
+		tiles.Auto.Cost.Text = "until stop"
+		tiles.Auto.Label.Text = state.Auto and "Stop" or "Auto"
+		for _, tile in tiles do
+			tile.SetLocked(not state.Unlocked)
 		end
 		tagline.Text = state.Unlocked and "This rotation" or string.format("Unlocks at Rebirth %d", state.UnlockRebirth)
 		tagline.TextColor3 = state.Unlocked and K.Muted or K.Accent
@@ -443,7 +532,7 @@ function SummonScroll.Apply(canvas)
 		DojoScroll.Ink(scrollItems, true, DojoScroll.INK_AT)
 		DojoScroll.Ink({ close }, true, 0.3)
 		DojoScroll.Ink(riseItems, true, DojoScroll.RISE_AT, 0.32, DojoScroll.RISE)
-		DojoScroll.Ink(sealItems, true, DojoScroll.RISE_AT + 0.08, 0.32, DojoScroll.RISE)
+		DojoScroll.Ink(tileItems, true, DojoScroll.RISE_AT + 0.08, 0.32, DojoScroll.RISE)
 	end
 
 	-- Close: rolls the scroll up and fades the rest (0.3 s), under the Sakura wash.
@@ -455,7 +544,7 @@ function SummonScroll.Apply(canvas)
 		DojoScroll.Ink(scrollItems, false, 0, 0.12)
 		DojoScroll.Ink({ close }, false, 0, 0.2)
 		DojoScroll.Ink(riseItems, false, 0, 0.2)
-		DojoScroll.Ink(sealItems, false, 0, 0.2)
+		DojoScroll.Ink(tileItems, false, 0, 0.2)
 	end
 
 	canvas:SetAttribute("SummonTheme", "HangingScrollR3")

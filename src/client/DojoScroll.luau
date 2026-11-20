@@ -530,6 +530,146 @@ function DojoScroll.Seal(button, opts)
 	return seal
 end
 
+-- Paper tile (Summon 1:1 reference, 4.45): a cream wood tile with a brown rim, a slight bevel and no tilt; a dark ink
+-- glyph, a brush label and a cost line. Dresses `button` (its own Text stays, hidden). opts: Glyph, Label, Cost.
+-- Returns { Glyph, Label, Cost, SetLocked(bool) }.
+function DojoScroll.Tile(button, opts)
+	button.AutoButtonColor = false
+	button.BackgroundColor3 = Color3.new(1, 1, 1)
+	button.BackgroundTransparency = 0
+	button.BorderSizePixel = 0
+	button.TextTransparency = 1
+	button.TextStrokeTransparency = 1
+	button.Rotation = 0
+	button.ClipsDescendants = false
+	local z = button.ZIndex
+	local grad = gradient(button, K.TileTop, K.TileBottom, 90)
+	grad.Enabled = true
+	corner(button, 8)
+	stroke(button, K.TileRim, 3, 0).Enabled = true
+	-- Bevel: a light inner edge and a darker lower lip.
+	local bevel = make("Frame", "TileBevel", button, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -8, 1, -8),
+		BackgroundTransparency = 1,
+		ZIndex = z + 1,
+		Active = false,
+	})
+	corner(bevel, 6)
+	stroke(bevel, Color3.fromRGB(255, 251, 238), 1.5, 0.2)
+	fill("TileLip", button, K.TileRim, {
+		Position = UDim2.new(0, 6, 1, -8),
+		Size = UDim2.new(1, -12, 0, 3),
+		BackgroundTransparency = 0.65,
+		ZIndex = z + 1,
+		Active = false,
+	})
+	local glyph = text("Glyph", button, {
+		Position = UDim2.fromScale(0.15, 0.1),
+		Size = UDim2.fromScale(0.7, 0.34),
+		Text = opts.Glyph or "",
+		TextColor3 = K.TileInk,
+		Font = Enum.Font.GothamBold, -- CJK through Roblox's font fallback; decoration only
+		ZIndex = z + 2,
+	})
+	local label = text("Label", button, {
+		Position = UDim2.fromScale(0.08, 0.5),
+		Size = UDim2.fromScale(0.84, 0.17),
+		Text = opts.Label or "",
+		TextColor3 = K.TileInk,
+		FontFace = K.Heading,
+		ZIndex = z + 2,
+	})
+	local cost = text("Cost", button, {
+		Position = UDim2.fromScale(0.08, 0.71),
+		Size = UDim2.fromScale(0.84, 0.14),
+		Text = opts.Cost or "",
+		TextColor3 = K.TileInk,
+		FontFace = K.BodyBold,
+		ZIndex = z + 2,
+	})
+	motion(button, 0, 1.03)
+	local tile = { Glyph = glyph, Label = label, Cost = cost }
+	function tile.SetLocked(locked)
+		grad.Color = locked and ColorSequence.new(Color3.fromRGB(196, 190, 182), Color3.fromRGB(160, 154, 146))
+			or ColorSequence.new(K.TileTop, K.TileBottom)
+		for _, t in { glyph, label, cost } do
+			t.TextColor3 = locked and K.Muted or K.TileInk
+		end
+	end
+	return tile
+end
+
+-- Paper button (Summon 1:1 reference, 4.45): an outlined paper button with its label in the brush face. opts: Rim
+-- (colour, default PaperRim), Seal (a small red seal with this kanji at the top-right corner). Shows `label` in a child
+-- PaperLabel (the button's own Text stays, hidden).
+function DojoScroll.PaperButton(button, label, opts)
+	opts = opts or {}
+	button.AutoButtonColor = false
+	button.BackgroundColor3 = K.Slip
+	button.BackgroundTransparency = 0
+	button.BorderSizePixel = 0
+	button.TextTransparency = 1
+	button.TextStrokeTransparency = 1
+	button.ClipsDescendants = false
+	for _, d in button:GetChildren() do
+		if d:IsA("UIGradient") then
+			d.Enabled = false
+		end
+	end
+	corner(button, 6)
+	stroke(button, opts.Rim or K.PaperRim, 2, 0).Enabled = true
+	local z = button.ZIndex
+	local shown = button:FindFirstChild("PaperLabel")
+		or text("PaperLabel", button, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.84, 0.58),
+			FontFace = K.Heading,
+			TextColor3 = K.TileInk,
+			ZIndex = z + 1,
+		})
+	shown.Text = label
+	if opts.Seal and not button:FindFirstChild("Seal") then
+		local seal = fill("Seal", button, K.Accent, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(1, -8, 0, 2),
+			Size = UDim2.fromOffset(22, 22),
+			Rotation = 6,
+			ZIndex = z + 2,
+			Active = false,
+		})
+		corner(seal, 3)
+		text("Kanji", seal, {
+			Position = UDim2.fromScale(0.1, 0.1),
+			Size = UDim2.fromScale(0.8, 0.8),
+			Text = opts.Seal,
+			TextColor3 = K.SealText,
+			Font = Enum.Font.GothamBold, -- CJK through Roblox's font fallback; decoration only
+			ZIndex = z + 3,
+		})
+	end
+	motion(button, 0, 1.04)
+	return shown
+end
+
+-- Pill: a rounded label with its own fill (the cream Buy and arrow pills, the featured rate's red brush pill).
+function DojoScroll.Pill(name, parent, color, props)
+	local pill = text(name, parent, { BackgroundColor3 = color, BackgroundTransparency = 0, BorderSizePixel = 0 })
+	for key, value in props or {} do
+		pill[key] = value
+	end
+	corner(pill, UDim.new(0.5, 0))
+	make("UIPadding", "Pad", pill, {
+		PaddingTop = UDim.new(0.16, 0),
+		PaddingBottom = UDim.new(0.16, 0),
+		PaddingLeft = UDim.new(0.1, 0),
+		PaddingRight = UDim.new(0.1, 0),
+	})
+	return pill
+end
+
 -- Paper slip: a cream card with a faint ink edge.
 function DojoScroll.Slip(frame)
 	frame.BackgroundColor3 = K.Slip

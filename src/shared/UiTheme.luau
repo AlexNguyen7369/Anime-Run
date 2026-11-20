@@ -104,6 +104,14 @@ UiTheme.Scroll = {
 	TagCord = Color3.fromRGB(194, 51, 77),
 	TagText = Color3.fromRGB(255, 243, 216),
 	TagPrice = Color3.fromRGB(246, 196, 150), -- pink-gold
+	-- Summon 1:1 reference (4.45, owner 2026-11-19): gold pack price, cream pills, cream wood summon tiles, paper buttons.
+	TagGold = Color3.fromRGB(255, 204, 72),
+	Cream = Color3.fromRGB(250, 236, 204),
+	TileTop = Color3.fromRGB(246, 232, 200),
+	TileBottom = Color3.fromRGB(222, 196, 150),
+	TileRim = Color3.fromRGB(122, 82, 46),
+	TileInk = Color3.fromRGB(46, 30, 22),
+	PaperRim = Color3.fromRGB(92, 64, 44),
 	Body = Font.fromEnum(Enum.Font.TitilliumWeb),
 	BodyBold = Font.new("rbxasset://fonts/families/TitilliumWeb.json", Enum.FontWeight.Bold),
 	Heading = Font.fromEnum(Enum.Font.PermanentMarker),
