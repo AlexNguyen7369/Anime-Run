@@ -209,8 +209,9 @@
 205. 2026-11-20 — Alex Nguyen — Rebuilt the Summon page 1:1 to the owner's reference (parchment scroll, paper buttons, wood summon tiles, burgundy gem packs, outlined stage labels) and the owner approved it from the Studio capture.
 206. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
 207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
+208. 2026-11-20 — Alex Nguyen — ui-scroll: drafted design doc 4.46 and UI_SCROLL_SPEC, and built reference frames for every GUI, HUD options A and B and the center-out unroll strip on feature/alex/ui-scroll-redesign (review page https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe).
 
 ## What's next
-**Build the approved Team Select into Client/TeamUi (plate 84852553726102, ViewportFrame stage and altars, idle stance and breathing, parchment scrolls, drawn icons) with ui_team tests updated first, then run ui_team, ui_entry_points, team and the Summon checks ui_sidekicks, ui_sidekick_tutorial in Studio.**
+**Get the owner's approval on the Scroll Dojo reference frames (per frame, HUD A / B / none, and the 7 listed decisions), then write the approved layouts into 4.46 and UI_SCROLL_SPEC.**
 
-**Why this is next:** the approved look exists only as a Studio draft; the game's Team page still shows T2, and the sakura-polish PR into main waits on these runs.
+**Why this is next:** every build task of goal ui-scroll (DojoHandscroll and PanelSwitch motion, the shared AnimeSkin re-skin, per-panel layouts, popups, boss UI and HUD) needs approved references and rules first; the Team Select build in TeamUi continues in the audit-fixes session on orch/audit-fixes/teamsel.
