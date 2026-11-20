@@ -13,6 +13,7 @@ local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local Monetization = require(Shared.MonetizationConfig)
 local RaceConfig = require(Shared.RaceConfig)
+local StaminaConfig = require(Shared.StaminaConfig)
 local UpgradeTree = require(Shared.UpgradeTree)
 local GachaService = require(Server.GachaService)
 local MoneyService = require(Server.MoneyService)
@@ -145,6 +146,11 @@ function Tests.passes()
 		flag("passes_exclusive_cruise_350", RaceConfig.Cruise(spec, 1) == 350, RaceConfig.Cruise(spec, 1), 350)
 		flag("passes_exclusive_boosts_apply", RaceConfig.Cruise(spec, 2) == 700)
 		flag("passes_exclusive_capped", RaceConfig.Cruise(spec, 3) == RaceConfig.MAX_CRUISE)
+		-- Commit c80e4de (design doc 4.39, MONETIZATION_SPEC): its own 6 s stamina, no longer the Mythic 27 s
+		local saitamoStamina = StaminaConfig.Base(spec)
+		flag("passes_exclusive_stamina_6", saitamoStamina == 6, saitamoStamina, 6)
+		flag("passes_exclusive_stamina_seconds_6", StaminaConfig.Seconds(spec) == 6, StaminaConfig.Seconds(spec), 6)
+		flag("passes_exclusive_still_mythic_look", spec.Rarity == "Mythic", spec.Rarity, "Mythic")
 		local e = player("PassExclusive")
 		flag("passes_exclusive_absent_before", e.GachaData:FindFirstChild(spec.Id) == nil)
 		e:SetAttribute("Pass_exclusive_runner", true)
@@ -517,6 +523,32 @@ function Tests.bag()
 		local junk = player("BagJunk")
 		GachaService.Apply(junk, { Cars = { id }, AutoSell = true, AutoSellChance = "lots" })
 		flag("bag_junk_fields_off", junk:GetAttribute("AutoSell") == false)
+		-- Commit c80e4de (design doc 4.41): a brand new save (no Version, Rolls or Cars) starts on at N = 1 (Commons)
+		local fresh = player("BagFresh")
+		MoneyService.Setup(fresh)
+		GachaService.Apply(fresh, {})
+		flag(
+			"bag_new_save_auto_sell_on_n_1",
+			fresh:GetAttribute("AutoSell") == true and fresh:GetAttribute("AutoSellChance") == 1,
+			tostring(fresh:GetAttribute("AutoSell")) .. "/" .. tostring(fresh:GetAttribute("AutoSellChance")),
+			"true/1"
+		)
+		flag("bag_new_save_chance_config", BagConfig.NEW_SAVE_CHANCE == 1, BagConfig.NEW_SAVE_CHANCE, 1)
+		local _, _, _, _, freshSold = GachaService.Roll(fresh, CATCH_ALL_ROLLER)
+		flag("bag_new_save_sells_common", freshSold == price, freshSold, price)
+		local written = player("BagWritten")
+		GachaService.Apply(written, { Version = 19 })
+		flag(
+			"bag_written_save_auto_sell_off",
+			written:GetAttribute("AutoSell") == false and written:GetAttribute("AutoSellChance") == nil
+		)
+		local rolled = player("BagRolledSave")
+		GachaService.Apply(rolled, { Rolls = 3 })
+		flag("bag_rolled_save_auto_sell_off", rolled:GetAttribute("AutoSell") == false)
+		local chosen = player("BagFreshChosen")
+		GachaService.Apply(chosen, { AutoSellChance = 500 })
+		flag("bag_new_save_keeps_its_n", chosen:GetAttribute("AutoSellChance") == 500)
+		flag("bag_common_price_2", BagConfig.SELL_PRICE.Common == 2, BagConfig.SELL_PRICE.Common, 2)
 	end)
 	for _, p in cleanup do
 		p:Destroy()

@@ -10,7 +10,8 @@ local Tests = {}
 
 -- The committed id list: { Id, Name, Rarity, Category, Series name, Chance (1 = catch-all), SpeedMulti, Event }
 -- (Event = nil for the 44 regular characters; spec "Event-only characters" for the last 3).
--- (spec "Launch cast" and placeholder Chance / SpeedMulti tables).
+-- (spec "Launch cast" and placeholder Chance / SpeedMulti tables). Audit 2026-11-20 (commit c80e4de): db_scholar, ds_thunder and
+-- mha_icefire Chance 600, 700 and 1500 (were 1000, 4000 and 13000).
 local CAST = {
 	{ "leaf_medic", "Sakara", "Uncommon", "Balanced", "Narito Shippudon", 10, 1.25 },
 	{ "leaf_copycat", "Kakashe", "Rare", "Balanced", "Narito Shippudon", 500, 2 },
@@ -18,7 +19,7 @@ local CAST = {
 	{ "leaf_hero", "Narito", "Legendary", "Marathoner", "Narito Shippudon", 1e7, 25 },
 	{ "leaf_crow", "Itachy", "Mythic", "Sprinter", "Narito Shippudon", 5e9, 150 },
 	{ "db_green", "Pikolo", "Uncommon", "Marathoner", "Dragon Bawl Z", 20, 1.4 },
-	{ "db_scholar", "Gohon", "Rare", "Balanced", "Dragon Bawl Z", 1000, 2.6 },
+	{ "db_scholar", "Gohon", "Rare", "Balanced", "Dragon Bawl Z", 600, 2.6 },
 	{ "db_tyrant", "Freezo", "Epic", "Sprinter", "Dragon Bawl Z", 50000, 6 },
 	{ "db_prince", "Vegata", "Legendary", "Sprinter", "Dragon Bawl Z", 5e7, 45 },
 	{ "db_hero", "Gokku", "Secret", "Balanced", "Dragon Bawl Z", 1.6e16, 1000 },
@@ -28,7 +29,7 @@ local CAST = {
 	{ "sea_flame", "Aice", "Epic", "Sprinter", "One Peace", 120000, 8 },
 	{ "sea_captain", "Lufy", "Legendary", "Marathoner", "One Peace", 1e8, 60 },
 	{ "ds_boar", "Inosuki", "Uncommon", "Marathoner", "Demon Slicer", 70, 1.8 },
-	{ "ds_thunder", "Zenitsa", "Rare", "Sprinter", "Demon Slicer", 4000, 3.9 },
+	{ "ds_thunder", "Zenitsa", "Rare", "Sprinter", "Demon Slicer", 700, 3.9 },
 	{ "ds_sister", "Nezuka", "Epic", "Balanced", "Demon Slicer", 300000, 10 },
 	{ "ds_hero", "Tanjiru", "Legendary", "Balanced", "Demon Slicer", 3e8, 80 },
 	{ "ds_flame", "Rengoko", "Mythic", "Sprinter", "Demon Slicer", 1e11, 250 },
@@ -38,7 +39,7 @@ local CAST = {
 	{ "jk_king", "Sukana", "Mythic", "Sprinter", "Jujitsu Kaisan", 1e13, 350 },
 	{ "jk_strongest", "Gojio", "Secret", "Balanced", "Jujitsu Kaisan", 5e18, 2800 },
 	{ "mha_float", "Ochaku", "Uncommon", "Marathoner", "My Hero Akademia", 200, 2.2 },
-	{ "mha_icefire", "Todoroky", "Rare", "Balanced", "My Hero Akademia", 13000, 5.25 },
+	{ "mha_icefire", "Todoroky", "Rare", "Balanced", "My Hero Akademia", 1500, 5.25 },
 	{ "mha_blast", "Bakugoo", "Epic", "Sprinter", "My Hero Akademia", 1500000, 14.5 },
 	{ "mha_hero", "Deko", "Legendary", "Balanced", "My Hero Akademia", 7.8e8, 100 },
 	{ "mha_symbol", "All Mighty", "Mythic", "Marathoner", "My Hero Akademia", 1e15, 425 },

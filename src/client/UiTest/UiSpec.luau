@@ -604,7 +604,7 @@ UiSpec.Turbo = {
 	LabelFormat = "TURBO LUCK %d/%d",
 	PopFormat = "TURBO x%s!",
 	FillTolerance = 0.03, -- |Fill width / bar width - TurboCount / TurboEvery|
-	FallbackMulti = 10, -- UpgradeConfig.BASE_TURBO.Multi (no Turbo tier owned)
+	FallbackMulti = 30, -- UpgradeConfig.BASE_TURBO.Multi (no Turbo tier owned; 10 before c80e4de)
 }
 
 -- Pop-up panels are mutually exclusive: opening one hides the others (Client/PanelSwitch, used by the buttons).
@@ -1290,7 +1290,9 @@ UiSpec.Remotes = {
 -- Parts of a panel a phone does not show when it opens (K.phoneHidden in UiScenarios). The phone Market detail view
 -- (its own layout, after a tap) is not solved here: it needs a real phone-height view (Prepare.PhoneOnly clicks).
 UiSpec.PhoneViewsHidden = { "MarketUi/Backdrop/Panel/Detail" }
-UiSpec.TransientGuis = { LoadingScreen = true, ArrivalReveal = true, RacerSidekickReveal = true }
+-- BagFullTip (Client/BagFullTip, commit c80e4de, design doc 4.41): waits disabled until the session's first BAG FULL,
+-- shows for 6 s and is destroyed; judged by ui_bag_full.
+UiSpec.TransientGuis = { LoadingScreen = true, ArrivalReveal = true, RacerSidekickReveal = true, BagFullTip = true }
 
 UiSpec.IgnoreGuis = {
 	Freecam = true,
