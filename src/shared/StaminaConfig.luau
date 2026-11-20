@@ -8,8 +8,8 @@ local StaminaConfig = {}
 
 StaminaConfig.BASE = {
 	Common = 13.5,
-	Uncommon = 15.5,
-	Rare = 18,
+	Uncommon = 17, -- audit 2026-11-20 (was 15.5)
+	Rare = 21, -- audit 2026-11-20 (was 18)
 	Epic = 21,
 	Legendary = 24,
 	Mythic = 27,

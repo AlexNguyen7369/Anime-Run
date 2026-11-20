@@ -20,6 +20,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 3 and 4.36. Numbers are placeholder
 ## Auto sell
 
 - Saved `AutoSell` (boolean) and `AutoSellChance` (whole number). Missing = off. No `Version` change: both fields are additive.
+- A brand new save (the record has no `Version`, `Rolls` or `Cars`: never written) starts with `AutoSell` on and `AutoSellChance` 1 (`BagConfig.NEW_SAVE_CHANCE`), which sells Commons (owner 2026-11-20, design doc 4.41). A written save keeps its own values; missing is still off. No new key.
 - `Remotes.SetAutoSell(on, n)`: `n` is a whole number from 1 to 1e18, rate limited, anything else changes nothing. Attributes `AutoSell`, `AutoSellChance`.
 - A roll is sold when `AutoSell` is on and its `Chance` is at most `n`, a new discovery too (owner 2026-11-06). It adds no copy and pays `BagConfig.SELL_PRICE[Rarity]`. A sold new character stays undiscovered, with no Discoveries progress.
 - Copies already held never change. Characters with no `Chance` are never sold.
@@ -36,7 +37,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 3 and 4.36. Numbers are placeholder
 
 ## Prices
 
-Common 5, Uncommon 10, Rare 25, Epic 100, Legendary 500, Mythic 2,500, Secret 10,000. Paid through `MoneyService.Award`, not scaled by Money multis.
+Common 2 (owner 2026-11-20, was 5), Uncommon 10, Rare 25, Epic 100, Legendary 500, Mythic 2,500, Secret 10,000. Paid through `MoneyService.Award`, not scaled by Money multis.
 
 ## Upgrade tree
 
@@ -47,4 +48,5 @@ Branch `inventory`, Parent `walkspeed_1`, Origin `{ -1, 1 }`, Direction `{ -1, 0
 - `Client/RollOptions` holds one Auto Sell popup: an on/off toggle and "1 in [ ]". Only the AUTO SELL row in Settings opens it (owner 2026-11-09: the roll view and under-roll buttons are gone).
 - A sold roll has no sale UI (owner 2026-11-09): the roll animation plays with no SOLD or +1 COPY badge, the extra rolls' toast leaves it out, and only the Money counter moves.
 - The Backpack's Characters tab shows `Bag used/cap`. A Sell button acts on the chosen character when it has spares. A Mass sell button enters select mode: tiles with spares toggle a check mark, tiles with none dim, and a bar offers Select all, Sell and Cancel.
+- The first `BagFullHit` of a session also shows the bag full tip (`Client/BagFullTip`, design doc 4.41): a 4.21 spotlight on the HUD's Items button with no dim and no click block, closed after 6 s (**proposed**) or when the Bag opens. Not during a duel, showdown, boss event or the auto-roll tutorial.
 - On each `BagFullHit`: red "BAG FULL" text with no background restarts, fades and is gone at 1 s (owner 2026-11-05). A dark text stroke keeps it readable (**proposed**). There is no fixed banner.

@@ -22,8 +22,10 @@ local LATER_PAUSE = 0.5 -- placeholder: seconds between those calls, so they do 
 local LOGO = "rbxassetid://127883918864517" -- assets/logo/AnimeRunLogo.png, owner's art
 -- assets/ui/loading/SakuraGateBackdrop.png, intro draft B3 "Distant crowd" (owner 2026-11-11). Decal 77191663094973.
 local BACKDROP = "rbxassetid://81384921997104" -- resolved in Studio 2026-11-11
-local CYAN = Color3.fromRGB(0, 240, 255) -- the draft's bar
-local PINK = Color3.fromRGB(255, 110, 180)
+-- The palette's UiTheme.Dojo.Cyan and .Sakura (audit 2026-11-20; were off-palette neon 0,240,255 and 255,110,180). Copied:
+-- this runs from ReplicatedFirst before Shared can be read. Keep them equal to UiTheme.Dojo.
+local CYAN = Color3.fromRGB(46, 200, 208) -- the bar
+local PINK = Color3.fromRGB(244, 145, 171)
 
 local root = Instance.new("ScreenGui")
 root.Name = "LoadingScreen"

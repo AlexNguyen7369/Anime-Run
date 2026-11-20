@@ -1394,12 +1394,17 @@ task.spawn(function()
 		end
 	end)
 end)
+-- Right of the Money text, level with its foot: rising from its top-left it ran over the left button column.
 local function floatAtMoney(text)
+	local value = hud.MoneyValue
 	UiMotion.Float(
-		hud.MoneyValue.Parent,
+		value.Parent,
 		text,
 		palette.Money,
-		UDim2.fromOffset(hud.MoneyValue.Position.X.Offset, hud.MoneyValue.Position.Y.Offset)
+		UDim2.fromOffset(
+			value.Position.X.Offset + value.TextBounds.X + 10,
+			value.Position.Y.Offset + value.Size.Y.Offset
+		)
 	)
 end
 -- Owner 2026-11-10 (design doc 4.40): a checkpoint payout floats "Cashed out +$X", the server's amount, by Money while
@@ -1478,6 +1483,16 @@ settings.EffectsToggle.Activated:Connect(function()
 	switch(settings.EffectsToggle, reduced)
 	UiFeedback.Play("Toggle")
 end)
+-- Low-end default (owner 2026-11-20, design doc 4.20): with no choice yet this session (nothing is saved), REDUCED EFFECTS
+-- starts on at a low graphics level (1-3) or on a small touch-only screen. The toggle still flips it.
+if player:GetAttribute("ReduceEffects") == nil then
+	local level = UserSettings():GetService("UserGameSettings").SavedQualityLevel.Value -- 0 = Automatic
+	local view = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+	local touchOnly = UserInputService.TouchEnabled
+		and not UserInputService.KeyboardEnabled
+		and not UserInputService.MouseEnabled
+	player:SetAttribute("ReduceEffects", (level >= 1 and level <= 3) or (touchOnly and math.min(view.X, view.Y) <= 500))
+end
 switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
 

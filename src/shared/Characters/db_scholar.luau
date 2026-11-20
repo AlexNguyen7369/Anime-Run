@@ -4,7 +4,7 @@ return {
 	Id = "db_scholar",
 	Name = "Gohon",
 	Rarity = "Rare",
-	Chance = 1000,
+	Chance = 600, -- audit 2026-11-20 (was 1,000)
 	SpeedMulti = 2.6,
 	Order = 10,
 	Category = "Balanced",

@@ -10,6 +10,7 @@ PowerUpConfig.SPEED_SECONDS = 1 -- owner 2026-11-16 (was 2)
 PowerUpConfig.STAMINA_SECONDS = 2 -- owner 2026-11-16: the running character's stamina does not drain for this long
 PowerUpConfig.PER_STUDS = 500 -- placeholder (owner 2026-11-16 "more per track"; was 1000): about 1 per this many studs
 PowerUpConfig.EDGE = 0.1 -- proposed: none in the first or last 10% of a track
+PowerUpConfig.STAMINA_SHARE = 0.7 -- placeholder (audit 2026-11-20, was 0.5): share of power-ups that are Stamina
 PowerUpConfig.MIN_GAP = 150 -- proposed (was 300 at 1 per 1000): studs between two power-ups
 
 -- Look (proposed): orange chevrons for Speed, the stamina bar's blue for Stamina.
@@ -31,7 +32,7 @@ function PowerUpConfig.Roll(from, length, rng)
 		local centre = from + length * PowerUpConfig.EDGE + width * (i - 0.5)
 		table.insert(list, {
 			Id = i,
-			Kind = rng:NextNumber() < 0.5 and "Speed" or "Stamina", -- proposed 50/50
+			Kind = rng:NextNumber() < PowerUpConfig.STAMINA_SHARE and "Stamina" or "Speed",
 			Dist = centre + (jitter > 0 and rng:NextNumber(-jitter, jitter) or 0),
 		})
 	end

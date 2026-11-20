@@ -15,6 +15,8 @@ local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Share
 local UiFeedback = require(client:WaitForChild("UiFeedback"))
 local UiMotion = require(client:WaitForChild("UiMotion"))
 local QuestConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("QuestConfig"))
+local SidekickConfig =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("SidekickConfig"))
 local HttpService = game:GetService("HttpService")
 
 -- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the Roblox chat window starts collapsed so it never covers
@@ -235,6 +237,12 @@ for order, slot in SLOTS do
 	end
 	tiles[name] = { Button = tile, Badge = badge(tile) }
 end
+-- Summon is hidden until rebirth 1; its page unlocks at rebirth 2 (owner 2026-11-20, design doc 4.36).
+local function refreshUnlocks()
+	tiles.Summon.Button.Visible = (player:GetAttribute("RebirthLevel") or 0) >= SidekickConfig.HudFromRebirth
+end
+player:GetAttributeChangedSignal("RebirthLevel"):Connect(refreshUnlocks)
+refreshUnlocks()
 
 -- Keybind letters (design doc 4.40): keyboard only; the key does exactly what a click on the tile does.
 local function keyboardInUse()
@@ -262,7 +270,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 	for name, key in KEYS do
 		if input.KeyCode == key then
-			if (tiles[name] and grid or bar).Visible then
+			if (tiles[name] and grid or bar).Visible and (not tiles[name] or tiles[name].Button.Visible) then
 				PanelSwitch.Action(PANEL[name])
 			end
 			return

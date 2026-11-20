@@ -115,6 +115,9 @@ function GachaService.Setup(player)
 			then
 				refresh()
 			end
+			if name == "AutoRacing" and player:GetAttribute("AutoRacing") ~= true then
+				GachaService.FillTeam(player) -- rolls kept during the run join now
+			end
 			if name == "Pass_" .. EXCLUSIVE_PASS then
 				GachaService.GrantExclusive(player)
 			end
@@ -294,6 +297,32 @@ function GachaService.Announce(player, id, rolls)
 	end
 end
 
+-- A kept roll fills an empty Team slot, never a filled one (owner 2026-11-20, TEAM_AND_STAMINA_SPEC "Team"). A run's Team
+-- is fixed, so a roll kept while racing waits (session only) until the player is on foot; `id` nil just applies the wait.
+local pendingFill = setmetatable({}, { __mode = "k" }) -- player -> ids, oldest first
+
+function GachaService.FillTeam(player, id)
+	local list = pendingFill[player] or {}
+	if id and not table.find(list, id) then
+		table.insert(list, id)
+	end
+	pendingFill[player] = list
+	if #list == 0 or player:GetAttribute("AutoRacing") == true then
+		return
+	end
+	pendingFill[player] = nil
+	local team = GachaService.TeamList(player)
+	for _, want in list do
+		if #team < TEAM_SIZE and owns(player, want) and not table.find(team, want) then
+			table.insert(team, want)
+		end
+	end
+	local value = table.concat(team, ",")
+	if value ~= player:GetAttribute("Team") then
+		player:SetAttribute("Team", value)
+	end
+end
+
 -- One roll at the player's luck, times the Turbo tier's Multi on every turbo roll (UpgradeService.AdvanceTurbo: the
 -- player's TurboCount reaches the tier's Every; x5 every 10th roll with no Turbo tier). Returns the character Id,
 -- whether it was new, the turbo multi (1 on a normal roll), whether it is emphasized (GachaConfig.IsEmphasized:
@@ -330,6 +359,7 @@ local function rollOnce(player, roller, bagLimited)
 		require(script.Parent.MoneyService).Award(player, soldFor)
 	else
 		isNew = GachaService.Grant(player, id)
+		GachaService.FillTeam(player, id)
 	end
 	GachaService.RefreshBag(player)
 	QuestService.Progress(player, "Rolls")
@@ -889,8 +919,12 @@ function GachaService.Apply(player, saved)
 	player:SetAttribute("Team", table.concat(team, ","))
 	player:SetAttribute("EquippedCharacter", team[1])
 	player:SetAttribute("Rolls", cleanCount(saved.Rolls))
-	player:SetAttribute("AutoSellChance", BagConfig.CleanChance(saved.AutoSellChance))
-	player:SetAttribute("AutoSell", saved.AutoSell == true and BagConfig.CleanChance(saved.AutoSellChance) ~= nil)
+	-- A brand new save (never written: no Version, Rolls or Cars) starts with auto sell on for Commons (design doc 4.41,
+	-- owner 2026-11-20). Any save already written keeps its own setting, a missing one being off.
+	local newSave = saved.Version == nil and saved.Rolls == nil and saved.Cars == nil
+	local sellChance = BagConfig.CleanChance(saved.AutoSellChance) or (newSave and BagConfig.NEW_SAVE_CHANCE or nil)
+	player:SetAttribute("AutoSellChance", sellChance)
+	player:SetAttribute("AutoSell", (saved.AutoSell == true or newSave) and sellChance ~= nil)
 
 	local a = {}
 	local savedAlloc = type(saved.StatAlloc) == "table" and saved.StatAlloc or {}
