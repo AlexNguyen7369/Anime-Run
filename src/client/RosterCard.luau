@@ -25,6 +25,7 @@ local GREEN = UiTheme.Palette.Money
 local GOLD = UiTheme.Palette.Unbanked
 local OUTLINE = UiTheme.Outline
 local U = AnimeSkin.Units
+local SQUARE = Color3.fromHex("2a0c0c") -- the night-dojo gear square (approved Team Select draft)
 local DOT_CLEAR = 8 + 24 + 6 -- px from the card's right edge: the category dot's inset and size, then a gap
 
 local RosterCard = {}
@@ -172,8 +173,8 @@ local function bonusText(bonuses)
 	return table.concat(parts, ", ")
 end
 
--- Design doc 4.45 (owner 2026-11-17): the relic emblem (a diamond with a rarity rim) and the Sidekick icon (a circle with
--- a cream rim, its drawn portrait) character `id` wears, in a Gear frame at `parent`'s top-right (y px down, icon
+-- Design doc 4.45 (owner 2026-11-17; "Team Select night dojo", owner 2026-11-19/20: square icons as drawn, replacing
+-- the diamond and circle): the relic emblem and the Sidekick icon (its drawn portrait) character `id` wears, in a Gear frame at `parent`'s top-right (y px down, icon
 -- `size` px); a tooltip names each. Replaces an existing Gear. Returns the frame. `views`: RosterCard.Views(player), read
 -- once for a whole render (else read here: four JSON decodes).
 function RosterCard.Gear(parent, id, player, y, size, views)
@@ -193,15 +194,15 @@ function RosterCard.Gear(parent, id, player, y, size, views)
 	frame.BackgroundTransparency = 1
 	frame.ZIndex = 8
 	frame.Parent = parent
-	local function icon(name, row, image, x, round, rim)
+	local function icon(name, row, image, x)
 		local holder = Instance.new("ImageLabel") -- the icon itself; its Art child carries the picture
 		holder.Name = name
 		holder.Image = ""
-		holder.BackgroundColor3 = UiTheme.Dojo.Ink
+		holder.BackgroundColor3 = SQUARE
+		holder.BackgroundTransparency = 0.2
 		holder.AnchorPoint = Vector2.new(0.5, 0.5)
 		holder.Position = UDim2.new(0, x + size / 2, 0.5, 0)
-		holder.Size = UDim2.fromOffset(round and size or size * 0.78, round and size or size * 0.78)
-		holder.Rotation = round and 0 or 45 -- a diamond for relics
+		holder.Size = UDim2.fromOffset(size, size)
 		holder.ZIndex = 8
 		holder.Active = true -- a tap on the icon shows its tooltip and does not also pick the card (audit 2026-11-20)
 		holder.Selectable = true
@@ -209,11 +210,9 @@ function RosterCard.Gear(parent, id, player, y, size, views)
 		holder:SetAttribute("Rarity", row.Rarity)
 		holder.Parent = frame
 		local edge = Instance.new("UIStroke")
-		edge.Thickness, edge.Color = UiTheme.Dojo.Stroke, rim
+		edge.Thickness, edge.Color, edge.Transparency = 2, Color3.new(1, 1, 1), 0.6
 		edge.Parent = holder
-		if round then
-			UiTheme.Corner(holder, 999)
-		end
+		UiTheme.Corner(holder, math.max(3, math.floor(size * 0.2)))
 		local art = Instance.new("ImageLabel")
 		art.Name = "Art"
 		art.BackgroundTransparency = 1
@@ -221,13 +220,9 @@ function RosterCard.Gear(parent, id, player, y, size, views)
 		art.ScaleType = Enum.ScaleType.Fit
 		art.AnchorPoint = Vector2.new(0.5, 0.5)
 		art.Position = UDim2.fromScale(0.5, 0.5)
-		art.Size = UDim2.fromScale(round and 1 or 1.2, round and 1 or 1.2)
-		art.Rotation = round and 0 or -45
+		art.Size = UDim2.fromScale(0.88, 0.88)
 		art.ZIndex = 9
 		art.Parent = holder
-		if round then
-			UiTheme.Corner(art, 999)
-		end
 		return holder
 	end
 	-- The tooltip on the icon and, on phones, on its taller tap area (side by side, so it grows only up and down).
@@ -236,14 +231,14 @@ function RosterCard.Gear(parent, id, player, y, size, views)
 		UiTooltip.Bind(TouchTarget.Add(h, nil, "Y"), info)
 	end
 	if relic then
-		local h = icon("Relic", relic, relic.Image, 0, false, GachaConfig.RARITY_COLORS[relic.Rarity] or GOLD)
+		local h = icon("Relic", relic, relic.Image, 0)
 		bind(h, function()
 			return { Title = relic.Name, Rarity = relic.Rarity, Body = "Relic: " .. bonusText(relic.Bonuses) }
 		end)
 	end
 	if sidekick then
 		local art = SidekickArt[sidekick.Id]
-		local h = icon("Sidekick", sidekick, art and art.Portrait, size + 6, true, UiTheme.Dojo.Cream)
+		local h = icon("Sidekick", sidekick, art and art.Portrait, size + 6)
 		bind(h, function()
 			return {
 				Title = sidekick.Name,
