@@ -2467,16 +2467,18 @@ local function cardProblems(card, ev, skipGeometry)
 	end
 	-- Duplicates are kept as copies (docs/WORKSHOP_SPEC.md "5b. Showcase", owner 2026-10-22): the server pays $0 and
 	-- the copy badge says "+1 COPY" on a duplicate (never a Money amount); hidden on a new character.
-	if ev.scrapMoney ~= nil and ev.scrapMoney ~= 0 then
+	-- An auto sold roll (design doc 4.41, owner 2026-11-09, ea04044) pays its sale as scrapMoney and shows no badge.
+	local sold = type(ev.scrapMoney) == "number" and ev.scrapMoney > 0
+	if ev.scrapMoney ~= nil and ev.scrapMoney ~= 0 and not sold then
 		table.insert(bad, ("RollResult scrapMoney %s want 0"):format(tostring(ev.scrapMoney)))
 	end
 	local copyBadge = part(UiSpec.Showcase.CopyBadge)
 	local copyText = UiSpec.Showcase.CopyBadgeText
 	if not copyBadge then
 		table.insert(bad, "no " .. UiSpec.Showcase.CopyBadge)
-	elseif isNew then
+	elseif isNew or sold then
 		if effectivelyVisible(copyBadge) then
-			table.insert(bad, UiSpec.Showcase.CopyBadge .. " shown on a new character")
+			table.insert(bad, UiSpec.Showcase.CopyBadge .. " shown on a new or sold roll")
 		end
 	else
 		local text = allText(copyBadge)
@@ -4044,7 +4046,11 @@ function S.ui_motion(res)
 			and target.GuiState == Enum.GuiState.Hover
 	end
 	for _, descendant in playerGui:GetDescendants() do
-		local eligible = descendant:IsA("GuiButton") and descendant.Name ~= "Backdrop" and descendant.Name ~= "Toast"
+		-- RacerMotion skips the full-screen click catchers (Backdrop, Toast, ItemMenu's Scrim): they never scale
+		local eligible = descendant:IsA("GuiButton")
+				and descendant.Name ~= "Backdrop"
+				and descendant.Name ~= "Toast"
+				and descendant.Name ~= "Scrim"
 			or descendant:IsA("Frame")
 				and (descendant:GetAttribute("CharacterId") ~= nil or descendant:GetAttribute("RacerHover") == true)
 		if eligible then
@@ -10046,6 +10052,18 @@ function UiScenarios.RunClick(id)
 					if opened then
 						hit = top
 					end
+				elseif
+					-- The toast opens the showcase on the press itself (RollToast toast.InputBegan, before this
+					-- listener), hiding itself: nothing is left at the point. A showcase this press opened is its result.
+					not hit
+					and top
+					and math.abs(px - cx) <= 1
+					and math.abs(py - cy) <= 1
+					and spec.Expect.Showcase == true
+					and preShowcase == "closed"
+					and showcaseState() ~= "closed"
+				then
+					hit = top
 				end
 				press = { x = px, y = py, hit = hit, targetShown = Click.shownNow(button), t = os.clock() }
 				press.target = button
