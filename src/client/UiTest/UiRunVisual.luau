@@ -434,10 +434,11 @@ local function watch(out, label, ctx, copy, seconds, minFrames)
 	local restRun, restMost, stuckRun, stuckMost, frames = 0, 0, 0, 0, 0
 	local started = os.clock()
 	local up = PhysicsTargets.lap.MinUpYStrict
-	-- The clock RunnerView poses by: its last step each frame is on PreSimulation. A hitch between PreSimulation and
-	-- Heartbeat would otherwise shorten the next Heartbeat gap against the stride phase really advanced.
+	-- The clock RunnerView poses by. 02c7e4e (P4): only the local player's runner is stepped again on PreSimulation;
+	-- this rig (Owner = 0) is posed in the render-step pass only, so its clock is stamped there. A hitch between that
+	-- step and Heartbeat would otherwise shorten the next Heartbeat gap against the stride phase really advanced.
 	local poseClock = started
-	local poseClockConn = RunService.PreSimulation:Connect(function()
+	local poseClockConn = RunService.RenderStepped:Connect(function()
 		poseClock = os.clock()
 	end)
 	while os.clock() - started < seconds do

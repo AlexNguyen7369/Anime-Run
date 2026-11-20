@@ -736,6 +736,55 @@ function Module.Build(h)
 		end
 	end
 
+	-- 112999f: Back (gamepad B, Escape: PanelSwitch.Back) with a Summon panel open closes that panel only; the page
+	-- (Canvas) stays. The real B press is an eye check.
+	local function checkBackClosesSummonPanel(res, canvas)
+		local PanelSwitch = require(Client:WaitForChild("PanelSwitch"))
+		local overlay = canvas:FindFirstChild("SummonPanels")
+		check(res, "sidekick_summon_panels_present", overlay ~= nil, true)
+		if not overlay then
+			return
+		end
+		overlay.Visible = true -- stands in for a panel the player opened (Info, Auto Sell, ...)
+		PanelSwitch.Back("Sidekicks")
+		task.wait(0.2)
+		check(res, "sidekick_back_closes_summon_panel", overlay.Visible, false)
+		check(res, "sidekick_back_keeps_canvas", h.visible(canvas), true)
+		overlay.Visible = false
+	end
+
+	-- 112999f: an Auto summon's reveal (Reveal.Play's autoClose) closes itself a moment after its end (the Hint), with no
+	-- click. Reduced effects start it at the end, so this takes about a second.
+	local function checkAutoRevealCloses(res)
+		local Reveal = require(Client:WaitForChild("SidekickReveal"))
+		local savedReduced = h.player:GetAttribute("ReduceEffects")
+		h.player:SetAttribute("ReduceEffects", true)
+		local closedAt = nil
+		local played = pcall(Reveal.Play, { { Id = Config.List[1].Id, Sold = false } }, function()
+			closedAt = os.clock()
+		end, nil, true)
+		check(res, "sidekick_auto_reveal_plays", played, true)
+		local hintAt = nil
+		local deadline = os.clock() + BIG_REVEAL_WAIT
+		while played and not hintAt and not closedAt and os.clock() < deadline do
+			local gui = h.player.PlayerGui:FindFirstChild(REVEAL)
+			if gui and gui:FindFirstChild("Hint") then
+				hintAt = os.clock()
+			end
+			task.wait(0.05)
+		end
+		check(res, "sidekick_auto_reveal_hint_shown", hintAt ~= nil or closedAt ~= nil, true)
+		deadline = os.clock() + WAIT
+		while played and not closedAt and os.clock() < deadline do
+			task.wait(0.05)
+		end
+		local gone = h.player.PlayerGui:FindFirstChild(REVEAL) == nil
+		check(res, "sidekick_auto_reveal_closes_itself", closedAt ~= nil and gone, true)
+		local inTime = closedAt ~= nil and (closedAt - (hintAt or closedAt)) <= WAIT
+		check(res, "sidekick_auto_reveal_closes_within_5s_of_hint", inTime, true)
+		h.player:SetAttribute("ReduceEffects", savedReduced)
+	end
+
 	function scenarios.ui_sidekicks(res)
 		h.waitGuis()
 		check(res, "sidekick_rotation_not_on_client", ReplicatedStorage:FindFirstChild("SidekickRotation", true), nil)
@@ -762,8 +811,10 @@ function Module.Build(h)
 		checkDesktopFit(res, canvas)
 		checkSlotChange(res, canvas)
 		checkGuarantee(res, canvas)
+		checkBackClosesSummonPanel(res, canvas)
 		restore()
 		checkClosed(res, before)
+		checkAutoRevealCloses(res)
 		restore = h.setPanels({ "RacerIndex/Panel" })
 		checkIndex(res)
 		restore()

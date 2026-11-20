@@ -390,6 +390,10 @@ function Module.Build(h)
 			waitUntil(stepTwo)
 			if checkStepThree(res) then
 				checkCleanedUp(res)
+				-- 02c7e4e (P9): the per-frame hook stops once SidekickFreeUsed is true and starts again when it turns
+				-- false (a reset save): the tutorial must come back at step 1.
+				setup(res, "sidekick_tutorial_ready")
+				check(res, "reshows_after_free_flag_false", waitUntil(stepOne), true)
 			end
 		end, debug.traceback)
 		check(res, "completed", ok and true or tostring(err), true)

@@ -1664,8 +1664,28 @@ local function restoreNoPasses(player)
 	player:SetAttribute("UiTestNoPasses", nil)
 end
 
+-- ui_remote_guards (bb96973, D7): this player's save shown as still loading (DataLoaded and DataFailed off) so the
+-- guarded remotes answer "Data not loaded"; restore:data_loading puts both back. Nothing is saved in between.
+local dataLoadingBefore = {} -- [Player] = { loaded, failed }
+function setups.data_loading(player)
+	if not dataLoadingBefore[player] then
+		dataLoadingBefore[player] = { player:GetAttribute("DataLoaded"), player:GetAttribute("DataFailed") }
+	end
+	player:SetAttribute("DataFailed", nil)
+	player:SetAttribute("DataLoaded", nil)
+end
+local function restoreDataLoading(player)
+	local before = dataLoadingBefore[player]
+	if before then
+		dataLoadingBefore[player] = nil
+		player:SetAttribute("DataFailed", before[2])
+		player:SetAttribute("DataLoaded", before[1])
+	end
+end
+
 local CLIENT_SETUPS = {
 	no_passes = true,
+	data_loading = true, -- ui_remote_guards
 	sidekick_tutorial_ready = true,
 	auto_racing = true,
 	auto_roll_on = true,
@@ -1804,6 +1824,8 @@ setupRequest.OnServerInvoke = function(player, request)
 		clientBefore[player] = before
 		if restoreId == "no_passes" then
 			restoreNoPasses(player)
+		elseif restoreId == "data_loading" then
+			restoreDataLoading(player)
 		elseif restoreId == "run_visual" then
 			RUN_VISUAL.clear()
 			local routes = ReplicatedStorage:FindFirstChild("RunRoutes")
