@@ -3,6 +3,7 @@
 -- label. A character with an uploaded model (ReplicatedStorage.CharacterModels, docs/CHARACTER_GACHA_SPEC.md "Avatar
 -- pipeline") wears its MeshParts; anything else is the placeholder block rig in its series palette with a rarity trim.
 -- Every part is anchored and non-colliding: RaceService moves the rig along the race path, clients only redraw it.
+-- (The server's player rig welds its limbs to the anchored Torso, Server/RunnerService.)
 -- The Torso is the PrimaryPart (auras and trails attach to it). Meshes are centred on the PARTS offsets by the export.
 
 local CollectionService = game:GetService("CollectionService")
@@ -100,6 +101,7 @@ end
 local function swap(model, old, new)
 	new.CFrame = old.CFrame
 	new.CollisionGroup = old.CollisionGroup
+	new.Anchored = old.Anchored -- a server rig's limbs ride welded to its anchored Torso (Server/RunnerService)
 	new.Parent = model
 	for _, child in old:GetChildren() do
 		child.Parent = new

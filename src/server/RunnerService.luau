@@ -33,6 +33,22 @@ local HIDDEN_GROUP = "HiddenAvatar" -- the hidden avatar while it rides: collide
 local PLACE_HOLD = 2 -- seconds the server keeps putting a real player's avatar back at the walk spawn after a teleport
 local PLACE_SLACK = 8 -- studs (horizontal) the avatar may be from the walk spawn before it is put back
 
+-- One assembly: only the Torso stays anchored and the other parts are welded to it, so each RaceService move replicates
+-- one CFrame instead of one per part. The pose is unchanged; Client/RunnerView anchors its drawn copy again.
+local RIG_WELD = "RigWeld"
+local function weldToTorso(runner)
+	local torso = runner.PrimaryPart
+	for _, d in runner:GetDescendants() do
+		if d:IsA("BasePart") and d ~= torso then
+			local weld = Instance.new("WeldConstraint")
+			weld.Name = RIG_WELD
+			weld.Part0, weld.Part1 = torso, d
+			weld.Parent = d
+			d.Anchored = false
+		end
+	end
+end
+
 local runners = {} -- player -> runner model
 local carryWelds = {} -- player -> Weld holding the hidden avatar to its runner
 local runs = {} -- player -> RaceService run
@@ -248,6 +264,7 @@ local function spawnRunner(player, character, gen, duel)
 	local runner = RunnerFactory.build(characterIdOf(player))
 	runner.Name = "Runner_" .. tostring(player.Name)
 	RaceService.SetRunnerGroup(runner)
+	weldToTorso(runner)
 	runner:SetAttribute("AutoRace", true)
 	RunnerEffects.Apply(runner, player, activeSlot(player))
 	runner:PivotTo(start)
