@@ -494,12 +494,16 @@ end)
 -- The event's locked distance (BOSS_EVENT_SPEC "Run rules"), after the default camera: ARENA_PITCH looks up from a low runner, so the
 -- default camera would pop in front of the deck, to about 10 studs. Same view line, moved up to stay on top of the deck.
 local ABOVE_DECK = 6 -- studs, placeholder (2 until 2026-11-10: at the steeper pitch the deck filled the lower frame)
+local DECK_NEAR = 100 -- studs under the deck's top at most for the focus to count as on the deck (dais 50 under), placeholder
 RunService:BindToRenderStep("BossEventCamera", Enum.RenderPriority.Camera.Value + 1, function()
 	local camera = Workspace.CurrentCamera
 	if not camera or camera.CameraType ~= Enum.CameraType.Custom or player:GetAttribute("BossEvent") ~= true then
 		return
 	end
 	local _, _, zoom, arena, above = arenaView()
+	if camera.Focus.Position.Y < arena.Y - DECK_NEAR then
+		return -- not on the deck yet (BossEvent is set before the teleport): lifting here would throw the eye 1,200 studs up
+	end
 	local eye = camera.Focus.Position - camera.CFrame.LookVector * zoom
 	camera.CFrame = camera.CFrame.Rotation + Vector3.new(eye.X, math.max(eye.Y, arena.Y + (above or ABOVE_DECK)), eye.Z)
 end)
