@@ -377,11 +377,19 @@ end
 local function ownedCharacters()
 	local data = player:FindFirstChild("GachaData")
 	local list = {}
-	for _, spec in CharacterCatalog.All() do
-		if data and data:FindFirstChild(spec.Id) then
+	-- Every owned character the catalog knows, so the starter, Kami and the Robux-exclusive Saitamo (not in All) count too
+	for _, entry in data and data:GetChildren() or {} do
+		local spec = CharacterCatalog.Get(entry.Name)
+		if spec then
 			table.insert(list, spec)
 		end
 	end
+	table.sort(list, function(a, b)
+		if a.Order ~= b.Order then
+			return a.Order < b.Order
+		end
+		return a.Id < b.Id
+	end)
 	return list
 end
 
