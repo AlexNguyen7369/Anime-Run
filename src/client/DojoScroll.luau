@@ -90,7 +90,8 @@ local function tween(object, seconds, goal, style, direction)
 end
 
 -- A vertical hanging scroll. opts: Name, Parent, Position (UDim2), AnchorPoint, Px (Vector2, the scroll's design size;
--- the root is Px plus MARGIN on every side and gets Size = fromOffset of that unless opts.Size), ZIndex. Returns { Root, Paper (the content frame, a CanvasGroup that
+-- the root is Px plus MARGIN on every side and gets Size = fromOffset of that unless opts.Size), ZIndex, Chi (the bottom
+-- mount's height in design px, for buttons on it; default PARTS.Chi). Returns { Root, Paper (the content frame, a CanvasGroup that
 -- inks in), Open(), Close(), Destroy(), Opened() }.
 function DojoScroll.new(parent, opts)
 	opts = opts or {}
@@ -185,7 +186,7 @@ function DojoScroll.new(parent, opts)
 		})
 	end
 	local paperTop = P.Ten + P.Rule
-	local paperH = bodyH - P.Ten - P.Chi - 2 * P.Rule
+	local paperH = bodyH - P.Ten - (opts.Chi or P.Chi) - 2 * P.Rule
 	for i, y in { P.Ten, P.Ten + P.Rule + paperH } do
 		local rule = fill("Rule" .. i, sheet, Color3.new(1, 1, 1), {
 			Position = UDim2.fromScale(sx(P.Side), by(y)),
