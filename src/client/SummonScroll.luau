@@ -178,7 +178,12 @@ function SummonScroll.Apply(canvas)
 		TextXAlignment = Enum.TextXAlignment.Center,
 	})
 	local featRate = canvas:FindFirstChild("FeatRate")
-		or DojoScroll.Pill("FeatRate", canvas, K.Accent, { FontFace = K.BodyBold, TextColor3 = K.SealText, Text = "" })
+		or DojoScroll.Pill(
+			"FeatRate",
+			canvas,
+			Color3.fromRGB(168, 38, 42),
+			{ FontFace = K.BodyBold, TextColor3 = K.SealText, Text = "" }
+		) -- the reference's darker brush red
 	place(featRate, 151, 490, 164, 27, true)
 	featRate.ZIndex = CONTENT_Z
 	if not featRate:FindFirstChild("Brushed") then
@@ -336,7 +341,7 @@ function SummonScroll.Apply(canvas)
 			{
 				Title = { 0.44, 0.04, 0.53, 0.3, K.Script, K.TagText, Enum.TextXAlignment.Right },
 				Luck = { 0.44, 0.34, 0.53, 0.24, K.BodyBold, K.TagText, Enum.TextXAlignment.Center },
-				Price = { 0.44, 0.62, 0.27, 0.3, PRICE_FONT, K.TagGold, Enum.TextXAlignment.Left },
+				Price = { 0.44, 0.64, 0.24, 0.26, PRICE_FONT, K.TagGold, Enum.TextXAlignment.Left }, -- clear of the Buy pill
 			}
 		do
 			local t = offer[n]

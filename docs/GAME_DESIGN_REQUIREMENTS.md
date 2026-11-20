@@ -682,6 +682,10 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     a cream arrow pill; on the stage the names are white with a dark outline, rarities in their colour with a dark
     outline, and the centre's "Featured!" sits with a star in a dark red pill above the Mythic's name; the two
     Legendaries stand Beroo left, Ryuuk right as drawn. Sizes and colours are **proposed** within the image's look.
+    Owner approved the built page from the Studio capture on 2026-11-20 ("summon page looks good to me for now, can mark
+    as approved"): parchment scroll skin edge to edge with brown wood rods and leather strips, Kalam Bold on the paper
+    buttons and pack titles, equal wood-plank summon tiles, burgundy pack cards on a red beaded cord. The More card's
+    chest of gems stays a gem cluster until a chest image is uploaded (**open question**).
   - Team Setup (T2): one tall scroll on the left is the team ledger: wordmark, "Team 1" and its status, n / 3, three
     numbered rows (seal 一 二 三, portrait, name, rarity, cruise, relic and Sidekick icons with their tooltips; the picked
     row has a cyan bar), Team Bonus with View (opens the popover), and on its bottom mount Quick Setup and Deploy. The
@@ -882,3 +886,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: enemies much faster. A Common does not outrun the Track 1 enemy and a Rare is about level with it; NPC formula `48 x 1.363^(n-1)` (placeholder), replacing `16 x 1.51^(n-1)` and the 2026-11-03 "Track 1 balance kept" (4.13).
 - 2026-11-04: owner: Tracks panel is one list of long horizontal cards with a road screenshot, a brief anime-context definition, recommended speed and enemy name; a card click picks the checkpoint; no 3D render, detail pane or START HERE (4.15).
 - 2026-11-19: owner: the Summon page matches the owner's reference image 1:1 (4.45 "Summon 1:1 reference"); Team Select is being redrawn separately.
+- 2026-11-20: owner approved the Summon 1:1 page from the Studio capture (4.45 "Summon 1:1 reference").
