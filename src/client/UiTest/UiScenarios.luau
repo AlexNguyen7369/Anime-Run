@@ -27,6 +27,15 @@ local UiDuel = require(script.Parent:WaitForChild("UiDuel"))
 local UiBoostsRebirth = require(script.Parent:WaitForChild("UiBoostsRebirth"))
 local UiShopMarket = require(script.Parent:WaitForChild("UiShopMarket"))
 local FX = {} -- frame-model helpers in one table: UiScenarios is near Luau's 200 local limit
+-- UiSpec.Theme.FontFamilies: a TextLabel's FontFace family holds one of the accepted names
+function FX.themeFont(family)
+	for _, name in UiSpec.Theme.FontFamilies do
+		if string.find(family, name, 1, true) then
+			return true
+		end
+	end
+	return false
+end
 FX.AnimeSkin = require(script.Parent.Parent:WaitForChild("AnimeSkin"))
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
@@ -308,10 +317,19 @@ UiScenarios.Needs = {
 	ui_roll_anim = { "auto_roll_on", "turbo_next" }, -- section 2 judges a turbo roll on the compact roll
 	ui_billboards = { "auto_racing" }, -- the main run judges the racing part (win pads, NPC label)
 	ui_roll_emphasized = { "auto_roll_on" },
-	ui_sidekicks = { "sidekick_states" },
+	-- hud_unlock (49bc653): Summon, the Bosses button and the Bag's Sidekicks / Relics tabs show from rebirth 1 (c80e4de,
+	-- design doc 4.36); these scenarios judge them, and the saved test player may be below it.
+	ui_sidekicks = { "hud_unlock", "sidekick_states" },
+	ui_entry_points = { "hud_unlock" },
+	ui_backpack_characters = { "hud_unlock" },
+	ui_team = { "hud_unlock" },
+	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
 	ui_bag_full = { "auto_roll_on" },
 }
+-- Put back right after the scenario that asked (RestoreSetups runs only at the end of a full run), so later scenarios
+-- see the saved RebirthLevel again.
+FX.RESTORE_AFTER = { hud_unlock = true }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
 UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
@@ -1131,7 +1149,18 @@ end
 local function contentBox(parent, pr, c, ctx)
 	local base = pr
 	if parent:IsA("ScrollingFrame") then
-		base = R(pr.x - parent.CanvasPosition.X, pr.y - parent.CanvasPosition.Y, pr.w, pr.h)
+		-- VerticalScrollBarInset ScrollBar / Always: the shown bar takes its thickness off the canvas width (the Shop's
+		-- Items list: 663 px frame, 659 px window), so {1, 0}-wide children are that much narrower. Whether the bar
+		-- shows is read live (the window narrower than the frame).
+		local w = pr.w
+		local barInset = parent.VerticalScrollBarInset
+		if
+			barInset == Enum.ScrollBarInset.Always
+			or (barInset == Enum.ScrollBarInset.ScrollBar and parent.AbsoluteWindowSize.X < parent.AbsoluteSize.X - 0.5)
+		then
+			w -= c * parent.ScrollBarThickness
+		end
+		base = R(pr.x - parent.CanvasPosition.X, pr.y - parent.CanvasPosition.Y, w, pr.h)
 	end
 	local pad = parent:FindFirstChildWhichIsA("UIPadding")
 	if pad then
@@ -1757,9 +1786,7 @@ local function recordLose(event)
 			and countdown:FindFirstChild("Fill") ~= nil
 			and countdown.Fill:IsA("GuiObject")
 		for _, o in gui:GetDescendants() do
-			if
-				(o:IsA("TextLabel") or o:IsA("TextButton")) and not string.find(o.FontFace.Family, "Fredoka", 1, true)
-			then
+			if (o:IsA("TextLabel") or o:IsA("TextButton")) and not FX.themeFont(o.FontFace.Family) then
 				table.insert(recap.fonts, pathOf(o))
 			end
 		end
@@ -4219,7 +4246,13 @@ function S.ui_inventory(res)
 				table.insert(bad, guiName .. ": no " .. partName)
 			else
 				for _, d in { part, table.unpack(part:GetDescendants()) } do
-					if d:IsA("GuiObject") and swallows(d) then
+					-- A declared button inside the part is a real control (BossDetails/Back, owner 2026-11-11 draft B)
+					local rel = string.sub(pathOf(d), #guiName + 2)
+					local declared = false
+					for _, spec in d:IsA("GuiButton") and g.Buttons or {} do
+						declared = declared or pathMatches(spec.Path, rel)
+					end
+					if d:IsA("GuiObject") and swallows(d) and not declared then
 						table.insert(bad, pathOf(d))
 					end
 				end
@@ -5074,7 +5107,13 @@ function S.ui_layout(res)
 				end
 			end
 		end
-		check(res, "layout_model_matches_engine_" .. state.Name, worst, TOL, worst <= TOL)
+		check(
+			res,
+			"layout_model_matches_engine_" .. state.Name,
+			worstPath .. " d=" .. tostring(worst),
+			UiSpec.ModelDrift,
+			worst <= UiSpec.ModelDrift
+		)
 		-- The runtime layouts the other variant is solved from (UiResponsive.RuntimeLayout) still match the live panel
 		for _, panelPath in state.Open do
 			local frame = findPath(panelPath)
@@ -5085,7 +5124,7 @@ function S.ui_layout(res)
 				checkList(res, "runtime_model_matches_live_" .. state.Name, FX.runtimeDrift(frame))
 			end
 		end
-		if worst > TOL then
+		if worst > UiSpec.ModelDrift then
 			check(res, "layout_model_worst_" .. state.Name, worstPath, "none", false)
 		end
 		for scale, value in hovered do
@@ -5171,8 +5210,25 @@ function S.ui_hitboxes(res)
 			local r = realRect(b)
 			local visible = effectivelyVisible(b)
 			if visible then
-				-- inside the visible parent (or the ScreenGui's area)
+				-- inside the visible parent (or the ScreenGui's area); a parent with no area is an anchor (UiSpec.Hitbox)
 				local parent = b.Parent
+				while
+					parent:IsA("GuiObject")
+					and (parent.AbsoluteSize.X <= 0 or parent.AbsoluteSize.Y <= 0)
+					and parent.Parent
+				do
+					parent = parent.Parent
+				end
+				local artClose = b:FindFirstChild(UiSpec.Hitbox.ArtClose)
+				-- (QuestAnimeStyle's close is itself an ImageButton showing the Index close art)
+				FX.indexCloseArt = FX.indexCloseArt
+					or require(script.Parent.Parent:WaitForChild("IndexAnimeStyle")).Art.Close
+				if
+					(artClose and artClose:IsA("ImageLabel")) or (b:IsA("ImageButton") and b.Image == FX.indexCloseArt)
+				then
+					local gui = b:FindFirstAncestorWhichIsA("LayerCollector")
+					parent = gui or parent -- over the panel corner by design: judged inside the screen
+				end
 				local pr = parent:IsA("LayerCollector") and rootRect(parent, vp) or realRect(parent)
 				if parent:IsA("ScrollingFrame") then
 					-- Any scrolling parent (the panning Upgrades tree, the Backpack Items list, ...): the button must lie
@@ -5202,7 +5258,16 @@ function S.ui_hitboxes(res)
 						local tr = textRect(b, r)
 						content = tr and intersection(tr, hitbox) or nil
 					end
-					for _, d in b:GetDescendants() do
+					local drawnParts = b:GetDescendants()
+					if UiSpec.Hitbox.RowButtons[path] then
+						drawnParts = {}
+						for _, d in b.Parent:GetDescendants() do
+							if d ~= b and not b:IsAncestorOf(d) then
+								table.insert(drawnParts, d)
+							end
+						end
+					end
+					for _, d in drawnParts do
 						if d:IsA("GuiObject") and effectivelyVisible(d) then
 							local drawn = d.BackgroundTransparency < 0.95
 								or ((d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text ~= "" and d.TextTransparency < 0.95)
@@ -5275,7 +5340,7 @@ function S.ui_hitboxes(res)
 						local drawn = d.BackgroundTransparency < 0.95
 							or ((d:IsA("TextLabel") or d:IsA("TextBox")) and d.Text ~= "" and d.TextTransparency < 0.95)
 							or (d:IsA("ImageLabel") and d.Image ~= "" and d.ImageTransparency < 0.95)
-						if not drawn and not d:IsA("ScrollingFrame") then
+						if not drawn and not d:IsA("ScrollingFrame") and not UiSpec.Hitbox.PanelBodies[pathOf(d)] then
 							table.insert(sinks, pathOf(d))
 						end
 					end
@@ -5347,7 +5412,7 @@ function S.ui_buttons(res)
 	-- Design doc 4.40 (owner 2026-11-10): on keyboard each column button shows its keybind letter in a TextLabel Key, in
 	-- the tile's top-right quarter, clear of the tile's label text
 	if UserInputService.KeyboardEnabled then
-		local keyLetters = { "X", "B", "R", "Q", "P" }
+		local keyLetters = { "X", "B", "R", "Q", "P", "G" } -- G: Summon tile (1ff09dd, design doc 4.45)
 		local badKeys = {}
 		for index, path in UiSpec.Hud.NavButtons do
 			local tile = findPath(path)
@@ -5859,21 +5924,36 @@ end
 function S.ui_theme(res)
 	waitGuis()
 	local cfg = UiSpec.Theme
-	local wrongFont = {}
-	for _, name in declaredGuis() do
-		local gui = playerGui:FindFirstChild(name)
-		for _, o in gui and gui:GetDescendants() or {} do
-			if
-				(o:IsA("TextLabel") or o:IsA("TextButton"))
-				and not string.find(o.FontFace.Family, cfg.FontFamily, 1, true)
-			then
-				table.insert(
-					wrongFont,
-					pathOf(o) .. " " .. (string.match(o.FontFace.Family, "([^/]+)%.json$") or o.FontFace.Family)
-				)
+	local wrongFont, seenFont = {}, {}
+	local function judgeFonts()
+		frames(2)
+		for _, name in declaredGuis() do
+			local gui = playerGui:FindFirstChild(name)
+			for _, o in gui and gui:GetDescendants() or {} do
+				if
+					(o:IsA("TextLabel") or o:IsA("TextButton"))
+					and o.Text ~= ""
+					and o.TextTransparency < 1
+					and effectivelyVisible(o)
+					and not FX.themeFont(o.FontFace.Family)
+					and not seenFont[o]
+				then
+					seenFont[o] = true
+					table.insert(
+						wrongFont,
+						pathOf(o) .. " " .. (string.match(o.FontFace.Family, "([^/]+)%.json$") or o.FontFace.Family)
+					)
+				end
 			end
 		end
 	end
+	local restoreFonts = setPanels({})
+	judgeFonts()
+	for _, panelPath in allPanels() do
+		setPanels({ panelPath })
+		judgeFonts()
+	end
+	restoreFonts()
 	checkList(res, "theme_fonts_fredoka", wrongFont)
 	local badMulti, found = {}, 0
 	for _, spec in cfg.MultiLabels do
@@ -6201,19 +6281,25 @@ function S.ui_settings_profile(res)
 		true,
 		settingsTab ~= nil and settingsTab:IsA("GuiButton") and profileTab ~= nil and profileTab:IsA("GuiButton")
 	)
+	-- 408b545: the tab's own Text is transparent and the AnimeCaption over it shows the same words, so allText read
+	-- them twice; judge the one visible label once (as the Daily quest tab test does).
+	local function shownText(tab)
+		local label = tab and (tab:FindFirstChild("AnimeCaption") or tab)
+		return label and label:IsA("GuiObject") and label.Visible and label.Text or nil
+	end
 	check(
 		res,
 		"settings_tab_text",
-		settingsTab and allText(settingsTab),
+		shownText(settingsTab) or "missing",
 		"SETTINGS",
-		settingsTab ~= nil and allText(settingsTab) == "SETTINGS"
+		shownText(settingsTab) == "SETTINGS"
 	)
 	check(
 		res,
 		"player_profile_tab_text",
-		profileTab and allText(profileTab),
+		shownText(profileTab) or "missing",
 		"PLAYER PROFILE",
-		profileTab ~= nil and allText(profileTab) == "PLAYER PROFILE"
+		shownText(profileTab) == "PLAYER PROFILE"
 	)
 	check(
 		res,
@@ -7850,18 +7936,28 @@ function S.ui_panels(res)
 			table.insert(registered, p)
 		end
 	end
+	-- 1267f95: a Sakura page (Team, Summon) switches under the UiTransition wash, and PanelSwitch ignores a second press
+	-- within OPEN_GUARD (0.3 s) while it plays. A person presses again once the page shows, so wait for the wash to end.
+	local function toggle(name)
+		Switch.Toggle(name)
+		local wash = playerGui:FindFirstChild(UiSpec.Team.Transition)
+		local by = os.clock() + 3
+		while wash and wash:GetAttribute("Playing") == true and os.clock() < by do
+			task.wait(0.05)
+		end
+	end
 	for _, a in registered do
 		for _, b in registered do
 			if a ~= b then
 				setPanels({})
-				Switch.Toggle(UiSpec.PanelSwitch.Names[a])
+				toggle(UiSpec.PanelSwitch.Names[a])
 				local afterA = openSet()
 				check(res, "open_" .. a .. "_alone", afterA, a, afterA == a)
-				Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+				toggle(UiSpec.PanelSwitch.Names[b])
 				waitHidden({ findPath(a) }) -- a's close motion (design doc 4.20)
 				local afterB = openSet()
 				check(res, "open_" .. b .. "_closes_" .. a, afterB, b, afterB == b)
-				Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+				toggle(UiSpec.PanelSwitch.Names[b])
 				waitHidden({ findPath(b) })
 				local afterToggle = openSet()
 				check(res, "toggle_" .. b .. "_closes_it", afterToggle, "", afterToggle == "")
@@ -8050,7 +8146,9 @@ function S.ui_panels(res)
 	for i, panelPath in registered do
 		setPanels({ panelPath })
 		frames(2)
-		if isDimGui then
+		if isDimGui and UiSpec.HudHiddenPanels[panelPath] then
+			check(res, "panel_dim_enabled_while_" .. panelPath, "exempt", "exempt (HUD hidden by the page)", true)
+		elseif isDimGui then
 			local on = waitUntil(dimShown)
 			check(res, "panel_dim_enabled_while_" .. panelPath, dimState(), "Enabled, Dim shown", on)
 		end
@@ -8103,7 +8201,9 @@ function S.ui_panels(res)
 	-- Panel A open, then B: the world dim stays enabled through the switch, never off in between
 	for i, b in registered do
 		local a = registered[(i - 2) % #registered + 1]
-		if a ~= b and isDimGui then
+		if a ~= b and isDimGui and (UiSpec.HudHiddenPanels[a] or UiSpec.HudHiddenPanels[b]) then
+			check(res, "panel_dim_no_flash_" .. a .. "_to_" .. b, "exempt", "exempt (HUD hidden by the page)", true)
+		elseif a ~= b and isDimGui then
 			setPanels({ a })
 			waitUntil(dimShown)
 			local gaps = 0
@@ -8167,7 +8267,7 @@ function S.ui_panels(res)
 	for _, panelPath in panels do
 		setPanels({ panelPath })
 		local function wantHidden(path)
-			return hiddenByPanel(path, { panelPath }, viewport())
+			return UiSpec.HudHiddenPanels[panelPath] ~= nil or hiddenByPanel(path, { panelPath }, viewport())
 		end
 		waitFor(function()
 			for _, path in elems do
@@ -9218,6 +9318,13 @@ function UiScenarios.Run(name)
 		end
 	end
 	fn(res)
+	for _, id in UiScenarios.Needs[name] or {} do
+		local rf = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+		if FX.RESTORE_AFTER[id] and UiScenarios.Applied[id] and rf then
+			pcall(rf.InvokeServer, rf, "restore:" .. id)
+			UiScenarios.Applied[id] = nil
+		end
+	end
 	for _, m in UiScenarios.ManualScenarios() do
 		if m.Name == name then
 			res.manual = m.Manual -- run by hand (UiSpec.ManualScenarios): same checks, marked as the manual one

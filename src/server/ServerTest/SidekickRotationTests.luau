@@ -138,7 +138,7 @@ function Tests.sidekick_rotation()
 		end
 
 		local first = H.copy(Rotation.For(SLOT0))
-		local seen, mythicChanges, secretChanges = {}, 0, 0
+		local seen, featuredEverySlot, secretChanges = {}, true, 0
 		local countsOk, ranksOk, commonsOk, noRaga, oddsKeysOk, oddsSumOk, keepOk, commonOk =
 			true, true, true, true, true, true, true, true
 		local publicSecretOk, publicSecretChoice = true, true
@@ -168,8 +168,9 @@ function Tests.sidekick_rotation()
 			local inRotation = members(rotation)
 			table.insert(inRotation, secret)
 			noRaga = noRaga and table.find(inRotation, "side_raga") == nil
+			-- Owner 2026-11-12 (c4580fb, SIDEKICK_SPEC "Igriz is the featured Mythic"): the same Mythic in every slot.
+			featuredEverySlot = featuredEverySlot and rotation.Mythic[1] == Cfg.FeaturedMythic
 			if previous then
-				mythicChanges += previous.Mythic[1] ~= rotation.Mythic[1] and 1 or 0
 				secretChanges += previous.Secret ~= secret and 1 or 0
 			end
 			previous = rotation
@@ -225,11 +226,12 @@ function Tests.sidekick_rotation()
 		flag("commons_all_in", commonsOk)
 		flag("raga_never_in_rotation", noRaga)
 		for _, want in POOL do
-			if want[2] ~= "Common" then
+			-- The other Mythics never rotate in while the featured one has its model (c4580fb).
+			if want[2] ~= "Common" and want[2] ~= "Mythic" then
 				flag("seen_over_200_slots_" .. want[1], seen[want[1]] == true)
 			end
 		end
-		flag("mythic_really_rotates", mythicChanges >= 20, mythicChanges, 20)
+		flag("featured_mythic_every_slot", featuredEverySlot, Cfg.FeaturedMythic)
 		flag("secret_really_rotates", secretChanges >= 20, secretChanges, 20)
 
 		flag("odds_keys_are_the_rotation", oddsKeysOk)
@@ -414,24 +416,25 @@ function Tests.sidekick_rotation()
 			end
 		end
 
-		-- Judged by the slot when the request arrives, up to the last moment of it.
+		-- Judged by the slot when the request arrives, up to the last moment of it. The Mythic is fixed (c4580fb) and
+		-- both Legendaries and both Rares are always drawn, so the Secret is the tier that changes at a slot edge.
 		local edge
 		for slot = SLOT0, SLOT0 + SLOTS - 2 do
-			if Rotation.For(slot).Mythic[1] ~= Rotation.For(slot + 1).Mythic[1] then
+			if Rotation.For(slot).Secret ~= Rotation.For(slot + 1).Secret then
 				edge = slot
 				break
 			end
 		end
-		flag("test_found_mythic_change", edge ~= nil)
+		flag("test_found_secret_change", edge ~= nil)
 		if edge then
 			local endsAt = (edge + 1) * 1800
-			local before, after = Rotation.For(edge).Mythic[1], Rotation.For(edge + 1).Mythic[1]
+			local before, after = Rotation.For(edge).Secret, Rotation.For(edge + 1).Secret
 			at(endsAt - 0.5)
-			local late = sweep(2000)
-			flag("last_moment_old_mythic", late[before] ~= nil and late[after] == nil)
+			local late = sweep(GRID)
+			flag("last_moment_old_secret", late[before] ~= nil and late[after] == nil)
 			at(endsAt)
-			local early = sweep(2000)
-			flag("first_moment_new_mythic", early[after] ~= nil and early[before] == nil)
+			local early = sweep(GRID)
+			flag("first_moment_new_secret", early[after] ~= nil and early[before] == nil)
 		end
 
 		-- Listed rates on a real seeded rng: only the common tiers, whose shares are well sampled.

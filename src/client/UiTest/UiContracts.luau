@@ -213,7 +213,8 @@ function Contracts.Build(h)
 		h.geometry.Panel(res, "checkpoint", panel)
 		h.geometry.Topmost(res, "checkpoint", panel, cards)
 		local header = required(res, Spec.Checkpoints.Panel .. "/Header", "Frame")
-		local hint = required(res, Spec.Checkpoints.Panel .. "/Hint", "TextLabel")
+		-- cd733fd (Index frame): the hint is the frame's footer line, AnimeFooterLine (was Panel/Hint)
+		local hint = required(res, Spec.Checkpoints.Panel .. "/AnimeFooterLine", "TextLabel")
 		if header and hint then
 			-- No section overlaps another
 			h.geometry.Group(res, "checkpoint_sections", panel, { header, hint, cards })
@@ -578,14 +579,16 @@ function Contracts.Build(h)
 		return false
 	end
 	-- What is wrong with a card's Art for `spec`: its portrait (ImageLabel, the card's top 3/4), or with none its rig.
-	local function cardArtProblem(art, spec)
+	-- size: the portrait's Size, fromScale(1, 0.75) unless given (the Index tile's is 8807c71's fromScale(0.86, 0.67)).
+	local function cardArtProblem(art, spec, size)
 		local image = portraitOf(spec)
+		local want = size or UDim2.fromScale(1, 0.75)
 		if image then
 			if not (art and art:IsA("ImageLabel") and art.Image == image) then
 				return ("Art is %s, want ImageLabel of %s"):format(art and art.ClassName or "missing", image)
 			end
-			if art.Size ~= UDim2.fromScale(1, 0.75) then
-				return "portrait size " .. tostring(art.Size) .. ", want fromScale(1, 0.75)"
+			if art.Size ~= want then
+				return "portrait size " .. tostring(art.Size) .. ", want " .. tostring(want)
 			end
 			return nil
 		end
@@ -921,7 +924,8 @@ function Contracts.Build(h)
 			for _, character in Catalog.All() do
 				local tile = h.find(B.IndexGallery .. "/" .. character.Id)
 				local art = tile and tile:FindFirstChild("Art")
-				local artProblem = cardArtProblem(art, character)
+				-- Index tiles: IndexAnimeStyle sets the portrait to fromScale(0.86, 0.67) (8807c71, design doc 4.42)
+				local artProblem = cardArtProblem(art, character, UDim2.fromScale(0.86, 0.67))
 				if artProblem then
 					table.insert(p.index_tiles_runner_art, character.Id .. ": " .. artProblem)
 				end

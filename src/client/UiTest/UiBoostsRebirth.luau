@@ -175,28 +175,54 @@ function Extras.Build(h)
 
 	-- Every declared node (tile icons and captions included) inside its parent node and inside the panel, the sections
 	-- and the UiSpec.Rebirth.Disjoint groups apart, at every UiSpec.Viewports entry (the panel is open).
+	local function clip(r, w)
+		local x0, y0 = math.max(r.x, w.x), math.max(r.y, w.y)
+		local x1, y1 = math.min(r.x + r.w, w.x + w.w), math.min(r.y + r.h, w.y + w.h)
+		if x1 <= x0 or y1 <= y0 then
+			return nil
+		end
+		return { x = x0, y = y0, w = x1 - x0, h = y1 - y0 }
+	end
 	local function rebirthGeometry(res, nodes)
+		local scrolledOf = {} -- node name -> true when it is (under) a PhoneScrolled section
+		for _, spec in RB.Nodes do
+			scrolledOf[spec.Name] = RB.PhoneScrolled[spec.Name] or scrolledOf[spec.Parent] or nil
+		end
 		for _, vpSpec in h.viewports do
-			local rectOf = h.provider(vpSpec)
+			local rectOf, vp = h.provider(vpSpec)
 			local panelRect = rectOf(nodes.Panel)
 			local outside, spill, overlaps = {}, {}, {}
-			local function place(name, obj, parent)
+			-- The phone scroll window (afff07c): Rewards' left and top to the REBIRTH button's left and bottom
+			local window = nil
+			if UiResponsive.VariantOf(vp) == "Phone" and nodes.Rewards and nodes.RebirthButton then
+				local rw, bt = rectOf(nodes.Rewards), rectOf(nodes.RebirthButton)
+				window = { x = rw.x, y = rw.y, w = bt.x - rw.x, h = bt.y + bt.h - rw.y }
+			end
+			local function place(spec, obj, parent)
+				local name = spec.Name
 				local r = rectOf(obj)
-				if not h.contains(panelRect, r) then
-					table.insert(outside, name .. h.rstr(r) .. " outside panel " .. h.rstr(panelRect))
+				local seen = r
+				if window and scrolledOf[name] then
+					seen = clip(r, window)
+					if not seen then
+						return nil -- scrolled out of view
+					end
 				end
-				if parent and parent ~= nodes.Panel then
+				if not spec.Overhangs and not h.contains(panelRect, seen) then
+					table.insert(outside, name .. h.rstr(seen) .. " outside panel " .. h.rstr(panelRect))
+				end
+				if parent and parent ~= nodes.Panel and not spec.Overhangs then
 					local pr = rectOf(parent)
 					if not h.contains(pr, r) then
 						table.insert(spill, name .. h.rstr(r) .. " outside " .. parent.Name .. h.rstr(pr))
 					end
 				end
-				return r
+				return seen
 			end
 			local rects = {}
 			for _, spec in RB.Nodes do
 				if nodes[spec.Name] then
-					rects[spec.Name] = place(spec.Name, nodes[spec.Name], nodes[spec.Parent])
+					rects[spec.Name] = place(spec, nodes[spec.Name], nodes[spec.Parent])
 				end
 			end
 			local groups = { RB.Sections }
@@ -256,7 +282,11 @@ function Extras.Build(h)
 					and o.Size.Y.Offset == 0
 					and o.Position.X.Offset == 0
 					and o.Position.Y.Offset == 0
-				if not UiResponsive.Nodes[h.pathOf(o)] and not scaleOnly then
+				-- On a phone the scrolled sections hang off Panel/Face/RebirthMiddle (afff07c): the same model node
+				local path = h.pathOf(o)
+				local modelled = UiResponsive.Nodes[path]
+					or UiResponsive.Nodes[(string.gsub(path, "/RebirthMiddle/", "/"))]
+				if not modelled and not scaleOnly then
 					table.insert(unmodelled, h.pathOf(o))
 				end
 				if o:IsA("TextLabel") then
