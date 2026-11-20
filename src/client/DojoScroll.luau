@@ -95,6 +95,8 @@ end
 -- inks in), Open(), Close(), Destroy(), Opened() }.
 function DojoScroll.new(parent, opts)
 	opts = opts or {}
+	-- Skin: a named colour set from UiTheme.Scroll.Skins over the default Sumi ink (Summon uses "Parchment").
+	local C = setmetatable(table.clone(opts.Skin and K.Skins[opts.Skin] or {}), { __index = K })
 	local W, H = opts.Px.X, opts.Px.Y
 	local P = PARTS
 	local z = opts.ZIndex or 2
@@ -132,7 +134,7 @@ function DojoScroll.new(parent, opts)
 	local length = math.sqrt(dx * dx + dy * dy)
 	local angle = math.deg(math.atan2(dy, dx))
 	for i, side in { -1, 1 } do
-		fill("Cord" .. i, frame, K.Cord, {
+		fill("Cord" .. i, frame, C.Cord, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5 + side * 0.22, sy(P.Cord / 2 + 1)),
 			Size = UDim2.new(sx(length), 0, 0, 2),
@@ -147,7 +149,7 @@ function DojoScroll.new(parent, opts)
 		ZIndex = z + 1,
 	})
 	corner(hook, UDim.new(0.5, 0))
-	gradient(hook, K.CapLight, K.CapDark, 45)
+	gradient(hook, C.CapLight, C.CapDark, 45)
 
 	-- Drop shadow under the body; follows the unroll.
 	local shadow = fill("Shadow", frame, Color3.new(0, 0, 0), {
@@ -167,7 +169,7 @@ function DojoScroll.new(parent, opts)
 		ZIndex = z + 1,
 	})
 	local sheet = fill("Sheet", body, Color3.new(1, 1, 1), { Size = UDim2.fromScale(1, 1), ZIndex = z + 1 })
-	gradient(sheet, K.Mount, K.MountDark, 0)
+	gradient(sheet, C.Mount, C.MountDark, 0)
 	local function by(px)
 		return px / bodyH
 	end
@@ -178,8 +180,8 @@ function DojoScroll.new(parent, opts)
 			Size = UDim2.fromScale(sx(P.Strip), by(P.Ten + P.StripDrop)),
 			ZIndex = z + 4,
 		})
-		gradient(strip, K.RuleTop, K.RuleBottom, 0)
-		fill("End", strip, K.RuleBottom, {
+		gradient(strip, C.RuleTop, C.RuleBottom, 0)
+		fill("End", strip, C.RuleBottom, {
 			Position = UDim2.fromScale(0, 1),
 			Size = UDim2.new(1, 0, 0, 3),
 			ZIndex = z + 4,
@@ -193,7 +195,7 @@ function DojoScroll.new(parent, opts)
 			Size = UDim2.fromScale(1 - 2 * sx(P.Side), by(P.Rule)),
 			ZIndex = z + 2,
 		})
-		gradient(rule, K.RuleTop, K.RuleBottom)
+		gradient(rule, C.RuleTop, C.RuleBottom)
 	end
 	local paper = fill("Paper", sheet, Color3.new(1, 1, 1), {
 		Position = UDim2.fromScale(sx(P.Side), by(paperTop)),
@@ -201,7 +203,7 @@ function DojoScroll.new(parent, opts)
 		ClipsDescendants = true,
 		ZIndex = z + 2,
 	})
-	gradient(paper, K.Paper, K.PaperShade)
+	gradient(paper, C.Paper, C.PaperShade)
 	local content = make("CanvasGroup", "Content", paper, {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
@@ -220,7 +222,7 @@ function DojoScroll.new(parent, opts)
 		Size = UDim2.fromScale(1 + sx(14), sy(P.Rod)),
 		ZIndex = z + 5,
 	})
-	gradient(rod, K.RodTop, K.RodBottom)
+	gradient(rod, C.RodTop, C.RodBottom)
 	corner(rod, 4)
 	local jW = W + 8
 	local roller = fill("Roller", frame, Color3.new(1, 1, 1), {
@@ -228,7 +230,7 @@ function DojoScroll.new(parent, opts)
 		Size = UDim2.fromScale(1 + sx(8), sy(P.Jiku)),
 		ZIndex = z + 5,
 	})
-	gradient(roller, K.RodTop, K.RodBottom)
+	gradient(roller, C.RodTop, C.RodBottom)
 	corner(roller, UDim.new(0.5, 0))
 	for i, x in { -17 / jW, 1 - 4 / jW } do
 		local cap = fill("Cap" .. i, roller, Color3.new(1, 1, 1), {
@@ -236,7 +238,7 @@ function DojoScroll.new(parent, opts)
 			Size = UDim2.fromScale(21 / jW, 28 / P.Jiku),
 			ZIndex = z + 6,
 		})
-		gradient(cap, K.CapLight, K.CapDark, 45)
+		gradient(cap, C.CapLight, C.CapDark, 45)
 		corner(cap, 6)
 	end
 	root.Parent = parent
@@ -546,7 +548,29 @@ function DojoScroll.Tile(button, opts)
 	local grad = gradient(button, K.TileTop, K.TileBottom, 90)
 	grad.Enabled = true
 	corner(button, 8)
-	stroke(button, K.TileRim, 3, 0).Enabled = true
+	stroke(button, K.TileRim, 4, 0).Enabled = true
+	-- A darker outer edge round the rim.
+	local edge = button:FindFirstChild("TileEdge")
+		or make("Frame", "TileEdge", button, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, 8, 1, 8),
+			BackgroundTransparency = 1,
+			ZIndex = z,
+			Active = false,
+		})
+	corner(edge, 11)
+	stroke(edge, K.TileEdge, 1.5, 0)
+	-- Wood planks: two faint horizontal seams across the face, between the glyph, the label and the cost.
+	for i, y in { 0.465, 0.71 } do
+		fill("PlankSeam" .. i, button, K.TileRim, {
+			Position = UDim2.new(0, 5, y, 0),
+			Size = UDim2.new(1, -10, 0, 1),
+			BackgroundTransparency = 0.72,
+			ZIndex = z + 1,
+			Active = false,
+		})
+	end
 	-- Bevel: a light inner edge and a darker lower lip.
 	local bevel = make("Frame", "TileBevel", button, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -566,24 +590,24 @@ function DojoScroll.Tile(button, opts)
 		Active = false,
 	})
 	local glyph = text("Glyph", button, {
-		Position = UDim2.fromScale(0.15, 0.1),
-		Size = UDim2.fromScale(0.7, 0.34),
+		Position = UDim2.fromScale(0.1, 0.03),
+		Size = UDim2.fromScale(0.8, 0.43),
 		Text = opts.Glyph or "",
 		TextColor3 = K.TileInk,
-		Font = Enum.Font.GothamBold, -- CJK through Roblox's font fallback; decoration only
+		Font = Enum.Font.GothamBlack, -- heavy ink; CJK through Roblox's font fallback; decoration only
 		ZIndex = z + 2,
 	})
 	local label = text("Label", button, {
-		Position = UDim2.fromScale(0.08, 0.5),
-		Size = UDim2.fromScale(0.84, 0.17),
+		Position = UDim2.fromScale(0.06, 0.475),
+		Size = UDim2.fromScale(0.88, 0.23),
 		Text = opts.Label or "",
 		TextColor3 = K.TileInk,
 		FontFace = K.Heading,
 		ZIndex = z + 2,
 	})
 	local cost = text("Cost", button, {
-		Position = UDim2.fromScale(0.08, 0.71),
-		Size = UDim2.fromScale(0.84, 0.14),
+		Position = UDim2.fromScale(0.08, 0.725),
+		Size = UDim2.fromScale(0.84, 0.17),
 		Text = opts.Cost or "",
 		TextColor3 = K.TileInk,
 		FontFace = K.BodyBold,
@@ -601,13 +625,13 @@ function DojoScroll.Tile(button, opts)
 	return tile
 end
 
--- Paper button (Summon 1:1 reference, 4.45): an outlined paper button with its label in the brush face. opts: Rim
--- (colour, default PaperRim), Seal (a small red seal with this kanji at the top-right corner). Shows `label` in a child
--- PaperLabel (the button's own Text stays, hidden).
+-- Paper button (Summon 1:1 reference, 4.45): paper with an ink brush-line rim and its label in a script face. opts: Rim
+-- (colour, default PaperRim), Fill (default Slip), Font (default Heading), Seal (a small red seal with this kanji over the
+-- top-right corner). Shows `label` in a child PaperLabel (the button's own Text stays, hidden).
 function DojoScroll.PaperButton(button, label, opts)
 	opts = opts or {}
 	button.AutoButtonColor = false
-	button.BackgroundColor3 = K.Slip
+	button.BackgroundColor3 = opts.Fill or K.Slip
 	button.BackgroundTransparency = 0
 	button.BorderSizePixel = 0
 	button.TextTransparency = 1
@@ -619,14 +643,14 @@ function DojoScroll.PaperButton(button, label, opts)
 		end
 	end
 	corner(button, 6)
-	stroke(button, opts.Rim or K.PaperRim, 2, 0).Enabled = true
+	stroke(button, opts.Rim or K.PaperRim, 3, 0).Enabled = true
 	local z = button.ZIndex
 	local shown = button:FindFirstChild("PaperLabel")
 		or text("PaperLabel", button, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.84, 0.58),
-			FontFace = K.Heading,
+			Size = UDim2.fromScale(0.86, 0.66),
+			FontFace = opts.Font or K.Heading,
 			TextColor3 = K.TileInk,
 			ZIndex = z + 1,
 		})
@@ -634,8 +658,8 @@ function DojoScroll.PaperButton(button, label, opts)
 	if opts.Seal and not button:FindFirstChild("Seal") then
 		local seal = fill("Seal", button, K.Accent, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(1, -8, 0, 2),
-			Size = UDim2.fromOffset(22, 22),
+			Position = UDim2.new(1, -4, 0, 1),
+			Size = UDim2.fromOffset(26, 26),
 			Rotation = 6,
 			ZIndex = z + 2,
 			Active = false,
@@ -688,7 +712,7 @@ function DojoScroll.Tag(frame, cordPx)
 	frame.ClipsDescendants = false
 	gradient(frame, K.TagTop, K.TagBottom)
 	corner(frame, 6)
-	stroke(frame, K.TagRim, 2, 0)
+	stroke(frame, K.TagRim, 1.5, 0)
 	local cord = frame:FindFirstChild("TagCord")
 		or make("Frame", "TagCord", frame, { BorderSizePixel = 0, Active = false })
 	cord.AnchorPoint = Vector2.new(0.5, 1)
@@ -699,7 +723,7 @@ function DojoScroll.Tag(frame, cordPx)
 	local knot = cord:FindFirstChild("Knot")
 		or make("Frame", "Knot", cord, { BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5), Active = false })
 	knot.Position = UDim2.fromScale(0.5, 0)
-	knot.Size = UDim2.fromOffset(9, 9)
+	knot.Size = UDim2.fromOffset(8, 8) -- a red bead
 	knot.BackgroundColor3 = K.TagCord
 	knot.ZIndex = frame.ZIndex
 	corner(knot, UDim.new(0.5, 0))

@@ -15,6 +15,7 @@ local SummonScroll = {}
 
 local RARITIES = { "Common", "Rare", "Legendary", "Mythic", "Secret" }
 local CONTENT_Z = 6
+local PRICE_FONT = Font.fromEnum(Enum.Font.GothamBlack) -- the gold Robux price, bolder than the body face
 
 -- Template decoration from the shrine look that R3 drops.
 local OLD = { TopLight = true, Gloss = true, HoverGlow = true, ShrineBlossomStamp = true, CloseIcon = true }
@@ -88,7 +89,8 @@ function SummonScroll.Apply(canvas)
 	end
 
 	-- The scroll (left). Paper spans y 101..776, x 45..415; content x 65..397.
-	local scroll = DojoScroll.new(canvas, { Name = "DojoScroll", Px = Vector2.new(400, 855), ZIndex = 2 })
+	local scroll =
+		DojoScroll.new(canvas, { Name = "DojoScroll", Px = Vector2.new(400, 855), ZIndex = 2, Skin = "Parchment" })
 	scroll.Root:SetAttribute("DesignPosition", Vector2.new(30, 0) - DojoScroll.MARGIN)
 	scroll.Root:SetAttribute("ScrollItem", true)
 	page.Scroll = scroll
@@ -164,7 +166,7 @@ function SummonScroll.Apply(canvas)
 	tc.CornerRadius, tc.Parent = UDim.new(0, 6), timer
 	-- The padding moves children too: the label sits over the time, inside the seal's top 0.08..0.38.
 	local endsIn = timer:FindFirstChild("EndsIn") or DojoScroll.Text("EndsIn", timer, {})
-	endsIn.Position, endsIn.Size = UDim2.fromScale(0, -0.59), UDim2.fromScale(1, 0.52)
+	endsIn.Position, endsIn.Size = UDim2.fromScale(0, -0.68), UDim2.fromScale(1, 0.64)
 	endsIn.Text, endsIn.TextColor3, endsIn.FontFace = "Ends in", K.SealText, K.BodyBold
 	endsIn.ZIndex = CONTENT_Z + 3
 	add(scrollItems, enso, timer)
@@ -278,10 +280,15 @@ function SummonScroll.Apply(canvas)
 		local button = canvas[spec[1]]
 		strip(button)
 		button:SetAttribute("PopButton", nil)
-		place(button, spec[3], 704, spec[4], 42, true)
+		place(button, spec[3], 700, spec[4], 50, true)
 		button.ZIndex = CONTENT_Z
 		button.Text = spec[2]
-		DojoScroll.PaperButton(button, spec[2], { Rim = spec[5], Seal = spec[6] })
+		DojoScroll.PaperButton(button, spec[2], {
+			Rim = spec[5],
+			Seal = spec[6],
+			Fill = K.Skins.Parchment.Paper,
+			Font = K.Script,
+		})
 		add(scrollItems, button)
 	end
 
@@ -294,7 +301,7 @@ function SummonScroll.Apply(canvas)
 	DojoScroll.Knot(close)
 	-- Gem art: overlapped copies of the page's own gem icon (no new upload). Each: x, y, size (scale of the art frame).
 	local gemImage = canvas.Balance.CurrencyGem.Image
-	local CLUSTER = { { 0.26, 0.62, 0.52 }, { 0.78, 0.66, 0.46 }, { 0.5, 0.5, 0.74 }, { 0.5, 0.86, 0.4 } }
+	local CLUSTER = { { 0.28, 0.62, 0.66 }, { 0.76, 0.64, 0.6 }, { 0.5, 0.44, 0.86 }, { 0.52, 0.84, 0.52 } }
 	local function gemArt(holder, count, x, y, w, h)
 		local cluster = holder:FindFirstChild("GemArt") or Instance.new("Frame")
 		cluster.Name, cluster.BackgroundTransparency, cluster.Active, cluster.Parent = "GemArt", 1, false, holder
@@ -324,12 +331,12 @@ function SummonScroll.Apply(canvas)
 			prism.Enabled = false
 		end
 		DojoScroll.Tag(offer, i == 1 and 30 or 14)
-		gemArt(offer, i == 1 and 2 or 3, 0.03, 0.22, 0.36, 0.7)
+		gemArt(offer, i == 1 and 2 or 3, 0, 0, 0.45, 1)
 		for n, spec in
 			{
-				Title = { 0.38, 0.06, 0.58, 0.28, K.Heading, K.TagText, Enum.TextXAlignment.Right },
-				Luck = { 0.38, 0.36, 0.58, 0.2, K.Body, K.TagText, Enum.TextXAlignment.Center },
-				Price = { 0.38, 0.64, 0.3, 0.26, K.BodyBold, K.TagGold, Enum.TextXAlignment.Left },
+				Title = { 0.44, 0.04, 0.53, 0.3, K.Script, K.TagText, Enum.TextXAlignment.Right },
+				Luck = { 0.44, 0.34, 0.53, 0.24, K.BodyBold, K.TagText, Enum.TextXAlignment.Center },
+				Price = { 0.44, 0.62, 0.27, 0.3, PRICE_FONT, K.TagGold, Enum.TextXAlignment.Left },
 			}
 		do
 			local t = offer[n]
@@ -375,19 +382,19 @@ function SummonScroll.Apply(canvas)
 	-- The tag's gradient would tint the button's own text: its Caption child carries the label.
 	local moreCaption = more.Caption
 	moreCaption.Visible, moreCaption.Text, moreCaption.ZIndex = true, "More", CONTENT_Z + 1
-	moreCaption.AnchorPoint, moreCaption.Position = Vector2.zero, UDim2.fromScale(0.44, 0.1)
-	moreCaption.Size, moreCaption.TextXAlignment = UDim2.fromScale(0.5, 0.36), Enum.TextXAlignment.Right
-	moreCaption.FontFace, moreCaption.TextColor3, moreCaption.TextScaled = K.Heading, K.TagText, true
+	moreCaption.AnchorPoint, moreCaption.Position = Vector2.zero, UDim2.fromScale(0.5, 0.06)
+	moreCaption.Size, moreCaption.TextXAlignment = UDim2.fromScale(0.44, 0.38), Enum.TextXAlignment.Right
+	moreCaption.FontFace, moreCaption.TextColor3, moreCaption.TextScaled = K.Script, K.TagText, true
 	moreCaption.TextStrokeTransparency = 1
 	DojoScroll.Tag(more, 16)
 	more.AutoButtonColor = false
 	-- shortcut: no uploaded chest-of-gems image exists (the relic chests are boss art); a 4-gem cluster stands in until one is uploaded.
-	gemArt(more, 4, 0.03, 0.08, 0.4, 0.84)
+	gemArt(more, 4, 0, 0, 0.48, 1)
 	if not more:FindFirstChild("ArrowPill") then
 		DojoScroll.Pill("ArrowPill", more, K.Cream, {
 			Position = UDim2.fromScale(0.68, 0.52),
 			Size = UDim2.fromScale(0.26, 0.34),
-			Text = ">",
+			Text = utf8.char(0x203A), -- the "›" arrow
 			FontFace = K.BodyBold,
 			TextColor3 = K.TileInk,
 			ZIndex = CONTENT_Z + 1,
@@ -461,11 +468,11 @@ function SummonScroll.Apply(canvas)
 		local cost = tiles[name].Cost
 		local gemIcon = button:FindFirstChild("CurrencyGem")
 		if gemIcon then
-			gemIcon.AnchorPoint, gemIcon.Position = Vector2.new(0, 0.5), UDim2.fromScale(0.56, 0.78)
-			gemIcon.Size, gemIcon.ZIndex = UDim2.fromOffset(18, 18), button.ZIndex + 2
+			gemIcon.AnchorPoint, gemIcon.Position = Vector2.new(0, 0.5), UDim2.fromScale(0.56, 0.81)
+			gemIcon.Size, gemIcon.ZIndex = UDim2.fromOffset(22, 22), button.ZIndex + 2
 			gemIcon.Visible = name ~= "Auto"
 			cost.Position, cost.Size =
-				UDim2.fromScale(0.08, 0.71), UDim2.fromScale(name ~= "Auto" and 0.45 or 0.84, 0.14)
+				UDim2.fromScale(0.08, 0.725), UDim2.fromScale(name ~= "Auto" and 0.45 or 0.84, 0.17)
 			cost.TextXAlignment = name ~= "Auto" and Enum.TextXAlignment.Right or Enum.TextXAlignment.Center
 		end
 		add(tileItems, button)

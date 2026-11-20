@@ -98,23 +98,41 @@ UiTheme.Scroll = {
 	LacquerDark = Color3.fromRGB(15, 12, 13),
 	Slip = Color3.fromRGB(251, 249, 243),
 	-- Gem-pack tags: burgundy with pink rims (the owner's one change to R3).
-	TagTop = Color3.fromRGB(110, 34, 56),
-	TagBottom = Color3.fromRGB(69, 16, 31),
+	TagTop = Color3.fromRGB(90, 30, 42), -- #5A1E2A
+	TagBottom = Color3.fromRGB(64, 20, 32), -- #401420
 	TagRim = Color3.fromRGB(244, 145, 171),
-	TagCord = Color3.fromRGB(194, 51, 77),
+	TagCord = Color3.fromRGB(192, 48, 58), -- #C0303A
 	TagText = Color3.fromRGB(255, 243, 216),
 	TagPrice = Color3.fromRGB(246, 196, 150), -- pink-gold
 	-- Summon 1:1 reference (4.45, owner 2026-11-19): gold pack price, cream pills, cream wood summon tiles, paper buttons.
 	TagGold = Color3.fromRGB(255, 204, 72),
 	Cream = Color3.fromRGB(250, 236, 204),
-	TileTop = Color3.fromRGB(246, 232, 200),
-	TileBottom = Color3.fromRGB(222, 196, 150),
-	TileRim = Color3.fromRGB(122, 82, 46),
+	TileTop = Color3.fromRGB(241, 221, 180), -- #F1DDB4
+	TileBottom = Color3.fromRGB(226, 196, 143), -- #E2C48F
+	TileRim = Color3.fromRGB(90, 58, 34), -- #5A3A22
+	TileEdge = Color3.fromRGB(44, 26, 14),
 	TileInk = Color3.fromRGB(46, 30, 22),
-	PaperRim = Color3.fromRGB(92, 64, 44),
+	PaperRim = Color3.fromRGB(58, 42, 32), -- #3A2A20, an ink brush line
+	-- Summon's scroll skin (DojoScroll.new Skin = "Parchment"): warm parchment, brown wood and leather. Team keeps Sumi ink.
+	Skins = {
+		Parchment = {
+			Paper = Color3.fromRGB(239, 227, 200), -- #EFE3C8
+			PaperShade = Color3.fromRGB(230, 214, 182), -- #E6D6B6
+			Mount = Color3.fromRGB(122, 80, 50),
+			MountDark = Color3.fromRGB(98, 62, 38),
+			RuleTop = Color3.fromRGB(92, 58, 36),
+			RuleBottom = Color3.fromRGB(62, 38, 24),
+			RodTop = Color3.fromRGB(128, 84, 48),
+			RodBottom = Color3.fromRGB(82, 50, 26),
+			CapLight = Color3.fromRGB(92, 58, 32),
+			CapDark = Color3.fromRGB(48, 28, 14),
+			Cord = Color3.fromRGB(96, 62, 36),
+		},
+	},
 	Body = Font.fromEnum(Enum.Font.TitilliumWeb),
 	BodyBold = Font.new("rbxasset://fonts/families/TitilliumWeb.json", Enum.FontWeight.Bold),
 	Heading = Font.fromEnum(Enum.Font.PermanentMarker),
+	Script = Font.new("rbxasset://fonts/families/Kalam.json", Enum.FontWeight.Bold), -- Summon's buttons and pack titles
 	Wordmarks = "rbxassetid://98796658340171", -- Kaushan Script "Summon" over "Team", 1024x512
 	WordmarkRects = { Summon = { 150, 30, 750, 200 }, Team = { 330, 286, 410, 200 } },
 	Enso = "rbxassetid://123264633411621",
