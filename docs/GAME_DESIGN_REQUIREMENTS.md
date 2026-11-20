@@ -667,6 +667,25 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     list. The three summons are red hanko seals at the bottom right: 十 Many 500, 一 Once 50 (largest, centre), 自 Auto;
     a press scales to 0.94 in 0.12 s. The gem balance sits on a paper slip above them. Top right: Close, and under it the
     gem packs the page sells, as hanging burgundy tags with pink rims (the owner's one change to R3).
+  - Summon 1:1 reference (owner 2026-11-19: "Set this reference image for 1-1 redesign or implementation of summon
+    screen. Current summon screen is close to reference but make it 1-1"; image `assets/ui/summon_ref/owner_reference_2026-11-19.png`).
+    The page matches that image; where it differs from the R3 lines above, the image wins. Layout, kit, motion, controls,
+    costs, odds, pity and server rules are unchanged. Differences from the R3 build: the rotation timer is a larger red
+    seal ("Ends in" over the time) at the enso's lower right; the featured rate sits in a red brush pill in white
+    ("Mythic, 0.5%"); under a thin rule the rarity rates and the pity counters are two columns split by a thin vertical
+    rule, the counters labelled "Legendary Pity" and "Mythic Pity", each with its bar; Details, Auto Sell and Info are
+    three outlined paper buttons in the brush face (Details with a vermilion rim and a small red 選 seal at its corner),
+    replacing the links; the three summon buttons are equal cream paper tiles with a brown rim, a dark ink glyph
+    (+ Many, - Once, 自 Auto), the label, and the cost or "until stop" (replaces the red hanko seals and the larger Once);
+    the gem packs are burgundy cards with pink rims hung on one cord from the top right, each with gem art at its left,
+    the pack name, "+1K Gems" / "+2.5K Gems", the Robux price in gold and a cream Buy pill; More shows a chest of gems and
+    a cream arrow pill; on the stage the names are white with a dark outline, rarities in their colour with a dark
+    outline, and the centre's "Featured!" sits with a star in a dark red pill above the Mythic's name; the two
+    Legendaries stand Beroo left, Ryuuk right as drawn. Sizes and colours are **proposed** within the image's look.
+    Owner approved the built page from the Studio capture on 2026-11-20 ("summon page looks good to me for now, can mark
+    as approved"): parchment scroll skin edge to edge with brown wood rods and leather strips, Kalam Bold on the paper
+    buttons and pack titles, equal wood-plank summon tiles, burgundy pack cards on a red beaded cord. The More card's
+    chest of gems stays a gem cluster until a chest image is uploaded (**open question**).
   - Team Setup (T2): one tall scroll on the left is the team ledger: wordmark, "Team 1" and its status, n / 3, three
     numbered rows (seal 一 二 三, portrait, name, rarity, cruise, relic and Sidekick icons with their tooltips; the picked
     row has a cyan bar), Team Bonus with View (opens the popover), and on its bottom mount Quick Setup and Deploy. The
@@ -886,4 +905,6 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: playtest notes: Big Raga's rise is 1.5 s, replacing 2-3 s; Bosses button and popup; separate event roster on the minibar, greyed with a revive fill during the wait (4.37). Sidekick and Relic click menu, character picker, sale confirmation (4.36). Relics sell for Money; Index Relics page (4.38). Auto icon stays green, arrows spin when on (4.40). Red fading BAG FULL text replaces the banner; click and mass sell of spares (4.41).
 - 2026-11-05: owner: enemies much faster. A Common does not outrun the Track 1 enemy and a Rare is about level with it; NPC formula `48 x 1.363^(n-1)` (placeholder), replacing `16 x 1.51^(n-1)` and the 2026-11-03 "Track 1 balance kept" (4.13).
 - 2026-11-04: owner: Tracks panel is one list of long horizontal cards with a road screenshot, a brief anime-context definition, recommended speed and enemy name; a card click picks the checkpoint; no 3D render, detail pane or START HERE (4.15).
+- 2026-11-19: owner: the Summon page matches the owner's reference image 1:1 (4.45 "Summon 1:1 reference"); Team Select is being redrawn separately.
+- 2026-11-20: owner approved the Summon 1:1 page from the Studio capture (4.45 "Summon 1:1 reference").
 - 2026-11-20: owner approved the Team Select redesign from the Studio draft (4.45 "Team Select night dojo"): night-dojo plate, two-tier lacquer altars with gold-orange top rings, real models in an idle stance with breathing, Makimono layout with the Summon parchment scroll look, drawn icons (assets/ui/team_icons).

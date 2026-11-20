@@ -206,9 +206,11 @@
 202. 2026-11-19 — Alex Nguyen — Built the shared hanging-scroll kit (Client/DojoScroll, UiTheme.Scroll, wordmark and enso images uploaded) and dressed the Summon page as R3 Enso and seals, checked in Studio Play with captures.
 203. 2026-11-19 — Alex Nguyen — Rebuilt Team Setup as T2 "Ledger scroll" on the scroll kit (ledger rows, seal altars, paper handscroll roster, 11 px text floor), verified in Studio Play from all four entry points.
 204. 2026-11-19 — Alex Nguyen — Set the Summon odds label to Details (owner ruling 2026-11-19) and moved the UI tests to the new rules: odds caption, Team ledger rows showing the draft, hidden altar name line, "n / 3" count.
-205. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
+205. 2026-11-20 — Alex Nguyen — Rebuilt the Summon page 1:1 to the owner's reference (parchment scroll, paper buttons, wood summon tiles, burgundy gem packs, outlined stage labels) and the owner approved it from the Studio capture.
+206. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
+207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
 
 ## What's next
-**Owner picks a Team Select draft (A, B or C), a plate and answers OWNER_QUESTIONS 2026-11-19 team-dojo; then write the picked look into design doc 4.45 and TEAM_AND_STAMINA_SPEC before any TeamUi code.**
+**Build the approved Team Select into Client/TeamUi (plate 84852553726102, ViewportFrame stage and altars, idle stance and breathing, parchment scrolls, drawn icons) with ui_team tests updated first, then run ui_team, ui_entry_points, team and the Summon checks ui_sidekicks, ui_sidekick_tutorial in Studio.**
 
-**Why this is next:** the altar look, icons, carousel and team-name controls conflict with rule 4.45 until the owner rules, and the plate upload and TeamUi restyle both depend on that pick.
+**Why this is next:** the approved look exists only as a Studio draft; the game's Team page still shows T2, and the sakura-polish PR into main waits on these runs.

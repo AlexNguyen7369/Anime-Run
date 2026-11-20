@@ -14,6 +14,8 @@ Owner update 2026-11-14: replace the galaxy environment with the approved blosso
 
 Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.35, 4.36, 4.13, 6 and section 5. Numbers here are **placeholders** unless a design doc rule fixes them.
 
+- Summon 1:1 reference (owner 2026-11-19): the page matches `assets/ui/summon_ref/owner_reference_2026-11-19.png`; the list of differences from the R3 build is in design doc 4.45 "Summon 1:1 reference". Behaviour, costs, odds, pity and the tutorial steps are unchanged.
+
 ## Gems
 - Track n pays n Gems per win, plus 10 x n on first clear, judged by `BestTrack`. Paid in `RaceService`'s `if win then` branch, next to `rewardTrackWin`.
 - Each daily task pays 5 Gems and each weekly task 25, as a field on `QuestConfig` rows, paid by `QuestService`.
