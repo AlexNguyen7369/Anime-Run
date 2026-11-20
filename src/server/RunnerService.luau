@@ -372,6 +372,9 @@ end
 -- `duel` (server only, DuelService): see spawnRunner.
 function RunnerService.SetAutoRace(player, enabled, duel)
 	if type(enabled) ~= "boolean" or enabled == RunnerService.IsAutoRacing(player) then
+		if enabled == false then
+			generation[player] = (generation[player] or 0) + 1 -- an Off while on foot still cancels a pending auto restart
+		end
 		return RunnerService.IsAutoRacing(player)
 	end
 	local character = characters[player]
