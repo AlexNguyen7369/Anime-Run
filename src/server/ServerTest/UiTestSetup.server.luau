@@ -786,6 +786,7 @@ function setups.team_states(player)
 		teamAutoRollBefore[player] = { on = player:GetAttribute("AutoRoll") }
 	end
 	setAutoRoll(player, false)
+	unlockHud(player) -- checkPlace measures against the Bosses button, shown from rebirth 1 (c80e4de)
 	-- No Dojo squad since design doc 4.43 (GachaService.ShowcaseIds removed): nothing is excluded.
 	local data, squad, ids = player:FindFirstChild("GachaData"), {}, {}
 	for _, spec in C.All() do
@@ -811,6 +812,7 @@ function setups.team_states_clear(player)
 	if roll and roll.on ~= nil then
 		setAutoRoll(player, roll.on == true)
 	end
+	restoreHudUnlock(player)
 end
 
 -- ui_feedback: clients cannot read ServerStorage, so publish what its sound folder holds (docs/UI_FEEDBACK_SPEC.md 1).
@@ -1185,6 +1187,9 @@ function setups.emphasized_next(player)
 	local GachaConfig = require(game:GetService("ReplicatedStorage").Shared.GachaConfig)
 	local multi = GachaConfig.EMPHASIS_MULTI
 	GachaConfig.EMPHASIS_MULTI = 0
+	-- Auto sell on (new saves since c80e4de) would sell the emphasized roll (isNew false): off until that roll happened.
+	local sellOn = player:GetAttribute("AutoSell")
+	player:SetAttribute("AutoSell", false)
 	local rolls0 = player:GetAttribute("Rolls")
 	task.spawn(function()
 		local deadline = os.clock() + 60
@@ -1197,6 +1202,7 @@ function setups.emphasized_next(player)
 		end
 		before.Rolls = player:GetAttribute("Rolls")
 		G.Apply(player, before)
+		player:SetAttribute("AutoSell", sellOn)
 	end)
 end
 

@@ -1813,7 +1813,8 @@ end
 local AUTO_BESIDE_START = 150 -- studs (horizontal) from Track 1's Start: "beside the start of Track 1"
 local AUTO_SPAWN_MAX_HEIGHT = 8 -- studs the walk spawn may be above the ground under it ("a few studs")
 local AUTO_SPAWN_MATCH = 4 -- studs (horizontal) the avatar may be from WalkSpawnCFrame after the stop
-local AUTO_FLOOR_TOP = 1 -- SPAWN_AND_ROLLS_SPEC: the walk spawn stands on Workspace.SpawnArea, floor top SpawnArea.TOP_Y
+-- design doc 4.43 (941c65f): the walk spawn stands on the terrace top step, SpawnArea.SPAWN_TOP (3.4), not the floor
+local AUTO_FLOOR_TOP = (sharedModule("SpawnArea") or {}).SPAWN_TOP or 3.4
 local AUTO_START_RADIUS = 25 -- studs: a resumed runner spawns at the Track 1 start
 local AUTO_WALK_SPEED = 16 -- StarterPlayer defaults
 -- SPAWN_AND_ROLLS_SPEC section 2, "Start is an event" (owner, 2026-10-01: a fast Stop then Auto Race made the car
@@ -5693,8 +5694,9 @@ function Scenarios.gacha()
 			check(checks, "service_roll_returns_luck", type(luckL) == "number" and luckL or -1, wantLuck, plainLuckOk)
 			tl:SetAttribute("TurboCount", 9)
 			local okM, _, _, mM, _, _, luckM = pcall(GachaService.Roll, tl, Random.new(8002))
+			-- turbo x30 since c80e4de (UpgradeConfig.BASE_TURBO.Multi, no Turbo tier owned)
 			local turboLuckOk = okM
-				and mM == 10
+				and mM == sharedModule("UpgradeConfig").BASE_TURBO.Multi
 				and type(luckM) == "number"
 				and luckM == wantLuck
 				and luckM == GachaService.Luck(tl)

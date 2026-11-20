@@ -410,7 +410,7 @@ function Module.Build(h)
 			"team_button_left_edge_as_bosses",
 			r and r.x or "no " .. T.Button,
 			br and ("%.1f +/- %d"):format(br.x, X_TOL) or "no " .. BOSS_BUTTON,
-			r ~= nil and br ~= nil and math.abs(r.x - br.x) <= X_TOL
+			(r and br and math.abs(r.x - br.x) <= X_TOL) == true
 		)
 		local cells = {}
 		for i, name in COLUMN_CELLS do
@@ -425,7 +425,7 @@ function Module.Build(h)
 			"team_button_between_items_and_rebirth",
 			mid or "no " .. T.Button,
 			wantMid and ("%.1f +/- %d"):format(wantMid, MID_TOL) or "no " .. GRID .. " Items / Rebirth",
-			mid ~= nil and wantMid ~= nil and math.abs(mid - wantMid) <= MID_TOL
+			(mid and wantMid and math.abs(mid - wantMid) <= MID_TOL) == true
 		)
 		for i, name in COLUMN_CELLS do
 			local cell, hit = cells[i], nil
