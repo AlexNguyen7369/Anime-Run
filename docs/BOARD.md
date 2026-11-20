@@ -7,6 +7,7 @@
 - boss-king k9: rules audit round 2, then PR into main with a fresh reviewer (doing 2026-11-11)
 
 ## Next
+- Sidekick Details lists each Sidekick of the current rotation under its rarity total at its own rate (SIDEKICK_SPEC Panels, design doc 6, owner 2026-11-20). After the audit-fixes merge.
 - boss-anim-rework follow-up: Enuma beam follows Ea's full turn (retire `BEAM_YAW_SLACK` with the older hips check), beam lands on the deck, near-camera Zoltraak circles, barrage room brightness (see handoff.md)
 - boss-king: owner's look at `/boss king` in Studio and rulings on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-king open items)
 - boss-mage-2: owner plays `/elfboss` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-mage-2), pose data join size first

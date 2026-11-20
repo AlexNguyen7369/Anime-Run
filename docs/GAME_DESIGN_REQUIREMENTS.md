@@ -779,7 +779,7 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 - Free auto-spins stay the main source of characters.
 - Any spin bought with Robux, or with a currency bought with Robux, shows every outcome with its odds as a percentage
   (summing to exactly 100%) before purchase, behind a button labelled "Info" or "Details" (not a bare icon).
-- Paid luck boosts and any pity system show the updated odds while active. The roll view and the luck Shop cards have a "Details" button listing every outcome as a percentage at the player's current luck (owner 2026-11-04). Sidekick summons (Gems) list their odds per rarity, each rarity summed, the Secret first, as SIDEKICK_SPEC Details says (owner 2026-11-20).
+- Paid luck boosts and any pity system show the updated odds while active. The roll view and the luck Shop cards have a "Details" button listing every outcome as a percentage at the player's current luck (owner 2026-11-04). Sidekick summons (Gems) list their odds per rarity, each rarity summed, the Secret first, as SIDEKICK_SPEC Details says (owner 2026-11-20), with every Sidekick on the current banner listed under its rarity at its own rate, so every outcome shows (owner 2026-11-20).
 - Users flagged by `PolicyService:GetPolicyInfoForPlayerAsync` (`ArePaidRandomItemsRestricted`) get a free earnable
   path to every paid-random item, or see fixed disclosed outcomes; such items are not tradable.
 
