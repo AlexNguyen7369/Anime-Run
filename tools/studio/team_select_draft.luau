@@ -195,13 +195,32 @@ local function seal(parent, x, y, s)
 	stroke(b, hex("c2222c"), 2)
 	return b
 end
-local function sakura(parent, cx, cy, s, color, rot)
-	local l = T(parent, "✿", cx - s / 2, cy - s / 2, s, s, s, color or hex("ffb3cf"), NUN, {
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Rotation = rot or 0,
-	})
-	textStroke(l, hex("c23a6a"), 1.5)
-	return l
+-- Drawn icon set (owner 2026-11-20: "draw the icons"; 256x256 transparent PNGs, uploaded).
+local ICON = {
+	members = "rbxassetid://120701226138389",
+	cruise = "rbxassetid://90390164671669",
+	check = "rbxassetid://80155502075768",
+	flower = "rbxassetid://109103491597058",
+	heart = "rbxassetid://121022170152825",
+	bolt = "rbxassetid://125367337236897",
+	stamina = "rbxassetid://90685209894294",
+	pencil = "rbxassetid://126773689674292",
+	person = "rbxassetid://134691081100736",
+	fox = "rbxassetid://80346729214213",
+	search = "rbxassetid://101694582811922",
+	sort = "rbxassetid://98275488757200",
+	star = "rbxassetid://138766078045247",
+}
+local function icon(parent, key, x, y, s, props)
+	local p = { ScaleType = Enum.ScaleType.Fit, Name = "Icon_" .. key }
+	for k, v in props or {} do
+		p[k] = v
+	end
+	return I(parent, ICON[key], x, y, s, s, p)
+end
+-- A sakura blossom (the drawn flower icon) centred on cx, cy; `color` is unused since the art is coloured.
+local function sakura(parent, cx, cy, s, _color, rot)
+	return icon(parent, "flower", cx - s / 2, cy - s / 2, s, { Rotation = rot or 0 })
 end
 local function gem(parent, image, x, y, s, bg)
 	local b = F(parent, x, y, s, s, bg or hex("3a120c"))
@@ -377,7 +396,7 @@ end
 local WOOD = hex("2c0c09")
 local WOOD_FACE = hex("2a0a08")
 local GOLD = hex("e7b552")
-local RING = hex("ff4f8a")
+local RING = hex("ffb43a") -- gold-orange ring core (owner 2026-11-20, as the reference)
 local function part(parent, size, cf, color, props)
 	local p = N("Part", nil, {
 		Anchored = true,
@@ -423,7 +442,7 @@ local function buildAltar(s)
 	octagon(m, at + 0.04, 0.08, cf * CFrame.new(0, top - 0.04, 0), GOLD)
 	octagon(m, at - 0.08, 0.02, cf * CFrame.new(0, top + 0.01, 0), WOOD_FACE)
 	octRing(m, at * 0.86, top + 0.03, cf, RING, 0.03, s.rb > 4 and 0.16 or 0.12)
-	octRing(m, at * 0.62, top + 0.03, cf, hex("ff86b0"), 0.02, 0.06)
+	octRing(m, at * 0.62, top + 0.03, cf, hex("ff8a1e"), 0.02, 0.06)
 	-- warm light panels on the front faces
 	local lamp = hex("ffd27a")
 	if s.rb > 4 then
@@ -478,7 +497,7 @@ local function boxMinY(cf, size)
 	for _, x in { -1, 1 } do
 		for _, y in { -1, 1 } do
 			for _, z in { -1, 1 } do
-				m = math.min(m, (cf * Vector3.new(x, y, z) * size / 2).Y)
+				m = math.min(m, (cf * (Vector3.new(x, y, z) * size / 2)).Y)
 			end
 		end
 	end
@@ -773,26 +792,21 @@ end
 -- tabs, search, sort: paper tabs and parchment fields with ink rims
 local tabs = F(ui, 0, 0, 1920, 1080, nil, { Name = "Tabs" })
 do
-	paperButton(tabs, "👤  Characters", 432, 690, 258, 64, 32, RIM, VERM, nil, PK.Paper, PK.Paper)
+	local a = paperButton(tabs, "      Characters", 432, 690, 258, 64, 32, RIM, VERM, nil, PK.Paper, PK.Paper)
+	icon(a, "person", 26, 13, 38)
 	local b = paperButton(tabs, "        Sidekicks", 706, 690, 238, 64, 32, RIM, PINK, nil, PK.PaperShade, PK.MountDark)
-	I(b, SIDE.fox, 22, 14, 38, 38, { ScaleType = Enum.ScaleType.Fit })
+	icon(b, "fox", 22, 12, 40)
 	local s = paperButton(tabs, "Search character...", 981, 694, 553, 54, 25, RIM, K.Muted, {
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromOffset(70, 0),
 		FontFace = BODY,
 	})
-	local lens = F(s, 22, 14, 22, 22, nil)
-	corner(lens, UDim.new(0.5, 0))
-	stroke(lens, PINK, 3)
-	F(s, 43, 39, 12, 4, PINK, { Rotation = 45 })
+	icon(s, "search", 18, 9, 36)
 	local so = paperButton(tabs, "Sort: Rarity", 1572, 694, 324, 54, 28, RIM, PINK, {
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Position = UDim2.fromOffset(84, 0),
 	})
-	for k = 0, 2 do
-		F(so, 24, 14 + k * 10, 5, 5, PINK)
-		F(so, 34, 14 + k * 10, 24 - k * 6, 4, PINK)
-	end
+	icon(so, "sort", 20, 9, 36)
 	T(so, "›", 280, 2, 30, 50, 44, PINK, NUN, { Rotation = 90, TextXAlignment = Enum.TextXAlignment.Center })
 end
 
@@ -821,8 +835,7 @@ local function nameplate(parent, x, y, w, h, d, centre)
 	stroke(p, centre and hex("ff9cc0") or hex("e2b64a"), 3)
 	local tx = centre and 64 or 18
 	if centre then
-		local st = T(p, "★", 12, 8, 46, 46, 40, hex("ffd23a"), NUN, { TextXAlignment = Enum.TextXAlignment.Center })
-		textStroke(st, hex("7a4a00"), 1.5)
+		icon(p, "star", 12, 9, 44)
 	end
 	local nameSize = centre and 40 or 30
 	local nm = T(p, d.Name, tx, centre and 2 or 1, w - tx - 2 * (centre and 64 or 58), centre and 44 or 34, nameSize, Color3.new(1, 1, 1), NUN)
@@ -852,21 +865,18 @@ local function card(parent, x, y, d, slot, cruise)
 	local icons = slot and { RELIC[g[1]], SIDE[g[2]], "ok" } or { RELIC[g[1]], SIDE[g[2]] }
 	for k, img in icons do
 		local ix = 170 - 6 - (#icons - k + 1) * 36
-		local b = F(c, ix, 6, 34, 34, img == "ok" and hex("2fa84f") or hex("2a0c0c"), {
-			BackgroundTransparency = img == "ok" and 0 or 0.2,
-		})
-		corner(b, 7)
-		stroke(b, img == "ok" and hex("bff0c8") or Color3.new(1, 1, 1), 2)
-		b:FindFirstChildOfClass("UIStroke").Transparency = img == "ok" and 0 or 0.6
 		if img == "ok" then
-			T(b, "✓", 0, 0, 34, 34, 28, Color3.new(1, 1, 1), NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+			icon(c, "check", ix - 1, 5, 36) -- the drawn green check
 		else
+			local b = F(c, ix, 6, 34, 34, hex("2a0c0c"), { BackgroundTransparency = 0.2 })
+			corner(b, 7)
+			stroke(b, Color3.new(1, 1, 1), 2)
+			b:FindFirstChildOfClass("UIStroke").Transparency = 0.6
 			I(b, img, 2, 2, 30, 30, { ScaleType = Enum.ScaleType.Fit })
 		end
 	end
-	local st = T(c, "★", 8, 136, 28, 30, 22, hex("f2b51e"), NUN)
-	textStroke(st, hex("7a4a00"), 1)
-	T(c, d.Name, 34, 132, 134, 34, 26, PINK, KALAM, { TextTruncate = Enum.TextTruncate.AtEnd })
+	icon(c, "star", 6, 140, 24)
+	T(c, d.Name, 36, 132, 132, 34, 26, PINK, KALAM, { TextTruncate = Enum.TextTruncate.AtEnd })
 	T(c, d.Rarity, 36, 162, 130, 22, 19, RAR_CREAM[d.Rarity], BODYB)
 	if slot then
 		redSeal(c, "桜", 10, 188, 28, KALAM)
@@ -903,7 +913,7 @@ function TSD.build(team)
 	end
 
 	-- glows behind the stage (2D, under the ViewportFrame)
-	glow(glowL, 1089, 640, 900, 190, hex("ff6a4a"), 0.55, 10)
+	glow(glowL, 1089, 640, 900, 190, hex("ff9a2a"), 0.55, 10) -- warm orange-gold floor glow
 	glow(glowL, 720, 500, 420, 90, hex("ffb34a"), 0.45, 8)
 	glow(glowL, 1493, 500, 420, 90, hex("ffb34a"), 0.45, 8)
 	glow(glowL, 1089, 350, 560, 560, hex("ff2a3a"), 1.1, 14)
@@ -972,17 +982,15 @@ function TSD.build(team)
 		})
 		_ = ddl
 		T(dyn, "›", 266, 140, 30, 52, 40, PINK, NUN, { Rotation = 90, TextXAlignment = Enum.TextXAlignment.Center })
-		paperButton(dyn, "✏️", 312, 140, 56, 52, 26, RIM, PINK)
+		local pen = paperButton(dyn, "", 312, 140, 56, 52, 26, RIM, PINK)
+		icon(pen, "pencil", 10, 8, 36)
 
 		heading(dyn, "Team Status", 50, 226, 290)
-		local ok = F(dyn, 54, 281, 32, 32, hex("2fa84f"))
-		corner(ok, UDim.new(0.5, 0))
-		stroke(ok, hex("1e7a30"), 2)
-		T(ok, "✓", 0, 0, 32, 32, 24, Color3.new(1, 1, 1), NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+		icon(dyn, "check", 52, 279, 36)
 		T(dyn, "Ready to Deploy", 104, 277, 260, 40, 27, hex("2a8a3a"), BODYB)
-		T(dyn, "👥", 52, 315, 40, 40, 28, PINK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+		icon(dyn, "members", 54, 317, 36)
 		T(dyn, #ids .. " / 3 Members", 104, 315, 260, 40, 27, PINK, BODYB)
-		T(dyn, "⚔", 52, 355, 40, 40, 30, PINK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+		icon(dyn, "cruise", 54, 357, 36)
 		T(dyn, 'Cruise: <font family="rbxasset://fonts/families/Kalam.json" size="32">' .. total .. '</font> <font size="17">st/s</font>', 104, 353, 230, 44, 27, PINK, BODYB)
 		redSeal(dyn, "桜", 334, 332, 34, KALAM)
 
@@ -1010,10 +1018,10 @@ function TSD.build(team)
 			local stam = math.floor((StaminaConfig.TEAM_BONUS[kind] - 1) * 100 + 0.5)
 			local label = kind == "Preset" and (series.Preset and series.Preset.Name or "Preset") or (series.Name or "Series")
 			brushPill(dyn, kind .. ": " .. label, 50, 734, 300, 40, 25) -- the highlight, like "Mythic, 0.5%"
-			T(dyn, "💚", 50, 784, 44, 40, 28, PINK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+			icon(dyn, "heart", 54, 786, 36)
 			T(dyn, 'Stamina <font color="#2a8a3a" size="30">+' .. stam .. "%</font>", 104, 784, 270, 40, 27, PINK, BODYB)
 			if kind == "Preset" then
-				T(dyn, "⚡", 50, 828, 44, 40, 28, PINK, NUN, { TextXAlignment = Enum.TextXAlignment.Center })
+				icon(dyn, "stamina", 54, 830, 36)
 				T(dyn, 'Cruise <font color="#2a6ad0" size="30">×' .. RaceConfig.PRESET_CRUISE .. "</font>", 104, 828, 270, 40, 27, PINK, BODYB)
 			end
 		else
@@ -1023,7 +1031,8 @@ function TSD.build(team)
 		end
 		rule(dyn, 50, 884, 318)
 
-		paperButton(dyn, "⚡ Quick Setup", 24, 936, 172, 68, 25, RIM, PINK)
+		local qs = paperButton(dyn, "      Quick Setup", 24, 936, 172, 68, 25, RIM, PINK)
+		icon(qs, "bolt", 10, 18, 32)
 		local dep = paperButton(dyn, "▶ Deploy", 206, 936, 178, 68, 32, VERM, VERM)
 		redSeal(dep, "出", 150, -12, 30, KALAM) -- seal on the primary, like 選 on Details
 	end
