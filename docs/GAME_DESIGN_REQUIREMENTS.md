@@ -717,7 +717,9 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     roster handscroll of parchment cards. Drawn icons from assets/ui/team_icons.
   - **Open questions** (the look shows them; behaviour unchanged until the owner rules): the Team 1 dropdown and pencil
     (one team, no rename today); cruise shown where the reference shows Lv. and Power; Team Bonus shows only the
-    4.8 series / preset bonus.
+    4.8 series / preset bonus; what the ‹ › nav arrows do (the approved captures show the reference's fixed order,
+    slot 1 in the centre); how a picked altar shows now that the rings are gold-orange (until ruled, the picked slot keeps
+    the "Selected" plate and a brighter ring); the plaza Team altar's look.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
