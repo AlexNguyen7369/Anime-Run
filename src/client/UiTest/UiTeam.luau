@@ -18,11 +18,14 @@
 --     BonusPopover (hidden until BonusButton; a second press hides it): Name (bonus or "No team bonus"), Effect, Total
 --     ("Total <n> s"). Dots/Dot1..3: BackgroundTransparency < 0.5 when that draft slot is filled, else >= 0.5.
 --     Altars/Altar1..3 (TextButtons, left to right, same Y, not overlapping): SlotLabel "SLOT n"; Pedestal (ViewportFrame
---     holding a Model "Altar", and a Model "Figure" (the member's 3D model) only on a member altar); a member shows Portrait (ImageLabel, its CharacterPortraits image), Name (character name),
---     Info ("<Rarity> · <n> studs/s") and hides Plus / Add; an empty altar shows Plus "+" and Add "Add Character" and hides
---     Portrait / Name / Info. Remove "Remove" shows only on the selected altar holding a member; attribute Selected on it.
+--     holding a Model "Altar", and a Model "Figure" (the member's 3D model) only on a member altar); its Portrait, Name and
+--     Info stay hidden (owner 2026-11-19, 4.45 T2: a numbered seal instead of the name line); a member hides Plus / Add;
+--     an empty altar shows Plus "+" and Add "Add Character". Remove "Remove" shows only on the selected altar holding a
+--     member; attribute Selected on it. LedgerRows/Row1..3 (GuiButtons): a member shows Portrait (ImageLabel, its
+--     CharacterPortraits image), Name (character name), Rarity (its rarity), Cruise ("<n> studs/s"); an empty row shows no
+--     portrait image, no character name, no Rarity / Cruise text.
 --     Footer: TeamName "Team 1", Status "Ready" (draft == saved Team) or "Unsaved changes" (or the server's refusal),
---     Count "<n> / 3 Slots Filled", Progress/Fill Size.X.Scale = n/3. Tray: Tabs/Characters, Tabs/Sidekicks (attribute
+--     Count "<n> / 3", Progress/Fill Size.X.Scale = n/3. Tray: Tabs/Characters, Tabs/Sidekicks (attribute
 --     Active on the shown one), Sort (GuiButton), Search (TextBox), Roster (ScrollingFrame): one card per owned character
 --     named by its id with a green TextLabel Badge "TEAM n" on draft members. QuickSetup, Deploy (attribute Enabled false
 --     while draft == saved Team or the draft is empty). ConfirmClose (hidden; Deploy, Discard). No BestTeam anywhere; no
@@ -133,13 +136,17 @@ function Module.Build(h)
 		end
 		return ids
 	end
-	-- The ids the altars show, in slot order (nil for an empty altar), read from Name against the catalog.
+	local function row(n)
+		return h.find(T.Ledger .. "/Row" .. n)
+	end
+	-- The ids the ledger rows show, in slot order (nil for an empty slot), read from Name against the catalog
+	-- (owner 2026-11-19, 4.45 T2: the member's name shows in its ledger row, not on the altar).
 	local function draftShown()
 		local out = {}
 		for n = 1, 3 do
-			local a = altar(n)
-			local name = a and shown(a:FindFirstChild("Name")) and textOf(a:FindFirstChild("Name"))
-			if name then
+			local r = row(n)
+			local name = r and shown(r:FindFirstChild("Name")) and textOf(r:FindFirstChild("Name"))
+			if name and name ~= T.AddText and name ~= "" then
 				for _, spec in Catalog.All() do
 					if spec.Name == name then
 						out[n] = spec.Id
@@ -152,7 +159,7 @@ function Module.Build(h)
 		return out
 	end
 
-	-- What the altars show against the draft `ids` (slot n empty when ids[n] is nil).
+	-- What the altars and ledger rows show against the draft `ids` (slot n empty when ids[n] is nil).
 	local function altarProblems(ids)
 		local wrong = {}
 		for n = 1, 3 do
@@ -183,8 +190,20 @@ function Module.Build(h)
 					)
 				)
 			end
-			local portrait, name, info =
-				a:FindFirstChild("Portrait"), a:FindFirstChild("Name"), a:FindFirstChild("Info")
+			-- Owner 2026-11-19 (4.45 T2): the altar carries a numbered seal instead of the name line; the member's
+			-- portrait, name, rarity and cruise show in its ledger row
+			for _, part in { "Portrait", "Name", "Info" } do
+				if shown(a:FindFirstChild(part)) then
+					table.insert(wrong, ("%s: %s shown (T2: the ledger row shows it)"):format(tag, part))
+				end
+			end
+			local r, rowTag = row(n), "Ledger Row" .. n
+			if not (r and r:IsA("GuiButton")) then
+				table.insert(wrong, rowTag .. " missing (GuiButton)")
+				continue
+			end
+			local portrait, name = r:FindFirstChild("Portrait"), r:FindFirstChild("Name")
+			local rarity, cruise = r:FindFirstChild("Rarity"), r:FindFirstChild("Cruise")
 			local plus, add = a:FindFirstChild("Plus"), a:FindFirstChild("Add")
 			local spec = ids[n] and Catalog.Get(ids[n])
 			if not spec then
@@ -194,9 +213,16 @@ function Module.Build(h)
 				if not (shown(add) and textOf(add) == T.AddText) then
 					table.insert(wrong, tag .. ': empty, Add "Add Character" not shown')
 				end
-				for _, o in { portrait, name, info } do
-					if shown(o) then
-						table.insert(wrong, tag .. ": empty, " .. o.Name .. " shown")
+				if shown(portrait) and portrait:IsA("ImageLabel") and portrait.Image ~= "" then
+					table.insert(wrong, rowTag .. ": empty, Portrait image " .. portrait.Image .. " shown")
+				end
+				local shownName = shown(name) and textOf(name)
+				if shownName and shownName ~= T.AddText and shownName ~= "" then
+					table.insert(wrong, ("%s: empty, Name %q shown"):format(rowTag, shownName))
+				end
+				for _, o in { rarity, cruise } do
+					if shown(o) and (textOf(o) or "") ~= "" then
+						table.insert(wrong, ("%s: empty, %s %q shown"):format(rowTag, o.Name, textOf(o)))
 					end
 				end
 				continue
@@ -206,16 +232,20 @@ function Module.Build(h)
 			end
 			local image = Portraits[spec.Id] or Portraits[spec.Model or spec.Id]
 			if not (portrait and portrait:IsA("ImageLabel") and shown(portrait)) then
-				table.insert(wrong, tag .. ": Portrait not a shown ImageLabel")
+				table.insert(wrong, rowTag .. ": Portrait not a shown ImageLabel")
 			elseif image and portrait.Image ~= image then
-				table.insert(wrong, ("%s Portrait %s, want %s's %s"):format(tag, portrait.Image, spec.Id, image))
+				table.insert(wrong, ("%s Portrait %s, want %s's %s"):format(rowTag, portrait.Image, spec.Id, image))
 			end
 			if textOf(name) ~= spec.Name or not shown(name) then
-				table.insert(wrong, ("%s Name %q, want %q"):format(tag, tostring(textOf(name)), spec.Name))
+				table.insert(wrong, ("%s Name %q, want %q"):format(rowTag, tostring(textOf(name)), spec.Name))
 			end
-			local infoText = shown(info) and textOf(info) or ""
-			if not (string.find(infoText, spec.Rarity, 1, true) and string.find(infoText, "studs/s", 1, true)) then
-				table.insert(wrong, ('%s Info %q, want "%s · <n> studs/s"'):format(tag, infoText, spec.Rarity))
+			local rarityText = shown(rarity) and textOf(rarity) or ""
+			if rarityText ~= spec.Rarity then
+				table.insert(wrong, ("%s Rarity %q, want %q"):format(rowTag, rarityText, spec.Rarity))
+			end
+			local cruiseText = shown(cruise) and textOf(cruise) or ""
+			if not string.find(cruiseText, "studs/s", 1, true) then
+				table.insert(wrong, ('%s Cruise %q, want "<n> studs/s"'):format(rowTag, cruiseText))
 			end
 		end
 		return wrong

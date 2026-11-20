@@ -3448,6 +3448,7 @@ UiSpec.Team = {
 	BonusPopover = TEAM_ROOT .. "/BonusPopover", -- Name, Effect, Total; hidden until BonusButton is pressed
 	Dots = TEAM_ROOT .. "/Dots", -- Dot1..3: BackgroundTransparency < 0.5 when that draft slot is filled
 	Altars = TEAM_ROOT .. "/Altars", -- Altar1..3 TextButtons, left to right
+	Ledger = TEAM_ROOT .. "/LedgerRows", -- Row1..3: Seal, Portrait, Name, Rarity, Cruise (owner 2026-11-19, 4.45 T2)
 	Footer = TEAM_ROOT .. "/Footer", -- TeamName, Status, Count, Progress/Fill
 	Tray = TEAM_ROOT .. "/Tray",
 	Tabs = TEAM_ROOT .. "/Tray/Tabs", -- Characters, Sidekicks (attribute Active on the shown tab)
@@ -3470,7 +3471,7 @@ UiSpec.Team = {
 	TeamName = "Team 1",
 	Ready = "Ready",
 	Unsaved = "Unsaved changes",
-	CountText = "%d / 3 Slots Filled",
+	CountText = "%d / 3", -- owner 2026-11-19 (4.45 T2)
 	PlusText = "+",
 	AddText = "Add Character",
 	RemoveText = "Remove",
@@ -3653,7 +3654,7 @@ UiSpec.Guis.RacerSidekicks = {
 	Panels = { "Canvas" },
 	Buttons = {
 		{ Path = "Canvas/Close", Does = "close_panel", Panel = "RacerSidekicks/Canvas" },
-		{ Path = "Canvas/Chances", Does = "local" }, -- "Show Chances": the odds dialog (section 6)
+		{ Path = "Canvas/Chances", Does = "local" }, -- "Details" (owner 2026-11-19): the odds dialog (section 6)
 		{ Path = "Canvas/Banner1", Does = "local" }, -- the featured banner opens Details too
 		{ Path = "Canvas/Info", Does = "local" },
 		{ Path = "Canvas/More", Does = "local" },

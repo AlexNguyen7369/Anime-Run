@@ -14,7 +14,7 @@
 --   Canvas/Balance shows the Gems (HudFormat.Short) with CurrencyGem; Canvas/Once and Canvas/Many show their cost with
 --   CurrencyGem; Canvas/Timer shows m:ss to EndsAt; Canvas/Pity1+PityCount1+PityCard1 is Legendary pity, Pity2+PityCount2+
 --   PityCard2 Mythic pity ("%d / %d", Track/Progress filled count / limit); Canvas/Featured is the sticker.
---   Canvas/Chances ("Show Chances") opens Canvas/Modal, whose Panel/DetailsScroll/Body lists every outcome of the rotation, one
+--   Canvas/Chances ("Details", owner 2026-11-19) opens Canvas/Modal, whose Panel/DetailsScroll/Body lists every outcome of the rotation, one
 --   line each holding the Sidekick's name (the Secret as "Secret") and its percent with 3 decimals. While a guarantee is due
 --   (design doc 4.36, section 6: Mythic at SidekickPity >= PityCount - 1, else Legendary) the tier's lines share 100% evenly,
 --   the others read 0.000%, and the text says "guaranteed". No silhouette row and no exact-100% rounding (owner 2026-11-12).
@@ -438,8 +438,8 @@ function Module.Build(h)
 		local body = h.find(MODAL .. "/Panel/DetailsScroll/Body")
 		return body and h.visible(body) and body.Text or ""
 	end
-	-- Section 6: every outcome with its percent before any summon, behind the odds button. It reads "Show Chances"
-	-- (SIDEKICK_SPEC "Summon presentation": "as built is the rule"; replaces the "Details" label); the dialog is judged after its press.
+	-- Section 6: every outcome with its percent before any summon, behind the odds button. It reads "Details"
+	-- (owner 2026-11-19); the dialog is judged after its press.
 	local function checkDetails(res, canvas)
 		local button = canvas:FindFirstChild("Chances")
 		check(res, "sidekick_odds_button_shown", button ~= nil and h.visible(button), true)
