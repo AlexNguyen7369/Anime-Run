@@ -4396,7 +4396,7 @@ table.insert(UiSpec.Clicks, {
 	Gui = "RacerSidekickReveal",
 	Path = "Tap",
 	Prepare = REVEAL_CLOSE,
-	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekick_tutorial_equip" } },
+	Expect = { Remote = false, After = { "sidekick_tutorial_equip" } }, -- the page stays aside: the equip step follows
 })
 
 -- The click menu for Sidekicks and Relics, and the sale confirmation (Client/ItemMenu; design doc 4.36, 4.41). A module the Backpack
