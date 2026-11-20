@@ -103,6 +103,7 @@ Every boss drops its own downsized Sidekick this way (owner 2026-11-11, design d
 
 ## Summon page
 Layout ideas from the owner's reference (redesign 2026-11-05), no copied art. Motion through `Client/UiMotion`. This look stays on this page; moving it elsewhere needs the owner's approval.
+- Layout and look from 2026-11-19: design doc 4.45 "Hanging-scroll look", Summon (R3). Where this list differs, 4.45 wins.
 - Top: Gem balance, a timer bar counting to the next rotation, and Mythic Pity and Legendary Pity with their counts.
 - Poster: one view with the Mythic's actual 3D model large in the centre, the Legendaries beside it and the Rares at the ends. Big names in front, each with its rarity and rate (owner 2026-11-05), and a FEATURED sticker that makes no odds claim. Tapping it, or its **Details** button, opens Details.
 - Details also shows the Secret: only this rotation's one Secret, as a blacked-out silhouette, with "Secret" and its chance and no name column (owner 2026-11-05). Details lists rates only, no stats. `SidekickRotation` publishes the live `SecretId`; the owner accepts that clients can read it.

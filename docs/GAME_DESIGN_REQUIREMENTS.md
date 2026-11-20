@@ -648,6 +648,33 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     never a duplicate; the server picks them (replaces "the Best team button (left out: needs a rule)", 4.40).
   - On the Sidekicks tab, picking a Sidekick and then a placed member equips it at once through the existing Sidekick equip
     (not part of the draft). Relics are inspect-only here; equipping relics stays in Items.
+- Hanging-scroll look (owner 2026-11-19). The owner picked, from the round-2 drafts
+  (https://claude.ai/artifact/VGWPRegzUqHKEJDNr74scm), R3 "Enso and seals" for Summon and T2 "Ledger scroll" for Team
+  Setup, both in the Sumi ink skin, type pairing P5 and the brush title. This replaces the layouts above where they
+  differ; behaviour, controls, server rules, the staged draft and the shared transition stay. Every size, timing and
+  colour here is **proposed**.
+  - Kit: a mounted hanging scroll: cord and hook from the top edge, black lacquer top rod, grey linen top mount with two
+    hanging strips, a thin grey rule, white washi paper, a grey bottom mount, black roller with dark end caps. Paper ink
+    near-black, accent vermilion (#C8302C). Body text Titillium Web; headings and button labels Permanent Marker. The
+    titles "Summon" and "Team" are a baked brush wordmark image, each with a vertical vermilion kanji (召喚, 編成). Kanji
+    are decoration only; every label stays English.
+  - Motion: on open the scroll drops in (0.22 s), unrolls (0.5 s from 0.12 s, the roller travelling down), its text inks
+    in from 0.5 s and the other controls rise from 0.48 s; close rolls it up in reverse in 0.3 s. It runs inside the
+    shared Sakura transition. Reduced effects: a fade only.
+  - Summon (R3): the scroll on the left holds the wordmark, the banner name and rotation, the featured Mythic's drawn
+    portrait inside a brushed enso ring with the rotation timer as a red seal, its name and rate, the rate of each rarity,
+    both pity counters, and the Details and Auto Sell links. Adds the Summon page's featured unit to the 4.36 portrait
+    list. The three summons are red hanko seals at the bottom right: 十 Many 500, 一 Once 50 (largest, centre), 自 Auto;
+    a press scales to 0.94 in 0.12 s. The gem balance sits on a paper slip above them. Top right: Close, and under it the
+    gem packs the page sells, as hanging burgundy tags with pink rims (the owner's one change to R3).
+  - Team Setup (T2): one tall scroll on the left is the team ledger: wordmark, "Team 1" and its status, n / 3, three
+    numbered rows (seal 一 二 三, portrait, name, rarity, cruise, relic and Sidekick icons with their tooltips; the picked
+    row has a cyan bar), Team Bonus with View (opens the popover), and on its bottom mount Quick Setup and Deploy. The
+    stage view shifts right so the three altars stand beside the scroll. Each altar carries a numbered seal (the picked
+    one glows cyan) instead of the SLOT label and the name line; an empty altar keeps "+" and "Add Character". The roster
+    is a horizontal handscroll along the bottom, right of the ledger, with the Characters and Sidekicks tabs, Sort and
+    search at its left end; cards are paper cards with portrait, name, rarity strip, the team-slot seal, and the relic
+    and Sidekick icons as before. Close at the top right. The top-centre slot dots go (the ledger shows the slots).
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 

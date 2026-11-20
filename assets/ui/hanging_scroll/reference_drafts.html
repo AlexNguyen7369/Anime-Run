@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hanging Scroll Drafts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Josefin+Sans:wght@400;600;700&family=Fondamento&family=Montserrat:wght@500;600;700&family=Oswald:wght@500;600&family=Roboto+Condensed:wght@400;700&family=Michroma&family=Jura:wght@500;700&family=Permanent+Marker&family=Titillium+Web:wght@400;600;700&family=Kaushan+Script&family=Shippori+Mincho+B1:wght@600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&text=召喚編成一十自二三&display=swap" rel="stylesheet">
+<style>
+/* VOICE work review, for one owner picking a direction
+   IDEA a real kakejiku (mounted hanging scroll): its parts become the page's parts
+   PICTURE each draft is a full game screen at 1920x907 with the scroll drawn in it, replayable unroll
+   COLOUR fixed night lacquer ground #140c0e, cream ink, sakura and gold as accents
+   TYPE Shippori Mincho B1 for this page; drafts use only Roblox-loadable fonts (wordmark baked)
+   LAYOUT one column of frames; controls bar sticks on top; frames scroll sideways below 760px */
+:root{color-scheme:dark;--bg:#140c0e;--ink:#f6ead6;--mut:#b9a698;--line:#3e2629;--sak:#f491ab;--gold:#edb75d;--cyan:#2ec8d0}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Josefin Sans",system-ui,sans-serif;overflow-x:clip}
+.band{padding:28px max(4vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1,h2{font-family:"Shippori Mincho B1",Georgia,serif;font-weight:800;line-height:1.08;letter-spacing:-.01em;margin:0}
+h1{font-size:clamp(32px,4.4vw,48px)}
+h2{font-size:30px;margin:46px 0 6px}
+p{max-width:72ch;margin:8px 0}
+.mut{color:var(--mut)}
+.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:10px max(4vw,16px)}
+.bar .wrap{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.grp{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.grp b{font-size:14px;color:var(--mut);font-weight:600;margin-right:4px}
+.grp button,.play{font:600 14px "Josefin Sans",sans-serif;color:var(--ink);background:#22151a;border:1px solid var(--line);border-radius:4px;padding:6px 10px;min-height:34px;cursor:pointer}
+.grp button[aria-pressed=true]{border-color:var(--sak);background:#3a1d27}
+.grp button:hover,.play:hover{border-color:var(--gold)}
+.grp button:focus-visible,.play:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.draft{margin:30px 0 0}
+.dh{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:8px}
+.dh h3{margin:0;font:800 22px "Shippori Mincho B1",serif}
+.dh .id{color:var(--sak);margin-right:6px}
+.dh .tags{font-size:14px;color:var(--mut)}
+.dh .play{margin-left:auto}
+.why{font-size:15.5px}
+.build{font-size:14px;color:var(--mut)}
+.fx{overflow-x:auto;border-radius:6px}
+.anat{display:grid;grid-template-columns:minmax(0,230px) minmax(0,1fr);gap:28px;align-items:center;margin-top:18px}
+.anat ol{margin:0;padding-left:20px}
+.anat li{margin:4px 0}
+.anat li b{color:var(--gold)}
+@media(max-width:640px){.anat{grid-template-columns:1fr}}
+
+/* ---------- game frame ---------- */
+.scr{position:relative;width:100%;min-width:760px;aspect-ratio:1920/907;container-type:inline-size;overflow:hidden;background:#0e0809;border:1px solid var(--line);border-radius:6px;font-family:var(--b);color:var(--pi)}
+.world{position:absolute;inset:0}
+.bgimg{position:absolute;inset:0;background:url(img/backdrop.jpg) center/cover}
+.cap{position:absolute;inset:0;background:center/cover no-repeat}
+.cap.sum{background-image:url(img/a5.jpg);-webkit-mask-image:linear-gradient(90deg,transparent 22%,#000 28%,#000 83%,transparent 89%),linear-gradient(transparent 4%,#000 10%,#000 84%,transparent 90%);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent 22%,#000 28%,#000 83%,transparent 89%),linear-gradient(transparent 4%,#000 10%,#000 84%,transparent 90%);mask-composite:intersect}
+.cap.team{background-image:url(img/b4.jpg);-webkit-mask-image:linear-gradient(transparent 25%,#000 30%,#000 62%,transparent 67%);mask-image:linear-gradient(transparent 25%,#000 30%,#000 62%,transparent 67%)}
+.vig{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 45%,transparent 55%,rgba(20,8,10,.45))}
+.o{position:absolute;z-index:3}
+
+/* skins: every part reads these */
+.sk-brocade{--mount:#5b1a2c;--pat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cg fill='%23e0b25a' fill-opacity='.32' transform='translate(14 14)'%3E%3Cellipse ry='3.4' rx='1.9' cy='-3.4'/%3E%3Cellipse ry='3.4' rx='1.9' cy='-3.4' transform='rotate(72)'/%3E%3Cellipse ry='3.4' rx='1.9' cy='-3.4' transform='rotate(144)'/%3E%3Cellipse ry='3.4' rx='1.9' cy='-3.4' transform='rotate(216)'/%3E%3Cellipse ry='3.4' rx='1.9' cy='-3.4' transform='rotate(288)'/%3E%3C/g%3E%3Ccircle cx='0' cy='0' r='1.4' fill='%23e0b25a' fill-opacity='.3'/%3E%3Ccircle cx='28' cy='28' r='1.4' fill='%23e0b25a' fill-opacity='.3'/%3E%3C/svg%3E");--ichi:linear-gradient(#f2cf7e,#b98a35);--paper:#f6ead2;--pi:#2a1416;--pm:#7a5a52;--acc:#b8262e;--rod:linear-gradient(#5a3424,#2a140d);--capc:radial-gradient(circle at 35% 35%,#fff0b8,#d9a648 45%,#7a5418);--btn:linear-gradient(#8a4a2c,#5a2c1a);--bi:#fff3d8;--edge:#edb75d;--cord:#e9c27a;--chip:#fff3d8}
+.sk-sumi{--mount:#cfc9bd;--pat:repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 1px,transparent 1px 4px);--ichi:linear-gradient(#a59d90,#6d675d);--paper:#fbf9f3;--pi:#141214;--pm:#6d6862;--acc:#c8302c;--rod:linear-gradient(#2c2626,#0a0808);--capc:radial-gradient(circle at 35% 35%,#7a7a7a,#1d1d1d 55%,#000);--btn:linear-gradient(#2a2526,#0f0c0d);--bi:#fbf9f3;--edge:#c8302c;--cord:#3a3434;--chip:#fbf9f3}
+.sk-indigo{--mount:#1b2142;--pat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12'%3E%3Cg fill='none' stroke='%23d4ad55' stroke-opacity='.35'%3E%3Ccircle cx='12' cy='12' r='11'/%3E%3Ccircle cx='12' cy='12' r='7.5'/%3E%3Ccircle cx='12' cy='12' r='4'/%3E%3Ccircle cx='0' cy='0' r='11'/%3E%3Ccircle cx='24' cy='0' r='11'/%3E%3C/g%3E%3C/svg%3E");--ichi:linear-gradient(#f0cf80,#a8812f);--paper:#232a4c;--pi:#f4e7c8;--pm:#a9a3c0;--acc:#e0475b;--rod:linear-gradient(#262a45,#07081a);--capc:radial-gradient(circle at 35% 35%,#fff0b8,#d9a648 45%,#7a5418);--btn:linear-gradient(#1d2140,#0b0d1e);--bi:#f4e7c8;--edge:#d4ad55;--cord:#d4ad55;--chip:#f4e7c8}
+.sk-sakura{--mount:#efc7d0;--pat:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34'%3E%3Cg fill='%23fff' fill-opacity='.55' transform='translate(17 17) rotate(12)'%3E%3Cellipse ry='3.6' rx='2.1' cy='-3.6'/%3E%3Cellipse ry='3.6' rx='2.1' cy='-3.6' transform='rotate(72)'/%3E%3Cellipse ry='3.6' rx='2.1' cy='-3.6' transform='rotate(144)'/%3E%3Cellipse ry='3.6' rx='2.1' cy='-3.6' transform='rotate(216)'/%3E%3Cellipse ry='3.6' rx='2.1' cy='-3.6' transform='rotate(288)'/%3E%3C/g%3E%3C/svg%3E");--ichi:linear-gradient(#c9566f,#8e2f45);--paper:#fff6ec;--pi:#4a1626;--pm:#8d6470;--acc:#c2334d;--rod:linear-gradient(#7a3a26,#3e1a10);--capc:radial-gradient(circle at 35% 35%,#fff0b8,#d9a648 45%,#7a5418);--btn:linear-gradient(#6e2238,#45101f);--bi:#fff3d8;--edge:#f491ab;--cord:#c2334d;--chip:#fff6ec}
+
+/* type pairings, all loadable in Roblox */
+.t1{--d:"Merriweather",serif;--dw:900;--b:"Josefin Sans",sans-serif;--n:"Merriweather",serif}
+.t2{--d:"Fondamento",serif;--dw:400;--b:"Montserrat",sans-serif;--n:"Montserrat",sans-serif}
+.t3{--d:"Oswald",sans-serif;--dw:600;--b:"Roboto Condensed",sans-serif;--n:"Oswald",sans-serif}
+.t4{--d:"Michroma",sans-serif;--dw:400;--b:"Jura",sans-serif;--n:"Jura",sans-serif}
+.t5{--d:"Permanent Marker",cursive;--dw:400;--b:"Titillium Web",sans-serif;--n:"Titillium Web",sans-serif}
+.w-brush{--wm:"Kaushan Script",cursive;--wmw:400}
+.w-serif{--wm:"Shippori Mincho B1",serif;--wmw:800}
+.w-plain{--wm:var(--d);--wmw:var(--dw)}
+
+/* the scroll */
+.ks{position:absolute;z-index:4;display:flex;flex-direction:column;filter:drop-shadow(0 .5cqw .7cqw rgba(0,0,0,.45))}
+.ks .hang{position:relative;height:var(--cordh,1.6cqw)}
+.ks .hang svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.ks .hang i{position:absolute;left:50%;top:-.25cqw;width:.7cqw;height:.7cqw;margin-left:-.35cqw;border-radius:50%;background:var(--capc)}
+.ks .rod{height:.7cqw;margin:0 -.35cqw;border-radius:.2cqw;background:var(--rod);position:relative;z-index:2}
+.ks .body{height:var(--len);display:flex;flex-direction:column}
+.ks .ten,.ks .chi,.ks .mid{background:var(--pat),var(--mount);background-size:auto}
+.ks .ten{flex:0 0 var(--ten,2.4cqw);position:relative}
+.ks .chi{flex:0 0 var(--chi,2.2cqw);position:relative}
+.ks .futai{position:absolute;top:0;width:.9cqw;height:calc(var(--ten,2.4cqw) + var(--fut,1.6cqw));background:var(--ichi);z-index:2;box-shadow:0 .1cqw .2cqw rgba(0,0,0,.35)}
+.ks .futai::after{content:"";position:absolute;left:0;right:0;bottom:-.2cqw;height:.2cqw;background:inherit;filter:brightness(.7)}
+.ks .ichi{flex:0 0 .4cqw;background:var(--ichi)}
+.ks .mid{flex:1;display:flex;flex-direction:column;padding:0 var(--side,.8cqw)}
+.ks .mid>.ichi{margin:0}
+.ks .paper{flex:1;position:relative;background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 30%,rgba(0,0,0,.05)),var(--paper);padding:var(--pad,1cqw 1.1cqw);display:flex;flex-direction:column;gap:var(--gap,.55cqw);overflow:hidden}
+.ks .paper::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;mix-blend-mode:multiply;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .42 0 0 0 0 .35 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E")}
+.sk-indigo .ks .paper::before{mix-blend-mode:screen;opacity:.08}
+.ks .paper>*{position:relative}
+.ks .jiku{height:1.1cqw;margin:0 -.2cqw;border-radius:.5cqw;background:var(--rod);position:relative;z-index:2}
+.ks .jiku::before,.ks .jiku::after{content:"";position:absolute;top:-.2cqw;width:1.1cqw;height:1.5cqw;border-radius:.3cqw;background:var(--capc)}
+.ks .jiku::before{left:-.9cqw}.ks .jiku::after{right:-.9cqw}
+
+/* horizontal handscroll (emakimono) */
+.hs{position:absolute;z-index:4;display:flex;filter:drop-shadow(0 .5cqw .7cqw rgba(0,0,0,.45))}
+.hs .hrod{width:1cqw;border-radius:.5cqw;background:var(--rod);position:relative;margin:-.25cqw 0;z-index:2}
+.hs .hrod::before,.hs .hrod::after{content:"";position:absolute;left:-.2cqw;width:1.4cqw;height:1cqw;border-radius:.3cqw;background:var(--capc)}
+.hs .hrod::before{top:-.8cqw}.hs .hrod::after{bottom:-.8cqw}
+.hs .hbody{width:var(--len);display:flex;flex-direction:column}
+.hs .hbody>.ichi{flex:0 0 .35cqw;background:var(--ichi)}
+.hs .hmid{flex:1;display:flex;background:var(--pat),var(--mount);padding:.55cqw 0}
+.hs .hpaper{flex:1;position:relative;background:var(--paper);display:flex;align-items:center;gap:1cqw;padding:.6cqw 1.1cqw;overflow:hidden}
+.hs .hpaper::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.2;mix-blend-mode:multiply;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .42 0 0 0 0 .35 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E")}
+.hs .hpaper>*{position:relative}
+
+/* content atoms */
+.wmr{display:flex;align-items:flex-start;justify-content:space-between;gap:.4cqw}
+.wm{font-family:var(--wm);font-weight:var(--wmw);font-size:var(--wms,2.6cqw);line-height:1;color:var(--pi);letter-spacing:-.01em}
+.kj{font-family:"Yuji Syuku",serif;color:var(--acc);font-size:var(--kjs,1.5cqw);line-height:1;writing-mode:vertical-rl}
+.h{font-family:var(--d);font-weight:var(--dw);color:var(--pi);line-height:1.1}
+.s{font-size:.8cqw;color:var(--pm);line-height:1.25}
+.n{font-family:var(--n);font-weight:700;font-variant-numeric:tabular-nums}
+.row{display:flex;align-items:center;gap:.5cqw}
+.sp{flex:1}
+.seal{display:grid;place-items:center;text-align:center;background:var(--acc);color:var(--paper);border-radius:.35cqw;padding:.3cqw .45cqw;box-shadow:inset 0 0 0 .15cqw var(--acc),inset 0 0 0 .26cqw color-mix(in srgb,var(--paper) 80%,transparent);transform:rotate(-3deg);line-height:1.05}
+.seal small{font-size:.6cqw;opacity:.9}
+.seal b{font-family:var(--n);font-size:1cqw}
+.feat{position:relative;margin:0 auto;width:var(--fs,7cqw);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 50% 40%,#ffe9ef,#f3b9c8 60%,#c75a78);box-shadow:0 0 0 .22cqw var(--edge),0 0 0 .4cqw color-mix(in srgb,var(--pi) 30%,transparent),0 .4cqw .8cqw rgba(0,0,0,.25);overflow:hidden}
+.feat img{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain}
+.ctr{text-align:center}
+.brush{height:.6cqw;width:100%;display:block}
+.rt{display:grid;grid-template-columns:auto 1fr auto;gap:.18cqw .45cqw;align-items:center;font-size:.82cqw}
+.rt i{width:.6cqw;height:.6cqw;border-radius:50%;display:block}
+.rt span:nth-child(3n){font-family:var(--n);font-weight:700;text-align:right}
+.pity{display:grid;gap:.35cqw;font-size:.75cqw}
+.pity .tr{height:.42cqw;background:color-mix(in srgb,var(--pi) 14%,transparent);border-radius:.2cqw;overflow:hidden}
+.pity .tr i{display:block;height:100%;border-radius:.2cqw}
+.lk{font-size:.8cqw;font-weight:700;color:var(--pi);border-bottom:.12cqw solid var(--acc);padding-bottom:.05cqw}
+.gm{width:1em;height:1em;vertical-align:-.12em;margin-left:.2em}
+
+/* buttons */
+.ema{position:relative;display:block;filter:drop-shadow(0 .35cqw .5cqw rgba(0,0,0,.5));transform-origin:50% -1.2cqw;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.ema:hover{transform:rotate(-3deg)}
+.ema .str{position:absolute;left:50%;top:-1.3cqw;width:.12cqw;height:1.6cqw;background:var(--cord)}
+.ema .str::before{content:"";position:absolute;top:-.3cqw;left:-.25cqw;width:.6cqw;height:.6cqw;border-radius:50%;background:var(--capc)}
+.ema .rim{background:var(--edge);clip-path:polygon(50% 0,100% 26%,100% 100%,0 100%,0 26%);padding:.2cqw;height:100%}
+.ema .in{height:100%;background:var(--btn);clip-path:polygon(50% 0,100% 26%,100% 100%,0 100%,0 26%);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 .4cqw .7cqw;color:var(--bi);gap:.15cqw}
+.ema .in::before{content:"";width:.6cqw;height:.6cqw;border-radius:50%;background:rgba(0,0,0,.45);box-shadow:inset 0 .1cqw .1cqw rgba(0,0,0,.6);margin-bottom:auto;margin-top:1.1cqw}
+.ema .l{font-family:var(--d);font-weight:var(--dw);font-size:1.25cqw;line-height:1}
+.ema .c{font-family:var(--n);font-weight:700;font-size:.95cqw}
+.ema.pri .rim{background:linear-gradient(#ffe39a,var(--edge))}
+.ema.pri{filter:drop-shadow(0 0 .8cqw color-mix(in srgb,var(--edge) 70%,transparent)) drop-shadow(0 .35cqw .5cqw rgba(0,0,0,.5))}
+.hk{display:grid;place-items:center;text-align:center;background:var(--acc);color:#fff8ee;border-radius:.45cqw;box-shadow:inset 0 0 0 .22cqw var(--acc),inset 0 0 0 .38cqw rgba(255,248,238,.85),0 .35cqw .6cqw rgba(0,0,0,.45);transition:transform .12s;cursor:pointer;background-image:radial-gradient(circle at 20% 30%,rgba(255,255,255,.12) 0 .3cqw,transparent .32cqw),radial-gradient(circle at 75% 80%,rgba(0,0,0,.12) 0 .4cqw,transparent .42cqw)}
+.hk:hover{transform:rotate(-2deg) scale(1.03)}
+.hk:active{transform:scale(.94)}
+.hk .k{font-family:"Yuji Syuku",serif;font-size:2.8cqw;line-height:1}
+.hk .l{font-family:var(--d);font-weight:var(--dw);font-size:.95cqw;line-height:1.1}
+.hk .c{font-family:var(--n);font-weight:700;font-size:.8cqw}
+.lq{display:flex;align-items:center;justify-content:center;gap:.5cqw;background:var(--btn);color:var(--bi);border-radius:.5cqw;box-shadow:inset 0 0 0 .14cqw var(--edge),inset 0 .25cqw 0 rgba(255,255,255,.12),0 .3cqw .6cqw rgba(0,0,0,.45);font-family:var(--d);font-weight:var(--dw);cursor:pointer;transition:transform .12s,filter .12s}
+.lq:hover{filter:brightness(1.15)}
+.lq:active{transform:scale(.95)}
+.lq .c{font-family:var(--n);font-weight:700;opacity:.92}
+.lq.pri{background:linear-gradient(#e2525c,#9d1f2b);box-shadow:inset 0 0 0 .14cqw #ffd58a,inset 0 .25cqw 0 rgba(255,255,255,.2),0 0 1cqw rgba(230,80,90,.5),0 .3cqw .6cqw rgba(0,0,0,.45)}
+.lq.cy{box-shadow:inset 0 0 0 .14cqw var(--cyan),0 .3cqw .6cqw rgba(0,0,0,.45)}
+.knot{width:2.8cqw;height:2.8cqw;border-radius:50%;display:grid;place-items:center;background:var(--btn);color:var(--bi);font:700 1.5cqw/1 var(--b);box-shadow:inset 0 0 0 .16cqw var(--edge),0 .3cqw .5cqw rgba(0,0,0,.45);cursor:pointer}
+.slip{background:var(--chip);color:#2a1416;border-radius:.25cqw;padding:.35cqw .7cqw;box-shadow:0 .25cqw .5cqw rgba(0,0,0,.4),inset 0 0 0 .1cqw color-mix(in srgb,var(--pi) 18%,transparent)}
+.tag{position:relative;width:8cqw;background:var(--btn);color:var(--bi);border-radius:.3cqw;padding:.55cqw .5cqw .5cqw;text-align:center;box-shadow:inset 0 0 0 .12cqw var(--edge),0 .3cqw .5cqw rgba(0,0,0,.45)}
+.tag::before{content:"";position:absolute;left:50%;top:-1.2cqw;width:.12cqw;height:1.2cqw;background:var(--cord)}
+.tag .t{font-family:var(--d);font-weight:var(--dw);font-size:.85cqw}
+.tag .p{font-family:var(--n);font-weight:700;font-size:.8cqw;color:var(--edge)}
+.slip .wm,.slip .h{color:inherit}
+.lk{white-space:nowrap}
+.tray{display:flex;align-items:center;gap:.8cqw}
+
+/* team atoms */
+.card{position:relative;flex:0 0 auto;width:6.4cqw;height:8.3cqw;background:#fffaf0;border-radius:.3cqw;box-shadow:0 .15cqw .3cqw rgba(0,0,0,.25),inset 0 0 0 .1cqw rgba(0,0,0,.12);display:flex;flex-direction:column;align-items:center;overflow:hidden;color:#2a1416}
+.card img{width:100%;height:5.6cqw;object-fit:cover;object-position:50% 20%;background:linear-gradient(#f9e6ea,#f2c9d3)}
+.card .nm{font:700 .78cqw/1.1 var(--b);margin-top:.25cqw}
+.card .rb{position:absolute;left:0;right:0;bottom:0;height:.32cqw}
+.card .sp2{font:.62cqw/1.2 var(--b);color:#7a5a52}
+.card .in1{position:absolute;top:.25cqw;left:.25cqw;width:1.3cqw;height:1.3cqw;border-radius:.2cqw;background:var(--acc);color:#fff8ee;font:700 .7cqw/1.3cqw var(--n);text-align:center;transform:rotate(-6deg)}
+.card.on{box-shadow:0 0 0 .2cqw var(--cyan),0 .15cqw .3cqw rgba(0,0,0,.25)}
+.sock{width:2.1cqw;height:2.1cqw;border-radius:.35cqw;background:color-mix(in srgb,var(--pi) 10%,transparent);box-shadow:inset 0 0 0 .1cqw color-mix(in srgb,var(--pi) 30%,transparent);display:grid;place-items:center;overflow:hidden}
+.sock img{width:88%;height:88%;object-fit:contain}
+.pt{width:3.4cqw;height:3.4cqw;border-radius:.35cqw;object-fit:cover;object-position:50% 15%;background:linear-gradient(#f9e6ea,#f2c9d3);box-shadow:0 0 0 .14cqw var(--edge)}
+.pick{box-shadow:0 0 0 .22cqw var(--cyan),0 0 1.4cqw rgba(46,200,208,.7)}
+.num{width:2.3cqw;height:2.3cqw;border-radius:50%;display:grid;place-items:center;background:var(--paper);color:var(--acc);font:1.4cqw/1 "Yuji Syuku",serif;box-shadow:0 0 0 .14cqw var(--acc),0 .25cqw .5cqw rgba(0,0,0,.4)}
+.tab{font:700 .85cqw/1 var(--b);padding:.55cqw .8cqw;border-radius:.3cqw .3cqw 0 0;background:color-mix(in srgb,var(--paper) 70%,var(--mount));color:var(--pi)}
+.tab.on{background:var(--paper);box-shadow:inset 0 .2cqw 0 var(--acc)}
+
+/* motion: scroll drops, unrolls, content settles, controls rise */
+@media (prefers-reduced-motion:no-preference){
+.go .ks{animation:hang .22s cubic-bezier(.2,.8,.3,1) both}
+.go .ks .body{animation:unroll .5s .12s cubic-bezier(.22,.9,.24,1) both}
+.go .ks .jiku{animation:drop .5s .12s cubic-bezier(.22,.9,.24,1) both}
+.go .ks .paper>*{animation:ink .28s .5s ease-out both}
+.go .hs .hbody{animation:unrollx .55s .1s cubic-bezier(.22,.9,.24,1) both}
+.go .hs .hrod:last-child{animation:dropx .55s .1s cubic-bezier(.22,.9,.24,1) both}
+.go .hs .hpaper>*{animation:ink .28s .5s ease-out both}
+.go .rise{animation:rise .32s .48s cubic-bezier(.2,1.4,.4,1) both}
+.go .rise2{animation:rise .32s .56s cubic-bezier(.2,1.4,.4,1) both}
+.go .fade{animation:ink .3s .3s both}
+}
+@keyframes hang{from{transform:translateY(-2.5cqw);opacity:0}}
+@keyframes unroll{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes drop{from{transform:translateY(calc(-1*var(--len)))}}
+@keyframes unrollx{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+@keyframes dropx{from{transform:translateX(calc(-1*var(--len)))}}
+@keyframes ink{from{opacity:0;transform:translateY(.3cqw)}}
+@keyframes rise{from{opacity:0;transform:translateY(1.5cqw) scale(.96)}}
+</style>
+</head>
+<body>
+<header class="band"><div class="wrap">
+<h1>Hanging scroll drafts</h1>
+<p>Round 2, built only on the hanging scroll idea: 6 Summon pages and 3 Team Setup pages. Each one opens with the motion it would have in game (press Replay). Use the bar to put any skin, type pairing or title style on every draft, so one layout can be judged in all its looks.</p>
+<p class="mut">Portraits, relics and gems are the game's own art. The 3D stage is today's Studio capture with its old UI masked out. Sample numbers come from SidekickConfig (odds, 50 and 500 gem costs, pity 100 and 300).</p>
+</div></header>
+
+<div class="bar"><div class="wrap">
+<div class="grp" id="gSkin"><b>Skin</b></div>
+<div class="grp" id="gType"><b>Type</b></div>
+<div class="grp" id="gWm"><b>Title</b></div>
+<button class="play" id="playAll" type="button">Replay all</button>
+</div></div>
+
+<main class="band" style="padding-top:8px"><div class="wrap">
+
+<section>
+<h2>Picked 2026-11-19: R3 Enso and seals + T2 Ledger scroll</h2>
+<p>Both in Sumi ink, type P5 (Permanent Marker + Titillium Web), brush title. R3 changes one thing: the gem packs now hang as burgundy tags under the close button. T2 uses R3's kit so both pages read as one set.</p>
+<p><a href="#R3" style="color:var(--sak)">Jump to R3</a> · <a href="#T2" style="color:var(--sak)">Jump to T2</a></p>
+</section>
+
+<section>
+<h2>What each part of the scroll does</h2>
+<div class="anat">
+<div class="scr sk-brocade t1 w-brush" id="anatomy" style="min-width:0;aspect-ratio:230/420;border:0;background:transparent"></div>
+<div>
+<p>A real kakejiku has fixed parts. Each draft gives every part one job, so a player learns one object on both pages.</p>
+<ol>
+<li><b>Cord and hook.</b> The scroll hangs from the dojo beam. On open it drops in, then unrolls (0.12 s drop, 0.5 s unroll, text inks in at 0.5 s).</li>
+<li><b>Ten (top mount) and futai strips.</b> Brocade only, no text. It holds the page's colour.</li>
+<li><b>Ichimonji, the gold rule.</b> It marks where reading starts and stops.</li>
+<li><b>Honshi, the paper.</b> Everything you read: title, banner, featured unit, odds, pity, the team list.</li>
+<li><b>Chi (bottom mount).</b> Where an action can sit, for the drafts that keep buttons on the scroll.</li>
+<li><b>Jiku, the roller.</b> On close it rolls back up, in reverse, at 0.3 s.</li>
+</ol>
+<p class="build">Built in Roblox with 4 sliced images per skin (mount, gold rule, rod, roller cap) plus native text. Wordmark titles in Kaushan Script or Shippori Mincho are two baked images (Summon, Team); every other word uses a font Roblox ships.</p>
+</div>
+</div>
+</section>
+
+<section>
+<h2>Summon page</h2>
+<p class="mut">All six keep every control the page has today: close, banner and timer, featured unit, chances, pity, details, Auto Sell, gem balance, gem packs, Once, Many and Auto.</p>
+<div id="summon"></div>
+</section>
+
+<section>
+<h2>Team Setup page</h2>
+<p class="mut">All three keep the three altars, slot picking, relic and Sidekick per member, the roster with Characters and Sidekicks tabs, sort, Quick Setup, Team Bonus, the team name and Deploy. Altar rims stay cyan for the picked slot (decision D6).</p>
+<div id="team"></div>
+</section>
+
+<section>
+<h2>How to answer</h2>
+<p>Name one Summon and one Team draft, plus the skin, type and title you want, for example "R3 + T1, Sumi skin, type P1, brush title". Mixing is fine: "R1 layout with R3's seal buttons". I then build only that pick in Studio and bring real captures before any other panel changes.</p>
+<p class="mut">Not shown yet: phone layout, gamepad focus, the summon reveal itself. Those come with the build of the picked draft.</p>
+</section>
+
+</div></main>
+
+<script>
+{
+const SKINS=[['brocade','Brocade'],['sumi','Sumi ink'],['indigo','Night silk'],['sakura','Sakura']];
+const TYPES=[['t1','P1 Merriweather + Josefin'],['t2','P2 Fondamento + Gotham'],['t3','P3 Oswald + Roboto Cond.'],['t4','P4 Michroma + Jura'],['t5','P5 Marker + Titillium']];
+const WMS=[['w-brush','Brush'],['w-serif','Mincho'],['w-plain','Pairing font']];
+const I=n=>`img/${n}.png`;
+const RC={Common:'#9c948a',Uncommon:'#5fae63',Rare:'#3f93d1',Epic:'#9b5fd6',Legendary:'#e8a52e',Mythic:'#e0414a',Secret:'#e86f9a'};
+const RATES=[['Common','72.5%'],['Rare','24%'],['Legendary','2%'],['Mythic','1.5%'],['Secret','0.005%']];
+const gem=`<img class="gm" src="img/gem.png" alt="">`;
+const brush=`<svg class="brush" viewBox="0 0 200 6" preserveAspectRatio="none"><path d="M2 3.4C40 1.6 90 4.6 130 2.6S190 3.8 198 3" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".55"/></svg>`;
+
+function scroll({x,r,y=0,w,len,ten,chi,side,pad,gap,cord=1.6,z,body,chiBody='',cls='',style=''}){
+	const pos=(r!=null?`right:${r}%;`:`left:${x}%;`)+`top:${y}cqw;width:${w}cqw;--len:${len}cqw;--cordh:${cord}cqw;`+(ten?`--ten:${ten}cqw;`:'')+(chi?`--chi:${chi}cqw;`:'')+(side?`--side:${side}cqw;`:'')+(pad?`--pad:${pad};`:'')+(gap?`--gap:${gap}cqw;`:'')+(z?`z-index:${z};`:'')+style;
+	return `<div class="ks ${cls}" style="${pos}"><div class="hang"><svg viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M6 10 L50 0 L94 10" stroke="var(--cord)" stroke-width="2" fill="none" vector-effect="non-scaling-stroke"/></svg><i></i></div><div class="rod"></div><div class="body"><div class="ten"><span class="futai" style="left:27%"></span><span class="futai" style="right:27%"></span></div><div class="mid"><div class="ichi"></div><div class="paper">${body}</div><div class="ichi"></div></div><div class="chi">${chiBody}</div></div><div class="jiku"></div></div>`;
+}
+function hscroll({x,y,len,h,body,z}){
+	return `<div class="hs" style="left:${x}%;top:${y}cqw;height:${h}cqw;--len:${len}cqw;${z?`z-index:${z}`:''}"><div class="hrod"></div><div class="hbody"><div class="ichi"></div><div class="hmid"><div class="hpaper">${body}</div></div><div class="ichi"></div></div><div class="hrod"></div></div>`;
+}
+const o=(css,html,cls='')=>`<div class="o ${cls}" style="${css}">${html}</div>`;
+const wm=(t,k,ws,ks)=>`<div class="wmr"><span class="wm" style="${ws?`--wms:${ws}cqw`:''}">${t}</span><span class="kj" style="${ks?`--kjs:${ks}cqw`:''}">${k}</span></div>`;
+const seal=(fs)=>`<div class="seal" style="${fs||''}"><small>ends in</small><b>05:43</b></div>`;
+const rates=(fs)=>`<div class="rt" style="${fs?`font-size:${fs}cqw`:''}">${RATES.map(([k,v])=>`<i style="background:${RC[k]}"></i><span>${k}</span><span>${v}</span>`).join('')}</div>`;
+const pity=()=>`<div class="pity"><div class="row"><span>Legendary in</span><span class="sp"></span><span class="n">100</span></div><div class="tr"><i style="width:12%;background:${RC.Legendary}"></i></div><div class="row"><span>Mythic in</span><span class="sp"></span><span class="n">300</span></div><div class="tr"><i style="width:5%;background:${RC.Mythic}"></i></div></div>`;
+const feat=(fs,img='side_knight')=>`<div class="feat" style="--fs:${fs}cqw"><img src="${I(img)}" alt="Igriz"></div>`;
+const featName=(fs=1.35)=>`<div class="ctr"><div class="h" style="font-size:${fs}cqw">Igriz</div><div class="s" style="color:${RC.Mythic};font-weight:700">Mythic, 0.5%</div></div>`;
+const links=()=>`<div class="row" style="gap:1cqw"><span class="lk">Details</span><span class="lk">Auto Sell: off</span></div>`;
+const ema=(l,c,w,h,pri)=>`<div class="ema${pri?' pri':''}" style="width:${w}cqw;height:${h}cqw"><span class="str"></span><div class="rim"><div class="in"><span class="l">${l}</span><span class="c">${c}</span></div></div></div>`;
+const cost=n=>n?`${n}${gem}`:'until stop';
+const hanko=(k,l,c,s,rot=0)=>`<div class="hk" style="width:${s}cqw;height:${s}cqw;transform:rotate(${rot}deg)"><div><div class="k">${k}</div><div class="l">${l}</div><div class="c">${c}</div></div></div>`;
+const bal=()=>`<div class="slip row" style="font-size:1.1cqw"><img src="img/gem.png" alt="" style="width:1.3cqw"><span class="n">937</span><span class="s" style="margin-left:.3cqw">gems</span></div>`;
+const packs=(gap=1.6)=>`<div style="display:grid;gap:${gap}cqw"><div class="tag"><div class="t">Small Gems</div><div class="s" style="color:inherit;opacity:.8">+1k gems</div><div class="p">R$199</div></div><div class="tag"><div class="t">Medium Gems</div><div class="s" style="color:inherit;opacity:.8">+2.5k gems</div><div class="p">R$449</div></div></div>`;
+const world=(kind,t='')=>`<div class="world" style="${t}"><div class="bgimg"></div><div class="cap ${kind}"></div><div class="vig"></div></div>`;
+
+const TEAM=[['sea_navigator','Nammi','Common','coin','side_crow'],['leaf_medic','Sakara','Uncommon','talisman','side_pig'],['db_green','Pikolo','Uncommon','key','side_fox']];
+const ROSTER=[['sea_navigator','Nammi','Common',1],['leaf_medic','Sakara','Uncommon',2],['db_green','Pikolo','Uncommon',3],['ds_flame','Rengoko','Mythic'],['leaf_hero','Narito','Legendary'],['soul_substitute','Ichigu','Legendary'],['jk_vessel','Yuuji','Epic'],['leaf_copycat','Kakashe','Rare'],['sea_cook','Sanjy','Uncommon'],['ds_boar','Inosuki','Uncommon'],['soul_healer','Orihima','Uncommon'],['mha_float','Ochaku','Uncommon']];
+const card=([id,nm,r,t],on)=>`<div class="card${on?' on':''}"><img src="${I(id)}" alt=""><div class="nm">${nm}</div><div class="sp2">${r}</div>${t?`<div class="in1">${t}</div>`:''}<div class="rb" style="background:${RC[r]}"></div></div>`;
+const cards=(n,on=-1)=>ROSTER.slice(0,n).map((c,i)=>card(c,i===on)).join('');
+const plaque=([id,nm,r,rel,sk],i,pick,w=12)=>scroll({x:[22.8,50.5,77.8][i]-w/2,y:0,w,len:10,ten:1.2,chi:1.1,cord:1,side:.5,pad:'.6cqw .7cqw',gap:.4,cls:pick?'pick':'',style:'--fut:0cqw;',body:`<div class="row s"><span>Slot ${i+1}</span><span class="sp"></span><span style="color:${RC[r]};font-weight:700">${r}</span></div><div class="row"><img class="pt" src="${I(id)}" alt=""><div><div class="h" style="font-size:1.15cqw">${nm}</div><div class="s"><span class="n">29</span> stud/s</div></div></div><div class="row s"><div class="sock"><img src="${I('relic_'+rel)}" alt=""></div><div class="sock"><img src="${I(sk)}" alt=""></div><span>Relic, Sidekick</span></div>`});
+const tsl=(t='Team',k='編成')=>`<div class="slip" style="padding:.5cqw 1cqw;display:flex;align-items:center;gap:.6cqw"><span class="wm" style="--wms:2.2cqw">${t}</span><span class="kj" style="writing-mode:horizontal-tb;--kjs:1.3cqw">${k}</span></div>`;
+
+const SUMMON=[
+{id:'R1',name:'Kakejiku',skin:'brocade',type:'t1',wm:'w-brush',tags:'scroll left, ema plaques bottom right',
+why:'The closest to a real mounted scroll. Everything you read hangs on the left; the three summons are wooden ema plaques that sway on hover; gem packs hang as tags on the right.',
+build:'Ema: one 9-slice image plus text. Hover sway is a 0.25 s Back-eased rotation around the cord.',
+f:()=>world('sum')+scroll({x:1.6,w:20,len:41.5,ten:2.6,chi:2.4,body:`${wm('Summon','召喚')}<div class="row"><div><div class="h" style="font-size:1.05cqw">Sidekick Banner</div><div class="s">Rotation 12</div></div><span class="sp"></span>${seal()}</div>${feat(7.5)}${featName()}${brush}${rates()}${pity()}${links()}`})
++o('right:1.2%;top:1.2cqw',`<div class="knot">&times;</div>`,'fade')
++o('right:1.4%;top:6.5cqw',packs(1.4),'rise')
++o('right:1.4%;bottom:10.4cqw',bal(),'rise')
++o('right:1.4%;bottom:1.2cqw;display:flex;gap:.9cqw',ema('Many',cost(500),8.4,7.4)+ema('Once',cost(50),9.4,8.2,1)+ema('Auto',cost(0),8.4,7.4),'rise2')},
+{id:'R2',name:'Twin scrolls',skin:'sumi',type:'t2',wm:'w-serif',tags:'a scroll each side, lacquer tray centre',
+why:'Two narrow scrolls frame the stage like a shrine alcove: the banner on the left, chances and pity on the right. The buttons sit on one low lacquer tray under the stage, Once in the middle.',
+build:'Both scrolls share one component. The tray is a rounded frame with a gold UIStroke.',
+f:()=>world('sum')+scroll({x:1.6,w:15,len:28,ten:2.2,chi:2,body:`${wm('Summon','召喚',2.3,1.3)}<div class="h" style="font-size:1cqw">Sidekick Banner</div>${feat(8)}${featName()}${brush}<div class="row"><span class="s">Rotation 12</span><span class="sp"></span>${seal()}</div>`})
++scroll({r:1.6,w:15,len:26,ten:2.2,chi:2,body:`<div class="h" style="font-size:1.2cqw">Chances</div>${rates()}${brush}<div class="h" style="font-size:1cqw">Pity</div>${pity()}${links()}`})
++o('right:18.6%;top:1.2cqw',`<div class="knot">&times;</div>`,'fade')
++o('left:50%;bottom:1.2cqw;transform:translateX(-50%)',`<div class="tray" style="background:var(--btn);padding:.7cqw .9cqw;border-radius:.8cqw;box-shadow:inset 0 0 0 .14cqw var(--edge),0 .5cqw 1cqw rgba(0,0,0,.5)">${bal()}<div class="lq" style="width:2.6cqw;height:2.6cqw;font-size:1.4cqw">+</div><div class="lq" style="width:9cqw;height:4.2cqw;flex-direction:column;gap:.1cqw;font-size:1.2cqw">Many<span class="c" style="font-size:.9cqw">${cost(500)}</span></div><div class="lq pri" style="width:12cqw;height:5.2cqw;flex-direction:column;gap:.1cqw;font-size:1.6cqw">Once<span class="c" style="font-size:1cqw">${cost(50)}</span></div><div class="lq" style="width:9cqw;height:4.2cqw;flex-direction:column;gap:.1cqw;font-size:1.2cqw">Auto<span class="c" style="font-size:.8cqw">until stop</span></div></div>`,'rise')},
+{id:'R3',name:'Enso and seals',skin:'sumi',type:'t5',wm:'w-brush',tags:'ink wash scroll, hanko seal buttons',
+why:'Calm ink-wash paper with a lot of white. The featured unit sits in a brushed enso circle, and the three summons are red hanko seals you stamp: one, ten, auto. The most distinct and the most premium.',
+build:'Enso and seals are 3 images; the seal press is a 0.12 s scale to 0.94 with an ink ring that fades out.',
+f:()=>world('sum')+scroll({x:1.6,w:21,len:41.5,ten:2.6,chi:2.6,gap:.65,body:`${wm('Summon','召喚',2.9,1.7)}<div class="row"><div class="h" style="font-size:1.1cqw">Sidekick Banner</div><span class="sp"></span><span class="s">Rotation 12</span></div><div style="position:relative;height:11cqw"><svg viewBox="0 0 100 100" style="position:absolute;left:50%;top:0;width:11cqw;height:11cqw;margin-left:-5.5cqw"><path d="M50 7C26 6 8 25 9 50s21 43 43 42 39-18 40-41C93 30 80 13 62 9" fill="none" stroke="#141214" stroke-width="6.5" stroke-linecap="round" opacity=".85"/><path d="M60 8.5C70 10 79 15 84 22" fill="none" stroke="#141214" stroke-width="3" stroke-linecap="round" opacity=".5"/></svg><img src="${I('side_knight')}" alt="" style="position:absolute;left:50%;top:1.6cqw;width:7.8cqw;margin-left:-3.9cqw"><div style="position:absolute;right:.4cqw;bottom:.3cqw">${seal()}</div></div>${featName(1.4)}${brush}<div style="display:grid;grid-template-columns:1fr 1fr;gap:.8cqw">${rates(.74)}${pity()}</div>${links()}`})
++o('right:1.2%;top:1.2cqw',`<div class="knot">&times;</div>`,'fade')
++o('right:1.4%;top:6.5cqw;--btn:linear-gradient(#6e2238,#45101f);--edge:#f491ab;--cord:#c2334d;--bi:#fff3d8',packs(1.4),'rise')
++o('right:1.6%;bottom:10.8cqw',bal(),'rise')
++o('right:1.6%;bottom:1.4cqw;display:flex;gap:1.2cqw;align-items:flex-end',hanko('十','Many',`500${gem}`,7.2,2)+hanko('一','Once',`50${gem}`,8.4,-2)+hanko('自','Auto','until stop',7.2,1.5),'rise2')},
+{id:'R4',name:'Night silk column',skin:'indigo',type:'t4',wm:'w-serif',tags:'dark silk scroll, thumb column right',
+why:'An evening version: indigo silk with gold wave brocade and lantern light on the paper. Every button sits in one right-hand column, so a phone thumb reaches Once, Many, Auto and the packs without moving.',
+build:'The lantern glow is a UIGradient on the paper, no animation. Column buttons are one lacquer style.',
+f:()=>world('sum')+`<div class="o" style="inset:0;background:radial-gradient(40% 50% at 12% 10%,rgba(255,190,110,.18),transparent);z-index:2"></div>`+scroll({x:1.6,w:19,len:40,ten:2.6,chi:2.4,body:`<div style="position:absolute;inset:0;background:radial-gradient(70% 40% at 50% 0,rgba(255,200,120,.16),transparent)"></div>${wm('Summon','召喚',2.4)}<div class="row"><div class="h" style="font-size:.95cqw">Sidekick Banner</div><span class="sp"></span>${seal()}</div>${feat(7.2)}${featName(1.2)}${brush}${rates(.75)}${pity()}${links()}`})
++o('right:1.4%;top:1.2cqw;width:12.5cqw;display:grid;gap:.8cqw;justify-items:stretch',`<div style="display:flex;justify-content:flex-end"><div class="knot">&times;</div></div><div class="lq" style="height:3cqw;font-size:.85cqw;justify-content:space-between;padding:0 .9cqw">Small Gems<span class="c" style="color:var(--edge)">R$199</span></div><div class="lq" style="height:3cqw;font-size:.85cqw;justify-content:space-between;padding:0 .9cqw">Medium Gems<span class="c" style="color:var(--edge)">R$449</span></div>`,'fade')
++o('right:1.4%;bottom:1.2cqw;width:12.5cqw;display:grid;gap:.8cqw',`<div class="slip row" style="justify-content:center;font-size:1.1cqw;background:var(--paper);color:var(--pi)"><img src="img/gem.png" alt="" style="width:1.3cqw"><span class="n">937</span></div><div class="lq" style="height:3.6cqw;font-size:1.05cqw;justify-content:space-between;padding:0 1cqw">Auto<span class="c" style="font-size:.75cqw">until stop</span></div><div class="lq" style="height:3.6cqw;font-size:1.05cqw;justify-content:space-between;padding:0 1cqw">Many<span class="c">${cost(500)}</span></div><div class="lq pri" style="height:5cqw;font-size:1.5cqw;justify-content:space-between;padding:0 1.1cqw">Once<span class="c" style="font-size:1.05cqw">${cost(50)}</span></div>`,'rise')},
+{id:'R5',name:'Emakimono band',skin:'brocade',type:'t3',wm:'w-brush',tags:'horizontal handscroll on top, plaques bottom',
+why:'A handscroll unrolls left to right across the top and reads like a story strip: title, banner, the three units on the stage, chances, pity. The whole lower screen stays free for the stage and the summon.',
+build:'One horizontal scroll component, reused on Team for the roster tray. Unroll is 0.55 s on the clip and the right roller.',
+f:()=>world('sum')+hscroll({x:1.2,y:1.2,len:72,h:11,body:`<div style="display:grid;gap:.3cqw;flex:0 0 auto"><span class="wm" style="--wms:2.6cqw">Summon</span><span class="s">Sidekick Banner, rotation 12</span></div>${seal()}<svg viewBox="0 0 4 100" style="width:.25cqw;height:7cqw"><path d="M2 2V98" stroke="currentColor" stroke-width="2" opacity=".35"/></svg>${[['side_reaper','Ryuuk','Legendary'],['side_knight','Igriz','Mythic'],['side_ant','Beroo','Legendary']].map(([i,n,r])=>`<div class="ctr" style="flex:0 0 auto"><div class="feat" style="--fs:${r=='Mythic'?5.6:4.6}cqw"><img src="${I(i)}" alt=""></div><div class="h" style="font-size:.9cqw;margin-top:.3cqw">${n}</div><div class="s" style="color:${RC[r]};font-weight:700">${r}</div></div>`).join('')}<svg viewBox="0 0 4 100" style="width:.25cqw;height:7cqw"><path d="M2 2V98" stroke="currentColor" stroke-width="2" opacity=".35"/></svg><div style="flex:1">${rates(.72)}</div><div style="flex:1">${pity()}</div>`})
++o('right:1.2%;top:1.2cqw',`<div class="knot">&times;</div>`,'fade')
++o('right:1.4%;top:6.4cqw',packs(1.4),'rise')
++o('left:1.4%;bottom:1.4cqw;display:flex;gap:.6cqw',`<div class="slip" style="font:700 .9cqw var(--b)">Details</div><div class="slip" style="font:700 .9cqw var(--b)">Auto Sell: off</div>`,'fade')
++o('right:1.4%;bottom:1.2cqw;display:flex;gap:.9cqw;align-items:flex-end',`<div style="align-self:center">${bal()}</div>`+ema('Many',cost(500),8.4,7.4)+ema('Once',cost(50),9.4,8.2,1)+ema('Auto',cost(0),8.4,7.4),'rise2')},
+{id:'R6',name:'One scroll holds all',skin:'sakura',type:'t2',wm:'w-serif',tags:'scroll right with buttons on the bottom mount',
+why:'One object: the scroll hangs on the right and its bottom mount carries the three summon buttons, so reading and pressing happen in the same place. The stage shifts left to make room. Softest of the six.',
+build:'Buttons are children of the scroll, so the whole page opens and closes as one tween.',
+f:()=>world('sum','left:-16%;right:0')+scroll({r:1.6,w:22,len:42.5,ten:2.4,chi:9.4,gap:.5,body:`${wm('Summon','召喚',2.6)}<div class="row"><div><div class="h" style="font-size:1cqw">Sidekick Banner</div><div class="s">Rotation 12</div></div><span class="sp"></span>${seal()}</div><div class="row" style="gap:1cqw">${feat(6.6)}<div>${featName(1.3).replace('ctr','')}</div><span class="sp"></span></div>${brush}${rates(.78)}${pity()}<div class="row">${links()}<span class="sp"></span>${bal().replace('font-size:1.1cqw','font-size:.95cqw')}</div>`,
+chiBody:`<div style="position:absolute;inset:.9cqw .9cqw 1cqw;display:flex;gap:.6cqw;align-items:stretch"><div class="lq" style="flex:1;flex-direction:column;font-size:1.05cqw">Many<span class="c" style="font-size:.8cqw">${cost(500)}</span></div><div class="lq pri" style="flex:1.35;flex-direction:column;font-size:1.4cqw">Once<span class="c" style="font-size:.95cqw">${cost(50)}</span></div><div class="lq" style="flex:1;flex-direction:column;font-size:1.05cqw">Auto<span class="c" style="font-size:.7cqw">until stop</span></div></div>`})
++o('right:25%;top:1.2cqw',`<div class="knot">&times;</div>`,'fade')
++o('left:1.4%;bottom:1.4cqw;display:flex;gap:1cqw;margin-top:1.2cqw',packs(0).replace('display:grid;gap:0cqw','display:flex;gap:1cqw'),'rise')}
+];
+
+const tray=(x,len,n,on)=>hscroll({x,y:35,len,h:11.6,body:`<div style="display:grid;gap:.4cqw;flex:0 0 auto"><div class="tab on">Characters</div><div class="tab">Sidekicks</div><div class="s" style="color:var(--pi)">Sort: rarity</div></div>${cards(n,on)}`});
+const deployRow=(x,r)=>o(`left:${x}%;right:${r}%;top:30.6cqw;display:flex;align-items:center;gap:1cqw`,`<div class="slip row" style="font-size:.95cqw"><b style="font-family:var(--d);font-weight:var(--dw)">Team 1</b><span class="s" style="color:#3e8e6a;font-weight:700">Ready</span></div><span class="sp"></span><span class="s" style="color:#fff3d8;font-size:.95cqw;text-shadow:0 .1cqw .3cqw #000"><b class="n">3 / 3</b> slots filled</span><span class="sp"></span><div class="lq" style="height:3cqw;padding:0 1.2cqw;font-size:.95cqw">Quick Setup</div><div class="lq pri" style="height:3.4cqw;padding:0 2.2cqw;font-size:1.25cqw">Deploy</div>`,'rise');
+
+const TEAMS=[
+{id:'T1',name:'Plaque scrolls',skin:'brocade',type:'t1',wm:'w-brush',tags:'a small scroll over each altar, handscroll roster',
+why:'Each altar gets its own small scroll from the beam with name, rarity, speed and its relic and Sidekick sockets. The picked slot glows cyan. The roster is a handscroll across the bottom that unrolls on open.',
+build:'Slot scrolls reuse the Summon scroll at a smaller size. Swapping a member re-inks only that scroll (0.2 s).',
+f:()=>world('team')+o('left:1.4%;top:1.2cqw',tsl(),'fade')+TEAM.map((m,i)=>plaque(m,i,i===1)).join('')
++o('right:1.2%;top:1.2cqw',`<div class="knot">&times;</div>`,'fade')
++o('right:5.6%;top:1.2cqw',`<div class="lq" style="height:2.8cqw;padding:0 1cqw;font-size:.9cqw">Team Bonus</div>`,'fade')
++deployRow(1.4,1.4)+tray(1,96.5,12,1)},
+{id:'T2',name:'Ledger scroll',skin:'sumi',type:'t5',wm:'w-brush',tags:'one tall roster-of-three scroll, numbered seals on altars',
+why:'One tall scroll on the left reads like a ledger of the team: three numbered rows with portrait, speed, relic and Sidekick, then Team Bonus, then Quick Setup and Deploy on the bottom mount. Altars only carry a small numbered seal.',
+build:'The stage camera moves right to make room (a camera offset, no new art). The ledger is one scroll with three row templates.',
+f:()=>`<div class="world"><div class="bgimg" style="filter:brightness(.6) blur(2px)"></div></div>`+world('team','transform:scale(.86);transform-origin:100% 45%')
++scroll({x:1.6,w:19,len:40,ten:2.4,chi:6.2,gap:.75,body:`${wm('Team','編成',2.6)}<div class="row"><b class="h" style="font-size:1cqw">Team 1</b><span class="s" style="color:#3e8e6a;font-weight:700">Ready</span><span class="sp"></span><span class="s"><b class="n">3 / 3</b></span></div>${brush}${TEAM.map(([id,nm,r,rel,sk],i)=>`<div class="row" style="padding:.35cqw;border-radius:.3cqw;${i===1?'background:rgba(46,200,208,.12);box-shadow:inset .25cqw 0 0 var(--cyan)':''}"><div class="num" style="width:1.8cqw;height:1.8cqw;font-size:1.05cqw">${'一二三'[i]}</div><img class="pt" src="${I(id)}" alt="" style="width:3cqw;height:3cqw"><div style="flex:1"><div class="h" style="font-size:1.05cqw">${nm}</div><div class="s" style="color:${RC[r]};font-weight:700">${r}</div><div class="s"><span class="n">29</span> stud/s</div></div><div class="sock" style="width:1.8cqw;height:1.8cqw"><img src="${I('relic_'+rel)}" alt=""></div><div class="sock" style="width:1.8cqw;height:1.8cqw"><img src="${I(sk)}" alt=""></div></div>`).join('')}${brush}<div class="row"><b class="h" style="font-size:1cqw">Team Bonus</b><span class="sp"></span><span class="lk">View</span></div>`,
+chiBody:`<div style="position:absolute;inset:.9cqw;display:flex;gap:.6cqw"><div class="lq" style="flex:1;font-size:.9cqw">Quick Setup</div><div class="lq pri" style="flex:1.2;font-size:1.2cqw">Deploy</div></div>`})
++[33.6,57.4,80.9].map((x,i)=>o(`left:${x}%;top:11.2cqw;transform:translateX(-50%)`,`<div class="num${i===1?' pick':''}">${'一二三'[i]}</div>`,'fade')).join('')
++o('right:1.2%;top:1.2cqw',`<div class="knot">&times;</div>`,'fade')
++tray(22.6,75.6,9,1)},
+{id:'T3',name:'Scroll on pick',skin:'indigo',type:'t4',wm:'w-serif',tags:'picking an altar unrolls a detail scroll',
+why:'Calm until you act: picking an altar unrolls one detail scroll for that member with a large portrait, its relic and its Sidekick, and Change and Remove. The roster handscroll underneath lists who can take the slot. Shown here with slot 2 picked.',
+build:'The detail scroll unrolls 0.35 s on pick and re-inks on swap; closing the pick rolls it up. Same scroll component as Summon.',
+f:()=>`<div class="world"><div class="bgimg" style="filter:brightness(.6) blur(2px)"></div></div>`+world('team','transform:scale(.88);transform-origin:0 45%')
++o('left:1.4%;top:1.2cqw',tsl(),'fade')
++[20.1,44.4,68.5].map((x,i)=>o(`left:${x}%;top:11.6cqw;transform:translateX(-50%)`,`<div class="num${i===1?' pick':''}">${'一二三'[i]}</div>`,'fade')).join('')
++o('left:1.4%;top:6.4cqw',`<div class="lq" style="height:2.8cqw;padding:0 1cqw;font-size:.85cqw">Team Bonus</div>`,'fade')
++o('right:1.2%;top:1.2cqw',`<div class="knot">&times;</div>`,'fade')
++scroll({r:1.6,y:2.6,w:21,len:40.6,ten:2.2,chi:6,cord:1.2,gap:.6,cls:'',body:`<div class="row"><div class="num" style="width:1.8cqw;height:1.8cqw;font-size:1.05cqw">二</div><span class="s">Slot 2</span><span class="sp"></span><span class="s" style="color:${RC.Uncommon};font-weight:700">Uncommon</span></div><div class="row" style="gap:.9cqw"><img class="pt" src="${I('leaf_medic')}" alt="" style="width:7cqw;height:7cqw"><div><div class="h" style="font-size:1.5cqw">Sakara</div><div class="s"><span class="n">29</span> stud/s</div><div class="s">Stamina 100</div></div></div>${brush}<div class="row"><div class="sock" style="width:3.2cqw;height:3.2cqw"><img src="${I('relic_talisman')}" alt=""></div><div><div class="h" style="font-size:.95cqw">Relic</div><div class="s">Talisman, equipped</div></div></div><div class="row"><div class="sock" style="width:3.2cqw;height:3.2cqw"><img src="${I('side_pig')}" alt=""></div><div><div class="h" style="font-size:.95cqw">Sidekick</div><div class="s">Hawke, Common</div></div></div><div class="row" style="gap:.6cqw;margin-top:auto"><div class="lq" style="flex:1;height:2.8cqw;font-size:.85cqw">Change</div><div class="lq" style="flex:1;height:2.8cqw;font-size:.85cqw">Remove</div></div>`,
+chiBody:`<div style="position:absolute;inset:.9cqw;display:flex;gap:.6cqw"><div class="lq" style="flex:1;font-size:.85cqw">Quick Setup</div><div class="lq pri" style="flex:1.3;font-size:1.15cqw">Deploy</div></div>`})
++o('left:1.4%;top:30.8cqw',`<div class="slip row" style="font-size:.95cqw"><b style="font-family:var(--d);font-weight:var(--dw)">Team 1</b><span class="s" style="color:#3e8e6a;font-weight:700">Ready</span><span class="s"><b class="n">3 / 3</b></span></div>`,'rise')
++tray(1,72.6,9,1)}
+];
+
+function draft(d){
+	return `<article class="draft" id="${d.id}"><div class="dh"><h3><span class="id">${d.id}</span>${d.name}</h3><span class="tags">${d.tags}</span><button class="play" type="button" data-play="${d.id}">Replay</button></div><div class="fx"><div class="scr" data-skin="${d.skin}" data-type="${d.type}" data-wm="${d.wm}">${d.f()}</div></div><p class="why">${d.why}</p><p class="build">${d.build}</p></article>`;
+}
+document.getElementById('summon').innerHTML=SUMMON.map(draft).join('');
+document.getElementById('team').innerHTML=TEAMS.map(draft).join('');
+document.getElementById('anatomy').innerHTML=scroll({x:8,w:84*230/100/2.3,len:300/2.3,ten:14,chi:12,cord:7,side:4,body:`${wm('Summon','召喚',9,5)}<div class="h" style="font-size:3.5cqw">Sidekick Banner</div>${feat(30)}${featName(5).replace(/font-size:1.35cqw/,'')}`}).replace('class="ks ','class="ks anat-k ');
+const A=document.getElementById('anatomy');A.querySelectorAll('.s').forEach(e=>e.style.fontSize='3.6cqw');
+
+const sel={skin:null,type:null,wm:null};
+function apply(){
+	document.querySelectorAll('.scr[data-skin]').forEach(s=>{
+		s.className='scr sk-'+(sel.skin||s.dataset.skin)+' '+(sel.type||s.dataset.type)+' '+(sel.wm||s.dataset.wm);
+	});
+	A.className='scr sk-'+(sel.skin||'brocade')+' '+(sel.type||'t1')+' '+(sel.wm||'w-brush');
+}
+function group(id,key,list){
+	const g=document.getElementById(id);
+	g.insertAdjacentHTML('beforeend',[['','Per draft'],...list].map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${v===''}">${l}</button>`).join(''));
+	g.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;sel[key]=b.dataset.v||null;g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));apply();replay(document.querySelectorAll('.scr'))});
+}
+group('gSkin','skin',SKINS);group('gType','type',TYPES);group('gWm','wm',WMS);
+function replay(list){list.forEach(s=>{s.classList.remove('go');void s.offsetWidth;s.classList.add('go')})}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-play]');if(b)replay([document.querySelector(`#${b.dataset.play} .scr`)])});
+document.getElementById('playAll').addEventListener('click',()=>replay(document.querySelectorAll('.scr')));
+apply();
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){replay([e.target]);io.unobserve(e.target)}}),{threshold:.35});
+document.querySelectorAll('.scr').forEach(s=>io.observe(s));
+}
+</script>
+</body>
+</html>
