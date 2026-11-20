@@ -207,8 +207,10 @@
 203. 2026-11-19 — Alex Nguyen — Rebuilt Team Setup as T2 "Ledger scroll" on the scroll kit (ledger rows, seal altars, paper handscroll roster, 11 px text floor), verified in Studio Play from all four entry points.
 204. 2026-11-19 — Alex Nguyen — Set the Summon odds label to Details (owner ruling 2026-11-19) and moved the UI tests to the new rules: odds caption, Team ledger rows showing the draft, hidden altar name line, "n / 3" count.
 205. 2026-11-20 — Alex Nguyen — Rebuilt the Summon page 1:1 to the owner's reference (parchment scroll, paper buttons, wood summon tiles, burgundy gem packs, outlined stage labels) and the owner approved it from the Studio capture.
+206. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
+207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
 
 ## What's next
-**Rewrite the two Summon UI checks the 1:1 page broke (UiSidekicks.luau:517-518 pity labels, :238-247 Legendary stage order by name), run ui_sidekicks and ui_sidekick_tutorial in Studio, then PR orch/summon-ref/s1 with a fresh review.**
+**Build the approved Team Select into Client/TeamUi (plate 84852553726102, ViewportFrame stage and altars, idle stance and breathing, parchment scrolls, drawn icons) with ui_team tests updated first, then run ui_team, ui_entry_points, team and the Summon checks ui_sidekicks, ui_sidekick_tutorial in Studio.**
 
-**Why this is next:** the approved Summon page cannot merge while its UI tests expect the old labels and order.
+**Why this is next:** the approved look exists only as a Studio draft; the game's Team page still shows T2, and the sakura-polish PR into main waits on these runs.

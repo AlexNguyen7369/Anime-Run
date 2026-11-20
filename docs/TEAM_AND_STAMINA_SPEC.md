@@ -17,11 +17,12 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
 
 ## Team Setup page (owner 2026-11-17, design doc 4.45)
 Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
-- Layout and look from 2026-11-19: design doc 4.45 "Hanging-scroll look", Team Setup (T2 ledger scroll). Where this list differs, 4.45 wins.
+- Layout and look from 2026-11-20: design doc 4.45 "Team Select night dojo" (owner-approved Studio draft; replaces T2 ledger scroll
+  and the base layout where they differ). Where this list differs, 4.45 wins.
 - Opens from the Team button (T), a click on the team minibar, or the plaza Team altar prompt; all call
   `PanelSwitch.Action("Team")`. The shared Sakura transition (`Client/UiTransition`, cyan accent) covers the open and close;
   movement is locked while open (`Client/InputLock`).
-- On open the draft is a copy of the saved `Team`. Tap an altar to select it (cyan glow), then a roster card: the member's
+- On open the draft is a copy of the saved `Team`. Tap an altar to select it (it takes the "Selected" plate and a brighter ring; 4.45 "Team Select night dojo", open question), then a roster card: the member's
   portrait flies to the altar and lands with a ring pulse. A member already in another slot swaps. Tapping a member's
   portrait offers Remove. The draft never drops below 1 member at Deploy (the button stays off at 0).
 - `TeamQuickPick(draftIds)` (RemoteFunction, read-only, 0.5 s cooldown): the server returns owned ids for the empty slots,
@@ -33,7 +34,7 @@ Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
   2026-11-17).
 - The saved Team changing while the page is open: an untouched draft takes the new saved Team; an edited draft stays
   (owner 2026-11-17).
-- Cards and altars show the member's relic emblem (diamond, from `RelicGear`) and Sidekick icon (circle, from
+- Cards and altars show the member's relic emblem and Sidekick icon (square icons as drawn, 4.45 "Team Select night dojo"; from `RelicGear` and
   `SidekickGear`) at the top-right; tooltips name the item, rarity and effect. The Sidekicks tab equips through
   `SidekickEquip` at once. Relics are inspect-only here.
 - Team bonus moves into a popover behind the Team Bonus button.

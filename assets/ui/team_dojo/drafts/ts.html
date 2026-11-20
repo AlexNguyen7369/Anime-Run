@@ -1,0 +1,145 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><link rel="stylesheet" href="ts.css"></head>
+<body>
+<img id="bg"><div id="bgfx"></div>
+<svg id="ring" class="abs" style="left:0;top:0" width="1920" height="1080"></svg>
+<div id="top"></div>
+<div id="left"></div>
+<div id="stage"></div>
+<div id="tray"></div>
+<script>
+{
+const P=new URLSearchParams(location.search),V=P.get('v')||'A',sel=+(P.get('sel')||1);
+document.getElementById('bg').src=P.get('bg')||'bg.png';
+const I={
+ check:'<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#2f9e48" stroke="#fff" stroke-width="1.5"/><path d="M6.5 12.5l3.5 3.5 7.5-8" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></svg>',
+ people:'<svg class="i" viewBox="0 0 24 24" fill="#3a2a2a"><circle cx="8" cy="8" r="4"/><circle cx="17" cy="9" r="3.2"/><path d="M1 21c0-5 3.5-7.5 7-7.5s7 2.5 7 7.5z"/><path d="M14 21c.3-3-1-5-2.2-6 1.2-.8 3-1.4 5.2-1.2 3 .3 5.8 2.4 5.8 7.2z"/></svg>',
+ swords:'<svg class="i" viewBox="0 0 24 24" stroke="#3a2a2a" stroke-width="2.6" stroke-linecap="round"><path d="M3 3l13 13M21 3L8 16M14 18l4-4M6 14l4 4M17 17l3 3M7 17l-3 3"/></svg>',
+ flower:'<svg class="i" viewBox="-12 -12 24 24"><g fill="#ff8fb8" stroke="#c03a6a" stroke-width=".8">'+[0,72,144,216,288].map(a=>`<ellipse rx="4.2" ry="6.4" cy="-5.6" transform="rotate(${a})"/>`).join('')+'</g><circle r="2.4" fill="#ffe08a"/></svg>',
+ heart:'<svg class="i" viewBox="0 0 24 24"><path d="M12 21C5 16 1.5 12.5 1.5 8 1.5 5 4 2.8 6.8 2.8c2.2 0 3.8 1.2 5.2 3 1.4-1.8 3-3 5.2-3 2.8 0 5.3 2.2 5.3 5.2 0 4.5-3.5 8-10.5 13z" fill="#4cc65a" stroke="#1f7a2c"/></svg>',
+ bolt:'<svg class="i" viewBox="0 0 24 24"><path d="M14 1L4 14h6l-2 9 11-14h-6z" fill="#3aa0ff" stroke="#0f4f9a"/></svg>',
+ pencil:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M4 20l1-5L16 4l4 4L9 19z"/><path d="M14 6l4 4"/></svg>',
+ search:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="#ecd6bc" stroke-width="2.6"><circle cx="10" cy="10" r="7"/><path d="M15 15l7 7"/></svg>',
+ sort:'<svg class="i" viewBox="0 0 24 24" stroke="#ecd6bc" stroke-width="2.6"><path d="M3 5h4M10 5h11M3 12h4M10 12h8M3 19h4M10 19h5"/></svg>',
+ person:'<svg class="i" viewBox="0 0 24 24" fill="#3a2a2a"><circle cx="12" cy="7" r="5"/><path d="M2 23c0-6 4.5-9 10-9s10 3 10 9z"/></svg>',
+ fox:'<svg class="i" viewBox="0 0 24 24"><path d="M2 3l6 5h8l6-5-1 10c0 5-4 9-9 9s-9-4-9-9z" fill="#e8823a" stroke="#3a2a2a" stroke-width="1.2"/><path d="M6 14c2 0 4 1 6 4 2-3 4-4 6-4" fill="#fff"/><circle cx="8.5" cy="12" r="1.2"/><circle cx="15.5" cy="12" r="1.2"/></svg>',
+ star:'<svg class="i" viewBox="0 0 24 24"><path d="M12 1.5l3.2 6.9 7.3.8-5.5 5 1.6 7.3L12 17.8l-6.6 3.7L7 14.2l-5.5-5 7.3-.8z" fill="#ffc83a" stroke="#8a5a00" stroke-width="1.2"/></svg>'};
+const team=[
+ {id:'leaf_hero',n:'Narito',r:'Legendary',k:'L',cr:500,relic:'relic_finger',rn:"Sukana's Finger",rr:'Legendary',re:'Stamina +15% · Damage +15% · Attack speed +4%',side:'side_fox',sn:'Kurami'},
+ {id:'leaf_avenger',n:'Saske',r:'Epic',k:'E',cr:330,relic:'relic_staff',rn:'Elf Staff',rr:'Epic',side:'side_crow',sn:'Kasugay'},
+ {id:'leaf_medic',n:'Sakara',r:'Uncommon',k:'U',cr:25,relic:'relic_flask',rn:"Priest's Flask",rr:'Legendary',side:'side_dogs',sn:'Gyokan'}];
+const roster=[...team.map((m,i)=>({...m,slot:i+1})),
+ {id:'leaf_crow',n:'Itachy',r:'Mythic',k:'M',cr:3000,relic:'relic_eyes',side:'side_reaper'},
+ {id:'leaf_copycat',n:'Kakashe',r:'Rare',k:'R',cr:40,side:'side_knight'},
+ {id:'db_green',n:'Pikolo',r:'Uncommon',k:'U',cr:28,relic:'relic_helmet'},
+ {id:'sea_cook',n:'Sanjy',r:'Uncommon',k:'U',cr:32},
+ {id:'ds_boar',n:'Inosuki',r:'Uncommon',k:'U',cr:36,side:'side_dogs'},
+ {id:'soul_healer',n:'Orihima',r:'Uncommon',k:'U',cr:42}];
+const H=(h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild};
+const put=(h)=>document.body.appendChild(H(h));
+const REF=V!=='B';
+// ---------- top bar ----------
+document.getElementById('top').outerHTML=`<div id="top">
+ <span class="abs" style="left:-14px;top:-18px;font-size:84px">${I.flower}</span><span class="abs" style="left:62px;top:-12px;font-size:52px">${I.flower}</span><span class="abs" style="left:30px;top:36px;font-size:40px;opacity:.9">${I.flower}</span>
+ <h1>AnimeRun - <b>Team Select</b></h1><span class="slash">/</span><div class="crumb">Sakura Dojo &nbsp;•&nbsp; Team Selection</div>
+ <span class="abs" style="right:96px;top:-16px;font-size:60px;opacity:.9">${I.flower}</span><span class="abs" style="right:150px;top:30px;font-size:38px;opacity:.8">${I.flower}</span><div class="xbtn">✕</div></div>`;
+// ---------- left panel ----------
+const icoRow=(m,cls)=>REF?`<div class="sq"><img src="img/${m.relic}.png"></div><div class="sq"><img src="img/p_${m.side}.png"></div>`
+ :`<div class="diamond"><img src="img/${m.relic}.png"></div><div class="circ"><img src="img/p_${m.side}.png"></div>`;
+const members=team.map((m,i)=>`<div style="display:flex;align-items:center;gap:12px;padding:7px 6px;border-bottom:1.5px solid rgba(120,70,40,.25);${V!=='A'&&i+1==sel?'background:rgba(232,180,74,.28);border-radius:6px;':''}">
+ <img src="img/p_${m.id}.png" style="width:60px;height:60px;border-radius:6px;border:2px solid var(--${m.k});object-fit:cover;object-position:top;background:#fff">
+ <span class="seal">${i+1}</span><div style="flex:1"><div style="font:900 25px Mont">${m.n}</div>${V==='A'?'':`<div style="font:900 italic 15px Mont;color:var(--${m.k})">${m.r}</div>`}</div>
+ <div style="font:800 19px Builder">${m.cr} <span style="font-size:14px">st/s</span></div></div>`).join('');
+const detailC=(()=>{const m=team[sel-1];return `<div class="brush">${m.n}'s Gear</div>
+ <div style="display:flex;flex-direction:column;gap:8px;font:800 17px Builder">
+ <div style="display:flex;gap:10px;align-items:center"><div class="sq" style="width:46px;height:46px"><img src="img/${m.relic}.png"></div><div><b style="font:900 19px Mont">${m.rn}</b><br><span style="color:var(--L)">Relic</span> · Stamina +15%</div></div>
+ <div style="display:flex;gap:10px;align-items:center"><div class="sq" style="width:46px;height:46px"><img src="img/p_${m.side}.png"></div><div><b style="font:900 19px Mont">${m.sn}</b><br><span style="color:var(--E)">Sidekick</span> · fox fire attack</div></div></div>`})();
+document.getElementById('left').outerHTML=`
+<div class="rod" style="left:22px;width:412px;top:96px"></div>
+<div class="paper abs" style="left:30px;top:106px;width:396px;height:944px;padding:22px 22px">
+ <div style="display:flex;gap:10px;align-items:center">
+  <div class="field" style="flex:1;font:900 26px Mont;color:#fff;justify-content:space-between;height:56px">Team 1<span style="font-size:20px">⌄</span></div>
+  <div class="field" style="width:56px;height:56px;justify-content:center;font-size:24px">${I.pencil}</div></div>
+ <div class="brush">Team Status ${V==='B'?'':'<span style="position:absolute;right:-6px;top:-8px;font-size:30px">'+I.flower+'</span>'}</div>
+ <div style="font:800 23px Builder;line-height:1.85;padding-left:8px;position:relative">
+  <div style="color:#2f8a3c;font:900 23px Builder">${I.check} Ready to Deploy</div>
+  <div>${I.people} 3 / 3 Members</div>
+  <div>${I.swords} Cruise: <span style="font:900 italic 30px Mont;color:#c07a10;-webkit-text-stroke:.6px #5a3000">855</span> <span style="font-size:17px">studs/s</span></div>
+  <span class="hanko abs" style="right:6px;top:52px">桜</span></div>
+ <div class="brush">Team Members</div>${members}
+ ${V==='C'?detailC:`<div class="brush">Team Bonus ${V==='B'?'<span style="margin-left:auto;margin-right:26px;font:900 18px Mont">Hide ˄</span>':''}</div>
+ <div style="font:800 23px Builder;line-height:1.75;padding-left:8px;position:relative">
+  <div style="font:900 italic 19px Mont;color:var(--verm)">Preset: Team Seven</div>
+  <div>${I.heart} Stamina <b style="color:#2f8a3c">+40%</b></div>
+  <div>${I.bolt} Cruise <b style="color:#2f8a3c">×1.1</b></div>
+  <span class="hanko abs" style="right:6px;top:0">桜</span></div>`}
+ <div class="abs" style="left:20px;right:20px;bottom:20px;display:flex;gap:12px">
+  <div class="btn secondary" style="flex:1;font-size:22px">${I.bolt} Quick Setup</div>
+  <div class="btn primary" style="flex:1.1">▶ Deploy</div></div>
+</div>
+<div class="rod" style="left:22px;width:412px;top:1044px"></div>`;
+// ---------- stage ----------
+const cx=1188;
+const pos=[{x:cx,top:470,w:520,mh:350,dim:0},{x:742,top:450,w:290,mh:215,dim:1},{x:1640,top:450,w:290,mh:215,dim:1}];
+const ring=document.getElementById('ring');
+ring.innerHTML=`<defs><marker id="ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5 0 10z" fill="#ff6a9a"/></marker></defs>
+ <g fill="none" stroke="#ff5a8a" stroke-width="5" opacity=".9" style="filter:drop-shadow(0 0 8px #ff3a7a)">
+ <path d="M ${cx-600} 560 A 600 110 0 0 1 ${cx-200} 452" marker-end="url(#ah)"/><path d="M ${cx+600} 560 A 600 110 0 0 0 ${cx+200} 452" marker-end="url(#ah)"/>
+ <path d="M ${cx-560} 600 A 600 100 0 0 0 ${cx-300} 668" marker-end="url(#ah)" opacity=".7"/><path d="M ${cx+560} 600 A 600 100 0 0 1 ${cx+300} 668" marker-end="url(#ah)" opacity=".7"/></g>`;
+function altarRef(x,top,w,big,dim){
+ const h=w*.24,f=w*.11;let s='';
+ const tier=(y,ww,hh,ff,topc)=>`<div class="abs" style="left:${(w-ww)/2}px;top:${y}px;width:${ww}px;height:${hh+ff}px">
+  <div class="oct" style="top:${hh*.5}px;height:${hh*.5+ff}px;clip-path:polygon(0 0,100% 0,95% 100%,5% 100%);background:linear-gradient(#e8b44a 0 4px,#4a1a12 4px,#24090a)"></div>
+  ${[.22,.5,.78].map(p=>`<div class="abs" style="left:${p*100-4}%;width:8%;top:${hh*.5+ff*.35}px;height:${ff*.4}px;background:#ffd27a;box-shadow:0 0 14px 4px rgba(255,190,90,.8);border-radius:3px"></div>`).join('')}
+  <div class="oct" style="top:-3px;height:${hh+6}px;background:#e8b44a;transform:scaleX(1.012)"></div>
+  <div class="oct" style="top:0;height:${hh}px;background:${topc}"></div></div>`;
+ s+=tier(h*.25,w,h,f,'radial-gradient(#5a1a1e,#3a0d12 70%)');
+ if(big)s+=tier(-h*.15,w*.66,h*.62,f*.8,'radial-gradient(#ff6a4a,#b0201e 55%,#5a0c10)');
+ put(`<div class="altar" style="left:${x}px;top:${top}px;width:${w}px;height:${h+f*2}px;${dim?'filter:brightness(.7)':''}">${s}</div>`);
+ return big?top+h*.12:top+h*.65;
+}
+function altarRule(x,top,w,big,dim){
+ const h=w*.26,f=w*.12;
+ put(`<div class="altar" style="left:${x}px;top:${top}px;width:${w}px;height:${h+f}px;filter:${dim?'brightness(.6)':'drop-shadow(0 0 26px rgba(95,242,255,.55))'}">
+  <div class="oct" style="top:${h*.5}px;height:${h*.5+f}px;clip-path:polygon(0 0,100% 0,96% 100%,4% 100%);background:linear-gradient(transparent 0 ${h*.5-2}px,#5ff2ff ${h*.5-2}px ${h*.5+5}px,#3a1810 ${h*.5+5}px,#1f0b07)"></div>
+  <div class="oct" style="top:0;height:${h}px;background:radial-gradient(#e86a9a,#b03a6a 70%,#7a2048)"><div class="abs" style="left:50%;top:50%;transform:translate(-50%,-50%);font-size:${w*.12}px">${I.flower}</div></div></div>`);
+ return top+h*.55;
+}
+const order=V==='A'?[0,1,2]:[sel-1,sel%3,(sel+1)%3];
+order.forEach((si,pi)=>{const m=team[si],p=pos[pi],big=!p.dim;
+ if(big)put(`<div class="aura" style="left:${p.x}px;top:${p.top-p.mh+40}px;width:${p.mh*.75}px;height:${p.mh+40}px;background:radial-gradient(50% 55% at 50% 60%,${REF?'rgba(255,60,40,.85),rgba(255,40,60,.35) 55%':'rgba(255,150,200,.7),rgba(95,242,255,.25) 55%'},transparent 75%)"></div>`);
+ const feet=(REF?altarRef:altarRule)(p.x,p.top,p.w,big,p.dim)+ (big?6:0);
+ put(`<img class="model${p.dim?' dim':''}" src="img/${m.id}.png" style="left:${p.x}px;top:${feet-p.mh}px;height:${p.mh}px">`);
+ const plateTop=Math.max(88,feet-p.mh-(big?92:80));
+ put(REF?`<div class="plate dark${big?'':' small'}" style="left:${p.x}px;top:${plateTop}px;${big?'border-color:#ff9cc0;box-shadow:0 0 14px rgba(255,120,170,.5)':''}">
+   <div>${big?'<span style="font-size:30px">'+I.star+'</span> ':''}<span class="nm">${m.n}</span><div class="sub" style="color:var(--${m.k});filter:brightness(1.35)">${m.r}${V==='C'?' · '+m.cr+' st/s':''}</div></div>${icoRow(m)}</div>`
+  :`<div class="plate paper${big?'':' small'}" style="left:${p.x}px;top:${plateTop}px;border:2px solid #b8382a;border-radius:6px">
+   <div><span class="nm" style="color:#2a1610;text-shadow:none">${m.n}</span><div class="sub" style="color:var(--${m.k})">${m.r} · ${m.cr} studs/s</div></div>${icoRow(m)}<span class="hanko">桜</span></div>`);
+ const baseY=big?p.top+p.w*.24*(REF?1:1.1)+4:p.top+p.w*(REF?.3275:.26)+4;
+ put(big?`<div class="selplate" style="left:${p.x}px;top:${baseY}px"><span class="seal" style="width:42px;height:42px;font-size:26px">${si+1}</span>Selected<span class="hanko">桜</span></div>`
+  :`<div class="numbadge" style="left:${p.x}px;top:${baseY-4}px">${si+1}</div>`);
+});
+put(`<div class="arrow" style="left:478px;top:520px">‹</div>`);put(`<div class="arrow" style="left:1830px;top:520px">›</div>`);
+if(false)put(`<div class="abs" style="left:${cx}px;top:92px;transform:translateX(-50%);display:flex;gap:12px">${[1,2,3].map(i=>`<span style="width:16px;height:16px;border-radius:50%;background:${i==sel?'#ff9cc0':'rgba(255,255,255,.35)'};border:2px solid #fff"></span>`).join('')}</div>`);
+// ---------- tray ----------
+const card=m=>`<div class="card${m.slot?' inteam':''}${m.slot==sel?' sel':''}">
+ <div class="art" style="background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--${m.k}) 55%,#fff),var(--${m.k}))"><img class="p" src="img/p_${m.id}.png">
+ ${m.slot?`<span class="seal slot">${m.slot}</span>`:''}
+ <div class="ic">${REF?`${m.relic?`<div class="sq"><img src="img/${m.relic}.png"></div>`:''}${m.side?`<div class="sq"><img src="img/p_${m.side}.png"></div>`:''}${m.slot?'<div class="chk">✓</div>':''}`
+  :`${m.relic?`<div class="diamond" style="width:28px;height:28px"><img src="img/${m.relic}.png" style="width:24px;height:24px"></div>`:''}${m.side?`<div class="circ" style="width:32px;height:32px"><img src="img/p_${m.side}.png"></div>`:''}`}</div></div>
+ <div class="nm"><span style="font-size:20px">${I.star}</span>${m.n}</div><div class="rar" style="color:var(--${m.k})">${m.r}</div>
+ ${m.slot?'<span class="hanko hk">桜</span>':''}<div class="lv">${m.cr} st/s</div></div>`;
+document.getElementById('tray').outerHTML=`
+<div class="abs" style="left:496px;top:700px;display:flex;gap:12px">
+ <div class="tab on">${I.person} Characters <span style="font-size:22px">${I.flower}</span></div><div class="tab off">${I.fox} Sidekicks</div></div>
+<div class="field abs" style="left:1064px;top:708px;width:${V==="C"?356:500}px">${I.search}<span style="opacity:.75">Search character...</span></div>
+${V==='C'?`<div class="abs" style="left:1430px;top:713px;display:flex;gap:8px">${['All','Mythic','Legend','Epic'].map((c,i)=>`<div class="chip${i?'':' on'}">${c}</div>`).join('')}</div>`
+ :`<div class="field abs" style="left:1590px;top:708px;width:300px;justify-content:space-between"><span>${I.sort} &nbsp;Sort: Rarity</span><span>⌄</span></div>`}
+<div class="vrod" style="left:474px;top:774px;height:286px"></div>
+<div class="paper abs" style="left:488px;top:774px;width:1404px;height:286px;padding:24px 22px;overflow:hidden">
+ <div style="display:flex;gap:12px">${roster.map(card).join('')}</div></div>
+<div class="vrod" style="left:1886px;top:774px;height:286px"></div>
+${V==='B'?`<div class="tip" style="left:650px;top:820px"><b>Sukana's Finger</b><div style="color:var(--L);font-weight:900">Legendary Relic</div><div>Stamina +15% · Damage +15% · Attack speed +4%</div></div>`:''}
+${V==='C'?`<div class="tip" style="left:1060px;top:600px;width:250px;border-color:#7be08a"><b>Itachy</b> into slot ${sel}<div style="color:#7be08a">Cruise +2,500 st/s</div><div style="color:#ffb0a0">Team Seven bonus lost</div></div>`:''}`;
+}
+</script>
+</body></html>

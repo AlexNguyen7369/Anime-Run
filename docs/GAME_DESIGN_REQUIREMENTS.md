@@ -695,6 +695,32 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     search at its left end; cards are paper cards with portrait, name, rarity strip, the team-slot seal, and the relic
     and Sidekick icons as before. Close at the top right. The top-centre slot dots go (the ledger shows the slots).
 
+- Team Select night dojo (owner 2026-11-19/20; replaces T2 "Ledger scroll" where they differ, and in the base Team Setup bullet above
+  it replaces the blossom-shrine backdrop, the pink / cyan light columns (a soft red-pink aura behind the centre member
+  instead), the equal one-slab altars (pink top, cyan rim, sakura emblem) and the diamond / circle relic and Sidekick
+  icons (square icons as drawn); the plaza Team altar keeps its slab until the owner rules on it (**open question**);
+  approved from the Studio captures
+  https://claude.ai/artifact/16AdtJyLjWfV8AUwD2mo4D on 2026-11-20). Reference: the owner's Team Select image (in
+  assets/ui/team_dojo/drafts and the review pages). Sizes, offsets and timings are **proposed**; the look is fixed.
+  - Backdrop: the night-dojo plate (assets/ui/team_dojo, `rbxassetid://84852553726102`), floor vanishing point (1089, 242)
+    on 1920x1080. Stage: one ViewportFrame camera matched to it (level, 6.52 studs up, focal 1870 px). Altars: two-tier
+    octagons in dark lacquered wood with gold trim, a flat face to the camera, a glowing gold-orange ring on top. Slot 1
+    centre X 0 depth 35.1 (r 5.9/4.9, h 1.42, scale 1.0); slots 2 and 3 at X -9.37 / 10.26, depth 47.5 (r 3.5/3.1,
+    h 0.60, scale 0.905), turned 11 deg / -12 deg toward the camera.
+  - Members: the real character models in an idle stance (legs out 13 deg, arms out 15/19 deg and forward 8/14 deg,
+    3 deg lean, head tilt 2.5 deg) with breathing on top (3.4 s sine; torso Y +2.2 %, Z +3 %, rise 0.035; shoulders
+    rise 0.05 and roll 2 deg; head nod 2 deg; sway 0.46 deg over two breaths; slots offset 1.12 s and 2.24 s).
+  - UI (Makimono layout, Summon parchment look): header bar, left parchment scroll (Team 1 row, Team Status, Team
+    Members, Team Bonus with the preset name in a red brush pill, Quick Setup, Deploy), nameplates in dark lacquer with
+    gold (centre pink with a star) over each member, the "1 Selected" plate and 2 / 3 badges on the altars, pink ring
+    arrows on the ellipse centred (1102, 442) 555 x 149, nav arrows, Characters / Sidekicks tabs, Search, Sort, and the
+    roster handscroll of parchment cards. Drawn icons from assets/ui/team_icons.
+  - **Open questions** (the look shows them; behaviour unchanged until the owner rules): the Team 1 dropdown and pencil
+    (one team, no rename today); cruise shown where the reference shows Lv. and Power; Team Bonus shows only the
+    4.8 series / preset bonus; what the ‹ › nav arrows do (the approved captures show the reference's fixed order,
+    slot 1 in the centre); how a picked altar shows now that the rings are gold-orange (until ruled, the picked slot keeps
+    the "Selected" plate and a brighter ring); the plaza Team altar's look.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -887,3 +913,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-04: owner: Tracks panel is one list of long horizontal cards with a road screenshot, a brief anime-context definition, recommended speed and enemy name; a card click picks the checkpoint; no 3D render, detail pane or START HERE (4.15).
 - 2026-11-19: owner: the Summon page matches the owner's reference image 1:1 (4.45 "Summon 1:1 reference"); Team Select is being redrawn separately.
 - 2026-11-20: owner approved the Summon 1:1 page from the Studio capture (4.45 "Summon 1:1 reference").
+- 2026-11-20: owner approved the Team Select redesign from the Studio draft (4.45 "Team Select night dojo"): night-dojo plate, two-tier lacquer altars with gold-orange top rings, real models in an idle stance with breathing, Makimono layout with the Summon parchment scroll look, drawn icons (assets/ui/team_icons).
