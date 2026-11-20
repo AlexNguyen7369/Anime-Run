@@ -209,8 +209,9 @@
 205. 2026-11-20 — Alex Nguyen — Rebuilt the Summon page 1:1 to the owner's reference (parchment scroll, paper buttons, wood summon tiles, burgundy gem packs, outlined stage labels) and the owner approved it from the Studio capture.
 206. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
 207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
+208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
 
 ## What's next
-**Build the approved Team Select into Client/TeamUi (plate 84852553726102, ViewportFrame stage and altars, idle stance and breathing, parchment scrolls, drawn icons) with ui_team tests updated first, then run ui_team, ui_entry_points, team and the Summon checks ui_sidekicks, ui_sidekick_tutorial in Studio.**
+**Run the new Team Select page in Studio against the approved captures (desktop, 4:3, phone), update the UiTeam altar order and gear checks, and rerun ui_team, the team_* clicks, ui_entry_points and ui_sidekicks.**
 
-**Why this is next:** the approved look exists only as a Studio draft; the game's Team page still shows T2, and the sakura-polish PR into main waits on these runs.
+**Why this is next:** Team Select is in main but was never run in Studio, two Team checks fail by design until updated, and the per-Sidekick odds list in Details touches the same Summon tests after it.
