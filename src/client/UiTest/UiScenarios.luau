@@ -9699,8 +9699,13 @@ function UiScenarios.RunClick(id)
 		local sg = playerGui:FindFirstChild(spec.Gui)
 		button = sg and sg:FindFirstChild(path, true) -- the card may sit inside the backdrop
 	end
-	check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
-	if not button then
+	-- Prepare.PressFirst: the target may only exist once that popup has drawn (the Many confirmation's Confirm, a panel's
+	-- red X): it is looked up again after the press.
+	local lateTarget = button == nil and prep.PressFirst ~= nil
+	if not lateTarget then
+		check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
+	end
+	if not button and not lateTarget then
 		if earlyPanels then
 			earlyPanels()
 		end
@@ -9721,7 +9726,7 @@ function UiScenarios.RunClick(id)
 	local probe = nil
 	frames(2)
 	-- Opening a panel may re-render its view (the Backpack rebuilds its tiles on show): use the button there now
-	if button.Parent == nil then
+	if button and button.Parent == nil then
 		button = findPath(spec.Gui .. "/" .. path) or button
 	end
 	if tileId and grid then
@@ -9738,7 +9743,7 @@ function UiScenarios.RunClick(id)
 		frames(2)
 	end
 	-- Prepare.ScrollIntoView: the target's ScrollingFrame scrolled so the target is fully shown (put back after)
-	local scroller = prep.ScrollIntoView and button:FindFirstAncestorWhichIsA("ScrollingFrame") or nil
+	local scroller = prep.ScrollIntoView and button and button:FindFirstAncestorWhichIsA("ScrollingFrame") or nil
 	local savedScroll = scroller and scroller.CanvasPosition
 	if scroller then
 		local rel = button.AbsolutePosition - scroller.AbsolutePosition + scroller.CanvasPosition
@@ -9831,6 +9836,14 @@ function UiScenarios.RunClick(id)
 			return res
 		end
 		task.wait(UiSpec.Waits.PanelMotion) -- its pop has ended: the click point below is where it stays
+	end
+	if lateTarget then
+		button = findPath(spec.Gui .. "/" .. path)
+		check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
+		if not button then
+			restore()
+			return res
+		end
 	end
 	if prep.LabelIs ~= nil then
 		local actual = allText(button)

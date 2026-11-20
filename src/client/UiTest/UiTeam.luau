@@ -879,6 +879,11 @@ function Module.Build(h)
 			false
 		)
 	end
+	-- team_button_closes (owner 2026-11-20): the open page was frontmost over the Team button before its Close was pressed.
+	function after.team_page_covers_button(res)
+		local watch = Spec.Team.CoverWatch
+		h.check(res, "team_page_covers_team_button", watch.Front, "inside RacerTeam", watch.Covered == true)
+	end
 	function after.team_dim_on(res)
 		check(res, "team_open_dims_world", waitIs(dimOn, true), true)
 	end
