@@ -24,6 +24,7 @@ local RESTRICTED = "Not available on your account"
 
 local state = {} -- [player] = { Receipts = { id, ... }, Codes = { [CODE] = true } }
 local processing = {} -- [purchaseId] = true while a receipt is being granted
+local unsaved = {} -- [purchaseId] = true: granted and recorded in this session, but no save has confirmed it yet
 local lastRedeem = {}
 local saveFn = nil
 local playerSource, promptFn, policyFn = nil, nil, nil
@@ -126,8 +127,9 @@ function ShopService.Snapshot(player)
 end
 
 -- Applies a receipt once: the purchase id is recorded, give() grants (false = can not grant now), then both are saved.
--- A refusal or a failed save drops the id and undoes the grant, so Roblox's retry grants it exactly once later.
-local function commit(player, purchaseId, give, undo)
+-- A refusal drops the id. A failed save keeps both the grant and the id: every later save writes them together, and
+-- Roblox's retry is answered by a new save (nothing is taken back, so spending during the save can not duplicate it).
+local function commit(player, purchaseId, give)
 	processing[purchaseId] = true
 	local s = stateFor(player)
 	table.insert(s.Receipts, purchaseId)
@@ -151,12 +153,12 @@ local function commit(player, purchaseId, give, undo)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	local ok, saved = pcall(save, player)
+	processing[purchaseId] = nil
 	if ok and saved then
-		processing[purchaseId] = nil
+		unsaved[purchaseId] = nil
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
-	forget()
-	undo()
+	unsaved[purchaseId] = true
 	return Enum.ProductPurchaseDecision.NotProcessedYet
 end
 
@@ -165,7 +167,7 @@ end
 local function processOfflineDouble(player, purchaseId)
 	return commit(player, purchaseId, function()
 		return false
-	end, function() end)
+	end)
 end
 
 -- Takes one saved credit and starts the event. A failed save of the use is not undone: the event runs, and at worst a crash before the
@@ -199,8 +201,6 @@ local function processBoss(player, purchaseId)
 	local decision = commit(player, purchaseId, function()
 		player:SetAttribute("BossCredit", (player:GetAttribute("BossCredit") or 0) + 1)
 		return true
-	end, function()
-		player:SetAttribute("BossCredit", math.max(0, (player:GetAttribute("BossCredit") or 0) - 1))
 	end)
 	creditsInFlight[player] = creditsInFlight[player] > 1 and creditsInFlight[player] - 1 or nil
 	if decision == Enum.ProductPurchaseDecision.PurchaseGranted then
@@ -209,12 +209,9 @@ local function processBoss(player, purchaseId)
 	return decision
 end
 
--- shortcut: Gems spent during a save that then fails leave the undo clamped at 0, so the retry pays them again; upgrade with a saved debt if that window ever matters.
 local function processGems(player, purchaseId, pack)
 	return commit(player, purchaseId, function()
 		return MoneyService.AddGems(player, pack.Gems) ~= nil
-	end, function()
-		player:SetAttribute("Gems", math.max(0, (player:GetAttribute("Gems") or 0) - pack.Gems))
 	end)
 end
 
@@ -245,6 +242,16 @@ function ShopService.ProcessReceipt(info)
 	end
 	local s = stateFor(player)
 	if table.find(s.Receipts, purchaseId) then
+		if unsaved[purchaseId] then
+			-- Granted here before, its save failed: granted once a save holds it
+			processing[purchaseId] = true
+			local ok, saved = pcall(save, player)
+			processing[purchaseId] = nil
+			if not (ok and saved) then
+				return Enum.ProductPurchaseDecision.NotProcessedYet
+			end
+			unsaved[purchaseId] = nil
+		end
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 	if isDouble then
@@ -260,8 +267,6 @@ function ShopService.ProcessReceipt(info)
 	return commit(player, purchaseId, function()
 		grant(player, product.Grants, 1)
 		return true
-	end, function()
-		grant(player, product.Grants, -1)
 	end)
 end
 

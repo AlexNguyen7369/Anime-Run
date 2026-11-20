@@ -15,19 +15,41 @@ local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local UiScenarios = require(script.Parent:WaitForChild("UiScenarios"))
 local UiRunVisual = require(script.Parent:WaitForChild("UiRunVisual"))
 
 local player = Players.LocalPlayer
 local busy = false
 
-UiScenarios.Init()
+-- Normal play (no harness attribute set) runs no test code: UiScenarios loads and starts its observers on the first
+-- harness request (a server fixture UiTestSetup, UiTestRun, UiTestClick, UiTestScenario or a capture), or at once
+-- when one is already set on join.
+local UiScenarios, starting = nil, false
+local function start()
+	if starting then
+		while not UiScenarios do -- another trigger is loading it: Init runs once
+			task.wait()
+		end
+		return
+	end
+	starting = true
+	local scenarios = require(script.Parent:WaitForChild("UiScenarios"))
+	scenarios.Init()
+	UiScenarios = scenarios
+end
+local TRIGGERS = { "UiTestSetup", "UiTestRun", "UiTestClick", "UiTestScenario", UiRunVisual.CAPTURE_ATTR }
+for _, name in TRIGGERS do
+	if ReplicatedStorage:GetAttribute(name) ~= nil then
+		start()
+	end
+	ReplicatedStorage:GetAttributeChangedSignal(name):Connect(start)
+end
 
 local function runAll()
 	if busy then
 		return
 	end
 	busy = true
+	start()
 	print("[UITEST] START")
 	pcall(UiScenarios.PlayWithoutPasses)
 	local results, pass, fail = {}, 0, 0
@@ -69,6 +91,7 @@ local function runClick(id)
 		task.wait(0.1)
 	end
 	busy = true
+	start()
 	local ok, res = pcall(UiScenarios.RunClick, id)
 	if not ok then
 		res = {
@@ -109,6 +132,7 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 			task.wait(0.1)
 		end
 		busy = true
+		start()
 		pcall(UiScenarios.PlayWithoutPasses)
 		local ok, res = pcall(UiScenarios.Run, name)
 		if not ok then

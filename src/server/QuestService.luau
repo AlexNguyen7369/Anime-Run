@@ -155,6 +155,12 @@ function QuestService.Claim(player, weekly, id)
 	return true, quest.Reward
 end
 
+-- A remote call before this player's save loaded is refused: the load would overwrite what it changed. A failed load
+-- (Studio without API access) plays on unsaved.
+local function loading(player)
+	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+end
+
 function QuestService.Start()
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes") or Instance.new("Folder")
 	remotes.Name = "Remotes"
@@ -162,7 +168,12 @@ function QuestService.Start()
 	local claim = remotes:FindFirstChild("QuestClaim") or Instance.new("RemoteFunction")
 	claim.Name = "QuestClaim"
 	claim.Parent = remotes
-	claim.OnServerInvoke = QuestService.Claim
+	claim.OnServerInvoke = function(player, ...)
+		if loading(player) then
+			return false, "Data not loaded"
+		end
+		return QuestService.Claim(player, ...)
+	end
 	Players.PlayerAdded:Connect(QuestService.Setup)
 	for _, player in Players:GetPlayers() do
 		QuestService.Setup(player)

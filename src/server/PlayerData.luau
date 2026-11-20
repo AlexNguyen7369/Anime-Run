@@ -3,7 +3,8 @@
 -- (owned tiles, BestTrack, TurboCount). There is no Speed stat (owner 2026-11-01, design doc
 -- 4.13): an old save's Speed is kept in the record but never read. The server owns them: leaderstats replicate down to clients, nothing a client sends ever changes a value. Data is
 -- kept in a DataStore; if the store cannot be read (Studio without API access, outage) the player is
--- flagged DataFailed and their stats are never written, so a failed load can not wipe a save.
+-- flagged DataFailed and their stats are never written, so a failed load can not wipe a save (a live player is then
+-- kicked with a rejoin message). A record written by a newer VERSION is played read-only (DataReadOnly), never written.
 
 local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
@@ -35,15 +36,20 @@ local VERSION = 19 -- 19: Dojos removed, workshop level prices refunded once (de
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
--- design doc 4.13 (owner 2026-11-01); EquippedAura / EquippedTrail: replaced by SlotItems (u4)
-local RETIRED_KEYS = { "Speed", "EquippedAura", "EquippedTrail", "Level", "XP" }
+-- A save keeps every stored key it does not write: the retired ones (Speed, design doc 4.13; EquippedAura /
+-- EquippedTrail, replaced by SlotItems (u4); Level, XP) stay in old saves, never read, and a newer server's fields
+-- survive this one. Only these go, dropped at the first VERSION 19 save (design doc 4.43):
+local DROPPED_KEYS = { "WorkshopLevel", "WorkshopStat", "Showcase" }
+local GIFT_TOMBSTONE_DAYS = 90 -- a claimed gift's mailbox entry and receipt are pruned this long after it arrived
 local MAX_DUEL_WINS = 1e9
 
 -- Session lock (docs/SAVE_SPEC.md): the saved record names the server that holds it, so two servers never
 -- write the same save.
 PlayerData.LOCK_TIMEOUT = 120 -- seconds: a lock this old is dead and may be taken
 PlayerData.LOAD_RETRIES = 3 -- attempts in total
-PlayerData.LOAD_RETRY_WAIT = 2 -- seconds between attempts
+PlayerData.LOAD_RETRY_WAIT = 2 -- seconds between attempts (a store error waits attempt x this)
+PlayerData.LOCK_WAIT = PlayerData.LOCK_TIMEOUT -- seconds a load keeps retrying a lock another server holds
+PlayerData.FAIL_KICK = "Your data could not load. Please rejoin."
 
 local store = nil
 local clock = os.time
@@ -187,9 +193,13 @@ function PlayerData.Load(player, userId)
 		player:SetAttribute("Checkpoint", cleanInt(data.Checkpoint, 1, MAX_DUEL_WINS, 1)) -- design doc 4.15
 	end
 
-	-- One UpdateAsync per attempt takes the lock. Nothing in the transform yields.
+	-- One UpdateAsync per attempt takes the lock. Nothing in the transform yields. A store error is retried
+	-- LOAD_RETRIES times with a growing wait; a lock held by another server is retried until LOCK_WAIT has passed
+	-- (that server may be saving this player out right now).
 	local updated = nil
-	for attempt = 1, PlayerData.LOAD_RETRIES do
+	local started = os.clock()
+	local errors = 0
+	while true do
 		local refused = false
 		local ok, result = pcall(function()
 			return dataStore:UpdateAsync(PlayerData.KeyFor(userId), function(current)
@@ -203,20 +213,57 @@ function PlayerData.Load(player, userId)
 				return record
 			end)
 		end)
-		if not ok then
-			break -- store error: never guess a save
-		end
-		if not refused and type(result) == "table" then
+		if ok and not refused and type(result) == "table" then
 			updated = result
 			break
 		end
-		if attempt < PlayerData.LOAD_RETRIES then
-			task.wait(PlayerData.LOAD_RETRY_WAIT) -- another server may be saving this player out right now
+		if not player.Parent then
+			break
 		end
+		local wait
+		if ok and refused then
+			if os.clock() - started + PlayerData.LOAD_RETRY_WAIT > PlayerData.LOCK_WAIT then
+				break
+			end
+			wait = PlayerData.LOAD_RETRY_WAIT
+		else
+			errors += 1 -- store error: never guess a save, ask again
+			if errors >= PlayerData.LOAD_RETRIES then
+				break
+			end
+			wait = PlayerData.LOAD_RETRY_WAIT * errors
+		end
+		task.wait(wait)
+	end
+	if updated and not player.Parent then
+		-- Left while the load was in flight: hand the lock back now instead of holding it for LOCK_TIMEOUT.
+		pcall(function()
+			dataStore:UpdateAsync(PlayerData.KeyFor(userId), function(current)
+				if type(current) ~= "table" or type(current.Lock) ~= "table" then
+					return nil
+				end
+				if current.Lock.Id ~= PlayerData.SessionId() then
+					return nil
+				end
+				local record = table.clone(current)
+				record.Lock = nil
+				return record
+			end)
+		end)
+		return false
 	end
 	if not updated then
 		player:SetAttribute("DataFailed", true)
+		-- Studio without API access plays on unsaved; a live player is told and sent back to rejoin.
+		if player.Parent and player:IsA("Player") and not RunService:IsStudio() then
+			player:Kick(PlayerData.FAIL_KICK)
+		end
 		return false
+	end
+	if (tonumber(updated.Version) or 0) > VERSION then
+		-- Written by a newer server: play it, never write it (Save keeps only the lock up to date).
+		player:SetAttribute("DataReadOnly", true)
+		warn("PlayerData: save version " .. tostring(updated.Version) .. " is newer than " .. VERSION .. ", read-only")
 	end
 	apply(updated)
 	player:SetAttribute("DataFailed", nil)
@@ -253,12 +300,34 @@ function PlayerData.EnqueueGift(userId, purchaseId, gift)
 			if not record.GiftMailbox[purchaseId] then
 				local entry = table.clone(gift)
 				entry.Grants = table.clone(gift.Grants)
+				entry.At = clock()
 				record.GiftMailbox[purchaseId] = entry
 			end
 			return record
 		end)
 	end)
 	return ok and type(result) == "table" and result.GiftMailbox[purchaseId] ~= nil
+end
+
+-- Claimed gifts: a mailbox entry and its receipt go together once GIFT_TOMBSTONE_DAYS old. An entry with no
+-- time yet (older saves) gets this save's time, so it is pruned that long from now.
+local function pruneGifts(record, at)
+	local mailbox, receipts = record.GiftMailbox, record.GiftReceipts
+	if type(mailbox) ~= "table" or type(receipts) ~= "table" then
+		return
+	end
+	for purchaseId, entry in mailbox do
+		if receipts[purchaseId] and type(entry) == "table" then
+			if type(entry.At) ~= "number" then
+				local stamped = table.clone(entry)
+				stamped.At = at
+				mailbox[purchaseId] = stamped
+			elseif at - entry.At > GIFT_TOMBSTONE_DAYS * 86400 then
+				mailbox[purchaseId] = nil
+				receipts[purchaseId] = nil
+			end
+		end
+	end
 end
 
 -- Returns true if the stats were written. Never writes for a player whose load failed or has not finished, or
@@ -331,7 +400,7 @@ local function save(player, userId, release)
 		OfflineAt = clock(),
 		Version = VERSION,
 	}
-	local refused = false
+	local refused, readOnly = false, false
 	local known = giftReceipts[player] or {}
 	local ok, result = pcall(function()
 		return dataStore:UpdateAsync(PlayerData.KeyFor(userId), function(current)
@@ -340,14 +409,31 @@ local function save(player, userId, release)
 			if refused then
 				return nil -- this server lost the session: never overwrite the other server's save
 			end
-			local merged = GiftMailbox.Merge(table.clone(payload), type(current) == "table" and current or {}, known)
-			for _, key in RETIRED_KEYS do
-				merged[key] = type(current) == "table" and current[key] or nil -- kept in old saves, never read
+			local lock = if release then nil else { Id = PlayerData.SessionId(), At = at }
+			current = type(current) == "table" and current or {}
+			if (tonumber(current.Version) or 0) > VERSION then
+				readOnly = true -- a newer server wrote it: keep every field, only the lock moves
+				local record = table.clone(current)
+				record.Lock = lock
+				return record
 			end
-			merged.Lock = if release then nil else { Id = PlayerData.SessionId(), At = at }
+			-- Start from the stored record so keys this version does not know are kept, then overlay ours.
+			local merged = table.clone(current)
+			for key, value in GiftMailbox.Merge(table.clone(payload), current, known) do
+				merged[key] = value
+			end
+			for _, key in DROPPED_KEYS do
+				merged[key] = nil
+			end
+			pruneGifts(merged, at)
+			merged.Lock = lock
 			return merged
 		end)
 	end)
+	if readOnly then
+		player:SetAttribute("DataReadOnly", true)
+		return false -- the lock is kept, nothing of this session is written
+	end
 	if ok and not refused and type(result) == "table" then
 		-- Preserve any legitimate potion changes made while UpdateAsync yielded.
 		for id, count in result.Boosts do
@@ -445,15 +531,24 @@ function PlayerData.Start()
 	for _, player in Players:GetPlayers() do
 		onPlayer(player)
 	end
+	-- One release save per player: a shutdown's BindToClose and the PlayerRemoving it causes would otherwise both write.
+	local releasing = setmetatable({}, { __mode = "k" })
+	local function release(player)
+		if releasing[player] then
+			return
+		end
+		releasing[player] = true
+		PlayerData.Save(player, nil, true)
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		for _, hook in leaveHooks do
 			pcall(hook, player) -- e.g. RunnerService stops the run
 		end
-		PlayerData.Save(player, nil, true)
+		release(player)
 	end)
 	game:BindToClose(function()
 		for _, player in Players:GetPlayers() do
-			task.spawn(PlayerData.Save, player, nil, true)
+			task.spawn(release, player)
 		end
 		-- Players kicked by the shutdown save from PlayerRemoving: wait for those too, inside Roblox's 30 s limit
 		local deadline = os.clock() + 25
@@ -461,11 +556,18 @@ function PlayerData.Start()
 			task.wait(0.1)
 		end
 	end)
+	-- Each player is saved once per AUTOSAVE_SECONDS, spread over the interval instead of all in one tick.
 	task.spawn(function()
 		while true do
-			task.wait(AUTOSAVE_SECONDS)
-			for _, player in Players:GetPlayers() do
-				PlayerData.Save(player)
+			local list = Players:GetPlayers()
+			if #list == 0 then
+				task.wait(AUTOSAVE_SECONDS)
+			end
+			for _, player in list do
+				task.wait(AUTOSAVE_SECONDS / #list)
+				if player.Parent and not releasing[player] then
+					PlayerData.Save(player)
+				end
 			end
 		end
 	end)

@@ -982,6 +982,12 @@ local function accept(player)
 	return true
 end
 
+-- A remote call before this player's save loaded is refused: the load would overwrite what it changed. A failed load
+-- (Studio without API access) plays on unsaved.
+local function loading(player)
+	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+end
+
 -- What Remotes.SetAutoRoll does: rate-limited like AllocateStat, booleans only. Returns true if applied.
 function GachaService.RequestSetAutoRoll(player, on)
 	return accept(player) and GachaService.SetAutoRoll(player, on)
@@ -1014,7 +1020,7 @@ function GachaService.Start()
 	extraRollsRemote = remote(remotes, "ExtraRolls")
 	bagFullRemote = remote(remotes, "BagFullHit")
 	remote(remotes, "SetAutoSell").OnServerEvent:Connect(function(player, on, chance)
-		if accept(player) then
+		if not loading(player) and accept(player) then
 			GachaService.SetAutoSell(player, on, chance)
 		end
 	end)
@@ -1040,17 +1046,27 @@ function GachaService.Start()
 	local luckRemote = remotes:FindFirstChild("GetRollLuck") or Instance.new("RemoteFunction")
 	luckRemote.Name = "GetRollLuck"
 	luckRemote.Parent = remotes
+	local lastLuck = setmetatable({}, { __mode = "k" })
 	luckRemote.OnServerInvoke = function(player)
+		local now = os.clock()
+		if lastLuck[player] and now - lastLuck[player] < GachaService.REMOTE_COOLDOWN then
+			return nil -- the Details list keeps what it shows
+		end
+		lastLuck[player] = now
 		return GachaService.Luck(player), UpgradeService.Turbo(player).Multi
 	end
-	remote(remotes, "SetAutoRoll").OnServerEvent:Connect(GachaService.RequestSetAutoRoll)
+	remote(remotes, "SetAutoRoll").OnServerEvent:Connect(function(player, on)
+		if not loading(player) then
+			GachaService.RequestSetAutoRoll(player, on)
+		end
+	end)
 	remote(remotes, "EquipCharacter").OnServerEvent:Connect(function(player, id)
-		if accept(player) then
+		if not loading(player) and accept(player) then
 			GachaService.Equip(player, id)
 		end
 	end)
 	remote(remotes, "AllocateStat").OnServerEvent:Connect(function(player, stat)
-		if accept(player) then
+		if not loading(player) and accept(player) then
 			GachaService.Allocate(player, stat)
 		end
 	end)
@@ -1065,6 +1081,9 @@ function GachaService.Start()
 	teamRemote.Parent = remotes
 	local lastTeam = setmetatable({}, { __mode = "k" })
 	teamRemote.OnServerInvoke = function(player, ids)
+		if loading(player) then
+			return false, "Data not loaded"
+		end
 		local now = os.clock()
 		if lastTeam[player] and now - lastTeam[player] < GachaService.TEAM_COOLDOWN then
 			return false, "Please wait"
@@ -1078,6 +1097,9 @@ function GachaService.Start()
 	quickRemote.Parent = remotes
 	local lastQuick = setmetatable({}, { __mode = "k" })
 	quickRemote.OnServerInvoke = function(player, draft)
+		if loading(player) then
+			return false, "Data not loaded"
+		end
 		local now = os.clock()
 		if lastQuick[player] and now - lastQuick[player] < GachaService.TEAM_COOLDOWN then
 			return false, "Please wait"

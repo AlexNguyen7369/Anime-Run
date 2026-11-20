@@ -262,6 +262,12 @@ function UpgradeService.Apply(player, saved)
 end
 
 -- Creates Remotes.BuyUpgrade and keeps UpgradesBuyable current.
+-- A remote call before this player's save loaded is refused: the load would overwrite what it changed. A failed load
+-- (Studio without API access) plays on unsaved.
+local function loading(player)
+	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+end
+
 function UpgradeService.Start()
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 	if not remotes then
@@ -276,6 +282,9 @@ function UpgradeService.Start()
 		buy.Parent = remotes
 	end
 	buy.OnServerInvoke = function(player, tileId)
+		if loading(player) then
+			return false, "Data not loaded"
+		end
 		return UpgradeService.Buy(player, tileId)
 	end
 

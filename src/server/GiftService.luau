@@ -10,6 +10,8 @@ local Boosts = require(ReplicatedStorage.Shared.BoostConfig)
 
 local GiftService = {}
 GiftService.COOLDOWN = 2
+GiftService.PENDING_TIMEOUT = 600 -- s: an unpaid pending gift (no PurchaseId) older than this is dropped
+GiftService.RECEIPT_DAYS = 90 -- a routed receipt is kept this long, then pruned
 local store, mailboxFn, playerSource
 local busy, lastRequest = {}, {}
 
@@ -59,9 +61,22 @@ function GiftService.Product(productId)
 	end
 	return nil
 end
+-- A copy of the route record. Receipts older than RECEIPT_DAYS are pruned; one with no time yet (older records) gets now.
 local function recordOf(current)
 	local record = type(current) == "table" and table.clone(current) or {}
 	record.Receipts = type(record.Receipts) == "table" and table.clone(record.Receipts) or {}
+	local now = os.time()
+	for purchaseId, route in record.Receipts do
+		if type(route) == "table" then
+			if type(route.At) ~= "number" then
+				local stamped = table.clone(route)
+				stamped.At = now
+				record.Receipts[purchaseId] = stamped
+			elseif now - route.At > GiftService.RECEIPT_DAYS * 86400 then
+				record.Receipts[purchaseId] = nil
+			end
+		end
+	end
 	return record
 end
 local function key(userId)
@@ -103,11 +118,18 @@ function GiftService.Prepare(player, id, recipientId)
 		RecipientId = recipientId,
 		SenderId = buyerId,
 		Grants = table.clone(product.Grants),
+		At = os.time(),
 	}
 	local ok, result = pcall(function()
 		return routes():UpdateAsync(key(buyerId), function(current)
 			local record = recordOf(current)
-			if record.Pending then
+			local old = record.Pending
+			-- An unpaid pending gift (buyer left, prompt lost) stops blocking after PENDING_TIMEOUT. Only a new gift
+			-- replaces it, so a late receipt for it still routes until then.
+			local stale = type(old) == "table"
+				and not old.PurchaseId
+				and not (type(old.At) == "number" and os.time() - old.At < GiftService.PENDING_TIMEOUT)
+			if old and not stale then
 				return record
 			end
 			record.Pending = pending
@@ -164,6 +186,7 @@ function GiftService.ProcessReceipt(info)
 			end
 			local route = table.clone(pending)
 			route.PurchaseId = info.PurchaseId
+			route.At = os.time()
 			record.Pending = route
 			record.Receipts[info.PurchaseId] = route
 			return record
