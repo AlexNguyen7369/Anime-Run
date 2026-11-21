@@ -8,7 +8,8 @@
 --                        once and nothing loops; with it off (and Roblox's Reduced Motion off) Pop and Pulse animate.
 --   ui_handscroll        Client/DojoHandscroll (design doc 4.46) on a probe frame: half unrolled the paper is half wide,
 --                        the content keeps its size and place, the rollers ride the paper edges; reduced, Open never rolls;
---                        while it rolls a child of the panel sits in Paper.Content, and at rest it is back in place.
+--                        midway through an Open a child at the panel's edge is hidden and one at its centre shows; at
+--                        rest both show, same parent, own transparency.
 --   (ui_speed_float retired: no Speed stat and no Speed read-out, design doc 4.13, owner 2026-11-01)
 --   ui_safe_insets       Client/SafeInsets: every player ScreenGui except the full-bleed ones uses DeviceSafeInsets
 --                        (also one added later); every shown button / label lies inside its gui's safe rect.
@@ -457,36 +458,44 @@ function Access.Build(h)
 				local scale = paper.Size.X.Scale
 				h.check(res, "handscroll_rolls_when_not_reduced", scale, "< 1", scale < 1)
 				scroll.Stop()
-				-- The content rides in Paper.Content while it rolls (the paper's clip reveals it) and is back under the
-				-- panel, in the same place, once the motion completes
-				local child = Instance.new("TextButton")
-				child.Name = "ProbeButton"
-				child.Position, child.Size = UDim2.fromOffset(40, 60), UDim2.fromOffset(120, 40)
-				child.Parent = panel
+				-- Content inks in as the rollers pass (owner 2026-11-20: it never changes parent): midway through an
+				-- Open a probe near the left edge is still hidden and one at the centre shows; after the motion both
+				-- show, under the panel, at their own text transparency
+				local function probeButton(name, x)
+					local b = Instance.new("TextButton")
+					b.Name = name
+					b.Text = name
+					b.TextTransparency = 0.2
+					b.Position, b.Size = UDim2.fromOffset(x, 60), UDim2.fromOffset(60, 40)
+					b.Parent = panel
+					return b
+				end
+				local edge, middle = probeButton("ProbeEdge", 10), probeButton("ProbeMiddle", 270) -- panel 600 wide
 				scroll.SetProgress(1)
 				h.frames(1)
-				local before = child.AbsolutePosition
 				Handscroll.Open(panel)
 				for _ = 1, 120 do
+					h.frames(1)
 					if paper.Size.X.Scale >= 0.5 then
 						break
 					end
-					h.frames(1)
 				end
-				local inPaper = child.Parent == scroll.Content
-				h.check(res, "handscroll_content_in_paper_while_rolling", inPaper, true, inPaper)
-				task.wait(Handscroll.OPEN.Time + 0.2)
+				h.check(res, "handscroll_edge_hidden_midway", edge.Visible, false, not edge.Visible)
+				h.check(res, "handscroll_middle_shown_midway", middle.Visible, true, middle.Visible)
+				task.wait(Handscroll.OPEN.Time + 0.3)
 				h.frames(1)
-				local back = child.Parent == panel
-				h.check(res, "handscroll_content_back_at_rest", back, true, back)
-				local landed = child.AbsolutePosition
-				h.check(
-					res,
-					"handscroll_content_same_place",
-					tostring(landed),
-					tostring(before),
-					near(landed.X, before.X) and near(landed.Y, before.Y)
-				)
+				for _, b in { edge, middle } do
+					local tag = "handscroll_" .. string.lower(b.Name) .. "_at_rest"
+					h.check(res, tag .. "_visible", b.Visible, true, b.Visible)
+					h.check(res, tag .. "_parent", b.Parent == panel, true, b.Parent == panel)
+					h.check(
+						res,
+						tag .. "_text_transparency",
+						b.TextTransparency,
+						0.2,
+						math.abs(b.TextTransparency - 0.2) < 0.01
+					)
+				end
 			end
 		end)
 		player:SetAttribute(cfg.ReduceAttr, saved)
