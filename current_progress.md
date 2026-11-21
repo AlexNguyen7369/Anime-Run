@@ -210,8 +210,9 @@
 206. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
 207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
 208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
+209. 2026-11-20 — Alex Nguyen — Summon Details now lists every Sidekick of the live banner at its own rate (sums to exactly 100%), and Team Select passed its Studio check (ui_team 70/70, 50/50 Team clicks) with the Team tests following the new layout.
 
 ## What's next
-**Run the new Team Select page in Studio against the approved captures (desktop, 4:3, phone), update the UiTeam altar order and gear checks, and rerun ui_team, the team_* clicks, ui_entry_points and ui_sidekicks.**
+**Diagnose shop_redeem_invalid_code, make ui_roll_anim pass on its own, and re-press clicks #24-#264 so the whole click list is green again.**
 
-**Why this is next:** Team Select is in main but was never run in Studio, two Team checks fail by design until updated, and the per-Sidekick odds list in Details touches the same Summon tests after it.
+**Why this is next:** these are the last reds and unrun clicks from the merge into main; Team Select's 4:3 and phone captures wait for a time the owner is away (Studio must be in front).
