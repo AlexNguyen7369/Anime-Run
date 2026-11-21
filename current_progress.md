@@ -211,8 +211,9 @@
 207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
 208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
 209. 2026-11-20 — Alex Nguyen — ui-scroll: drafted design doc 4.46 and UI_SCROLL_SPEC, and built reference frames for every GUI, HUD options A and B and the center-out unroll strip on feature/alex/ui-scroll-redesign (review page https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe).
+210. 2026-11-20 — Alex Nguyen — ui-scroll: owner approved the Scroll Dojo references (every frame, HUD option A with Money and Gems on lacquer plates replacing the 4.40 no-box rule, Upgrades tree left as it is), and the approved layouts were written into design doc 4.46, UI_SCROLL_SPEC, goal ui-scroll and the board.
 
 ## What's next
-**Get the owner's approval on the Scroll Dojo reference frames (per frame, HUD A / B / none, and the 7 listed decisions), then write the approved layouts into 4.46 and UI_SCROLL_SPEC.**
+**Build ui-scroll t1: `Client/DojoHandscroll` (center-out unroll, 0.45 s Quad out, 0.25 s close, Reduced effects fade) hooked into `PanelSwitch` open and close for panels carrying the `Handscroll` attribute, with ui_accessibility green.**
 
-**Why this is next:** every build task of goal ui-scroll (DojoHandscroll and PanelSwitch motion, the shared AnimeSkin re-skin, per-panel layouts, popups, boss UI and HUD) needs approved references and rules first; the Team Select build in TeamUi continues in the audit-fixes session on orch/audit-fixes/teamsel.
+**Why this is next:** every later ui-scroll task (shared AnimeSkin / PanelFrame re-skin, per-panel layouts, popups, boss UI, HUD option A) opens through this motion, and the references it must match are now approved.

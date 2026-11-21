@@ -1,6 +1,6 @@
 # UI Scroll Dojo spec (design doc 4.46)
 
-Status: DRAFT, 2026-11-20. Every value is **proposed** until the owner approves the references.
+Status: owner approved the references 2026-11-20. Sizes, timings and colours stay **proposed** (tunable).
 
 ## Kit (`Client/DojoHandscroll`, built from `Client/DojoScroll` parts and `UiTheme.Scroll.Skins.Parchment`)
 - Paper: parchment #EFE3C8, shade #E6D6B6; ink #2E1E16; accent vermilion #C8302C.
@@ -20,4 +20,13 @@ Status: DRAFT, 2026-11-20. Every value is **proposed** until the owner approves 
 - Summon and Team Select keep their own motion.
 
 ## Per-GUI layouts
-Pending the owner's pick from `assets/ui/scroll_redesign/drafts/`.
+Design doc 4.46 lists each layout. Reference frame per GUI (`assets/ui/scroll_redesign/drafts/<name>.html`, shots in
+`drafts/shots/`): index, phone_index, backpack, shop, market, quests, daily, rebirth, stats, settings, settings_profile,
+tracks, duel, starter, itemmenu, pickers, rolloptions, toasts, bosses, bossreward, bossinvite, bosshud, hud_a.
+Not built: hud_b (option B rejected), upgrades (the Upgrades tree stays as it is).
+
+## Hookup
+- Panels opt in with the `Handscroll` attribute; `PanelSwitch` then runs the unroll in place of `openMotion` /
+  `closeMotion`. Summon, Team Select and Upgrades do not carry it.
+- The shared skin changes at `AnimeSkin` and `PanelFrame`, keeping the instance names tests use (`PanelFrame`
+  attribute, `Header`, `Title`, `Icon`, `Close`, `Face`).

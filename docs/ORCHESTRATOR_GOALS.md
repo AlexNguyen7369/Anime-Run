@@ -364,17 +364,17 @@ Deliverables:
 Out of scope: the Summon page (preserved), team rules (SetTeam, 3 members), new stats (level, power, new bonus kinds) until the owner rules on them.
 
 ## ui-scroll: Every GUI in the Scroll Dojo look, center-out handscroll open (owner 2026-11-20)
-Status: active (Stage 1: references published, waiting on the owner)
+Status: active (Stage 2: build; references approved 2026-11-20)
 Owner-confirmed: 2026-11-20 (plan approved: full redesign of current GUI from the Summon and Team pages' look, center-out scroll open, references for approval first; Summon and Team not redesigned; unroll ~0.45 s with input live; HUD and boss UI in scope, HUD shippable separately)
-Branch: feature/alex/ui-scroll-redesign (from origin/feature/alex/audit-fixes 3abadda; rebase after audit-fixes merges)
-Spec: design doc 4.46 (draft), docs/UI_SCROLL_SPEC.md
+Branch: feature/alex/ui-scroll-redesign (from audit-fixes 3abadda; origin/main merged in 643a8d8 after PR #24)
+Spec: design doc 4.46, docs/UI_SCROLL_SPEC.md
 Deliverables:
-- s0 | Rules draft 4.46 + spec | written 2026-11-20 (b17521a); owner confirms with the references
-- s1 | Reference frames for every GUI + unroll strip, review page https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe | done 2026-11-20; owner approves per frame and picks HUD A / B / none
-- t1 | Client/DojoHandscroll + PanelSwitch open/close for redesigned panels | after s1 approval; Reduced effects fade; ui_accessibility green
+- s0 | Rules draft 4.46 + spec | done 2026-11-20; layouts written after approval
+- s1 | Reference frames for every GUI + unroll strip, review page https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe | done 2026-11-20; owner approved every frame, HUD A, Upgrades left as it is
+- t1 | Client/DojoHandscroll + PanelSwitch open/close for redesigned panels | Reduced effects fade; ui_accessibility green
 - t2 | AnimeSkin / PanelFrame / IndexAnimeStyle / QuestAnimeStyle re-skin, instance names kept | ui_shared_frames, ui_panels, ui_responsive green (rule-changed asserts updated by the test agent)
 - t3 | Per-panel layouts from the approved frames | Studio captures beside the references
 - t4 | Popups, toasts, boss event UI | ui_boss green
-- t5 | HUD (only if approved) | ui_hud green
+- t5 | HUD option A (wood plaques, lacquer Money/Gems plates) | ui_hud green
 - t6 | Regression: Summon and Team unchanged; full harness once; audit; PR with fresh review
-Out of scope: Summon page, Team Select page, server rules, costs, any number.
+Out of scope: Summon page, Team Select page, the Upgrades tree (owner 2026-11-20), server rules, costs, any number.
