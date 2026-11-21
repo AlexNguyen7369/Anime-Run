@@ -212,8 +212,9 @@
 208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
 209. 2026-11-20 — Alex Nguyen — ui-scroll: drafted design doc 4.46 and UI_SCROLL_SPEC, and built reference frames for every GUI, HUD options A and B and the center-out unroll strip on feature/alex/ui-scroll-redesign (review page https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe).
 210. 2026-11-20 — Alex Nguyen — ui-scroll: owner approved the Scroll Dojo references (every frame, HUD option A with Money and Gems on lacquer plates replacing the 4.40 no-box rule, Upgrades tree left as it is), and the approved layouts were written into design doc 4.46, UI_SCROLL_SPEC, goal ui-scroll and the board.
+211. 2026-11-20 — Alex Nguyen — ui-scroll t1: added Client/DojoHandscroll (center-out unroll 0.45 s, roll-up 0.25 s, Reduced effects fade, input never blocked) and hooked it into PanelSwitch open and close; Studio ui_handscroll 10/10, ui_motion_reduced 11/11, ui_reduced_motion 12/12, ui_panel_focus 57/57 green.
 
 ## What's next
-**Build ui-scroll t1: `Client/DojoHandscroll` (center-out unroll, 0.45 s Quad out, 0.25 s close, Reduced effects fade) hooked into `PanelSwitch` open and close for panels carrying the `Handscroll` attribute, with ui_accessibility green.**
+**Build ui-scroll t2: re-skin AnimeSkin (IndexFrame, Header, Close, Tab, Button, Card, Plate), PanelFrame.Attach / PaintGenerated and IndexAnimeStyle / QuestAnimeStyle to the Scroll Dojo look, building each panel on DojoHandscroll with its content in Paper.Content and the instance names tests use kept; ui_shared_frames, ui_panels, ui_responsive green.**
 
-**Why this is next:** every later ui-scroll task (shared AnimeSkin / PanelFrame re-skin, per-panel layouts, popups, boss UI, HUD option A) opens through this motion, and the references it must match are now approved.
+**Why this is next:** t1's unroll only shows on panels built on a handscroll, and every per-panel layout (t3), popup and boss UI (t4) inherits from these shared skins.
