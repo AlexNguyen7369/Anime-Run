@@ -1,7 +1,7 @@
 # Board
 
 ## Doing
-- ui-scroll t1: Client/DojoHandscroll + PanelSwitch unroll (references approved 2026-11-20: every frame, HUD A, Upgrades left as it is)
+- ui-scroll t2: shared AnimeSkin / PanelFrame re-skin on DojoHandscroll (t1 landed 2026-11-20, ecff6cb)
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
