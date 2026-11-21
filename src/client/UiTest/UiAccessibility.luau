@@ -7,7 +7,8 @@
 --                        ReduceEffects on, Pop / SlideIn / Shine / Pulse / Shake / Float land on their end state at
 --                        once and nothing loops; with it off (and Roblox's Reduced Motion off) Pop and Pulse animate.
 --   ui_handscroll        Client/DojoHandscroll (design doc 4.46) on a probe frame: half unrolled the paper is half wide,
---                        the content keeps its size and place, the rollers ride the paper edges; reduced, Open never rolls.
+--                        the content keeps its size and place, the rollers ride the paper edges; reduced, Open never rolls;
+--                        while it rolls a child of the panel sits in Paper.Content, and at rest it is back in place.
 --   (ui_speed_float retired: no Speed stat and no Speed read-out, design doc 4.13, owner 2026-11-01)
 --   ui_safe_insets       Client/SafeInsets: every player ScreenGui except the full-bleed ones uses DeviceSafeInsets
 --                        (also one added later); every shown button / label lies inside its gui's safe rect.
@@ -456,6 +457,36 @@ function Access.Build(h)
 				local scale = paper.Size.X.Scale
 				h.check(res, "handscroll_rolls_when_not_reduced", scale, "< 1", scale < 1)
 				scroll.Stop()
+				-- The content rides in Paper.Content while it rolls (the paper's clip reveals it) and is back under the
+				-- panel, in the same place, once the motion completes
+				local child = Instance.new("TextButton")
+				child.Name = "ProbeButton"
+				child.Position, child.Size = UDim2.fromOffset(40, 60), UDim2.fromOffset(120, 40)
+				child.Parent = panel
+				scroll.SetProgress(1)
+				h.frames(1)
+				local before = child.AbsolutePosition
+				Handscroll.Open(panel)
+				for _ = 1, 120 do
+					if paper.Size.X.Scale >= 0.5 then
+						break
+					end
+					h.frames(1)
+				end
+				local inPaper = child.Parent == scroll.Content
+				h.check(res, "handscroll_content_in_paper_while_rolling", inPaper, true, inPaper)
+				task.wait(Handscroll.OPEN.Time + 0.2)
+				h.frames(1)
+				local back = child.Parent == panel
+				h.check(res, "handscroll_content_back_at_rest", back, true, back)
+				local landed = child.AbsolutePosition
+				h.check(
+					res,
+					"handscroll_content_same_place",
+					tostring(landed),
+					tostring(before),
+					near(landed.X, before.X) and near(landed.Y, before.Y)
+				)
 			end
 		end)
 		player:SetAttribute(cfg.ReduceAttr, saved)

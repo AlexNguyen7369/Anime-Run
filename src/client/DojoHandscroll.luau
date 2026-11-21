@@ -124,8 +124,36 @@ function DojoHandscroll.Build(target, opts)
 		end
 	end
 
-	-- Cancels the running motion where it is; its onDone never fires.
+	-- While a roll plays, the target's content rides in Paper.Content so the paper's clip reveals it as the rollers pass
+	-- (4.46 "content inks in as the paper reaches it"). Content has the target's absolute size and place, so nothing
+	-- moves on screen. Only GuiObjects and the layouts that place them move; modifiers that act on the target itself
+	-- (UIScale, UIAspectRatioConstraint, UISizeConstraint, UICorner, UIStroke, UIGradient), values such as MotionK and
+	-- scripts stay. At rest every moved child is back under the target (code and tests look up panel.X).
+	local moved = {}
+	local function movable(child)
+		return child ~= root and (child:IsA("GuiObject") or child:IsA("UIGridStyleLayout") or child:IsA("UIPadding"))
+	end
+	local function gather()
+		for _, child in target:GetChildren() do -- child order kept: ties in ZIndex keep their draw order
+			if movable(child) then
+				table.insert(moved, child)
+				child.Parent = content
+			end
+		end
+	end
+	local function restore()
+		local list = moved
+		moved = {}
+		for _, child in list do
+			if child.Parent == content then -- not destroyed or moved by its owner meanwhile
+				child.Parent = target
+			end
+		end
+	end
+
+	-- Cancels the running motion where it is (the content goes back under the target); its onDone never fires.
 	function handle.Stop()
+		restore()
 		local motion = running
 		running = nil
 		if motion then
@@ -157,6 +185,12 @@ function DojoHandscroll.Build(target, opts)
 				handle.SetProgress(0) -- a fresh open; a reopen mid-close unrolls from where it is
 			end
 			unroll.Value = handle.Progress
+			-- Deferred: code that sets Visible = true and then reads panel.X in the same frame still finds it there.
+			task.defer(function()
+				if running == motion then
+					gather()
+				end
+			end)
 			local info = shown and DojoHandscroll.OPEN or DojoHandscroll.CLOSE
 			table.insert(tweens, UiMotion.Create(unroll, info, { Value = shown and 1 or 0 }))
 		end
@@ -165,6 +199,7 @@ function DojoHandscroll.Build(target, opts)
 				return
 			end
 			running = nil
+			restore()
 			if onDone then
 				onDone()
 			end

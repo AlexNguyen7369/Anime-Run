@@ -1,21 +1,31 @@
 --!nonstrict
--- Quests in the Index look (design doc 4.42): Client/IndexAnimeStyle's art and text treatment on BoostDailyUi's
--- shared modal, laid out in the Index's design units (Client/AnimeSkin.Units) scaled to the modal. Display only.
+-- Quests and Daily rewards in the Scroll Dojo look (design doc 4.46, assets/ui/scroll_redesign/drafts/quests.html and
+-- daily.html): Client/IndexAnimeStyle.Dojo's parts on BoostDailyUi's shared modal (a handscroll through PanelFrame),
+-- laid out in the Index's design units (Client/AnimeSkin.Units) scaled to the modal. Display only.
 local IndexStyle = require(script.Parent:WaitForChild("IndexAnimeStyle"))
-local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
 local Skin = require(script.Parent:WaitForChild("AnimeSkin"))
-local ART, image, text = IndexStyle.Art, IndexStyle.Image, IndexStyle.Text
-local BODY_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+local image = IndexStyle.Image
+local Dojo = IndexStyle.Dojo
+local C = Dojo.Colors
 
 local Style = {}
--- Plate colours by quest state (placeholders). In progress uses the Index's default card blue.
+-- Row bar colours by quest state (placeholders): ready vermilion, in progress paper brown, claimed muted.
 Style.Tint = {
-	Ready = Color3.fromRGB(60, 230, 120),
-	Progress = Color3.fromRGB(70, 205, 255),
-	Claimed = Color3.fromRGB(120, 125, 140),
+	Ready = C.Verm,
+	Progress = C.TileBottom,
+	Claimed = C.Muted,
 }
-local DIM = Color3.fromRGB(225, 225, 235) -- an unlit tab, as in the Index
-local WHITE = Color3.new(1, 1, 1)
+
+-- A text role at `max` px, fitted (Client/IndexAnimeStyle.Dojo.Text).
+local function text(label, role, max)
+	Dojo.Text(label, role)
+	label.TextScaled = true
+	local limit = label:FindFirstChildOfClass("UITextSizeConstraint") or Instance.new("UITextSizeConstraint")
+	limit.Name = limit.Name == "UITextSizeConstraint" and "AnimeLimit" or limit.Name
+	limit.MinTextSize = math.min(10, max)
+	limit.MaxTextSize = max
+	limit.Parent = label
+end
 
 local function make(class, name, parent, props)
 	local o = Instance.new(class)
@@ -47,65 +57,62 @@ function Style.Attach(refs)
 		modal,
 		{ BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false }
 	)
-	local _, placeBody = Skin.Chrome(layer, "Body", 1)
 	local banner = make("Frame", "Banner", layer, { BackgroundTransparency = 1, ZIndex = 6 })
 	local logo = image(banner, "Logo", refs.Logo, UDim2.new(), UDim2.new(), 11)
 	logo.ScaleType = Enum.ScaleType.Fit
 	local title = make("TextLabel", "Title", banner, {
 		BackgroundTransparency = 1,
-		Rotation = -2,
 		Text = "QUESTS",
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 10,
 	})
+	local heading = Dojo.Heading(title)
+	local rule = make("Frame", "HeaderRule", banner, {
+		BackgroundColor3 = C.InkSoft,
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		ZIndex = 6,
+		Active = false,
+	})
+	-- The seal close (an ImageButton for the UI tests' path; no image, the seal is its fill).
 	local close = make("ImageButton", "Close", layer, {
 		BackgroundTransparency = 1,
-		Image = ART.Close,
-		ScaleType = Enum.ScaleType.Fit,
-		AutoButtonColor = false,
+		Image = "",
 		ZIndex = 10,
 	})
+	Dojo.Seal(close)
 	close.Activated:Connect(refs.OnClose)
 	local footer = make("TextLabel", "Footer", layer, { BackgroundTransparency = 1, Text = "", ZIndex = 4 })
+	Dojo.FooterPlate(footer, 10)
 	-- Above the art layer, as the Index's header (8) and grid (3) sit above its chrome.
 	refs.Tabs.ZIndex = 8
 	refs.Content.ZIndex = 3
 	refs.Detail.ZIndex = 3
 
-	-- Tabs: the Index's DAILY / WEEKLY art in place of the flat buttons. The button keeps its Text for the UI tests.
+	-- Tabs: paper tabs, the shown one a red brush pill. The button keeps its Text for the UI tests.
 	local tabs = {}
-	for i, tab in { refs.Daily, refs.Weekly } do
+	for _, tab in { refs.Daily, refs.Weekly } do
 		tab.BackgroundTransparency = 1
 		tab.TextTransparency = 1
 		local edge = tab:FindFirstChild("Edge")
 		if edge then
 			edge.Enabled = false
 		end
-		tabs[tab] = {
-			Art = image(tab, "AnimeTabArt", ART.Tabs[i], UDim2.new(), UDim2.new(), 2),
-			Caption = make(
-				"TextLabel",
-				"AnimeCaption",
-				tab,
-				{ BackgroundTransparency = 1, Text = tab.Text, ZIndex = 4 }
-			),
-		}
+		local caption =
+			make("TextLabel", "AnimeCaption", tab, { BackgroundTransparency = 1, Text = tab.Text, ZIndex = 4 })
+		tabs[tab] = { Caption = caption, Lit = Dojo.Tab(tab, { caption }) }
+		tabs[tab].Lit(false)
 	end
 
-	-- Detail: the angular card, cyan like an undiscovered-rarity Index card.
+	-- Detail: a paper slip.
 	local detail = refs.Detail
-	detail.BackgroundTransparency = 1
-	local detailEdge = detail:FindFirstChildOfClass("UIStroke")
-	if detailEdge then
-		detailEdge.Enabled = false
-	end
-	local card = image(detail, "AngularCard", ART.Card, UDim2.new(), UDim2.fromScale(1, 1), 0)
-	card.ImageColor3 = Style.Tint.Progress
-	refs.Type.TextColor3 = UiTheme.Palette.Sky
-	refs.Reward.TextColor3 = UiTheme.Palette.Gold
-	refs.Track.BackgroundColor3 = Color3.fromRGB(6, 9, 22)
+	Dojo.Fill(detail, C.Slip)
+	Dojo.Rim(detail, C.SlipRim, 1.5)
+	Dojo.Corner(detail, 6)
+	refs.Track.BackgroundColor3 = C.Track
+	refs.Fill.BackgroundColor3 = C.Verm
 	for _, bar in { refs.Track, refs.Fill } do
-		bar:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 3)
+		bar:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0.5, 0)
 	end
 
 	local k = 1
@@ -122,9 +129,8 @@ function Style.Attach(refs)
 		row.Size = UDim2.new(1, -px(10), 0, px(100))
 		name.Position, name.Size = at(26, 16), UDim2.new(1, -px(200), 0, px(30))
 		line.Position, line.Size = at(26, 54), UDim2.new(1, -px(200), 0, px(24))
-		text(name, px(24))
-		text(line, px(17))
-		line.TextColor3 = UiTheme.Palette.SoftText
+		text(name, "Item", px(24))
+		text(line, "Caption", px(17))
 		local claim = row.Claim
 		claim.Position, claim.Size = UDim2.new(1, -px(158), 0.5, -px(22)), at(126, 44)
 		claim.TextScaled = true
@@ -145,16 +151,16 @@ function Style.Attach(refs)
 			return
 		end
 		local daily = view == "Daily"
-		placeBody(-px(40), -px(70), px(W) + px(80), px(H) + px(100))
-		banner.Position, banner.Size = at(-34, -18), UDim2.new(1, px(68), 0, px(86))
-		logo.Position, logo.Size = at(15, -54), at(188, 186)
-		title.Position, title.Size = at(202, -5), at(daily and W - 312 or 250, 76)
-		text(title, px(72))
-		close.Position, close.Size = at(W - 82, -6), at(74, 74)
+		-- Header as AnimeSkin.IndexFrame's (kit.css .hdr): logo, brush title, kanji and sub line, rule, seal close.
+		banner.Position, banner.Size = UDim2.new(), UDim2.new(1, 0, 0, px(98))
+		logo.Position, logo.Size = at(28, 14), at(70, 70)
+		title.Position, title.Size = at(108, 12), at(W - 228, 72)
+		text(title, "Title", px(72))
+		heading(px, px(W))
+		rule.Position, rule.Size = at(28, 90), UDim2.new(1, -px(56), 0, math.max(1, px(3)))
+		close.Position, close.Size = at(W - 92, 16), at(64, 64)
 		footer.Position, footer.Size = at(W * 303 / 920, H - 60), at(W * 312 / 920, 28)
-		text(footer, px(20))
-		local stroke = footer:FindFirstChildOfClass("UIStroke")
-		stroke.Thickness = 1.5
+		text(footer, "Footer", px(20))
 
 		local top = small and 144 or 164
 		local gridW, gridH = W - 112, H - top - 82
@@ -173,9 +179,8 @@ function Style.Attach(refs)
 		refs.TabLayout.Padding = UDim.new(0, px(8))
 		for tab, parts in tabs do
 			tab.Size = at((W - 136) / 4, 40)
-			parts.Art.Position, parts.Art.Size = at(-7, -5), UDim2.new(1, px(14), 1, px(10))
 			parts.Caption.Position, parts.Caption.Size = at(8, 0), UDim2.new(1, -px(16), 1, 0)
-			text(parts.Caption, px(22))
+			text(parts.Caption, "Tab", px(22))
 		end
 
 		-- The Index grid's area: the list on the left, the detail card on the right (phones: the list only).
@@ -196,33 +201,20 @@ function Style.Attach(refs)
 		refs.Name.Position, refs.Name.Size = at(26, 52), at(detailW - 52, 70)
 		refs.Track.Position, refs.Track.Size = at(26, gridH - 132), at(detailW - 52, 30)
 		refs.Reward.Position, refs.Reward.Size = at(26, gridH - 90), at(detailW - 52, 64)
-		text(refs.Type, px(16))
-		refs.Type.TextColor3 = UiTheme.Palette.Sky
-		text(refs.Name, px(30))
-		text(refs.ProgressText, px(17))
-		text(refs.Reward, px(19))
-		refs.Reward.TextColor3 = UiTheme.Palette.Gold
+		text(refs.Type, "Item", px(16))
+		refs.Type.TextColor3 = C.Verm
+		text(refs.Name, "Title", px(30))
+		text(refs.ProgressText, "Body", px(17))
+		refs.ProgressText.TextColor3 = refs.Fill.Size.X.Scale >= 0.5 and C.Cream or C.Ink
+		text(refs.Reward, "Item", px(19))
 	end
 
 	controller.px, controller.at = px, at
 	-- A text role in design units (Client/AnimeSkin.UnitSize, the same treatment as AnimeSkin.IndexFrame's g.Role).
 	function controller.Role(label, role)
 		local size = px(Skin.UnitSize[role] or Skin.UnitSize.Body)
-		local heavy = role == "Title" or role == "Section" or role == "Item"
 		label:SetAttribute("AnimeRole", role)
-		label.FontFace = heavy and Skin.Font or BODY_FONT
-		label.TextColor3 = role == "Section" and Skin.Color.Section
-			or role == "Caption" and Skin.Color.Caption
-			or Skin.Color.White
-		label.TextStrokeTransparency = 1
-		local stroke = label:FindFirstChild("AnimeOutline") -- by name: a button's border Edge stays its own
-		if heavy then
-			stroke = stroke or make("UIStroke", "AnimeOutline", label, {})
-			stroke.Color, stroke.Thickness, stroke.Enabled = IndexStyle.Ink, 2, true
-			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
-		elseif stroke then
-			stroke.Enabled = false
-		end
+		Dojo.Text(label, role)
 		label.TextScaled = true
 		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
 			or make("UITextSizeConstraint", "AnimeLimit", label, {})
@@ -268,21 +260,20 @@ function Style.Attach(refs)
 	end
 	function controller:Tab(category)
 		for tab, parts in tabs do
-			parts.Art.ImageColor3 = tab.Name == category and WHITE or DIM
+			parts.Lit(tab.Name == category)
 		end
 	end
-	-- state: "Ready", "Progress" or "Claimed". The row's own fill and Selection edge stay clear.
+	-- state: "Ready", "Progress" or "Claimed". The row is a paper slip with the state's bar at its left end (kit.css
+	-- quests frame); its Selection edge stays clear. Claim: the vermilion tile when ready, else an outlined paper button.
 	function controller:Row(row, state)
 		row:SetAttribute("AnimeRow", state)
-		row.BackgroundTransparency = 1
 		row.Selection.Transparency = 1
-		local plate = image(row, "AngularPlate", ART.Plate, UDim2.new(), UDim2.fromScale(1, 1), 0)
-		plate.ImageColor3 = Style.Tint[state]
+		Skin.Plate(row, Style.Tint[state])
 		local claim = row.Claim
+		Skin.Button(claim, state == "Ready" and "Go" or "Idle")
 		local function fonts()
 			rowGeometry(row)
-			claim.FontFace =
-				Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
+			Dojo.Text(claim, "Item")
 		end
 		fonts()
 		-- UiTheme.Apply's deferred DescendantAdded puts new text back on Fredoka: style again after it.
@@ -291,19 +282,18 @@ function Style.Attach(refs)
 				fonts()
 			end
 		end)
-		claim:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 3)
 		if state == "Claimed" then
 			row:FindFirstChild("Text").TextTransparency = 0.35
 			row.Progress.TextTransparency = 0.35
 		end
 	end
-	-- The chosen quest's plate shows the art's own white edge, as a lit Index tab does.
+	-- The chosen quest's slip takes a vermilion rim.
 	function controller:Select(rows, id)
 		for rowId, refsOfRow in rows do
-			local plate = refsOfRow.Button:FindFirstChild("AngularPlate")
-			if plate then
-				local base = Style.Tint[refsOfRow.Button:GetAttribute("AnimeRow")] or Style.Tint.Progress
-				plate.ImageColor3 = rowId == id and WHITE or base
+			local rim = refsOfRow.Button:FindFirstChild("DojoRim")
+			if rim then
+				rim.Color = rowId == id and C.Verm or C.SlipRim
+				rim.Thickness = rowId == id and 2.5 or 1.5
 			end
 		end
 	end

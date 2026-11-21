@@ -1,28 +1,40 @@
 --!nonstrict
--- The game-wide anime look (design doc 4.42): Client/IndexAnimeStyle's art and text treatment as parts any panel,
--- popup, tab or button can wear. Display only: each screen keeps its own layout, names and remotes.
+-- The game-wide Scroll Dojo look (design doc 4.46, docs/UI_SCROLL_SPEC.md Kit; replaced the 4.42 anime art): the
+-- handscroll, brush wordmark title with its kanji, seal close, paper tabs, wood tiles and paper buttons, paper cards and
+-- slips as parts any panel, popup, tab or button can wear (Client/IndexAnimeStyle.Dojo). Display only: each screen keeps
+-- its own layout, names and remotes. The Upgrades tree keeps the 4.42 art (owner 2026-11-20): an object under the
+-- RacerUpgrades gui still gets the old Card, Title, Text and Close.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local IndexStyle = require(script.Parent:WaitForChild("IndexAnimeStyle"))
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 
 local ART, INK, image, text = IndexStyle.Art, IndexStyle.Ink, IndexStyle.Image, IndexStyle.Text
-local Skin = { Art = ART, Ink = INK, Text = text, Chrome = IndexStyle.Chrome }
-Skin.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
--- Card and plate tints (placeholders); Default is the Index's card blue.
+local Dojo = IndexStyle.Dojo
+local C, F = Dojo.Colors, Dojo.Fonts
+local Skin = { Art = ART, Ink = INK, Chrome = IndexStyle.Chrome, Dojo = Dojo }
+Skin.Font = F.Button -- Kalam Bold (4.46 replaced the GothamSSm heavy italic)
+local LEGACY_TINT = Color3.fromRGB(70, 205, 255) -- the Upgrades detail card's blue
+-- Card strip and slip bar tints on paper (placeholders).
 Skin.Tint = {
-	Default = Color3.fromRGB(70, 205, 255),
-	Ready = Color3.fromRGB(60, 230, 120),
-	Muted = Color3.fromRGB(120, 125, 140),
-	Gold = Color3.fromRGB(255, 205, 60),
-	Danger = Color3.fromRGB(255, 80, 90),
+	Default = C.Rim,
+	Ready = UiTheme.Dojo.Ready,
+	Muted = C.Muted,
+	Gold = Color3.fromRGB(240, 160, 32), -- #F0A020
+	Danger = C.Verm,
 }
--- Action button fills: Go is the Index's EQUIP green.
-local FILL = {
-	Go = UiTheme.Palette.MoneyDeep,
-	Idle = Color3.fromRGB(34, 40, 66),
-	Danger = Color3.fromRGB(215, 50, 70),
-	Gold = Color3.fromRGB(235, 160, 20),
+-- Action buttons (kit.css): Go the vermilion tile (Claim, Sell), Gold the cream wood tile, Idle the outlined paper
+-- button, Danger the paper button with a vermilion rim. { top, bottom, rim, rim px, text }.
+local TONE = {
+	Go = { C.GoTop, C.GoBottom, C.GoRim, 2, C.Cream },
+	Gold = { C.TileTop, C.TileBottom, C.Rim, 3, C.Ink },
+	Idle = { C.Field, C.Field, C.Ink, 2, C.Ink },
+	Danger = { C.Field, C.Field, C.Verm, 2, C.Verm },
 }
+
+-- The Upgrades tree (design doc 4.46 scope: not redesigned) keeps the 4.42 art.
+local function legacy(gui)
+	return gui:FindFirstAncestor("RacerUpgrades") ~= nil
+end
 
 local function child(parent, class, name)
 	local found = parent:FindFirstChild(name)
@@ -47,40 +59,61 @@ local function clear(gui)
 end
 Skin.Clear = clear
 
--- The plain framed body (magenta and cyan edges, cut corners) behind a panel or popup.
-function Skin.Body(panel, inset)
+-- A panel's or popup's own fill and edge give way (design doc 4.46: the handscroll or the slip is the body; the 4.42
+-- framed body art is retired, an old one hides).
+function Skin.Body(panel)
 	clear(panel)
-	local pad = inset or 8
-	local body = panel:FindFirstChild("AnimeBody") or image(panel, "AnimeBody", ART.Body, UDim2.new(), UDim2.new(), 0)
-	body.Position, body.Size = UDim2.fromOffset(-pad, -pad), UDim2.new(1, 2 * pad, 1, 2 * pad)
-	body.ZIndex = 0
-	return body
+	local old = panel:FindFirstChild("AnimeBody")
+	if old then
+		old.Visible = false
+	end
 end
 
--- The slanted cyan-to-violet strip under a header's title. `left` is where it starts (after the logo).
-function Skin.Strip(header, left)
+-- A header's own fill gives way (the 4.42 slanted strip is retired, an old one hides).
+function Skin.Strip(header)
 	clear(header)
 	header.ClipsDescendants = false
-	local strip = header:FindFirstChild("AnimeStrip")
-		or image(header, "AnimeStrip", ART.Header, UDim2.new(), UDim2.new(), 0) -- under the header's own parts
-	strip.Position, strip.Size = UDim2.new(0, left or 0, 0, 4), UDim2.new(1, -(left or 0), 1, -8)
-	return strip
+	local old = header:FindFirstChild("AnimeStrip")
+	if old then
+		old.Visible = false
+	end
 end
 
--- Heavy italic white with the dark outline, sized to fit (at most `max` px). Again next frame: UiTheme.Apply's
--- deferred DescendantAdded puts new text back on Fredoka.
+-- Text sized to fit (at most `max` px): ink on paper, the brush face from 40 px up, else the button face (the
+-- Upgrades tree: heavy italic white with the dark outline). Again next frame: UiTheme.Apply's deferred DescendantAdded
+-- puts new text back on Fredoka.
+local function paperText(label, max)
+	if legacy(label) then
+		text(label, max)
+		return
+	end
+	Dojo.Text(label, (max or 0) >= 40 and "Title" or "Item")
+	if max then
+		label.TextScaled = true
+		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+			or child(label, "UITextSizeConstraint", "AnimeLimit")
+		limit.MinTextSize = math.min(10, max)
+		limit.MaxTextSize = max
+	end
+end
+Skin.Text = paperText
+
 local function title(label, max)
-	text(label, max or 30)
+	paperText(label, max or 30)
 	task.defer(function()
 		if label.Parent then
-			text(label, max or 30)
+			paperText(label, max or 30)
 		end
 	end)
 end
 Skin.Title = title
 
--- The art close: the button stays (and keeps its name and size) under the art.
+-- The close: a vermilion seal with a cream X (Client/IndexAnimeStyle.Dojo.Seal); the button keeps its name and size.
+-- Returns the X label. The Upgrades tree keeps the 4.42 art close.
 function Skin.Close(button, label)
+	if not legacy(button) then
+		return Dojo.Seal(button, label or button:FindFirstChild("X"))
+	end
 	clear(button)
 	button.BackgroundTransparency = 1
 	if button:IsA("TextButton") then
@@ -107,21 +140,15 @@ function Skin.Close(button, label)
 	return art
 end
 
--- An art tab. `index` picks the Index's tab art (1 cyan, 2 gold, 3 and 4 violet). The button keeps its Text for
--- the UI tests; a caption on top shows it. Returns a function that marks the tab lit or not.
-function Skin.Tab(button, index)
+-- A paper tab; lit, a red brush pill with cream text (Client/IndexAnimeStyle.Dojo.Tab). `index` is unused (it picked
+-- the retired 4.42 tab art). The button keeps its Text for the UI tests; a caption on top shows it. Returns a function
+-- that marks the tab lit or not.
+function Skin.Tab(button, _index)
 	clear(button)
 	button.BackgroundTransparency = 1
-	if not button:FindFirstChild("AnimeTabArt") then
-		local art = image(
-			button,
-			"AnimeTabArt",
-			ART.Tabs[((index or 1) - 1) % #ART.Tabs + 1],
-			UDim2.new(0, -5, 0, -4),
-			UDim2.new(1, 10, 1, 8),
-			button.ZIndex + 1
-		)
-		art.ZIndex = 1
+	local oldArt = button:FindFirstChild("AnimeTabArt")
+	if oldArt then
+		oldArt.Visible = false
 	end
 	-- A tab whose words are a child label keeps it, raised over the art; a TextButton's own Text gets a caption.
 	local caption = button:FindFirstChild("AnimeCaption")
@@ -149,7 +176,7 @@ function Skin.Tab(button, index)
 		caption.ZIndex = 3
 		-- Narrow tabs (the Backpack's side rail) need smaller text than Issac's 10 px floor.
 		local function fit()
-			text(caption, 20)
+			paperText(caption, 20)
 			caption:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = 6
 		end
 		fit()
@@ -159,37 +186,76 @@ function Skin.Tab(button, index)
 			end
 		end)
 	end
-	return function(lit)
-		button.AnimeTabArt.ImageColor3 = lit and Color3.new(1, 1, 1) or Color3.fromRGB(150, 150, 170)
-	end
+	local lit = Dojo.Tab(button, caption and { caption } or {})
+	lit(false)
+	return lit
 end
 
--- An Index-style action button: flat fill, small corners, heavy italic outlined text. tone: Go, Idle, Danger, Gold.
+-- An action button (kit.css .tile / .pbtn): tone Go (vermilion tile), Gold (cream wood tile), Idle (outlined paper
+-- button), Danger (paper button, vermilion rim); the label in the button face. Its text colour is kept in the
+-- DojoTextColor attribute, so a later text role keeps it.
 function Skin.Button(button, tone)
-	for _, gradient in button:GetChildren() do
-		if gradient:IsA("UIGradient") then
-			gradient.Enabled = false
-		end
-	end
-	button.BackgroundColor3 = FILL[tone or "Go"] or FILL.Go
+	local look = TONE[tone or "Go"] or TONE.Go
+	Dojo.Fill(button, look[1], look[2])
+	Dojo.Rim(button, look[3], look[4])
+	button:SetAttribute("DojoTextColor", look[5])
 	local corner = button:FindFirstChildOfClass("UICorner") or child(button, "UICorner", "Corner")
 	local function style()
-		corner.CornerRadius = UDim.new(0, 4) -- UiTheme.Apply snaps new corners to 8: set again after it
+		corner.CornerRadius = UDim.new(0, 6) -- UiTheme.Apply snaps new corners to 8: set again after it
 		if button:IsA("TextButton") then
-			button.FontFace = Skin.Font
-			button.TextColor3 = Color3.new(1, 1, 1)
+			Dojo.Text(button, "Item")
+		end
+		for _, d in button:GetChildren() do
+			if d:IsA("TextLabel") then
+				d:SetAttribute("DojoTextColor", look[5])
+				Dojo.Text(d, "Item")
+			end
 		end
 	end
 	style()
 	task.defer(style)
 end
 
--- The angular card art behind a tile, tinted (rarity colour, state, or the Index's blue).
+-- Mirrors a tint holder's ImageColor3 into its fill: callers re-tint a card or plate through it (AnimeCard, AnimePlate).
+local function tintHolder(frame, name, tint, props)
+	local holder = frame:FindFirstChild(name)
+	if not holder or not holder:IsA("ImageLabel") then
+		holder = image(frame, name, "", UDim2.new(), UDim2.new(), 1)
+		holder.BorderSizePixel = 0
+		holder.BackgroundTransparency = 0
+		holder:GetPropertyChangedSignal("ImageColor3"):Connect(function()
+			holder.BackgroundColor3 = holder.ImageColor3
+		end)
+	end
+	for key, value in props do
+		holder[key] = value
+	end
+	holder.ImageColor3 = tint
+	holder.BackgroundColor3 = tint
+	return holder
+end
+
+-- A paper card (kit.css .card): cream paper, brown rim, a coloured strip along the top (rarity, state or the default
+-- brown). Returns the strip, an ImageLabel AnimeCard whose ImageColor3 re-tints it. The Upgrades tree keeps the
+-- angular card art.
 function Skin.Card(frame, tint)
+	if not legacy(frame) then
+		local old = frame:FindFirstChild("AnimeCard")
+		if old and old:IsA("ImageLabel") and old.Image ~= "" then
+			old:Destroy() -- a 4.42 card art
+		end
+		Dojo.Fill(frame, C.CardTop, C.CardBottom)
+		Dojo.Rim(frame, C.Rim, 2)
+		Dojo.Corner(frame, 6)
+		return tintHolder(frame, "AnimeCard", tint or Skin.Tint.Default, {
+			Position = UDim2.fromOffset(2, 2),
+			Size = UDim2.new(1, -4, 0, 5),
+		})
+	end
 	clear(frame)
 	local card = frame:FindFirstChild("AnimeCard")
 		or image(frame, "AnimeCard", ART.Card, UDim2.fromOffset(-3, -3), UDim2.new(1, 6, 1, 6), 0)
-	card.ImageColor3 = tint or Skin.Tint.Default
+	card.ImageColor3 = tint or LEGACY_TINT
 	return card
 end
 
@@ -213,10 +279,10 @@ Skin.Space = {
 	Scrollbar = 8,
 }
 Skin.Size = { Title = 38, Section = 26, Item = 20, Body = 16, Caption = 13 }
-Skin.Color = {
-	Section = Color3.fromRGB(255, 205, 60),
-	White = Color3.new(1, 1, 1),
-	Caption = Color3.fromRGB(200, 210, 230),
+Skin.Color = { -- on paper (design doc 4.46)
+	Section = C.Ink,
+	White = C.Cream, -- text on a dark or vermilion fill
+	Caption = C.Muted,
 }
 local PHONE_SCALE = 0.75 -- placeholder
 
@@ -233,29 +299,17 @@ function Skin.Px(value)
 	return compact() and math.floor(value * PHONE_SCALE + 0.5) or value
 end
 
-local BODY_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
 local function applyRole(label, role)
 	label:SetAttribute("AnimeRole", role) -- UiTheme.Apply leaves this text alone
 	local size = Skin.Px(Skin.Size[role] or Skin.Size.Body)
 	local heavy = role == "Title" or role == "Section" or role == "Item"
-	label.FontFace = heavy and Skin.Font or BODY_FONT
-	label.TextColor3 = role == "Section" and Skin.Color.Section
-		or role == "Caption" and Skin.Color.Caption
-		or Skin.Color.White
-	label.TextStrokeTransparency = 1
-	local stroke = label:FindFirstChildOfClass("UIStroke")
+	Dojo.Text(label, role) -- design doc 4.46: ink on paper, no outline
 	if heavy then
-		stroke = stroke or child(label, "UIStroke", "AnimeOutline")
-		stroke.Color, stroke.Thickness, stroke.Enabled = INK, role == "Title" and 2.5 or 2, true
-		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 		label.TextScaled = true
 		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
 			or child(label, "UITextSizeConstraint", "AnimeLimit")
 		limit.MaxTextSize, limit.MinTextSize = size, math.min(size, Skin.Px(Skin.Size.Caption))
 	else
-		if stroke then
-			stroke.Enabled = false -- no outline under 16 px: it blurs the letters
-		end
 		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
 		if limit then
 			limit:Destroy()
@@ -277,7 +331,7 @@ function Skin.Label(label, role)
 	return label
 end
 
--- The standard header on any panel or popup: strip, overhanging logo, ALL CAPS title, art close. parts: Header (Frame),
+-- The standard header on any panel or popup: logo, ALL CAPS brush title, seal close. parts: Header (Frame),
 -- Title (TextLabel), Icon (ImageLabel, optional), Close (GuiButton, optional), TitleEnd (UDim, optional). Returns a
 -- function that re-lays it out; it also follows the panel's size.
 function Skin.Header(panel, parts)
@@ -286,7 +340,7 @@ function Skin.Header(panel, parts)
 	header.AnchorPoint = Vector2.zero
 	header.Position = UDim2.new()
 	header.ZIndex = math.max(header.ZIndex, 2)
-	local strip = Skin.Strip(header)
+	Skin.Strip(header)
 	if close then
 		Skin.Close(close)
 		close.AnchorPoint = Vector2.new(1, 0)
@@ -320,13 +374,10 @@ function Skin.Header(panel, parts)
 		end
 		local left = Skin.Px(Skin.Space.Inset)
 		if icon then
-			local logo = Skin.Px(Skin.Space.Logo)
-			icon.Position = UDim2.fromOffset(-math.floor(h * 0.2), -math.floor(h * 0.45))
-			icon.Size = UDim2.fromOffset(logo, logo)
-			left = logo - math.floor(h * 0.15)
+			icon.Position = UDim2.fromOffset(left, gap)
+			icon.Size = UDim2.fromOffset(closeSize, closeSize)
+			left += closeSize + gap
 		end
-		local stripLeft = icon and math.floor(h * 0.5) or 0
-		strip.Position, strip.Size = UDim2.fromOffset(stripLeft, 4), UDim2.new(1, -stripLeft, 1, -8)
 		titleLabel.Position = UDim2.fromOffset(left, 4)
 		local stop = parts.TitleEnd or UDim.new(1, -(close and closeSize + 2 * gap or gap))
 		titleLabel.Size = UDim2.new(stop.Scale, stop.Offset - left, 0, h - 8)
@@ -381,7 +432,7 @@ function Skin.Content(gui, opts)
 	return place
 end
 
--- Index's footer bar at the bottom of a list panel: a slanted plate with one centred caption line. Returns the label.
+-- The footer bar at the bottom of a list panel: a lacquer plate with one centred caption line. Returns the label.
 function Skin.Footer(panel, value)
 	local bar = panel:FindFirstChild("AnimeFooter")
 	if not bar then
@@ -390,8 +441,12 @@ function Skin.Footer(panel, value)
 		bar.BackgroundTransparency = 1
 		bar.ZIndex = 3
 		bar.Parent = panel
-		local plate = image(bar, "Plate", ART.Plate, UDim2.new(), UDim2.fromScale(1, 1), 3)
-		plate.ImageColor3 = Skin.Tint.Default
+		local plate = Instance.new("Frame")
+		plate.Name = "Plate"
+		plate.Size = UDim2.fromScale(1, 1)
+		plate.ZIndex = 3
+		plate.Parent = bar
+		Dojo.Lacquer(plate)
 		local line = Instance.new("TextLabel")
 		line.Name = "Line"
 		line.BackgroundTransparency = 1
@@ -412,15 +467,15 @@ function Skin.Footer(panel, value)
 	end
 	bar.Line.Text = value or ""
 	bar.Line.TextXAlignment = Enum.TextXAlignment.Center
-	Skin.Label(bar.Line, "Body")
+	Skin.Label(bar.Line, "Footer")
 	return bar.Line
 end
 
--- The Index frame (owner 2026-11-10: every panel matches the reference, as the approved Quests and Stats do). Geometry in
--- Issac's design units, 1200 x 620 (phone 650 x 420; design doc 4.42 "Wider panels", 1.3 x the old 920 and 500
--- wide), drawn at k = panel px / units: the chrome art (IndexStyle.Chrome stretches only its plain runs), the logo,
--- the slanted ALL CAPS title, the art close, art tabs in the row at y 98, content from y 164 to 82 above the bottom, and
--- the footer line on the plate the chrome draws. Same numbers as Client/QuestAnimeStyle and the Index itself.
+-- The Index frame (owner 2026-11-10: every panel shares one frame; design doc 4.46 look). Geometry in Issac's design
+-- units, 1200 x 620 (phone 650 x 420; design doc 4.42 "Wider panels", kept by 4.46), drawn at k = panel px / units:
+-- the handscroll (Client/DojoHandscroll, which PanelSwitch unrolls), the logo, the ALL CAPS brush title with its
+-- vermilion kanji and sub line, a brushed rule, the seal close, paper tabs in the row at y 98, content from y 164 to 82
+-- above the bottom, and the footer count on a lacquer plate. Same numbers as Client/QuestAnimeStyle and the Index.
 Skin.Units = {
 	W = IndexStyle.Frame.W,
 	H = IndexStyle.Frame.H,
@@ -442,10 +497,10 @@ Skin.Units = {
 }
 -- Text sizes in units: Title and Tab as the Index; Item / Body / Caption read 20 / 16 / 13 px at the Index's own scale.
 Skin.UnitSize = { Title = 72, Section = 40, Item = 34, Body = 28, Caption = 22, Tab = 22, Footer = 20 }
-local HEAVY = { Title = 2.5, Section = 2.5, Item = 2, Tab = 2, Footer = 1.5 } -- outline thickness per heavy role
 
 -- parts: Title (TextLabel), Icon (ImageLabel, optional; Logo = image id to put on it), Close (GuiButton, optional),
--- Header (Frame to collapse into a transparent anchor at the panel's origin, optional).
+-- Header (Frame to collapse into a transparent anchor at the panel's origin, optional), Scroll (false: a paper slip
+-- body, no handscroll, for a card that is no scroll in 4.46, the loser card).
 -- Returns g: W, H, k, Small; px(units), at(x, y); Place(gui, x, y, w, h); Role(label, role); Tabs({buttons}) -> lit
 -- setters; Button(button, tone); Content = { X, Y, W, H } in units; Footer(text); SetTitle(text); SetLogo(image);
 -- OnLayout(fn(g)) runs now and on every size change; Relayout(); MeasureAt (UI tests). Skin.Frames[panel] = g.
@@ -457,11 +512,20 @@ function Skin.IndexFrame(panel, parts)
 	local aspect = panel:FindFirstChild("AnimeAspect") or child(panel, "UIAspectRatioConstraint", "AnimeAspect")
 	aspect.AspectType = Enum.AspectType.FitWithinMaxSize
 	aspect.DominantAxis = Enum.DominantAxis.Height
-	for _, name in { "AnimeBody", "AnimeStrip" } do
+	for _, name in { "AnimeBody", "AnimeStrip", "AnimeChrome" } do
 		local old = panel:FindFirstChild(name, true)
 		if old then
 			old.Visible = false
 		end
+	end
+	-- Design doc 4.46: the handscroll (PanelSwitch unrolls it from the centre), or a paper slip for a card.
+	local paper = panel
+	if parts.Scroll == false then
+		Dojo.Fill(panel, C.Slip)
+		Dojo.Rim(panel, C.SlipRim, 1.5)
+		Dojo.Corner(panel, 6)
+	else
+		paper = Dojo.Scroll(panel).Content
 	end
 	local header = parts.Header
 	if header then
@@ -472,7 +536,6 @@ function Skin.IndexFrame(panel, parts)
 		header.ClipsDescendants = false
 		header.ZIndex = 8
 	end
-	local _, placeChrome = IndexStyle.Chrome(panel, "AnimeChrome", 0)
 	local titleLabel = parts.Title or child(header or panel, "TextLabel", "Title")
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -486,6 +549,12 @@ function Skin.IndexFrame(panel, parts)
 	end
 	upper()
 	titleLabel:GetPropertyChangedSignal("Text"):Connect(upper)
+	local heading = Dojo.Heading(titleLabel)
+	local rule = paper:FindFirstChild("HeaderRule") or child(paper, "Frame", "HeaderRule")
+	rule.BackgroundColor3 = C.InkSoft
+	rule.BackgroundTransparency = 0.45
+	rule.BorderSizePixel = 0
+	rule.Active = false
 	local icon = parts.Icon
 	if not icon and parts.Logo then
 		icon = child(header or panel, "ImageLabel", "Icon")
@@ -500,12 +569,10 @@ function Skin.IndexFrame(panel, parts)
 		end
 	end
 	local close = parts.Close
-	local closeArt
 	if close then
-		closeArt = Skin.Close(close)
+		Skin.Close(close)
 		close.AnchorPoint = Vector2.zero
 		close.ZIndex = 10
-		closeArt.AnchorPoint = Vector2.zero
 	end
 	local footer = panel:FindFirstChild("AnimeFooterLine") or child(panel, "TextLabel", "AnimeFooterLine")
 	footer.BackgroundTransparency = 1
@@ -514,6 +581,7 @@ function Skin.IndexFrame(panel, parts)
 	if footer.Text == "Label" then
 		footer.Text = "" -- a new TextLabel's default text; empty until the panel sets its count line
 	end
+	Dojo.FooterPlate(footer, 10)
 
 	local g = { k = 1, W = Skin.Units.W, H = Skin.Units.H, Small = false, Content = {} }
 	function g.px(units)
@@ -526,26 +594,13 @@ function Skin.IndexFrame(panel, parts)
 		gui.AnchorPoint = Vector2.zero
 		gui.Position, gui.Size = g.at(x, y), g.at(w, h)
 	end
-	-- One of the text roles at its unit size: Title, Section, Item, Tab, Footer heavy italic with the dark outline;
-	-- Body and Caption upright bold with no outline (they read under 16 px).
+	-- One of the text roles at its unit size, ink on paper (Client/IndexAnimeStyle.Dojo.Text): Title and Section in the
+	-- brush face, Item, Tab and Footer in the button face, Body and Caption in the body face.
 	function g.Role(label, role)
 		role = Skin.UnitSize[role] and role or "Body"
 		label:SetAttribute("AnimeRole", role)
 		local size = g.px(Skin.UnitSize[role])
-		local thick = HEAVY[role]
-		label.FontFace = thick and Skin.Font or BODY_FONT
-		label.TextColor3 = role == "Section" and Skin.Color.Section
-			or role == "Caption" and Skin.Color.Caption
-			or Skin.Color.White
-		label.TextStrokeTransparency = 1
-		local stroke = label:FindFirstChildOfClass("UIStroke")
-		if thick then
-			stroke = stroke or child(label, "UIStroke", "AnimeOutline")
-			stroke.Color, stroke.Thickness, stroke.Enabled = INK, thick, true
-			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
-		elseif stroke then
-			stroke.Enabled = false
-		end
+		Dojo.Text(label, role)
 		label.TextScaled = true
 		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
 			or child(label, "UITextSizeConstraint", "AnimeLimit")
@@ -553,15 +608,14 @@ function Skin.IndexFrame(panel, parts)
 		limit.MinTextSize = math.max(1, math.min(size, g.px(10)))
 		return label
 	end
-	-- An Index-style button with its caption on the Item size.
+	-- An action button (Skin.Button) with its caption on the Item size, in the tone's text colour.
 	function g.Button(button, tone)
 		Skin.Button(button, tone)
 		if button:IsA("TextButton") then
 			g.Role(button, "Item")
-			button.TextColor3 = Skin.Color.White
 		end
 	end
-	-- Art tabs across the row at y 98: up to 4 at the Index's width, more share the row. Returns the lit setters.
+	-- Paper tabs across the row at y 98: up to 4 at the Index's width, more share the row. Returns the lit setters.
 	local tabSets = {}
 	function g.Tabs(buttons)
 		local setters = {}
@@ -610,22 +664,24 @@ function Skin.IndexFrame(panel, parts)
 			return
 		end
 		g.k, g.W, g.H, g.Small = k, W, H, small
-		placeChrome(-g.px(40), -g.px(70), g.px(W) + g.px(80), g.px(H) + g.px(100))
+		-- Header (kit.css .hdr): logo 70 at (28, 14), the title after it, kanji and sub line after the title, the rule
+		-- at y 90, the seal close 64 at 92 in from the right. Parts held to the right or bottom edge use Scale + offset,
+		-- not W / H units: the same px here, and a layout read at another viewport (the UI tests' model scales offsets
+		-- by k) stays inside the frame.
 		if icon then
-			g.Place(icon, -19, -72, 188, 186)
+			g.Place(icon, 28, 14, 70, 70)
 		end
-		-- Parts held to the right or bottom edge use Scale + offset, not W / H units: the same px here, and a layout
-		-- read at another viewport (the UI tests' model scales offsets by k) stays inside the frame.
-		local titleLeft = icon and 168 or 56
+		local titleLeft = icon and 108 or 36
 		titleLabel.AnchorPoint = Vector2.zero
-		titleLabel.Position = g.at(titleLeft, -23)
-		titleLabel.Size = UDim2.new(1, -g.px(titleLeft + 110), 0, g.px(76))
-		titleLabel.Rotation = -2
+		titleLabel.Position = g.at(titleLeft, 12)
+		titleLabel.Size = UDim2.new(1, -g.px(titleLeft + 120), 0, g.px(72))
+		titleLabel.Rotation = 0
 		g.Role(titleLabel, "Title")
+		heading(g.px, g.px(W))
+		rule.Position, rule.Size = g.at(28, 90), UDim2.new(1, -g.px(56), 0, math.max(1, g.px(3)))
 		if close then
 			close.AnchorPoint = Vector2.zero
-			close.Position, close.Size = UDim2.new(1, -g.px(82), 0, -g.px(6)), g.at(74, 74)
-			closeArt.Position, closeArt.Size = UDim2.new(), UDim2.fromScale(1, 1)
+			close.Position, close.Size = UDim2.new(1, -g.px(92), 0, g.px(16)), g.at(64, 64)
 		end
 		footer.AnchorPoint = Vector2.zero
 		footer.Position = UDim2.new(303 / 920, 0, 1, -g.px(60))
@@ -638,11 +694,8 @@ function Skin.IndexFrame(panel, parts)
 			local w = n <= 4 and (W - 136) / 4 or (W - 112 - Skin.Units.TabGap * (n - 1)) / n
 			for i, button in buttons do
 				g.Place(button, 56 + (i - 1) * (w + Skin.Units.TabGap), tabsY, w, Skin.Units.TabH)
-				local art, caption = button:FindFirstChild("AnimeTabArt"), button:FindFirstChild("AnimeCaption")
-				if art then
-					art.Position, art.Size = g.at(-7, -5), UDim2.new(1, g.px(14), 1, g.px(10))
-				end
-				if caption and caption.Name == "AnimeCaption" then
+				local caption = button:FindFirstChild("AnimeCaption")
+				if caption then
 					caption.Position, caption.Size = g.at(8, 0), UDim2.new(1, -g.px(16), 1, 0)
 				end
 			end
@@ -692,12 +745,26 @@ function Skin.IndexFrame(panel, parts)
 	return g
 end
 
--- The slanted name plate behind a wide row, tinted.
+-- A paper slip behind a wide row (kit.css .slip) with a tinted bar at its left end. Returns the bar, an ImageLabel
+-- AnimePlate whose ImageColor3 re-tints it. The Upgrades tree keeps the slanted plate art.
 function Skin.Plate(frame, tint)
+	if not legacy(frame) then
+		local old = frame:FindFirstChild("AnimePlate")
+		if old and old:IsA("ImageLabel") and old.Image ~= "" then
+			old:Destroy() -- a 4.42 plate art
+		end
+		Dojo.Fill(frame, C.Slip)
+		Dojo.Rim(frame, C.SlipRim, 1.5)
+		Dojo.Corner(frame, 4)
+		return tintHolder(frame, "AnimePlate", tint or Skin.Tint.Default, {
+			Position = UDim2.fromOffset(2, 2),
+			Size = UDim2.new(0, 8, 1, -4),
+		})
+	end
 	clear(frame)
 	local plate = frame:FindFirstChild("AnimePlate")
 		or image(frame, "AnimePlate", ART.Plate, UDim2.new(), UDim2.fromScale(1, 1), 0)
-	plate.ImageColor3 = tint or Skin.Tint.Default
+	plate.ImageColor3 = tint or LEGACY_TINT
 	return plate
 end
 
