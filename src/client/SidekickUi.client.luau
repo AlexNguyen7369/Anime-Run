@@ -589,6 +589,9 @@ local function renderRotation()
 	end
 	dressStage()
 	refresh()
+	if panels then
+		panels.Refresh() -- an open Details follows the live banner (SIDEKICK_SPEC "Panels", owner 2026-11-20)
+	end
 end
 
 local function setAuto(on)
