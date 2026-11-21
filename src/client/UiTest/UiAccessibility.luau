@@ -6,6 +6,8 @@
 --   ui_motion_reduced    Client/UiMotion presets (docs/HUD_LAYOUT_SPEC.md section 10, owner 2026-10-27): with
 --                        ReduceEffects on, Pop / SlideIn / Shine / Pulse / Shake / Float land on their end state at
 --                        once and nothing loops; with it off (and Roblox's Reduced Motion off) Pop and Pulse animate.
+--   ui_handscroll        Client/DojoHandscroll (design doc 4.46) on a probe frame: half unrolled the paper is half wide,
+--                        the content keeps its size and place, the rollers ride the paper edges; reduced, Open never rolls.
 --   (ui_speed_float retired: no Speed stat and no Speed read-out, design doc 4.13, owner 2026-11-01)
 --   ui_safe_insets       Client/SafeInsets: every player ScreenGui except the full-bleed ones uses DeviceSafeInsets
 --                        (also one added later); every shown button / label lies inside its gui's safe rect.
@@ -364,6 +366,100 @@ function Access.Build(h)
 		end)
 		player:SetAttribute(cfg.ReduceAttr, saved)
 		probeGui:Destroy()
+		if not ok then
+			error(err)
+		end
+	end
+
+	---------------------------------------------------------------------------------------------------------------
+	-- Handscroll (design doc 4.46, docs/UI_SCROLL_SPEC.md Kit and Motion) on a probe frame
+
+	function scenarios.ui_handscroll(res)
+		local m = script.Parent.Parent:FindFirstChild("DojoHandscroll")
+		local loaded, Handscroll = false, nil
+		if m and m:IsA("ModuleScript") then
+			loaded, Handscroll = pcall(require, m)
+		end
+		h.check(res, "handscroll_module_present", loaded and "loaded" or "missing", "loaded", loaded)
+		if not loaded then
+			return
+		end
+		local saved = player:GetAttribute(cfg.ReduceAttr)
+		local probe = Instance.new("ScreenGui")
+		probe.Name = "UiTestHandscrollProbe"
+		probe.ResetOnSpawn = false
+		probe.Parent = playerGui
+		local panel = Instance.new("Frame")
+		panel.Position = UDim2.fromOffset(100, 100)
+		panel.Size = UDim2.fromOffset(600, 300)
+		panel.BackgroundTransparency = 1
+		panel.Parent = probe
+		local function near(a, b)
+			return math.abs(a - b) <= 1
+		end
+		local ok, err = pcall(function()
+			player:SetAttribute(cfg.ReduceAttr, false)
+			local scroll = Handscroll.Build(panel)
+			h.check(
+				res,
+				"handscroll_marked",
+				panel:GetAttribute("Handscroll"),
+				true,
+				panel:GetAttribute("Handscroll") == true
+			)
+			h.check(res, "handscroll_get", Handscroll.Get(panel) == scroll, true, Handscroll.Get(panel) == scroll)
+			h.frames(1)
+			local width, left = scroll.Content.AbsoluteSize.X, scroll.Content.AbsolutePosition.X
+			scroll.SetProgress(0.5)
+			h.frames(1)
+			local paper = scroll.Paper
+			h.check(res, "handscroll_half_paper_scale", paper.Size.X.Scale, 0.5, paper.Size.X.Scale == 0.5)
+			h.check(
+				res,
+				"handscroll_content_same_width",
+				scroll.Content.AbsoluteSize.X,
+				width,
+				near(scroll.Content.AbsoluteSize.X, width)
+			)
+			h.check(
+				res,
+				"handscroll_content_in_place",
+				scroll.Content.AbsolutePosition.X,
+				left,
+				near(scroll.Content.AbsolutePosition.X, left)
+			)
+			local function centre(roller)
+				return roller.AbsolutePosition.X + roller.AbsoluteSize.X / 2
+			end
+			local paperL = paper.AbsolutePosition.X
+			local paperR = paperL + paper.AbsoluteSize.X
+			local rollerL, rollerR = scroll.Root.RollerL, scroll.Root.RollerR
+			h.check(res, "handscroll_roller_left_at_edge", centre(rollerL), paperL, near(centre(rollerL), paperL))
+			h.check(res, "handscroll_roller_right_at_edge", centre(rollerR), paperR, near(centre(rollerR), paperR))
+			-- Reduced effects: Open fades, it never rolls (the paper stays full width from the first frame)
+			player:SetAttribute(cfg.ReduceAttr, true)
+			scroll.SetProgress(0)
+			Handscroll.Open(panel)
+			local narrowest = paper.Size.X.Scale
+			for _ = 1, 4 do
+				h.frames(1)
+				narrowest = math.min(narrowest, paper.Size.X.Scale)
+			end
+			h.check(res, "handscroll_reduced_no_roll", narrowest, 1, narrowest == 1)
+			-- Not reduced (proves the check above is not vacuous): Open starts rolled up and widens
+			if not GuiService.ReducedMotionEnabled then
+				player:SetAttribute(cfg.ReduceAttr, false)
+				scroll.Stop()
+				scroll.SetProgress(1)
+				Handscroll.Open(panel)
+				h.frames(2)
+				local scale = paper.Size.X.Scale
+				h.check(res, "handscroll_rolls_when_not_reduced", scale, "< 1", scale < 1)
+				scroll.Stop()
+			end
+		end)
+		player:SetAttribute(cfg.ReduceAttr, saved)
+		probe:Destroy()
 		if not ok then
 			error(err)
 		end
