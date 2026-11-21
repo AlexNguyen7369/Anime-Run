@@ -437,6 +437,40 @@ function Tests.sidekick_rotation()
 			flag("first_moment_new_secret", early[after] ~= nil and early[before] == nil)
 		end
 
+		-- Details (SIDEKICK_SPEC "Panels", owner 2026-11-20) lists every Sidekick of the current slot at its own rate from
+		-- the published Odds: for the live slot they cover exactly Ids + SecretId, sum to 100 and are the roll weights.
+		do
+			local live = Rotation.Slot(os.time())
+			at(live * 1800 + 60)
+			local ok, view =
+				pcall(HttpService.JSONDecode, HttpService, ReplicatedStorage:GetAttribute("SidekickRotation"))
+			flag("details_published_readable", ok and type(view) == "table" and type(view.Odds) == "table")
+			if ok and type(view) == "table" and type(view.Odds) == "table" then
+				local pool = setOf(view.Ids)
+				pool[view.SecretId] = true
+				local sum, extra = 0, {}
+				for id, percent in view.Odds do
+					sum += percent
+					if not pool[id] then
+						table.insert(extra, id)
+					end
+				end
+				flag("details_odds_only_banner", #extra == 0, table.concat(extra, ","), "")
+				for id in pool do
+					flag("details_odds_has_" .. id, type(view.Odds[id]) == "number", view.Odds[id], "a percent")
+				end
+				flag("details_odds_sum_100", near(sum, 100, 1e-9), sum, 100)
+				local tally = sweep(GRID)
+				for id, percent in view.Odds do
+					local share = (tally[id] or 0) / GRID * 100
+					flag("details_rate_is_roll_weight_" .. id, near(share, percent, GRID_SLACK), share, percent)
+				end
+				for id in tally do
+					flag("details_rolled_is_listed_" .. id, view.Odds[id] ~= nil)
+				end
+			end
+		end
+
 		-- Listed rates on a real seeded rng: only the common tiers, whose shares are well sampled.
 		local slot = SLOT0 + 3
 		at(slot * 1800)
