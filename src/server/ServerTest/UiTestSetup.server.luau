@@ -7,7 +7,7 @@
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
 -- Ids: snapshot, restore, spy, team_states, team_states_clear, team_full, no_passes, sidekick_states, sidekick_pity_due, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
--- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
+-- emphasized_next, auto_roll_on, auto_roll_off, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
 local HttpService = game:GetService("HttpService")
@@ -1265,6 +1265,13 @@ end
 function setups.auto_roll_on(player)
 	setAutoRoll(player, true)
 	makeBagRoom(player)
+end
+
+-- Clicks that pin Money (progression_not_optimistic): an auto-roll's duplicate sale (MoneyService.Award) moves Money
+-- mid-check, as for the rebirth fixture below. 'restore' turns it back to the 'snapshot' value (snap.autoRoll).
+function setups.auto_roll_off(player)
+	assert(snapshots[player], "snapshot required before auto_roll_off ('restore' consumes it: take a fresh 'snapshot')")
+	setAutoRoll(player, false)
 end
 
 local function progressionSnapshot(player)

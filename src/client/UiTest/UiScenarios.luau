@@ -7114,9 +7114,28 @@ function S.ui_roll_anim(res)
 		stateMissing(res, "turbo_roll_compact_is_no_card", "turbo_next", "no turbo roll played on the compact roll")
 	end
 
-	-- 3. RollSerial +1 per RollResult received (pairs of rolls sampled on the same card)
+	-- 3. RollSerial +1 per RollResult received (pairs of rolls sampled on the same card). Sections 3 and 4 judge only the
+	-- rolls this scenario received (after startN): the scenario runs alone or after others, and an earlier scenario's
+	-- fixtures (forced panels, showcase, restore) must not count. Wait for a second roll sampled at Hold on the compact.
+	local function ownRecs()
+		local list, held = {}, 0
+		for _, r in events.recs do
+			if r.ev.n > startN then
+				table.insert(list, r)
+				if r.done and r.hold.Compact then
+					held += 1
+				end
+			end
+		end
+		return list, held
+	end
+	local ownDeadline = os.clock() + 2 * UiSpec.Waits.RollToast
+	while select(2, ownRecs()) < 2 and os.clock() < ownDeadline do
+		task.wait(0.1)
+	end
+	local own = ownRecs()
 	local prev, pairsSeen, serialBad = {}, 0, {}
-	for _, r in events.recs do
+	for _, r in own do
 		for key, h in r.hold do
 			local p = prev[key]
 			if p and type(h.serial) == "number" and type(p.serial) == "number" then
@@ -7140,7 +7159,7 @@ function S.ui_roll_anim(res)
 
 	-- 4. No RollResult arrives while the previous roll still plays (server pauses ExtraPause after long rolls)
 	local evaluated, covered = 0, {}
-	for _, r in events.recs do
+	for _, r in own do
 		if r.done and #phaseSeq(r, r.playKey) > 0 then
 			evaluated += 1
 			if r.interruptedAt and not r.idleAt then

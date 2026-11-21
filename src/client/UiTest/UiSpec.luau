@@ -1619,6 +1619,13 @@ UiSpec.ServerSetup = {
 			.. "characters owned before back.",
 	},
 	{
+		Id = "auto_roll_off",
+		When = "in the NeedSetup of the clicks whose After pins Money (progression_not_optimistic), after on_foot; "
+			.. "needs 'snapshot' first",
+		What = "Turns auto-rolling off (AutoRoll = false): an auto-roll's duplicate sale moves Money mid-check. 'restore' "
+			.. "puts AutoRoll back to the 'snapshot' value.",
+	},
+	{
 		Id = "auto_roll_on",
 		When = "before UiTestRun if AutoRoll is false (a scenario fails with state_missing:auto_roll_on)",
 		What = "Turns auto-rolling back on (AutoRoll = true). Empties spares if the bag is half full (design doc 4.41), until its restore.",
@@ -1927,13 +1934,18 @@ UiSpec.Clicks = {
 	},
 	-- Redeem sends the typed text to the real RedeemCode (a bad code: the server answers "Invalid code" and saves
 	-- nothing) and Status shows the server's reply. SetText types the code and blanks Status before the click.
+	-- progression_spy logs RedeemCode and hands a "UITEST-" code to the real ShopService.Redeem, so the click asks
+	-- for it itself and expects exactly that one call (alone it saw no call; after market_action_buy left the proxy
+	-- in place it saw RedeemCode and failed a "nothing fired" expectation).
 	{
 		Id = "shop_redeem_invalid_code",
 		Gui = "ShopUi",
 		Path = "Backdrop/Panel/Items/Codes/**/Redeem",
+		NeedSetup = { "spy", "progression_spy" },
 		Prepare = (function()
 			local p = only("ShopUi/Backdrop")
 			p.ScrollIntoView = true
+			p.Intercept = "RedeemCode"
 			p.SetText = {
 				["ShopUi/Backdrop/Panel/Items/Codes/**/Input"] = UiSpec.Shop.TestCode,
 				["ShopUi/Backdrop/Panel/Items/Codes/**/Status"] = "",
@@ -1942,7 +1954,7 @@ UiSpec.Clicks = {
 		end)(),
 		Expect = {
 			Panels = { ["ShopUi/Backdrop"] = true },
-			Remote = false,
+			Remote = { Name = "RedeemCode", Args = { UiSpec.Shop.TestCode } },
 			After = { "shop_redeem_status_from_server" },
 		},
 	},
@@ -2682,7 +2694,7 @@ table.insert(UiSpec.Clicks, {
 	Gui = "RacerUpgrades",
 	Path = "Panel/Canvas/TreeWorld/Start",
 	Prepare = only("RacerUpgrades/Panel"),
-	NeedSetup = { "on_foot", "spy", "progression_spy" },
+	NeedSetup = { "on_foot", "auto_roll_off", "spy", "progression_spy" },
 	Expect = { Panels = { ["RacerUpgrades/Panel"] = true }, Remote = false, After = { "progression_not_optimistic" } },
 })
 table.insert(UiSpec.Clicks, {
@@ -2713,7 +2725,7 @@ table.insert(UiSpec.Clicks, {
 	Gui = "RacerUpgrades",
 	Path = "Panel/Canvas/TreeWorld/money_1",
 	Prepare = only("RacerUpgrades/Panel"),
-	NeedSetup = { "on_foot", "progression_buyable", "spy", "progression_spy" },
+	NeedSetup = { "on_foot", "auto_roll_off", "progression_buyable", "spy", "progression_spy" },
 	Expect = { Remote = { Name = "BuyUpgrade", Arg = "upgrade_id" }, After = { "progression_not_optimistic" } },
 })
 table.insert(UiSpec.Clicks, {
@@ -2721,7 +2733,7 @@ table.insert(UiSpec.Clicks, {
 	Gui = "RacerUpgrades",
 	Path = "Panel/Canvas/TreeWorld/money_1",
 	Prepare = only("RacerUpgrades/Panel"),
-	NeedSetup = { "on_foot", "progression_no_money", "spy", "progression_spy" },
+	NeedSetup = { "on_foot", "auto_roll_off", "progression_no_money", "spy", "progression_spy" },
 	Expect = { Remote = false, After = { "progression_not_optimistic" } },
 })
 for _, item in
