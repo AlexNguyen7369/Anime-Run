@@ -119,6 +119,8 @@ UiScenarios.Names = {
 	"ui_reduced_motion",
 	-- docs/HUD_LAYOUT_SPEC.md section 10 (owner 2026-10-27): UiMotion presets land at once while reduced
 	"ui_motion_reduced",
+	-- design doc 4.46: the Scroll Dojo handscroll unrolls from its centre; reduced it fades
+	"ui_handscroll",
 	-- design doc 4.20 (commit c80e4de): REDUCED EFFECTS starts on for low graphics levels and small touch-only screens
 	"ui_reduce_effects_default",
 	-- design doc 4.33, docs/UI_FEEDBACK_SPEC.md: cue sounds, the sound ledger, Slam / Impact / Burst / Fly / Fill, UiFx

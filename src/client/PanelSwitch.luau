@@ -9,6 +9,7 @@ local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local InputLock = require(script.Parent:WaitForChild("InputLock"))
 local UiTransition = require(script.Parent:WaitForChild("UiTransition"))
+local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
 
 local PanelSwitch = {}
 
@@ -215,6 +216,10 @@ local function scaleHandle(target)
 end
 
 local function stopMotion(target)
+	local scroll = DojoHandscroll.Get(target)
+	if scroll then
+		scroll.Stop()
+	end
 	local motion = motions[target]
 	if not motion then
 		return
@@ -252,6 +257,12 @@ local function openMotion(panel)
 	stopMotion(target)
 	local face = fadeTarget(target)
 	face.Visible = true -- a finished close fade hid it
+	if DojoHandscroll.Get(target) then
+		-- Design doc 4.46: the handscroll unrolls from its centre (reduced: a short fade); input stays live.
+		DojoHandscroll.Open(target)
+		cascadeList(target)
+		return
+	end
 	if UiMotion.Reduced() then
 		return
 	end
@@ -274,8 +285,20 @@ end
 local function closeMotion(panel, instant)
 	local target = motionTarget(panel)
 	stopMotion(target)
-	if instant or UiMotion.Reduced() then
+	local scroll = DojoHandscroll.Get(target)
+	if instant or (UiMotion.Reduced() and not scroll) then
 		panel.Visible = false
+		return
+	end
+	if scroll then
+		-- Design doc 4.46: the rollers travel back to the centre (reduced: a fade), then the panel hides.
+		closing[panel] = true
+		DojoHandscroll.Close(target, function()
+			if closing[panel] then -- not reopened or hidden meanwhile
+				closing[panel] = nil
+				panel.Visible = false
+			end
+		end)
 		return
 	end
 	local handle, property = scaleHandle(target)
