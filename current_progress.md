@@ -211,8 +211,9 @@
 207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
 208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
 209. 2026-11-20 — Alex Nguyen — Summon Details now lists every Sidekick of the live banner at its own rate (sums to exactly 100%), and Team Select passed its Studio check (ui_team 70/70, 50/50 Team clicks) with the Team tests following the new layout.
+210. 2026-11-20 — Alex Nguyen — Fixed test isolation for shop_redeem_invalid_code and ui_roll_anim, added the auto_roll_off fixture, and got every tool-pressable click #24-#264 green (232 of 232).
 
 ## What's next
-**Diagnose shop_redeem_invalid_code, make ui_roll_anim pass on its own, and re-press clicks #24-#264 so the whole click list is green again.**
+**Fix the 7 non-click reds from the last full UiTestRun (ui_shop price info, ui_inventory StaminaBar/SummonFx spec, ui_theme Nunito Brand labels on Team Select, ui_index owned-state fixture, ui_rolls turbo fill, ui_backpack_characters open tab, ui_sidekicks SummonResult Art) and rerun the full UiTestRun.**
 
-**Why this is next:** these are the last reds and unrun clicks from the merge into main; Team Select's 4:3 and phone captures wait for a time the owner is away (Studio must be in front).
+**Why this is next:** they are the last reds between this branch and a clean full harness before it goes into main; the ui_run_visual frame check waits for the owner to be away (Studio must be in front).
