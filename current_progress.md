@@ -212,8 +212,9 @@
 208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
 209. 2026-11-20 — Alex Nguyen — Summon Details now lists every Sidekick of the live banner at its own rate (sums to exactly 100%), and Team Select passed its Studio check (ui_team 70/70, 50/50 Team clicks) with the Team tests following the new layout.
 210. 2026-11-20 — Alex Nguyen — Fixed test isolation for shop_redeem_invalid_code and ui_roll_anim, added the auto_roll_off fixture, and got every tool-pressable click #24-#264 green (232 of 232).
+211. 2026-11-22 — Alex Nguyen — Fixed the last 7 UI reds (shop restricted paid luck, transient StaminaBar/SummonFx, Team Select Nunito, ui_index fixture, turbo races, Bag tab after the chest chain, Summon result shows the 3D model); full UiTestRun 74/2 and server run 60/1.
 
 ## What's next
-**Fix the 7 non-click reds from the last full UiTestRun (ui_shop price info, ui_inventory StaminaBar/SummonFx spec, ui_theme Nunito Brand labels on Team Select, ui_index owned-state fixture, ui_rolls turbo fill, ui_backpack_characters open tab, ui_sidekicks SummonResult Art) and rerun the full UiTestRun.**
+**Find what leaves the client camera Scriptable between UI scenarios (ui_boss_king_arena FOV checks read 70 in a full UiTestRun; 23/23 alone with a Custom camera), then rerun the full UiTestRun with Studio in front for ui_run_visual.**
 
-**Why this is next:** they are the last reds between this branch and a clean full harness before it goes into main; the ui_run_visual frame check waits for the owner to be away (Studio must be in front).
+**Why this is next:** it is the only red left outside the owner's arena upload and the focus-only frame check, and the merge into main waits on a clean full harness.

@@ -247,6 +247,7 @@ end
 
 -- Run once per test session: the baseline is kept until 'restore' (a second snapshot must never overwrite it with
 -- state the tests already changed, e.g. after emphasized_next or turbo_next).
+local indexBefore = {} -- [Player] = GachaService.Snapshot before the first index_states ('restore' drops it)
 function setups.snapshot(player)
 	if snapshots[player] then
 		return
@@ -705,6 +706,7 @@ function setups.restore(player)
 	restoreSidekicks(player)
 	restoreRelics(player)
 	longStamina[player] = nil
+	indexBefore[player] = nil -- snap.gacha below is older
 	local snap = snapshots[player]
 	if not snap then
 		error(
@@ -760,8 +762,19 @@ function setups.restore(player)
 	removeSpy()
 end
 
+-- ui_index asks for it (UiScenarios.Needs): what it replaced comes back with restore:index_states, right after.
 function setups.index_states(player)
+	if not indexBefore[player] then
+		indexBefore[player] = live("GachaService").Snapshot(player)
+	end
 	indexStates(player)
+end
+local function restoreIndexStates(player)
+	local saved = indexBefore[player]
+	if saved then
+		indexBefore[player] = nil
+		live("GachaService").Apply(player, saved)
+	end
 end
 
 -- Team panel (UiSpec.Team, Client/UiTest/UiTeam; design doc 4.40): index_states, on foot, Team = A,B of three owned
@@ -1834,6 +1847,7 @@ end
 
 local CLIENT_SETUPS = {
 	no_passes = true,
+	index_states = true, -- ui_index; restore:index_states puts the GachaData back
 	data_loading = true, -- ui_remote_guards
 	sidekick_tutorial_ready = true,
 	auto_racing = true,
@@ -2008,6 +2022,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			restoreBossUi(player)
 		elseif restoreId == "relic_states" then
 			restoreRelics(player)
+		elseif restoreId == "index_states" then
+			restoreIndexStates(player)
 		elseif restoreId == "hud_unlock" then
 			restoreHudUnlock(player)
 		elseif restoreId == "team_states" then
