@@ -382,21 +382,18 @@ function Contracts.Build(h)
 			end
 			check(res, prefix .. "_one_close", closes, 1)
 			check(res, prefix .. "_one_header", headers, 1)
-			check(res, prefix .. "_rounded", panel:FindFirstChildWhichIsA("UICorner") ~= nil, true)
-			check(res, prefix .. "_outline", panel:FindFirstChildWhichIsA("UIStroke") ~= nil, true)
-			if header then
-				local gradient = header:FindFirstChildWhichIsA("UIGradient")
-				check(res, prefix .. "_gradient", gradient ~= nil, true)
-				if gradient then
-					local c = gradient.Color.Keypoints[1].Value
-					local colour = frame.Colour
-					local matches = colour == "red" and c.R > c.G and c.R > c.B
-						or colour == "blue" and c.B > c.R and c.B > c.G
-						or colour == "purple" and c.R > c.G and c.B > c.G
-						or colour == "orange" and c.R > c.G and c.G > c.B
-					check(res, prefix .. "_colour_" .. colour, matches, true)
-				end
-			end
+			-- Design doc 4.46 (owner 2026-11-20): the handscroll is the panel's body (paper between two rollers), in place
+			-- of the 4.42 rounded, outlined fill; the header colour gradient check is retired (the header has no fill).
+			local scroll = panel:FindFirstChild("Handscroll")
+			local paper = scroll and scroll:FindFirstChild("Paper")
+			check(res, prefix .. "_handscroll", scroll ~= nil and paper ~= nil, true)
+			check(
+				res,
+				prefix .. "_handscroll_rollers",
+				scroll ~= nil and scroll:FindFirstChild("RollerL") ~= nil and scroll:FindFirstChild("RollerR") ~= nil,
+				true
+			)
+			check(res, prefix .. "_paper_shown", paper ~= nil and h.visible(paper), true)
 			if close then
 				local c = close.BackgroundColor3
 				check(res, prefix .. "_close_red", c.R > c.G and c.R > c.B and close.BackgroundTransparency < 0.5, true)
