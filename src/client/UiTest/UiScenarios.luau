@@ -28,8 +28,14 @@ local UiBoostsRebirth = require(script.Parent:WaitForChild("UiBoostsRebirth"))
 local UiShopMarket = require(script.Parent:WaitForChild("UiShopMarket"))
 local FX = {} -- frame-model helpers in one table: UiScenarios is near Luau's 200 local limit
 -- UiSpec.Theme.FontFamilies: a TextLabel's FontFace family holds one of the accepted names
-function FX.themeFont(family)
+-- gui: the ScreenGui name, for UiSpec.Theme.GuiFontFamilies[gui] (optional)
+function FX.themeFont(family, gui)
 	for _, name in UiSpec.Theme.FontFamilies do
+		if string.find(family, name, 1, true) then
+			return true
+		end
+	end
+	for _, name in gui and UiSpec.Theme.GuiFontFamilies[gui] or {} do
 		if string.find(family, name, 1, true) then
 			return true
 		end
@@ -326,12 +332,14 @@ UiScenarios.Needs = {
 	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
 	ui_bag_full = { "auto_roll_on" },
+	-- An undiscovered tile needs an unowned character: the reused test save can own them all (full_run5)
+	ui_index = { "index_states" },
 	-- The minibar row with three members (OpenTeam's padding is judged against its drawn circles; team_full, FillTeam)
 	ui_hitboxes = { "team_full" },
 }
 -- Put back right after the scenario that asked (RestoreSetups runs only at the end of a full run), so later scenarios
 -- see the saved RebirthLevel again.
-FX.RESTORE_AFTER = { hud_unlock = true, team_full = true }
+FX.RESTORE_AFTER = { hud_unlock = true, team_full = true, index_states = true }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
 UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
@@ -2113,7 +2121,12 @@ end
 -- Samples the turbo animation around one turbo RollResult: TurboPop shown TurboPopShow s after it, hidden and
 -- the bar back to TurboProgress (0) TurboPopHide s after it. Isolated = no other roll arrived meanwhile.
 function UiScenarios.SampleTurbo(ev)
-	local rec = { ev = ev }
+	-- The extra-roll passes as they are at this roll: GachaService.RollTick rolls them right after it, and a later
+	-- scenario may judge this record after no_passes changed them
+	local rec = {
+		ev = ev,
+		extras = (attr("Pass_extra_roll_1") == true and 1 or 0) + (attr("Pass_extra_roll_2") == true and 1 or 0),
+	}
 	table.insert(events.turbos, rec)
 	task.wait(UiSpec.Waits.TurboPopShow)
 	rec.shownText, rec.shown = popState()
@@ -5946,7 +5959,7 @@ function S.ui_theme(res)
 					and o.Text ~= ""
 					and o.TextTransparency < 1
 					and effectivelyVisible(o)
-					and not FX.themeFont(o.FontFace.Family)
+					and not FX.themeFont(o.FontFace.Family, name)
 					and not seenFont[o]
 				then
 					seenFont[o] = true
@@ -6713,14 +6726,22 @@ function S.ui_rolls(res)
 
 	-- 1. Label and bar follow the server once settled
 	local restore = setPanels({})
-	local stable = waitRollsStable()
+	-- A roll landing between the settle and the read moves TurboCount before the 0.2 s fill tween follows: read again
+	-- when a roll came within FillQuiet s of the read (seen at the throttled background frame rate, full_run5)
+	local stable, rolls, progress, frac
+	for _ = 1, 3 do
+		stable = waitRollsStable()
+		renderFrame()
+		rolls = attr("Rolls")
+		progress = turboProgress(type(rolls) == "number" and rolls or 0)
+		frac = fillFraction()
+		if os.clock() - events.rollsChanged >= UiSpec.Turbo.FillQuiet and attr("Rolls") == rolls then
+			break
+		end
+	end
 	check(res, "rolls_settled_for_check", stable, true, stable)
-	renderFrame()
-	local rolls = attr("Rolls")
 	check(res, "rolls_attribute_present", typeof(rolls), "number", type(rolls) == "number")
 	rolls = type(rolls) == "number" and rolls or 0
-	local progress = turboProgress(rolls)
-	local frac = fillFraction()
 	local wantFrac = progress / every
 	check(
 		res,
@@ -6796,7 +6817,7 @@ function S.ui_rolls(res)
 	check(res, "turbo_pop_hidden_after_turbo", rec.gone, true, rec.gone == true)
 	-- Extra rolls count for Turbo (docs/MONETIZATION_SPEC.md "Extra rolls"), and GachaService.RollTick makes them before this
 	-- roll's RollResult, so the bar may already hold them.
-	local extras = (attr("Pass_extra_roll_1") == true and 1 or 0) + (attr("Pass_extra_roll_2") == true and 1 or 0)
+	local extras = rec.extras or 0
 	local steps = extras + (rec.laterRolls or 0)
 	local fillLimit = steps / turboEvery() + UiSpec.Turbo.FillTolerance
 	check(
@@ -7114,9 +7135,28 @@ function S.ui_roll_anim(res)
 		stateMissing(res, "turbo_roll_compact_is_no_card", "turbo_next", "no turbo roll played on the compact roll")
 	end
 
-	-- 3. RollSerial +1 per RollResult received (pairs of rolls sampled on the same card)
+	-- 3. RollSerial +1 per RollResult received (pairs of rolls sampled on the same card). Sections 3 and 4 judge only the
+	-- rolls this scenario received (after startN): the scenario runs alone or after others, and an earlier scenario's
+	-- fixtures (forced panels, showcase, restore) must not count. Wait for a second roll sampled at Hold on the compact.
+	local function ownRecs()
+		local list, held = {}, 0
+		for _, r in events.recs do
+			if r.ev.n > startN then
+				table.insert(list, r)
+				if r.done and r.hold.Compact then
+					held += 1
+				end
+			end
+		end
+		return list, held
+	end
+	local ownDeadline = os.clock() + 2 * UiSpec.Waits.RollToast
+	while select(2, ownRecs()) < 2 and os.clock() < ownDeadline do
+		task.wait(0.1)
+	end
+	local own = ownRecs()
 	local prev, pairsSeen, serialBad = {}, 0, {}
-	for _, r in events.recs do
+	for _, r in own do
 		for key, h in r.hold do
 			local p = prev[key]
 			if p and type(h.serial) == "number" and type(p.serial) == "number" then
@@ -7140,7 +7180,7 @@ function S.ui_roll_anim(res)
 
 	-- 4. No RollResult arrives while the previous roll still plays (server pauses ExtraPause after long rolls)
 	local evaluated, covered = 0, {}
-	for _, r in events.recs do
+	for _, r in own do
 		if r.done and #phaseSeq(r, r.playKey) > 0 then
 			evaluated += 1
 			if r.interruptedAt and not r.idleAt then

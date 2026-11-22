@@ -7,7 +7,7 @@
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
 -- Ids: snapshot, restore, spy, team_states, team_states_clear, team_full, no_passes, sidekick_states, sidekick_pity_due, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
--- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
+-- emphasized_next, auto_roll_on, auto_roll_off, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
 local HttpService = game:GetService("HttpService")
@@ -247,6 +247,7 @@ end
 
 -- Run once per test session: the baseline is kept until 'restore' (a second snapshot must never overwrite it with
 -- state the tests already changed, e.g. after emphasized_next or turbo_next).
+local indexBefore = {} -- [Player] = GachaService.Snapshot before the first index_states ('restore' drops it)
 function setups.snapshot(player)
 	if snapshots[player] then
 		return
@@ -705,6 +706,7 @@ function setups.restore(player)
 	restoreSidekicks(player)
 	restoreRelics(player)
 	longStamina[player] = nil
+	indexBefore[player] = nil -- snap.gacha below is older
 	local snap = snapshots[player]
 	if not snap then
 		error(
@@ -760,8 +762,19 @@ function setups.restore(player)
 	removeSpy()
 end
 
+-- ui_index asks for it (UiScenarios.Needs): what it replaced comes back with restore:index_states, right after.
 function setups.index_states(player)
+	if not indexBefore[player] then
+		indexBefore[player] = live("GachaService").Snapshot(player)
+	end
 	indexStates(player)
+end
+local function restoreIndexStates(player)
+	local saved = indexBefore[player]
+	if saved then
+		indexBefore[player] = nil
+		live("GachaService").Apply(player, saved)
+	end
 end
 
 -- Team panel (UiSpec.Team, Client/UiTest/UiTeam; design doc 4.40): index_states, on foot, Team = A,B of three owned
@@ -1265,6 +1278,13 @@ end
 function setups.auto_roll_on(player)
 	setAutoRoll(player, true)
 	makeBagRoom(player)
+end
+
+-- Clicks that pin Money (progression_not_optimistic): an auto-roll's duplicate sale (MoneyService.Award) moves Money
+-- mid-check, as for the rebirth fixture below. 'restore' turns it back to the 'snapshot' value (snap.autoRoll).
+function setups.auto_roll_off(player)
+	assert(snapshots[player], "snapshot required before auto_roll_off ('restore' consumes it: take a fresh 'snapshot')")
+	setAutoRoll(player, false)
 end
 
 local function progressionSnapshot(player)
@@ -1827,6 +1847,7 @@ end
 
 local CLIENT_SETUPS = {
 	no_passes = true,
+	index_states = true, -- ui_index; restore:index_states puts the GachaData back
 	data_loading = true, -- ui_remote_guards
 	sidekick_tutorial_ready = true,
 	auto_racing = true,
@@ -2001,6 +2022,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			restoreBossUi(player)
 		elseif restoreId == "relic_states" then
 			restoreRelics(player)
+		elseif restoreId == "index_states" then
+			restoreIndexStates(player)
 		elseif restoreId == "hud_unlock" then
 			restoreHudUnlock(player)
 		elseif restoreId == "team_states" then

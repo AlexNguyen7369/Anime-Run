@@ -210,8 +210,12 @@
 206. 2026-11-19 — Alex Nguyen — Drafted the Team Select redesign from the owner's reference: night-dojo Blender plate (main and alt) and UI drafts A, B and C, nothing uploaded or built in game.
 207. 2026-11-20 — Alex Nguyen — Owner approved the Team Select redesign from the Studio draft (night-dojo plate, gold-orange ringed lacquer altars, real models in an idle stance with breathing, Summon-style parchment scrolls, drawn icon set uploaded) and wrote it into design doc 4.45.
 208. 2026-11-20 — Alex Nguyen — Landed the audit fixes, the compatibility harness test pass (server 69/1, only the owner arena upload red) and the Team Select night dojo in Client/TeamUi, merged into main on the owner's green approval.
+209. 2026-11-20 — Alex Nguyen — Summon Details now lists every Sidekick of the live banner at its own rate (sums to exactly 100%), and Team Select passed its Studio check (ui_team 70/70, 50/50 Team clicks) with the Team tests following the new layout.
+210. 2026-11-20 — Alex Nguyen — Fixed test isolation for shop_redeem_invalid_code and ui_roll_anim, added the auto_roll_off fixture, and got every tool-pressable click #24-#264 green (232 of 232).
+211. 2026-11-22 — Alex Nguyen — Fixed the last 7 UI reds (shop restricted paid luck, transient StaminaBar/SummonFx, Team Select Nunito, ui_index fixture, turbo races, Bag tab after the chest chain, Summon result shows the 3D model); full UiTestRun 74/2 and server run 60/1.
+212. 2026-11-22 — Alex Nguyen — Merged the post-merge polish (per-Sidekick odds, Team Select checks, click isolation, last 7 UI reds) into main on the owner's go-ahead, with ui_boss_king_arena's camera red still open.
 
 ## What's next
-**Run the new Team Select page in Studio against the approved captures (desktop, 4:3, phone), update the UiTeam altar order and gear checks, and rerun ui_team, the team_* clicks, ui_entry_points and ui_sidekicks.**
+**Find what leaves the client camera Scriptable between UI scenarios (ui_boss_king_arena FOV checks read 70 in a full UiTestRun; 23/23 alone with a Custom camera), then rerun the full UiTestRun with Studio in front for ui_run_visual.**
 
-**Why this is next:** Team Select is in main but was never run in Studio, two Team checks fail by design until updated, and the per-Sidekick odds list in Details touches the same Summon tests after it.
+**Why this is next:** it is the only red left outside the owner's arena upload and the focus-only frame check, and every later full UiTestRun stays red until it is found.

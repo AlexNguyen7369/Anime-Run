@@ -17,7 +17,11 @@
 --   Canvas/Chances ("Details", owner 2026-11-19) opens Canvas/SummonPanels/ShowChances: one row per rarity, the rotation's
 --   odds summed, the Secret first (section 6, owner 2026-11-20). While a guarantee is due (design doc 4.36: Mythic at
 --   SidekickPity >= PityCount - 1, else Legendary) the tier reads 100%, the rest 0%, and a line says "<tier> guaranteed".
---   Canvas/Banner1 (the Featured tile) opens FeaturedBanner. No exact-100% rounding (owner 2026-11-12).
+--   The rows sit in ShowChances/Body/Rates (ScrollingFrame): Row<n> per rarity, then under it one Unit<k> Frame per
+--   Sidekick of the live banner (attributes SidekickId, Rarity; Name, Value), at its own rate (the published Odds, or
+--   the due tier split evenly); the Secret's unit reads "???" (no name column, owner 2026-11-05). The unit values sum to
+--   exactly 100% and each rarity total is the sum of its units (SIDEKICK_SPEC "Panels", owner 2026-11-20; replaces the
+--   2026-11-12 "no exact-100% rounding"). Canvas/Banner1 (the Featured tile) opens FeaturedBanner.
 --   Auto Sell, More, Info and Many open Canvas/SummonPanels (91113d3): one panel named AutoSell, More, SummonInfo or
 --   SummonConfirmation, its red X at <panel>/Header/Close; Many sends its summon only from SummonConfirmation/Buttons/Confirm.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -414,14 +418,23 @@ function Module.Build(h)
 		odds.Secret = tier and 0 or served[view.SecretId] or 0
 		return odds
 	end
-	-- The panel's rows in order: { rarity, shown percent }.
-	local function panelRows(panel)
+	-- The panel's rows in order: { rarity, shown percent }. Details keeps them in Body/Rates (SummonPanels Chances,
+	-- owner 2026-11-20); `units` true lists the Unit<k> rows instead (with id and rarity), else the Row<n> totals.
+	local function panelRows(panel, units)
 		local rows = {}
 		local body = panel and panel:FindFirstChild("Body")
-		for _, r in body and body:GetChildren() or {} do
+		local holder = body and body:FindFirstChild("Rates") or body
+		for _, r in holder and holder:GetChildren() or {} do
 			local name, value = r:FindFirstChild("Name"), r:FindFirstChild("Value")
-			if r:IsA("Frame") and name and value then
-				table.insert(rows, { order = r.LayoutOrder, name = name.Text, value = value.Text })
+			local isUnit = string.sub(r.Name, 1, 4) == "Unit"
+			if r:IsA("Frame") and name and value and isUnit == (units == true) then
+				table.insert(rows, {
+					order = r.LayoutOrder,
+					name = name.Text,
+					value = value.Text,
+					id = r:GetAttribute("SidekickId"),
+					rarity = r:GetAttribute("Rarity"),
+				})
 			end
 		end
 		table.sort(rows, function(x, y)
@@ -429,9 +442,83 @@ function Module.Build(h)
 		end)
 		return rows
 	end
-	-- nil when the rows are the Secret first, then the rarities high to low, each with its summed percent (2 decimals,
-	-- 4 under 0.01%, SummonPanels percent; no exact-sum rule, owner 2026-11-12).
-	local function dialogProblem(rows, want)
+	-- A shown percent in 1/10000 % steps (SummonPanels shows up to 4 decimals), nil when it is not a percent.
+	local function steps(value)
+		local shown = tonumber(string.match(value or "", "^([%d%.]+)%%$"))
+		return shown and math.floor(shown * 10000 + 0.5) or nil
+	end
+	-- nil when Details lists every Sidekick of the live banner under its rarity total (SIDEKICK_SPEC "Panels", owner
+	-- 2026-11-20): each id once, after its rarity's Row and before the next, at its own rate (the published Odds, or
+	-- the due tier split evenly over its Sidekicks) within one display step per unit, each total the sum of its units,
+	-- and the unit values summing to exactly 100%. The Secret's unit carries no name.
+	local function unitsProblem(panel, view, tier)
+		local served, ids = view.Odds or {}, table.clone(view.Ids)
+		table.insert(ids, view.SecretId)
+		local want, inTier = {}, 0
+		for _, id in ids do
+			inTier += (tier and Config.Get(id).Rarity == tier) and 1 or 0
+		end
+		for _, id in ids do
+			local rarity = Config.Get(id).Rarity
+			want[id] = tier and (rarity == tier and 100 / inTier or 0) or served[id] or 0
+		end
+		local all = {}
+		for _, r in panelRows(panel) do
+			table.insert(all, { order = r.order, total = r })
+		end
+		for _, u in panelRows(panel, true) do
+			table.insert(all, { order = u.order, unit = u })
+		end
+		table.sort(all, function(x, y)
+			return x.order < y.order
+		end)
+		local seen, sum, under, unitSum = {}, 0, nil, {}
+		for _, item in all do
+			if item.total then
+				under = item.total
+				unitSum[under] = 0
+			else
+				local u = item.unit
+				local got = steps(u.value)
+				if not (u.id and want[u.id]) then
+					return ("unit %s (%s) is not on the live banner"):format(tostring(u.id), u.name)
+				elseif seen[u.id] then
+					return u.id .. " listed twice"
+				elseif not under or under.name ~= Config.Get(u.id).Rarity or u.rarity ~= under.name then
+					return ("%s listed under %s, its rarity is %s"):format(
+						u.id,
+						under and under.name or "no total",
+						Config.Get(u.id).Rarity
+					)
+				elseif not got or math.abs(got - want[u.id] * 10000) > 1 then
+					return ("%s shows %s, want %.4f%%"):format(u.id, u.value, want[u.id])
+				elseif Config.Get(u.id).Rarity == "Secret" and u.name ~= "???" then
+					return "the Secret's unit is named " .. u.name
+				end
+				seen[u.id] = true
+				sum += got
+				unitSum[under] += got
+			end
+		end
+		for _, id in ids do
+			if not seen[id] then
+				return id .. " (" .. Config.Get(id).Rarity .. ") not listed"
+			end
+		end
+		for total, got in unitSum do
+			if steps(total.value) ~= got then
+				return ("%s total %s, its units sum to %.4f%%"):format(total.name, total.value, got / 10000)
+			end
+		end
+		if sum ~= 1000000 then
+			return ("units sum to %.4f%%, want exactly 100%%"):format(sum / 10000)
+		end
+		return nil
+	end
+	-- nil when the rows are the Secret first, then the rarities high to low, each with its summed percent (up to 4
+	-- decimals; exact-100% display rounding by largest remainder, owner 2026-11-20, moves each unit by at most one
+	-- 0.0001% step, so a total may sit that many steps off the raw sum).
+	local function dialogProblem(rows, want, units)
 		local order = { "Secret", "Mythic", "Legendary", "Epic", "Rare", "Common" }
 		local wantNames = {}
 		for _, rarity in order do
@@ -448,7 +535,7 @@ function Module.Build(h)
 		end
 		for _, row in rows do
 			local shown = tonumber(string.match(row.value, "^([%d%.]+)%%$"))
-			local slack = string.match(row.value, "%.%d%d%d%d%%") and 0.00006 or 0.0051
+			local slack = 0.00006 + 0.0001 * (units and units[row.name] or 0)
 			if not shown or math.abs(shown - want[row.name]) > slack then
 				return ("%s shows %s, want %.4f%%"):format(row.name, row.value, want[row.name])
 			end
@@ -495,10 +582,17 @@ function Module.Build(h)
 		if not view then
 			return
 		end
+		local perRarity = {} -- Sidekicks per rarity on the live banner: each may move a total by one display step
+		for _, id in view.Ids do
+			local rarity = Config.Get(id).Rarity
+			perRarity[rarity] = (perRarity[rarity] or 0) + 1
+		end
+		perRarity.Secret = 1
 		local problem = waitFor(function()
-			return dialogProblem(panelRows(panel), wantOdds(view, tier))
+			return dialogProblem(panelRows(panel), wantOdds(view, tier), perRarity)
 		end)
 		check(res, "sidekick_odds_dialog_per_rarity" .. tag, problem or "right", "right")
+		check(res, "sidekick_odds_dialog_per_sidekick" .. tag, unitsProblem(panel, view, tier) or "right", "right")
 		local text = panelText(panel)
 		check(
 			res,
@@ -506,7 +600,7 @@ function Module.Build(h)
 			string.find(text, "Luck and potions never change Sidekick odds.", 1, true) ~= nil,
 			true
 		)
-		-- Per rarity: no Sidekick is named, so the live Secret and the boss drops never show.
+		-- The live Secret is never named (its unit reads "???", owner 2026-11-05) and the boss drops are not on the banner.
 		for _, rows in { secretRows(), Config.BossDrops } do
 			for _, row in rows do
 				check(res, "sidekick_odds_hides_" .. row.Id .. tag, string.find(text, row.Name, 1, true) ~= nil, false)
