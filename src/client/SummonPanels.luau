@@ -491,7 +491,6 @@ function SummonPanels.new(canvas, deps)
 				at += 1
 				-- The Secret keeps no name column (owner 2026-11-05): its row reads "???"
 				local secret = rarity == "Secret"
-				local art = not secret and SidekickArt[item.Row.Id]
 				local u = make("Frame", "Unit" .. at, rates, {
 					LayoutOrder = at,
 					Size = UDim2.new(1, -24, 0, UNIT_ROW),
@@ -507,17 +506,8 @@ function SummonPanels.new(canvas, deps)
 					BackgroundTransparency = 0.6,
 					BorderSizePixel = 0,
 				})
+				-- No drawn portrait: they appear only in the Sidekick index and Bag equip (design doc 4.36 "Art in UI")
 				local x = 0
-				if art and art.Portrait then
-					make("ImageLabel", "Art", u, {
-						BackgroundColor3 = color:Lerp(D.Ink, 0.5),
-						Position = UDim2.fromOffset(0, 3),
-						Size = UDim2.fromOffset(UNIT_ROW - 6, UNIT_ROW - 6),
-						Image = art.Portrait,
-						ScaleType = Enum.ScaleType.Crop,
-					})
-					x = UNIT_ROW + 2
-				end
 				text("Name", u, {
 					MaxSize = 18,
 					Position = UDim2.fromOffset(x, 0),
@@ -836,14 +826,32 @@ function SummonPanels.new(canvas, deps)
 			return
 		end
 		begin("SummonResult", "You Obtained!", nil, nil, 250)
-		local art = SidekickArt[spec.Id]
-		make("ImageLabel", "Art", body, {
+		-- The actual 3D model, not the drawn portrait (design doc 4.36 "Art in UI": the summon results show the models)
+		local view = make("ViewportFrame", "Model", body, {
 			LayoutOrder = 1,
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, 170),
-			Image = art and art.Portrait or "",
-			ScaleType = Enum.ScaleType.Fit,
+			Ambient = Color3.fromRGB(235, 235, 240),
+			LightColor = Color3.new(1, 1, 1),
+			LightDirection = Vector3.new(-1, -2, -1),
 		})
+		view.CurrentCamera = make("Camera", "Camera", view, { FieldOfView = 30 })
+		local models = ReplicatedStorage:FindFirstChild("SidekickModels")
+		local source = models and models:FindFirstChild(spec.Id)
+		if source then
+			local model = source:Clone()
+			for _, d in model:GetDescendants() do
+				if d:IsA("LuaSourceContainer") then
+					d:Destroy()
+				end
+			end
+			model.Parent = view
+			-- Framed as Client/SidekickReveal frames its result model
+			local box, extents = model:GetBoundingBox()
+			local dir = Vector3.new(0.45, 0.15, -1).Unit
+			local distance = 0.72 * extents.Magnitude / 2 / math.sin(math.rad(15))
+			view.CurrentCamera.CFrame = CFrame.lookAt(box.Position + dir * distance, box.Position)
+		end
 		text("Name", body, { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 34), Text = spec.Name })
 		text("Rarity", body, {
 			LayoutOrder = 3,
