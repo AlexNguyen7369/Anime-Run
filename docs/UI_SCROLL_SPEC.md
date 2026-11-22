@@ -31,7 +31,7 @@ Not built: hud_b (option B rejected), upgrades (the Upgrades tree stays as it is
 - The shared skin changes at `AnimeSkin` and `PanelFrame`, keeping the instance names tests use (`PanelFrame`
   attribute, `Header`, `Title`, `Icon`, `Close`, `Face`).
 
-## UI test rules (owner 2026-11-20)
+## UI test rules (owner 2026-11-22)
 - The per-panel header colour gradient check is removed: 4.46 headers have no fill.
 - The panel "rounded" and "outline" checks are replaced by a handscroll check: each redesigned panel has a Handscroll
   with Paper and both rollers, and the paper shows at rest.

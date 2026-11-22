@@ -382,7 +382,7 @@ function Contracts.Build(h)
 			end
 			check(res, prefix .. "_one_close", closes, 1)
 			check(res, prefix .. "_one_header", headers, 1)
-			-- Design doc 4.46 (owner 2026-11-20): the handscroll is the panel's body (paper between two rollers), in place
+			-- Design doc 4.46 (owner 2026-11-22): the handscroll is the panel's body (paper between two rollers), in place
 			-- of the 4.42 rounded, outlined fill; the header colour gradient check is retired (the header has no fill).
 			local scroll = panel:FindFirstChild("Handscroll")
 			local paper = scroll and scroll:FindFirstChild("Paper")
