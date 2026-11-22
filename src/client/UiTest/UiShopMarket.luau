@@ -482,6 +482,17 @@ function ShopMarket.Build(h)
 				table.insert(cardBad, ("%s: %d Buy buttons, want %d"):format(name, buys, #entries + (extra or 0)))
 			end
 		end
+		-- Client/ShopUi refreshBlocked: paid luck (a pass or a product) reads "Not available" unless PaidRandomRestricted is
+		-- false (design doc 6). Fixtures that clear the attribute (boss_ui_*) leave the test player restricted.
+		local function restrictedLuck(label, id, buy)
+			if not (MonetizationConfig.PaidLuck[id] and attr("PaidRandomRestricted") ~= false) then
+				return false
+			end
+			if not has(h.allText(buy), SH.Restricted) then
+				table.insert(priceBad, ("%s: restricted, shows %s"):format(label, h.allText(buy)))
+			end
+			return true
+		end
 		-- retired: the Featured gamepass-car cards (gamepass cars removed, design doc 4.1, owner 2026-10-28)
 		sectionCards("Gamepasses", MonetizationConfig.Gamepasses, function(pass, c, buy)
 			if not has(h.allText(c), pass.Name) then
@@ -494,6 +505,9 @@ function ShopMarket.Build(h)
 				end
 				return
 			end
+			if restrictedLuck("Gamepasses/" .. pass.Id, pass.Id, buy) then
+				return
+			end
 			priceProblems(priceBad, "Gamepasses/" .. pass.Id, buy, pass.RobuxPrice, pass.GamepassId or 0, false)
 		end)
 		local bySection = { Potions = {}, Bundle = {}, ServerLuck = {} }
@@ -503,6 +517,9 @@ function ShopMarket.Build(h)
 			end
 		end
 		local function productCard(product, _, buy)
+			if restrictedLuck(product.Section .. "/" .. product.Id, product.Id, buy) then
+				return
+			end
 			priceProblems(
 				priceBad,
 				product.Section .. "/" .. product.Id,
@@ -524,8 +541,7 @@ function ShopMarket.Build(h)
 				if #buys ~= #bySection.Bundle then
 					table.insert(cardBad, ("Potions/Bundle: %d Buy buttons, want %d"):format(#buys, #bySection.Bundle))
 				elseif bySection.Bundle[1] then
-					local b = bySection.Bundle[1]
-					priceProblems(priceBad, "Potions/Bundle", buys[1], b.RobuxPrice, b.ProductId or 0, false)
+					productCard(bySection.Bundle[1], nil, buys[1])
 				end
 			end
 		end

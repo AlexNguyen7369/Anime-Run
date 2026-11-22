@@ -633,6 +633,7 @@ UiSpec.Turbo = {
 	LabelFormat = "TURBO LUCK %d/%d",
 	PopFormat = "TURBO x%s!",
 	FillTolerance = 0.03, -- |Fill width / bar width - TurboCount / TurboEvery|
+	FillQuiet = 0.3, -- s since the last roll before the fill is judged (RacerUiController's tween is 0.2 s, its snap 0.25 s)
 	FallbackMulti = 30, -- UpgradeConfig.BASE_TURBO.Multi (no Turbo tier owned; 10 before c80e4de)
 }
 
@@ -824,6 +825,8 @@ UiSpec.Shop = {
 	Bundle = "Bundle",
 	BuyName = "Buy",
 	ComingSoon = "Coming soon", -- id 0 (GamepassId / ProductId)
+	-- MonetizationConfig.PaidLuck while PaidRandomRestricted is not false (Client/ShopUi refreshBlocked, design doc section 6)
+	Restricted = "Not available",
 	-- An owned gamepass character (attribute Pass_<characterId>): its Featured button equips it (docs/GAMEPASS_CARS_SPEC.md, owner
 	-- 2026-10-20, later than GAMEPASS_SHOP_SPEC section 2's "Owned"): "Equipped" while it is EquippedCharacter, else "Equip".
 	OwnedCharacter = { Equip = "Equip", Equipped = "Equipped" },
@@ -1332,7 +1335,9 @@ UiSpec.PhoneViewsHidden = { "MarketUi/Backdrop/Panel/Detail" }
 -- shows for 6 s and is destroyed; judged by ui_bag_full.
 -- Display-only guis made late or on first use, so gui_exists_* cannot ask for them either: TrackLoadingLabel (f7b25ee,
 -- the "Loading next track" notice), SidekickAltarLock (cb67aab, the plaza altar's lock BillboardGui, made once the plaza
--- streams in) and BossVfxScreen (60657fc, BossVfx's screen-edge flashes, made on the first boss attack).
+-- streams in) and BossVfxScreen (60657fc, BossVfx's screen-edge flashes, made on the first boss attack). StaminaBar
+-- (Client/StaminaBar attach: one BillboardGui per visible runner, parented to PlayerGui while it runs) and SummonFx
+-- (Client/SummonAltarFx build: the altar ring/beam ScreenGui, made on the first summon reveal).
 UiSpec.TransientGuis = {
 	LoadingScreen = true,
 	ArrivalReveal = true,
@@ -1341,6 +1346,8 @@ UiSpec.TransientGuis = {
 	TrackLoadingLabel = true,
 	SidekickAltarLock = true,
 	BossVfxScreen = true,
+	StaminaBar = true,
+	SummonFx = true,
 }
 
 UiSpec.IgnoreGuis = {
@@ -4261,6 +4268,10 @@ UiSpec.RunVisual = {
 UiSpec.Theme = {
 	FontFamily = "Fredoka",
 	FontFamilies = { "Fredoka", "GothamSSm", "TitilliumWeb", "PermanentMarker", "Kalam" },
+	-- Per-gui extras. RacerTeam: the Team Select night dojo (design doc 4.45, approved 2026-11-20 from the Studio draft
+	-- tools/studio/team_select_draft.luau, whose header, crumb and nameplates are Nunito Heavy / Heavy Italic; Client/TeamUi
+	-- NUN / NUNI keep them). Only that gui may use Nunito.
+	GuiFontFamilies = { RacerTeam = { "Nunito" } },
 	-- Every multiplier token is HudFormat.Multi style: "x" + digits, at most 2 decimals, no trailing zero after the
 	-- point; never the old "25x" (number before x). Labels that show a multi (ui_theme theme_multi_format):
 	-- The roll card, index tiles and Backpack character tiles show cruise in studs/s now, not a multi (design doc 4.13,
@@ -5115,6 +5126,15 @@ do
 		Path = "Tap",
 		Prepare = { KeepPanels = true, Showcase = false },
 		Expect = { Remote = false, After = { "chest_reveal_closed" } },
+	})
+	-- The Bag keeps its last tab for the session: relics_chest_tab left it on Relics, and a UiTestRun in the same Play
+	-- judges ui_backpack_characters backpack_opens_on_characters (UI audit A13). Back to Characters, as the tab loop ends.
+	table.insert(UiSpec.Clicks, {
+		Id = "relics_chest_back_to_characters",
+		Gui = "RacerBackpack",
+		Path = "Panel/Tabs/CharactersTab",
+		Prepare = only(BAG_PANEL),
+		Expect = { Panels = { [BAG_PANEL] = true }, Remote = false, After = { "backpack_characters_grid" } },
 	})
 	local rewardsPrepare = only()
 	rewardsPrepare.RequireShown, rewardsPrepare.WaitSeconds = true, 0.5
