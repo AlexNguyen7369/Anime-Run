@@ -66,6 +66,8 @@ def _enforce_clearance(k, min_clear=24.5):
 			p = v[i : i + 2048][:, None, :]
 			t = np.clip(((p - sa) * sab).sum(2) / sab2, 0, 1)
 			if np.sqrt(((p - sa - t[..., None] * sab) ** 2).sum(2)).min() < min_clear:
+				if prop in MODEL_SHOTS:
+					print("CLEARANCE dropped hero", prop, ob.location)
 				k.col.objects.unlink(ob)
 				break
 	k.instances = sum(1 for ob in k.col.objects if ob.name.endswith("_i") or "_i." in ob.name)
@@ -348,10 +350,11 @@ def _overpass(k, rng):
 		p.append(("box", (150, 3.2, 1.2), (0, 28.6, z), "5A5C60"))
 		p.append(("box", (150, 0.5, 1.6), (0, 30.4, z), "6E7074"))
 	for x in (-44, 44):
-		p.append(("box", (9, 52, 9), (x, -8, 0), "4A4C50"))
+		p.append(("box", (9, 20, 9), (x, 8, 0), "4A4C50"))  # piers stand on the ground, 2 below the road (flat crossings only)
 		p.append(("box", (12, 4, 30), (x, 16, 0), "3A3C40"))
+		p.append(("box", (11, 1.5, 11), (x, -1.25, 0), "3A3C40"))
 		for z in (-4.6, 4.6):
-			p.append(("box", (9.4, 40, 0.4), (x, -4, z), "3A3C40"))
+			p.append(("box", (9.4, 16, 0.4), (x, 7, z), "3A3C40"))
 	for x in (-60, -30, 0, 30, 60):
 		p.append(("box", (6, 0.2, 0.6), (x, 27.1, 0), "B8B2A0"))
 	for x in (-55, -10, 35):
@@ -364,10 +367,14 @@ def _overpass(k, rng):
 		for i in range(int((ln - 9) / 1.6)):  # chain-link: two crossing sets of thin diagonal wires, kept between the posts
 			x = x0 + side * (4.5 + (i + 0.5) * 1.6)
 			for r in (45, -45):
-				p.append(("box", (0.14, 12.4, 0.14), (x, 4.5, 0), "7A8086", {"rot": (0, 0, r), "metal": 0.6}))
-		for i in range(6):
-			p.append(("cyl", (0.45, 10.5, 0.45), (x0 + side * i * ln / 5, 5.25, 0), STEEL, {"seg": 6}))
-		p.append(("cyl", (0.3, ln, 0.3), (xm, 9.5, 0), STEEL, {"seg": 4, "rot": (0, 0, 90)}))
+				p.append(("box", (0.14, 12.4, 0.14), (x, 3.4, 0), "7A8086", {"rot": (0, 0, r), "metal": 0.6}))
+		for i in range(6):  # posts set in concrete footings on the ground
+			px = x0 + side * i * ln / 5
+			p.append(("cyl", (0.45, 12.5, 0.45), (px, 4.25, 0), STEEL, {"seg": 6}))
+			p.append(("box", (1.4, 1.4, 1.4), (px, -1.3, 0), "8A8680"))
+			p.append(("box", (0.25, 2.4, 0.25), (px, 11.2, -0.7), STEEL, {"rot": (-35, 0, 0)}))  # barbed-wire arm
+		for yy in (-1.6, 8.6):  # bottom and top rails
+			p.append(("cyl", (0.3, ln, 0.3), (xm, yy, 0), STEEL, {"seg": 4, "rot": (0, 0, 90)}))
 		for i in range(int(ln / 2.4)):
 			p.append(("cyl", (0.2, 2.6, 0.2), (x0 + side * (i + 0.5) * 2.4, 10.6, 0), "3A3A38", {"seg": 4, "rot": (35 * (1 if i % 2 else -1), 0, 90)}))
 			p.append(("cyl", (1.6, 0.18, 1.6), (x0 + side * (i + 0.5) * 2.4, 11.6, 0), "2E2E2C", {"seg": 6, "rot": (90, 0, 20)}))  # barbed coil loop
@@ -377,7 +384,7 @@ def _overpass(k, rng):
 	_rebar(p, 76, 22, 0, 10, rng, spread=11)
 	for i in range(10):
 		s = rng.uniform(4, 8)
-		p.append(("box", (s, s * 0.6, s * 1.2), (rng.uniform(86, 112), -s * 0.2 - 2, rng.uniform(-12, 12)), "4A4C50", {"rot": (rng.uniform(-30, 30), rng.uniform(0, 90), rng.uniform(-30, 30))}))
+		p.append(("box", (s, s * 0.6, s * 1.2), (rng.uniform(86, 112), s * 0.25 - 2, rng.uniform(-12, 12)), "4A4C50", {"rot": (rng.uniform(-30, 30), rng.uniform(0, 90), rng.uniform(-30, 30))}))
 	return k.prop("Overpass", p)
 
 
@@ -586,6 +593,15 @@ def _kerb(k, rng):
 		p.append(("ball", (s, s * 0.8, s), (tx + x, y, z), c, {"subdiv": 1, "smooth": True}))
 	for sx, sz, x, z in ((5, 0.4, 0, -2.3), (5, 0.4, 0, 2.3), (0.4, 5, -2.3, 0), (0.4, 5, 2.3, 0)):
 		p.append(("box", (sx, 0.6, sz), (tx + x, 0.3, z), "A8A296"))
+	for x0, x1 in ((-30, -16), (12, 28)):  # low block wall with a brown railing on it, shrubs behind (ref apartment street)
+		xm, ln = (x0 + x1) / 2, x1 - x0
+		p.append(("box", (ln, 1.6, 1.0), (xm, 0.8, 3.2), "9A968C"))
+		for y in (2.6, 3.9):
+			p.append(("box", (ln, 0.25, 0.25), (xm, y, 3.2), "4A3426"))
+		for i in range(int(ln / 2) + 1):
+			p.append(("box", (0.22, 2.4, 0.22), (x0 + i * 2, 2.8, 3.2), "4A3426"))
+		for i in range(3):
+			p.append(("ball", (4.2, 3.4, 3.2), (x0 + 2.5 + i * (ln - 5) / 2, 2.6, 5.4), ("4E6B3A", "5E7E44", "445E32")[i], {"subdiv": 1, "smooth": True}))
 	return k.prop("Kerb", p)
 
 
@@ -649,61 +665,77 @@ def _blocks(k, rng):
 
 
 def _crater(k, rng):
-	"""Hero, infield: an impact crater torn into the street (refs Z-City_Street_Crater, Meteor_fragment_aftermath). The
-	ground cannot be cut, so the street is heaved up around the hole: a grey asphalt apron with its lane dashes rising
-	to a ragged lip of thick broken asphalt plates that overhang the pit, steep dark earth walls with jagged rock
-	falling to a black floor, a broken sewer pipe jutting from the wall, asphalt chunks and a leaning wrecked block on
-	the rim. Footprint radius about 150."""
-	EARTH, EARTH2, LIP = "3A3026", "2A221C", "5A5650"
-	p = [("cyl", (300, 0.2, 300), (0, 0.1, 0), "46443F", {"seg": 32}), ("cyl", (124, 0.3, 124), (0, 0.2, 0), "0E0C0A", {"seg": 24})]
+	"""Hero, infield: an impact pit torn into the street (refs Z-City_Street_Crater, Meteor_fragment_aftermath). The
+	ground cannot be cut, so the street is heaved up around it: a grey asphalt apron with lane dashes climbs to a 30-high
+	rim; inside, near-vertical jagged walls of stacked dark earth strata drop to a black floor; a lip of thick broken
+	asphalt plates overhangs the hole; a huge concrete sewer pipe (about a quarter of the pit's width) juts from the
+	back wall. The rim is low on the front (-Z) side, which is turned to face the road camera, so the pit shows inside.
+	Footprint radius about 160."""
+	STRATA = ("3A3026", "2A221C", "4A3E30", "1E1812")
+	LIP, ASP = "5A5650", "4A4846"
+	p = [("cyl", (320, 0.2, 320), (0, 0.1, 0), "46443F", {"seg": 32}), ("cyl", (168, 0.3, 168), (0, 0.2, 0), "0C0A08", {"seg": 24})]
 	n = 36
-	for i in range(n):  # apron: asphalt rising from r 145 to the lip at r 92; earth wall falling from it to the floor
+	for i in range(n):
 		a = i * math.tau / n
 		c, s = math.cos(a), math.sin(a)
-		hb = rng.uniform(11, 15)
-		p.append(("wedge", (23, hb, 54), (c * 118, hb / 2, s * 118), ("4A4846", "52504C")[i % 2], {"rot": (0, math.degrees(math.atan2(-c, -s)), 0)}))
-		p.append(("wedge", (17, hb, 30), (c * 77, hb / 2, s * 77), (EARTH, EARTH2)[i % 2], {"rot": (0, math.degrees(math.atan2(c, s)), 0)}))
-		if i % 3 == 0:  # lane dash on the heaved apron
-			p.append(("box", (10, 0.3, 1.2), (c * 122, hb * 0.48 + 0.4, s * 122), "D8D2C0", {"rot": (0, -math.degrees(a), -math.degrees(math.atan2(hb, 54)))}))
-	for i in range(30):  # the lip: thick broken asphalt plates lying almost flat, overhanging the pit, earth under them
-		a = i * math.tau / 30 + rng.uniform(-0.05, 0.05)
-		r = rng.uniform(86, 94)
-		rot = (rng.uniform(-6, 6), -math.degrees(a) + rng.uniform(-12, 12), rng.uniform(4, 16))
-		sx, sz = rng.uniform(14, 22), rng.uniform(12, 18)
-		p.append(("box", (sx, 2.6, sz), (math.cos(a) * r, 13.5, math.sin(a) * r), LIP, {"rot": rot}))
-		p.append(("box", (sx * 0.9, 2.2, sz * 0.9), (math.cos(a) * (r - 1), 11.4, math.sin(a) * (r - 1)), EARTH, {"rot": rot}))
-	for i in range(20):  # jagged rock and clods down the earth walls
+		off = abs((math.degrees(a) - 270 + 180) % 360 - 180)  # angle from the front (-Z)
+		w = max(0.0, min(1.0, (off - 25) / 35))
+		H = 9 + 29 * w + rng.uniform(-2, 2)  # rim height: 9 at the front notch, 38 elsewhere
+		yaw_t = -math.degrees(a) + 90
+		p.append(("wedge", (21, H, 44), (c * 114, H / 2, s * 114), (ASP, "52504C")[i % 2], {"rot": (0, math.degrees(math.atan2(-c, -s)), 0)}))
+		if i % 3 == 0:
+			p.append(("box", (10, 0.3, 1.2), (c * 116, H * 0.45 + 0.4, s * 116), "D8D2C0", {"rot": (0, -math.degrees(a), math.degrees(math.atan2(H, 44)))}))
+		layers = max(2, int(H / 7))
+		for j in range(layers):  # the pit wall: stacked jagged earth strata, near vertical
+			hj = H / layers
+			p.append(("box", (16, hj + 0.4, 9), (c * (87 + rng.uniform(-1.8, 1.8)), hj * (j + 0.5), s * (87 + rng.uniform(-1.8, 1.8))), STRATA[(j + i) % 4], {"rot": (rng.uniform(-4, 4), yaw_t + rng.uniform(-6, 6), rng.uniform(-3, 3))}))
+		# the lip: a thick broken asphalt plate overhanging the hole, earth caked under it
+		r = 82 + rng.uniform(-2, 2)
+		rot = (rng.uniform(-8, -2), yaw_t + rng.uniform(-10, 10), rng.uniform(-6, 6))
+		p.append(("box", (rng.uniform(17, 22), 5, 18), (c * r, H + 1.5, s * r), LIP, {"rot": rot}))
+		p.append(("box", (16, 3, 14), (c * (r + 2), H - 2, s * (r + 2)), STRATA[i % 4], {"rot": rot}))
+	for j in range(12):  # rock clods fallen to the foot of the walls
 		a = rng.uniform(0, math.tau)
-		r = rng.uniform(64, 84)
 		sz = rng.uniform(6, 12)
-		p.append(("ball", (sz, sz * 0.7, sz), (math.cos(a) * r, rng.uniform(2, 9), math.sin(a) * r), ("4A4036", "2E2620", "5A5044")[i % 3], {"subdiv": 1}))
-	# broken concrete sewer pipe out of the wall (ref), a second one snapped off on the floor
-	pa = math.radians(35)
-	px, pz = math.cos(pa), math.sin(pa)
-	for j, rr in enumerate((80, 70)):
-		p.append(("cyl", (9, 11, 9), (px * rr, 7, pz * rr), ("8A8680", "7E7A74")[j], {"seg": 12, "rot": (90, -math.degrees(pa) + 90, 0)}))
-	p.append(("cyl", (10.5, 1.6, 10.5), (px * 74.5, 7, pz * 74.5), "6E6A64", {"seg": 12, "rot": (90, -math.degrees(pa) + 90, 0)}))
-	p.append(("cyl", (6, 0.6, 6), (px * 64.6, 7, pz * 64.6), "141210", {"seg": 10, "rot": (90, -math.degrees(pa) + 90, 0)}))
-	p.append(("cyl", (8, 12, 8), (-30, 3.6, 22), "8A8680", {"seg": 12, "rot": (80, 30, 0)}))
+		p.append(("ball", (sz, sz * 0.7, sz), (math.cos(a) * 74, sz * 0.3, math.sin(a) * 74), ("4A4036", "2E2620", "5A5044")[j % 3], {"subdiv": 1}))
+	# the huge sewer pipe set into the back wall (+Z), pointing at the middle of the pit
+	p += [
+		("cyl", (38, 30, 38), (0, 17, 86), "8A8680", {"seg": 16, "rot": (90, 0, 0)}),
+		("cyl", (44, 4, 44), (0, 17, 72), "6E6A64", {"seg": 16, "rot": (90, 0, 0)}),
+		("cyl", (31, 1, 31), (0, 17, 69.6), "0E0C0A", {"seg": 14, "rot": (90, 0, 0)}),
+		("box", (10, 4, 6), (-12, 3, 66), "8A8680", {"rot": (20, 30, 10)}),
+	]
 	for j in range(14):  # asphalt chunks on the floor and the apron
 		a = rng.uniform(0, math.tau)
-		r = rng.uniform(10, 50) if j < 8 else rng.uniform(100, 140)
+		r = rng.uniform(10, 55) if j < 8 else rng.uniform(110, 150)
 		sz = rng.uniform(4, 9)
 		y = 1.5 if j < 8 else 6
-		p.append(("box", (sz, 2.2, sz * 0.8), (math.cos(a) * r, y, math.sin(a) * r), (LIP, "4A4846")[j % 2], {"rot": (rng.uniform(-30, 30), rng.uniform(0, 90), rng.uniform(-30, 30))}))
+		p.append(("box", (sz, 2.2, sz * 0.8), (math.cos(a) * r, y, math.sin(a) * r), (LIP, ASP)[j % 2], {"rot": (rng.uniform(-30, 30), rng.uniform(0, 90), rng.uniform(-30, 30))}))
 	for j in range(5):  # charred meteor fragments in the pit
-		p.append(("ball", (rng.uniform(10, 18), rng.uniform(7, 12), rng.uniform(10, 16)), (rng.uniform(-20, 20), 3, rng.uniform(-20, 20)), ("2A221E", "3A302A")[j % 2], {"subdiv": 1}))
-	# a wrecked block leaning over the rim (ref Meteor_fragment_aftermath): body, dark storey bands, rebar
+		p.append(("ball", (rng.uniform(10, 18), rng.uniform(7, 12), rng.uniform(10, 16)), (rng.uniform(-24, 24), 3, rng.uniform(-24, 24)), ("2A221E", "3A302A")[j % 2], {"subdiv": 1}))
+	# a wrecked block leaning over the back rim (ref Meteor_fragment_aftermath): body, dark storey bands, rebar
 	rot = (0, 0, -16)
-	p.append(("box", (22, 46, 16), (-100, 22, -50), CONC2, {"rot": rot}))
+	p.append(("box", (22, 46, 16), (-96, 40, 70), CONC2, {"rot": rot}))
 	for b in (-14, -4, 6, 16):
-		p.append(("box", (22.4, 3, 16.4), (-100 + b * math.sin(math.radians(16)), 22 + b * math.cos(math.radians(16)), -50), "1E2226", {"rot": rot}))
-	_rebar(p, -96, 44, -50, 4, rng, spread=5)
+		p.append(("box", (22.4, 3, 16.4), (-96 + b * math.sin(math.radians(16)), 40 + b * math.cos(math.radians(16)), 70), "1E2226", {"rot": rot}))
+	_rebar(p, -92, 62, 70, 4, rng, spread=5)
 	for i in range(14):  # cracks out from the apron, flat on the street
 		a = i * math.tau / 14 + 0.2
-		ln = rng.uniform(14, 26)
-		p.append(("box", (ln, 0.1, 1.8), (math.cos(a) * (146 + ln / 2), 0.15, math.sin(a) * (146 + ln / 2)), "141210", {"rot": (0, -math.degrees(a) + rng.uniform(-12, 12), 0)}))
+		ln = rng.uniform(12, 22)
+		p.append(("box", (ln, 0.1, 1.8), (math.cos(a) * (157 + ln / 2), 0.15, math.sin(a) * (157 + ln / 2)), "141210", {"rot": (0, -math.degrees(a) + rng.uniform(-12, 12), 0)}))
 	return k.prop("Crater", p)
+
+
+def _clear_seg(k, x, z, r):
+	"""True when (x, z) is more than r from every lap's centre line, measured to the segments (kit.clear_of_road only
+	checks the waypoints, which sit far apart on long straights)."""
+	for a, b in zip(k.wps, k.wps[1:]):
+		vx, vz = b.x - a.x, b.z - a.z
+		ln2 = vx * vx + vz * vz or 1e-9
+		t = max(0.0, min(1.0, ((x - a.x) * vx + (z - a.z) * vz) / ln2))
+		if math.hypot(x - a.x - vx * t, z - a.z - vz * t) < r:
+			return False
+	return True
 
 
 def _eye(k, f):
@@ -767,7 +799,7 @@ def build(k):
 			pos, yaw = k.beside(d, 0, 1.0)
 			_, right, _ = k.at(d)
 			piers = [(pos[0] + right.x * s, pos[2] + right.z * s) for s in (-44, 44, 95)]
-			if abs(p0.y - p1.y) < 0.5 and all(k.clear_of_road(x, z, 26) for x, z in piers):
+			if abs(p0.y - p1.y) < 0.5 and p0.y < 1.6 and all(k.clear_of_road(x, z, 26) for x, z in piers):
 				k.place("Overpass", pos, yaw)  # local X runs across the road
 				break
 	# The crater in the infield; the infield and the outskirts fill with ruins, away from its bowl
@@ -804,6 +836,23 @@ def build(k):
 	pos, yaw = k.beside(L * 0.06 + 45, -33)
 	_clear_near(k, pos[0], pos[2], 20, ("Rubble", "Barricade"))
 	k.place("Barricade", (pos[0], -1.0, pos[2]), yaw - math.pi / 2)
+	# 01 and 04: the street kit close along the run views: utility poles with wires, street trees, vending machines, low
+	# railing walls with shrubs (refs Saitamas_Apartment_Anime, Z-City_Street_Crater); none in the apartment's sight line
+	for f in (0.06, 0.9):
+		d0 = L * f
+		for i in range(10):
+			d = d0 - 10 + i * 30
+			for side in (-1, 1):
+				if f == 0.06 and side > 0 and 40 < d - d0 < 140:
+					continue
+				for off in (31, 35, 39):  # inside a bend the pole's straight wires need more room
+					pos, yaw = k.beside(d, side * off)
+					if k.clear_of_road(pos[0], pos[2], off - 4):
+						break
+				else:
+					continue
+				_clear_near(k, pos[0], pos[2], 12, ("Kerb", "Rubble", "Barricade"))
+				k.place("Kerb", (pos[0], -1.0, pos[2]), yaw + (math.pi / 2 if side > 0 else -math.pi / 2))
 	# 03 and 04: half-collapsed blocks close to the road ahead
 	for f, ahead, off in ((0.62, 110, 54), (0.62, 170, -54), (0.9, 95, -54), (0.9, 150, 54)):
 		pos, yaw = k.beside(L * f + ahead, off)
@@ -819,35 +868,32 @@ def build(k):
 				a = math.radians(deg)
 				x = e.x + (t.x * math.cos(a) - t.z * math.sin(a)) * dist
 				z = e.z + (t.x * math.sin(a) + t.z * math.cos(a)) * dist
-				if k.clear_of_road(x, z, 200):
-					_clear_near(k, x, z, 190, BUILD + ("Kerb", "Rubble", "Blocks", "Barricade"))
+				if _clear_seg(k, x, z, 236):  # crater radius 205 at this scale, plus the 24-stud rule
+					_clear_near(k, x, z, 200, BUILD + ("Kerb", "Rubble", "Blocks", "Barricade"))
 					_clear_view(k, e, x, z, 110, BUILD)
-					k.place("Crater", (x, -1.0, z), rng.uniform(0, math.tau), 1.15)
+					fc = Vector((e.x - x, 0, e.z - z)).normalized()  # the low front notch turned to the camera
+					k.place("Crater", (x, -1.0, z), math.atan2(-fc.x, -fc.z), 1.15)
 					done = True
 					break
 			if done:
 				break
 		if done:
 			break
-	# The Hero Association HQ on the skyline, a spot inside both the 33% and the 62% views (headings within 40 degrees),
-	# its whole footprint clear of the road; sight lines cleared wide so the hull and base show over the street
-	views = [_eye(k, f) for f in (0.33, 0.62)]
-	best = None
-	for i in range(180):
-		for dist in range(2000, 12001, 500):
-			a = i * math.tau / 180
-			q = Vector((c.x + math.cos(a) * dist, 0, c.z + math.sin(a) * dist))
-			ang = [math.degrees(Vector((q.x - e.x, 0, q.z - e.z)).angle(Vector((t.x, 0, t.z)))) for e, t in views]
-			sc = max(2.3, (q - views[0][0]).length / 1400)  # bigger when farther: about the same size on screen
-			score = abs(ang[0] - 44) + abs(ang[1] - 47) + dist / 2000  # the two views look 90 degrees apart
-			if ang[0] < 47 and ang[1] < 50 and k.clear_of_road(q.x, q.z, 660 * sc + 40) and (best is None or score < best[0]):
-				best = (score, q, sc, ang)
-	if best is None:
-		best = (0, Vector((k.hi.x + 1240, 0, k.lo.z - 1620)), 2.3, None)
-	print("HQ", best)
-	hq, hq_scale = best[1], best[2]
-	for e, _ in views:
-		_clear_view(k, e, hq.x, hq.z, 170, BUILD + ("Kerb", "Barricade", "Rubble"))
+	# The Hero Association HQ dominating the skyline, dead ahead of the 33% view (ref New_Hero_Association_Headquarters_
+	# Anime): the nearest spot along that view's heading where its whole footprint clears the road; big enough to fill
+	# about a quarter of the frame height; the street corridor toward it cleared
+	e, t = _eye(k, 0.33)
+	hq, hq_scale = None, 3.0
+	for dist in range(1500, 9001, 100):
+		sc = max(2.3, dist / 800)
+		q = Vector((e.x + t.x * dist, 0, e.z + t.z * dist))
+		if k.clear_of_road(q.x, q.z, 660 * sc + 40):
+			hq, hq_scale = q, sc
+			break
+	if hq is None:
+		hq, hq_scale = Vector((k.hi.x + 1240, 0, k.lo.z - 1620)), 2.3
+	print("HQ", hq, hq_scale)
+	_clear_view(k, e + t * 420, hq.x, hq.z, 160, BUILD)  # only past the end of the straight: the street walls stay
 	k.place("HeroHQ", (hq.x, -1.0, hq.z), 0.4, hq_scale)
 	# 05: the side camera's street: buildings cleared, wrecks, vending machines, cordons and overgrowth at street level
 	p, right, t = k.at(L * 0.48)

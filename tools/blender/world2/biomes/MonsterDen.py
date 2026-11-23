@@ -150,7 +150,7 @@ def _ceiling(k, rng):
 	for x, z in ((-30, -8), (30, 8), (-36, 18), (34, -16)):  # chains with cage lanterns, outside the lane
 		p.append(("cyl", (0.5, 14, 0.5), (x, CEIL_UNDER - 7, z), "3A3438", {"seg": 4, "metal": 0.6}))
 		p.append(("box", (2.4, 3, 2.4), (x, CEIL_UNDER - 15, z), "2A2428", {"metal": 0.5}))
-		p.append(("box", (1.6, 2.2, 1.6), (x, CEIL_UNDER - 15, z), LAMP, {"emit": 6}))
+		p.append(("box", (1.6, 2.2, 1.6), (x, CEIL_UNDER - 15, z), LAMP, {"emit": 1.2}))
 	return k.prop("Ceiling", p)
 
 
@@ -786,18 +786,18 @@ def build(k):
 		x, z = p.x + right.x * fx + t.x * ft, p.z + right.z * fx + t.z * ft
 		if k.clear_of_road(x, z, 40):
 			k.place(name, (x, -1.0, z), math.atan2(-t.x, -t.z), 1.2)
-	k.light((g.x - t.x * 80, 260, g.z - t.z * 80), "D8C8B8", energy=1.2e7, radius=60)
+	k.light((g.x - t.x * 80, 260, g.z - t.z * 80), "D8C8B8", energy=1.5e6, radius=60)
 	k.sky([(0.0, "161219"), (0.2, "0A080C"), (1.0, "030204")], strength=1.0, sun=(1.6, "B8B0E0", 35, 120))
 	# Warm lamps along the road, and high soft fill lights so the cavern shapes read
 	d = 40
 	while d < k.length:
-		pos, _ = k.beside(d, 0, 24)
-		k.light(pos, "FFD8A8", energy=180000, radius=6).data.use_shadow = False  # many lamps: shadows would overflow Eevee's buffer
+		pos, _ = k.beside(d, 0, 12)  # well under the rib crowns, so the ivory ribs do not glare
+		k.light(pos, "FFD8A8", energy=30000, radius=6).data.use_shadow = False  # many lamps: shadows would overflow Eevee's buffer
 		d += 140
 	d = 200
 	while d < k.length:
 		pos, _ = k.beside(d, 60, 150)
-		k.light(pos, "C89870", energy=6e6, radius=40).data.use_shadow = False
+		k.light(pos, "C89870", energy=2.5e6, radius=40).data.use_shadow = False
 		d += 450
 	# Studio lights for the MODEL_SHOTS close-ups (build_track poses each model alone at Roblox (400000, -1, -400000))
 	for dx, y, dz, col, e in ((300, 420, -420, "FFE0C0", 1e8), (-380, 200, -300, "B8C4E0", 4e7), (0, 300, 450, "FFB080", 3e7), (0, 160, 0, "E8E8F0", 3e7)):
