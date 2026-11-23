@@ -135,3 +135,25 @@ DoorOpen 436, DoorClosed 424, Hill 320, SkyDoor 304, Grass 250, Void 92. Clearan
 - `DarkGate`: the void is a black block inside the frame depth, not a free-standing panel. The gate stands 26 studs
   past the road's end, so the void is 28+ studs off the line. The door swings 115 degrees toward the runner, off to
   the side, so it reads from the aisle and from the side.
+
+### Round note (2026-11-23): round 5
+- Pink glow, root cause: the warm sky light tinted the white materials and the self-light bloomed. Suits, gloves and
+  the pale hands and arms now use a cool bone-white base (E8EEF8). On top of that, `bone_white()` mixes a flat
+  neutral-white tone (55%) with the lit material, staying below the bloom threshold. They read flat bone-white in 06
+  and 07 with no salmon halo. In Roblox this is simply a near-white Color with low Reflectance.
+- Astronaut (new ruling): each figure faces the road square on, so the runner's oblique view gets a 3/4 front with
+  the visor, the joined hands and one side of the backpack.
+  - Visor: about 1.3 times larger and deeper, about 80% of the helmet front, inside a thin rim, with the highlight
+    top-left.
+  - Lamp boxes: smaller than the visor, each with three dark lens dots.
+  - Mittens: about 1.6 times wider and flatter, with finger grooves on the front and flared cuffs. They still cover
+    only the lower-middle of the visor.
+  - Shadow patch: longer (16 studs back) and darker.
+- `ArmA` / `ArmB`: the palm core cylinder (the box collar) and the metacarpal caps (the grey square) are gone. One
+  flat palm pad now follows the hand's heading. The fingers are thicker, and the hand is 2.25 times larger, about a
+  quarter of the arm.
+- `Hand`: the thumb root sits up on the side of the palm. Every joint ball is 2.5% wider than its segment end, which
+  hides the cap rims (no seam rings) without a bulge.
+- Arms: each new arm must sit a reach plus a hand length (50 x scale) from every placed arm, unless they hang more
+  than 60 x scale apart in height, so no arm passes through another. They also keep 15 studs clear of giant hands.
+- Hills: no hill stands within 1.4R + 900 of the dome centre, so no sunlit mound sits in front of the black.

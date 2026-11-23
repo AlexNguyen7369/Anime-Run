@@ -18,14 +18,15 @@ from mathutils import Vector
 
 GROUND, HILL, MOUND = "B8AA8C", "8E8262", "6A5A44"
 TUFT, TUFT2 = "262C16", "3A4222"
-PALE, PALE2 = "F6F6FA", "E2E4EC"  # near-white skin, cool shade
+PALE, PALE2 = "E8EEF8", "DCE2EE"  # bone-white skin, a cool tint that cancels the warm sky ambient
 DOOR, DOOR2, FRAMEC, KNOB = "8A5A3A", "74482C", "5A3A26", "C8A040"
-SUIT, SUIT2, GREY, VISOR = "F4F7FC", "E2E6EE", "8E9098", "0A0A0E"  # cool whites; visor glossy black
+SUIT, SUIT2, GREY, VISOR = "E8EEF8", "D8DEEA", "8E9098", "0A0A0E"  # cool whites; visor glossy black
 RIM, WRIST = "E8ECF2", "3A3E48"
 GLOVE, BOOT, PACK, LAMP, CUFF, CHEST = "F0F0EC", "E2E2DE", "EEEEEA", "E4E4DE", "9AA6B8", "D0D0CA"
 BLACK = "000000"
 HAZE = "FF8A4A"  # the horizon colour: the far plain fades into it
 WIDE = 1.4  # the dome is this much wider across the road than along it, so it fills the view from the aisle
+GLOW = 0.08  # self-light on suits and pale arms: neutral white, low, so nothing blooms salmon
 MOUND_H = 0.2  # the astronaut kneels on a flat dark shadow patch this thick (local studs)
 GRASS_EVERY = 150
 ARM_COLS = (-400, -270, -140, 140, 270, 400)  # lateral columns of the arm grid over the darkness
@@ -71,7 +72,7 @@ def seg(p, a, b, r, col, ball=True, **o):
 	o.setdefault("seg", 10)
 	p.append(("cyl", (2 * r, ln, 2 * r), mid, col, dict(o, rot=(rx, ry, 0), smooth=True)))
 	if ball:
-		rb = r * o.get("taper", 1.0)  # the joint matches the limb's tapered end: no band (wider balls read as rings)
+		rb = r * o.get("taper", 1.0) * 1.025  # a hair wider than the tapered end: covers the cap rim (no seam), no bulge
 		p.append(("ball", (2 * rb, 2 * rb, 2 * rb), b, col, {"subdiv": sub, "smooth": True}))
 
 
@@ -170,17 +171,16 @@ def hand(p, w, f, s, n, k, curl, seg_n=8, sub=1, palm=False):
 		p.append(("ball", (2.7 * k, 1.0 * k, 0.8 * k), add(w, mul(f, 3.15 * k), mul(n, -0.15 * k)), PALE, {"subdiv": sub, "smooth": True}))  # webbing across the finger roots: one smooth line
 		p.append(("ball", (2.6 * k, 1.1 * k, 0.75 * k), add(w, mul(f, 2.8 * k), mul(n, -0.25 * k)), PALE, {"subdiv": sub, "smooth": True}))
 		p.append(("ball", (1.1 * k, 2.0 * k, 0.8 * k), add(w, mul(f, 1.0 * k), mul(s, -0.85 * k), mul(n, 0.05 * k)), PALE, {"subdiv": sub, "smooth": True}))  # low thumb muscle
-	else:
-		seg(p, w, add(w, mul(f, 2.4 * k)), 0.8 * k, PALE, ball=False, seg=seg_n)  # palm core
+	else:  # level hands (f and s horizontal, n down): one flat palm pad turned to the hand's heading
+		yaw = math.degrees(math.atan2(-f[2], f[0]))
+		p.append(("ball", (3.3 * k, 0.95 * k, 2.9 * k), add(w, mul(f, 1.7 * k)), PALE, {"subdiv": 2, "smooth": True, "rot": (0, yaw, 0)}))
 	for i, (lat, lengths) in enumerate(FINGERS):
-		kn = add(w, mul(f, (3.0 - 0.18 * abs(lat)) * k), mul(s, lat * (0.62 if palm else 0.72) * k), mul(n, (-0.12 if palm else -0.25) * k))
-		if not palm:  # the ground hand's flat palm pad stands in for the metacarpals
-			seg(p, add(w, mul(s, lat * 0.3 * k)), kn, 0.42 * k, PALE, seg=seg_n, subdiv=sub, taper=0.9)  # metacarpal, knuckle
-		if palm:  # a round finger root, so the base blends into the palm instead of showing a cut edge
-			rr = 2 * (0.37 - 0.03 * abs(lat)) * k
+		kn = add(w, mul(f, (3.0 - 0.18 * abs(lat)) * k), mul(s, lat * 0.62 * k), mul(n, -0.12 * k))
+		rr = 2 * (0.45 - 0.03 * abs(lat)) * k
+		if True:  # a round finger root in the palm pad, so the base blends in instead of showing a cut edge
 			p.append(("ball", (rr, rr, rr), kn, PALE, {"subdiv": sub, "smooth": True}))
 		sp = math.radians(lat * 6)
-		a, c, r = kn, 0.0, (0.37 - 0.03 * abs(lat)) * k
+		a, c, r = kn, 0.0, (0.45 - 0.03 * abs(lat)) * k
 		cf = curl * (0.55, 0.8, 1.0, 1.35)[i]  # index straightest, little finger most curled
 		for j, ln in enumerate(lengths):
 			c += math.radians(cf * (0.5 if j == 0 else 1.0))
@@ -189,8 +189,8 @@ def hand(p, w, f, s, n, k, curl, seg_n=8, sub=1, palm=False):
 			seg(p, a, b, r, PALE, seg=seg_n, subdiv=sub, taper=0.8)
 			a, r = b, r * 0.8
 		tips.append(a)
-	a = add(w, mul(f, 0.5 * k), mul(s, -0.75 * k))
-	r = 0.46 * k
+	a = add(w, mul(f, 1.3 * k), mul(s, -1.15 * k))  # thumb root on the side of the palm
+	r = 0.5 * k
 	for d, ln in (
 		(add(mul(f, 0.5), mul(s, -0.8), mul(n, 0.35)), 1.5),
 		(add(mul(f, 0.8), mul(s, -0.3), mul(n, 0.5)), 1.15),
@@ -235,10 +235,10 @@ def float_arm(bend, wrist, curl):
 	seg(p, sh, el, 1.95, PALE, ball=False, subdiv=2, taper=0.85)
 	p.append(("ball", (3.9, 3.9, 3.9) if bend > 30 else (3.3, 3.3, 3.3), el, PALE, {"subdiv": 2, "smooth": True}))  # elbow knob
 	seg(p, el, wr, 1.6, PALE, subdiv=2, taper=0.75)
-	tips = hand(p, wr, f, s, (0, -1, 0), 1.8, curl)
+	tips = hand(p, wr, f, s, (0, -1, 0), 2.25, curl, sub=2)
 	pts = [sh, el, wr] + tips
 	c = mul(add(*pts), -1.0 / len(pts))
-	return glow(shift(p, c), 0.2, (PALE,))
+	return glow(shift(p, c), GLOW, (PALE,))
 
 
 # --- astronaut ---
@@ -267,26 +267,26 @@ def astronaut():
 		el = (sx * 2.05, 4.8, -0.9)
 		seg(up, (sx * 1.9, 6.0, 0.15), el, 0.64, SUIT, ball=False, seg=10, taper=0.95)  # upper arm, elbow out
 		up.append(("ball", (1.25, 1.25, 1.25), el, SUIT, r2))  # elbow
-		wr = (sx * 0.4, 6.35, -2.05)
+		wr = (sx * 0.5, 6.35, -2.1)
 		d = norm(add(wr, mul(el, -1)))
 		c = add(mul(el, 0.67), mul(wr, 0.33))
 		seg(up, el, add(wr, mul(d, -0.5)), 0.56, SUIT, ball=False, seg=10, taper=0.9)  # forearm rising to the hands
 		seg(up, add(c, mul(d, -0.08)), add(c, mul(d, 0.08)), 0.6, SUIT2, ball=False, seg=10)  # ribbed elbow band
 		seg(up, add(wr, mul(d, -0.55)), add(wr, mul(d, -0.38)), 0.55, WRIST, ball=False, seg=10)  # dark wrist ring
-		seg(up, add(wr, mul(d, 0.15)), add(wr, mul(d, -0.4)), 0.42, GLOVE, ball=False, seg=10, taper=1.5)  # flared gauntlet cuff
+		seg(up, add(wr, mul(d, 0.15)), add(wr, mul(d, -0.45)), 0.45, GLOVE, ball=False, seg=10, taper=1.8)  # flared gauntlet cuff
 		# The mitten: a wide palm pressed flat to the other at x = 0, the four fingers held together pointing up
 		# The joined mittens cover only the lower-middle third of the visor: palm to palm at x = 0, about a third of the
 		# visor wide together, fingertips at the visor's mid-height
-		up.append(("ball", (0.5, 1.35, 1.15), (sx * 0.25, 6.95, -2.3), GLOVE, r2))  # palm
-		up.append(("cyl", (0.46, 0.85, 1.05), (sx * 0.23, 7.75, -2.32), GLOVE, {"seg": 12, "smooth": True}))  # the four fingers held together
-		up.append(("ball", (0.46, 0.5, 1.05), (sx * 0.23, 8.2, -2.32), GLOVE, r2))  # their blunt rounded tips
-		for z in (-2.62, -2.32, -2.02):  # finger-gap grooves on the back of the mitten
-			B(up, (0.08, 0.85, 0.06), (sx * 0.46, 7.75, z), "B4B8C0")
+		up.append(("ball", (0.8, 1.35, 0.85), (sx * 0.4, 6.95, -2.35), GLOVE, r2))  # palm: wide, flat
+		up.append(("cyl", (0.74, 0.85, 0.8), (sx * 0.37, 7.75, -2.37), GLOVE, {"seg": 12, "smooth": True}))  # the four fingers held together
+		up.append(("ball", (0.74, 0.5, 0.8), (sx * 0.37, 8.2, -2.37), GLOVE, r2))  # their blunt rounded tips
+		for x in (0.22, 0.42, 0.62):  # finger-gap grooves on the front of the mitten
+			B(up, (0.05, 0.85, 0.06), (sx * x, 7.75, -2.78), "B4B8C0")
 		seg(up, (sx * 0.5, 6.7, -1.95), (sx * 0.32, 7.35, -1.85), 0.16, GLOVE, ball=False, seg=8)  # thumb along the inside
 		# Helmet side lamp: an upright box, three lights looking forward
-		B(up, (0.45, 1.2, 0.8), (sx * 1.76, 8.35, -0.2), LAMP)
+		B(up, (0.4, 0.95, 0.65), (sx * 1.78, 8.35, -0.15), LAMP)
 		for i in range(3):
-			B(up, (0.24, 0.24, 0.1), (sx * 1.76, 7.98 + i * 0.37, -0.62), "FFF2C8", emit=0.8)
+			B(up, (0.2, 0.2, 0.08), (sx * 1.78, 8.05 + i * 0.3, -0.5), "22262C")  # dark lens dots
 		up.append(("cyl", (0.42, 0.3, 0.42), (sx * 0.9, 4.55, -1.0), ("3A5AA8", "B03A3A")[sx > 0], {"seg": 8, "rot": (90, 0, 0), "metal": 0.5}))  # hose connector
 	up.append(("ball", (3.1, 1.9, 2.4), (0, 3.45, 0.2), SUIT2, {"subdiv": 1, "smooth": True}))  # hips
 	up.append(("ball", (3.6, 3.7, 2.8), (0, 5.15, 0.25), SUIT, r2))  # puffy torso
@@ -298,12 +298,12 @@ def astronaut():
 	up.append(("cyl", (1.5, 3.0, 1.5), (0, 7.2, 2.1), PACK, {"seg": 10, "rot": (0, 0, 90), "smooth": True}))  # its rounded top
 	up.append(("cyl", (2.5, 0.5, 2.5), (0, 7.05, 0.2), "A8B4C8", {"seg": 12, "metal": 0.6, "rough": 0.35}))  # neck ring
 	up.append(("ball", (3.6, 3.5, 3.6), (0, 8.45, 0.1), SUIT, r3))  # round bubble helmet
-	up.append(("cyl", (2.85, 0.32, 2.75), (0, 8.4, -1.3), RIM, {"seg": 20, "rot": (90, 0, 0), "smooth": True}))  # medium visor rim
-	up.append(("ball", (2.75, 2.6, 1.9), (0, 8.4, -0.85), VISOR, {"subdiv": 3, "smooth": True, "rough": 0.06, "metal": 0.3}))  # glossy black visor
-	up.append(("ball", (0.85, 0.42, 0.16), (0.55, 9.05, -1.66), "FFFFFF", {"subdiv": 1, "smooth": True, "emit": 1.0, "rot": (-30, 0, 25)}))  # highlight, top-left
+	up.append(("cyl", (3.15, 0.2, 3.05), (0, 8.42, -1.25), RIM, {"seg": 20, "rot": (90, 0, 0), "smooth": True}))  # thin visor rim
+	up.append(("ball", (2.95, 2.85, 2.4), (0, 8.42, -0.75), VISOR, {"subdiv": 3, "smooth": True, "rough": 0.06, "metal": 0.3}))  # glossy black visor: ~80% of the face, deep
+	up.append(("ball", (0.9, 0.45, 0.16), (0.62, 9.2, -1.8), "FFFFFF", {"subdiv": 1, "smooth": True, "emit": 1.0, "rot": (-30, 0, 25)}))  # highlight, top-left
 	p = shift(lo + shift(up, UP), (0, MOUND_H, 0))
-	p.append(("cyl", (11.0, 0.3, 9.0), (0, 0.05, 0.4), TUFT, {"seg": 14}))  # flat dark shadow patch on the plain
-	return glow(p, 0.35, (SUIT, SUIT2, GLOVE, BOOT, PACK, LAMP, CHEST, RIM, "A8B4C8", "C8CCD2"))
+	p.append(("cyl", (9.0, 0.3, 16.0), (0, 0.05, 3.0), "16140E", {"seg": 14}))  # long dark shadow patch on the plain
+	return glow(p, GLOW, (SUIT, SUIT2, GLOVE, BOOT, PACK, LAMP, CHEST, RIM, "A8B4C8", "C8CCD2"))
 
 
 # --- the darkness ---
@@ -429,6 +429,24 @@ def dark_under(mat, cx, cy, r0, r1):
 	nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
 
 
+def bone_white(mat):
+	"""Flat bone-white under the warm sky: half the surface is a neutral-white flat tone (no sky tint), half the lit
+	material, so suits and pale arms read white, never salmon. Kept under the bloom threshold (no halo).
+	Roblox: a near-white Color with low Reflectance; this only counters Blender's warm world light."""
+	nt = mat.node_tree
+	out = next(n for n in nt.nodes if n.type == "OUTPUT_MATERIAL")
+	bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+	bsdf.inputs["Emission Strength"].default_value = 0.0
+	flat = nt.nodes.new("ShaderNodeEmission")
+	flat.inputs["Color"].default_value = (0.92, 0.94, 1.0, 1.0)
+	flat.inputs["Strength"].default_value = 0.62
+	mix = nt.nodes.new("ShaderNodeMixShader")
+	mix.inputs["Fac"].default_value = 0.55
+	nt.links.new(bsdf.outputs["BSDF"], mix.inputs[1])
+	nt.links.new(flat.outputs["Emission"], mix.inputs[2])
+	nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
+
+
 def flat_caps(ob):
 	"""Cylinder end caps shaded flat, so smooth limbs show no dark band where a cap meets the side (or a joint)."""
 	for poly in ob.data.polygons:
@@ -475,7 +493,7 @@ def build(k):
 	k.prop("DoorClosed", door())
 	k.prop("DoorOpen", door(ajar=50))
 	k.prop("SkyDoor", sky_door())
-	k.prop("Hand", glow(ground_hand(28), 0.15, (PALE,)))
+	k.prop("Hand", glow(ground_hand(28), GLOW, (PALE,)))
 	k.prop("ArmA", float_arm(6, 8, 22))  # straight, hanging
 	k.prop("ArmB", float_arm(85, -15, 34))  # bent at a clear elbow
 	k.prop("Astronaut", astronaut())
@@ -525,6 +543,16 @@ def build(k):
 	print("ABYSS radius", R)
 	ob = k.place("Abyss", (ctr.x, -1.0, ctr.z), facing((t.x, t.z)), R)
 	ob.visible_shadow = False
+	import bpy
+
+	for ob in [o for o in k.col.objects if o.data is k.props["Hill"].data]:
+		if math.hypot(ob.location.x - ctr.x, ob.location.y + ctr.z) < R * WIDE + 900:
+			bpy.data.objects.remove(ob)  # no sunlit hill in front of the black
+	for name in ("Astronaut", "Hand", "ArmA", "ArmB"):
+		for m in k.props[name].data.materials:
+			b = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+			if 0 < b.inputs["Emission Strength"].default_value <= GLOW:
+				bone_white(m)
 	for mat in (g.data.materials[0], k.props["Hill"].data.materials[0]):
 		dark_under(mat, ctr.x, -ctr.z, R + 40, R + 380)  # black only past the last astronaut (Blender XY: (x, -z))
 	# Doors fill the sky in strict rows following the road, each face-on to the road's heading; none hang before the dark
@@ -542,11 +570,15 @@ def build(k):
 	# Long pale arms hanging in the dark, half straight and half bent: an even jittered grid over the last stretch, each
 	# cell an arm-length apart; a few more over the open plain. None within 15 studs of a giant hand.
 	hands = [(o.location.x, o.location.y, o.scale.x) for o in k.col.objects if o.data is k.props["Hand"].data]
+	arms = []
 
 	def arm(d, off, y, sc):
 		pos, yaw = k.beside(d, off)
 		if any(math.hypot(pos[0] - hx, -pos[2] - hy) < 22 * hs + 30 * sc + 15 for hx, hy, hs in hands):
 			return False  # Blender XY is (x, -z); hand bound ~22 x scale, arm half-length ~30 x scale
+		if any(math.hypot(pos[0] - ax, pos[2] - az) < 50 * max(sc, asc) and abs(y - ay) < 60 * max(sc, asc) for ax, az, ay, asc in arms):
+			return False  # keep each arm a reach plus a hand length clear of the others: no arms through arms
+		arms.append((pos[0], pos[2], y, sc))
 		ob = k.place(k.rng.choice(("ArmA", "ArmB")), (pos[0], y, pos[2]), yaw + k.rng.uniform(0, math.tau), sc)
 		ob.rotation_euler = (math.radians(k.rng.uniform(-8, 8)), math.radians(90 + k.rng.uniform(-10, 10)), ob.rotation_euler[2])  # hanging, hand down
 		return True
@@ -564,9 +596,9 @@ def build(k):
 		if k.clear_of_road(pos[0], pos[2], 80) and arm(dd, off, k.rng.uniform(62, 90), k.rng.uniform(1.3, 1.5)):
 			n += 1
 		dd += 110
-	# Two rows of kneeling astronauts praying on dark shadow patches, side-on down the aisle: each turned 45 degrees from
-	# the road toward the gate, so the visor and the big backpack both read from the runner camera
-	ang = math.radians(45)
+	# Two rows of kneeling astronauts praying on dark shadow patches, each facing the road square on, so the runner's
+	# oblique view gets a 3/4 front: visor, joined hands and one side of the backpack
+	ang = 0.0
 	d = L - 650
 	while d < L - 250:
 		for sx in (-1, 1):
