@@ -300,7 +300,7 @@ local function switch(toggle, on)
 		if lift then
 			lift.Visible = false
 		end
-		Components.Tint(toggle, Color3.fromRGB(16, 16, 20))
+		AnimeSkin.Dojo.Lacquer(toggle) -- design doc 4.46: a lacquer ON / OFF switch
 	end
 	UiMotion.Mark(knob, { Position = on and UDim2.fromScale(0.4, 0) or UDim2.fromScale(0, 0) })
 	AnimeSkin.Button(knob, on and "Go" or "Idle")
@@ -369,11 +369,7 @@ profileHost.ScrollingDirection = Enum.ScrollingDirection.Y
 profileHost.ClipsDescendants = true
 profileHost.Visible = false
 profileHost.ZIndex = 3
-profileHost.Parent = settings.Panel
-local profileLayout = Instance.new("UIListLayout")
-profileLayout.SortOrder = Enum.SortOrder.LayoutOrder
-profileLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-profileLayout.Parent = profileHost
+profileHost.Parent = settings.Panel -- indexFrame places the cards (two columns, settings_profile frame)
 
 local profileRows = {
 	{ "TotalRolls", "TOTAL ROLLS", "0" },
@@ -392,7 +388,7 @@ for order, spec in profileRows do
 	row.BorderSizePixel = 0
 	row.LayoutOrder = order
 	row.ZIndex = 3
-	AnimeSkin.Plate(row) -- design doc 4.42: a slanted plate like the Settings rows; indexFrame sizes it
+	AnimeSkin.Plate(row, AnimeSkin.Tint.Danger) -- design doc 4.46: a paper card with a vermilion bar; indexFrame places it
 	local name = Instance.new("TextLabel")
 	name.Name = "Name"
 	name.BackgroundTransparency = 1
@@ -404,7 +400,7 @@ for order, spec in profileRows do
 	value.Name = "Value"
 	value.BackgroundTransparency = 1
 	value.Text = spec[3]
-	value.TextXAlignment = Enum.TextXAlignment.Right
+	value.TextXAlignment = Enum.TextXAlignment.Left
 	value.ZIndex = 4
 	value.Parent = row
 	row.Parent = profileHost
@@ -852,11 +848,7 @@ local function refreshStats()
 		)
 		row.Plus.Active = available
 		row.Plus.Selectable = available
-		AnimeSkin.Button(row.Plus, available and "Go" or "Idle")
-		local accent = row.Frame:GetAttribute("AccentColor")
-		if available and accent then
-			row.Plus.BackgroundColor3 = accent -- the stat's own colour, as before
-		end
+		AnimeSkin.Button(row.Plus, available and "Go" or "Idle") -- 4.46 stats frame: the vermilion tile for every stat
 	end
 	label(hud.Stats, "STATS")
 	local badge = hud.Stats:FindFirstChild("PointsBadge")
@@ -881,7 +873,7 @@ for _, row in pairs(rows) do
 	local frame = row.Frame
 	AnimeSkin.Plate(frame, frame:GetAttribute("AccentColor"))
 	frame.Lift.Visible = false
-	frame.Accent.BackgroundColor3 = Color3.fromRGB(20, 24, 40)
+	frame.Accent.BackgroundColor3 = AnimeSkin.Dojo.Colors.Track -- a progress track on paper (4.46)
 end
 for _, row in settings.Panel:GetDescendants() do
 	local face = row:IsA("Frame") and row.Name:match("Row$") and row:FindFirstChild("Face")
@@ -997,7 +989,15 @@ local function indexFrame(refs, icon, content)
 	refs.Title.ZIndex = 10
 	refs.Title.TextXAlignment = Enum.TextXAlignment.Left
 	close.ZIndex = 10
-	local closeArt = refs.Close:FindFirstChild("AnimeCloseArt")
+	-- Design doc 4.46 header (AnimeSkin.IndexFrame's): the brushed rule under the header band, on the paper.
+	local rule = face:FindFirstChild("HeaderRule") or Instance.new("Frame")
+	rule.Name = "HeaderRule"
+	rule.BackgroundColor3 = AnimeSkin.Dojo.Colors.InkSoft
+	rule.BackgroundTransparency = 0.45
+	rule.BorderSizePixel = 0
+	rule.Active = false
+	rule.ZIndex = 2
+	rule.Parent = face
 	local g = {
 		Frame = frame,
 		u = function(px)
@@ -1015,17 +1015,19 @@ local function indexFrame(refs, icon, content)
 		if frame.Size ~= UDim2.fromOffset(W, H) then
 			frame.Size = UDim2.fromOffset(W, H)
 		end
-		-- The header band spans the panel's top at its origin, so its parts sit in panel coordinates.
-		place(band, 0, 0, W, 64)
-		place(refs.Title, 168, -23, W - 266, 76)
-		refs.Title.Rotation = -2
+		-- The header band (0 to 98) spans the panel's top at its origin, so its parts sit in panel coordinates. Design
+		-- doc 4.46, as AnimeSkin.IndexFrame: logo 70 at (28, 14), the brush title after it, the seal close 64 at 92 in
+		-- from the right (Scale + offset: it stays in the frame at any width), the rule at y 90.
+		place(band, 0, 0, W, 98)
+		refs.Title.AnchorPoint = Vector2.zero
+		refs.Title.Position, refs.Title.Size = UDim2.fromOffset(108, 12), UDim2.new(1, -228, 0, 72)
+		refs.Title.Rotation = 0
 		AnimeSkin.Text(refs.Title, 72)
-		place(logo, -19, -72, 188, 186)
-		place(close, W - 74, 4, 58, 54)
-		if closeArt then
-			closeArt.AnchorPoint = Vector2.zero
-			closeArt.Position, closeArt.Size = UDim2.fromOffset(-8, -10), UDim2.new(1, 16, 1, 20)
-		end
+		place(logo, 28, 14, 70, 70)
+		close.AnchorPoint = Vector2.zero
+		close.Position, close.Size = UDim2.new(1, -92, 0, 16), UDim2.fromOffset(64, 64)
+		rule.AnchorPoint = Vector2.zero
+		rule.Position, rule.Size = UDim2.fromOffset(28, 90), UDim2.new(1, -56, 0, 3)
 		g.W, g.H, g.Tabs, g.Phone = W, H, small and 90 or 98, small
 		g.Top = small and 144 or 164
 		g.Height = H - g.Top - 82
@@ -1064,6 +1066,8 @@ local function footerLine(refs, g, value)
 		line.BackgroundTransparency = 1
 		line.ZIndex = 4
 		line.Parent = face
+		line:SetAttribute("DojoTextColor", AnimeSkin.Dojo.Colors.Cream) -- on its lacquer plate (4.46)
+		AnimeSkin.Dojo.FooterPlate(line, 10)
 	end
 	line.Text = value
 	place(line, math.floor(g.W * 303 / 920), g.H - 60, math.floor(g.W * 312 / 920), 28)
@@ -1095,6 +1099,14 @@ local function rebirthMiddle(phone)
 	end
 	return phone and middle or nil
 end
+-- 4.46 rebirth frame: the warning on a slip with a vermilion bar and title, the requirement bar a vermilion fill on
+-- a paper track; the free points line cream on the footer's lacquer plate.
+AnimeSkin.Plate(rebirth.Warning, AnimeSkin.Tint.Danger)
+rebirth.WarningTitle:SetAttribute("DojoTextColor", AnimeSkin.Dojo.Colors.Verm)
+AnimeSkin.Dojo.Fill(rebirth.Bar, AnimeSkin.Dojo.Colors.Track)
+AnimeSkin.Dojo.Fill(rebirth.Fill, AnimeSkin.Dojo.Colors.VermLight, AnimeSkin.Dojo.Colors.Verm)
+stats.Points:SetAttribute("DojoTextColor", AnimeSkin.Dojo.Colors.Cream)
+AnimeSkin.Dojo.FooterPlate(stats.Points, 10)
 indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
 	tabsRow(rebirth.Header.RebirthTabs, g)
 	footerLine(rebirth, g, string.format("REBIRTH LEVEL %d", player:GetAttribute("RebirthLevel") or 0))
@@ -1183,7 +1195,6 @@ indexFrame(stats, HudIcons.Rebirth.Image, function(g)
 	place(stats.Points, math.floor(g.W * 303 / 920), g.H - 60, math.floor(g.W * 312 / 920), 28)
 	stats.Points.TextXAlignment = Enum.TextXAlignment.Center
 	AnimeSkin.Text(stats.Points, u(TOKEN.Body))
-	stats.Points:FindFirstChildOfClass("UIStroke").Thickness = 1.5
 	-- The four stat rows fill the content area exactly: whole rows, 12 px apart, nothing to scroll.
 	local list = stats.StatsHost:FindFirstChild("Rows")
 	list:FindFirstChildOfClass("UIListLayout").Padding = UDim.new(0, gap)
@@ -1266,19 +1277,22 @@ indexFrame(settings, HudIcons.Settings.Image, function(g)
 		end
 	end
 	footerLine(settings, g, showSettings and (#keys .. " SETTINGS") or (#profileRows .. " PROFILE LINES"))
-	-- PLAYER PROFILE: six plates in the same area, 12 px apart.
+	-- PLAYER PROFILE (4.46 settings_profile frame): six cards in two columns of three, 12 px apart; each the name
+	-- over its value.
 	place(profileHost, left, g.Top, width, g.Height)
-	local rowGap = u(SPACE.Gap)
-	profileLayout.Padding = UDim.new(0, rowGap)
-	local plateH = math.floor((g.Height - (#profileRows - 1) * rowGap) / #profileRows)
-	local plateSlant = math.floor(plateH / 2) + u(SPACE.Inner)
-	local textW = width - 2 * plateSlant
+	local gap2, pad = u(SPACE.Gap), u(SPACE.Pad)
+	local cardW = math.floor((width - gap2) / 2)
+	local cardH = math.floor((g.Height - 2 * gap2) / 3)
+	local textX = pad + u(SPACE.Inner) -- clear of the card's vermilion bar
+	local textW = cardW - textX - pad
+	local nameH = math.floor((cardH - 2 * pad) * 0.4)
 	for row, labels in profileLabels do
-		row.Size = UDim2.new(1, 0, 0, plateH)
-		place(labels[1], plateSlant, 0, math.floor(textW * 0.55), plateH)
-		place(labels[2], plateSlant + math.floor(textW * 0.55), 0, textW - math.floor(textW * 0.55), plateH)
+		local i = row.LayoutOrder - 1
+		place(row, i % 2 * (cardW + gap2), math.floor(i / 2) * (cardH + gap2), cardW, cardH)
+		place(labels[1], textX, pad, textW, nameH)
+		place(labels[2], textX, pad + nameH, textW, cardH - 2 * pad - nameH)
 		g.Role(labels[1], "Item")
-		g.Role(labels[2], "Body", true)
+		g.Role(labels[2], "Section")
 	end
 end)
 

@@ -143,13 +143,17 @@ local function own(gui, class, name)
 	return found
 end
 
--- A vertical fill from `top` to `bottom` on `gui` (its own fill shows again).
+-- A vertical fill from `top` to `bottom` on `gui` (its own fill shows again). A text object gets a solid fill (the
+-- blend of the two): a UIGradient tints its text too, which put cream text on a vermilion tile in vermilion.
 function Dojo.Fill(gui, top, bottom)
-	gui.BackgroundColor3 = Color3.new(1, 1, 1)
+	bottom = bottom or top
+	local isText = gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox")
+	gui.BackgroundColor3 = isText and top:Lerp(bottom, 0.5) or Color3.new(1, 1, 1)
 	gui.BackgroundTransparency = 0
 	gui.BorderSizePixel = 0
 	local g = own(gui, "UIGradient", "DojoFill")
-	g.Color, g.Rotation, g.Transparency = ColorSequence.new(top, bottom or top), 90, NumberSequence.new(0)
+	g.Color, g.Rotation, g.Transparency = ColorSequence.new(top, bottom), 90, NumberSequence.new(0)
+	g.Enabled = not isText
 	return g
 end
 
