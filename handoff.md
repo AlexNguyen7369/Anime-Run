@@ -1,3 +1,8 @@
+## RESUME HERE (2026-11-23 late, world2): 7 tracks owner-approved; implementation phase 1 running
+- Owner approved T1, T3, T4, T6, T7, T8, T10 (frozen; commits in WORLD2_SPEC "Render set approvals"). Not approved, rework continues: T2, T5, T9 (builders running). Unreviewed partial rounds of T1/T3/T6/T7 are in git stash, not applied.
+- Owner: "begin on approved track implementation within world 2, simultaneously work on remaining track renders".
+- Phase 1 (agent, local only): tools/blender/world2/export_props.py, World 2 theme modules with Assets ledgers and parts fallbacks, init.luau wiring for the 7 keys, upload_props.py (dry-run only), tests. Phase 2 needs coordinator review of the upload dry-run first (memory: accidental Decal uploads), then uploads, rules-audit review per asset, baked copies, Studio check in World 2 mode (Studio shared with peer animerun-cf; no focus steal).
+
 ## RESUME HERE (2026-11-23 evening, world2): likeness loop, 2 of 10 tracks pass
 - PASS at 7/10 by independent review, frozen for owner approval: Track 4 HauntedTunnel, Track 8 MonsterDen. Do not edit them.
 - Others (latest score): T1 DevilTokyo 6.5, T2 DemonCastle 5, T3 RuinedCityZ 6.5, T5 KaijuBase 6.5, T6 ElvenPlains / T9 GoldenCity under review, T7 AntIsland 5.5, T10 HellGate 6.5.
