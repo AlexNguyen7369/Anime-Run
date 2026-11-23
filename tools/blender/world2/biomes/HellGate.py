@@ -23,6 +23,7 @@ DOOR, DOOR2, FRAMEC, KNOB = "8A5A3A", "74482C", "5A3A26", "C8A040"
 SUIT, SUIT2, GREY, VISOR = "E8EEF8", "D8DEEA", "8E9098", "0A0A0E"  # cool whites; visor glossy black
 RIM, WRIST = "E8ECF2", "3A3E48"
 GLOVE, BOOT, PACK, LAMP, POCKET, VNECK = "F0F0EC", "E2E2DE", "EEEEEA", "E4E4DE", "D0D6E2", "141418"
+SEAM = "6A6E76"  # thin dark-grey glove seams
 BLACK = "000000"
 HAZE = "FF8A4A"  # the horizon colour: the far plain fades into it
 WIDE = 1.4  # the dome is this much wider across the road than along it, so it fills the view from the aisle
@@ -276,16 +277,20 @@ def astronaut():
 		seg(up, el, add(wr, mul(d, -0.5)), 0.56, SUIT, ball=False, seg=10, taper=0.9)  # forearm rising to the hands
 		seg(up, add(c, mul(d, -0.08)), add(c, mul(d, 0.08)), 0.6, SUIT2, ball=False, seg=10)  # ribbed elbow band
 		seg(up, add(wr, mul(d, -0.55)), add(wr, mul(d, -0.38)), 0.55, WRIST, ball=False, seg=10)  # dark wrist ring
-		seg(up, add(wr, mul(d, 0.15)), add(wr, mul(d, -0.45)), 0.45, GLOVE, ball=False, seg=10, taper=1.8)  # flared gauntlet cuff
+		seg(up, add(wr, mul(d, 0.15)), add(wr, mul(d, -0.45)), 0.45, GLOVE, ball=False, seg=8, taper=1.8)  # flared gauntlet cuff
 		# The mitten: a wide palm pressed flat to the other at x = 0, the four fingers held together pointing up
 		# The joined mittens cover only the lower-middle third of the visor: palm to palm at x = 0, about a third of the
 		# visor wide together, fingertips at the visor's mid-height
 		up.append(("ball", (0.8, 1.35, 0.85), (sx * 0.4, 6.95, -2.35), GLOVE, r2))  # palm: wide, flat
 		up.append(("cyl", (0.74, 0.85, 0.8), (sx * 0.37, 7.75, -2.37), GLOVE, {"seg": 12, "smooth": True}))  # the four fingers held together
 		up.append(("ball", (0.74, 0.5, 0.8), (sx * 0.37, 8.2, -2.37), GLOVE, r2))  # their blunt rounded tips
-		for x in (0.22, 0.42, 0.62):  # finger-gap grooves on the front of the mitten
-			B(up, (0.05, 0.85, 0.06), (sx * x, 7.75, -2.78), VNECK)  # ink lines
-		seg(up, (sx * 0.5, 6.7, -1.95), (sx * 0.32, 7.35, -1.85), 0.16, GLOVE, ball=False, seg=8)  # thumb along the inside
+		for o in (-0.2, 0.0, 0.2):  # three shallow finger bumps sitting on the mitten's curved front
+			fz = -2.37 - 0.4 * math.sqrt(1 - (o / 0.37) ** 2)
+			up.append(("ball", (0.2, 0.62, 0.1), (sx * (0.37 + o), 7.8, fz), GLOVE, {"subdiv": 1, "smooth": True}))
+		for o in (-0.1, 0.1):  # thin grey seams between them, flush with the surface and short of the glove's ends
+			fz = -2.37 - 0.4 * math.sqrt(1 - (o / 0.37) ** 2)
+			B(up, (0.03, 0.55, 0.04), (sx * (0.37 + o), 7.8, fz), SEAM)
+		seg(up, (sx * 0.5, 6.7, -1.95), (sx * 0.32, 7.35, -1.85), 0.16, GLOVE, ball=False, seg=6)  # thumb along the inside
 		# Helmet side lamp: an upright box, three lights looking forward
 		B(up, (0.4, 0.95, 0.65), (sx * 1.78, 8.35, -0.15), LAMP)
 		for i in range(3):
@@ -301,9 +306,16 @@ def astronaut():
 	up.append(("ball", (3.6, 3.5, 3.6), (0, 8.45, 0.1), SUIT, r3))  # round bubble helmet
 	up.append(("cyl", (3.15, 0.2, 3.05), (0, 8.42, -1.25), RIM, {"seg": 20, "rot": (90, 0, 0), "smooth": True}))  # thin visor rim
 	up.append(("ball", (2.95, 2.85, 2.4), (0, 8.42, -0.75), VISOR, {"subdiv": 3, "smooth": True, "rough": 0.06, "metal": 0.3}))  # glossy black visor: ~80% of the face, deep
-	up.append(("ball", (0.9, 0.45, 0.16), (0.62, 9.2, -1.8), "FFFFFF", {"subdiv": 1, "smooth": True, "emit": 1.0, "rot": (-30, 0, 25)}))  # highlight, top-left
+	# Highlight, top-left: a thin flat oval laid on the visor surface (tilted to its normal), sunk to 0.03 proud, so it
+	# never shows as a floating shard side-on
+	hx, hy = 0.62, 9.2
+	hz = -0.75 - 1.2 * math.sqrt(1 - (hx / 1.475) ** 2 - ((hy - 8.42) / 1.425) ** 2)
+	nb = norm((hx / 1.475**2, (hy - 8.42) / 1.425**2, (hz + 0.75) / 1.2**2))  # outward normal (Roblox)
+	nbl = (nb[0], -nb[2], nb[1])  # in Blender axes, where the part's thin axis starts along +Y
+	hrot = (math.degrees(math.asin(nbl[2])), math.degrees(math.atan2(-nbl[0], nbl[1])), 25)
+	up.append(("ball", (0.9, 0.45, 0.1), add((hx, hy, hz), mul(nb, -0.02)), "FFFFFF", {"subdiv": 1, "smooth": True, "emit": 1.0, "rot": hrot}))
 	p = shift(lo + shift(up, UP), (0, MOUND_H, 0))
-	p.append(("cyl", (9.0, 0.3, 16.0), (0, 0.05, 3.0), "16140E", {"seg": 14}))  # long dark shadow patch on the plain
+	p.append(("cyl", (9.0, 0.3, 16.0), (0, 0.05, 3.0), "16140E", {"seg": 12}))  # long dark shadow patch on the plain
 	return glow(p, GLOW, (SUIT, SUIT2, GLOVE, BOOT, PACK, LAMP, POCKET, RIM, "A8B4C8"))
 
 

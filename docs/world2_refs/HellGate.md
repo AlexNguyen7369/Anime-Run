@@ -178,3 +178,11 @@ DoorOpen 436, DoorClosed 424, Hill 320, SkyDoor 304, Grass 250, Void 92. Clearan
   fingers 1.4 times thicker, and the curl is opened (`ArmA` 22 to 10, `ArmB` 34 to 20).
 - Giant `Hand` rows stand 240 studs out at scale 1.5-1.8 (were 180 and 1.6-2.0), so no hand is cut off at the frame
   edge in 03.
+
+### Round note (2026-11-23): round 6 follow-up (track passed 7/10)
+- Visor highlight: a thin flat oval laid on the visor surface, tilted to the surface normal and only 0.03 studs proud.
+  It no longer floats as a white shard in front of the visor side-on (07).
+- Mittens (`astronauts_row.jpg`): three shallow white finger bumps on each mitten's curved front, with two thin
+  dark-grey seams between them. The seams sit flush with the surface and stop short of the glove's ends, replacing
+  the black grooves that read as a barcode side-on. The cuff and thumb segments are trimmed to keep the Astronaut
+  under 3,000 tris (2,976).
