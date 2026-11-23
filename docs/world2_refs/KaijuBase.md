@@ -4,19 +4,18 @@ Source: Kaiju No. 8 (manga chapters 1-3 and the Raid on Tachikawa Base arc; anim
 Reference images are look-only. They sit in `build/world2/refs/KaijuBase/`, which is gitignored and never ships.
 Everything in the biome is modelled in-house from primitives. It has no text. It does not use the real Defense Force
 insignia or the Monster Sweeper logo: the base badge is an invented orange diamond, and the vans carry a plain red band.
-It has no gore: the corpse is intact, or stripped to bare bone where the crews have finished.
+It has no gore: the corpse is intact.
 
 | Landmark | Visual facts from the source | Source | Local ref | Prop |
 |---|---|---|---|---|
-| Giant kaiju corpse under cleanup | A huge reddish-brown kaiju body lying in the city. Monster Sweeper crews in white hooded suits with visors and green backpacks hang on blue and yellow ropes down its flank. A line of metal stakes with rope lines runs along its back, and teal steel gantries stand overhead | https://kaiju-no-8.fandom.com/wiki/Monster_Sweeper_Inc. | `sweeper_cleaning1.jpg`, `sweeper_cleaning2.jpg` | `KaijuCorpse` (hero, run shots 1 and 2): three-part body, horned head with a tapered snout and a row of teeth on the ground, grey dorsal and flank armour plates, a clawed forelimb, a folded hind leg, rocky ridged plates over a faceted hide, the rear stripped to bleached ribs, a tail; a stake-and-rope line along the back, two teal gantries with 16 blue and yellow ropes hanging onto it, large white-suited workers on the ropes, the back and the ground, skip bins |
+| Giant kaiju corpse under cleanup | A huge reddish-brown kaiju body lying in the city. Monster Sweeper crews in white hooded suits with visors and green backpacks hang on blue and yellow ropes down its flank. A line of metal stakes with rope lines runs along its back, and teal steel gantries stand overhead | https://kaiju-no-8.fandom.com/wiki/Monster_Sweeper_Inc. | `sweeper_cleaning1.jpg`, `sweeper_cleaning2.jpg` | `KaijuCorpse` (hero, run shots 1 and 2): three-part body, horned head with a tapered snout and a row of teeth on the ground, grey dorsal and flank armour plates, a clawed forelimb, a folded hind leg, faceted rock crags over the hide, a craggy rock-ridge spine, a continuous tapering tail; a stake-and-rope line along the back, two teal gantries with 16 blue and yellow ropes hanging onto it, large white-suited workers on the ropes, the back and the ground, skip bins |
 | Monster Sweeper crews and vans | White hooded overalls, white vans with roof racks parked near the site, crews waiting on the vans | https://kaiju-no-8.fandom.com/wiki/Monster_Sweeper_Inc. | `sweeper_members.jpg`, `sweeper_hq.jpg` | `SweeperVan`: one-box white van with a sloped nose, raked windscreen, side windows, a plain red band, a raised roof rack with crew sitting on top, workers, cones, a light tower |
 | Tachikawa Base HQ | The Third Division's base in Nishi-Tokyo. A wide, symmetric white 8-floor block with a regular window grid, a central entrance tower with a tall glass strip and a portico, slightly taller end pavilions with roof masts, a parking lot of white cars and a tree row | https://kaiju-no-8.fandom.com/wiki/Tachikawa_Base | `tachikawa_base.jpg` | `DefenseHQ` (hero, run shot 3; placed square-on to that camera): one symmetric block with window grids, end pavilions with masts, the central tower with a glass strip and pilasters, an invented badge, portico, two rows of parked cars, a hedge row, and the observation tower beside it |
 | Observation tower | Beside the HQ, a slender tower with a ribbed shaft, a ringed observation cab, white radar domes and a lattice antenna mast | https://kaiju-no-8.fandom.com/wiki/Tachikawa_Base | `tachikawa_base.jpg` | part of `DefenseHQ` (on the viewer's left): ribbed shaft, glazed cab with balcony rings, deck with two radar domes, five-stage lattice mast, beacon, base block |
 | Anti-kaiju rail cannon | A huge cannon barrel on a rail track, ring coils around its breech, cable bundles, a square muzzle, tanks on both sides | https://kaiju-no-8.fandom.com/wiki/Defense_Force | `railgun.jpg` | `Railgun` (hero, side shot and run shot 4): a 250-stud rail bed with ballast and sleepers, a heavy carriage, a massive barrel at 6 degrees, a 12-ring coil stack at the breech, a riveted square muzzle, 8 tall striped tanks, 24 drooping cable bundles, a support truck |
 | Wrecked Tokyo districts and the base perimeter | Residential and office districts wrecked by kaiju: balconied apartment blocks, office towers, rubble, crushed cars. The base has walls, hangars and armoured vehicles | anime episodes 1 and 9 (city and base raid) | `sweeper_members.jpg` (town in the background) | `Apartment` and `Office`: a collapsed corner where the floor plates jut from the break, a slab rests onto the lower roof, and scorch marks show; some are placed leaning. `CityBlock`: a 160-stud street-grid tile with streets, sidewalks, wrecked low-rises, a crater and wrecked cars, laid over the city and the infield. `Smoke`: a smoke column over a scorched base. `Rubble`: varied chunks, crushed and flipped cars, a pole and rebar, randomly turned. `Hangar`: arched roof, door seams, abstract chevrons, an armoured vehicle. `BaseWall`: low, so the runner sees over it. `Pier` |
 
-Not matched: the source's corpse shows cut flesh. The draft shows the corpse intact or as bare bone instead, to keep it
-free of gore. The Defense Force and Monster Sweeper emblems are replaced by invented shapes. The real Tachikawa layout,
+Not matched: the source's corpse shows cut flesh. The draft shows the corpse intact instead, to keep it free of gore. The Defense Force and Monster Sweeper emblems are replaced by invented shapes. The real Tachikawa layout,
 including its training grounds and Self-Defense Force camp, is not reproduced. Only the HQ, the tower, the hangars and
 the walls stand in for it.
 The clouds are sky dressing (the game's Sky), not prop assets.
@@ -45,3 +44,39 @@ Round 5 (2026-11-23):
   (3.8 to 7.8) are clear because props now need their offset's worth of clearance from every lap; hangars (12 to 14)
   are now 92 out; rubble (17) is now 50 out; road-side blocks are now 64 out; the second corpse (1.4 at the bend) is
   now at d 2400, 175 out. Everything now measures 24+.
+
+Round 6 (2026-11-23), judged in the close-ups and run shots 1 and 2:
+- The spine is a craggy rock ridge of 26 jagged, leaning outcrops of uneven height, as in `sweeper_cleaning2.jpg`,
+  in place of the even row of plates. Faceted rock lumps cover the back and the hip, so no smooth dome shows.
+- The flank crags are faceted rock plates, not flat tiles.
+- The tail is one continuous tapering tail to a point with rock crags on top, in place of a string of balls and a bone tip.
+- The corpses had drifted out of run shots 1 and 2. They now stand ahead of each camera on the left, at d 800
+  (190 out) and d 2750 (200 out), with the sweeper vans beside them. clearance.py measures both as clear.
+- The close-up camera frames the whole prop and its 760-wide ground disc, so the corpse fills only the middle third.
+
+Round 7 (2026-11-23):
+- Corpse: the hide is large smooth salmon-red masses that overlap into one cliff. A pale shell runs low on each mass as
+  the pale band, mottled with darker spots, with shallow darker patches above it. Short beige crags sit on the top
+  ridge only. The horns are shorter and the skull crest is smaller. The flank crags and back lumps are gone.
+- Sweepers: an open white parka hood round a skin-tone face, a respirator block with one disc filter, harness straps
+  and a belt, and a tall green pack. They have no helmet sphere and no black visor.
+- Van: a one-box Hiace-style van, nose to -Z. It has small wheels, a lower body, a raked windscreen over a short
+  nose, a grille, headlamps, a blank plate, side and rear windows, sliding-door seams and a long roof rack with crew.
+- Rail cannon: the tanks stand either side of the breech coils, five cables per coil ring drape out to both sides,
+  and the muzzle has a black square bore.
+- Smoke: three tapered plumes that merge, bend downwind and darken toward the base. No stacked balls.
+- City: rubble cones at the foot of each damaged block, sheared tops with bent rebar, and more soot on the facades.
+
+Round 8 (2026-11-23), coordinator ruling on the hide (sweeper_cleaning1/2):
+- Corpse: a red-brown rocky cliff of hard-faceted masses, taller for its length. Rows of broad angular rock facets and
+  ledges cover it, each with a hard dark shadow facet under it, with some cracks. A pale exposed band runs at the
+  foot. Angular rock plates sit on the ridge. It has no sphere lumps and no spikes.
+- Stake-and-rope lines: A-frame stakes every 9 studs with sagging rope, one line along the back and one along the
+  flank.
+- Head: a heavy angular cranium with brow crests, eye sockets and rock plates, a lifted upper jaw and the lower jaw
+  resting open on the ground with teeth, and short horns.
+- Crew: a full white hood with a rim round the face, a dark goggles band, a white respirator with a round side filter,
+  harness straps and a tall green pack.
+- Rail cannon: eight thick coil discs, each with 16 radial fins, and 84 cables. A third of the cables end on the rail bed.
+- Smoke: three columns of faceted puffs that widen, lighten and drift as they rise, dark at the base. They cast no shadow.
+- Van: the light tower stands behind the van, clear of the roof crew.

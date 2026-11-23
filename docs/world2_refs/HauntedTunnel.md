@@ -42,3 +42,37 @@ Round 5 (2026-11-23):
 - The no-entry board stands beside the left barriers, and the green wash is dimmer.
 - Clearance was measured against the road centre line (segment distance). Front-row houses were at 18.5 and are now
   at 52 out (scale capped at 1.1). Guardrails were at 19.8 on bends and are now 34 out. Everything now measures 24+.
+
+Round 6 (2026-11-23), judged in the close-ups: the cedars on the hill over the portal are three-tier sugi, not single
+black spikes. The other hero models (hospital, school, Seiko's house) were compared with the refs and left as they are.
+
+Round 7 (2026-11-23):
+- Portal: the stone face is 160 wide and 76 tall and fills most of the hill front. Behind it is a faceted
+  six-sided earth hill with a flat side toward the road, and 11 three-tier sugi (trunk and three wide
+  tiers) on its top and front slope. The spheres and their floating ivy plates are gone.
+- Hospital: an 80-wide slab with vertical pilaster strips and thin, lighter rain streaks. Six blank sign panels stand
+  flush along the top of the front parapet, with no roof frame. In run shot 3 it is placed so that the whole crown shows
+  and the moon sits up-left of it.
+- Curve mirrors: a filled silver disc in a solid orange rim on a bracket above the pole top.
+- Seiko's house: thick granite torii pillars, a tall slatted fence along the canal bank, and an upper floor with
+  timber posts, rails and braces showing over the fence.
+- Kami High gate: tall stepped brick piers with coping, and a lattice gate as tall as the piers.
+
+Round 8 (2026-11-23):
+- Portal: the face is now 92 wide and 62 tall, so the arch fills about 60% of its width, with short spandrels as in
+  `tunnel_anime.ref.jpg`. It has a parapet cap, proud pilaster edges and ivy hanging over the parapet. The hill is
+  three earth tiers that step back, each with a grey rock ledge, rock outcrops and three-tier sugi along its lip. The
+  hill sits on the vault, so the bore stays open.
+- Tunnel interior (run shot 2): a near-black vault with three lit yellow lamp fixtures near each mouth, on alternate
+  walls, each casting a pool. The green wash comes from high in front of the face, so it stays off the vault.
+- Hospital: dark-blue concrete, a vertical grime band, dark window recesses, and a two-height stepped sign crown
+  (lower on the left, taller on the right) with blank dark panels.
+- Kami High gate, as in `school_anime.ref.jpg`: low brick walls, brick piers with stepped coping, an entrance canopy
+  over the left opening and a green sliding lattice gate on a ground rail in the right opening. No lamps and no
+  centred double gate.
+- Seiko's house: the fence is lower. The hokora stands on a stone plinth with a thick straw rope and paper streamers.
+  The stone lanterns are taller, and four garden pines show their crowns over the fence.
+- Curve mirrors: the hood is a flat visor. The old hood was a disc standing up through the mirror face.
+- Broken items found and fixed: a corner of the hill's six-sided tier and the first lining slice's top block both
+  poked out in front of the portal face above the keystone. They showed as a dark green triangle and a dark band.
+  The tiers now turn a flat side to the road, and the lining slices stay behind both faces.
