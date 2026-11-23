@@ -219,8 +219,9 @@
 215. 2026-11-20 — Alex Nguyen — ui-scroll t1: added Client/DojoHandscroll (center-out unroll 0.45 s, roll-up 0.25 s, Reduced effects fade, input never blocked) and hooked it into PanelSwitch open and close; Studio ui_handscroll 10/10, ui_motion_reduced 11/11, ui_reduced_motion 12/12, ui_panel_focus 57/57 green.
 216. 2026-11-22 — Alex Nguyen — ui-scroll t2: AnimeSkin, PanelFrame, IndexAnimeStyle and QuestAnimeStyle moved to the Scroll Dojo look on DojoHandscroll (content inks in as the rollers pass), tests follow 4.46 (owner removed the header gradient check, handscroll check replaces rounded/outline); Studio ui_handscroll 18/18, ui_panel_focus 57/57, ui_shared_frames 259/263 (4 Quests phone reds also red on main, which has 58), and the owner's HUD option A details (circles and arc kept, wooden vermilion Turbo bar) went into 4.40 and 4.46.
 217. 2026-11-22 — Alex Nguyen — ui-scroll t3/t4/t5 merged into feature/alex/ui-scroll-redesign (per-panel Scroll Dojo layouts, popups and toasts as handscrolls, boss event UI, HUD option A wood plaques with the wooden vermilion Turbo bar) with the Studio-run fixes; Studio run 2: ui_shop 72/0, ui_market 101/0, ui_layout 891/0, ui_hitboxes 98/0, ui_rebirth 38/0, ui_daily_boosts 13/0, ui_boss 485/0, ui_team 70/0, ui_shared_frames 263/0, ui_handscroll 18/0, ui_hud 16/0; rules audit PASS.
+218. 2026-11-23 — Alex Nguyen — ui-scroll full UiTestRun on the integration branch in Studio: 74 pass, 3 fail (ui_run_visual throttled window, ui_boss_king_arena known main red, ui_character_icons fixed by moving index_tiles_runner_art to the 4.46 card portrait 0.86 x 0.53); server run stopped early as src/server and src/shared equal the base.
 
 ## What's next
-**Run the full UI and server harness once on feature/alex/ui-scroll-redesign in Studio (when the peer session frees it), then open the PR into main and get a fresh merge review.**
+**Open the PR from feature/alex/ui-scroll-redesign into main and get a fresh merge review.**
 
-**Why this is next:** every ui-scroll deliverable is now on the integration branch with its targeted scenarios green; the goal's definition of done needs the one full harness run and a reviewed PR before it reaches main.
+**Why this is next:** every ui-scroll deliverable is on the integration branch with the full UI run done; main only takes it through a reviewed PR.
