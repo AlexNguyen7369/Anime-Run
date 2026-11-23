@@ -321,12 +321,15 @@ def kaiju_corpse(k):
 	for i in range(8):  # rock plates over the skull
 		bx(kc, (rnd.uniform(14, 24), rnd.uniform(5, 9), rnd.uniform(14, 24)), (-330 + i * 9 + rnd.uniform(-3, 3), 64 - i * 0.5 + rnd.uniform(0, 4), -14 + rnd.uniform(-18, 18)), rnd.choice(ROCKS), rot=(rnd.uniform(-15, 15), rnd.uniform(0, 60), rnd.uniform(-20, 10)))
 	# foreleg splayed toward the road with four claws; folded hind leg
-	seg(kc, (-130, 60, -55), (-175, 24, -110), HIDE, thick=34, wide=30)
-	seg(kc, (-175, 24, -110), (-220, 10, -128), HIDE, thick=26, wide=24)
-	kc.append(("ball", (44, 20, 40), (-232, 8, -132), HIDE, {"subdiv": 1}))
-	for c in (-15, -5, 5, 15):
-		kc.append(("cone", (7, 24, 7), (-254, 6, -132 + c), BONE2, {"rot": (0, 0, 80), "seg": 6}))
-	seg(kc, (110, 24, -76), (60, 8, -118), HIDE, thick=26, wide=24)
+	seg(kc, (-128, 66, -48), (-150, 18, -98), HIDE, thick=30, wide=28)  # upper arm, down and out from the shoulder
+	kc.append(("ball", (34, 30, 34), (-150, 16, -98), HIDE, {"subdiv": 2, "smooth": True}))  # elbow on the ground
+	seg(kc, (-150, 14, -98), (-212, 9, -114), HIDE, thick=22, wide=24)  # forearm, bent forward along the ground
+	kc.append(("ball", (40, 18, 36), (-226, 8, -116), HIDE, {"subdiv": 1}))
+	for c in (-13, -4, 5, 14):
+		kc.append(("cone", (7, 22, 7), (-246, 6, -116 + c), BONE2, {"rot": (0, 0, 80), "seg": 6}))
+	seg(kc, (118, 46, -62), (92, 14, -102), HIDE, thick=26, wide=26)  # folded hind leg: thigh down to the knee
+	kc.append(("ball", (26, 24, 26), (92, 13, -102), HIDE, {"subdiv": 2, "smooth": True}))
+	seg(kc, (92, 12, -102), (56, 7, -120), HIDE, thick=18, wide=20)  # shin forward to the foot
 	kc.append(("ball", (40, 16, 34), (48, 6, -124), HIDE, {"subdiv": 1}))
 	for c in (-10, 0, 10):
 		kc.append(("cone", (6, 20, 6), (28, 5, -124 + c), BONE2, {"rot": (0, 0, 80), "seg": 6}))
@@ -339,19 +342,23 @@ def kaiju_corpse(k):
 		kc.append(("cyl", (r * 0.85, ln * 1.3, r), ((x + x1) / 2, r * 0.3, (z + z1) / 2), HIDE, {"seg": 9, "rot": (0, ry, -90), "taper": r1 / r}))
 	x, z, r = pts[11]
 	kc.append(("cone", (r * 0.85, 30, r), (x + 13, r * 0.3, z), HIDE, {"seg": 9, "rot": (0, 0, -90)}))
-	# stake-and-rope lines (sweeper_cleaning1/2): A-frame stakes every 20 studs with a deep rope sag, one line along the
-	# back among the crags and one across the flank
+	# stake-and-rope lines (sweeper_cleaning1/2): separate upright grey A-frame posts every 20 studs, a thin dark rope
+	# sagging between the post tops; one line along the back among the crags and one across the flank
 	lines = [[(x, top_y(x) - 2, -12) for x in range(-200, 241, 20)]]
-	lines.append([(x, top_y(x) * 0.62, flank_z(x, top_y(x) * 0.62) - 3) for x in range(-200, 201, 20)])
+	lines.append([(x, top_y(x) * 0.62, flank_z(x, top_y(x) * 0.62) - 2) for x in range(-200, 201, 20)])
+	PH = 14.0
 	for line in lines:
 		for x, y, z in line:
-			for lx in (-2.2, 2.2):  # A-frame: two legs meeting at the top
-				seg(kc, (x + lx, y, z), (x, y + 13, z - 1.5), "8A8E94", thick=1.8)
-			bx(kc, (1.8, 1.2, 1.4), (x, y + 13, z - 1.5), "5A5E64")
+			for lx in (-1.8, 1.8):  # A-frame: two slim legs splayed along the line, meeting at the top
+				seg(kc, (x + lx, y, z), (x, y + PH, z - 0.8), "8A8E94", thick=1.1)
+			bx(kc, (3.0, 0.6, 0.8), (x, y + PH * 0.45, z - 0.4), "8A8E94")  # cross bar
 		for (x0, y0, z0), (x1, y1, z1) in zip(line, line[1:]):
-			mid = ((x0 + x1) / 2, (y0 + y1) / 2 + 4, (z0 + z1) / 2 - 1.5)  # deep sag
-			seg(kc, (x0, y0 + 12.5, z0 - 1.5), mid, "D8CFAE", thick=0.8)
-			seg(kc, mid, (x1, y1 + 12.5, z1 - 1.5), "D8CFAE", thick=0.8)
+			pts_ = []
+			for q in range(4):  # three-piece sag between the post tops
+				t = q / 3
+				pts_.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t + PH - 0.3 - 5.0 * 4 * t * (1 - t), z0 + (z1 - z0) * t - 0.8))
+			for a_, b_ in zip(pts_, pts_[1:]):
+				seg(kc, a_, b_, "2A2622", thick=0.45)
 	# two teal lattice gantries straddling the body; from each, ropes down to sweepers braced feet-first on the hide
 	GH, GS = 220.0, 104.0
 	for gx in (-80, 100):
@@ -408,9 +415,10 @@ def kaiju_corpse(k):
 
 def rail_cannon(k):
 	"""Rail cannon (hero): the anti-kaiju rail gun on its long rail bed (railgun.jpg): ballast, two rails and sleepers, a
-	heavy carriage, a massive barrel raised 10 degrees running through two rail gantries, a dense coil stack at the
-	breech, a riveted square muzzle, ribbed capacitor tanks either side of the barrel axis behind the coil drum, side
-	decks with handrails, and dozens of thin cables arcing from the top of the drum over the handrails. Barrel to +X."""
+	heavy carriage, a massive barrel raised 10 degrees on two support pillars, a dense coil stack at the
+	breech (big finned rings), a chamfered square muzzle with rivet rows and a stepped recessed bore, ribbed capacitor
+	tanks either side of the barrel axis behind the coil drum, side decks with handrails, and bundles of cables that leave
+	the discs' outer rims at the sides and drape over the handrails to the ground. Barrel to +X."""
 	rg = []
 	bx(rg, (250, 1.2, 34), (10, -0.6, 0), "6A645C")
 	for z in (-8, 8):
@@ -429,34 +437,53 @@ def rail_cannon(k):
 	def along(t, up=0.0):
 		return (ax + ce * t - se_ * up, ay + se_ * t + ce * up, 0.0)
 
-	rg.append(("cyl", (30, 166, 30), along(83), "4A5058", {"rot": (0, 0, el - 90), "seg": 18, "metal": 0.6, "rough": 0.35}))
+	rg.append(("cyl", (30, 162, 30), along(81), "4A5058", {"rot": (0, 0, el - 90), "seg": 18, "metal": 0.6, "rough": 0.35}))
 	rg.append(("cyl", (44, 56, 44), along(28), "4A5058", {"rot": (0, 0, el - 90), "seg": 20, "metal": 0.6}))  # coil sleeve
-	for i in range(8):  # thick radial coil discs stacked at the breech, each with radial fins round its rim
+	def brot(roll):
+		"""Kit rot (degrees) for a part on the raised barrel, rolled `roll` degrees about the barrel axis."""
+		e = (Matrix.Rotation(math.radians(-el), 4, "Y") @ Matrix.Rotation(math.radians(roll), 4, "X")).to_euler("YXZ")
+		return (math.degrees(e.x), math.degrees(e.z), -math.degrees(e.y))
+
+	for i in range(8):  # big coil discs (2x the barrel) stacked at the breech, each a finned ring round its rim
 		t = 4 + i * 7
-		rg.append(("cyl", (60, 4.6, 60), along(t), ("8A9098", "6A727A")[i % 2], {"rot": (0, 0, el - 90), "seg": 20, "metal": 0.6}))
-		for f in range(16):
-			a = f * math.tau / 16
-			c = along(t, 27 * math.cos(a))
-			rg.append(("box", (5.4, 6, 1.6), (c[0], c[1], 27 * math.sin(a)), "4E565E", {"rot": (math.degrees(a), 0, el)}))
+		rg.append(("cyl", (62, 3.8, 62), along(t), ("8A9098", "6A727A")[i % 2], {"rot": (0, 0, el - 90), "seg": 28, "metal": 0.6}))
+		for f in range(28):  # a ring of square fins round the rim, like gear teeth
+			a = f * 360 / 28 + (i % 2) * 6
+			c = along(t, 31.3 * math.cos(math.radians(a)))
+			rg.append(("box", (3.8, 5.4, 3.6), (c[0], c[1], 31.3 * math.sin(math.radians(a))), ("4E565E", "5E666E")[f % 2], {"rot": brot(a), "metal": 0.5}))
 	for i in range(5):
 		rg.append(("cyl", (34, 2.4, 34), along(66 + i * 20), "5E666E", {"rot": (0, 0, el - 90), "seg": 18, "metal": 0.6}))
-	mx, my, _ = along(168)
-	for dy, dz, w, h in ((17, 0, 40, 7), (-17, 0, 40, 7), (0, 17, 7, 27), (0, -17, 7, 27)):
-		rg.append(("box", (12, h, w), (mx - se_ * dy, my + ce * dy, dz), "2E3238", {"rot": (0, 0, el)}))
-	bx(rg, (1.0, 27, 27), along(174.4), "08080A", rot=(0, 0, el))  # square bore, black
-	for dy in (-17, 17):
-		for dz in (-15, -7.5, 0, 7.5, 15):
-			rg.append(("box", (1.4, 1.4, 1.4), (mx - 6.4 - se_ * dy, my + ce * dy, dz), "9AA0A6", {"rot": (0, 0, el)}))
-	for gt in (70.0, 125.0):  # rail gantries straddling the barrel, with cables hanging onto it
-		gx_, gy_, _ = along(gt)
-		for z in (-24, 24):
-			bx(rg, (3, gy_ + 26, 3), (gx_, (gy_ + 26) / 2 - 1, z), "3E4650", metal=0.4)
-		bx(rg, (4, 3, 52), (gx_, gy_ + 25, 0), "3E4650", metal=0.4)
-		for q in range(5):
-			zq = -16 + q * 8
-			mid = (gx_ + 3, gy_ + 14 - abs(zq) * 0.1, zq)
-			seg(rg, (gx_, gy_ + 24, zq), mid, "1E1E1E", thick=1.1)
-			seg(rg, mid, (gx_ + 6, gy_ + 15, zq * 0.6), "1E1E1E", thick=1.1)
+	T0 = 168.0  # muzzle (railgun.jpg): a square block with chamfered corners, rivet rows, a stepped recessed bore
+
+	def mz(size, u, v, w, col, roll=0.0, **o):
+		c = along(T0 + u, v)
+		rg.append(("box", size, (c[0], c[1], w), col, {"rot": brot(roll), **o}))
+
+	H, CH = 21.0, 6.0  # half size, chamfer
+	MZ = "2E3238"
+	for v, w in ((H - 3.5, 0), (-H + 3.5, 0)):
+		mz((12, 7, 2 * (H - CH)), 0, v, w, MZ)
+	for v, w in ((0, H - 3.5), (0, -H + 3.5)):
+		mz((12, 2 * (H - CH), 7), 0, v, w, MZ)
+	dc = (2 * H - CH) / 2 - 3.5 / math.sqrt(2)  # chamfer slabs: outer face on the cut corner line
+	for sv, sw in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+		mz((12, 7, 13), 0, sv * dc, sw * dc, MZ, roll=45 * sv * sw)
+	mz((1.0, 2 * H, 2 * H), -5.6, 0, 0, MZ)  # back plate
+	for v, w, sz in ((12, 0, (8, 4, 24)), (-12, 0, (8, 4, 24)), (0, 12, (8, 24, 4)), (0, -12, (8, 24, 4))):
+		mz(sz, -1.0, v, w, "3A3E44")  # inner step ring, recessed 3 behind the face
+	mz((0.6, 20, 20), -4.8, 0, 0, "08080A")  # the bore, black, deep inside the step
+	for side in (-1, 1):  # rivet rows on the face and round the outer faces
+		for q in range(6):
+			r_ = -12.5 + q * 5
+			mz((1.2, 1.4, 1.4), 6.3, side * 17.5, r_, "9AA0A6")
+			mz((1.2, 1.4, 1.4), 6.3, r_, side * 17.5, "9AA0A6")
+			for u in (-3, 3):
+				mz((1.4, 1.2, 1.4), u, side * (H + 0.3), r_, "9AA0A6")
+				mz((1.4, 1.4, 1.2), u, r_, side * (H + 0.3), "9AA0A6")
+	for gt in (95.0, 140.0):  # barrel supports: a pillar from the rail bed and a saddle under the barrel
+		gx_, gy_, _ = along(gt, -15)
+		bx(rg, (8, gy_ - 1, 14), (gx_, (gy_ - 1) / 2, 0), "3E4650", metal=0.4)
+		bx(rg, (10, 4, 26), (gx_, gy_ - 1, 0), "4A5058", metal=0.4, rot=(0, 0, el))
 	for s in (-1, 1):  # ribbed grey capacitor tanks: dark ring bands and vertical ribs
 		for j, x in enumerate((-62, -78)):  # two tanks each side of the barrel axis, behind the coil drum
 			tz = s * 30
@@ -468,40 +495,42 @@ def rail_cannon(k):
 				bx(rg, (1.0, 46, 1.0), (x + math.cos(ang) * 5.8, 23, tz + math.sin(ang) * 5.8), "5A6268")
 			rg.append(("cyl", (8, 2.4, 8), (x, 48, tz), "5E666E", {"seg": 12}))
 	cols = ("141414", "1E1E20", "2A2A2C", "18181A")
+
+	def curve(p0, c, p1, n):
+		return [tuple((1 - t) ** 2 * p0[q] + 2 * (1 - t) * t * c[q] + t * t * p1[q] for q in range(3)) for t in [i / n for i in range(n + 1)]]
+
 	crng = random.Random(5150)
-	for i in range(64):  # dozens of thin black cables arcing out of the top of the coil drum to both sides (railgun.jpg)
-		side = (-1, 1)[i % 2]
-		t = 6 + (i // 2) * 1.5  # spread over the coil disc stack
-		zo = crng.uniform(0, 15)
-		R = 31.8  # just outside the disc rims and fins (30)
-		a0 = math.asin(zo / R)
-		x0 = crng.uniform(-1.5, 1.5)
-		lift = crng.uniform(4, 15)
-		drift = crng.uniform(-5, 5)
-		hug = []  # leaves the drum top and arcs up and out over its shoulder, then falls to the side
-		for a_, r_, d_ in ((a0, R, 0), ((a0 + math.pi / 2) / 2, R + lift, 0.5), (math.pi / 2 + 0.15, R + lift * 0.5, 1)):
-			c = along(t, r_ * math.cos(a_))
-			hug.append((c[0] + x0 + drift * d_, c[1], side * r_ * math.sin(a_)))
-		xr = hug[-1][0] + crng.uniform(-4, 4)
-		rail = (xr, 11.9, side * 40.5)  # draped over the side-deck handrail
-		sag = ((hug[-1][0] + xr) / 2, (hug[-1][1] + 11.9) / 2 - crng.uniform(2, 5), side * max(36.5, abs(hug[-1][2]) + 1.0))
-		dx = crng.uniform(-3, 6)
-		drop = (xr + dx, 5.5, side * crng.uniform(43, 45))
-		end = (xr + dx * 2, 0.8, side * crng.uniform(47, 54))  # onto the ground beyond the deck
-		pts_ = hug + [sag, rail, drop, end]
-		for a_, b_ in zip(pts_, pts_[1:]):
-			seg(rg, a_, b_, cols[i % 4], thick=crng.uniform(1.1, 1.6))
+	for b in range(24):  # bundles of 3-4 thick cables leave the discs' outer rims at the sides and spread out over both
+		side = (-1, 1)[b % 2]  # side decks to the ground (railgun.jpg); the front and top of the disc stack stay open
+		t = 4 + (b // 2) % 8 * 7
+		a = math.radians(crng.uniform(66, 114))
+		xland = max(-44.0, along(t)[0] + crng.uniform(-4, 42))  # never back over the tanks
+		dx, zend = crng.uniform(-4, 8), crng.uniform(56, 61)
+		n_ = crng.choice((3, 4))
+		for m in range(n_):
+			o = (m - (n_ - 1) / 2) * 1.5
+			c0 = along(t, 34.6 * math.cos(a) + o * 0.6)
+			p0 = (c0[0] + o * 0.5, c0[1], side * 34.6 * math.sin(a))
+			rail = (xland + o, 12.4 + abs(o) * 0.3, side * 50.5)  # draped over the handrail
+			pts_ = curve(p0, ((p0[0] + rail[0]) / 2, max(p0[1], 22.0) + 4, side * 45), rail, 4)  # arcs out, then sags onto the rail
+			pts_ += curve(rail, (rail[0] + dx / 2, rail[1] + 0.5, side * 55), (rail[0] + dx, 0.8, side * (zend + o * 0.4)), 3)[1:]
+			th = crng.uniform(1.4, 2.0)
+			for a_, b_ in zip(pts_, pts_[1:]):  # each piece runs a little past its ends, so the joints close into a smooth curve
+				d = [b_[q] - a_[q] for q in range(3)]
+				ln = math.sqrt(sum(v * v for v in d)) or 1.0
+				e = [v / ln * th * 0.45 for v in d]
+				seg(rg, tuple(a_[q] - e[q] for q in range(3)), tuple(b_[q] + e[q] for q in range(3)), cols[(b + m) % 4], thick=th)
 	for x in range(-110, 132, 3):  # rack-tooth centre rail
 		bx(rg, (1.4, 1.0, 2.6), (x, 1.6, 0), "6E7278", metal=0.6)
 	bx(rg, (250, 1.0, 3.0), (10, 0.8, 0), "5A5E64", metal=0.6)
 	for s in (-1, 1):  # grated side decks outside the coil drum, with posts and handrails
-		bx(rg, (250, 0.6, 5), (10, 6, s * 38), "5A6068", metal=0.4)
+		bx(rg, (250, 0.6, 10), (10, 6, s * 46), "5A6068", metal=0.4)
 		for x in range(-110, 135, 16):
-			bx(rg, (0.8, 6, 0.8), (x, 3, s * 38), "4A5058")
-			bx(rg, (0.5, 5, 0.5), (x, 8.8, s * 40.5), "C8CCD0")
-		bx(rg, (250, 0.5, 0.5), (10, 11, s * 40.5), "C8CCD0")
-	car(rg, 60, 62, OLIVE)  # support truck on the far side
-	bx(rg, (7.2, 5, 9), (60, 3, 66), "3E4636")
+			bx(rg, (0.8, 6, 0.8), (x, 3, s * 46), "4A5058")
+			bx(rg, (0.5, 5, 0.5), (x, 8.8, s * 50.5), "C8CCD0")
+		bx(rg, (250, 0.5, 0.5), (10, 11, s * 50.5), "C8CCD0")
+	car(rg, 70, 74, OLIVE)  # support truck on the far side
+	bx(rg, (7.2, 5, 9), (70, 3, 78), "3E4636")
 	k.prop("Railgun", rg)
 	return k.props["Railgun"]
 
@@ -649,7 +678,7 @@ def build(k):
 		bx(va, (0.4, 0.4, 11.5), (x, 7.5, 1.5), "9AA0A6", metal=0.6)
 	for z in (-5.0, -2.2, 0.6, 3.4):  # four sitting in a row along the rack, looking out to the side (sweeper_members)
 		worker(va, 0.9, 7.25, z, 0.65, sit=True, face=-90, lo=True)
-	lying(va, -1.7, 7.7, 2.6, 0.65, lo=True)  # one lying along the rack in front of them
+	lying(va, -2.0, 7.7, 1.0, 0.95, lo=True)  # one stretched out full length along the rack, clear of the seated row
 	worker(va, 4.9, -1, 1.0, 1.0, lean=-6, crossed=True, lo=True)  # leaning on the van, arms crossed
 	va.append(("cone", (1.6, 3, 1.6), (-8, 0.5, -10), STRIPE, {"seg": 6}))  # one cone (mid-prop tri cap)
 	va.append(("cyl", (0.6, 11, 0.6), (10, 4.5, 20), "6A6E74", {"seg": 6}))  # light tower, clear of the roof crew
@@ -831,10 +860,10 @@ def build(k):
 			bx(cb, (8 if a % 2 == 0 else 0.6, 0.42, 0.6 if a % 2 == 0 else 8), (x, -0.74, z), "D8D8D0")
 		x, z = rot2(-50, -T / 2 + 10.5)
 		cb.append(("cyl", (1.0, 26, 1.0), (x, 12, z), "9A9A96", {"seg": 6}))
-	lows = [(-40, -40, 30, 3, "C8C0B0"), (10, -42, 34, 2, "B8B4AC"), (52, -40, 26, 4, "D4CCB8"), (-44, 22, 28, 2, "B0A898")]
+	lows = [(10, -42, 34, 2, "B8B4AC"), (-44, 22, 28, 2, "B0A898")]  # two kaiju-broken low-rises among the houses
 	for i, (x, z, w, nf, col) in enumerate(lows):
 		h = nf * 7
-		broken = i in (1, 3)
+		broken = True
 		hh = h * (0.55 if broken else 1)
 		bx(cb, (w, hh, 22), (x, hh / 2 - 1, z), col)
 		for f in range(nf if not broken else 1):
@@ -845,6 +874,24 @@ def build(k):
 			cb.append(("cone", (w * 0.7, 6, 9), (x, 2, z - 15), ROCK, {"seg": 7}))  # rubble cone at the base
 		else:
 			bx(cb, (w + 0.6, 0.8, 22.6), (x, h - 0.6, z), "8E8A82")
+	ROOFS = ("A8483A", "8E3E32", "6E4A3A", "5A5E66", "4A5060", "7A5444")
+	WALLS = ("E8E2D4", "D8D0C0", "F0ECE2", "C8C0B0", "DCD6CC")
+	taken = [(10, -42, 24, 18), (-44, 22, 21, 18), (44, 36, 24, 22), (-4, 30, 18, 18)]  # broken blocks, park, crater
+	hz = -60.0
+	while hz < 64:  # a dense low-rise town of pitched-roof houses (sweeper_members.jpg, background)
+		hx = -60.0
+		while hx < 64:
+			if not any(abs(hx - tx) < rx_ and abs(hz - tz) < rz_ for tx, tz, rx_, rz_ in taken):
+				w, d, h = rnd.uniform(9, 13), rnd.uniform(8, 11), rnd.uniform(6, 9)
+				x, z = hx + rnd.uniform(-1.5, 1.5), hz + rnd.uniform(-1.5, 1.5)
+				rh, rc = rnd.uniform(3, 4.5), rnd.choice(ROOFS)
+				bx(cb, (w, h, d), (x, h / 2 - 1, z), rnd.choice(WALLS))
+				for sz in (-1, 1):  # gable roof: two wedges back to back, eaves over the walls
+					cb.append(("wedge", (w + 1.2, rh, d / 2 + 0.7), (x, h - 1 + rh / 2, z + sz * (d / 4 + 0.35)), rc, {"rot": (0, 90 + sz * 90, 0)}))
+				if rnd.random() < 0.5:  # a window strip on some (mid-prop tri cap)
+					bx(cb, (w * 0.6, 1.6, 0.2), (x, h * 0.55 - 1, z - d / 2 - 0.1), WINDOW)
+			hx += 15.5
+		hz += 15.5
 	bx(cb, (44, 0.4, 40), (44, -0.6, 36), "5E7A44")  # park
 	for x, z in ((32, 24), (52, 26), (40, 46), (60, 48), (28, 50)):
 		cb.append(("cyl", (1.2, 6, 1.2), (x, 2, z), "4A3A2A", {"seg": 5}))
@@ -897,7 +944,7 @@ def build(k):
 	vans = [(470, -40), (515, -40), (560, -40), (640, -40), (2520, -40), (2565, -40), (2610, -40), (2660, -40)]
 	for d, off in vans:  # parked by the corpses, in run shots 1 and 2
 		put(k, "SweeperVan", d, off, 1.15, turn=k.rng.uniform(-0.3, 0.3))
-	put(k, "Railgun", 3480, -80, clear=50)
+	put(k, "Railgun", 3480, -90, clear=50)
 	# Base: low perimeter wall, hangars (kept out of the HQ view), a second rail cannon (muzzle to run shot 4)
 	row(k, base0, k.length - 80, 28, (-31, 31), ["BaseWall"])
 	row(k, base0 + 60, k.length - 100, 110, (-92,), ["Hangar"], skip=[(4250, 4950), (6400, 6960)])  # clear for the cannon
@@ -924,7 +971,7 @@ def build(k):
 	behind = hqc + fwd * 420  # nothing tall behind the HQ, so its roofline stays clean in shot 3
 	tall_avoid = [(hqc.x, hqc.z, 260), (behind.x, behind.z, 460)]
 	avoid = [(hqc.x, hqc.z, 260)]
-	for d, off, s in corpses + [(3480, -80, 1.0), (gun2[0], gun2[1], 1.0)]:
+	for d, off, s in corpses + [(3480, -90, 1.0), (gun2[0], gun2[1], 1.0)]:
 		x, z, _ = local(k, d, off, 0, 0)
 		avoid.append((x, z, 210))
 	for d, off, s in corpses:  # and along each corpse's full length, head to tail tip

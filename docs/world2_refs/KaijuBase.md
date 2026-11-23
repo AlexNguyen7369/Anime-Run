@@ -126,3 +126,21 @@ Round 11 (2026-11-23), new builder, shaped live in Blender against `sweeper_clea
   sag over the side-deck handrails and run onto the ground. The side decks now stand outside the drum (38 out), so the
   cables clear the drum, the tanks and the rails. The support truck is on the far side.
 - Small and distant sweepers use a coarser hood, box gloves and a lower-segment hood rim (tri budget).
+
+Round 12 (2026-11-23), coordinator ruling on the cables (railgun.jpg), shaped live in Blender:
+- Rail cannon: the eight coil discs are big rings (2x the barrel) with a ring of square fins round each rim, and they
+  stay open from the front and the top. 24 bundles of 3-4 cables leave the discs' outer rims at the sides, arc out,
+  sag over the side-deck handrails and run to the ground. Each cable is a smooth 7-piece curve. The side decks
+  stand 46 out, so the cables spread sideways. The cannon now stands 90 out (was 80), and the support truck is on
+  the far side.
+- The muzzle is a square block with chamfered corners, rivet rows on the face and the outer faces, and a stepped bore:
+  an inner step ring 3 behind the face, then the black bore.
+- The two rail gantries, which read as lone posts from the side, are replaced by two support pillars with saddles
+  under the barrel.
+- Stake lines (sweeper_cleaning1): separate upright grey A-frame posts with a cross bar, and a thin dark rope with a
+  smooth three-piece sag between the post tops. This replaces the zigzag.
+- Corpse limbs: the forelimb bends at an elbow that rests on the ground, and the forearm turns forward along the
+  ground. The hind leg bends at the knee. No other corpse change.
+- City tiles (sweeper_members, background): a dense low-rise town of gabled houses with red, brown and grey roofs
+  fills each tile around two kaiju-broken low-rises, the park and the crater. This adds no new mesh.
+- Van: the lying sweeper is stretched out full length along the rack, clear of the seated row.
