@@ -30,7 +30,8 @@ SODIUM, WARM, GLASS, DARKWIN = "FFB347", "FFD890", "7FA0B8", "141C26"
 HAZ_Y, HAZ_K = "F2C230", "1A1A1A"
 R, SPR = 27.0, 13.0  # tunnel inner radius and springline height (local y; local 0 is 1 below the road top)
 TUNNEL = (1990.0, 2330.0)  # run shot 2 (1903) faces the entry portal; the far end runs into the bend, hiding the exit
-LAMPS = (150.0, 260.0)  # the only lamps: this far inside each mouth (local +Z), on alternate walls
+LAMPS = (150.0, 260.0)
+MIRROR_TURN = math.radians(50)  # curve mirrors turn from facing across the road toward the oncoming runner  # the only lamps: this far inside each mouth (local +Z), on alternate walls
 
 
 def bx(p, size, pos, col, **o):
@@ -247,15 +248,16 @@ def build(k):
 		po.append(("wedge", (60, top, 70), (s * (half + 30), top / 2 - 1, 34), "1C2A22", {"rot": (0, -s * 90, 0)}))
 	for x, z, hh in ((-70, 30, 44), (-48, 60, 52), (-20, 80, 62), (10, 52, 48), (36, 76, 58), (58, 40, 44), (75, 90, 50)):
 		po.append(("cone", (16, hh, 16), (x, top + 70 * (z - 3) / 110 + hh / 2 - 4, z), (CEDAR, CEDAR2)[x % 2], {"seg": 7}))
-	# ivy: a heavy uneven mass over the top-right of the arch (viewer's right is -X), thinner on the left, bare stone
-	for i in range(70):
-		x = rnd.uniform(-half - 4, -6) if i < 52 else rnd.uniform(8, half)
-		depth = rnd.uniform(4, 30) if i < 52 else rnd.uniform(2, 8)
+	# ivy: a heavy uneven mass of small flat leaf clusters over the top-right (viewer's right is -X), thinner on the
+	# left; the voussoir ring is left mostly bare
+	for i in range(110):
+		x = rnd.uniform(-half - 4, -6) if i < 80 else rnd.uniform(8, half)
+		depth = rnd.uniform(4, 30) if i < 80 else rnd.uniform(2, 8)
 		y = top + 2 - depth * rnd.random()
-		if abs(x) < R + 6:
-			y = max(y, SPR + math.sqrt(max(0.0, (R + 6.5) ** 2 - x * x)) + 2)
-		sz = rnd.uniform(3, 11)
-		po.append(("ball", (sz * rnd.uniform(1.0, 1.8), sz * rnd.uniform(0.6, 1.1), sz * 0.6), (x, y, -3.0 - rnd.uniform(0, 2.2)), (IVY, IVY2, IVY3)[rnd.randrange(3)], {"subdiv": 1}))
+		if abs(x) < R + 9 and y < SPR + math.sqrt(max(0.0, (R + 9) ** 2 - x * x)) + 1:
+			continue
+		sz = rnd.uniform(2, 6)
+		po.append(("ball", (sz * rnd.uniform(1.2, 2.0), sz * rnd.uniform(0.5, 0.9), sz * 0.3), (x, y, -3.0 - rnd.uniform(0, 1.6)), (IVY, IVY2, IVY3)[rnd.randrange(3)], {"subdiv": 1, "rot": (0, 0, rnd.uniform(-30, 30))}))
 	for s, n in ((-1, 13), (1, 5)):  # curtains: many on the right, a few on the left, some reaching the ground
 		for i in range(n):
 			x = s * rnd.uniform(R + 7, half + 2)
@@ -268,7 +270,7 @@ def build(k):
 				y -= hh * rnd.uniform(0.6, 0.85)
 	for i in range(5):
 		po.append(("ball", (rnd.uniform(6, 14), rnd.uniform(3, 7), 5), (-rnd.uniform(R + 8, half), 1, -4), IVY3, {"subdiv": 1}))
-	for i in range(12):  # strands over the voussoirs, stopping short of the opening
+	for i in range(4):  # a few strands over the voussoirs, stopping short of the opening
 		x = rnd.uniform(-R - 4, R + 4)
 		bottom = SPR + math.sqrt(max(0.0, R * R - x * x)) + rnd.uniform(0.5, 4)
 		y = top
@@ -276,23 +278,25 @@ def build(k):
 			hh = min(rnd.uniform(3, 6), y - bottom + 1)
 			po.append(("ball", (rnd.uniform(2, 4.5), hh, 1.4), (x + rnd.uniform(-0.8, 0.8), y - hh / 2, -4.2), (IVY, IVY3, IVY2)[rnd.randrange(3)], {"subdiv": 1}))
 			y -= hh * 0.7
-	# three large yellow-black A-frame barriers and a tall red-and-white board at the mouth (all 24+ from the centre)
-	for cx, cz in ((-31, -14), (31, -12), (44, -16)):
-		for ex in (-5.2, 5.2):
+	# three large yellow-black A-frame barriers (1.5x) and a tall red-and-white board at the mouth, a notice board on a
+	# pole at the left (+X); all 24+ from the centre
+	for cx, cz in ((-33, -14), (33, -12), (50, -18)):
+		for ex in (-7.8, 7.8):
 			for lean in (-12, 12):
-				bx(po, (0.8, 13, 0.8), (cx + ex, 5.4, cz + lean * 0.12), "D8D8D8", rot=(lean, 0, 0))
-		for q in range(9):
-			bx(po, (1.3, 3.4, 0.4), (cx - 5.2 + q * 1.3, 9.8, cz - 0.9), (HAZ_Y, HAZ_K)[q % 2], rot=(0, 0, 20))
-		bx(po, (12, 3.6, 0.3), (cx, 9.8, cz - 0.7), HAZ_Y)
-		for q in range(9):
-			bx(po, (1.2, 2.4, 0.4), (cx - 5.2 + q * 1.3, 4.0, cz - 0.9), (HAZ_Y, HAZ_K)[q % 2], rot=(0, 0, 20))
-	bx(po, (8, 20, 0.4), (-44, 16, -18), "F2F2EE")
-	bx(po, (6.8, 18.8, 0.3), (-44, 16, -18.2), "C62828")
-	bx(po, (5.6, 17.6, 0.3), (-44, 16, -18.3), "F2F2EE")
+				bx(po, (1.2, 19, 1.2), (cx + ex, 8.1, cz + lean * 0.18), "D8D8D8", rot=(lean, 0, 0))
+		for q in range(12):
+			bx(po, (1.4, 5.1, 0.5), (cx - 7.7 + q * 1.4, 14.7, cz - 1.2), (HAZ_Y, HAZ_K)[q % 2], rot=(0, 0, 20))
+		bx(po, (17, 5.4, 0.4), (cx, 14.7, cz - 1.0), HAZ_Y)
+		for q in range(12):
+			bx(po, (1.4, 3.6, 0.5), (cx - 7.7 + q * 1.4, 6.0, cz - 1.2), (HAZ_Y, HAZ_K)[q % 2], rot=(0, 0, 20))
+	bx(po, (8, 20, 0.4), (-48, 16, -18), "F2F2EE")
+	bx(po, (6.8, 18.8, 0.3), (-48, 16, -18.2), "C62828")
+	bx(po, (5.6, 17.6, 0.3), (-48, 16, -18.3), "F2F2EE")
 	for ex in (-2.8, 2.8):
-		bx(po, (0.6, 7, 0.6), (-44 + ex, 2.5, -18), "8A8A8A")
-	bx(po, (0.4, 9, 0.4), (R + 11, 3.5, -4), "8A8A8A")  # small notice board on a pole (blank)
-	bx(po, (3, 3.6, 0.3), (R + 11, 8.5, -4.2), "D8D8CC")
+		bx(po, (0.6, 7, 0.6), (-48 + ex, 2.5, -18), "8A8A8A")
+	bx(po, (0.8, 16, 0.8), (64, 7, -14), "8A8A8A")  # notice board on a pole at the left (blank)
+	bx(po, (8, 6, 0.4), (64, 15, -14.4), "D8D8CC")
+	bx(po, (8.6, 6.6, 0.3), (64, 15, -14.2), "5A5A50")
 	for j, z in enumerate(LAMPS):  # the tunnel's lamps: one fixture each, on alternate walls
 		s = (-1, 1)[j]
 		bx(po, (0.8, 1.2, 3.6), (s * (R - 0.5), SPR + 1, z), SODIUM, emit=8.0)
@@ -337,9 +341,10 @@ def build(k):
 	sc.append(("cyl", (6, 0.6, 6), (6, H + 5, -D / 2 - 1.8), "FFFFFF", {"seg": 16, "rot": (90, 0, 0), "emit": 0.6}))
 	bx(sc, (0.4, 2.4, 0.3), (6, H + 6, -D / 2 - 2.2), "202020")
 	bx(sc, (1.8, 0.4, 0.3), (6.8, H + 5, -D / 2 - 2.2), "202020")
-	bx(sc, (30, 1.4, 14), (40, 9.2, -D / 2 - 7), "F4F4F0")  # canopy, left of centre as seen
-	for x in (27, 53):
-		bx(sc, (1, 10, 1), (x, 4, -D / 2 - 13), "D8D8D4")
+	bx(sc, (34, 3.0, 22), (40, 10, -D / 2 - 11), "F4F4F0")  # deep slab canopy, left of centre as seen
+	bx(sc, (34.4, 0.8, 22.4), (40, 8.2, -D / 2 - 11), "C8C8C2")
+	for x in (25, 55):
+		bx(sc, (1.6, 10, 1.6), (x, 4, -D / 2 - 21), "D8D8D4")
 	bx(sc, (18, 8, 0.4), (40, 3, -D / 2 - 0.4), "3A4A58", rough=0.1)
 	bx(sc, (40, 36, 70), (-60, 17, 50), "DCDCD6")
 	bx(sc, (70, 22, 50), (50, 10, 60), "C9C6BC")
@@ -352,9 +357,11 @@ def build(k):
 		bx(sc, (wl + 0.6, 1.0, 4.0), (cx, 11.4, gz), "5E3A28")
 		for c in range(5):
 			bx(sc, (wl + 0.1, 0.3, 3.5), (cx, 0.5 + c * 2.2, gz), "6A4230")
-		bx(sc, (7, 16, 7), (s * 14.5, 7, gz), "7A4E36")
-		bx(sc, (7.8, 1.2, 7.8), (s * 14.5, 15.4, gz), "5E3A28")
-		bx(sc, (2.4, 2.0, 2.4), (s * 14.5, 17, gz), "FFE8B0", emit=4.0)  # gate lamps
+		bx(sc, (10, 22, 10), (s * 15.5, 10, gz), "7A4E36")
+		bx(sc, (11, 1.4, 11), (s * 15.5, 21.6, gz), "5E3A28")
+		for c in range(7):
+			bx(sc, (10.1, 0.3, 10.1), (s * 15.5, 1 + c * 3, gz), "6A4230")
+		bx(sc, (2.8, 2.4, 2.8), (s * 15.5, 23.5, gz), "FFE8B0", emit=4.0)  # gate lamps
 	bx(sc, (22, 0.8, 0.8), (0, 10.5, gz - 3), "2E7E78")
 	bx(sc, (22, 0.8, 0.8), (0, 0.4, gz - 3), "2E7E78")
 	for q in range(7):
@@ -392,34 +399,37 @@ def build(k):
 	for i in range(5):
 		ln = rnd.uniform(30, 90)
 		bx(ho, (0.2, ln, rnd.uniform(2, 4)), (HW / 2 + 0.3, HH - ln / 2, rnd.uniform(-HD / 2 + 3, HD / 2 - 3)), "1E2A44")
-	bx(ho, (HW + 2, 3, HD + 2), (0, HH + 0.5, 0), "2E3E60")  # stepped crown, darker
-	bx(ho, (HW - 6, 5, HD - 6), (0, HH + 4.5, 0), "26344F")
-	bx(ho, (HW - 22, 5, HD - 16), (0, HH + 9.5, 2), "202C44")
-	for x in (-26, -13, 0, 13, 26):  # large lit sign frame across the crown, blank glowing panels
-		bx(ho, (0.8, 22, 0.8), (x, HH + 18, -HD / 2 + 4), "1C2638")
-		bx(ho, (12, 12, 0.6), (x, HH + 22, -HD / 2 + 3.4), "BFD8FF", emit=1.4)
-	bx(ho, (68, 1.0, 1.0), (0, HH + 15.5, -HD / 2 + 4), "1C2638")
-	bx(ho, (68, 1.0, 1.0), (0, HH + 28.5, -HD / 2 + 4), "1C2638")
-	for i in range(18):  # grime: streaks from the crown and the window sills
+	bx(ho, (HW + 2, 3, HD + 2), (0, HH + 0.5, 0), "2E3E60")  # stepped, uneven crown, darker
+	bx(ho, (30, 9, HD - 6), (-15, HH + 6.5, 0), "26344F")
+	bx(ho, (22, 15, HD - 10), (16, HH + 9.5, 2), "22304A")
+	bx(ho, (12, 22, 14), (24, HH + 13, 6), "1E2A42")
+	SY = HH + 20  # sign: a dark frame holding six separate square panels (blank, dimly lit)
+	bx(ho, (66, 1.6, 1.6), (0, SY - 6.5, -HD / 2 + 4), "141C2C")
+	bx(ho, (66, 1.6, 1.6), (0, SY + 6.5, -HD / 2 + 4), "141C2C")
+	for c in range(7):
+		bx(ho, (1.6, 24, 1.6), (-31.5 + c * 10.5, SY - 5, -HD / 2 + 4), "141C2C")
+	for c in range(6):
+		bx(ho, (8.4, 10.4, 0.6), (-26.25 + c * 10.5, SY, -HD / 2 + 3.2), "8FA8D0", emit=0.45)
+	for i in range(24):  # vertical dark stain streaks from the crown, the sills and the joints
 		x = rnd.uniform(-HW / 2 + 1, HW / 2 - 1)
-		ln = rnd.uniform(8, 40)
-		y = rnd.uniform(ln / 2, HH - ln / 2)
-		bx(ho, (rnd.uniform(0.8, 2.2), ln, 0.2), (x, y, -HD / 2 - 0.35), ("16203A", "1C2846")[i % 2])
+		ln = rnd.uniform(18, 70)
+		y = HH - ln / 2 if i % 2 else rnd.uniform(ln / 2, HH - ln / 2)
+		bx(ho, (rnd.uniform(1.2, 3.2), ln, 0.25), (x, y, -HD / 2 - 0.4), ("101828", "16203A", "0E1420")[i % 3])
 	ho.append(("cyl", (10, 10, 10), (14, HH + 17, 8), "2E3E5C", {"seg": 12}))
 	bx(ho, (46, 26, 50), (HW / 2 + 18, 12, -6), "3A4E74")  # lower wing, viewer's left
 	windows(ho, HW / 2 - 4, HW / 2 + 40, 5, 6, 2, 11, -31.3, 5, 4.6, DARKWIN)
 	bx(ho, (48, 1.6, 52), (HW / 2 + 18, 25.8, -6), "2E3E5E")
-	hz = -104.0  # hoarding, 46 from the road, 18 tall; hazard posts at the gate and at the near (+X) end
+	hz = -120.0  # hoarding, 30 from the road, 24 tall; hazard posts at the gate and at the near (+X) end
 	for i in range(16):
 		x = -86 + i * 11
 		if -8 < x < 8:
 			continue
-		bx(ho, (10.6, 18, 0.6), (x, 8, hz), ("2E4A4A", "345454")[i % 2])
+		bx(ho, (10.6, 24, 0.6), (x, 11, hz), ("2E4A4A", "345454")[i % 2])
 		for q in range(4):
-			bx(ho, (0.5, 18, 0.9), (x - 4 + q * 2.6, 8, hz - 0.2), "28403F")
+			bx(ho, (0.5, 24, 0.9), (x - 4 + q * 2.6, 11, hz - 0.2), "28403F")
 	for px in (-8, 8, 92):
-		bx(ho, (2.2, 21, 2.2), (px, 9.5, hz - 0.6), HAZ_K)
-		for q in range(7):
+		bx(ho, (2.2, 27, 2.2), (px, 12.5, hz - 0.6), HAZ_K)
+		for q in range(9):
 			bx(ho, (2.3, 1.5, 2.3), (px, 1 + q * 3, hz - 0.6), HAZ_Y, rot=(0, 0, 20))
 	for q in range(7):
 		bx(ho, (0.4, 11, 0.4), (-6 + q * 2, 4.5, hz - 0.5), "1E2626", metal=0.6)
@@ -427,48 +437,59 @@ def build(k):
 	bx(ho, (6, 7, 0.3), (-22, 6, hz - 0.5), "C8D8C8")
 	for i in range(10):
 		ho.append(("ball", (rnd.uniform(4, 8), rnd.uniform(2, 4), rnd.uniform(4, 8)), (rnd.uniform(-80, 80), 0.5, hz - 2.5), (IVY, IVY3)[i % 2], {"subdiv": 1}))
-	bx(ho, (190, 0.6, 110), (0, -0.8, -50), "3A403E")
+	bx(ho, (190, 0.6, 124), (0, -0.8, -58), "3A403E")
 	k.prop("Hospital", ho)
 
-	# --- Seiko's house (hero): a narrow canal at the front edge with a stone bridge, the granite torii right behind
-	# it, a slatted fence on a stone base, the white-walled timber-framed house with rust-red tiled roofs, a small
-	# shrine with a straw rope and paper streamers, stone lanterns and garden pines. ---
+	# --- Seiko's house (hero), on a stone embankment so the canal shows over the road wall: the canal at the front
+	# edge with a stone bridge, the light granite torii and two lit stone lanterns in front of the house (shifted
+	# toward the approaching runner, local +X), a slatted fence on a stone base, the white-walled timber-framed house
+	# with rust-red tiled roofs, a small shrine with a straw rope and paper streamers, garden pines. ---
 	se = []
-	GRAN, GRAN2, WOOD = "8E8E86", "7A7A72", "5A3E2A"
-	bx(se, (120, 2, 6), (0, -1.1, -33), "1E3440", rough=0.1, metal=0.2)
-	for z in (-36.5, -29.5):
-		bx(se, (120, 3.4, 1.2), (0, 0.2, z), "6A6E66")
-	bx(se, (14, 1.6, 9), (0, 1.0, -33), GRAN2)  # stone bridge with posted stone rails
-	for s in (-1, 1):
-		bx(se, (1.2, 1.2, 10), (s * 7, 3.6, -33), GRAN)
-		for z in (-37, -33, -29):
-			bx(se, (1.6, 3.2, 1.6), (s * 7, 2.4, z), GRAN2)
-	# weathered granite torii: thick round pillars on plinths, nuki tie-beam through them, a curved kasagi in three
-	# pieces with upturned ends over a shimaki, a central strut; darker speckles over the stone
-	TZ = -26.0
-	STN, STN2 = "6E706A", "5C5E58"
-	for s in (-1, 1):
-		se.append(("cyl", (3.8, 26, 3.8), (s * 8, 13.5, TZ), STN, {"seg": 12, "rough": 1.0, "taper": 0.9}))
-		se.append(("cyl", (5.2, 1.6, 5.2), (s * 8, 0.9, TZ), STN2, {"seg": 12}))
-		bx(se, (7.6, 2.4, 3.6), (s * 10.8, 28.2, TZ), STN, rot=(0, 0, s * 9))  # upturned kasagi ends
-		bx(se, (6, 1.4, 3.8), (s * 11, 29.7, TZ), STN2, rot=(0, 0, s * 9))
-	bx(se, (15, 2.4, 3.6), (0, 27.6, TZ), STN)
-	bx(se, (16, 1.4, 3.8), (0, 29.1, TZ), STN2)
-	bx(se, (24, 1.8, 3.0), (0, 25.6, TZ), STN2)  # shimaki
-	bx(se, (24, 2.0, 2.0), (0, 21.0, TZ), STN)  # nuki, past both pillars
-	bx(se, (1.8, 2.8, 1.6), (0, 23.2, TZ), STN2)
+	GRAN, GRAN2, WOOD = "A2A49C", "8C8E86", "5A3E2A"
+	bx(se, (124, 7.0, 1.4), (0, -3.6, -36.6), "7A7E76")  # embankment face (no lip, so the water shows)
+	bx(se, (124, 7, 72), (0, -3.5, 6.5), "6A6E66")  # terrace behind the canal
+	for x in range(-60, 61, 6):  # dressed-stone courses on the embankment face
+		bx(se, (0.3, 7.6, 1.5), (x, -3.2, -36.7), "5E625A")
+	bx(se, (124, 1, 6.6), (0, -0.45, -33), "4A86A0", rough=0.05, metal=0.3, emit=0.45)  # canal water, flush
+	bx(se, (124, 0.6, 1.2), (0, -0.2, -29.5), "7A7E76")
+	TX, TZ = 24.0, -25.0
+	bx(se, (14, 1.6, 10), (TX, 0.8, -33), GRAN2)  # stone bridge with posted stone rails
+	for s_ in (-1, 1):
+		bx(se, (1.2, 1.2, 11), (TX + s_ * 7, 3.6, -33), GRAN)
+		for z in (-37.5, -33, -28.5):
+			bx(se, (1.6, 3.4, 1.6), (TX + s_ * 7, 2.3, z), GRAN2)
+	# weathered light-grey granite torii: thick round pillars on plinths, nuki tie-beam through them, a curved kasagi in
+	# three pieces with upturned ends over a shimaki, a central strut; darker speckles over the stone
+	STN, STN2 = "A4A69E", "8E9088"
+	for s_ in (-1, 1):
+		se.append(("cyl", (3.8, 26, 3.8), (TX + s_ * 8, 13.5, TZ), STN, {"seg": 12, "rough": 1.0, "taper": 0.9}))
+		se.append(("cyl", (5.2, 1.6, 5.2), (TX + s_ * 8, 0.9, TZ), STN2, {"seg": 12}))
+		bx(se, (7.6, 2.4, 3.6), (TX + s_ * 10.8, 28.2, TZ), STN, rot=(0, 0, s_ * 9))
+		bx(se, (6, 1.4, 3.8), (TX + s_ * 11, 29.7, TZ), STN2, rot=(0, 0, s_ * 9))
+	bx(se, (15, 2.4, 3.6), (TX, 27.6, TZ), STN)
+	bx(se, (16, 1.4, 3.8), (TX, 29.1, TZ), STN2)
+	bx(se, (24, 1.8, 3.0), (TX, 25.6, TZ), STN2)
+	bx(se, (24, 2.0, 2.0), (TX, 21.0, TZ), STN)
+	bx(se, (1.8, 2.8, 1.6), (TX, 23.2, TZ), STN2)
 	for i in range(30):
-		x = rnd.choice((-8, 8)) + rnd.uniform(-1.6, 1.6)
+		x = TX + rnd.choice((-8, 8)) + rnd.uniform(-1.6, 1.6)
 		y = rnd.uniform(2, 25) if i < 22 else rnd.uniform(25, 29)
 		if i >= 22:
-			x = rnd.uniform(-13, 13)
-		bx(se, (0.5, 0.5, 0.2), (x, y, TZ - 2.0), rnd.choice(("4A4C46", "8A8C84", "3E403A")))
-	for s in (-1, 1):
-		cx = s * 36
-		bx(se, (54, 2, 2), (cx, 1, TZ), GRAN2)
-		bx(se, (54, 0.8, 1.2), (cx, 9.4, TZ), "8A7A62")
-		for q in range(18):
-			bx(se, (1.6, 7.4, 0.6), (cx - 25.5 + q * 3, 5.6, TZ), ("9A8A70", "8A7A62")[q % 2])
+			x = TX + rnd.uniform(-13, 13)
+		bx(se, (0.5, 0.5, 0.2), (x, y, TZ - 2.0), rnd.choice(("6A6C66", "B4B6AE", "5E605A")))
+	for s_ in (-1, 1):  # lit stone lanterns either side of the torii
+		lx = TX + s_ * 16
+		bx(se, (3.4, 1.0, 3.4), (lx, 0.0, TZ - 3), GRAN2)
+		se.append(("cyl", (1.6, 6, 1.6), (lx, 3.4, TZ - 3), GRAN, {"seg": 8}))
+		bx(se, (3.4, 0.8, 3.4), (lx, 6.8, TZ - 3), GRAN2)
+		bx(se, (2.8, 2.6, 2.8), (lx, 8.5, TZ - 3), "FFD58A", emit=3.0)
+		se.append(("cone", (5, 2.4, 5), (lx, 11.0, TZ - 3), GRAN, {"seg": 6}))
+	for a, b in ((-62, TX - 22), (TX + 22, 62)):  # slat fence on a stone base, open at the torii
+		cx, wl = (a + b) / 2, b - a
+		bx(se, (wl, 2, 2), (cx, 1, TZ), GRAN2)
+		bx(se, (wl, 0.8, 1.2), (cx, 9.4, TZ), "8A7A62")
+		for q in range(int(wl / 3)):
+			bx(se, (1.6, 7.4, 0.6), (a + 1.5 + q * 3, 5.6, TZ), ("A89878", "8A7A62")[q % 2])
 	bx(se, (50, 0.6, 26), (0, -0.7, -12), "8A8478")
 	for z in (-22, -16, -10, -5):
 		bx(se, (6, 0.4, 3.5), (0, -0.3, z), "A8A49A")
@@ -491,59 +512,77 @@ def build(k):
 	bx(se, (7, 0.7, 0.7), (-34, 7.4, -8.8), "D8C890")
 	for q in range(3):
 		bx(se, (0.8, 1.8, 0.2), (-36 + q * 2, 6.2, -9.0), "FFFFFF", emit=0.5)
-	for x in (-14, 14):
-		bx(se, (2.6, 0.8, 2.6), (x, -0.4, -20), GRAN2)
-		se.append(("cyl", (1.2, 4, 1.2), (x, 2, -20), GRAN, {"seg": 8}))
-		bx(se, (2.4, 2.0, 2.4), (x, 5, -20), "FFD58A", emit=3.0)
-		se.append(("cone", (4, 1.8, 4), (x, 6.9, -20), GRAN, {"seg": 6}))
 	for x, z, s in ((30, -14, 12), (-46, 10, 14), (38, 22, 16)):
 		se.append(("cyl", (1.4, s * 0.6, 1.4), (x, s * 0.3 - 1, z), BARK, {"seg": 6}))
 		se.append(("ball", (s * 1.3, s * 0.6, s * 1.3), (x, s * 0.75, z), "2C4E2E", {"subdiv": 1}))
 		se.append(("ball", (s, s * 0.5, s), (x + 2, s * 1.05, z), "355C34", {"subdiv": 1}))
 	k.prop("SeikoHouse", se)
 
-	# --- Town houses (mid), two types; each carries block walls across its whole 44-stud lot front ---
+	# --- Town houses (mid), two types; each carries block walls with caps across its whole 44-stud lot front, a lit
+	# vending machine, a utility pole with crossarm and wires running to the lot edges (so poles link up) ---
 	def lot(p, gap=(-3, 3)):
 		for a, b in ((-22, gap[0]), (gap[1], 22)):
 			bx(p, (b - a, 5, 1.4), ((a + b) / 2, 1.5, -15), "9A9A92")
-			bx(p, (b - a + 0.2, 0.5, 1.8), ((a + b) / 2, 4.2, -15), "86867E")
-		for x in (-22, 22):  # side walls between neighbours
+			bx(p, (b - a + 0.4, 0.7, 2.2), ((a + b) / 2, 4.3, -15), "5E5E58")
+			for x in range(int(a) + 3, int(b) - 1, 6):  # block courses
+				bx(p, (0.3, 5, 1.5), (x, 1.5, -15), "86867E")
+		for x in (-22, 22):
 			bx(p, (1.4, 5, 28), (x, 1.5, -1), "8E8E86")
 
-	hs = []  # two floors, siding, dark kawara gable, annex, vending machine, utility pole
-	bx(hs, (24, 18, 18), (0, 8, 4), "C9C0AE")
+	def vending(p, x, z, body, cols):
+		bx(p, (5.4, 10, 4), (x, 4, z), body)
+		bx(p, (4.6, 6.4, 0.3), (x, 5.2, z - 2.1), "EAF6FF", emit=2.2)
+		for q, c in enumerate(cols):
+			for r_ in range(3):
+				bx(p, (1.1, 0.9, 0.4), (x - 1.5 + r_ * 1.5, 3.2 + q * 1.6, z - 2.3), c, emit=1.6)
+		bx(p, (4.6, 1.4, 0.4), (x, 8.6, z - 2.2), cols[0], emit=1.8)
+
+	def pole(p, x, z):
+		p.append(("cyl", (1.4, 34, 1.4), (x, 16, z), "9A9A96", {"seg": 8}))
+		bx(p, (10, 0.6, 0.6), (x, 31, z), "6A6A66")
+		p.append(("cyl", (2.2, 3.2, 2.2), (x - 2, 26, z + 1), "7A7E80", {"seg": 8}))
+		for dx in (-4, 0, 4):
+			bx(p, (0.4, 0.8, 0.4), (x + dx, 31.6, z), "E8E8E8")
+			for side in (-1, 1):  # wires to the lot edge, sagging slightly
+				ln = abs(side * 22 - x)
+				bx(p, (ln, 0.15, 0.15), ((x + side * 22) / 2, 31.8 - 0.6 - dx * 0.05, z + dx * 0.1), "1A1A1A")
+
+	hs = []  # two floors, tan siding, dark kawara gable, balcony, sliding-door bay, annex
+	bx(hs, (24, 18, 18), (0, 8, 4), "BFB39A")
 	for y in (3, 7, 11, 15):
-		bx(hs, (24.2, 0.3, 18.2), (0, y, 4), "B0A896")
-	windows(hs, -9, 9, 2, 4.5, 2, 8, -5.2, 6, 4.2, "2A3038", lit=(1, 2), frame="DADAD4")
+		bx(hs, (24.2, 0.3, 18.2), (0, y, 4), "A89C84")
+	windows(hs, -9, 9, 2, 12.5, 1, 0, -5.2, 6, 4.2, "2A3038", lit=(1,), frame="DADAD4")
+	bx(hs, (14, 6, 0.4), (-3, 2.5, -5.2), "3A4450", rough=0.1)  # sliding-door bay
+	for x in (-10, -3, 4):
+		bx(hs, (0.5, 6.2, 0.6), (x, 2.5, -5.4), "D8D8D0")
+	bx(hs, (16, 0.8, 4), (-2, 9, -7), "B0A898")  # balcony
+	bx(hs, (16, 2.4, 0.3), (-2, 10.6, -8.9), "C8CCD0", metal=0.3)
 	gable(hs, 0, 4, 28, 22, 17, 6, TILE, TILE2, ribs=9)
-	bx(hs, (14, 10, 14), (16, 4, 6), "B8B0A0")
+	bx(hs, (14, 10, 14), (16, 4, 6), "A8A090")
 	hs.append(("wedge", (16, 3, 16), (16, 10.5, 6), TILE2, {"rot": (0, 180, 0)}))
-	bx(hs, (6, 6, 0.4), (16, 4, -1.2), "FFD890", emit=1.2)
+	bx(hs, (6, 5, 0.4), (16, 4, -1.2), "FFD890", emit=1.0)
 	lot(hs)
-	bx(hs, (5, 10, 4), (-15, 4, -18), "D8DCE0")
-	bx(hs, (4.2, 6, 0.3), (-15, 5, -20.1), "EAF6FF", emit=4.0)
-	for q in range(3):
-		bx(hs, (3.6, 0.5, 0.4), (-15, 3 + q * 2, -20.3), ("E24A3A", "3A8AE2", "F2C230")[q], emit=2.0)
-	hs.append(("cyl", (1.4, 34, 1.4), (12, 16, -18), "9A9A96", {"seg": 8}))
-	bx(hs, (10, 0.6, 0.6), (12, 31, -18), "6A6A66")
-	hs.append(("cyl", (2.2, 3.2, 2.2), (10, 26, -17), "7A7E80", {"seg": 8}))
-	for x in (8, 12, 16):
-		bx(hs, (0.4, 0.8, 0.4), (x, 31.6, -18), "E8E8E8")
+	vending(hs, -15, -18.5, "C83A2E", ("FF5A4A", "4AA8FF", "FFD24A"))
+	vending(hs, -9, -18.5, "E8E8E8", ("4AA8FF", "7AE070", "FF8A3A"))
+	pole(hs, 12, -18)
 	k.prop("House", hs)
 
-	h2 = []  # one wide floor, plaster walls, a brown hip roof (a wedge on each side), engawa, garden pine
-	bx(h2, (32, 10, 22), (0, 4, 4), "D8CFBC")
+	h2 = []  # one wide floor, warm plaster, brown hip roof, sliding-door bays and engawa, garden pine
+	bx(h2, (32, 10, 22), (0, 4, 4), "CDBB98")
 	for s in (-1, 1):
 		h2.append(("wedge", (36, 6, 13), (0, 12, 4 + s * 6.5), "5A3A2C", {"rot": (0, 0 if s < 0 else 180, 0)}))
 		h2.append(("wedge", (26, 6, 6), (s * 15, 12, 4), "5A3A2C", {"rot": (0, -s * 90, 0)}))
 	bx(h2, (37, 0.8, 1.2), (0, 15.2, 4), RIDGE)
-	windows(h2, -12, 12, 3, 4, 1, 0, -7.2, 6, 5, "E6DEC4", lit=(0, 2), litcol="FFD58A")
+	for x in (-10, 0, 10):  # sliding-door bays with frames, two lit
+		bx(h2, (8.4, 7, 0.3), (x, 3.5, -7.1), "5A4A38")
+		bx(h2, (7.4, 6.2, 0.4), (x, 3.5, -7.3), "FFD58A" if x != 0 else "E6DEC4", emit=1.0 if x != 0 else 0.0)
+		bx(h2, (0.4, 6.2, 0.5), (x, 3.5, -7.5), "5A4A38")
 	bx(h2, (34, 0.6, 3), (0, 0.4, -8.5), "6A4A32")
 	lot(h2, gap=(4, 10))
 	h2.append(("cyl", (1.2, 8, 1.2), (-14, 3, -10), BARK, {"seg": 6}))
 	h2.append(("ball", (10, 4, 10), (-14, 7.5, -10), "2C4E2E", {"subdiv": 1}))
-	h2.append(("cyl", (1.4, 30, 1.4), (16, 14, -18), "9A9A96", {"seg": 8}))
-	bx(h2, (9, 0.6, 0.6), (16, 27, -18), "6A6A66")
+	vending(h2, 14, -18.5, "2E6AC8", ("FFD24A", "FF5A4A", "7AE070"))
+	pole(h2, -4, -18)
 	k.prop("House2", h2)
 
 	# --- layout ---
@@ -570,18 +609,24 @@ def build(k):
 	for a, b in towns:
 		row(k, a, b, 46, (46, -46), ["House", "House2"], jitter=2, flat=True, scale=(0.85, 1.2), skip=[(400, 640, -1), (5200, 5300, 0)])
 		row(k, a + 20, b, 64, (100, -100), ["House2", "House", "Cedar"], jitter=10, scale=(0.9, 1.3), skip=[(390, 660, -1)], turns=turns)
-	put(k, "SeikoHouse", 510, -(24 + 37 * 2.0), 2.0, clear=50)  # downhill of shot 1, so the canal and fence show over the wall
+	ob = put(k, "SeikoHouse", 510, -(24 + 37 * 2.0), 2.0, clear=50)
+	if ob:
+		ob.location.z += 14.0  # stands on its own embankment (its local -7 meets the ground)  # downhill of shot 1, so the canal and fence show over the wall
 	# run shot 4's near field: a house with its lit vending machine on the right, a curve mirror on the left
 	put(k, "House", 5250, 46)
 	put(k, "House2", 5290, -46)
-	put(k, "Mirror", 5232, -31)
+	put(k, "Mirror", 5232, -31, turn=-MIRROR_TURN)
 
 	# Mountain road: guardrails (with ditch and verge), curve mirrors, cedars in layers, ridges
 	mountain = [(760.0, TUNNEL[0] - 40), (TUNNEL[1] + 40, 2700.0), (3000.0, 3700.0)]
 	clear = [(2560, 3000, 1), (2690, 2910, -1), (3450, 3780, -1)]  # side review camera; school front; hospital sightline
 	for a, b in mountain:
 		row(k, a, b, 48, (-29, 29), ["Guardrail"], flat=True)
-		row(k, a + 60, b, 210, (-31, 31), ["Mirror"])
+		d = a + 60
+		while d < b:
+			for off in (-31, 31):
+				put(k, "Mirror", d + k.rng.uniform(-6, 6), off, turn=MIRROR_TURN if off > 0 else -MIRROR_TURN)
+			d += 210
 		row(k, a, b, 34, (-42, 42), ["Cedar"], jitter=4, scale=(0.85, 1.1), skip=clear)
 		row(k, a + 10, b, 40, (-60, 60), ["Cedar"], jitter=8, scale=(0.9, 1.2), skip=clear)
 		row(k, a + 20, b, 46, (-82, 82), ["Cedar"], jitter=10, scale=(1.0, 1.4), skip=clear)
@@ -595,11 +640,11 @@ def build(k):
 
 	put(k, "School", 2790, -135, clear=60)  # square in the side shot (it looks across the road at 2768)
 	row(k, 2600, 2960, 22, (46, 70, 95, 120), ["Cedar"], jitter=6, scale=(0.3, 0.5))  # low growth under the side camera
-	put(k, "Hospital", 3730, -150, clear=80)
+	put(k, "Hospital", 3770, -170, clear=80)
 
 	# Forest and far ridges, clear of the landmarks, the side camera and the hospital sightline
 	avoid = []
-	for d, off, r in ((2790, -135, 130), (3730, -150, 140), (510, -98, 130), (3650, -70, 110), (2740, 110, 140)):
+	for d, off, r in ((2790, -135, 130), (3770, -170, 140), (510, -98, 130), (3650, -70, 110), (2740, 110, 140)):
 		(x, _, z), _ = orig(d, off)
 		avoid.append((x, z, r))
 	placed, tries = 0, 0
