@@ -232,6 +232,7 @@
 228. 2026-11-23 — Alex Nguyen — Checkpointed the interrupted World 2 likeness round (model close-ups in every biome, road clearance checker, likeness fixes) and restarted the builder loop.
 229. 2026-11-23 — Alex Nguyen — World 2 model close-ups now fit each model to the frame and render at the origin with the track hidden, which removed the speckled shadows.
 230. 2026-11-23 — Alex Nguyen — World 2 Tracks 4 and 5 round 8: tunnel portal and hill rebuilt to the refs, dark lamp-lit tunnel vault, faceted kaiju corpse cliff, hooded sweeper crew, puff smoke; both tracks clear the 24-stud road rule.
+231. 2026-11-23 — Alex Nguyen — World 2: Track 4 HauntedTunnel passed independent likeness review at 7/10 (frozen); Tracks 2 and 7 round 3 committed; model close-ups now render under a neutral studio sky instead of the biome's tinted sky.
 
 ## What's next
 **Builders finish the round for all 10 World 2 tracks; fresh reviewers score scene shots and model close-ups, repeating until every track scores at least 7/10, then the owner approves assets/world2_draft/index.html.**

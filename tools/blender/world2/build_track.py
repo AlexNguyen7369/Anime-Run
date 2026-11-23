@@ -114,6 +114,15 @@ def model_shots(k, cam, folder, names):
 	hidden = [o for o in bpy.context.scene.objects if o.type not in ("LIGHT", "CAMERA") and not o.hide_render]
 	for o in hidden:
 		o.hide_render = True
+	# neutral sky for close-ups: a tinted biome sky cast its colour over the models (peach under an orange sky)
+	scene = bpy.context.scene
+	biome_world = scene.world
+	studio = bpy.data.worlds.new("CloseUpStudio")
+	studio.use_nodes = True
+	bg = next(n for n in studio.node_tree.nodes if n.type == "BACKGROUND")
+	bg.inputs[0].default_value = (0.78, 0.8, 0.84, 1.0)
+	bg.inputs[1].default_value = 0.45
+	scene.world = studio
 	disc = bpy.data.objects.new("ModelDisc", bpy.data.meshes.new("ModelDisc"))
 	import bmesh
 
@@ -159,6 +168,8 @@ def model_shots(k, cam, folder, names):
 	bpy.data.objects.remove(disc)
 	for o in hidden:
 		o.hide_render = False
+	scene.world = biome_world
+	bpy.data.worlds.remove(studio)
 
 
 def run(number, fast=False, render=True):
