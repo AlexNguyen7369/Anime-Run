@@ -76,6 +76,31 @@ def _hole(p, pos, r, ang, tilt=-12):
 	p.append(("cyl", (r * 1.8, 1.0, r * 1.3), (x + math.sin(ang) * 0.6, y, z - math.cos(ang) * 0.6), HOLE, {"seg": 10, "rot": (90 + tilt, yaw, 0)}))
 
 
+# Review shots filled in by build() / read by build_track.py
+EXTRA_SHOTS = []
+MODEL_SHOTS = ["Nest", "Chamber", "Hallasan", "Camp"]
+
+
+def _clearance(k, skip=("Road", "Wall", "Dash", "Apron", "WinPad", "Ground", "Bank", "Island", "Hallasan", "Nest", "Ship", "Cliff")):
+	"""Print, per prop, the least distance from any corner of an instance's bounding box to the road centre line (a
+	conservative check of the 24-stud rule)."""
+	step = max(1, len(k.wps) // 1500)
+	pts = [(w.x, w.z) for w in k.wps[::step]]
+	out = {}
+	for ob in k.col.objects:
+		if ob.type != "MESH" or not ob.data.name.startswith("W2_"):
+			continue
+		name = ob.data.name.split("_")[-1]
+		if name in skip:
+			continue
+		best = out.get(name, 1e9)
+		for c in ob.bound_box:
+			v = ob.matrix_basis @ Vector(c)  # matrix_world is stale until the depsgraph updates
+			best = min(best, min(math.hypot(v.x - a, -v.y - b) for a, b in pts))
+		out[name] = round(best, 1)
+	print("CLEARANCE", out)
+
+
 def _bank(k, color):
 	"""A basalt embankment under raised road, from the ground up to the road edge, so the climb reads as built."""
 	k.prop("Bank", [("box", (1, 1, 1), (0, 0.5, 0), color), ("box", (1.04, 0.06, 1), (0, 0.97, 0), BASALT2)])
@@ -88,9 +113,10 @@ def _bank(k, color):
 		d += step
 
 
-def _ant(p, pos, yaw=0.0, s=1.0, tilt=0.0):
-	"""A generic giant ant, bulky: pale thorax and big abdomen, back spikes, big mandibles, red eyes, jointed legs.
-	Faces -Z at yaw 0; `tilt` pitches it (climbing)."""
+def _ant(p, pos, yaw=0.0, s=1.0, tilt=0.0, out=None):
+	"""A generic giant ant: pale spiked carapace in plates, big abdomen and thorax, a crested head with big curved
+	mandibles and red eyes, long jointed legs (thigh up and out, shin down to the ground). Faces -Z at yaw 0; `tilt`
+	pitches it (climbing). `out` collects its footprint centre."""
 	m = _rotm(tilt, yaw, 0)
 
 	def at(x, y, z):
@@ -105,48 +131,61 @@ def _ant(p, pos, yaw=0.0, s=1.0, tilt=0.0):
 		d.update(extra or {})
 		return d
 
-	p.append(("ball", sz(10, 8, 13), at(0, 7, 9), ANT2, o({"subdiv": 1, "smooth": True}, (-10, 0, 0))))
-	p.append(("ball", sz(3.4, 3.4, 3.4), at(0, 7, 2), ANT2, o({"subdiv": 1})))
-	p.append(("ball", sz(7, 7, 10), at(0, 8, -3.5), ANT, o({"subdiv": 1, "smooth": True})))
-	p.append(("ball", sz(7.6, 6.4, 7), at(0, 9, -10.5), ANT, o({"subdiv": 1, "smooth": True})))
-	for i, zz in enumerate((-6.5, -3.5, -0.5)):
-		p.append(("cone", sz(1.8, 5 - i, 1.8), at(0, 12.5, zz), ANT2, o({"seg": 4}, (-25, 0, 0))))
+	if out is not None:
+		out.append(at(0, 0, 0))
+	p.append(("ball", sz(10, 8, 13), at(0, 8, 10), ANT, o({"subdiv": 1, "smooth": True}, (-10, 0, 0))))
+	for i, zz in enumerate((5.5, 9, 12.5)):  # abdomen plates
+		p.append(("box", sz(10.4 - i * 1.4, 1.2, 1.4), at(0, 11.6 - i * 0.8, zz), ANT2, o(None, (-10 + i * 12, 0, 0))))
+	p.append(("ball", sz(3.4, 3.4, 3.4), at(0, 8, 2.6), ANT2, o({"subdiv": 1})))
+	p.append(("ball", sz(7, 7, 10), at(0, 9, -3.5), ANT, o({"subdiv": 1, "smooth": True})))
+	p.append(("ball", sz(7.6, 6.4, 7), at(0, 10, -10.5), ANT, o({"subdiv": 1, "smooth": True})))
+	for i, zz in enumerate((-7.5, -4.5, -1.5, 1.5)):  # spikes along the back
+		p.append(("cone", sz(1.8, 6 - i, 1.8), at(0, 14 - i * 0.3, zz), ANT, o({"seg": 4}, (-30, 0, 0))))
 	for sx in (-1, 1):
-		p.append(("ball", sz(2, 2, 2), at(sx * 2.8, 10, -13.4), EYE, o({"emit": 6, "subdiv": 1})))
-		p.append(("box", sz(1.8, 1.8, 8), at(sx * 2.6, 6.8, -16.5), ANT2, o(None, (0, -sx * 22, 0))))
-		p.append(("cone", sz(1.8, 4, 1.8), at(sx * 0.9, 6.8, -20.4), ANT2, o({"seg": 4}, (-90, -sx * 50, 0))))
-		p.append(("box", sz(0.5, 0.5, 9), at(sx * 2.2, 13.6, -14), ANT2, o(None, (-35, -sx * 18, 0))))
+		p.append(("cone", sz(1.4, 6, 1.4), at(sx * 2.4, 13.5, -10), ANT, o({"seg": 4}, (-20, 0, sx * 25))))  # crest
+		p.append(("cone", sz(1.6, 5, 1.6), at(sx * 3.6, 11, -4), ANT, o({"seg": 4}, (0, 0, sx * 50))))  # side spikes
+		p.append(("ball", sz(2.4, 2.4, 2.4), at(sx * 2.8, 11, -13.4), EYE, o({"emit": 10, "subdiv": 1})))
+		p.append(("box", sz(2, 2, 9), at(sx * 3.2, 7.4, -17.5), ANT2, o(None, (0, -sx * 24, 0))))  # mandible
+		p.append(("cone", sz(2, 6, 2), at(sx * 0.8, 7.4, -22.4), ANT2, o({"seg": 4}, (-90, -sx * 60, 0))))
+		p.append(("box", sz(0.5, 0.5, 11), at(sx * 2.4, 15, -14.6), ANT2, o(None, (-38, -sx * 18, 0))))
 		for lz in (-6, -3.5, -1):
-			p.append(("box", sz(8, 1.6, 1.6), at(sx * 6.5, 10, lz * 1.3), ANT2, o(None, (0, sx * lz * 4, sx * 28))))
-			p.append(("box", sz(1.6, 11, 1.6), at(sx * 11, 5.2, lz * 1.6), ANT2, o(None, (0, 0, sx * 14))))
+			p.append(("box", sz(11, 1.6, 1.6), at(sx * 7.5, 13, lz * 1.4), ANT2, o(None, (0, sx * lz * 4, sx * 30))))
+			p.append(("box", sz(1.6, 17, 1.6), at(sx * 13.5, 6.8, lz * 1.9), ANT2, o(None, (0, 0, sx * 12))))
+			p.append(("cone", sz(1.4, 3, 1.4), at(sx * 15, 0.6, lz * 1.9), ANT, o({"seg": 4}, (180, 0, 0))))
 
 
 def _hgt(r):
 	"""Hallasan's surface height at radius r (studs, before instance scale)."""
-	pts = ((760, 0), (600, 46), (440, 104), (300, 160), (180, 210), (120, 236))
-	if r >= 760:
+	pts = HALLA
+	if r >= pts[0][0]:
 		return 0.0
 	for (r0, h0), (r1, h1) in zip(pts, pts[1:]):
 		if r >= r1:
 			return h0 + (h1 - h0) * (r0 - r) / (r0 - r1)
-	return 236.0
+	return pts[-1][1]
+
+
+HALLA = ((760, 0), (600, 50), (440, 120), (300, 210), (180, 320), (115, 380))
 
 
 def _hallasan(k):
 	p = []
-	pts = ((760, 0), (600, 46), (440, 104), (300, 160), (180, 210), (120, 236))
-	cols = ("2A4224", "2E4826", "34502C", "5A6040", "8A8670")
+	pts = HALLA
+	cols = ("2A4224", "2E4826", "34502C", "4E5A3A", "8A8670")
 	for i, ((r0, h0), (r1, h1)) in enumerate(zip(pts, pts[1:])):
 		p.append(("cone", (r0 * 2, h1 - h0, r0 * 2), (0, (h0 + h1) / 2, 0), cols[i], {"seg": 24, "taper": r1 / r0}))
-	# pale jagged summit rocks round a rough crater rim, the crater lake inside
-	for i in range(22):
-		a = i * math.tau / 22 + (i % 3) * 0.05
-		rr = 108 + (i * 13 % 5) * 5
-		h = 18 + (i * 7 % 6) * 6
-		p.append(("cone", (34 + i % 4 * 6, h, 26), (math.sin(a) * rr, 232 + h / 2, -math.cos(a) * rr), ("C4BCAA", "B0A894", "9C9480")[i % 3], {"seg": 5, "taper": 0.2 + (i % 3) * 0.1, "rot": ((i * 11 % 17) - 8, -math.degrees(a) + i * 7, (i * 5 % 13) - 6)}))
-	p.append(("cyl", (200, 6, 200), (0, 230, 0), "6E6A5C", {"seg": 14}))
-	p.append(("cyl", (150, 2, 150), (0, 234, 0), "3E7A88", {"seg": 14, "rough": 0.2}))
-	# parasitic cones (small green craters) on the flanks
+	top = pts[-1][1]
+	# pale jagged summit rocks round a rough crater rim, well above the tree line, the crater lake inside
+	for i in range(24):
+		a = i * math.tau / 24 + (i % 3) * 0.05
+		rr = 100 + (i * 13 % 5) * 6
+		h = 40 + (i * 7 % 6) * 12
+		p.append(("cone", (40 + i % 4 * 8, h, 30), (math.sin(a) * rr, top - 8 + h / 2, -math.cos(a) * rr), ("D8D0C0", "C4BCAA", "B0A894")[i % 3], {"seg": 5, "taper": 0.15 + (i % 3) * 0.1, "rot": ((i * 11 % 17) - 8, -math.degrees(a) + i * 7, (i * 5 % 13) - 6)}))
+	for i in range(10):  # pale scree streaks down the upper cone
+		a = i * math.tau / 10 + 0.3
+		p.append(("box", (16, 2, 90), (math.sin(a) * 210, 300, -math.cos(a) * 210), "A8A090", {"rot": (-38, -math.degrees(a), 0)}))
+	p.append(("cyl", (190, 6, 190), (0, top - 4, 0), "6E6A5C", {"seg": 14}))
+	p.append(("cyl", (140, 2, 140), (0, top, 0), "3E7A88", {"seg": 14, "rough": 0.2}))
 	for i in range(16):
 		a = i * 2.39 + 0.2
 		rr = 420 + (i * 97) % 420
@@ -156,13 +195,11 @@ def _hallasan(k):
 		by = _hgt(rr) - 4
 		p.append(("cone", (w, h, w), (x, by + h / 2, z), ("2E4826", "3A5630", "34502C")[i % 3], {"seg": 12, "taper": 0.45}))
 		p.append(("cyl", (w * 0.36, 2, w * 0.36), (x, by + h + 0.4, z), "24361E", {"seg": 10}))
-	# dark forest clumps on the slopes
-	for i in range(36):
+	for i in range(36):  # dark forest clumps, kept below the summit rocks
 		a = i * 2.17 + 1.1
-		rr = 260 + (i * 61) % 470
+		rr = 330 + (i * 61) % 400
 		w = 46 + (i * 23) % 40
 		p.append(("ball", (w, w * 0.5, w), (math.sin(a) * rr, _hgt(rr) + w * 0.12, -math.cos(a) * rr), ("1E3418", "24401E", "2A4622")[i % 3], {"subdiv": 1}))
-	# ant tunnels dug into the slopes
 	for i in range(14):
 		a = i * 2.4 + 0.3
 		rr = 470 + (i * 53) % 220
@@ -170,21 +207,32 @@ def _hallasan(k):
 	k.prop("Hallasan", p)
 
 
+NEST_ANTS = []  # footprint centres of the nest's ants (local), for the clearance check
+
+
 def _nest(k):
-	"""Low, wide sandy colony mound: cratered top, tunnel mouths all round, ants climbing out, scorched ground."""
+	"""Low, wide sandy colony mound: lumpy cratered surface, dark-rimmed tunnel mouths all round, ants climbing out and
+	a scattered pack at its foot, on scorched ground."""
 	p = [("cyl", (640, 0.4, 560), (0, 0.2, 0), "2C2620", {"seg": 16})]
 	tiers = ((200, 0), (165, 30), (120, 58), (80, 80), (50, 92))
 	for i, ((r0, h0), (r1, h1)) in enumerate(zip(tiers, tiers[1:])):
 		p.append(("cone", (r0 * 2, h1 - h0, r0 * 2 * 0.9), (0, (h0 + h1) / 2, 0), ("A88A5E", "B49468", "9A7E54", "C0A272")[i], {"seg": 16, "taper": r1 / r0}))
-	for i in range(18):  # lumps
-		a = i * math.tau / 18 + 0.15
-		rr = 120 + (i % 3) * 30
-		y = 22 - (rr - 120) * 0.5 + (i % 2) * 8
-		p.append(("ball", (56, 30 + i % 3 * 8, 44), (math.sin(a) * rr, max(6, y), -math.cos(a) * rr * 0.9), ("9A7E54", "A88A5E", "8A6E48")[i % 3], {"subdiv": 1, "rot": (0, -math.degrees(a), 0)}))
-	for x, z, r in ((0, 0, 30), (34, -18, 14), (-30, 14, 12), (-12, -34, 10)):  # craters on top
-		y = 92 - 0.25 * math.hypot(x, z)
-		p.append(("cyl", (r * 2.4, 5, r * 2.4), (x, y + 2, z), "7A6040", {"seg": 12}))
-		p.append(("cyl", (r * 1.7, 1, r * 1.7), (x, y + 4.7, z), HOLE, {"seg": 12}))
+
+	def surf(r):
+		for (r0, h0), (r1, h1) in zip(tiers, tiers[1:]):
+			if r >= r1:
+				return h0 + (h1 - h0) * (r0 - r) / (r0 - r1)
+		return 92
+
+	for i in range(44):  # lumps all over the surface
+		a = i * 2.39 + 0.15
+		rr = 20 + (i * 47) % 175
+		w = 24 + (i * 17) % 30
+		p.append(("ball", (w, w * 0.55, w * 0.85), (math.sin(a) * rr, surf(rr) - 2, -math.cos(a) * rr * 0.9), ("9A7E54", "A88A5E", "8A6E48", "B49468")[i % 4], {"subdiv": 1, "rot": (0, -math.degrees(a), 0)}))
+	for x, z, r in ((0, 0, 30), (34, -18, 14), (-30, 14, 12), (-12, -34, 10), (60, 30, 12), (-64, -30, 11), (20, 66, 10), (-40, 60, 9)):
+		y = surf(math.hypot(x, z / 0.9)) - 1
+		p.append(("cyl", (r * 2.6, 6, r * 2.6), (x, y + 2, z), "6A5034", {"seg": 12, "taper": 0.8}))
+		p.append(("cyl", (r * 1.7, 1, r * 1.7), (x, y + 5.2, z), HOLE, {"seg": 12}))
 	holes = []
 	for ring, (rr, y, n, hr) in enumerate(((176, 14, 12, 12), (140, 42, 10, 10), (100, 68, 8, 8))):
 		for i in range(n):
@@ -192,58 +240,64 @@ def _nest(k):
 			hp = (math.sin(a) * rr, y, -math.cos(a) * rr * 0.9)
 			_hole(p, hp, hr, a, -30)
 			holes.append((hp, a))
-	for x, z in ((40, 30), (-50, -10)):  # two small chimneys, secondary
+	for x, z in ((40, 30), (-50, -10)):
 		p.append(("cone", (16, 40, 16), (x, 80, z), "C0A272", {"seg": 8, "taper": 0.25}))
-	# ants climbing out of tunnel mouths and a pack at the foot facing out
-	for j, (hp, a) in enumerate(holes[::3]):
-		yaw = -math.degrees(a) + 180
-		_ant(p, (hp[0] + math.sin(a) * 10, hp[1] - 6, hp[2] - math.cos(a) * 10), yaw, 1.6, -22)
-	for j in range(6):
-		a = -0.6 + j * 0.24
-		r = 230 + (j % 2) * 26
-		_ant(p, (math.sin(a) * r, 0, -math.cos(a) * r), -math.degrees(a) + 180 + (j % 3 - 1) * 15, 1.8)
+	NEST_ANTS.clear()
+	for j, (hp, a) in enumerate(holes[::3]):  # climbing out of tunnel mouths, each at its own angle
+		yaw = -math.degrees(a) + 180 + (j % 3 - 1) * 25
+		_ant(p, (hp[0] + math.sin(a) * 10, hp[1] - 6, hp[2] - math.cos(a) * 10), yaw, 1.5 + (j % 3) * 0.15, -18 - (j % 4) * 6, NEST_ANTS)
+	for j, (a, r, turn, s) in enumerate(((-0.7, 212, 30, 1.7), (-0.42, 236, -50, 1.9), (-0.25, 205, 10, 1.6), (0.02, 228, 75, 1.8), (0.3, 214, -20, 2.0), (0.52, 240, 140, 1.7))):
+		_ant(p, (math.sin(a) * r, 0, -math.cos(a) * r), -math.degrees(a) + 180 + turn, s, 0, NEST_ANTS)
 	k.prop("Nest", p)
 
 
 def _chamber(k):
-	"""The queen's chamber opened up: a cave mouth facing -Z (the road) over a floor of tightly packed glowing eggs."""
+	"""The queen's chamber opened up: a cave mouth facing -Z (the road) over a raised, tiered carpet of rounded blue
+	eggs under pale web strands, with one big hatched egg."""
 	p = [
-		("box", (150, 6, 110), (0, 3, 10), CAVE),
-		("box", (120, 60, 6), (0, 30, 58), HOLE),
-		("ball", (70, 90, 90), (-70, 40, 20), CAVE2, {"subdiv": 2}),
-		("ball", (70, 90, 90), (70, 40, 20), CAVE2, {"subdiv": 2}),
-		("ball", (200, 60, 110), (0, 92, 20), CAVE, {"subdiv": 2}),
-		("ball", (120, 40, 80), (20, 118, 30), "34483E", {"subdiv": 2}),
+		("box", (150, 10, 110), (0, 5, 10), CAVE),
+		("box", (120, 70, 6), (0, 35, 58), HOLE),
+		("ball", (70, 100, 90), (-70, 44, 20), CAVE2, {"subdiv": 2}),
+		("ball", (70, 100, 90), (70, 44, 20), CAVE2, {"subdiv": 2}),
+		("ball", (200, 60, 110), (0, 100, 20), CAVE, {"subdiv": 2}),
+		("ball", (120, 40, 80), (20, 126, 30), "34483E", {"subdiv": 2}),
 		("ball", (50, 34, 40), (-80, 8, -30), CAVE2, {"subdiv": 1}),
 		("ball", (40, 26, 30), (84, 6, -28), CAVE2, {"subdiv": 1}),
 	]
 	for i in range(14):
 		x = -54 + i * 8.3
 		h = 10 + (i * 7 % 5) * 5
-		p.append(("cone", (5, h, 5), (x, 66 - h / 2, -30 + (i % 3) * 8), CAVE2, {"seg": 6, "rot": (180, 0, 0)}))
+		p.append(("cone", (5, h, 5), (x, 74 - h / 2, -30 + (i % 3) * 8), CAVE2, {"seg": 6, "rot": (180, 0, 0)}))
 	for i in range(6):
-		p.append(("box", (4, 30, 1), (-50 + i * 20, 52, -34 + (i % 2) * 2), "3E6A3A", {"rot": (0, 0, (i - 2.5) * 4)}))
+		p.append(("box", (4, 30, 1), (-50 + i * 20, 58, -34 + (i % 2) * 2), "3E6A3A", {"rot": (0, 0, (i - 2.5) * 4)}))
+	for gz in range(5):  # terraces rising toward the back so every row shows over the road wall
+		p.append(("box", (118, 4 + gz * 4, 12), (0, 10 + gz * 2, -26 + gz * 11), CAVE2))
 	eggs = []
-	for gx in range(15):
-		for gz in range(9):
-			x = -52 + gx * 7.4 + (gz % 2) * 3.7
-			z = -30 + gz * 7.2
-			if math.hypot(x, z - 2) < 16:
-				continue  # room for the hatched egg
-			s = 6.4 + ((gx + gz * 2) % 3) * 0.6
-			p.append(("ball", (s, s * 1.35, s), (x, 6 + s * 0.6, z), ("2E8AB0", "3AA6C0", "2A7AA0")[(gx + gz) % 3], {"emit": 0.7, "subdiv": 1, "smooth": True, "rough": 0.25}))
-			eggs.append((x, 6 + s * 1.1, z))
-	for i in range(0, len(eggs) - 9, 9):  # webbing strung over the clutch
-		a, b = eggs[i], eggs[i + 9]
-		mx, mz = (a[0] + b[0]) / 2, (a[2] + b[2]) / 2
+	for gz in range(5):
+		for gx in range(14):
+			x = -52 + gx * 8 + (gz % 2) * 4 + ((gx * 7 + gz) % 3 - 1)
+			z = -26 + gz * 11 + ((gx * 5) % 3 - 1) * 1.5
+			if math.hypot(x, z - 2) < 15:
+				continue
+			s = 6.6 + ((gx + gz * 2) % 3) * 0.8
+			y = 12 + gz * 4 + s * 0.7
+			o = {"emit": 0.35, "subdiv": 2 if gz < 2 else 1, "smooth": True, "rough": 0.25}
+			p.append(("ball", (s, s * 1.5, s), (x, y, z), ("2E8AB0", "3AA6C0", "2A7AA0")[(gx + gz) % 3], o))
+			eggs.append((x, y + s * 0.5, z))
+	for i in range(0, len(eggs) - 15, 4):  # pale web strands over the clutch, at varied heights
+		a, b = eggs[i], eggs[i + 15 if i % 8 else i + 1]
+		mx, my, mz = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 2, (a[2] + b[2]) / 2
+		ln = math.hypot(b[0] - a[0], b[2] - a[2]) + 3
 		ang = math.degrees(math.atan2(b[0] - a[0], b[2] - a[2]))
-		p.append(("box", (0.4, 0.3, math.hypot(b[0] - a[0], b[2] - a[2]) + 4), (mx, a[1] + 0.6, mz), "E8F4FF", {"alpha": 0.45, "rot": (0, ang, 0)}))
-	p.append(("cyl", (26, 18, 26), (0, 15, 2), "8ACCD8", {"seg": 12, "taper": 1.2, "emit": 0.5, "smooth": True}))
+		p.append(("box", (0.35, 0.35, ln), (mx, my, mz), "EEF6FF", {"alpha": 0.6, "emit": 0.3, "rot": (0, ang, 0)}))
+	for i in range(8):  # strands hanging from the cave roof
+		p.append(("box", (0.3, 30 + i % 3 * 8, 0.3), (-40 + i * 11, 58 - i % 3 * 4, -16 + (i % 4) * 8), "EEF6FF", {"alpha": 0.5, "emit": 0.3}))
+	p.append(("cyl", (28, 20, 28), (0, 22, 2), "8ACCD8", {"seg": 12, "taper": 1.2, "emit": 0.4, "smooth": True}))
 	for i in range(7):
 		a = i * math.tau / 7
-		p.append(("cone", (8, 12 + i % 3 * 3, 3), (math.sin(a) * 14, 29, -math.cos(a) * 14 + 2), "8ACCD8", {"seg": 3, "emit": 0.5, "rot": (0, -math.degrees(a), 0)}))
-	p.append(("cyl", (22, 1, 22), (0, 24.5, 2), "0E1A22", {"seg": 12}))
-	_ant(p, (42, 6, -10), -30, 1.4)
+		p.append(("cone", (8, 12 + i % 3 * 3, 3), (math.sin(a) * 15, 37, -math.cos(a) * 15 + 2), "8ACCD8", {"seg": 3, "emit": 0.4, "rot": (0, -math.degrees(a), 0)}))
+	p.append(("cyl", (24, 1, 24), (0, 32.5, 2), "0E1A22", {"seg": 12}))
+	_ant(p, (46, 10, -8), -30, 1.4)
 	k.prop("Chamber", p)
 
 
@@ -316,6 +370,15 @@ def _village(k):
 		p.append(("box", (0.5, 10 + i * 2, 0.5), (8 + i * 3, 42 + i, -6 + i * 3), "6A4A3A", {"rot": (0, 0, -15 + i * 10)}))
 	for i in range(5):  # vines
 		p.append(("box", (3, 14 + i * 4, 0.8), (-20 + i * 7, 40 - (14 + i * 4) / 2, -11.6), "3E6A34"))
+	for rot, w, z in ((90, 22, -22.1), (-90, 22, -22.1), (180, 44, -11.1)):  # windows round the sides and back
+		m = _rotm(0, rot, 0)
+		for f in range(4):
+			for c in range(int(w // 7.4)):
+				q = _turn(m, (-w / 2 + 3.7 + c * 7.4, 10 * f + 5.5, z))
+				p.append(("box", (4.4, 5.5, 0.6), q, WIN, {"rot": (0, rot, 0)}))
+	for i in range(10):  # rubble from the collapsed corner
+		a = i * 2.3
+		p.append(("box", (3 + i % 3 * 2, 2 + i % 2 * 1.5, 3 + i % 4), (18 + math.cos(a) * 6, 1, -16 + math.sin(a) * 4), (CONC, CONC2, "5A564C")[i % 3], {"rot": (i * 13, i * 29, i * 7)}))
 	_hole(p, (-6, 1, -22), 6, 0, -70)
 	k.prop("Ruin", p)
 	# Batdam: black lava-stone field wall with gaps
@@ -337,24 +400,28 @@ def _camp(k):
 		p.append(("wedge", (w / 2, 4, d), (x - w / 4, 7, z), OLIVE2, {"rot": (0, 90, 0)}))
 		p.append(("wedge", (w / 2, 4, d), (x + w / 4, 7, z), OLIVE2, {"rot": (0, -90, 0)}))
 		p.append(("box", (3, 4, 0.3), (x, 2, z - d / 2 - 0.1), "1A1E14"))
-	# helicopter on a pad, nose toward the road, doors open
-	hx, hz = -14, -10
+	# helicopter on a big marked pad, nose toward the road, side door open, four-blade rotor
+	hx, hz = -14, -12
+	H = 1.5
 	p += [
-		("cyl", (24, 0.3, 24), (hx, 0.4, hz), "4A4A44", {"seg": 12}),
-		("cyl", (14, 0.32, 14), (hx, 0.45, hz), "C8B040", {"seg": 12}),
-		("cyl", (12, 0.36, 12), (hx, 0.5, hz), "4A4A44", {"seg": 12}),
-		("ball", (8, 7, 17), (hx, 5.6, hz), "3E4636", {"subdiv": 2, "smooth": True}),
-		("ball", (6, 3.6, 6), (hx, 6.6, hz - 6.6), "7A9AA8", {"subdiv": 1, "rough": 0.2}),
-		("cyl", (2, 18, 2), (hx, 6.6, hz + 15), "3E4636", {"seg": 6, "rot": (90, 0, 0)}),
-		("box", (0.5, 6, 4), (hx, 9, hz + 23.6), "3E4636"),
-		("box", (6, 0.4, 2), (hx, 7, hz + 23), "3E4636"),
-		("box", (4, 3.6, 7), (hx, 9.6, hz + 1), "3E4636"),
-		("cyl", (0.8, 2, 0.8), (hx, 12, hz), STEEL, {"seg": 6}),
-		("box", (36, 0.3, 1.4), (hx, 13.1, hz), "202020", {"rot": (0, 30, 0)}),
-		("box", (36, 0.3, 1.4), (hx, 13.1, hz), "202020", {"rot": (0, -60, 0)}),
-		("box", (0.6, 0.6, 16), (hx - 4, 1, hz), STEEL),
-		("box", (0.6, 0.6, 16), (hx + 4, 1, hz), STEEL),
-		("box", (0.3, 4, 5), (hx - 4.05, 5, hz), "1A1E14"),
+		("cyl", (32, 0.3, 32), (hx, 0.4, hz), "4A4A44", {"seg": 14}),
+		("cyl", (20, 0.32, 20), (hx, 0.45, hz), "C8B040", {"seg": 14}),
+		("cyl", (17, 0.36, 17), (hx, 0.5, hz), "4A4A44", {"seg": 14}),
+		("box", (2, 0.4, 9), (hx - 3, 0.6, hz), "C8B040"),
+		("box", (2, 0.4, 9), (hx + 3, 0.6, hz), "C8B040"),
+		("box", (6, 0.4, 2), (hx, 0.6, hz), "C8B040"),
+		("ball", (8 * H, 7 * H, 17 * H), (hx, 5.6 * H, hz), "3E4636", {"subdiv": 2, "smooth": True}),
+		("ball", (6 * H, 3.6 * H, 6 * H), (hx, 6.6 * H, hz - 6.6 * H), "7A9AA8", {"subdiv": 1, "rough": 0.2}),
+		("cyl", (2 * H, 18 * H, 2 * H), (hx, 6.6 * H, hz + 15 * H), "3E4636", {"seg": 6, "rot": (90, 0, 0)}),
+		("box", (0.6, 6 * H, 4 * H), (hx, 9 * H, hz + 23.6 * H), "3E4636"),
+		("box", (6 * H, 0.4, 2 * H), (hx, 7 * H, hz + 23 * H), "3E4636"),
+		("box", (4 * H, 3.6 * H, 7 * H), (hx, 9.6 * H, hz + H), "3E4636"),
+		("cyl", (0.8 * H, 2 * H, 0.8 * H), (hx, 12 * H, hz), STEEL, {"seg": 6}),
+		("box", (50, 0.4, 3), (hx, 13.1 * H, hz), "2A2A2A", {"rot": (0, 20, 0)}),
+		("box", (50, 0.4, 3), (hx, 13.1 * H, hz), "2A2A2A", {"rot": (0, 110, 0)}),
+		("box", (0.8, 0.8, 16 * H), (hx - 4 * H, 1, hz), STEEL),
+		("box", (0.8, 0.8, 16 * H), (hx + 4 * H, 1, hz), STEEL),
+		("box", (0.3, 4 * H, 5 * H), (hx - 4.05 * H, 5 * H, hz), "1A1E14"),
 	]
 	for lx, lz in ((-36, -22), (34, -22), (0, 30)):  # floodlight masts
 		p += [
@@ -364,9 +431,9 @@ def _camp(k):
 		]
 	for i in range(8):  # supply crates
 		p.append(("box", (3.6, 3.2, 3.6), (14 + (i % 4) * 4, 1.6 + (i // 4) * 3.2, -10), CRATE, {"rot": (0, (i * 13) % 20, 0)}))
-	for cx, cz, r, n in ((hx, hz, 15, 16), (22, -20, 7, 9)):  # sandbag rings: round the pad and a gun nest
+	for cx, cz, r, n in ((hx, hz, 19, 20), (22, -20, 7, 9)):  # sandbag rings: round the pad and a gun nest
 		for i in range(n):
-			if cx == hx and 4 <= i <= 6:
+			if cx == hx and 13 <= i <= 17:
 				continue  # opening toward the road
 			a = i * math.tau / n
 			p.append(("cyl", (4.6, 1.6, 2.4), (cx + math.cos(a) * r, 0.9, cz + math.sin(a) * r), "8A7A58", {"seg": 6, "rot": (0, 90 - math.degrees(a), 90), "smooth": True}))
@@ -443,7 +510,20 @@ def _coast(cx, cz, a, b, th):
 	return 1.0 + 0.05 * math.sin(5 * th + 1.0) + 0.03 * math.sin(11 * th + 2.0) + 0.018 * math.sin(23 * th + 0.5)
 
 
-def _island(k, cx, cz, a, b, scorch):
+def _ell(cx, cz, a, b, th, phi):
+	"""Point at angle th on an ellipse with semi-axes a, b, turned phi radians, centred on (cx, cz)."""
+	lx, lz = math.cos(th) * a, math.sin(th) * b
+	return cx + lx * math.cos(phi) - lz * math.sin(phi), cz + lx * math.sin(phi) + lz * math.cos(phi)
+
+
+def _rho(cx, cz, a, b, phi, x, z):
+	"""Normalised ellipse radius of a point (1 = on the unragged outline)."""
+	dx, dz = x - cx, z - cz
+	u, v = dx * math.cos(phi) + dz * math.sin(phi), -dx * math.sin(phi) + dz * math.cos(phi)
+	return math.hypot(u / a, v / b)
+
+
+def _island(k, cx, cz, a, b, scorch, phi=0.0):
 	"""Our own ground: an elongated oval island with a ragged coast, a sand band, darker forest and scorched patches.
 	Terrain, not a prop. Returns the coast point function."""
 	import bmesh
@@ -462,7 +542,7 @@ def _island(k, cx, cz, a, b, scorch):
 		for j in range(ns):
 			th = j * math.tau / ns
 			f = _coast(cx, cz, a, b, th)
-			x, z = cx + math.cos(th) * a * f * rho, cz + math.sin(th) * b * f * rho
+			x, z = _ell(cx, cz, a * f * rho, b * f * rho, th, phi)
 			y = -1.0 if rho <= 0.95 else -1.0 - (rho - 0.95) / 0.07 * 3.4
 			row.append(bm.verts.new(rb(x, y, z)))
 		grid.append(row)
@@ -474,7 +554,7 @@ def _island(k, cx, cz, a, b, scorch):
 			face = bm.faces.new(v)
 			rho = ((i + 0.5) / nr) ** 0.7 * 1.02
 			th = (j + 0.5) * math.tau / ns
-			x, z = cx + math.cos(th) * a * rho, cz + math.sin(th) * b * rho
+			x, z = _ell(cx, cz, a * rho, b * rho, th, phi)
 			n = math.sin(x * 0.004 + 1.3) * math.cos(z * 0.005 - 0.4) + 0.5 * math.sin(x * 0.011 + z * 0.009)
 			if rho > 0.985:
 				kind = "wet"
@@ -511,8 +591,13 @@ def build(k):
 
 	lo, hi = k.lo, k.hi
 	cx, cz = (lo.x + hi.x) / 2, (lo.z + hi.z) / 2
-	a, b = 1.85 * ((hi.x - lo.x) / 2 + 320), 1.38 * ((hi.z - lo.z) / 2 + 320)
-	k.ground(OCEAN, margin=4200, rough=0.75, y=-4.0)
+	# An elongated diagonal oval (2.2 : 1) just big enough that the track and a 300-stud margin sit inside 80% of it
+	phi, ratio = math.radians(35), 2.2
+	need = [(lo.x - 300, lo.z - 300), (hi.x + 300, lo.z - 300), (lo.x - 300, hi.z + 300), (hi.x + 300, hi.z + 300)] + [(w.x, w.z) for w in k.wps[::8]]
+	b = max(_rho(cx, cz, ratio, 1.0, phi, x, z) for x, z in need) / 0.8
+	a = b * ratio
+	print("ISLAND semi-axes", round(a), round(b))
+	k.ground(OCEAN, margin=9000, rough=0.75, y=-4.0)
 	_bank(k, SUPPORT)
 	L = k.length
 	# Hero placements first so the scatter keeps clear of them
@@ -533,13 +618,14 @@ def build(k):
 		p, right, t = k.at(L * f)
 		for D in range(260, 1300, 20):
 			x, z = p.x + right.x * 10 + t.x * D, p.z + right.z * 10 + t.z * D
-			if _road_dist(k, x, z) >= 270 and all(math.hypot(x - a_, z - b_) > r + 260 for a_, b_, r in keep):
+			if _road_dist(k, x, z) >= 340 and all(math.hypot(x - a_, z - b_) > r + 260 for a_, b_, r in keep):
 				if nest is None or D < nest[0]:
 					nest = (D, x, z, f)
 				break
 	scorch = []
 	if nest:
-		k.place("Nest", (nest[1], -1.0, nest[2]), k.rng.uniform(0, math.tau), 1.0)
+		nest_yaw = k.rng.uniform(0, math.tau)
+		k.place("Nest", (nest[1], -1.0, nest[2]), nest_yaw, 1.0)
 		keep.append((nest[1], nest[2], 300))
 		scorch.append((nest[1], nest[2], 520))
 		print("NEST at", (round(nest[1]), round(nest[2])), "ahead of shot", nest[3], "by", nest[0])
@@ -555,19 +641,27 @@ def build(k):
 			break
 	# Raid camps: one framed by the 33% run shot, then one every 900 studs
 	camps = []
-	spots = [L * 0.33 + 14 + 120] + [L * 0.06 + 600 + 900 * i for i in range(14)]
+	spots = [L * 0.33 + 14 + 90] + [L * 0.06 + 600 + 900 * i for i in range(14)]
 	for d in spots:
 		if d > L - 200 or any(abs(d - c) < 400 for c in camps):
 			continue
 		for side in (1, -1):
 			(x, _, z), yaw = k.beside(d, side * 72)
 			if k.clear_of_road(x, z, 62) and all(math.hypot(x - a_, z - b_) > r + 50 for a_, b_, r in keep):
-				k.place("Camp", (x, -1.0, z), yaw + (math.pi / 2 if side > 0 else -math.pi / 2), 1.25)
+				k.place("Camp", (x, -1.0, z), yaw + (math.pi / 2 if side > 0 else -math.pi / 2), 1.2)
 				keep.append((x, z, 60))
 				camps.append(d)
 				break
 	print("CAMPS at", [round(c / L, 2) for c in camps])
-	skip = tuple((c - (170 if i == 0 else 55), c + 55) for i, c in enumerate(camps)) + ((cd - 80, cd + 80),)  # the first camp is framed by a run shot
+	# Village set pieces framed by the 6% run shot (right side, the chamber is left) and the side shot
+	homes = []
+	for d, off, name in ((L * 0.06 + 60, 66, "Choga"), (L * 0.06 + 150, 70, "Choga"), (L * 0.48 - 40, 70, "Choga"), (L * 0.48 + 30, 72, "Choga"), (L * 0.48 - 5, 110, "Ruin")):
+		(x, _, z), yaw = k.beside(d, off)
+		if k.clear_of_road(x, z, off - 4) and all(math.hypot(x - a_, z - b_) > r + 30 for a_, b_, r in keep):
+			k.place(name, (x, -1.0, z), yaw + math.pi / 2)
+			keep.append((x, z, 34))
+			homes.append(d)
+	skip = tuple((c - (150 if i == 0 else 55), c + 55) for i, c in enumerate(camps)) + ((cd - 80, cd + 80),) + tuple((h - 30, h + 30) for h in homes)  # the first camp is framed by a run shot
 	# Road edge: lava-stone field walls and brush; then villages, ruins and burning mounds; then the island scatter
 	_row(k, 40, (-32, 32), ["Batdam"], 30, jitter=2, skip=skip)
 	_row(k, 34, (-46, 46), ["Brush"], 40, jitter=4, face_road=False, scale=(0.9, 1.2), skip=skip)
@@ -579,25 +673,25 @@ def build(k):
 	for ob in list(k.col.objects):
 		if ob.type == "MESH" and ob.data.name.split("_")[-1] in ("Brush", "Mound", "Choga", "Ruin", "Batdam"):
 			lx, lz = ob.location.x, -ob.location.y
-			out = math.hypot((lx - cx) / a, (lz - cz) / b) > 0.9
+			out = _rho(cx, cz, a, b, phi, lx, lz) > 0.86
 			if out or any(math.hypot(lx - a_, lz - b_) < r for a_, b_, r in keep):
 				bpy.data.objects.remove(ob)
 				k.instances -= 1
 	for ob in list(k.col.objects):  # burnt ground round the burning mounds
 		if ob.type == "MESH" and ob.data.name.endswith("_Mound"):
 			scorch.append((ob.location.x, -ob.location.y, 90 * ob.scale.x))
-	_island(k, cx, cz, a, b, scorch)
+	_island(k, cx, cz, a, b, scorch, phi)
 	# Basalt column cliffs along the coast, facing the sea; blockade ships ring the island
 	n = 170
 	for i in range(n):
 		th = i * math.tau / n
 		f = _coast(cx, cz, a, b, th) * 0.975
-		x, z = cx + math.cos(th) * a * f, cz + math.sin(th) * b * f
+		x, z = _ell(cx, cz, a * f, b * f, th, phi)
 		out = math.atan2(-(x - cx), -(z - cz))
 		k.place("Cliff", (x, -4.0, z), out + k.rng.uniform(-0.4, 0.4), k.rng.uniform(1.0, 1.7))
 	for i in range(22):
 		th = i * math.tau / 22 + k.rng.uniform(-0.05, 0.05)
-		x, z = cx + math.cos(th) * (a + 700), cz + math.sin(th) * (b + 700)
+		x, z = _ell(cx, cz, a + 700, b + 700, th, phi)
 		k.place("Ship", (x, -4.0, z), -th + k.rng.uniform(-0.3, 0.3), k.rng.uniform(1.4, 2.0))
 	# Overcast dusk over a war zone; cool lamps along the road, floodlit camps, blue glow in the chamber
 	k.sky([(0.0, "D8946A"), (0.04, "A07A70"), (0.12, "6E6670"), (0.35, "4A4C5A"), (1.0, "2A2C38")], strength=0.9, sun=(2.4, "FFB070", 12, 230))
@@ -614,3 +708,24 @@ def build(k):
 			key = ob.data.name.split("_")[-1]
 			counts[key] = counts.get(key, 0) + 1
 	print("PERPROP", counts)
+	_clearance(k)
+	if nest:  # the nest's ants, measured one by one
+		th = nest_yaw  # Blender turn theta maps local (x, z) to (x cos + z sin, -x sin + z cos)
+		ants = [(nest[1] + x * math.cos(th) + z * math.sin(th), nest[2] - x * math.sin(th) + z * math.cos(th)) for x, _, z in NEST_ANTS]
+		print("NEST ANTS min road distance", round(min(_road_dist(k, x, z) for x, z in ants), 1))
+	# Review shot of Hallasan from the runner's lane where the road heads most straight at it
+	global EXTRA_SHOTS
+	hx, hz = keep[0][0], keep[0][1]
+	pick = None
+	d = 60.0
+	while d < L - 60:
+		p, right, t = k.at(d)
+		vx, vz = hx - p.x, hz - p.z
+		ang = math.degrees(math.acos(max(-1.0, min(1.0, (vx * t.x + vz * t.z) / math.hypot(vx, vz)))))
+		if pick is None or ang < pick[0]:
+			pick = (ang, d)
+		d += 20
+	p, right, t = k.at(pick[1])
+	eye = p + right * 10 - t * 14
+	EXTRA_SHOTS = [("06_hallasan", (eye.x, p.y + 8.5, eye.z), (hx, 170.0, hz))]
+	print("EXTRA 06_hallasan at", round(pick[1] / L, 2), round(pick[0]), "deg off heading")

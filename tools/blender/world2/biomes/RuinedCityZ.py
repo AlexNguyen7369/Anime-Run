@@ -19,11 +19,15 @@ Everything in-house, parts only. Proposed look; the owner approves the render se
 
 import math
 
+from mathutils import Vector
+
 CONC, CONC2, BEIGE, TAN = "A39C92", "8C877F", "BFAE92", "9E7A5A"
 GLASS, GLASS2, DARK, FRAME = "36424C", "42505C", "141312", "9C968C"
 BRICK, BRICK2, RUST, SCORCH = "7A4A36", "5E382A", "7A4A2E", "2E2620"
 STAIN, STAIN2, BOARD = "6E665C", "5A544C", "7A5E3E"
 ASPH, STEEL, HQ, HQ2, HQGLASS = "3E3C3A", "6E7276", "1C2026", "2C323A", "222C38"
+
+MODEL_SHOTS = ["SaitamaApt", "HeroHQ", "Crater", "Overpass"]  # hero models rendered close up by build_track
 
 
 def _fill(k, color):
@@ -221,7 +225,7 @@ def _hero_hq(k, rng):
 	for j in range(56):  # stepped tower cluster, tallest at the middle
 		r = rng.uniform(16, 72)
 		a = rng.uniform(0, math.tau)
-		hh = max(14, 230 - r * 2.8 + rng.uniform(-20, 20))
+		hh = max(14, 210 - r * 2.3 + rng.uniform(-12, 12))
 		s = rng.uniform(10, 22)
 		x, z = math.cos(a) * r, math.sin(a) * r
 		p.append(("box", (s, hh, s), (x, 92 + hh / 2, z), (HQ, "262C34", HQ2)[j % 3]))
@@ -233,9 +237,9 @@ def _hero_hq(k, rng):
 	for i in range(10):  # radiating highways on piers
 		a = i * math.tau / 10 + 0.15
 		c, s = math.cos(a), math.sin(a)
-		p.append(("box", (420, 3, 16), (c * 420, 12, s * 420), "4A4E54", {"rot": (0, -math.degrees(a), 0)}))
-		for r in (260, 350, 440, 530, 610):
-			p.append(("box", (5, 12, 8), (c * r, 5, s * r), "3A3E44", {"rot": (0, -math.degrees(a), 0)}))
+		p.append(("box", (240, 3, 16), (c * 330, 20, s * 330), "4A4E54", {"rot": (0, -math.degrees(a), 0)}))
+		for r in (240, 300, 360, 420):
+			p.append(("box", (5, 20, 8), (c * r, 9, s * r), "3A3E44", {"rot": (0, -math.degrees(a), 0)}))
 	return k.prop("HeroHQ", p)
 
 
@@ -313,6 +317,10 @@ def _midrise_apartment(k, rng):
 			for j in range(4):
 				p.append(("box", (8.5, 0.25, 0.5), (x, 1 + j * 1.5, -d / 2 - 0.25), "54565C"))
 	p.append(("box", (w, 0.6, 2.5), (0, g - 1.5, -d / 2 - 1.25), "9A948A"))
+	p.append(("box", (6, h + 4, 7), (w / 2 + 3, (h + 4) / 2, 2), "7E786E"))  # outside stair core with flights
+	for fl in range(floors + 1):
+		p.append(("box", (6.4, 0.6, 7.4), (w / 2 + 3, g + fl * fh - 0.5, 2), "9A948A"))
+		p.append(("box", (0.4, 7.5, 7.6), (w / 2 + 6.2, g + fl * fh - 4.5, 2), "5E5850", {"rot": (40 if fl % 2 else -40, 0, 0)}))
 	_roof(p, w, d, h)
 	_tank(p, w / 2 - 5, h, 0)
 	for _ in range(4):
@@ -359,7 +367,7 @@ def _highrise(k, rng):
 	crown, roof plant, mast."""
 	w, d, g, fh, floors = 34, 30, 12, 9, 16
 	h = g + floors * fh
-	body, frame = "7C766E", "8E887E"
+	body, frame = "6E747C", "7E848A"
 	p = [("box", (w, h, d), (0, h / 2, 0), body)]
 	_grid(p, "z", 0, -d / 2, w - 4, g, floors, fh, 6, rng, glass=GLASS2, frame=frame, broken=0.25)
 	_grid(p, "z+", 0, d / 2, w - 4, g, floors, fh, 4, rng, glass=GLASS2, frame=frame, broken=0.1)
@@ -386,7 +394,7 @@ def _collapsed(k, rng):
 	a fallen chunk leaning on the foot and rubble."""
 	w, d, g, fh = 32, 28, 9, 9
 	hs = g + 9 * fh
-	p = [("box", (w, hs, d), (0, hs / 2, 0), CONC)]
+	p = [("box", (w, hs, d), (0, hs / 2, 0), "A08E78")]
 	_grid(p, "z", 0, -d / 2, w - 2, g, 9, fh, 5, rng, broken=0.55, boarded=0.1)
 	_grid(p, "z+", 0, d / 2, w - 2, g, 9, fh, 4, rng, broken=0.3)
 	for face, cx in (("x+", w / 2), ("x-", -w / 2)):
@@ -427,10 +435,10 @@ def _barricade(k, rng):
 		for s in (-1, 1):
 			p.append(("cyl", (0.22, 2.4, 0.22), (x, 11.8, -1.1), "2E2E2C", {"seg": 4, "rot": (s * 50, 0, 90)}))
 	for x in (-12, 12):  # barrier: two legs, a tall striped beam
-		for dx in (-4.8, 4.8):
-			p.append(("box", (0.6, 4, 2.4), (x + dx, 2, -4), "C8C4B8"))
+		for dx in (-4.8, 4.8):  # tall legs: the striped beam reads over the road wall
+			p.append(("box", (0.6, 9.5, 2.4), (x + dx, 4.75, -4), "C8C4B8"))
 		for j in range(8):
-			p.append(("box", (1.25, 1.8, 0.5), (x - 4.4 + j * 1.25, 3.4, -4), ("F2C230", "1E1E1E")[j % 2]))
+			p.append(("box", (1.25, 2.8, 0.5), (x - 4.4 + j * 1.25, 8.2, -4), ("F2C230", "1E1E1E")[j % 2]))
 	for x in (0.5, 5.5):
 		p.append(("box", (0.45, 15, 0.45), (x, 7.5, -2.4), STEEL))
 	p.append(("box", (5.8, 11, 0.3), (3, 8.5, -2.75), "F2F0EA"))
@@ -458,9 +466,9 @@ def _kerb(k, rng):
 	p.append(("box", (0.4, 1, 2), (0, 32.4, 0.9), "5E5E58"))
 	for i in range(8):
 		p.append(("box", (1.4, 0.2, 0.2), (0, 12 + i * 2.2, 0), "5E5E58", {"rot": (0, (i % 2) * 90, 0)}))
-	p.append(("box", (0.4, 0.4, 7), (0, 26, -3.6), "5E5E58", {"rot": (-12, 0, 0)}))
-	p.append(("box", (1.8, 0.7, 2.6), (0, 26.4, -7), "C8C4B8"))
-	p.append(("box", (1.4, 0.2, 2), (0, 26.0, -7), "FFF2C8", {"emit": 0.6}))
+	p.append(("box", (0.4, 0.4, 3.6), (0, 26, -1.8), "5E5E58", {"rot": (-12, 0, 0)}))  # lamp ends 24.1 off the centre line
+	p.append(("box", (1.8, 0.7, 2.4), (0, 26.4, -3.6), "C8C4B8"))
+	p.append(("box", (1.4, 0.2, 1.8), (0, 26.0, -3.6), "FFF2C8", {"emit": 0.6}))
 	for x, y in ((-4.5, 37.2), (4.5, 37.2), (-1.5, 40.7), (4.5, 40.7)):  # wires to the next pole (+X), slight sag
 		for half in (0, 1):
 			p.append(("cyl", (0.16, POLE_GAP / 2 + 0.4, 0.16), (POLE_GAP / 4 + half * POLE_GAP / 2, y - 0.8, x * 0.15), "1E1E1E", {"seg": 4, "rot": (0, 0, 87 if half == 0 else 93)}))
@@ -502,6 +510,8 @@ def _rubble(k, rng):
 	]
 	for x, z in ((-3, -4), (3, -4), (-3, 4), (3, 4)):
 		p.append(("cyl", (2, 1, 2), (cx + x, 0.9, cz + z), DARK, {"seg": 8, "rot": (0, 0, 90)}))
+	for x, z, s in ((-9, 5, 4), (-4, 7, 3), (14, 5, 3.5), (6, 6, 2.5)):  # weeds and shrubs growing through
+		p.append(("ball", (s, s * 0.7, s), (x, s * 0.3, z), ("4E6B3A", "5E7E44")[int(s) % 2], {"subdiv": 1, "smooth": True}))
 	return k.prop("Rubble", p)
 
 
@@ -547,8 +557,13 @@ def _crater(k, rng):
 		c, s = math.cos(a), math.sin(a)
 		ins = math.degrees(math.atan2(-c, -s))
 		outs = math.degrees(math.atan2(c, s))
-		p.append(("wedge", (26, 18, 44), (c * 128, 9, s * 128), "4E463C", {"rot": (0, ins, 0)}))
-		p.append(("wedge", (26, 18, 40), (c * 170, 9, s * 170), "6A6052", {"rot": (0, outs, 0)}))
+		hb = rng.uniform(9, 20)  # ragged crest height
+		p.append(("wedge", (26, hb, 44), (c * 128, hb / 2, s * 128), "3E362E", {"rot": (0, ins, 0)}))
+		p.append(("wedge", (26, hb, 40), (c * 170, hb / 2, s * 170), ("5A5044", "4A4238")[i % 2], {"rot": (0, outs, 0)}))
+		if i % 2 == 0:  # asphalt plates heaved up on the outer face too, kerb stripe on the edge
+			tilt = -math.degrees(math.atan2(hb, 40)) - rng.uniform(5, 25)
+			p.append(("box", (18, 1.4, 14), (c * 168, hb * 0.55 + 1, s * 168), ASPH, {"rot": (0, -math.degrees(a), tilt)}))
+			p.append(("box", (18, 0.2, 0.6), (c * 168, hb * 0.55 + 1.9, s * 168), "C8C2B0", {"rot": (0, -math.degrees(a), tilt)}))
 	for i in range(30):  # asphalt slabs tilted on the inner face, some flipped up at the crest
 		a = i * math.tau / 30 + rng.uniform(-0.04, 0.04)
 		up = i % 4 == 0
@@ -561,8 +576,13 @@ def _crater(k, rng):
 		a = i * math.tau / 18 + 0.1
 		ln = rng.uniform(40, 90)
 		r = 188 + ln / 2
-		p.append(("box", (ln, 0.1, 1.4), (math.cos(a) * r, 0.05, math.sin(a) * r), "201C18", {"rot": (0, -math.degrees(a) + rng.uniform(-8, 8), 0)}))
-		p.append(("box", (ln * 0.4, 0.1, 0.9), (math.cos(a) * (r + ln * 0.3), 0.06, math.sin(a) * (r + ln * 0.3)), "201C18", {"rot": (0, -math.degrees(a) + rng.uniform(20, 40), 0)}))
+		p.append(("box", (ln, 0.1, 3.5), (math.cos(a) * r, 0.05, math.sin(a) * r), "141210", {"rot": (0, -math.degrees(a) + rng.uniform(-8, 8), 0)}))
+		p.append(("box", (ln * 0.4, 0.1, 2.2), (math.cos(a) * (r + ln * 0.3), 0.06, math.sin(a) * (r + ln * 0.3)), "141210", {"rot": (0, -math.degrees(a) + rng.uniform(20, 40), 0)}))
+	for i in range(16):  # jagged slabs thrust up near vertical along the crest, boulders between them
+		a = i * math.tau / 16 + rng.uniform(-0.1, 0.1)
+		r = 150 + rng.uniform(-6, 6)
+		p.append(("box", (16, 1.8, 12), (math.cos(a) * r, 20, math.sin(a) * r), ASPH, {"rot": (rng.uniform(-15, 15), -math.degrees(a), rng.uniform(62, 80) * (1 if i % 2 else -1))}))
+		p.append(("ball", (10, 7, 9), (math.cos(a + 0.2) * r, 16, math.sin(a + 0.2) * r), ("5A5044", "6A6052")[i % 2], {"subdiv": 1}))
 	for a in range(8):  # buried building stumps, sunk deep into the bowl and rim
 		ang = a * math.tau / 8 + 0.3
 		r = rng.uniform(70, 100)
@@ -581,33 +601,30 @@ def _crater(k, rng):
 	return k.prop("Crater", p)
 
 
-def _clear_side_shot(k):
-	"""Keep the raised side review camera (build_track.shots, 48% along, 140 right) out of the buildings."""
-	p, right, t = k.at(k.length * 0.48)
-	eye = p + right * 140 - t * 60
+def _eye(k, f):
+	"""The runner's review camera at fraction f (build_track.shots): eye point (y ignored) and heading."""
+	p, right, t = k.at(k.length * f)
+	return p + right * 10 - t * 14, t
+
+
+def _clear_near(k, x, z, r, names):
+	"""Drop instances of names within r of (x, z)."""
 	for ob in list(k.col.objects):
-		if ob.type == "MESH" and ob.name.split("_")[2] in ("HighRise", "Collapsed", "MidRise", "OfficeBroken"):
-			if math.hypot(ob.location.x - eye.x, -ob.location.y - eye.z) < 45:
-				k.col.objects.unlink(ob)
+		if ob.type == "MESH" and ob.name.split("_")[2] in names and math.hypot(ob.location.x - x, -ob.location.y - z) < r:
+			k.col.objects.unlink(ob)
 
 
-def _hq_spot(k):
-	"""Where the runner's views at 33% and 62% cross, far outside the city; else straight ahead of the 33% view."""
-	p1, _, t1 = k.at(k.length * 0.33)
-	p2, _, t2 = k.at(k.length * 0.62)
-	det = t1.x * (-t2.z) - t1.z * (-t2.x)
-	if abs(det) > 0.2:
-		dx, dz = p2.x - p1.x, p2.z - p1.z
-		a = (dx * (-t2.z) - dz * (-t2.x)) / det
-		b = (t1.x * dz - t1.z * dx) / det
-		q = p1 + t1 * a
-		far = not (k.lo.x - 300 < q.x < k.hi.x + 300 and k.lo.z - 300 < q.z < k.hi.z + 300)
-		if a > 0 and b > 0 and far and a < 4000:
-			return q
-	q = p1.copy()
-	while k.lo.x - 300 < q.x < k.hi.x + 300 and k.lo.z - 300 < q.z < k.hi.z + 300:
-		q += t1 * 20
-	return q + t1 * 500
+def _clear_view(k, e, x, z, width, names):
+	"""Drop instances of names standing in the sight line from eye e to (x, z)."""
+	vx, vz = x - e.x, z - e.z
+	ln2 = vx * vx + vz * vz
+	for ob in list(k.col.objects):
+		if ob.type != "MESH" or ob.name.split("_")[2] not in names:
+			continue
+		ox, oz = ob.location.x, -ob.location.y
+		u = max(0.0, min(1.0, ((ox - e.x) * vx + (oz - e.z) * vz) / ln2))
+		if math.hypot(ox - e.x - vx * u, oz - e.z - vz * u) < width:
+			k.col.objects.unlink(ob)
 
 
 def build(k):
@@ -635,20 +652,9 @@ def build(k):
 	_row(k, 48, 58, ["MidRise", "OfficeBroken", "MidRise", "Collapsed"], jitter=3, start=30)
 	_row(k, 80, 108, ["MidRise", "Collapsed", "HighRise", "OfficeBroken"], jitter=8, start=20)
 	_row(k, 140, 175, ["HighRise", "OfficeBroken", "Collapsed"], jitter=15, start=50, scale=(1.0, 1.5), yaw_jit=0.4)
-	# The hero's apartment: one, on the right where the start camera looks, its end wall toward the runner
-	for step in range(12):
-		d = L * 0.06 + 70 + step * 15
-		pos, yaw = k.beside(d, 50)
-		if k.clear_of_road(pos[0], pos[2], 42):
-			ob = k.place("SaitamaApt", (pos[0], -1.0, pos[2]), yaw + math.pi / 2)
-			px, pz = pos[0], pos[2]
-			for o in list(k.col.objects):  # clear filler that would overlap it
-				if o is not ob and o.type == "MESH" and o.name.split("_")[2] in ("MidRise", "OfficeBroken", "Collapsed", "HighRise", "Rubble", "Barricade"):
-					if math.hypot(o.location.x - px, -o.location.y - pz) < 40:
-						k.col.objects.unlink(o)
-			break
-	# Expressway crossings on flat straights, piers clear of every lap
-	for f in (0.14, 0.34, 0.63):
+	BUILD = ("MidRise", "OfficeBroken", "Collapsed", "HighRise")
+	# Expressway crossings on flat straights, piers clear of every lap (none in front of the 33% view: it frames the HQ)
+	for f in (0.14, 0.45, 0.63):
 		for step in range(20):
 			d = L * f + 60 + step * 15
 			p0, _, _ = k.at(d - 40)
@@ -673,7 +679,59 @@ def build(k):
 			if math.hypot(x - c.x, z - c.z) > 250 and k.clear_of_road(x, z, clearance):
 				k.place(rng.choice(names), (x, -1.0, z), rng.uniform(0, math.tau), rng.uniform(*scale))
 				placed += 1
-	q = _hq_spot(k)
-	k.place("HeroHQ", (q.x, -1.0, q.z), 0.4, 3.4)
-	_clear_side_shot(k)
+	# Heights vary instance to instance (Roblox: Size.Y on the same mesh)
+	for ob in k.col.objects:
+		if ob.type == "MESH" and ob.name.split("_")[2] in BUILD:
+			ob.scale[2] *= rng.uniform(0.75, 1.3)
+	# 01: the hero's apartment on the right, its blank end wall turned toward the camera, the balconies in view
+	e, t = _eye(k, 0.06)
+	_, right, _ = k.at(L * 0.06)
+	ax, az = e.x + t.x * 95 + right.x * 52, e.z + t.z * 95 + right.z * 52
+	pos, yaw = k.beside(L * 0.06 + 81, 52)
+	_clear_view(k, e, ax, az, 40, BUILD + ("Kerb", "Rubble", "Barricade"))
+	_clear_near(k, ax, az, 42, BUILD + ("Rubble", "Barricade"))
+	k.place("SaitamaApt", (ax, -1.0, az), yaw + math.pi / 2 - 0.5)
+	# 01: a cordon (yellow-black barrier, fence, white board) on the left across the side street
+	pos, yaw = k.beside(L * 0.06 + 45, -33)
+	_clear_near(k, pos[0], pos[2], 20, ("Rubble", "Barricade"))
+	k.place("Barricade", (pos[0], -1.0, pos[2]), yaw - math.pi / 2)
+	# 03 and 04: half-collapsed blocks close to the road ahead
+	for f, ahead, off in ((0.62, 110, 54), (0.62, 170, -54), (0.9, 95, -54), (0.9, 150, 54)):
+		pos, yaw = k.beside(L * f + ahead, off)
+		if k.clear_of_road(pos[0], pos[2], 46):
+			_clear_near(k, pos[0], pos[2], 36, BUILD)
+			k.place("Collapsed", (pos[0], -1.0, pos[2]), yaw + (math.pi / 2 if off > 0 else -math.pi / 2))
+	# 04: a second crater ahead of the last stretch, its sight line cleared
+	e, t = _eye(k, 0.9)
+	for dist in (480, 560, 650, 750):
+		hit = None
+		for deg in (0, -15, 15, -28, 28):
+			a = math.radians(deg)
+			x = e.x + (t.x * math.cos(a) - t.z * math.sin(a)) * dist
+			z = e.z + (t.x * math.sin(a) + t.z * math.cos(a)) * dist
+			if k.clear_of_road(x, z, 250):
+				hit = (x, z)
+				break
+		if hit:
+			_clear_near(k, hit[0], hit[1], 260, BUILD + ("Kerb", "Rubble", "Blocks"))
+			_clear_view(k, e, hit[0], hit[1], 140, BUILD)
+			k.place("Crater", (hit[0], -1.0, hit[1]), math.atan2(e.x - hit[0], e.z - hit[1]), 1.3)
+			break
+	# The Hero Association HQ beyond the north-east corner, inside both the 33% and 62% views; sight lines cleared
+	hq = Vector((k.hi.x + 1240, 0, k.lo.z - 1620))
+	for f in (0.33, 0.62):
+		e, _ = _eye(k, f)
+		_clear_view(k, e, hq.x, hq.z, 90, BUILD)
+	k.place("HeroHQ", (hq.x, -1.0, hq.z), 0.4, 4.0)
+	# 05: the side camera's street: buildings cleared, wrecks, vending machines, cordons and overgrowth at street level
+	p, right, t = k.at(L * 0.48)
+	g = p + right * 140 - t * 60
+	_clear_near(k, g.x, g.z, 120, BUILD)
+	placed, tries = 0, 0
+	while placed < 14 and tries < 400:
+		tries += 1
+		x, z = p.x + right.x * rng.uniform(40, 150) + t.x * rng.uniform(-110, 110), p.z + right.z * rng.uniform(40, 150) + t.z * rng.uniform(-110, 110)
+		if k.clear_of_road(x, z, 34):
+			k.place(("Rubble", "Rubble", "Kerb", "Barricade")[placed % 4], (x, -1.0, z), rng.uniform(0, math.tau), rng.uniform(0.9, 1.4))
+			placed += 1
 	k.sky([(0.0, "E2DCCC"), (0.07, "C6CFD4"), (0.3, "8FB4D8"), (1.0, "3C74BE")], strength=1.0, sun=(4.0, "FFEED6", 46, 150))

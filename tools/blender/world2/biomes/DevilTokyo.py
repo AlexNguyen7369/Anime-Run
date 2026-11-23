@@ -19,6 +19,8 @@ render set (design doc 4.47)."""
 
 import math
 
+MODEL_SHOTS = ["HQ", "Mansion", "Apaato", "Konbini", "Retro"]  # hero close-ups judged at full size (build_track)
+
 ASPH, PAVE, CURB = "3A3C40", "2C2E33", "9A9C9E"
 MANSION_WALL, SHOP_WALL, APA_WALL = "D6D0C3", "B8B0A3", "A99C83"  # keys for the per-instance colour variation
 TILE2, TILE3 = "C9C2B2", "E4E0D6"
@@ -26,7 +28,7 @@ SIDING2 = "8C8270"
 STEEL, STEEL2, FRAME = "6E747C", "4C525A", "3A3E46"
 WARM, SODIUM, COOL, TV = "FFD9A0", "FFA850", "DCEBFF", "9FC0FF"
 DARK = "141824"
-SIGNS = ("E8506A", "48C0CC", "E8C048", "9A6AE0", "E88A48", "78C868")
+SIGNS = ("C88068", "7AA8A4", "D8B068", "9A8AB0", "E0A060", "A8B890")  # muted: amber, off-white teal, dusty tones
 HQ_GREY, HQ_SLAB = "B4B6B6", "D2D4D2"
 
 
@@ -79,8 +81,11 @@ def vending_pair(p, x0, z0, n=2, face=-1):
 		B(p, (3.6, 7, 3), (x, 3.5, z0), body)
 		B(p, (3.0, 3.4, 0.2), (x, 5.0, z0 + face * 1.55), "F8FCFF", emit=3.2)
 		for r in range(3):
-			B(p, (2.8, 0.5, 0.2), (x, 3.9 + r * 1.1, z0 + face * 1.7), SIGNS[(i + r) % 6], emit=1.2)
-		B(p, (3.0, 0.3, 0.2), (x, 3.1, z0 + face * 1.6), "40E060", emit=2)
+			for c in range(4):
+				B(p, (0.5, 0.7, 0.2), (x - 1.05 + c * 0.7, 3.9 + r * 1.1, z0 + face * 1.7), ("C85040", "E8C060", "4A7AB0", "E8E4D8")[(i + r + c) % 4])
+		B(p, (3.0, 0.5, 0.2), (x, 2.9, z0 + face * 1.6), "1E2024")  # dark button strip
+		for c in range(5):
+			B(p, (0.3, 0.2, 0.1), (x - 1.0 + c * 0.5, 2.9, z0 + face * 1.72), "F0D060", emit=1.5)
 		B(p, (2.4, 0.9, 0.3), (x - 0.3, 0.8, z0 + face * 1.5), "15161A")
 	B(p, (1.6, 2.6, 1.6), (x0 + n * 3.8 - 0.8, 1.3, z0), "2E5A90")
 	C(p, (0.8, 0.2, 0.8), (x0 + n * 3.8 - 0.8, 2.7, z0), "15161A")
@@ -193,6 +198,15 @@ def apaato():
 	B(p, (W + 3, 0.5, 0.6), (0, fh * 2, zf - 2.4), "5A6066")
 	C(p, (0.5, fh * 2, 0.5), (-W / 2 - 1, fh, zf - 2.4), "5A6066", seg=6)
 	vending_pair(p, -W / 2 + 2, zf - 2.5, n=3)
+	# Kei car parked along the front
+	B(p, (10, 2.2, 4.8), (2, 1.9, zf - 8), "E8E8E2")
+	B(p, (6.5, 2.6, 4.4), (1.4, 4.2, zf - 8), "1E2430")
+	B(p, (6.0, 0.3, 4.2), (1.4, 5.6, zf - 8), "E8E8E2")
+	for x in (-1.6, 5.6):
+		for z in (-2.3, 2.3):
+			C(p, (1.8, 0.6, 1.8), (x, 0.9, zf - 8 + z), "15161A", seg=8, rot=(90, 0, 0))
+	B(p, (0.2, 0.6, 1.0), (-3.05, 2.2, zf - 9.6), "FFF6D8", emit=2)
+	B(p, (0.2, 0.6, 1.0), (-3.05, 2.2, zf - 6.4), "FFF6D8", emit=2)
 	return p
 
 
@@ -201,8 +215,8 @@ def corner_signs(p, x, zf, top, n, k0):
 	B(p, (0.8, n * 3.2 + 1, 2.8), (x, top - n * 1.6, zf - 1.8), "15151C")
 	for j in range(n):
 		y = top - 1.6 - j * 3.2
-		B(p, (1.0, 2.6, 2.2), (x, y, zf - 1.8), SIGNS[(j + k0) % 6], emit=1.8)
-		B(p, (1.2, 0.9, 0.9), (x, y + (j % 2 - 0.5) * 0.6, zf - 1.8), "F4F0E8", emit=1.2)
+		B(p, (1.0, 2.6, 2.2), (x, y, zf - 1.8), SIGNS[(j + k0) % 6], emit=0.9)
+		B(p, (1.2, 0.9, 0.9), (x, y + (j % 2 - 0.5) * 0.6, zf - 1.8), "3A3430")  # dark glyph block
 
 
 def shophouse():
@@ -221,7 +235,7 @@ def shophouse():
 	B(p, (W + 1, 0.6, 4.5), (0, 8.2, zf - 2.2), ("B8322E", "3A6A50")[0], rot=(-14, 0, 0))
 	B(p, (W, 2.2, 0.4), (0, 10.6, zf - 0.3), "1A1A22")
 	for i, x in enumerate((-6, -1.5, 3)):
-		B(p, (3, 1.4, 0.2), (x, 10.6, zf - 0.55), SIGNS[i * 2 % 6], emit=2.2)
+		B(p, (3, 1.4, 0.2), (x, 10.6, zf - 0.55), SIGNS[i * 2 % 6], emit=1.1)
 	for f in range(3):
 		y0 = 12 + f * 8.5
 		for x in (-5, 5):
@@ -230,6 +244,15 @@ def shophouse():
 		B(p, (W + 0.4, 0.4, D + 0.4), (0, y0, 0), "9A9488")
 		for xs in (-W / 2, W / 2):
 			side_window(p, xs, -2, y0 + 3.8, 4, 4, (WARM, None, TV)[lit(f, xs) % 3])
+	for bx in (-7.5, -4.5):  # parked bicycles
+		for wx in (-1.4, 1.4):
+			C(p, (2.2, 0.2, 2.2), (bx + wx * 0, 1.1, zf - 2.2 + wx), "1A1A1A", seg=10, rot=(0, 0, 90))
+		B(p, (0.25, 0.25, 2.8), (bx, 1.9, zf - 2.2), "8A2A2A")
+		B(p, (0.25, 1.4, 0.25), (bx, 2.4, zf - 1.2), "8A8A8A")
+	for px in (6.5, 8.5):  # potted plants
+		C(p, (1.4, 1.2, 1.4), (px, 0.6, zf - 1.2), "8A5A3A", seg=8)
+		p.append(("ball", (1.8, 1.8, 1.8), (px, 1.9, zf - 1.2), "3E6A40", {"subdiv": 1}))
+	C(p, (0.6, H, 0.6), (-W / 2 + 0.6, H / 2, zf - 0.4), "8A8478", seg=6)  # front drainpipe
 	corner_signs(p, -W / 2 - 0.4, zf, H - 2, 6, 1)
 	corner_signs(p, W / 2 + 0.4, zf, H - 6, 4, 4)
 	C(p, (0.6, H, 0.6), (W / 2 - 0.6, H / 2, D / 2 - 0.6), "8A8478", seg=6)
@@ -247,7 +270,7 @@ def konbini():
 	zf = -D / 2
 	p = []
 	B(p, (W, H, D), (0, H / 2, 0), "ECECEA")
-	B(p, (W - 2, 8, 0.4), (0, 4.4, zf - 0.1), "F6FBFF", emit=3.0)
+	B(p, (W - 2, 8, 0.4), (0, 4.4, zf - 0.1), "F6F4EC", emit=1.8)
 	for r in range(3):
 		for s in range(6):
 			B(p, (4, 1.0, 0.4), (-12.5 + s * 5, 1.8 + r * 2.0, zf - 0.4), ("D8584A", "4A9AD8", "E8C040", "5AB870")[(r + s) % 4])
@@ -255,68 +278,72 @@ def konbini():
 		B(p, (0.4, 8.4, 0.5), (x, 4.6, zf - 0.7), "9AA2AA", metal=0.5)
 	B(p, (W, 0.5, 0.5), (0, 8.8, zf - 0.7), "9AA2AA", metal=0.5)
 	B(p, (6, 7.6, 0.3), (0, 4.2, zf - 0.9), "C8E8FF", emit=1.0, alpha=0.6)
-	B(p, (W + 0.6, 1.4, 0.5), (0, 10.0, zf - 0.3), "6A3FB5", emit=1.6)
-	B(p, (W + 0.6, 0.8, 0.5), (0, 11.0, zf - 0.3), "8BD448", emit=1.6)
+	B(p, (W + 0.6, 1.4, 0.5), (0, 10.0, zf - 0.3), "D89A48", emit=0.7)  # muted amber and teal bands (no real chain's)
+	B(p, (W + 0.6, 0.8, 0.5), (0, 11.0, zf - 0.3), "6A9A92", emit=0.7)
 	B(p, (W + 0.6, 0.6, D + 0.6), (0, H + 0.3, 0), "C8C8C6")
 	for x in (-10, -3, 4):
 		B(p, (5, 3, 4), (x, H + 2, 4), "D8D8D4")
 		C(p, (2.4, 0.2, 2.4), (x, H + 3.6, 4), "50545A")
 	vending_pair(p, -W / 2 - 4.2, zf + 2, n=2)
 	C(p, (0.8, 18, 0.8), (W / 2 + 3, 9, zf - 1), STEEL, seg=6)
-	B(p, (6, 4, 1.2), (W / 2 + 3, 18, zf - 1), "F4F4F0", emit=2.5)
-	B(p, (6.2, 1.2, 1.3), (W / 2 + 3, 19, zf - 1), "6A3FB5", emit=2.5)
+	B(p, (6, 4, 1.2), (W / 2 + 3, 18, zf - 1), "F0ECE0", emit=1.2)
+	B(p, (6.2, 1.2, 1.3), (W / 2 + 3, 19, zf - 1), "D89A48", emit=1.2)
 	return p
 
 
 def hq():
-	"""The hunters' headquarters, the tallest mass in town: a pale grey stepped government block in three tiers with deep
-	projecting floor slabs and recessed dark ribbon glazing, sparse lit offices, a lit forecourt with bollard lights,
-	planters and flag poles (no flags), and a large changed emblem (ring and diamond, lit) on the top roof edge."""
+	"""The hunters' headquarters, after the Kasumigaseki government blocks: a wide, low pale-grey block (about 2:1 width
+	to height above its podium) of 10 deep projecting slab bands over recessed dark ribbon windows, pale piers between
+	bays, sparse warm-lit offices, on a 2-storey podium with a lit lobby band. A lit forecourt, a low penthouse, and a large
+	changed emblem (ring and diamond, not the real mark) on the roof edge."""
 	p = []
-	tiers = ((130, 64, 12), (96, 50, 6), (64, 36, 5))
-	y = 0.0
-	B(p, (150, 4, 84), (0, 2, 0), "8E8C86")  # podium
-	y = 4.0
-	for ti, (W, D, n) in enumerate(tiers):
-		fh = 8
-		for f in range(n):
-			y0 = y + f * fh
-			B(p, (W + 6, 1.8, D + 6), (0, y0 + 0.9, 0), HQ_SLAB, emit=0.35)  # deep slab, floodlit pale
-			B(p, (W - 1, fh - 1.8, D - 1), (0, y0 + 1.8 + (fh - 1.8) / 2, 0), "283040")  # recessed glazing
-			for s in range(int(W / 10)):
-				if lit(ti, f, s) < 2:  # sparse lit offices
-					B(p, (8, 4.6, 0.2), (-W / 2 + 5 + s * 10, y0 + 4.6, -D / 2 + 0.4), (COOL, "F0F4FF")[s % 2], emit=1.6)
-			for s in range(int(D / 10)):
-				if lit(ti, s, f, 3) < 2:
-					for xs in (-W / 2 + 0.4, W / 2 - 0.4):
-						B(p, (0.2, 4.6, 8), (xs, y0 + 4.6, -D / 2 + 5 + s * 10), COOL, emit=1.4)
-		for x in range(int(-W / 2) + 5, int(W / 2), 10):  # pale piers between bays on the street face
-			B(p, (1.2, n * fh, 1.0), (x, y + n * fh / 2, -D / 2 - 0.2), HQ_GREY, emit=0.3)
-		y += n * fh
-		B(p, (W + 8, 2.2, D + 8), (0, y + 1.1, 0), HQ_SLAB, emit=0.5)  # tier roof edge
-		y += 2.2
-	top = y
-	# The changed emblem on the top roof edge: lit ring, dark disc, lit diamond, on a frame
-	B(p, (2, 14, 2), (-10, top + 7, -16), STEEL2)
-	B(p, (2, 14, 2), (10, top + 7, -16), STEEL2)
-	C(p, (26, 1.2, 26), (0, top + 16, -17.5), "F2EAD2", seg=24, rot=(90, 0, 0), emit=2.2)
-	C(p, (20, 1.4, 20), (0, top + 16, -17.6), "2A2420", seg=24, rot=(90, 0, 0))
-	B(p, (9, 9, 0.8), (0, top + 16, -18.5), "E83A2A", rot=(0, 0, 45), emit=3.0)
-	C(p, (1, 26, 1), (20, top + 13, 8), STEEL, seg=6)
-	p.append(("ball", (2.2, 2.2, 2.2), (20, top + 27, 8), "FF2B2B", {"emit": 10}))
-	B(p, (22, 6, 14), (-14, top + 3, 8), "9A9C9C")
+	W, D, fh, n, base = 170, 70, 8, 10, 18
+	B(p, (W + 16, base, D + 16), (0, base / 2, 0), "8E908E")  # podium
+	B(p, (W + 16.4, 5, D + 16.4), (0, 6, 0), "302C28")
+	for x in range(-88, 90, 8):
+		B(p, (6.6, 4.2, 0.3), (x, 6, -D / 2 - 8.3), WARM if lit(x, 1) < 6 else "E8ECF0", emit=0.9)  # lobby band
+	B(p, (W + 20, 1.6, D + 20), (0, base + 0.8, 0), "C4C6C4")
+	for f in range(n):
+		y0 = base + 1.6 + f * fh
+		B(p, (W + 8, 1.8, D + 8), (0, y0 + 0.9, 0), "C8CAC8", emit=0.12)  # deep slab band
+		B(p, (W - 1, fh - 1.8, D - 1), (0, y0 + 1.8 + (fh - 1.8) / 2, 0), "1C222C")  # recessed dark ribbon glazing
+		for s_ in range(int(W / 10)):
+			if lit(f, s_) < 2:
+				B(p, (8, 4.2, 0.2), (-W / 2 + 5 + s_ * 10, y0 + 4.8, -D / 2 + 0.4), (WARM, "F2E6D0")[s_ % 2], emit=1.0)
+		for s_ in range(int(D / 10)):
+			if lit(s_, f, 3) < 2:
+				for xs in (-W / 2 + 0.4, W / 2 - 0.4):
+					B(p, (0.2, 4.2, 8), (xs, y0 + 4.8, -D / 2 + 5 + s_ * 10), WARM, emit=0.9)
+	top = base + 1.6 + n * fh
+	for x in range(-80, 85, 10):  # pale piers between bays on the street face
+		B(p, (1.4, n * fh, 1.2), (x, base + 1.6 + n * fh / 2, -D / 2 - 0.4), "B0B2B0")
+	for z in range(-30, 35, 10):
+		for xs in (-W / 2 - 0.4, W / 2 + 0.4):
+			B(p, (1.2, n * fh, 1.4), (xs, base + 1.6 + n * fh / 2, z), "B0B2B0")
+	B(p, (W + 10, 2.4, D + 10), (0, top + 1.2, 0), "D0D2D0", emit=0.15)
+	B(p, (60, 8, 30), (20, top + 6, 10), "9A9C9A")  # penthouse and roof plant
+	for x in (-30, -18, -6):
+		B(p, (8, 4, 8), (x, top + 4.4, 14), "8A8E90")
+	# Emblem on the street-side roof edge
+	B(p, (2, 12, 2), (-12, top + 7, -D / 2 + 2), STEEL2)
+	B(p, (2, 12, 2), (12, top + 7, -D / 2 + 2), STEEL2)
+	C(p, (28, 1.2, 28), (0, top + 16, -D / 2 + 0.5), "E8E0C8", seg=24, rot=(90, 0, 0), emit=1.4)
+	C(p, (22, 1.4, 22), (0, top + 16, -D / 2 + 0.4), "2A2420", seg=24, rot=(90, 0, 0))
+	B(p, (10, 10, 0.8), (0, top + 16, -D / 2 - 0.5), "C83A2A", rot=(0, 0, 45), emit=1.6)
+	C(p, (1, 24, 1), (60, top + 12, 14), STEEL, seg=6)
+	p.append(("ball", (2.2, 2.2, 2.2), (60, top + 25, 14), "FF2B2B", {"emit": 8}))
 	# Lit forecourt
-	B(p, (110, 0.4, 36), (0, 0.2, -60), "8A8A86")
-	for x in range(-48, 50, 12):
-		B(p, (6, 0.2, 1.2), (x, 0.5, -60), "FFE8C0", emit=2.5)
-		C(p, (0.6, 2.6, 0.6), (x, 1.5, -77), "DADAD0", seg=6, emit=1.5)
-	for x in (-40, 40):
-		B(p, (10, 2, 6), (x, 1.2, -50), "6A6A66")
-		p.append(("ball", (8, 7, 6), (x, 5.5, -50), "3A5A3A", {"subdiv": 1}))
+	fz = -D / 2 - 8 - 20
+	B(p, (130, 0.4, 40), (0, 0.2, fz), "8A8A86")
+	for x in range(-56, 60, 14):
+		B(p, (7, 0.2, 1.4), (x, 0.5, fz), "FFE0B0", emit=1.6)
+		C(p, (0.6, 2.6, 0.6), (x, 1.5, fz - 18), "DADAD0", seg=6, emit=1.0)
+	for x in (-46, 46):
+		B(p, (12, 2, 7), (x, 1.2, fz + 8), "6A6A66")
+		p.append(("ball", (10, 8, 7), (x, 6, fz + 8), "3A5A3A", {"subdiv": 1}))
 	for x in (-6, 0, 6):
-		C(p, (0.5, 22, 0.5), (x, 11, -46), "C8C8C8", seg=6)
-	B(p, (44, 9, 0.4), (0, 8.5, -42.3), COOL, emit=2.4)  # entrance glazing
-	B(p, (54, 1.4, 14), (0, 14, -48), HQ_SLAB)
+		C(p, (0.5, 24, 0.5), (x, 12, fz + 12), "C8C8C8", seg=6)
+	B(p, (60, 1.4, 14), (0, 14, -D / 2 - 14), "C4C6C4")
 	return p
 
 
@@ -385,21 +412,28 @@ def street_kit():
 			for zz in (-w / 2 + 1, 0, w / 2 - 1):
 				C(p, (0.5, 1.0, 0.5), (px, y + 0.8, 1 + zz), "D8D8D0", seg=6)
 		if drum:
-			for dz in (-1.4, 1.4):
-				C(p, (2.0, 3.6, 2.0), (px + 1.4, 25, 1 + dz), "8A9096", seg=10)
-			B(p, (0.4, 0.4, 4.5), (px + 1.4, 27, 1), STEEL)
+			for dx in (-1.7, 1.7):  # two big transformer drums on the road side of the pole
+				C(p, (2.8, 4.6, 2.8), (px + dx, 24.5, -1.2), "8A9096", seg=12)
+				C(p, (3.0, 0.4, 3.0), (px + dx, 26.9, -1.2), "6A7076", seg=12)
+			B(p, (5.6, 0.5, 0.5), (px, 27.4, -0.2), STEEL)
 		B(p, (1.0, 2.2, 1.6), (px - 1.0, 21, 1), "8A9096")
 		C(p, (0.6, 20, 0.6), (px + 0.6, 22, 1.8), "1A1B1E", seg=6)
 	# Wires along the street: 8 per span (6 thin, 2 thick cable bundles), from x=-24 to -12, -12 to 12, 12 to 24
-	lines = ((34.6, -4.5, 0.18), (34.6, -1.5, 0.18), (34.6, 3.5, 0.18), (30.6, -3.5, 0.18), (30.6, 3.5, 0.18), (30.6, 0, 0.18), (26, 0.0, 0.8), (23.5, 1.5, 0.6))
+	# Every span sags into a V: pole to pole (24 studs, sag 4.5); the kit ends at the low point of the next span
+	lines = ((34.6, -4.5, 0.35), (34.6, -1.5, 0.35), (34.6, 3.5, 0.35), (30.6, -3.5, 0.35), (30.6, 3.5, 0.35), (30.6, 0, 0.35), (26, 0.0, 1.6), (23.5, 1.5, 1.2))
+	sag = 4.5
 	for y, z, r in lines:
 		zz = 1 + z
-		wire(p, -12, y, zz, 12, y, zz, r, 2.6)
-		wire(p, -24, y - 1.3, zz, -12, y, zz, r, 0.4)
-		wire(p, 12, y, zz, 24, y - 1.3, zz, r, 0.4)
-	# Wires crossing over the street from the second pole to the far side (62 studs away toward -Z)
+		wire(p, -12, y, zz, 12, y, zz, r, sag)
+		wire(p, -24, y - sag, zz, -12, y, zz, r, 0.0)
+		wire(p, 12, y, zz, 24, y - sag, zz, r, 0.0)
+	# Wires crossing over the street from the second pole to the far side (62 studs away toward -Z); lowest 20+ up
 	for y, dz in ((33, -2), (30, 0), (27.5, 2)):
-		wire(p, 12, y, 1 + dz, 12, y, -61 + dz, 0.2, 4.0)
+		wire(p, 12, y, 1 + dz, 12, y, -61 + dz, 0.35, 7.0)
+	# Orange curve mirror on its own post at the kerb
+	C(p, (0.5, 10, 0.5), (-20, 5, -4.4), "E07020", seg=6)
+	C(p, (3.6, 0.5, 3.6), (-20, 10.5, -5.0), "E07020", seg=14, rot=(90, 0, 0))
+	C(p, (3.0, 0.3, 3.0), (-20, 10.5, -5.3), "C8D0D8", seg=14, rot=(90, 0, 0), metal=0.8, rough=0.15)
 	return p
 
 
@@ -447,6 +481,25 @@ def low_block():
 	return p
 
 
+def roof_tile():
+	"""320 x 320 of low back-street rooftops for the far city out to the horizon: an 8 x 8 grid of 2-7 storey blocks in
+	muted greys and tans, roof units and tanks, and a few lit window strips."""
+	p = []
+	B(p, (320, 0.4, 320), (0, 0.2, 0), "34363A")
+	for i in range(8):
+		for j in range(8):
+			x, z = -140 + i * 40, -140 + j * 40
+			h = 8 + lit(i, j) * 2.4
+			w = 26 + lit(j, i, 2) * 1.0
+			col = ("8A8C8C", "9A948A", "7A7C80", "A8A498", "6E7276")[lit(i, j, 5) % 5]
+			B(p, (w, h, w - 2), (x, h / 2, z), col)
+			if lit(i, j, 7) < 6:
+				B(p, (6, 3, 6), (x + 6, h + 1.5, z + 4), "8E9094")
+			if lit(i, j, 9) < 5:
+				B(p, (w - 4, 2.2, 0.2), (x, h * 0.6, z - (w - 2) / 2 - 0.1), (WARM, "F2E6D0", TV)[lit(j, i) % 3], emit=1.0)
+	return p
+
+
 def retro():
 	"""A Jinbocho corner from the film: a 3-storey retro tiled building (brown tile, arched windows, cornice, lit
 	ground-floor cafe glazing, a striped awning) and a lit green phone booth on the pavement beside it."""
@@ -467,20 +520,20 @@ def retro():
 	for i in range(6):
 		B(p, (W / 6, 0.5, 4), (-W / 2 + W / 12 + i * W / 6, 8.6, zf - 2), ("2A6A4A", "E8E0D0")[i % 2], rot=(-15, 0, 0))
 	# Phone booth: green frame, glass, lit ceiling, phone box
-	bx = W / 2 + 5
+	bx = 8  # in front of the facade, so every camera that sees the building sees the booth
 	for dx in (-1.6, 1.6):
 		for dz in (-1.6, 1.6):
-			B(p, (0.4, 8, 0.4), (bx + dx, 4, zf - 2 + dz), "2E8A4A")
-	B(p, (3.8, 0.6, 3.8), (bx, 8.2, zf - 2), "2E8A4A")
-	B(p, (3.4, 0.3, 3.4), (bx, 7.8, zf - 2), "F4FFF4", emit=4)
-	B(p, (3.2, 7, 3.2), (bx, 4, zf - 2), "D8F0E0", alpha=0.35, emit=0.4)
-	B(p, (1.2, 1.8, 0.8), (bx, 4.6, zf - 0.7), "3A8A5A")
-	B(p, (3.8, 0.4, 3.8), (bx, 0.2, zf - 2), "2E8A4A")
+			B(p, (0.4, 8, 0.4), (bx + dx, 4, zf - 4 + dz), "2E8A4A")
+	B(p, (3.8, 0.6, 3.8), (bx, 8.2, zf - 4), "2E8A4A")
+	B(p, (3.4, 0.3, 3.4), (bx, 7.8, zf - 4), "F4FFF4", emit=4)
+	B(p, (3.2, 7, 3.2), (bx, 4, zf - 4), "D8F0E0", alpha=0.35, emit=0.8)
+	B(p, (1.2, 1.8, 0.8), (bx, 4.6, zf - 2.7), "3A8A5A")
+	B(p, (3.8, 0.4, 3.8), (bx, 0.2, zf - 4), "2E8A4A")
 	return p
 
 
 # Footprints along the road (width incl. side annexes) and depth (incl. balconies), for the street-front placer
-FOOT = {"Mansion": (74, 34), "Apaato": (50, 24), "ShopHouse": (30, 22), "Konbini": (50, 24)}
+FOOT = {"Mansion": (74, 34), "Apaato": (50, 32), "ShopHouse": (30, 22), "Konbini": (50, 24)}
 
 
 def vary(k, color, palette):
@@ -538,6 +591,7 @@ def build(k):
 		("StreetKit", street_kit()),
 		("LowBlock", low_block()),
 		("Retro", retro()),
+		("RoofTile", roof_tile()),
 	):
 		k.prop(name, parts)
 	vary(k, MANSION_WALL, ("D6D0C3", "9EA0A0", "8C6A52", "E8E4DA", "8FA08A"))  # off-white, grey concrete, brown tile, green
@@ -563,9 +617,23 @@ def build(k):
 				hq_plots.append((q.x, q.z, 120))
 				for side in (-1, 1):  # floodlights washing the pale front
 					fx, fz = q.x - t.x * 70 + right.x * side * 40, q.z - t.z * 70 + right.z * side * 40
-					k.light((fx, 30, fz), "E8F0FF", energy=250000, radius=10).data.use_shadow = False
+					k.light((fx, 30, fz), "E8F0FF", energy=100000, radius=10).data.use_shadow = False
 				print("HQ at", f, ahead)
 				break
+	# Aki's apartment beat: one hero mansion square-on at the end of an early street axis, corridor face to the camera
+	hero_plot = []
+	for f in (0.33, 0.06):
+		if hero_plot:
+			break
+		p, right, t = k.at(L * f)
+		for ahead in (170, 200, 140, 230):
+			q = p + right * 10 + t * ahead
+			if k.clear_of_road(q.x, q.z, 48) and all(math.hypot(q.x - x, q.z - z) > 160 for x, z, _ in hq_plots):
+				k.place("Mansion", (q.x, 0.0, q.z), math.atan2(-t.x, -t.z))  # +Z (corridor face) toward the camera
+				hero_plot.append((q.x, q.z, 50))
+				print("Hero mansion at", f, ahead)
+				break
+	hq_plots += hero_plot
 	# The Jinbocho corner near the start, on the right
 	pos, yaw = k.beside(L * 0.06 + 40, 38 + 10)
 	k.place("Retro", pos, yaw + math.pi / 2)
@@ -575,8 +643,21 @@ def build(k):
 	street(k, 1, ["ShopHouse", "Apaato", "ShopHouse", "Mansion", "Konbini"], 37, 20, end, avoid=hq_plots + retro_plot, flip=0.5)
 	street(k, -1, ["Mansion", "Mansion", "ShopHouse"], 76, 0, end, gap=(6, 20), avoid=hq_plots)
 	street(k, 1, ["Mansion", "Apaato", "Mansion"], 76, 0, end, gap=(6, 20), avoid=hq_plots)
-	k.field(16, ["LowBlock"], clearance=120, margin=0)
-	k.field(40, ["Office"], clearance=230, margin=450, scale=(0.5, 0.85))
+	# Infield back streets: low blocks on an aligned 110-stud grid, each with a sodium light over its parking and park
+	c = (k.lo + k.hi) / 2
+	for i in range(-4, 5):
+		for j in range(-4, 5):
+			x, z = c.x + i * 110, c.z + j * 110
+			if k.clear_of_road(x, z, 125) and all(math.hypot(x - a, z - b) > r + 70 for a, b, r in hq_plots):
+				k.place("LowBlock", (x, 0.0, z), 0.0)
+				k.light((x - 10, 20, z - 10), SODIUM, energy=60000, radius=8).data.use_shadow = False
+	# The far city: rooftop tiles on an aligned 320-stud grid out to the horizon, offices standing among them
+	for i in range(-7, 8):
+		for j in range(-7, 8):
+			x, z = c.x + i * 320, c.z + j * 320
+			if math.hypot(i, j) <= 6.6 and k.clear_of_road(x, z, 330) and all(math.hypot(x - a, z - b) > r + 230 for a, b, r in hq_plots):
+				k.place("RoofTile", (x, 0.0, z), 0.0)
+	k.field(40, ["Office"], clearance=230, margin=450, scale=(0.4, 0.55))
 	# Night: teal-blue ambient for cool shadows, warm sodium point lights at the lamps
 	k.sky([(0.0, "3A4A5A"), (0.06, "22344A"), (0.25, "122236"), (1.0, "060C18")], strength=1.0, sun=(0.6, "6FA8C0", 35, 140))
 	d = 24

@@ -33,6 +33,8 @@ TUNNEL = (1990.0, 2330.0)  # run shot 2 (1903) faces the entry portal; the far e
 LAMPS = (150.0, 260.0)
 MIRROR_TURN = math.radians(50)  # curve mirrors turn from facing across the road toward the oncoming runner  # the only lamps: this far inside each mouth (local +Z), on alternate walls
 
+CLEAR_EXEMPT = {"Fill", "TunnelSeg", "Portal"}  # road support; the tunnel lining and portals span the road 38 overhead
+MODEL_SHOTS = ["Portal", "Hospital", "School", "SeikoHouse"]  # hero models rendered close up for review
 
 def bx(p, size, pos, col, **o):
 	p.append(("box", size, pos, col, o))
@@ -238,16 +240,21 @@ def build(k):
 	for i in range(10):  # stains on the ring itself
 		a = rnd.uniform(0.2, math.pi - 0.2)
 		bx(po, (rnd.uniform(1.5, 3), rnd.uniform(4, 9), 0.3), (math.cos(a) * (R + 3), SPR + math.sin(a) * (R + 3), -3.85), MOSS)
-	po.append(("wedge", (180, 70, 110), (0, top + 35, 58), "1E2E24"))  # rises back from the parapet
-	for i in range(26):
-		z = rnd.uniform(6, 100)
-		yy = top + 70 * (z - 3) / 110
-		sz = rnd.uniform(8, 18)
-		po.append(("ball", (sz * 1.5, sz * 0.6, sz), (rnd.uniform(-85, 85), yy + sz * 0.15, z), (IVY3, "1F3A24", IVY)[i % 3], {"subdiv": 1}))
+	# the hillside over the tunnel: a lumpy forested mound (overlapping faceted masses) rising back from the parapet,
+	# with ivy and undergrowth clumps and cedars on it
+	mound = [(-62, 12, 22, 70, 34, 50), (-10, 18, 34, 90, 46, 64), (44, 14, 26, 74, 38, 54), (-36, 28, 72, 96, 56, 76),
+		(30, 30, 80, 100, 60, 80), (78, 16, 60, 70, 40, 70), (-80, 18, 66, 66, 40, 66), (0, 40, 110, 120, 62, 70)]
+	for x, y, z, sx, sy, sz in mound:
+		po.append(("ball", (sx, sy * 2, sz), (x, top + y - sy * 0.4, z), ("1E2E24", "22362A", "1A2A20")[int(x) % 3], {"subdiv": 2}))
+	for i in range(30):
+		x, y, z, sx, sy, sz = rnd.choice(mound)
+		px, pz = x + rnd.uniform(-sx, sx) * 0.35, z + rnd.uniform(-sz, sz) * 0.35
+		size = rnd.uniform(8, 16)
+		po.append(("ball", (size * 1.4, size * 0.6, size), (px, top + y + sy * 0.45, pz), (IVY3, "1F3A24", IVY)[i % 3], {"subdiv": 1}))
 	for s in (-1, 1):
 		po.append(("wedge", (60, top, 70), (s * (half + 30), top / 2 - 1, 34), "1C2A22", {"rot": (0, -s * 90, 0)}))
-	for x, z, hh in ((-70, 30, 44), (-48, 60, 52), (-20, 80, 62), (10, 52, 48), (36, 76, 58), (58, 40, 44), (75, 90, 50)):
-		po.append(("cone", (16, hh, 16), (x, top + 70 * (z - 3) / 110 + hh / 2 - 4, z), (CEDAR, CEDAR2)[x % 2], {"seg": 7}))
+	for (x, y, z, sx, sy, sz), hh in zip(mound, (44, 52, 46, 62, 58, 48, 44, 66)):
+		po.append(("cone", (16, hh, 16), (x + 6, top + y + sy * 0.4 + hh / 2 - 6, z + 4), (CEDAR, CEDAR2)[int(x) % 2], {"seg": 7}))
 	# ivy: a heavy uneven mass of small flat leaf clusters over the top-right (viewer's right is -X), thinner on the
 	# left; the voussoir ring is left mostly bare
 	for i in range(110):
