@@ -108,6 +108,9 @@ function Module.Build(h)
 	local function topRight(r)
 		return { x = r.x + r.w / 2, y = r.y, w = r.w / 2, h = r.h / 2 }
 	end
+	local function rightHalf(r)
+		return { x = r.x + r.w / 2, y = r.y, w = r.w / 2, h = r.h }
+	end
 	local function textOf(object)
 		return object and (object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox")) and object.Text
 			or nil
@@ -179,7 +182,9 @@ function Module.Build(h)
 				table.insert(wrong, tag .. ": Pedestal is not a ViewportFrame holding a Model Altar")
 			end
 			-- Owner 2026-11-17 (4.45): a member stands on its altar as its 3D model; an empty altar holds none
-			local figure = pedestal and pedestal:FindFirstChild("Figure", true)
+			-- 4.45 night dojo: the member stands in the stage's WorldModel (Pedestal/World/Figure)
+			local world = pedestal and pedestal:FindFirstChild("World")
+			local figure = world and world:FindFirstChild("Figure")
 			local hasFigure = figure ~= nil and figure:IsA("Model")
 			if hasFigure ~= (ids[n] ~= nil) then
 				table.insert(
@@ -566,7 +571,8 @@ function Module.Build(h)
 		for _, name in T.GoneDirect do
 			check(res, "team_no_panel_" .. name, panel and panel:FindFirstChild(name), nil)
 		end
-		-- Three altars, left to right, level, apart
+		-- Three altars apart, Altar2 left of Altar1 left of Altar3 (design doc 4.45 "Team Select night dojo": slot 1
+		-- centre and in front, bigger; slots 2 and 3 at X -9.37 / 10.26 further back, so the rows differ in Y)
 		local rects, wrong = {}, {}
 		for n = 1, 3 do
 			local a = altar(n)
@@ -576,16 +582,13 @@ function Module.Build(h)
 				table.insert(wrong, "Altar" .. n .. " missing or hidden")
 			end
 		end
-		for n = 1, 2 do
-			local a, b = rects[n], rects[n + 1]
-			if a and b then
-				if a.x + a.w / 2 >= b.x + b.w / 2 then
-					table.insert(wrong, ("Altar%d not left of Altar%d"):format(n, n + 1))
-				end
-				if math.abs(a.y - b.y) > TOL then
-					table.insert(wrong, ("Altar%d y %.0f, Altar%d y %.0f"):format(n, a.y, n + 1, b.y))
-				end
+		for _, pair in { { 2, 1 }, { 1, 3 } } do
+			local a, b = rects[pair[1]], rects[pair[2]]
+			if a and b and a.x + a.w / 2 >= b.x + b.w / 2 then
+				table.insert(wrong, ("Altar%d not left of Altar%d"):format(pair[1], pair[2]))
 			end
+		end
+		for n = 1, 2 do
 			for m = n + 1, 3 do
 				if rects[n] and rects[m] and overlaps(rects[n], rects[m]) then
 					table.insert(wrong, ("Altar%d overlaps Altar%d"):format(n, m))
@@ -627,8 +630,8 @@ function Module.Build(h)
 		return wrong
 	end
 
-	-- Gear icons on `holder` (a card, or an altar judged against its Portrait) for `characterId`.
-	local function gearProblems(holder, characterId, frame, tag, icons)
+	-- Gear icons on `holder` (a card, or an altar judged against its Nameplate) for `characterId`.
+	local function gearProblems(holder, characterId, frame, tag, icons, region)
 		local wrong = {}
 		local relic = SidekickView.RelicGear(player)[characterId]
 		local sidekick = SidekickView.Gear(player)[characterId]
@@ -640,8 +643,11 @@ function Module.Build(h)
 			table.insert(wrong, tag .. ": wears gear, no shown Gear")
 			return wrong
 		end
-		if not inside(topRight(h.rect(frame)), h.rect(gear)) then
-			table.insert(wrong, tag .. ": Gear not in the top-right quarter of " .. frame.Name)
+		if not inside((region or topRight)(h.rect(frame)), h.rect(gear)) then
+			table.insert(
+				wrong,
+				tag .. ": Gear not in the " .. (region and "right half" or "top-right quarter") .. " of " .. frame.Name
+			)
 		end
 		for _, part in { { "Relic", relic }, { "Sidekick", sidekick } } do
 			local icon = gear:FindFirstChild(part[1], true)
@@ -702,11 +708,13 @@ function Module.Build(h)
 				end
 			end
 		end
+		-- A member's gear sits on its nameplate (4.45 night dojo: name, rarity, relic and Sidekick icons on the plate
+		-- over each member; TeamUi Altar<n>/Nameplate/Face/Gear), judged inside the plate's right half
 		for n = 1, 3 do
 			local a = altar(n)
-			local pedestal = a and a:FindFirstChild("Pedestal")
-			if ids[n] and pedestal then
-				for _, w in gearProblems(a, ids[n], pedestal, "Altar" .. n, icons) do
+			local plate = a and a:FindFirstChild("Nameplate")
+			if ids[n] and plate then
+				for _, w in gearProblems(a, ids[n], plate, "Altar" .. n, icons, rightHalf) do
 					table.insert(wrong, w)
 				end
 			end

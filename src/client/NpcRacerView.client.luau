@@ -226,8 +226,9 @@ UiTheme.Stroke(ribbon, 3, nil, true)
 ribbon.Parent = card
 local banner = label("Banner", ribbon)
 banner.Text = "YOU LOST"
--- The ribbon is the frame's header anchor (it still slides in); the banner is the frame's slanted title.
-local frame = AnimeSkin.IndexFrame(card, { Header = ribbon, Title = banner })
+-- The ribbon is the frame's header anchor (it still slides in); the banner is the frame's title. Design doc 4.46: the
+-- loser card is a paper slip, no handscroll.
+local frame = AnimeSkin.IndexFrame(card, { Header = ribbon, Title = banner, Scroll = false })
 
 -- Rows: 8 apart inside a group and 12 between groups (who, times, gap, what next), centred in the content area.
 local ROWS = {

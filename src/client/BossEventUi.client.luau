@@ -159,10 +159,11 @@ end
 -- The Index frame (design doc 4.42, Client/AnimeSkin.IndexFrame): chrome, overhanging logo, ALL CAPS title, art close,
 -- content in the frame's units. The Boss icon is the logo (design doc 4.40). The countdown (Section,
 -- gold) sits on a plate at the right of the tabs row. withClose adds Header/CloseButton; the Invite has none (Decline is
--- its way out). Returns the frame's g too: each popup lays its content out in g.OnLayout.
+-- its way out). scroll = false: a paper slip, no handscroll (design doc 4.46). Returns the frame's g too: each popup lays
+-- its content out in g.OnLayout.
 local LOGO = Icons.Boss.Image
 local COUNTDOWN_WIDTH = 160 -- units, "m:ss" at the Section size with the plate's 24 clear at each end
-local function panel(name, title, withClose)
+local function panel(name, title, withClose, scroll)
 	local frame = make("Frame", name, nil, { Visible = false, Active = true, AnchorPoint = Vector2.new(0.5, 0.5) })
 	UiTheme.Body(frame)
 	local header = make("Frame", "Header", frame, { BackgroundTransparency = 1, BorderSizePixel = 0 })
@@ -180,8 +181,10 @@ local function panel(name, title, withClose)
 	end)
 	local logo = make("ImageLabel", "Logo", header, { Image = LOGO })
 	local close = withClose and button("CloseButton", header, "X", "Danger", {}) or nil
-	local g =
-		AnimeSkin.IndexFrame(frame, { Header = header, Title = titleLabel, Icon = logo, Logo = LOGO, Close = close })
+	local g = AnimeSkin.IndexFrame(
+		frame,
+		{ Header = header, Title = titleLabel, Icon = logo, Logo = LOGO, Close = close, Scroll = scroll }
+	)
 	g.OnLayout(function()
 		local x, y = g.W - 56 - COUNTDOWN_WIDTH, g.Content.TabsY
 		g.Place(plate, x, y, COUNTDOWN_WIDTH, AnimeSkin.Units.TabH)
@@ -242,7 +245,8 @@ inviteFrame.OnLayout(function(g)
 end)
 
 -- Team HUD ----------------------------------------------------------------------------------------------------------------
-local hud, _, hudCountdown, hudClose, hudFrame = panel("TeamHud", "CHOOSE YOUR TEAM", true)
+-- Design doc 4.46: the in-event HUD is no scroll (a paper slip, AnimeSkin.IndexFrame Scroll = false).
+local hud, _, hudCountdown, hudClose, hudFrame = panel("TeamHud", "CHOOSE YOUR TEAM", true, false)
 hud.Parent = root
 local slots = {}
 for i = 1, StaminaConfig.TEAM_SIZE do

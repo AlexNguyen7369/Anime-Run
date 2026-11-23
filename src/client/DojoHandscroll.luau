@@ -124,8 +124,149 @@ function DojoHandscroll.Build(target, opts)
 		end
 	end
 
-	-- Cancels the running motion where it is; its onDone never fires.
+	-- Content inks in as the rollers pass (4.46; owner 2026-11-20: content never changes parent, so panel.X lookups hold
+	-- mid-roll). At roll start the target's shown content splits into blocks: a GuiObject at least CONTAINER of the
+	-- target's width with GuiObject children is a container and is walked into (to DEPTH levels), anything else is a
+	-- block. Opening, a block hidden at the start shows once the paper's half-width reaches its centre and fades in over
+	-- INK s (no fade past FADE_MAX descendants); closing, it hides when the paper edge passes inward over its centre. A
+	-- block whose Visible its owner changes mid-roll is let go. At rest every block left is shown at its own
+	-- transparencies.
+	local CONTAINER, DEPTH, INK, FADE_MAX = 0.6, 6, 0.15, 40
+	local FADED = {
+		GuiObject = { "BackgroundTransparency" },
+		TextLabel = { "TextTransparency" },
+		TextButton = { "TextTransparency" },
+		TextBox = { "TextTransparency" },
+		ImageLabel = { "ImageTransparency" },
+		ImageButton = { "ImageTransparency" },
+	}
+	local blocks = {} -- { Gui, At (0..1 centre distance), Hidden, Saved = { [object] = { prop = value } }, Tweens, Conn }
+	local function setVisible(block, on)
+		block.Hidden = not on
+		block.Gui.Visible = on
+	end
+	local function unfade(block)
+		for _, tween in block.Tweens do
+			tween:Cancel()
+		end
+		block.Tweens = {}
+		for object, values in block.Saved do
+			for prop, value in values do
+				object[prop] = value
+			end
+		end
+	end
+	local function release(block)
+		block.Conn:Disconnect()
+		unfade(block)
+	end
+	local function restoreBlocks()
+		local list = blocks
+		blocks = {}
+		for _, block in list do
+			release(block)
+			if block.Hidden then
+				setVisible(block, true)
+			end
+		end
+	end
+	local function save(object, saved)
+		local values = {}
+		for class, props in FADED do
+			if object:IsA(class) then
+				for _, prop in props do
+					values[prop] = object[prop]
+				end
+			end
+		end
+		saved[object] = values
+	end
+	local function collect()
+		local w = target.AbsoluteSize.X
+		if w <= 0 then
+			return
+		end
+		local centre = target.AbsolutePosition.X + w / 2
+		local function walk(parent, depth)
+			for _, gui in parent:GetChildren() do
+				if gui == root or not gui:IsA("GuiObject") or not gui.Visible then
+					continue
+				end
+				local inner = false
+				for _, c in gui:GetChildren() do
+					if c:IsA("GuiObject") then
+						inner = true
+						break
+					end
+				end
+				if inner and depth < DEPTH and gui.AbsoluteSize.X >= CONTAINER * w then
+					walk(gui, depth + 1)
+					continue
+				end
+				local at = math.abs(gui.AbsolutePosition.X + gui.AbsoluteSize.X / 2 - centre) / (w / 2)
+				local block = { Gui = gui, At = at, Hidden = false, Saved = {}, Tweens = {} }
+				local all = gui:GetDescendants()
+				local count = 0
+				for _, d in all do
+					count += d:IsA("GuiObject") and 1 or 0
+				end
+				if count <= FADE_MAX then
+					save(gui, block.Saved)
+					for _, d in all do
+						if d:IsA("GuiObject") then
+							save(d, block.Saved)
+						end
+					end
+				end
+				-- Our own changes match block.Hidden (signals may run deferred, so no "setting now" flag): any other
+				-- value is the owner's.
+				block.Conn = gui:GetPropertyChangedSignal("Visible"):Connect(function()
+					if gui.Visible == not block.Hidden then
+						return
+					end
+					local i = table.find(blocks, block)
+					if i then -- its owner took it over: never touch its Visible again
+						table.remove(blocks, i)
+						release(block)
+					end
+				end)
+				table.insert(blocks, block)
+			end
+		end
+		walk(target, 1)
+	end
+	-- Follows the paper (p = its width as a share of the target's).
+	local function inkBlocks(p, opening)
+		for _, block in blocks do
+			local reached = p >= block.At
+			if opening and block.Hidden and reached then
+				setVisible(block, true)
+				for object, values in block.Saved do
+					local goal = {}
+					for prop, value in values do
+						if value < 1 then
+							object[prop] = 1
+							goal[prop] = value
+						end
+					end
+					if next(goal) then
+						local tween = TweenService:Create(object, TweenInfo.new(INK, Enum.EasingStyle.Quad), goal)
+						table.insert(block.Tweens, tween)
+						tween:Play()
+					end
+				end
+			elseif not opening and not block.Hidden and not reached then
+				unfade(block)
+				setVisible(block, false)
+			end
+		end
+	end
+	local opening = true
+
+	-- Cancels the running motion where it is (every block shows again, at its own transparencies); its onDone never
+	-- fires.
 	function handle.Stop()
+		restoreBlocks()
 		local motion = running
 		running = nil
 		if motion then
@@ -157,6 +298,21 @@ function DojoHandscroll.Build(target, opts)
 				handle.SetProgress(0) -- a fresh open; a reopen mid-close unrolls from where it is
 			end
 			unroll.Value = handle.Progress
+			opening = shown
+			-- Deferred (before the frame draws): owner code that shows the panel and then its own parts in the same
+			-- frame has done so when the blocks are read.
+			task.defer(function()
+				if running == motion then
+					collect()
+					if shown then
+						for _, block in blocks do
+							if block.At > handle.Progress then
+								setVisible(block, false)
+							end
+						end
+					end
+				end
+			end)
 			local info = shown and DojoHandscroll.OPEN or DojoHandscroll.CLOSE
 			table.insert(tweens, UiMotion.Create(unroll, info, { Value = shown and 1 or 0 }))
 		end
@@ -165,6 +321,7 @@ function DojoHandscroll.Build(target, opts)
 				return
 			end
 			running = nil
+			restoreBlocks()
 			if onDone then
 				onDone()
 			end
@@ -178,6 +335,7 @@ function DojoHandscroll.Build(target, opts)
 	unroll.Changed:Connect(function(value)
 		if running then
 			handle.SetProgress(value)
+			inkBlocks(handle.Progress, opening)
 		end
 	end)
 

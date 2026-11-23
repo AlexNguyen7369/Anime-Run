@@ -1768,12 +1768,17 @@ RUNTIME["RacerIndex/Panel"] = function(out, frame, input)
 	for i, name in { "CharactersTab", "EnemiesTab", "SidekicksTab", "RelicsTab" } do
 		put("Face/Header/Face/" .. name, UDim2.fromOffset((i - 1) * (width + 8), 0), UDim2.fromOffset(width, 40))
 	end
-	put("Face/Header/Face/Close", UDim2.fromOffset(w - 130, -94), UDim2.fromOffset(58, 54))
+	-- 4.46: the seal close, 64 x 64 at the frame's (w - 92, 16), in the tab band's coordinates (IndexAnimeStyle.Apply)
+	put("Face/Header/Face/Close", UDim2.fromOffset(w - 148, 16 - (small and 90 or 98)), UDim2.fromOffset(64, 64))
 	local top = small and 144 or 164
 	put("Face/GridHost", UDim2.fromOffset(56, top), UDim2.fromOffset(w - 112, h - top - 82))
-	put("Face/GridPlate", UDim2.fromOffset(48, top - 6), UDim2.fromOffset(w - 96, h - top - 74))
 	put("Face/IndexProgress", UDim2.fromOffset(w * 303 / 920, h - 60), UDim2.fromOffset(w * 312 / 920, 28))
-	put("Face/ProgressPlate", UDim2.fromOffset(18, h - 48), UDim2.fromOffset(w - 36, 42))
+	-- 4.46: GridPlate and ProgressPlate are gone; the lacquer FooterPlate centres on the count line (its width follows
+	-- the text, so only its place is modelled)
+	local plate = find(frame, "Face/FooterPlate")
+	if plate then
+		out[plate] = { Position = UDim2.fromOffset(w * 303 / 920 + w * 156 / 920, h - 60 + 14) }
+	end
 end
 RUNTIME["RacerStats/Panel"] = function(out, frame, input)
 	local u = racerUnits(input.Small, input.Scale)
@@ -1970,10 +1975,11 @@ RUNTIME["DailyBoosts/ModalBackdrop/Modal"] = function(out, modal, input)
 		end
 	end
 	local banner = layer:FindFirstChild("Banner")
-	put(banner, at(-34, -18), UDim2.new(1, px(68), 0, px(86)))
-	put(banner and banner:FindFirstChild("Logo"), at(15, -54), at(188, 186))
-	put(banner and banner:FindFirstChild("Title"), at(202, -5), at(W - 312, 76))
-	put(layer:FindFirstChild("Close"), at(W - 82, -6), at(74, 74))
+	-- 4.46 header (QuestAnimeStyle layout, as AnimeSkin.IndexFrame's): band 0 to 98, logo, title, seal close inside it
+	put(banner, UDim2.new(), UDim2.new(1, 0, 0, px(98)))
+	put(banner and banner:FindFirstChild("Logo"), at(28, 14), at(70, 70))
+	put(banner and banner:FindFirstChild("Title"), at(108, 12), at(W - 228, 72))
+	put(layer:FindFirstChild("Close"), at(W - 92, 16), at(64, 64))
 	put(layer:FindFirstChild("Footer"), at(W * 303 / 920, H - 60), at(W * 312 / 920, 28))
 	local top = small and 144 or 164
 	local gridW, gridH = W - 112, H - top - 82
