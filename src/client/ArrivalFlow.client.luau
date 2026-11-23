@@ -150,6 +150,7 @@ local function playReveal()
 		local started = os.clock()
 		Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable
 		RunService:BindToRenderStep(RENDER_BIND, Enum.RenderPriority.Camera.Value + 1, function()
+			Workspace.CurrentCamera.CameraType = Enum.CameraType.Scriptable -- every frame: a hold released meanwhile sets Custom
 			local elapsed = os.clock() - started
 			local eased =
 				TweenService:GetValue(math.min(elapsed / seconds, 1), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)

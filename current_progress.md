@@ -214,8 +214,9 @@
 210. 2026-11-20 — Alex Nguyen — Fixed test isolation for shop_redeem_invalid_code and ui_roll_anim, added the auto_roll_off fixture, and got every tool-pressable click #24-#264 green (232 of 232).
 211. 2026-11-22 — Alex Nguyen — Fixed the last 7 UI reds (shop restricted paid luck, transient StaminaBar/SummonFx, Team Select Nunito, ui_index fixture, turbo races, Bag tab after the chest chain, Summon result shows the 3D model); full UiTestRun 74/2 and server run 60/1.
 212. 2026-11-22 — Alex Nguyen — Merged the post-merge polish (per-Sidekick odds, Team Select checks, click isolation, last 7 UI reds) into main on the owner's go-ahead, with ui_boss_king_arena's camera red still open.
+213. 2026-11-22 — Alex Nguyen — Fixed the stuck Scriptable camera behind ui_boss_king_arena (Summon page close and exhaustion view release now end on Custom, overlap test in ui_sidekicks) and its weather-mixed clock check; full UiTestRun 75/1 (only ui_run_visual, needs focus).
 
 ## What's next
-**Find what leaves the client camera Scriptable between UI scenarios (ui_boss_king_arena FOV checks read 70 in a full UiTestRun; 23/23 alone with a Custom camera), then rerun the full UiTestRun with Studio in front for ui_run_visual.**
+**Rerun the full UiTestRun with Studio as the front window so ui_run_visual's frame checks can pass, then PR feature/alex/camera-and-portraits into main.**
 
-**Why this is next:** it is the only red left outside the owner's arena upload and the focus-only frame check, and every later full UiTestRun stays red until it is found.
+**Why this is next:** ui_run_visual is the only UI red left and only fails while Studio is throttled in the background; the branch's camera fix and the Featured Banner docs rule wait on that green run to merge.
