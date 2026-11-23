@@ -230,6 +230,7 @@
 226. 2026-11-23 — Alex Nguyen — World 2 Phase A verified in Studio: world_layout 11/11, spawn_area 187/187, data 151/151, admin 117/117; World 2 mode boots with its 10 tracks; locked gate captured; Studio restored to e579995.
 227. 2026-11-23 — Alex Nguyen — World 2 Blender drafts: Track 10 hand fingers chained to the palm (no floating segments) and the Track 9 barrier dome smooth-shaded; both tracks re-rendered.
 228. 2026-11-23 — Alex Nguyen — Checkpointed the interrupted World 2 likeness round (model close-ups in every biome, road clearance checker, likeness fixes) and restarted the builder loop.
+229. 2026-11-23 — Alex Nguyen — World 2 model close-ups now fit each model to the frame and render at the origin with the track hidden, which removed the speckled shadows.
 
 ## What's next
 **Builders finish the round for all 10 World 2 tracks; fresh reviewers score scene shots and model close-ups, repeating until every track scores at least 7/10, then the owner approves assets/world2_draft/index.html.**

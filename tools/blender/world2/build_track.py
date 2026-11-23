@@ -106,11 +106,14 @@ def shots(k, cam, folder):
 
 
 def model_shots(k, cam, folder, names):
-	"""Close-ups of hero models (creatures, figures, landmarks), each alone on a grey disc far from the track, front and
+	"""Close-ups of hero models (creatures, figures, landmarks), each alone on a grey disc with the track hidden, front and
 	three-quarter, so reviewers can judge likeness at full size. Files: m_<Name>_front.jpg, m_<Name>_34.jpg."""
 	from mathutils import Vector
 
-	far = Vector((400000.0, 400000.0, 0.0))
+	far = Vector((0.0, 0.0, 0.0))  # at the origin: 400k-stud offsets gave speckled shadows (float precision)
+	hidden = [o for o in bpy.context.scene.objects if o.type not in ("LIGHT", "CAMERA") and not o.hide_render]
+	for o in hidden:
+		o.hide_render = True
 	disc = bpy.data.objects.new("ModelDisc", bpy.data.meshes.new("ModelDisc"))
 	import bmesh
 
@@ -120,6 +123,11 @@ def model_shots(k, cam, folder, names):
 	bm.free()
 	disc.data.materials.append(k.mat("8A8A8A", 0.9))
 	bpy.context.scene.collection.objects.link(disc)
+	scene = bpy.context.scene
+	try:
+		scene.eevee.taa_render_samples = max(scene.eevee.taa_render_samples, 128)  # close-ups: no speckle on white
+	except AttributeError:
+		pass
 	for name in names:
 		src = k.props[name]
 		ob = bpy.data.objects.new(src.name + "_shot", src.data)
@@ -131,10 +139,16 @@ def model_shots(k, cam, folder, names):
 		centre = far + Vector((0, 0, size.z / 2))
 		disc.location = far
 		disc.scale = (max(size.x, size.y) * 0.8,) * 3
-		r = max(size.x, size.y, size.z)
+		half_v = math.radians(20)  # angle_y 40
+		half_h = math.atan(math.tan(half_v) * 16 / 9)
 		# Roblox front is -Z = Blender +Y, so the camera looks from +Y (front) and from +Y/+X (three-quarter)
-		for tag, d in (("front", Vector((0, 1, 0.18))), ("34", Vector((0.75, 0.75, 0.35)))):
-			e = centre + d.normalized() * r * 1.7
+		for tag, d, width, depth in (
+			("front", Vector((0, 1, 0.18)), size.x, size.y),
+			("34", Vector((0.75, 0.75, 0.35)), (size.x + size.y) * 0.7071, (size.x + size.y) * 0.7071),
+		):
+			# fit the model's projected width and height to the 16:9 frame with a 20% margin
+			dist = max(size.z / 2 / math.tan(half_v), width / 2 / math.tan(half_h)) * 1.2 + depth / 2
+			e = centre + d.normalized() * dist
 			cam.location = e
 			cam.rotation_euler = (centre - e).to_track_quat("-Z", "Y").to_euler()
 			cam.data.angle_y = math.radians(40)
@@ -143,6 +157,8 @@ def model_shots(k, cam, folder, names):
 			print("SHOT", bpy.context.scene.render.filepath)
 		bpy.data.objects.remove(ob)
 	bpy.data.objects.remove(disc)
+	for o in hidden:
+		o.hide_render = False
 
 
 def run(number, fast=False, render=True):
