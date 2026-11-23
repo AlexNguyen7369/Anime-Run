@@ -1,3 +1,10 @@
+## RESUME HERE (2026-11-23, ui-scroll): DONE, merged into main (PR #27, 6a36029)
+- Fresh merge review APPROVE; its note 1 (a part hidden by its panel mid-unroll came back) fixed: DojoHandscroll ink-in hides unreached blocks by transparency + Interactable and never writes Visible (Studio ui_handscroll 21/0, ui_index 10/0, ui_panel_focus 57/0). Main (PR #26) merged in first, both sides kept.
+- Full UiTestRun on the branch (before the fix): 74/3. ui_run_visual: throttled window. ui_boss_king_arena: red here, green in #26's run; likely my Client execute_luau polling during the run (the MCP resets the camera to Scriptable after each call). ui_character_icons: test moved to the 4.46 portrait 0.86 x 0.53, not re-run. Server run stopped early (no server/shared changes).
+- Non-blocking review notes left open: reduced-effects close fades only the scroll frames (content drops at the end); scroll close no longer sets Interactable false (input live per 4.20).
+- Bookkeeping commit 309b418 sits on feature/alex/ui-scroll-redesign, not in main yet (goes with the next PR).
+- Next: one full UiTestRun on main with Studio focused (owner present), no execute_luau polling on the Client during it.
+
 ## RESUME HERE (2026-11-22, ui-scroll): t1-t5 merged; full harness and PR left
 - Integration branch `feature/alex/ui-scroll-redesign` at 311af3c (merge of orch/ui-scroll/test-all = t3 panels, t4 popups, t5 HUD option A, Studio-run fixes 85c0b3e), pushed. Rules audit PASS. Task worktrees and branches t3/t4/t5/test-all removed.
 - Studio run 2 (synced onto the peer's e579995, then restored and hash-checked, peer told "Studio back"): ui_shop 72/0, ui_market 101/0, ui_layout 891/0, ui_hitboxes 98/0, ui_rebirth 38/0, ui_daily_boosts 13/0, ui_boss 485/0, ui_team 70/0, ui_shared_frames 263/0, ui_handscroll 18/0, ui_hud 16/0. Run 1 greens: see current_progress 216-217.
