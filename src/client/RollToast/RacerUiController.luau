@@ -1603,6 +1603,43 @@ end
 hud.Turbo.ClipsDescendants = true
 hud.TurboFill.ZIndex = 2
 hud.TurboLabel.ZIndex = 5
+-- Owner 2026-11-22 (design doc 4.40, 4.46 HUD option A, drafts/hud_a.html): a wooden bar with a vermilion fill. Only
+-- colours change: the Face is the dark well the fill runs in (so the fill's share of the bar is unchanged), its rim
+-- the wood frame, the Shadow the dark wood edge under it. Size, position, names and behaviour stay.
+do
+	local wood = UiTheme.Scroll.Skins.Parchment
+	local face, shadow = hud.Turbo, hud.Turbo.Parent:FindFirstChild("Shadow")
+	local well = face:FindFirstChildOfClass("UIGradient")
+	if well then
+		well.Color = ColorSequence.new(Color3.fromRGB(44, 26, 14), Color3.fromRGB(30, 18, 10))
+	end
+	local rim = face:FindFirstChildOfClass("UIStroke")
+	if rim then
+		rim.Color, rim.Thickness = wood.RodTop, 4
+		local grain = Instance.new("UIGradient")
+		grain.Name = "Wood"
+		grain.Rotation = 90
+		grain.Color = ColorSequence.new(Color3.fromRGB(154, 106, 64), wood.RodBottom)
+		grain.Parent = rim
+	end
+	if shadow then
+		shadow.BackgroundColor3, shadow.BackgroundTransparency = UiTheme.Scroll.TileEdge, 0
+		local edge = shadow:FindFirstChildOfClass("UIStroke")
+		if edge then
+			edge.Color, edge.Transparency = UiTheme.Scroll.TileEdge, 0
+		end
+	end
+	local lift = face:FindFirstChild("Lift")
+	if lift then
+		lift.Visible = false -- the well is sunk, not lit
+	end
+	hud.TurboFill.BackgroundColor3 = Color3.new(1, 1, 1)
+	local verm = Instance.new("UIGradient")
+	verm.Name = "Vermilion"
+	verm.Rotation = 90
+	verm.Color = ColorSequence.new(UiTheme.Dojo.DeployTop, UiTheme.Dojo.DeployBottom)
+	verm.Parent = hud.TurboFill
+end
 
 playerGui:SetAttribute("RacerUiReady", true)
 
