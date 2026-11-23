@@ -144,3 +144,21 @@ Round 12 (2026-11-23), coordinator ruling on the cables (railgun.jpg), shaped li
 - City tiles (sweeper_members, background): a dense low-rise town of gabled houses with red, brown and grey roofs
   fills each tile around two kaiju-broken low-rises, the park and the crater. This adds no new mesh.
 - Van: the lying sweeper is stretched out full length along the rack, clear of the seated row.
+
+Round 13 (2026-11-23), shaped live in Blender against railgun.jpg, sweeper_cleaning1/2 and sweeper_members:
+- Rail cannon coil stack: eight separate thick discs with 2.8-stud air gaps and smooth rims. They step up from radius
+  26 at the back to 34 at the front (muzzle) disc. Each front face carries 24 thin radial blades from the hub out.
+  The rim teeth are gone.
+- Cables: 20 loose bunches of 8 thin cables (160 in all, about half the old thickness) spill off the discs' outer rims
+  on both sides, sag over both side-deck handrails and run onto the ground. Near-side cables leave the rim at or below
+  the axis, so the side view keeps the upper discs open. Far-side cables leave higher on the rim and arc out past the
+  stack's far edge, so the three-quarter view shows them.
+- Corpse hide: smooth-shaded, with the pale band as one flat grey-beige area (no per-face tones). The painted ink
+  triangles are gone. The ink shadows are long, near-black maroon flame-shaped streaks, slanting mostly down-left.
+  Each streak is a chain of thin flat plates lying in the hide's tangent plane just off the surface, wide at the top
+  and tapering to a point.
+- Ridge rocks are hide red-brown. Only their upward-facing faces are light.
+- The first corpse is turned 40 degrees about a point behind its head, with the tail swung away from the road. Run
+  shots 1 and 4 now see its flank, ridge and stake line, and it stays clear of the road.
+- Van roof crew: four off-duty sweepers sit slouched with their knees up and forearms on their knees, hoods down,
+  without packs. The lying one has no pack, and his face sits in the top of his hood (it was floating above the head).
