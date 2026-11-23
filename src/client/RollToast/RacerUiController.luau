@@ -681,7 +681,7 @@ end
 
 RunService.RenderStepped:Connect(function(dt)
 	if BossWaitCamera.Held() then
-		return -- the exhaustion view holds the camera Scriptable, and gives it back as it found it
+		return -- the exhaustion view holds the camera Scriptable, and gives it back as Custom
 	end
 	local camera = workspace.CurrentCamera
 	local autoRacing = player:GetAttribute("AutoRacing") == true

@@ -903,6 +903,25 @@ function Module.Build(h)
 		h.player:SetAttribute("ReduceEffects", savedReduced)
 	end
 
+	-- Overlapping camera holds: another hold (the exhaustion view, the top-down view) has the camera Scriptable when the
+	-- page opens and lets go while it is open. Closing must leave the free Custom camera, not the Scriptable it found.
+	local function checkOverlappingHoldCloses(res, canvas)
+		local camera = workspace.CurrentCamera
+		local saved = camera.CameraType
+		camera.CameraType = Enum.CameraType.Scriptable -- stands in for the other hold
+		local restore = h.setPanels({ CANVAS })
+		check(res, "sidekick_overlap_open", h.visible(canvas), true)
+		camera.CameraType = Enum.CameraType.Custom -- the other hold lets go (BossWaitCamera, top-down: Custom)
+		task.wait(0.2)
+		check(res, "sidekick_overlap_held_while_open", camera.CameraType, Enum.CameraType.Scriptable)
+		restore()
+		local stuck = waitFor(function()
+			return camera.CameraType ~= Enum.CameraType.Custom and tostring(camera.CameraType) or nil
+		end)
+		check(res, "sidekick_overlap_close_custom", stuck or "Custom", "Custom")
+		camera.CameraType = saved
+	end
+
 	function scenarios.ui_sidekicks(res)
 		h.waitGuis()
 		check(res, "sidekick_rotation_not_on_client", ReplicatedStorage:FindFirstChild("SidekickRotation", true), nil)
@@ -932,6 +951,7 @@ function Module.Build(h)
 		checkBackClosesSummonPanel(res, canvas)
 		restore()
 		checkClosed(res, before)
+		checkOverlappingHoldCloses(res, canvas)
 		checkAutoRevealCloses(res)
 		restore = h.setPanels({ "RacerIndex/Panel" })
 		checkIndex(res)

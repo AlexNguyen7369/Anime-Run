@@ -336,8 +336,7 @@ local function open()
 	if opened then
 		return
 	end
-	previousCamera =
-		{ kind = camera.CameraType, cf = camera.CFrame, fov = camera.FieldOfView, subject = camera.CameraSubject }
+	previousCamera = { cf = camera.CFrame, fov = camera.FieldOfView, subject = camera.CameraSubject }
 	opened = true
 	for label in worldLabels do
 		if label.Parent and not (stage and label:IsDescendantOf(stage)) then
@@ -434,7 +433,9 @@ local function close()
 	motion = {}
 	freezePlayer(false)
 	if previousCamera then
-		camera.CameraType = previousCamera.kind
+		-- Custom, not the type found at open: another hold (exhaustion view, top-down) may have had it Scriptable then, and
+		-- would leave it stuck after its own release. Any hold still on sets Scriptable again on its next frame.
+		camera.CameraType = Enum.CameraType.Custom
 		camera.CFrame = previousCamera.cf
 		camera.FieldOfView = previousCamera.fov
 		camera.CameraSubject = previousCamera.subject
