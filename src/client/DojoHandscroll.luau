@@ -127,47 +127,60 @@ function DojoHandscroll.Build(target, opts)
 	-- Content inks in as the rollers pass (4.46; owner 2026-11-20: content never changes parent, so panel.X lookups hold
 	-- mid-roll). At roll start the target's shown content splits into blocks: a GuiObject at least CONTAINER of the
 	-- target's width with GuiObject children is a container and is walked into (to DEPTH levels), anything else is a
-	-- block. Opening, a block hidden at the start shows once the paper's half-width reaches its centre and fades in over
-	-- INK s (no fade past FADE_MAX descendants); closing, it hides when the paper edge passes inward over its centre. A
-	-- block whose Visible its owner changes mid-roll is let go. At rest every block left is shown at its own
-	-- transparencies.
-	local CONTAINER, DEPTH, INK, FADE_MAX = 0.6, 6, 0.15, 40
+	-- block. A block not reached yet is not drawn: its transparencies go to 1 and it is not Interactable. The scroll never
+	-- writes Visible, so a part its owner hides or shows mid-roll keeps the owner's choice (Visible changes fire no
+	-- signal when the value is already the same, so a Visible-based hide could not tell). Opening, a block shows once the
+	-- paper's half-width reaches its centre and fades in over INK s; closing, it hides when the paper edge passes inward
+	-- over its centre. At rest every block is back at its own transparencies and Interactable.
+	-- shortcut: a transparency the owner sets on a hidden block mid-roll is put back to the saved value at rest; fine
+	-- while panel code only toggles Visible during an open, revisit if one fades its own parts in.
+	local CONTAINER, DEPTH, INK = 0.6, 6, 0.15
 	local FADED = {
 		GuiObject = { "BackgroundTransparency" },
-		TextLabel = { "TextTransparency" },
-		TextButton = { "TextTransparency" },
-		TextBox = { "TextTransparency" },
+		TextLabel = { "TextTransparency", "TextStrokeTransparency" },
+		TextButton = { "TextTransparency", "TextStrokeTransparency" },
+		TextBox = { "TextTransparency", "TextStrokeTransparency" },
 		ImageLabel = { "ImageTransparency" },
 		ImageButton = { "ImageTransparency" },
+		ViewportFrame = { "ImageTransparency" },
+		ScrollingFrame = { "ScrollBarImageTransparency" },
+		UIStroke = { "Transparency" },
 	}
-	local blocks = {} -- { Gui, At (0..1 centre distance), Hidden, Saved = { [object] = { prop = value } }, Tweens, Conn }
-	local function setVisible(block, on)
-		block.Hidden = not on
-		block.Gui.Visible = on
-	end
-	local function unfade(block)
+	local blocks = {} -- { Gui, At (0..1 centre distance), Hidden, Interactable, Saved = { [object] = { prop = value } }, Tweens }
+	local function cancelTweens(block)
 		for _, tween in block.Tweens do
 			tween:Cancel()
 		end
 		block.Tweens = {}
+	end
+	-- Back at its own transparencies and Interactable.
+	local function unfade(block)
+		cancelTweens(block)
 		for object, values in block.Saved do
 			for prop, value in values do
 				object[prop] = value
 			end
 		end
+		if block.Hidden then
+			block.Hidden = false
+			block.Gui.Interactable = block.Interactable
+		end
 	end
-	local function release(block)
-		block.Conn:Disconnect()
-		unfade(block)
+	local function hide(block)
+		cancelTweens(block)
+		block.Hidden = true
+		block.Gui.Interactable = false
+		for object, values in block.Saved do
+			for prop in values do
+				object[prop] = 1
+			end
+		end
 	end
 	local function restoreBlocks()
 		local list = blocks
 		blocks = {}
 		for _, block in list do
-			release(block)
-			if block.Hidden then
-				setVisible(block, true)
-			end
+			unfade(block)
 		end
 	end
 	local function save(object, saved)
@@ -179,7 +192,9 @@ function DojoHandscroll.Build(target, opts)
 				end
 			end
 		end
-		saved[object] = values
+		if next(values) then
+			saved[object] = values
+		end
 	end
 	local function collect()
 		local w = target.AbsoluteSize.X
@@ -204,32 +219,12 @@ function DojoHandscroll.Build(target, opts)
 					continue
 				end
 				local at = math.abs(gui.AbsolutePosition.X + gui.AbsoluteSize.X / 2 - centre) / (w / 2)
-				local block = { Gui = gui, At = at, Hidden = false, Saved = {}, Tweens = {} }
-				local all = gui:GetDescendants()
-				local count = 0
-				for _, d in all do
-					count += d:IsA("GuiObject") and 1 or 0
+				local block =
+					{ Gui = gui, At = at, Hidden = false, Interactable = gui.Interactable, Saved = {}, Tweens = {} }
+				save(gui, block.Saved)
+				for _, d in gui:GetDescendants() do
+					save(d, block.Saved)
 				end
-				if count <= FADE_MAX then
-					save(gui, block.Saved)
-					for _, d in all do
-						if d:IsA("GuiObject") then
-							save(d, block.Saved)
-						end
-					end
-				end
-				-- Our own changes match block.Hidden (signals may run deferred, so no "setting now" flag): any other
-				-- value is the owner's.
-				block.Conn = gui:GetPropertyChangedSignal("Visible"):Connect(function()
-					if gui.Visible == not block.Hidden then
-						return
-					end
-					local i = table.find(blocks, block)
-					if i then -- its owner took it over: never touch its Visible again
-						table.remove(blocks, i)
-						release(block)
-					end
-				end)
 				table.insert(blocks, block)
 			end
 		end
@@ -240,12 +235,12 @@ function DojoHandscroll.Build(target, opts)
 		for _, block in blocks do
 			local reached = p >= block.At
 			if opening and block.Hidden and reached then
-				setVisible(block, true)
+				block.Hidden = false
+				block.Gui.Interactable = block.Interactable
 				for object, values in block.Saved do
 					local goal = {}
 					for prop, value in values do
 						if value < 1 then
-							object[prop] = 1
 							goal[prop] = value
 						end
 					end
@@ -257,7 +252,7 @@ function DojoHandscroll.Build(target, opts)
 				end
 			elseif not opening and not block.Hidden and not reached then
 				unfade(block)
-				setVisible(block, false)
+				hide(block)
 			end
 		end
 	end
@@ -307,7 +302,7 @@ function DojoHandscroll.Build(target, opts)
 					if shown then
 						for _, block in blocks do
 							if block.At > handle.Progress then
-								setVisible(block, false)
+								hide(block)
 							end
 						end
 					end
