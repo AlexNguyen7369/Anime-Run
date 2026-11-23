@@ -1,7 +1,6 @@
 # Board
 
 ## Doing
-- ui-scroll: t1-t5 merged on feature/alex/ui-scroll-redesign 2026-11-22 (311af3c, audit PASS); next the full harness once in Studio, then the PR into main with a fresh reviewer
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
@@ -19,6 +18,7 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-23 ui-scroll: every GUI in the Scroll Dojo look with the centre-out handscroll, merged into main (PR #27)
 - 2026-11-17 PR #21 into main: car-vocab rename, power-up boosts, Sakura Dojo pages; runner 88/88 and 12 more scenarios fail=0; audits PASS; fresh review APPROVE
 - 2026-11-17 power-up boosts (62b797d, feature/alex/powerup-boost): Speed x1.2 for 1 s, Stamina holds the drain 2 s, 1 per 500 studs; `powerups` 25/25 fail=0; rules audit PASS
 - boss-vfx-360: Zoltraak lasers, Gates dome (radius 85), Enuma 360 energy beam; PR #18 (done 2026-11-13)
