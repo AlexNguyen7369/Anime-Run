@@ -224,6 +224,7 @@
 220. 2026-11-23 — Alex Nguyen — ui-scroll: fixed PR #27 review note (ink-in no longer writes Visible, so a part its panel hides mid-unroll stays hidden; ui_handscroll 21/0 with the new owner-hide check, ui_index 10/0, ui_panel_focus 57/0) and merged main (PR #26) into the integration branch.
 221. 2026-11-23 — Alex Nguyen — World 2 Phase A on feature/alex/world2-place: design doc 4.47 and WORLD2_SPEC, WorldConfig/WorldSave (World 2 progress under Worlds.W2), a locked World 2 gate in the plaza, /world1 and /world2 admin travel, 10 World 2 track routes, and the Blender-first draft pipeline (tools/blender/world2) with the Track 1 Devil Hunter Tokyo renders.
 222. 2026-11-23 — Alex Nguyen — World 2: per-world enemy names (NpcConfig.World2) and Tracks panel copy (TrackCards World 2 table), World 1 tables unchanged.
+223. 2026-11-23 — Alex Nguyen — World 2 gate Blender draft (tools/blender/world2/build_gate.py, locked and open renders) and the matching SpawnArea tweak: a dim sealed portal with thicker chains and padlock in front.
 
 ## What's next
 **Render World 2 Tracks 2-10 in Blender and give the owner the full approval set of all 10 tracks.**

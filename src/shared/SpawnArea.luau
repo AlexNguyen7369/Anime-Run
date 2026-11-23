@@ -551,7 +551,11 @@ local function worldGate(startCFrame)
 		false
 	)
 	portal.Shape = Enum.PartType.Cylinder
-	portal.Transparency = locked and 0.55 or 0.25
+	portal.Transparency = locked and 0 or 0.25
+	if locked then
+		portal.Color = Color3.fromRGB(74, 34, 144) -- dim, sealed: the chains read in front of it (Blender draft)
+		portal.Material = Enum.Material.SmoothPlastic
+	end
 	portal:SetAttribute("TargetWorld", target)
 	portal:SetAttribute("Locked", locked)
 	if not locked then
@@ -564,8 +568,8 @@ local function worldGate(startCFrame)
 			block(
 				m,
 				"Chain",
-				Vector3.new(RING_RADIUS * 2.1, 0.9, 0.9),
-				centre * CFrame.new(0, 0, -0.8) * CFrame.Angles(0, 0, math.rad(tilt)),
+				Vector3.new(RING_RADIUS * 2.1, 1.4, 1.4),
+				centre * CFrame.new(0, 0, -1.2) * CFrame.Angles(0, 0, math.rad(tilt)),
 				Color3.fromRGB(120, 116, 110),
 				Enum.Material.DiamondPlate,
 				false
@@ -574,8 +578,8 @@ local function worldGate(startCFrame)
 		local lock = block(
 			m,
 			"Padlock",
-			Vector3.new(4, 4.6, 1.6),
-			centre * CFrame.new(0, -0.6, -1.4),
+			Vector3.new(5, 5.6, 1.8),
+			centre * CFrame.new(0, -0.8, -2.2),
 			Color3.fromRGB(214, 168, 60),
 			Enum.Material.Metal,
 			false
