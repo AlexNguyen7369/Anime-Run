@@ -7,7 +7,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared.HudFormat)
-local UiTheme = require(Shared.UiTheme)
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -28,16 +27,33 @@ group.BackgroundTransparency = 1
 group.GroupTransparency = 1
 group.Visible = false
 group.Parent = root
+-- Design doc 4.46: a red brush pill (kit.css .pill) behind cream words, the multiplier and pay in gold (RichText).
+local D = AnimeSkin.Dojo
+local pill = Instance.new("Frame")
+pill.Name = "Pill"
+pill.AnchorPoint = Vector2.new(0.5, 0.5)
+pill.Position = UDim2.fromScale(0.5, 0.5)
+pill.Size = UDim2.fromScale(1, 1)
+D.Fill(pill, D.Colors.Brush)
+D.Rim(pill, D.Colors.VermDeep, 2)
+D.Corner(pill, 14)
+pill.Parent = group
 local label = Instance.new("TextLabel")
 label.Name = "Bonus"
 label.BackgroundTransparency = 1
 label.Size = UDim2.fromScale(1, 1)
-label.FontFace = AnimeSkin.Font -- design doc 4.42: heavy italic, dark outline; the text stays gold
-label.TextSize = 30
-label.TextColor3 = Color3.fromRGB(255, 215, 90)
+label.ZIndex = 2
+label.RichText = true
+label.TextSize = 28
 label.Text = ""
-UiTheme.Stroke(label, 2.5, AnimeSkin.Ink)
+label:SetAttribute("DojoTextColor", D.Colors.Cream)
+D.Text(label, "Item")
 label.Parent = group
+local function fitPill()
+	pill.Size = UDim2.fromOffset(math.min(label.TextBounds.X + 60, group.AbsoluteSize.X), group.AbsoluteSize.Y)
+end
+label:GetPropertyChangedSignal("TextBounds"):Connect(fitPill)
+fitPill()
 root.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local shown = 0 -- bumps per popup, so an older popup's fade-out never hides a newer one
@@ -79,7 +95,11 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace").OnClientEvent:
 		if bonus > 1 then
 			local banked = tonumber(event.Banked) or 0
 			show(
-				string.format("CHECKPOINT BONUS %s · %s", HudFormat.Multi(bonus), HudFormat.MoneyText(banked)),
+				string.format(
+					'CHECKPOINT BONUS <font color="#FFCC48">%s · %s</font>',
+					HudFormat.Multi(bonus),
+					HudFormat.MoneyText(banked)
+				),
 				banked > 0
 			)
 		end

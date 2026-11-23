@@ -22,14 +22,17 @@ local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local Dojo = AnimeSkin.Dojo
 
--- Owner reference (placeholder colours): dark violet card, number in a diamond, violet title, green stats.
+-- Scroll Dojo look (design doc 4.46, drafts/tracks.html; placeholder colours): paper slips with a brown rim, the number
+-- in gold on a lacquer diamond, ink text; the checkpoint's slip takes a vermilion rim and bar.
+local C = Dojo.Colors
 local OUTLINE = UiTheme.Outline
-local CARD = Color3.fromRGB(28, 18, 48)
-local CARD_DEEP = Color3.fromRGB(16, 10, 30)
-local VIOLET = Color3.fromRGB(170, 130, 255)
-local SELECTED = UiTheme.Palette.Money
-local STAT = UiTheme.Palette.Money
+local CARD = C.Slip
+local CARD_DEEP = C.Lacquer
+local VIOLET = C.Rim -- the open card's bar and rim (the name stays: render() and the edge use it)
+local SELECTED = C.Verm
+local STAT = C.Ink
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -86,12 +89,28 @@ PanelSwitch.Register("Checkpoints", panel)
 local chrome = PanelFrame.Attach(panel, { Theme = "Checkpoints", Title = "Tracks", MaxWidth = 760 })
 local close = chrome.Close
 g = chrome.Frame
--- No HudIcons art for tracks: a finish flag glyph fills the frame's logo slot.
-caption("Flag", panel.Header.Icon, { Size = UDim2.fromScale(1, 1), Text = "🏁", ZIndex = 12 }).Outline.Enabled = false
--- The hint is the frame's footer line; two lines on the plate, as it is long.
+-- No HudIcons art for tracks: the frame's logo slot is a vermilion seal with a 道 (drafts/tracks.html; decoration only).
+local flag = caption("Flag", panel.Header.Icon, {
+	Size = UDim2.fromScale(1, 1),
+	Text = "道",
+	TextColor3 = C.Cream,
+	BackgroundColor3 = C.Verm,
+	ZIndex = 12,
+})
+flag.Outline.Enabled = false
+flag.BackgroundTransparency = 0
+flag:SetAttribute("AnimeRole", "Kanji") -- UiTheme.Apply leaves its font (CJK through Roblox's fallback)
+flag.Font = Enum.Font.GothamBold
+corner(flag, 6)
+-- The hint stays the frame's footer line (UI tests pin Panel/AnimeFooterLine), moved to the tabs row under the header
+-- (drafts/tracks.html; this panel has no tabs and no count): ink on a paper slip, its FooterPlate restyled.
 local HINT = "Click a track: your runs start there. Tracks past it in one run pay a bonus."
 local hint = g.Footer(HINT)
-hint.TextWrapped = true
+local hintSlip = panel:FindFirstChild("FooterPlate")
+if hintSlip then
+	Dojo.Fill(hintSlip, C.Field)
+	Dojo.Rim(hintSlip, C.SlipRim, 1.5)
+end
 
 local list = make("ScrollingFrame", "Cards", panel, {
 	BackgroundTransparency = 1,
@@ -166,14 +185,15 @@ for _, spec in chain do
 		BorderSizePixel = 0,
 		Active = false,
 	})
-	make("UIStroke", "Stroke", diamond, { Color = VIOLET, Thickness = 2 })
+	Dojo.Lacquer(diamond)
 	role(
 		caption("Number", card, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Text = tostring(n),
 			ZIndex = 2,
 		}),
-		"Item"
+		"Item",
+		C.Gold
 	)
 	local road = make("ImageLabel", "Road", card, {
 		ScaleType = Enum.ScaleType.Crop,
@@ -181,12 +201,13 @@ for _, spec in chain do
 		BackgroundColor3 = CARD_DEEP,
 	})
 	corner(road, UiTheme.Radius.S)
+	Dojo.Rim(road, C.Rim, 2)
 	role(
 		caption("Title", card, {
 			Text = biomeName(spec),
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}),
-		"Item"
+		"Section"
 	)
 	role(
 		caption("Blurb", card, {
@@ -194,7 +215,8 @@ for _, spec in chain do
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 		}),
-		"Caption"
+		"Caption",
+		C.InkSoft
 	).TextWrapped =
 		true
 	role(
@@ -213,42 +235,47 @@ for _, spec in chain do
 		"Body",
 		STAT
 	)
-	-- Over the Road's bottom right corner: nothing else sits there, so it never covers text.
+	-- In the card's right slot (the text column stops before it): a vermilion tile with cream text.
 	local chip = role(
 		caption("Chip", card, {
-			AnchorPoint = Vector2.new(1, 1),
+			AnchorPoint = Vector2.new(1, 0.5),
 			Text = "YOUR CHECKPOINT",
-			BackgroundColor3 = UiTheme.Palette.MoneyDeep,
 			Visible = false,
 			ZIndex = 2,
 		}),
-		"Caption",
-		Color3.new(1, 1, 1)
+		"Item",
+		C.Cream
 	)
-	chip.BackgroundTransparency = 0 -- caption() makes labels transparent; this one is a chip
-	corner(chip, 4) -- design doc 4.42: 4 px corners, no pills
+	Dojo.Fill(chip, C.GoTop, C.GoBottom) -- also makes it opaque: caption() made it transparent
+	Dojo.Rim(chip, C.GoRim, 2)
+	corner(chip, 6)
 	make("UIPadding", "Pad", chip, { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) })
+	-- A paper wash fades a locked card (drafts/tracks.html); the lock seal and the reason sit in the right slot.
 	local lock = make("Frame", "Lock", card, {
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundColor3 = C.Field,
 		BackgroundTransparency = 0.4,
 		ZIndex = 3,
 		Active = false,
 	})
 	corner(lock, UiTheme.Radius.M)
 	-- Both over the Road image, clear of the card's text.
-	caption("Icon", lock, {
-		AnchorPoint = Vector2.new(0.5, 1),
+	local lockIcon = caption("Icon", lock, {
+		AnchorPoint = Vector2.new(0, 0.5),
 		Text = "🔒",
+		BackgroundColor3 = C.Lacquer,
 		ZIndex = 4,
-	}).Outline.Enabled =
-		false
+	})
+	lockIcon.Outline.Enabled = false
+	lockIcon.BackgroundTransparency = 0
+	corner(lockIcon, 4)
 	role(
 		caption("Need", lock, {
 			Text = "Beat Track " .. (n - 1),
+			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 4,
 		}),
-		"Body"
+		"Item"
 	)
 	card.Activated:Connect(function()
 		pick(n, card)
@@ -257,8 +284,10 @@ for _, spec in chain do
 end
 
 -- One card, h units tall. Left to right: the number diamond (its tip 24 in from the plate's left end), 12, the road
--- shot, 12, the text column, which stops 24 from the plate's right end. Text column, top down: title, 8, description,
--- 8, speed and enemy (12 apart), 12 padding at the top and bottom.
+-- shot, 12, the text column, 12, the right slot (SLOT wide, 24 from the plate's right end: the checkpoint chip, or the
+-- lock seal and its reason). Text column, top down: title, 8, description, 8, speed and enemy (12 apart), 12 padding at
+-- the top and bottom.
+local SLOT = 200
 local function placeCard(card, h, roadW)
 	local px = g.px
 	g.Place(card.Diamond, 24 + 28, h / 2, 40, 40) -- 40 square turned 45 degrees: 57 across
@@ -267,26 +296,30 @@ local function placeCard(card, h, roadW)
 	local roadX = 24 + 57 + 12
 	g.Place(card.Road, roadX, 12, roadW, h - 24)
 	local x = roadX + roadW + 12
-	local textW = UDim.new(1, -px(x + 24))
+	local textW = UDim.new(1, -px(x + 24 + SLOT + 12))
 	card.Title.Position, card.Title.Size = g.at(x, 12), UDim2.new(textW, UDim.new(0, px(34)))
 	local blurbH = h - 12 - 34 - 8 - 8 - 28 - 12
 	card.Blurb.Visible = blurbH >= 22
 	card.Blurb.Position, card.Blurb.Size = g.at(x, 54), UDim2.new(textW, UDim.new(0, px(math.max(0, blurbH))))
 	-- Speed and Enemy split the text column, 12 apart.
-	local half = UDim.new(0.5, -px((x + 24) / 2 + 6))
+	local used = x + 24 + SLOT + 12
+	local half = UDim.new(0.5, -px(used / 2 + 6))
 	card.Speed.Position, card.Speed.Size = g.at(x, h - 12 - 28), UDim2.new(half, UDim.new(0, px(28)))
-	card.Enemy.Position = UDim2.new(0.5, px(x - (x + 24) / 2 + 6), 0, px(h - 12 - 28))
+	card.Enemy.Position = UDim2.new(0.5, px(x - used / 2 + 6), 0, px(h - 12 - 28))
 	card.Enemy.Size = card.Speed.Size
+	local slotX = UDim.new(1, -px(24 + SLOT))
 	local chip = card.Chip
-	chip.AnchorPoint = Vector2.new(1, 1)
-	chip.Position, chip.Size = g.at(roadX + roadW - 4, h - 16), g.at(math.min(150, roadW - 8), 22)
+	chip.AnchorPoint = Vector2.new(0, 0.5)
+	chip.Position, chip.Size = UDim2.new(slotX, UDim.new(0, px(h / 2))), g.at(SLOT, 44)
 	local lock = card.Lock
-	lock.Icon.AnchorPoint = Vector2.new(0.5, 1)
-	lock.Icon.Position, lock.Icon.Size = g.at(roadX + roadW / 2, h / 2), g.at(36, 36)
-	g.Place(lock.Need, roadX, h / 2 + 4, roadW, 28)
+	lock.Icon.AnchorPoint, lock.Need.AnchorPoint = Vector2.new(0, 0.5), Vector2.new(0, 0.5)
+	lock.Icon.Position, lock.Icon.Size = UDim2.new(slotX, UDim.new(0, px(h / 2))), g.at(40, 40)
+	lock.Need.Position = UDim2.new(slotX + UDim.new(0, px(52)), UDim.new(0, px(h / 2)))
+	lock.Need.Size = g.at(SLOT - 52, 30)
 end
 
--- The cards fill the content area: as many whole cards as fit at CARD_MIN, 12 apart, so none is cut at the frame.
+-- The hint slip fills the tabs row; the cards fill from the content top to 28 above the paper's bottom (no footer
+-- plate here): as many whole cards as fit at CARD_MIN, 12 apart, so none is cut at the frame.
 g.OnLayout(function()
 	local c = g.Content
 	for label, entry in roles do
@@ -295,10 +328,14 @@ g.OnLayout(function()
 			label.TextColor3 = entry[2]
 		end
 	end
-	g.Place(list, c.X, c.Y, c.W, c.H)
+	-- the slip adds 6 above and below; it starts below the 98-unit header band (phones put the tabs row at 90)
+	g.Place(hint, c.X, math.max(c.TabsY, 98) + 6, c.W, AnimeSkin.Units.TabH - 12)
+	g.Role(hint, "Body")
+	local listH = g.H - c.Y - 28
+	g.Place(list, c.X, c.Y, c.W, listH)
 	listLayout.Padding = UDim.new(0, g.px(CARD_GAP))
-	local count = math.max(1, math.floor((c.H + CARD_GAP) / (CARD_MIN + CARD_GAP)))
-	local h = math.floor((c.H - (count - 1) * CARD_GAP) / count)
+	local count = math.max(1, math.floor((listH + CARD_GAP) / (CARD_MIN + CARD_GAP)))
+	local h = math.floor((listH - (count - 1) * CARD_GAP) / count)
 	local roadW = math.floor(c.W * 0.2)
 	for _, card in list:GetChildren() do
 		if card:IsA("GuiButton") then
@@ -317,6 +354,10 @@ local function render()
 		refs.Chip.Visible = n == current
 		UiMotion.Mark(refs.Edge, { Color = n == current and SELECTED or VIOLET })
 		refs.Plate.ImageColor3 = n == current and SELECTED or VIOLET
+		local rim = refs.Plate.Parent:FindFirstChild("DojoRim")
+		if rim then
+			rim.Color, rim.Thickness = n == current and SELECTED or C.SlipRim, n == current and 2.5 or 1.5
+		end
 	end
 end
 

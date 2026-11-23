@@ -8,7 +8,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Env = require(Shared.BiomeEnvironment)
 local Themes = require(Shared.BiomeThemes)
-local UiTheme = require(Shared.UiTheme)
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
@@ -29,16 +28,37 @@ group.BackgroundTransparency = 1
 group.GroupTransparency = 1
 group.Visible = false
 group.Parent = root
+-- Design doc 4.46: a paper slip (kit.css .slip) with a vermilion edge on the left, the name in the brush face.
+local D = require(script.Parent:WaitForChild("AnimeSkin")).Dojo
+local slip = Instance.new("Frame")
+slip.Name = "Slip"
+slip.AnchorPoint = Vector2.new(0.5, 0)
+slip.Position = UDim2.fromScale(0.5, 0)
+slip.Size = UDim2.fromScale(1, 1)
+D.Fill(slip, D.Colors.Slip)
+D.Rim(slip, D.Colors.SlipRim, 1.5)
+D.Corner(slip, 4)
+slip.Parent = group
+local edge = Instance.new("Frame")
+edge.Name = "Edge"
+edge.BorderSizePixel = 0
+edge.BackgroundColor3 = D.Colors.Verm
+edge.Size = UDim2.new(0, 6, 1, 0)
+edge.Parent = slip
 local label = Instance.new("TextLabel")
 label.Name = "BiomeName"
 label.BackgroundTransparency = 1
 label.Size = UDim2.fromScale(1, 1)
-label.Font = UiTheme.Font
+label.ZIndex = 2
 label.TextSize = 38
-label.TextColor3 = UiTheme.Palette.White
 label.Text = ""
-UiTheme.Stroke(label, 2.5)
+D.Text(label, "Title")
 label.Parent = group
+local function fitSlip()
+	slip.Size = UDim2.fromOffset(math.min(label.TextBounds.X + 68, group.AbsoluteSize.X), group.AbsoluteSize.Y)
+end
+label:GetPropertyChangedSignal("TextBounds"):Connect(fitSlip)
+fitSlip()
 root.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local shown = 0 -- bumps per popup, so an older popup's fade-out never hides a newer one

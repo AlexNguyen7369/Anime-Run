@@ -22,14 +22,19 @@ local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local Dojo = require(script.Parent:WaitForChild("IndexAnimeStyle")).Dojo
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
 local TILE_BLUE = PALETTE.Tile
 local TILE_GREEN = PALETTE.Money
 local KINDS = { { "Trail", "Trails" }, { "Aura", "Auras" }, { "Potion", "Potions" } }
--- Layout in the Index frame's design units (design doc 4.42, Client/AnimeSkin.IndexFrame); layout() places all.
-local TILE_MIN = 130 -- narrowest tile before the grid drops a column
+-- Layout in the Index frame's design units (design doc 4.42, Client/AnimeSkin.IndexFrame); layout() places all. Design
+-- doc 4.46 (assets/ui/scroll_redesign/drafts/market.html): paper tiles, the picked one stamped with a seal, a paper
+-- detail card. Sizes and colours are placeholders.
+local TILE_MIN = 180 -- narrowest tile before the grid drops a column
+local TILE_H_MIN = 160 -- shortest tile before the grid drops a row
+local PRICE_TEXT = Color3.fromRGB(160, 104, 16) -- #A06810, a tile's price on paper
 local BUY_W = 120
 local BAR = 6 -- the grid's scrollbar
 
@@ -159,12 +164,13 @@ make("UIGradient", "Gradient", detail, {
 	Color = ColorSequence.new(PALETTE.Row, PALETTE.PanelDeep),
 	Rotation = 90,
 })
-AnimeSkin.Card(detail, AnimeSkin.Tint.Default) -- the Quests detail card (design doc 4.42)
+AnimeSkin.Card(detail).Visible = false -- a plain paper card (kit.css .card), no strip
 local rarity = caption("Rarity", detail, "Caption", { Text = "", TextXAlignment = Enum.TextXAlignment.Left })
-local nameLabel = caption("Name", detail, "Item", { Text = "", TextXAlignment = Enum.TextXAlignment.Left })
+local nameLabel = caption("Name", detail, "Section", { Text = "", TextXAlignment = Enum.TextXAlignment.Left })
+-- The preview on the card's pink art panel (kit.css .card .art).
 local viewport = make("ViewportFrame", "Preview", detail, {
-	BackgroundColor3 = PALETTE.TileDeep,
-	BackgroundTransparency = 0.5,
+	BackgroundColor3 = Dojo.Colors.ArtTop,
+	BackgroundTransparency = 0,
 	Ambient = Color3.fromRGB(130, 140, 190),
 	LightColor = Color3.new(1, 1, 1),
 })
@@ -173,11 +179,10 @@ corner(viewport, 4)
 -- first copy arrives (a double tap cannot land on a slot). Above it: price + BUY; the reply sits on the preview's
 -- bottom edge.
 local priceRow = make("Frame", "Price", detail, {
-	BackgroundColor3 = PALETTE.PanelDeep,
-	BackgroundTransparency = 0.3,
+	BackgroundTransparency = 1, -- the price reads on the paper
 })
 corner(priceRow, 4)
-local priceText = caption("Value", priceRow, "Body", { -- scaled: "$1.2m • Owned x2" stays on the row
+local priceText = caption("Value", priceRow, "Item", { -- scaled: "$1.2m • Owned x2" stays on the row
 	Text = "",
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
@@ -217,7 +222,8 @@ end
 
 local function preview(item, kind)
 	viewport:ClearAllChildren()
-	corner(viewport, 10)
+	corner(viewport, 6)
+	Dojo.Rim(viewport, Dojo.Colors.Rim, 2)
 	local world = make("WorldModel", "World", viewport, {})
 	local camera = make("Camera", "Camera", viewport, {})
 	camera.CFrame = CFrame.lookAt(Vector3.new(3.3, 2.5, 4), Vector3.new(0, 1.3, 0.8))
@@ -292,16 +298,22 @@ stroke(back, OUTLINE, 3)
 AnimeSkin.Button(back, "Idle")
 caption("Label", back, "Item", { Size = UDim2.fromScale(1, 1), Text = "BACK" })
 
-local tileUnits = TILE_MIN -- a tile's side in units (layout() sets it)
--- Inside a tile, 12 padding: count / price top-left, the name at the bottom, the swatch between.
+local tileW, tileH = TILE_MIN, TILE_H_MIN -- a tile's size in units (layout() sets it)
+-- Inside a tile, 12 padding: count / price top-left (the picked tile's seal top-right), the name at the bottom, the
+-- swatch centred between.
 local function layoutTile(g, b)
 	local P = g.px
 	local art, badge, name = b:FindFirstChild("Art"), b:FindFirstChild("Badge"), b:FindFirstChild("Name")
-	badge.Position, badge.Size = g.at(12, 12), UDim2.new(1, -P(24), 0, P(28))
+	badge.Position, badge.Size = g.at(12, 12), UDim2.new(1, -P(24 + 36), 0, P(28))
 	name.AnchorPoint = Vector2.new(0, 1)
 	name.Position, name.Size = UDim2.new(0, P(12), 1, -P(12)), UDim2.new(1, -P(24), 0, P(34))
-	local side = math.max(16, tileUnits - 2 * 12 - 28 - 34 - 2 * 4)
-	art.Position, art.Size = UDim2.new(0.5, 0, 0, P(12 + 28 + 4 + side / 2)), g.at(side, side)
+	local room = tileH - 2 * 12 - 28 - 34 - 2 * 4
+	local side = math.max(16, math.min(tileW - 24, room))
+	art.Position, art.Size = UDim2.new(0.5, 0, 0, P(12 + 28 + 4 + room / 2)), g.at(side, side)
+	local seal = b:FindFirstChild("Seal")
+	if seal then
+		seal.Position, seal.Size = UDim2.new(1, -P(8 + 28), 0, P(8)), g.at(28, 28)
+	end
 end
 local showingDetail = false
 -- An owned aura / trail: the slot buttons take the description's band, in both views.
@@ -352,12 +364,13 @@ local function layout(g)
 	end
 	local listW = g.Small and c.W or math.floor(c.W * 0.56)
 	local columns = math.max(1, math.floor((listW - BAR + 12) / (TILE_MIN + 12)))
-	tileUnits = (listW - BAR - 12 * (columns - 1)) / columns
-	local rows = math.max(1, math.floor((c.H + 12) / (tileUnits + 12)))
-	g.Place(grid, c.X, c.Y, listW, rows * tileUnits + (rows - 1) * 12) -- whole rows only
+	tileW = (listW - BAR - 12 * (columns - 1)) / columns
+	local rows = math.max(1, math.floor((c.H + 12) / (TILE_H_MIN + 12)))
+	tileH = (c.H - 12 * (rows - 1)) / rows
+	g.Place(grid, c.X, c.Y, listW, rows * tileH + (rows - 1) * 12) -- whole rows only
 	grid.ScrollBarThickness = P(BAR)
 	grid.Layout.CellPadding = UDim2.fromOffset(P(12), P(12))
-	grid.Layout.CellSize = UDim2.new(1 / columns, -math.ceil(P(12) * (columns - 1) / columns), 0, P(tileUnits))
+	grid.Layout.CellSize = UDim2.new(1 / columns, -math.ceil(P(12) * (columns - 1) / columns), 0, P(tileH))
 	for _, b in grid:GetChildren() do
 		if b:IsA("TextButton") then
 			layoutTile(g, b)
@@ -514,11 +527,24 @@ function render()
 		UiTheme.Gradient(b, PALETTE.Row, PALETTE.PanelDeep)
 		local onSlot = selectedKind ~= "Potion" and SlotPicker.Equipped(selectedKind, item.Id)
 		stroke(b, item.Id == selected and Color3.new(1, 1, 1) or onSlot and TILE_GREEN or TILE_BLUE, 4)
-		-- The card art takes the edge's colours (the Stroke stays, hidden, for the cascade): picked white, on a slot green.
-		AnimeSkin.Card(
-			b,
-			item.Id == selected and Color3.new(1, 1, 1) or onSlot and AnimeSkin.Tint.Ready or AnimeSkin.Tint.Default
-		)
+		-- A paper tile (the Stroke stays, hidden, for the cascade): picked a vermilion rim and a seal, on a slot green.
+		AnimeSkin.Card(b).Visible = false
+		if item.Id == selected then
+			Dojo.Rim(b, Dojo.Colors.Verm, 2.5)
+			local seal = make("TextLabel", "Seal", b, {
+				BackgroundColor3 = Dojo.Colors.Verm,
+				Text = "選", -- decoration only (design doc 4.46 kanji)
+				TextColor3 = Dojo.Colors.SealText,
+				TextScaled = true,
+				Font = Enum.Font.GothamBold, -- CJK through Roblox's font fallback, as the header kanji
+				Rotation = -4,
+				ZIndex = 5,
+			})
+			seal:SetAttribute("AnimeRole", "Kanji") -- UiTheme.Apply leaves its font
+			corner(seal, 4)
+		elseif onSlot then
+			Dojo.Rim(b, AnimeSkin.Tint.Ready, 2.5)
+		end
 		swatch(b, item, selectedKind, UDim2.new(), UDim2.new())
 		local badge = owned(selectedKind, item.Id)
 				and "x" .. (selectedKind == "Potion" and Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0) or Market.Copies(
@@ -527,7 +553,11 @@ function render()
 					item.Id
 				))
 			or Format.MoneyText(item.Price)
-		caption("Badge", b, "Body", { Text = badge, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5 })
+		local badgeColor = owned(selectedKind, item.Id) and AnimeSkin.Tint.Ready or PRICE_TEXT
+		local badgeLabel =
+			caption("Badge", b, "Body", { Text = badge, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 5 })
+		badgeLabel:SetAttribute("DojoTextColor", badgeColor) -- owned green, else the price in dark gold
+		badgeLabel.TextColor3 = badgeColor
 		caption("Name", b, "Item", { Text = item.Name, ZIndex = 5 })
 		if frame then
 			layoutTile(frame, b)

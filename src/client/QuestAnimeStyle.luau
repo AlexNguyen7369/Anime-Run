@@ -37,11 +37,6 @@ local function make(class, name, parent, props)
 	return o
 end
 
-local function phone()
-	local camera = workspace.CurrentCamera
-	return camera ~= nil and camera.ViewportSize.Y <= 500
-end
-
 -- refs: Modal, Header, Title, Close (the PanelFrame parts the look replaces), Tabs, TabLayout, Daily, Weekly,
 -- Content, Detail, Type, Name, Track, Fill, ProgressText, Reward, Logo, OnClose.
 function Style.Attach(refs)
@@ -104,8 +99,13 @@ function Style.Attach(refs)
 		tabs[tab].Lit(false)
 	end
 
-	-- Detail: a paper slip.
+	-- Detail: a paper slip (the old look's blue edge, a Contextual stroke Dojo.Rim leaves on, goes too).
 	local detail = refs.Detail
+	for _, d in detail:GetChildren() do
+		if d:IsA("UIStroke") then
+			d.Enabled = false
+		end
+	end
 	Dojo.Fill(detail, C.Slip)
 	Dojo.Rim(detail, C.SlipRim, 1.5)
 	Dojo.Corner(detail, 6)
@@ -114,6 +114,16 @@ function Style.Attach(refs)
 	for _, bar in { refs.Track, refs.Fill } do
 		bar:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0.5, 0)
 	end
+	-- quests.html: the type as a red brush pill, the reward on a lacquer plate with gold text.
+	Dojo.Fill(refs.Type, C.Brush)
+	Dojo.Corner(refs.Type, 12)
+	refs.Type:SetAttribute("DojoTextColor", C.Cream)
+	refs.Type.TextXAlignment = Enum.TextXAlignment.Center
+	refs.Type.TextYAlignment = Enum.TextYAlignment.Center
+	Dojo.Lacquer(refs.Reward)
+	refs.Reward:SetAttribute("DojoTextColor", C.Gold)
+	refs.Reward.TextYAlignment = Enum.TextYAlignment.Center
+	local rewardPad = make("UIPadding", "AnimePad", refs.Reward, {})
 
 	local k = 1
 	local function px(x)
@@ -125,14 +135,23 @@ function Style.Attach(refs)
 
 	-- A row's "Text" child: row.Text would read the TextButton's Text property.
 	local function rowGeometry(row)
-		local name, line = row:FindFirstChild("Text"), row:FindFirstChild("Progress")
-		row.Size = UDim2.new(1, -px(10), 0, px(100))
-		name.Position, name.Size = at(26, 16), UDim2.new(1, -px(200), 0, px(30))
-		line.Position, line.Size = at(26, 54), UDim2.new(1, -px(200), 0, px(24))
+		local name, line, bar = row:FindFirstChild("Text"), row:FindFirstChild("Progress"), row:FindFirstChild("Bar")
+		row.Size = UDim2.new(1, -px(10), 0, px(112))
+		name.Position, name.Size = at(30, 12), UDim2.new(1, -px(204), 0, px(32))
+		line.Position, line.Size = at(30, 48), UDim2.new(1, -px(204), 0, px(24))
 		text(name, "Item", px(24))
 		text(line, "Caption", px(17))
+		if bar then
+			bar.Position, bar.Size = at(30, 82), UDim2.new(1, -px(204), 0, math.max(2, px(12)))
+		end
 		local claim = row.Claim
-		claim.Position, claim.Size = UDim2.new(1, -px(158), 0.5, -px(22)), at(126, 44)
+		if row:GetAttribute("AnimeRow") == "Claimed" then
+			-- quests.html .stamp: a round vermilion seal in place of the button
+			-- 8 in from the row's right end (as the tint bar on the left): the row's hitbox stays within its padding.
+			claim.Position, claim.Size = UDim2.new(1, -px(104), 0.5, -px(48)), at(96, 96)
+		else
+			claim.Position, claim.Size = UDim2.new(1, -px(134), 0.5, -px(22)), at(126, 44)
+		end
 		claim.TextScaled = true
 		local limit = claim:FindFirstChild("AnimeLimit") or make("UITextSizeConstraint", "AnimeLimit", claim, {})
 		limit.MaxTextSize = px(20)
@@ -141,12 +160,17 @@ function Style.Attach(refs)
 	local controller = {}
 	local view = "Quests"
 	local active = false
+	local measuring = nil -- MeasureAt's { Small, W, H } while the UI tests read the layout at another viewport
 	local function layout()
-		local small = phone()
+		local small = if measuring then measuring.Small else Skin.Compact()
 		local U = Skin.Units
 		local W, H = small and U.PhoneW or U.W, small and U.PhoneH or U.H
-		aspect.AspectRatio = W / H
-		k = math.min(modal.Size.X.Offset / W, modal.Size.Y.Offset / H)
+		local wPx = if measuring then measuring.W else modal.Size.X.Offset
+		local hPx = if measuring then measuring.H else modal.Size.Y.Offset
+		if not measuring then
+			aspect.AspectRatio = W / H
+		end
+		k = math.min(wPx / W, hPx / H)
 		if k <= 0 then
 			return
 		end
@@ -154,12 +178,22 @@ function Style.Attach(refs)
 		-- Header as AnimeSkin.IndexFrame's (kit.css .hdr): logo, brush title, kanji and sub line, rule, seal close.
 		banner.Position, banner.Size = UDim2.new(), UDim2.new(1, 0, 0, px(98))
 		logo.Position, logo.Size = at(28, 14), at(70, 70)
-		title.Position, title.Size = at(108, 12), at(W - 228, 72)
+		rule.Position, rule.Size = at(28, 90), UDim2.new(1, -px(56), 0, math.max(1, px(3)))
+		if daily then
+			-- The Daily view keeps unit offsets: UiTest/UiResponsive's Daily model (RUNTIME DailyBoosts) reads them.
+			title.Position, title.Size = at(108, 12), at(W - 228, 72)
+			close.Position, close.Size = at(W - 92, 16), at(64, 64)
+			footer.Position, footer.Size = at(W * 303 / 920, H - 60), at(W * 312 / 920, 28)
+		else
+			-- Held to the right and bottom edges by Scale (as AnimeSkin.IndexFrame), so a layout read at another frame
+			-- size stays inside the frame.
+			title.Position, title.Size = at(108, 12), UDim2.new(1, -px(228), 0, px(72))
+			close.Position, close.Size = UDim2.new(1, -px(92), 0, px(16)), at(64, 64)
+			footer.Position = UDim2.new(303 / 920, 0, 1, -px(60))
+			footer.Size = UDim2.new(312 / 920, 0, 0, px(28))
+		end
 		text(title, "Title", px(72))
 		heading(px, px(W))
-		rule.Position, rule.Size = at(28, 90), UDim2.new(1, -px(56), 0, math.max(1, px(3)))
-		close.Position, close.Size = at(W - 92, 16), at(64, 64)
-		footer.Position, footer.Size = at(W * 303 / 920, H - 60), at(W * 312 / 920, 28)
 		text(footer, "Footer", px(20))
 
 		local top = small and 144 or 164
@@ -196,17 +230,18 @@ function Style.Attach(refs)
 			end
 		end
 		local detailW = gridW - listW - 16
+		detail.Visible = not small -- phones show the list only
 		detail.Position, detail.Size = at(56 + listW + 16, top), at(detailW, gridH)
-		refs.Type.Position, refs.Type.Size = at(26, 26), at(detailW - 52, 22)
-		refs.Name.Position, refs.Name.Size = at(26, 52), at(detailW - 52, 70)
-		refs.Track.Position, refs.Track.Size = at(26, gridH - 132), at(detailW - 52, 30)
-		refs.Reward.Position, refs.Reward.Size = at(26, gridH - 90), at(detailW - 52, 64)
-		text(refs.Type, "Item", px(16))
-		refs.Type.TextColor3 = C.Verm
-		text(refs.Name, "Title", px(30))
+		refs.Type.Position, refs.Type.Size = at(22, 20), at(math.min(200, detailW - 44), 34)
+		refs.Name.Position, refs.Name.Size = at(22, 64), at(detailW - 44, 56)
+		refs.Track.Position, refs.Track.Size = at(22, 128), at(detailW - 44, 28)
+		refs.Reward.Position, refs.Reward.Size = at(22, gridH - 128), at(detailW - 44, 106)
+		rewardPad.PaddingLeft, rewardPad.PaddingRight = UDim.new(0, px(16)), UDim.new(0, px(16))
+		text(refs.Type, "Item", px(18))
+		text(refs.Name, "Title", px(36))
 		text(refs.ProgressText, "Body", px(17))
 		refs.ProgressText.TextColor3 = refs.Fill.Size.X.Scale >= 0.5 and C.Cream or C.Ink
-		text(refs.Reward, "Item", px(19))
+		text(refs.Reward, "Item", px(22))
 	end
 
 	controller.px, controller.at = px, at
@@ -263,14 +298,40 @@ function Style.Attach(refs)
 			parts.Lit(tab.Name == category)
 		end
 	end
-	-- state: "Ready", "Progress" or "Claimed". The row is a paper slip with the state's bar at its left end (kit.css
-	-- quests frame); its Selection edge stays clear. Claim: the vermilion tile when ready, else an outlined paper button.
-	function controller:Row(row, state)
+	-- state: "Ready", "Progress" or "Claimed"; fraction: the server's progress, 0 to 1. The row is a paper slip with the
+	-- state's bar at its left end and a thin progress bar (quests.html); its Selection edge stays clear. Claim: the
+	-- vermilion tile when ready, a muted outlined LOCKED button in progress, a round vermilion stamp when claimed.
+	function controller:Row(row, state, fraction)
 		row:SetAttribute("AnimeRow", state)
 		row.Selection.Transparency = 1
 		Skin.Plate(row, Style.Tint[state])
+		if state == "Ready" then
+			row.DojoRim.Color = C.Verm
+		end
+		local bar = make("Frame", "Bar", row, { BackgroundColor3 = C.Track, BorderSizePixel = 0, Active = false })
+		Dojo.Corner(bar, 6)
+		make("UIStroke", "Edge", bar, { Color = C.Rim, Thickness = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
+		local fill = make("Frame", "Fill", bar, {
+			BackgroundColor3 = state == "Claimed" and C.Muted or C.Verm,
+			BorderSizePixel = 0,
+			Size = UDim2.fromScale(math.clamp(fraction or 0, 0, 1), 1),
+			Active = false,
+		})
+		Dojo.Corner(fill, 6)
 		local claim = row.Claim
 		Skin.Button(claim, state == "Ready" and "Go" or "Idle")
+		if state == "Progress" then
+			claim.DojoRim.Color = C.Muted
+			claim:SetAttribute("DojoTextColor", C.Muted)
+		elseif state == "Claimed" then
+			claim.BackgroundTransparency = 1
+			claim.DojoRim.Color, claim.DojoRim.Thickness = C.Verm, 3
+			claim:SetAttribute("DojoTextColor", C.Verm)
+			claim.Rotation = -12
+			task.defer(function()
+				claim:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0.5, 0) -- after Skin.Button's 6 px
+			end)
+		end
 		local function fonts()
 			rowGeometry(row)
 			Dojo.Text(claim, "Item")
@@ -292,7 +353,8 @@ function Style.Attach(refs)
 		for rowId, refsOfRow in rows do
 			local rim = refsOfRow.Button:FindFirstChild("DojoRim")
 			if rim then
-				rim.Color = rowId == id and C.Verm or C.SlipRim
+				local ready = refsOfRow.Button:GetAttribute("AnimeRow") == "Ready"
+				rim.Color = (rowId == id or ready) and C.Verm or C.SlipRim
 				rim.Thickness = rowId == id and 2.5 or 1.5
 			end
 		end
@@ -305,6 +367,25 @@ function Style.Attach(refs)
 			task.defer(layout)
 		end
 	end)
+	-- UI tests: lay the views out at another viewport and frame size in px, call read(), then lay out for this screen
+	-- again in one go (the AnimeSkin.IndexFrame g.MeasureAt contract; the layout reads the camera, so scaling the live
+	-- rects would keep the desktop header on a phone).
+	Skin.Frames[modal] = {
+		MeasureAt = function(viewportSize, wPx, hPx, read)
+			measuring = { Small = Skin.Compact(viewportSize), W = wPx, H = hPx }
+			if active then
+				layout()
+			end
+			local ok, err = pcall(read)
+			measuring = nil
+			if active then
+				layout()
+			end
+			if not ok then
+				error(err, 0)
+			end
+		end,
+	}
 	return controller
 end
 

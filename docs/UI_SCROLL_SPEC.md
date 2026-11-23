@@ -37,3 +37,5 @@ Not built: hud_b (option B rejected), upgrades (the Upgrades tree stays as it is
   with Paper and both rollers, and the paper shows at rest.
 - The generated panel chrome model (Stats, Settings, Rebirth) in UiResponsive is updated with t3, when those headers
   move to the 4.46 layout.
+- Roll result (owner 2026-11-22): stays without a card, as ROLL_ANIMATION_SPEC decision 4 says; only the NEW, +1 COPY
+  and TURBO badges take the 4.46 look (the toasts frame's paper card is not built).

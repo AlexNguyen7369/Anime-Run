@@ -40,10 +40,12 @@ local PALETTE = UiTheme.Palette
 local TILE_BLUE = PALETTE.Tile
 local TILE_GREEN = PALETTE.Money
 local U = AnimeSkin.Units
+-- Scroll Dojo colours (design doc 4.46, drafts/backpack.html): text on cream paper is ink or a kit colour.
+local KIT = AnimeSkin.Dojo.Colors
 -- Index design units (AnimeSkin.IndexFrame; placeholders). Grid cells: as many columns as fit cells at least this
 -- wide, as many whole rows as fit near this height.
 local CARD_MIN_WIDTH = 140
-local CARD_HEIGHT = 120
+local CARD_HEIGHT = 150 -- two rows on Characters (drafts/backpack.html)
 local TILE_MIN = 112
 local CARD_ART = 3 -- px: the card art reaches 3 px past a cell, so the grid pads it and no edge is clipped
 local SORT_WIDTH, MASS_WIDTH, SPARES_WIDTH = 220, 180, 220
@@ -173,17 +175,17 @@ local massSell = make("TextButton", "MassSell", toolbar, {
 })
 local search = make("TextBox", "Search", toolbar, {
 	LayoutOrder = 3,
-	BackgroundColor3 = OUTLINE,
-	BackgroundTransparency = 0.25,
+	BackgroundColor3 = KIT.Field, -- a paper field (kit.css .field)
+	BackgroundTransparency = 0,
 	ClearTextOnFocus = false,
 	PlaceholderText = "Search",
-	PlaceholderColor3 = PALETTE.SoftText,
+	PlaceholderColor3 = KIT.Muted,
 	Text = "",
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextTruncate = Enum.TextTruncate.AtEnd,
 })
 local searchPadding = make("UIPadding", "Padding", search, {})
--- Selling a chosen character's spares (docs/BAG_AND_AUTOSELL_SPEC.md): Characters tab, right of the slot buttons.
+-- Selling a chosen character's spares (docs/BAG_AND_AUTOSELL_SPEC.md): Characters tab, at the right end of the footer row.
 local sellSpares = make("TextButton", "SellSpares", panel, {
 	AnchorPoint = Vector2.new(1, 0),
 	BackgroundColor3 = PALETTE.Muted,
@@ -268,13 +270,14 @@ local function fitCards(w, h)
 end
 
 -- The Index frame's content area (design doc 4.42): the search line first (with Sort and Mass sell on Characters),
--- the slot row (or the mass-sell bar) 12 above the content's bottom, the grid between, 12 apart. Tabs go in the tabs
--- row, the count in the footer.
+-- the slot row (Trails / Auras) or the mass-sell bar 12 above the content's bottom, the grid between, 12 apart. Tabs go
+-- in the tabs row, the count in the footer; Sell spares sits at the footer row's right end (design doc 4.46), so the
+-- Characters grid has the whole height for two rows.
 local renderedK = nil
 local function layout()
 	local c = g.Content
 	local characters = current == "Characters"
-	local cosmetic = current == "Trails" or current == "Auras" or characters
+	local cosmetic = current == "Trails" or current == "Auras" or selecting
 	local row, gap = U.Button, U.Gap
 	for _, refs in tabs do
 		local label = refs.Button.Label
@@ -288,6 +291,8 @@ local function layout()
 	g.Place(massSell, right - MASS_WIDTH, c.Y, MASS_WIDTH, row)
 	g.Place(sortButton, right - MASS_WIDTH - gap - SORT_WIDTH, c.Y, SORT_WIDTH, row)
 	g.Place(search, c.X, c.Y, characters and c.W - MASS_WIDTH - SORT_WIDTH - 2 * gap or c.W, row)
+	-- The toolbar frame spans the panel's origin to the search line's bottom, so its buttons lie inside their parent.
+	toolbar.Size = UDim2.new(1, 0, 0, g.px(c.Y + row))
 	searchPadding.PaddingLeft, searchPadding.PaddingRight = UDim.new(0, g.px(U.Pad)), UDim.new(0, g.px(U.Pad))
 	if toolbar.Visible then
 		top += row + gap
@@ -296,8 +301,11 @@ local function layout()
 	if cosmetic then
 		bottom = rowY - gap
 	end
-	g.Place(slots.Frame, c.X, rowY, characters and c.W - SPARES_WIDTH - gap or c.W, row)
-	g.Place(sellSpares, right - SPARES_WIDTH, rowY, SPARES_WIDTH, row)
+	g.Place(slots.Frame, c.X, rowY, c.W, row)
+	-- The footer row: the count line (AnimeSkin.IndexFrame: W * 303 / 920 to W * 615 / 920, at H - 60, 28 tall) and
+	-- Sell spares level with it at the right, 12 clear of the line (narrower on a phone).
+	local sparesW = math.min(SPARES_WIDTH, right - math.ceil(g.W * 615 / 920) - gap)
+	g.Place(sellSpares, right - sparesW, g.H - 60 + 14 - row / 2, sparesW, row)
 	g.Place(massBar, c.X, rowY, c.W, row)
 	local gapPx = g.px(gap)
 	massLayout.Padding = UDim.new(0, gapPx)
@@ -527,7 +535,7 @@ local function entryTiles(bag, wearers, kind, rowOf, facts)
 					ZIndex = 5,
 				}),
 				"Caption",
-				TILE_GREEN
+				AnimeSkin.Tint.Ready
 			)
 		end
 		hover(b, function()
@@ -704,7 +712,7 @@ function render()
 						ZIndex = 8,
 					}),
 					"Section",
-					PALETTE.Danger
+					KIT.Verm
 				)
 				if spares > 0 then
 					setSelected(b, spec.Id, selected[spec.Id] == true)
@@ -712,8 +720,8 @@ function render()
 					selected[spec.Id] = nil
 					make("Frame", "Dim", b, { -- no spares: the last copy is never sold (design doc 4.41)
 						Size = UDim2.fromScale(1, 1),
-						BackgroundColor3 = OUTLINE,
-						BackgroundTransparency = 0.45,
+						BackgroundColor3 = KIT.Field, -- a paper wash fades it
+						BackgroundTransparency = 0.35,
 						BorderSizePixel = 0,
 						ZIndex = 9,
 					})
@@ -764,11 +772,11 @@ function render()
 						ZIndex = 5,
 					}),
 					"Body",
-					PALETTE.Gold
+					KIT.Ink
 				)
 				if item.Id == chosen then
 					b.Stroke.Color = Color3.new(1, 1, 1)
-					b.AnimeCard.ImageColor3 = Color3.new(1, 1, 1)
+					b.AnimeCard.ImageColor3 = KIT.Verm -- the picked tile's strip (white was lost on paper)
 				end
 				swatch(
 					b,
@@ -993,6 +1001,7 @@ g = require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	Icon = Icons.Items.Image,
 	TitleObject = header.Title,
 	Close = close,
+	FrameH = 670, -- design doc 4.46 Items: 50 units taller than the 620 frame, to fit two rows (proposed)
 }).Frame
 require(script.Parent:WaitForChild("PanelFrame")).CloseOnOutsideClick(panel, function()
 	PanelSwitch.Close("Backpack")
@@ -1013,7 +1022,9 @@ player:GetAttributeChangedSignal("RebirthLevel"):Connect(refreshUnlocks)
 refreshUnlocks()
 for _, button in { sortButton, massSell, sellSpares, massAll, massGo, massCancel } do
 	button.BorderSizePixel = 0
-	g.Button(button, (button == massSell or button == massGo) and "Danger" or "Idle")
+	-- Mass sell and Sell spares: vermilion tiles (drafts/backpack.html); the select-mode Sell keeps its Danger rim.
+	g.Button(button, (button == massSell or button == sellSpares) and "Go" or button == massGo and "Danger" or "Idle")
 end
 corner(search, 4) -- after UiTheme.Apply, which snaps corners to its own radii
+AnimeSkin.Dojo.Rim(search, KIT.Rim, 2)
 g.OnLayout(layout)

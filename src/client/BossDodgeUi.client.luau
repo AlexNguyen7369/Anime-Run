@@ -85,12 +85,16 @@ local bar = make("TextButton", {
 	Font = UiTheme.Font,
 	Text = "",
 	AutoButtonColor = false,
-	BackgroundColor3 = Color3.fromRGB(24, 18, 12),
-	BackgroundTransparency = 0.2,
+	BackgroundColor3 = WHITE,
 	BorderSizePixel = 0,
 	Size = UDim2.fromScale(1, 1),
 }, dodge)
-make("UICorner", { CornerRadius = UDim.new(0.3, 0) }, bar)
+-- Design doc 4.46 bosshud frame: a dark wood well (#2A1A0E to #140C06) with a gold rim and 6 px corners.
+make("UIGradient", {
+	Color = ColorSequence.new(Color3.fromRGB(42, 26, 14), Color3.fromRGB(20, 12, 6)),
+	Rotation = 90,
+}, bar)
+make("UICorner", { CornerRadius = UDim.new(0, 6) }, bar)
 make("UIStroke", { Thickness = 2, Color = GOLD, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, bar)
 local spot = make("Frame", {
 	Name = "Spot",
@@ -131,6 +135,7 @@ ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
 end)
 local subtitle = text("Subtitle", dodge)
 subtitle.AnchorPoint = Vector2.new(0.5, 1)
+subtitle.FontFace = AnimeSkin.Dojo.Fonts.Title -- the brush wordmark (design doc 4.46)
 local result = text("Result", root)
 result.AnchorPoint = Vector2.new(0.5, 0.5)
 local resultScale = make("UIScale", { Name = "ResultScale" }, result)

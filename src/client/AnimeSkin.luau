@@ -500,7 +500,8 @@ Skin.UnitSize = { Title = 72, Section = 40, Item = 34, Body = 28, Caption = 22, 
 
 -- parts: Title (TextLabel), Icon (ImageLabel, optional; Logo = image id to put on it), Close (GuiButton, optional),
 -- Header (Frame made a transparent band over the header row at the panel's origin, optional), Scroll (false: a paper slip
--- body, no handscroll, for a card that is no scroll in 4.46, the loser card).
+-- body, no handscroll, for a card that is no scroll in 4.46, the loser card), H (design height in units on desktop,
+-- default Units.H; design doc 4.46 Items: the Backpack is 50 taller, 670; the phone frame stays PhoneH).
 -- Returns g: W, H, k, Small; px(units), at(x, y); Place(gui, x, y, w, h); Role(label, role); Tabs({buttons}) -> lit
 -- setters; Button(button, tone); Content = { X, Y, W, H } in units; Footer(text); SetTitle(text); SetLogo(image);
 -- OnLayout(fn(g)) runs now and on every size change; Relayout(); MeasureAt (UI tests). Skin.Frames[panel] = g.
@@ -583,7 +584,8 @@ function Skin.IndexFrame(panel, parts)
 	end
 	Dojo.FooterPlate(footer, 10)
 
-	local g = { k = 1, W = Skin.Units.W, H = Skin.Units.H, Small = false, Content = {} }
+	local frameH = parts.H or Skin.Units.H
+	local g = { k = 1, W = Skin.Units.W, H = frameH, Small = false, Content = {} }
 	function g.px(units)
 		return math.floor(units * g.k + 0.5)
 	end
@@ -655,7 +657,7 @@ function Skin.IndexFrame(panel, parts)
 			wPx = panel.Size.X.Offset > 0 and panel.Size.X.Offset or panel.AbsoluteSize.X
 			hPx = panel.Size.Y.Offset > 0 and panel.Size.Y.Offset or panel.AbsoluteSize.Y
 		end
-		local W, H = small and Skin.Units.PhoneW or Skin.Units.W, small and Skin.Units.PhoneH or Skin.Units.H
+		local W, H = small and Skin.Units.PhoneW or Skin.Units.W, small and Skin.Units.PhoneH or frameH
 		if not measuring then
 			aspect.AspectRatio = W / H
 		end
@@ -669,8 +671,9 @@ function Skin.IndexFrame(panel, parts)
 		-- not W / H units: the same px here, and a layout read at another viewport (the UI tests' model scales offsets
 		-- by k) stays inside the frame.
 		if header then
-			-- The header band (0 to 98): logo, title and close sit inside it; the tabs row starts below it.
-			header.Size = UDim2.new(1, 0, 0, g.px(98))
+			-- The header band ends where the tabs row starts (98, phone 90): logo (14 to 84), title (12 to 84) and close
+			-- (16 to 80) fit inside both.
+			header.Size = UDim2.new(1, 0, 0, g.px(small and Skin.Units.PhoneTabsY or Skin.Units.TabsY))
 		end
 		if icon then
 			g.Place(icon, 28, 14, 70, 70)

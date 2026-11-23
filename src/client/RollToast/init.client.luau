@@ -38,6 +38,7 @@ local autoRollRemote = remotes:WaitForChild("SetAutoRoll")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
+local Dojo = require(script.Parent:WaitForChild("AnimeSkin")).Dojo
 
 local A = RollAnimConfig
 local COMPACT_TEXT_BAND = 20 -- px each for the odds and the name under the compact figure
@@ -81,7 +82,6 @@ local WHITE = Color3.new(1, 1, 1)
 local BLACK = Color3.new(0, 0, 0)
 local CARD_BG = Color3.fromRGB(20, 28, 48)
 local GOLD = Color3.fromRGB(255, 200, 60)
-local TURBO_BLUE = Color3.fromRGB(60, 170, 255)
 local UNKNOWN_CRYSTAL = Color3.fromRGB(60, 70, 95)
 local RAINBOW = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 60, 60)),
@@ -364,18 +364,26 @@ local function buildBody(z)
 	local aliasOdds = aliasText("Odds", odds)
 	make("UIStroke", { Color = BLACK, Thickness = 3, ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual }, aliasName)
 
-	local function badge(name, text, color, y)
+	-- Design doc 4.46 (toasts frame): NEW and +1 COPY are red brush pills, TURBO a lacquer pill with gold words.
+	local function badge(name, text, lacquer, y)
 		local b = label(name, UDim2.fromScale(0.77, y), UDim2.fromScale(0.2, 0.12), body)
-		b.BackgroundTransparency = 0
-		b.BackgroundColor3 = color
+		if lacquer then
+			Dojo.Lacquer(b)
+		else
+			Dojo.Fill(b, Dojo.Colors.Brush)
+			Dojo.Rim(b, Dojo.Colors.VermDeep, 2)
+		end
+		Dojo.Corner(b, 10)
+		b:SetAttribute("DojoTextColor", lacquer and Dojo.Colors.Gold or Dojo.Colors.Cream)
+		Dojo.Text(b, "Item")
+		b.Rotation = lacquer and -4 or 4
 		b.Text = text
 		b.Visible = false
-		round(b, UDim.new(0, 4))
 		return b
 	end
-	local newBadge = badge("NewBadge", "NEW!", Color3.fromRGB(60, 255, 60), 0.3)
-	local scrapBadge = badge("ScrapBadge", "SCRAP", Color3.fromRGB(255, 190, 60), 0.3)
-	local turboBadge = badge("TurboBadge", "TURBO", TURBO_BLUE, 0.46)
+	local newBadge = badge("NewBadge", "NEW!", false, 0.3)
+	local scrapBadge = badge("ScrapBadge", "SCRAP", false, 0.3)
+	local turboBadge = badge("TurboBadge", "TURBO", true, 0.46)
 
 	local flames = diamond("TurboFlames", z + 2, body)
 	flames.BackgroundTransparency = 1

@@ -10,6 +10,7 @@ local GachaConfig = require(Shared.GachaConfig)
 local RunnerFactory = require(Shared.RunnerFactory)
 local UiTheme = require(Shared.UiTheme)
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
@@ -131,7 +132,9 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	local image = Components.PortraitImage(spec)
 	local view = Instance.new(image and "ImageLabel" or "ViewportFrame")
 	view.Name = "Art"
-	view.BackgroundTransparency = 1
+	-- Design doc 4.46 starter frame: the art sits on the card's pink art well (a plain fill: a gradient would tint it).
+	view.BackgroundColor3 = AnimeSkin.Dojo.Colors.ArtTop
+	view.BorderSizePixel = 0
 	if image then
 		view.Image = image
 		view.ImageColor3 = Color3.new(1, 1, 1)
@@ -210,7 +213,8 @@ function update()
 		or (player:GetAttribute("NeedsStarter") == true and player:GetAttribute("ArrivalRevealDone") == true)
 	if show and not root.Enabled then
 		refill()
-		UiMotion.Pop(panel)
+		-- Design doc 4.46: the popup unrolls from its centre; Choose is live as soon as it shows (4.20).
+		DojoHandscroll.Open(panel)
 	end
 	root.Enabled = show
 end

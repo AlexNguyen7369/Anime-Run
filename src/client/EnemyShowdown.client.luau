@@ -47,7 +47,9 @@ banner.AnchorPoint = Vector2.new(0.5, 0)
 banner.Position = HOME
 banner.Size = UDim2.fromOffset(BANNER_W, BANNER_H)
 banner.Visible = false
-local edge = UiTheme.Plate(banner, UiTheme.Palette.Danger):FindFirstChildOfClass("UIStroke")
+-- Design doc 4.46: a lacquer plate (kit.css .lacq); its gold rim turns vermilion for VS and stays gold on a defeat.
+local D = require(script.Parent:WaitForChild("AnimeSkin")).Dojo
+local edge = D.Rim(D.Lacquer(banner), D.Colors.GoldSoft, 2)
 banner.Parent = gui
 
 -- Layout scale (not MotionScale), as the loser card: phones shrink, desktop never does (design doc 4.27).
@@ -74,19 +76,19 @@ local function line(name, y, height, textSize, color)
 	text.TextXAlignment = Enum.TextXAlignment.Left
 	text.TextTruncate = Enum.TextTruncate.AtEnd
 	text.ZIndex = 5
-	UiTheme.Stroke(text, 2)
+	UiTheme.Stroke(text, 2, D.Colors.LacquerDark)
 	text.Parent = banner
 	return text
 end
 
-local vs = line("Vs", 6, 44, 42, UiTheme.Palette.Danger)
+local vs = line("Vs", 6, 44, 42, D.Colors.Verm)
 vs.Text = "VS"
 vs.Visible = false
-local defeated = line("Defeated", 6, 44, 42, UiTheme.Palette.Money)
+local defeated = line("Defeated", 6, 44, 42, D.Colors.Gold)
 defeated.Text = "DEFEATED!"
 defeated.Visible = false
-local enemyName = line("EnemyName", 50, 32, 28, UiTheme.Palette.White)
-local trackName = line("TrackName", 84, 20, 16, UiTheme.Palette.Unbanked)
+local enemyName = line("EnemyName", 50, 32, 28, D.Colors.Cream)
+local trackName = line("TrackName", 84, 20, 16, D.Colors.GoldSoft)
 
 gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 refit()
@@ -149,7 +151,7 @@ function show(event)
 	if won then
 		portrait.ImageColor3 = DEFEATED_TINT
 	end
-	edge.Color = won and UiTheme.Palette.Money or UiTheme.Palette.Danger
+	edge.Color = won and D.Colors.GoldSoft or D.Colors.Verm
 	local width = 0
 	for _, text in { title, enemyName, trackName } do
 		-- Measured, not TextBounds: right before the first render, under any UIScale.

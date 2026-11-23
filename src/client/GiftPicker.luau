@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
 local Palette = UiTheme.Palette
 local ICON = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons")).Shop.Image
 -- Design units (AnimeSkin.IndexFrame): rows and the button 44 tall, 12 apart.
@@ -131,7 +132,8 @@ function Picker.Create(panel, items, backdrop)
 	end
 	cancel.Activated:Connect(function()
 		if not submitting then
-			close()
+			-- Design doc 4.46: rolls up, then closes (a reopen meanwhile stops the roll and skips close).
+			DojoHandscroll.Close(root, close)
 		end
 	end)
 	confirm.Activated:Connect(function()
@@ -184,6 +186,7 @@ function Picker.Create(panel, items, backdrop)
 		product, selected, price = item, nil, nil
 		items.Visible = false
 		root.Visible = true
+		DojoHandscroll.Open(root) -- design doc 4.46: unrolls from its centre, input live
 		status.Text = "Choose a player"
 		render()
 		local token = generation
