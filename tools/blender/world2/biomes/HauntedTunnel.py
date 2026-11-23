@@ -24,13 +24,13 @@ CEDAR, CEDAR2, BARK = "1C3326", "243F2E", "3A2A20"
 STONE, STONE2, STONE3, MORTAR = "6F7468", "5E6459", "7C8072", "2E322A"
 STONES = (STONE, STONE2, STONE3, "5A6152", "666B5A", "727664")
 IVY, IVY2, IVY3, MOSS = "2F5A2E", "3D6E35", "24482A", "232C1E"
-LINING, LINING2 = "1C201C", "141714"
+LINING, LINING2 = "121412", "0C0E0C"
 TILE, TILE2, RIDGE = "3A3F4A", "2E323B", "23262D"
 SODIUM, WARM, GLASS, DARKWIN = "FFB347", "FFD890", "7FA0B8", "141C26"
 HAZ_Y, HAZ_K = "F2C230", "1A1A1A"
 R, SPR = 27.0, 13.0  # tunnel inner radius and springline height (local y; local 0 is 1 below the road top)
 TUNNEL = (1990.0, 2330.0)  # run shot 2 (1903) faces the entry portal; the far end runs into the bend, hiding the exit
-LAMPS = (44.0, 120.0)  # the only lamps: this far inside each mouth (local +Z), on alternate walls
+LAMPS = (150.0, 260.0)  # the only lamps: this far inside each mouth (local +Z), on alternate walls
 
 
 def bx(p, size, pos, col, **o):
@@ -59,7 +59,7 @@ def windows(p, x0, x1, cols, y0, rows, dy, z, w, h, col, lit=(), litcol=WARM, fr
 			on = (r * cols + c) in lit
 			if frame:
 				bx(p, (w + 0.8, h + 0.8, 0.3), (x, y0 + r * dy, z + 0.1), frame)
-			bx(p, (w, h, 0.4), (x, y0 + r * dy, z), litcol if on else col, emit=3.0 if on else 0.0, rough=0.3)
+			bx(p, (w, h, 0.4), (x, y0 + r * dy, z), litcol if on else col, emit=1.4 if on else 0.0, rough=0.3)
 
 
 def _fill(k, color):
@@ -214,12 +214,13 @@ def build(k):
 	bx(po, (half * 2, top - SPR - ring, 4), (0, SPR + ring + (top - SPR - ring) / 2, 1.6), MORTAR)
 	for s in (-1, 1):  # mortar behind the side joints too
 		bx(po, (half - R - 1, top + 1, 3), (s * (half + R + 1) / 2, (top - 1) / 2, 2.2), MORTAR)
-	nv = 19
+	nv = 10  # large voussoirs in one grey-green tone, and a recessed inner ring for a stepped deep reveal
 	for i in range(nv):
 		a = math.pi * (i + 0.5) / nv
-		rr = R + 2.75
-		key = i == nv // 2
-		po.append(("box", (2 * math.pi * rr / 2 / nv * 0.9, 6.4 if key else 5.5, 6.4 if key else rnd.uniform(5.6, 6.4)), (math.cos(a) * rr, SPR + math.sin(a) * rr + (0.6 if key else 0), -0.7), rnd.choice(STONES[:3] + ("858A7C",)), {"rot": (0, 0, math.degrees(a) - 90 + rnd.uniform(-2, 2))}))
+		rr = R + 3.2
+		tone = rnd.choice(("6A7062", "687060", "6C7264"))
+		po.append(("box", (2 * math.pi * rr / 2 / nv * 0.94, 7.4 if i == nv // 2 else 6.6, 7.0), (math.cos(a) * rr, SPR + math.sin(a) * rr, -0.9), tone, {"rot": (0, 0, math.degrees(a) - 90 + rnd.uniform(-1.5, 1.5))}))
+		po.append(("box", (2 * math.pi * (R + 0.6) / 2 / nv * 0.96, 1.6, 4.0), (math.cos(a) * (R + 0.6), SPR + math.sin(a) * (R + 0.6), 2.4), "4A5046", {"rot": (0, 0, math.degrees(a) - 90)}))
 	for s in (-1, 1):
 		bx(po, (6.5, 2.4, 6.6), (s * (R + 3), SPR - 0.2, -0.7), "7A7E70")
 		bx(po, (6, 3, 6.4), (s * (R + 3), 0.5, -0.6), STONE2)
@@ -236,27 +237,37 @@ def build(k):
 	for i in range(10):  # stains on the ring itself
 		a = rnd.uniform(0.2, math.pi - 0.2)
 		bx(po, (rnd.uniform(1.5, 3), rnd.uniform(4, 9), 0.3), (math.cos(a) * (R + 3), SPR + math.sin(a) * (R + 3), -3.85), MOSS)
-	po.append(("wedge", (180, 70, 110), (0, top + 35, 58), "1E2E24", {"rot": (0, 180, 0)}))
+	po.append(("wedge", (180, 70, 110), (0, top + 35, 58), "1E2E24"))  # rises back from the parapet
+	for i in range(26):
+		z = rnd.uniform(6, 100)
+		yy = top + 70 * (z - 3) / 110
+		sz = rnd.uniform(8, 18)
+		po.append(("ball", (sz * 1.5, sz * 0.6, sz), (rnd.uniform(-85, 85), yy + sz * 0.15, z), (IVY3, "1F3A24", IVY)[i % 3], {"subdiv": 1}))
 	for s in (-1, 1):
 		po.append(("wedge", (60, top, 70), (s * (half + 30), top / 2 - 1, 34), "1C2A22", {"rot": (0, -s * 90, 0)}))
-	for x, z, hh in ((-48, 60, 52), (-20, 70, 62), (10, 52, 48), (36, 66, 58), (58, 46, 44), (-60, 40, 40)):
-		po.append(("cone", (16, hh, 16), (x, top + 30 + hh / 2 - 10, z), (CEDAR, CEDAR2)[x % 2], {"seg": 7}))
-	# ivy: irregular clumps along the cornice, curtains down both spandrels to the ground, strands over the ring
-	for i in range(30):
-		s = rnd.uniform(3, 10)
-		po.append(("ball", (s * rnd.uniform(1.0, 2.0), s * rnd.uniform(0.5, 1.0), s * 0.7), (rnd.uniform(-half - 4, half + 4), top + rnd.uniform(-5, 3), -2.8 - rnd.uniform(0, 1.8)), (IVY, IVY2, IVY3)[i % 3], {"subdiv": 1}))
-	for s in (-1, 1):  # curtains: chains of overlapping leaf clumps of varied size, some reaching the ground
-		for i in range(16):
+	for x, z, hh in ((-70, 30, 44), (-48, 60, 52), (-20, 80, 62), (10, 52, 48), (36, 76, 58), (58, 40, 44), (75, 90, 50)):
+		po.append(("cone", (16, hh, 16), (x, top + 70 * (z - 3) / 110 + hh / 2 - 4, z), (CEDAR, CEDAR2)[x % 2], {"seg": 7}))
+	# ivy: a heavy uneven mass over the top-right of the arch (viewer's right is -X), thinner on the left, bare stone
+	for i in range(70):
+		x = rnd.uniform(-half - 4, -6) if i < 52 else rnd.uniform(8, half)
+		depth = rnd.uniform(4, 30) if i < 52 else rnd.uniform(2, 8)
+		y = top + 2 - depth * rnd.random()
+		if abs(x) < R + 6:
+			y = max(y, SPR + math.sqrt(max(0.0, (R + 6.5) ** 2 - x * x)) + 2)
+		sz = rnd.uniform(3, 11)
+		po.append(("ball", (sz * rnd.uniform(1.0, 1.8), sz * rnd.uniform(0.6, 1.1), sz * 0.6), (x, y, -3.0 - rnd.uniform(0, 2.2)), (IVY, IVY2, IVY3)[rnd.randrange(3)], {"subdiv": 1}))
+	for s, n in ((-1, 13), (1, 5)):  # curtains: many on the right, a few on the left, some reaching the ground
+		for i in range(n):
 			x = s * rnd.uniform(R + 7, half + 2)
-			bottom = -1 if i % 3 == 0 else rnd.uniform(4, top * 0.55)
+			bottom = -1 if i % 3 == 0 else rnd.uniform(4, top * 0.6)
 			y = top
 			while y > bottom:
-				w = rnd.uniform(2.5, 6.5)
-				hh = rnd.uniform(3.5, 7)
-				po.append(("ball", (w, hh, rnd.uniform(1.2, 2.4)), (x + rnd.uniform(-1.2, 1.2), y - hh / 2, -3.1 - rnd.uniform(0, 0.7)), (IVY, IVY3, IVY2)[rnd.randrange(3)], {"subdiv": 1}))
-				y -= hh * 0.7
-		for i in range(4):
-			po.append(("ball", (rnd.uniform(6, 12), rnd.uniform(3, 6), 5), (s * rnd.uniform(R + 8, half), 1, -4), IVY3, {"subdiv": 1}))
+				w = rnd.uniform(2.5, 7.5)
+				hh = rnd.uniform(3.5, 8)
+				po.append(("ball", (w, hh, rnd.uniform(1.2, 2.4)), (x + rnd.uniform(-2, 2), y - hh / 2, -3.1 - rnd.uniform(0, 0.7)), (IVY, IVY3, IVY2)[rnd.randrange(3)], {"subdiv": 1}))
+				y -= hh * rnd.uniform(0.6, 0.85)
+	for i in range(5):
+		po.append(("ball", (rnd.uniform(6, 14), rnd.uniform(3, 7), 5), (-rnd.uniform(R + 8, half), 1, -4), IVY3, {"subdiv": 1}))
 	for i in range(12):  # strands over the voussoirs, stopping short of the opening
 		x = rnd.uniform(-R - 4, R + 4)
 		bottom = SPR + math.sqrt(max(0.0, R * R - x * x)) + rnd.uniform(0.5, 4)
@@ -265,19 +276,21 @@ def build(k):
 			hh = min(rnd.uniform(3, 6), y - bottom + 1)
 			po.append(("ball", (rnd.uniform(2, 4.5), hh, 1.4), (x + rnd.uniform(-0.8, 0.8), y - hh / 2, -4.2), (IVY, IVY3, IVY2)[rnd.randrange(3)], {"subdiv": 1}))
 			y -= hh * 0.7
-	# barriers by the walkways (centres 27.5 out, so they stay clear of 24) and the no-entry board on a stand
-	for s in (-1, 1):
-		cx = s * 27.5
-		for ex in (-2.6, 2.6):
-			bx(po, (0.6, 9.5, 0.6), (cx + ex, 3.8, -9), "C8C8C8")
-		for q in range(5):
-			bx(po, (1.2, 2.2, 0.3), (cx - 2.4 + q * 1.2, 7.6, -9.3), (HAZ_Y, HAZ_K)[q % 2])
-		bx(po, (6, 0.4, 0.4), (cx, 5.0, -9.2), "E8E8E8")
-	bx(po, (5.2, 11, 0.3), (-26, 10, -13), "F2F2EE")
-	bx(po, (4.4, 10.2, 0.2), (-26, 10, -13.2), "C62828")
-	bx(po, (3.6, 9.4, 0.2), (-26, 10, -13.3), "F2F2EE")
-	for ex in (-1.8, 1.8):
-		bx(po, (0.4, 5, 0.4), (-26 + ex, 2.5, -13), "8A8A8A")
+	# three large yellow-black A-frame barriers and a tall red-and-white board at the mouth (all 24+ from the centre)
+	for cx, cz in ((-31, -14), (31, -12), (44, -16)):
+		for ex in (-5.2, 5.2):
+			for lean in (-12, 12):
+				bx(po, (0.8, 13, 0.8), (cx + ex, 5.4, cz + lean * 0.12), "D8D8D8", rot=(lean, 0, 0))
+		for q in range(9):
+			bx(po, (1.3, 3.4, 0.4), (cx - 5.2 + q * 1.3, 9.8, cz - 0.9), (HAZ_Y, HAZ_K)[q % 2], rot=(0, 0, 20))
+		bx(po, (12, 3.6, 0.3), (cx, 9.8, cz - 0.7), HAZ_Y)
+		for q in range(9):
+			bx(po, (1.2, 2.4, 0.4), (cx - 5.2 + q * 1.3, 4.0, cz - 0.9), (HAZ_Y, HAZ_K)[q % 2], rot=(0, 0, 20))
+	bx(po, (8, 20, 0.4), (-44, 16, -18), "F2F2EE")
+	bx(po, (6.8, 18.8, 0.3), (-44, 16, -18.2), "C62828")
+	bx(po, (5.6, 17.6, 0.3), (-44, 16, -18.3), "F2F2EE")
+	for ex in (-2.8, 2.8):
+		bx(po, (0.6, 7, 0.6), (-44 + ex, 2.5, -18), "8A8A8A")
 	bx(po, (0.4, 9, 0.4), (R + 11, 3.5, -4), "8A8A8A")  # small notice board on a pole (blank)
 	bx(po, (3, 3.6, 0.3), (R + 11, 8.5, -4.2), "D8D8CC")
 	for j, z in enumerate(LAMPS):  # the tunnel's lamps: one fixture each, on alternate walls
@@ -382,26 +395,32 @@ def build(k):
 	bx(ho, (HW + 2, 3, HD + 2), (0, HH + 0.5, 0), "2E3E60")  # stepped crown, darker
 	bx(ho, (HW - 6, 5, HD - 6), (0, HH + 4.5, 0), "26344F")
 	bx(ho, (HW - 22, 5, HD - 16), (0, HH + 9.5, 2), "202C44")
-	for x in (-24, -12, 0, 12, 24):  # blank sign frame on the crown
-		bx(ho, (0.6, 14, 0.6), (x, HH + 14, -HD / 2 + 4), "1C2638")
-		bx(ho, (9.6, 9.6, 0.6), (x, HH + 15, -HD / 2 + 3.4), "4E6894")
-	bx(ho, (62, 0.6, 0.6), (0, HH + 10, -HD / 2 + 4), "1C2638")
+	for x in (-26, -13, 0, 13, 26):  # large lit sign frame across the crown, blank glowing panels
+		bx(ho, (0.8, 22, 0.8), (x, HH + 18, -HD / 2 + 4), "1C2638")
+		bx(ho, (12, 12, 0.6), (x, HH + 22, -HD / 2 + 3.4), "BFD8FF", emit=1.4)
+	bx(ho, (68, 1.0, 1.0), (0, HH + 15.5, -HD / 2 + 4), "1C2638")
+	bx(ho, (68, 1.0, 1.0), (0, HH + 28.5, -HD / 2 + 4), "1C2638")
+	for i in range(18):  # grime: streaks from the crown and the window sills
+		x = rnd.uniform(-HW / 2 + 1, HW / 2 - 1)
+		ln = rnd.uniform(8, 40)
+		y = rnd.uniform(ln / 2, HH - ln / 2)
+		bx(ho, (rnd.uniform(0.8, 2.2), ln, 0.2), (x, y, -HD / 2 - 0.35), ("16203A", "1C2846")[i % 2])
 	ho.append(("cyl", (10, 10, 10), (14, HH + 17, 8), "2E3E5C", {"seg": 12}))
 	bx(ho, (46, 26, 50), (HW / 2 + 18, 12, -6), "3A4E74")  # lower wing, viewer's left
 	windows(ho, HW / 2 - 4, HW / 2 + 40, 5, 6, 2, 11, -31.3, 5, 4.6, DARKWIN)
 	bx(ho, (48, 1.6, 52), (HW / 2 + 18, 25.8, -6), "2E3E5E")
-	hz = -104.0  # hoarding, 46 from the road
+	hz = -104.0  # hoarding, 46 from the road, 18 tall; hazard posts at the gate and at the near (+X) end
 	for i in range(16):
 		x = -86 + i * 11
 		if -8 < x < 8:
 			continue
-		bx(ho, (10.6, 12, 0.6), (x, 5, hz), ("2E4A4A", "345454")[i % 2])
+		bx(ho, (10.6, 18, 0.6), (x, 8, hz), ("2E4A4A", "345454")[i % 2])
 		for q in range(4):
-			bx(ho, (0.5, 12, 0.9), (x - 4 + q * 2.6, 5, hz - 0.2), "28403F")
-	for s in (-1, 1):
-		bx(ho, (1.6, 15, 1.6), (s * 8, 6.5, hz), HAZ_K)
-		for q in range(5):
-			bx(ho, (1.7, 1.4, 1.7), (s * 8, 1 + q * 3, hz), HAZ_Y, rot=(0, 0, 20))
+			bx(ho, (0.5, 18, 0.9), (x - 4 + q * 2.6, 8, hz - 0.2), "28403F")
+	for px in (-8, 8, 92):
+		bx(ho, (2.2, 21, 2.2), (px, 9.5, hz - 0.6), HAZ_K)
+		for q in range(7):
+			bx(ho, (2.3, 1.5, 2.3), (px, 1 + q * 3, hz - 0.6), HAZ_Y, rot=(0, 0, 20))
 	for q in range(7):
 		bx(ho, (0.4, 11, 0.4), (-6 + q * 2, 4.5, hz - 0.5), "1E2626", metal=0.6)
 	bx(ho, (16, 0.5, 0.5), (0, 9.5, hz - 0.5), "1E2626", metal=0.6)
@@ -419,17 +438,31 @@ def build(k):
 	bx(se, (120, 2, 6), (0, -1.1, -33), "1E3440", rough=0.1, metal=0.2)
 	for z in (-36.5, -29.5):
 		bx(se, (120, 3.4, 1.2), (0, 0.2, z), "6A6E66")
-	bx(se, (14, 1.6, 9), (0, 1.0, -33), GRAN2)
+	bx(se, (14, 1.6, 9), (0, 1.0, -33), GRAN2)  # stone bridge with posted stone rails
 	for s in (-1, 1):
-		bx(se, (1, 2.4, 9), (s * 7, 2.6, -33), GRAN)
+		bx(se, (1.2, 1.2, 10), (s * 7, 3.6, -33), GRAN)
+		for z in (-37, -33, -29):
+			bx(se, (1.6, 3.2, 1.6), (s * 7, 2.4, z), GRAN2)
+	# weathered granite torii: thick round pillars on plinths, nuki tie-beam through them, a curved kasagi in three
+	# pieces with upturned ends over a shimaki, a central strut; darker speckles over the stone
 	TZ = -26.0
+	STN, STN2 = "6E706A", "5C5E58"
 	for s in (-1, 1):
-		se.append(("cyl", (2.8, 26, 2.8), (s * 8, 13.5, TZ), GRAN, {"seg": 10, "rough": 0.9}))
-		se.append(("cyl", (3.6, 1.4, 3.6), (s * 8, 0.9, TZ), GRAN2, {"seg": 10}))
-	bx(se, (25, 2.2, 3.0), (0, 26.8, TZ), GRAN)
-	bx(se, (27, 1.2, 3.4), (0, 28.3, TZ), GRAN2)
-	bx(se, (20, 1.6, 1.8), (0, 21.5, TZ), GRAN)
-	bx(se, (1.6, 3.6, 1.4), (0, 24.0, TZ), GRAN2)
+		se.append(("cyl", (3.8, 26, 3.8), (s * 8, 13.5, TZ), STN, {"seg": 12, "rough": 1.0, "taper": 0.9}))
+		se.append(("cyl", (5.2, 1.6, 5.2), (s * 8, 0.9, TZ), STN2, {"seg": 12}))
+		bx(se, (7.6, 2.4, 3.6), (s * 10.8, 28.2, TZ), STN, rot=(0, 0, s * 9))  # upturned kasagi ends
+		bx(se, (6, 1.4, 3.8), (s * 11, 29.7, TZ), STN2, rot=(0, 0, s * 9))
+	bx(se, (15, 2.4, 3.6), (0, 27.6, TZ), STN)
+	bx(se, (16, 1.4, 3.8), (0, 29.1, TZ), STN2)
+	bx(se, (24, 1.8, 3.0), (0, 25.6, TZ), STN2)  # shimaki
+	bx(se, (24, 2.0, 2.0), (0, 21.0, TZ), STN)  # nuki, past both pillars
+	bx(se, (1.8, 2.8, 1.6), (0, 23.2, TZ), STN2)
+	for i in range(30):
+		x = rnd.choice((-8, 8)) + rnd.uniform(-1.6, 1.6)
+		y = rnd.uniform(2, 25) if i < 22 else rnd.uniform(25, 29)
+		if i >= 22:
+			x = rnd.uniform(-13, 13)
+		bx(se, (0.5, 0.5, 0.2), (x, y, TZ - 2.0), rnd.choice(("4A4C46", "8A8C84", "3E403A")))
 	for s in (-1, 1):
 		cx = s * 36
 		bx(se, (54, 2, 2), (cx, 1, TZ), GRAN2)
@@ -485,7 +518,7 @@ def build(k):
 	gable(hs, 0, 4, 28, 22, 17, 6, TILE, TILE2, ribs=9)
 	bx(hs, (14, 10, 14), (16, 4, 6), "B8B0A0")
 	hs.append(("wedge", (16, 3, 16), (16, 10.5, 6), TILE2, {"rot": (0, 180, 0)}))
-	bx(hs, (6, 6, 0.4), (16, 4, -1.2), "FFD890", emit=2.0)
+	bx(hs, (6, 6, 0.4), (16, 4, -1.2), "FFD890", emit=1.2)
 	lot(hs)
 	bx(hs, (5, 10, 4), (-15, 4, -18), "D8DCE0")
 	bx(hs, (4.2, 6, 0.3), (-15, 5, -20.1), "EAF6FF", emit=4.0)
@@ -514,7 +547,7 @@ def build(k):
 	k.prop("House2", h2)
 
 	# --- layout ---
-	k.ground("17201B", margin=550)
+	k.ground("1E2A22", margin=550)
 	_fill(k, "232822")
 	orig = k.beside
 
@@ -527,21 +560,25 @@ def build(k):
 		pos, yaw = orig(d, 0)
 		k.place("Portal", pos, yaw + flip)
 		for z in LAMPS:  # a yellow pool under each lamp, nothing else inside
-			k.light(orig(d + inward * z, 0, 12)[0], SODIUM, energy=9000, radius=2)
-	k.light(orig(TUNNEL[0] - 40, 0, 30)[0], "9CFFC8", energy=26000, radius=10)
+			k.light(orig(d + inward * z, 0, 12)[0], SODIUM, energy=2500, radius=1.5)
+	k.light(orig(TUNNEL[0] - 24, 0, 34)[0], "6CFF9C", energy=70000, radius=14)
 	k.light(orig(TUNNEL[1] + 40, 0, 30)[0], "7CFFB0", energy=40000, radius=10)
 
 	# Town A (start, with Seiko's house at the near left edge), town B (after the hospital)
 	towns = [(30.0, 760.0), (3780.0, 5600.0)]
 	turns = (0.0, 0.0, 0.0, math.pi / 2, -math.pi / 2)
 	for a, b in towns:
-		row(k, a, b, 46, (46, -46), ["House", "House2"], jitter=2, flat=True, scale=(0.85, 1.2), skip=[(340, 520, -1)])
-		row(k, a + 20, b, 64, (100, -100), ["House2", "House", "Cedar"], jitter=10, scale=(0.9, 1.3), skip=[(330, 540, -1)], turns=turns)
-	put(k, "SeikoHouse", 430, -(24 + 37 * 1.3), 1.3, clear=50)
+		row(k, a, b, 46, (46, -46), ["House", "House2"], jitter=2, flat=True, scale=(0.85, 1.2), skip=[(400, 640, -1), (5200, 5300, 0)])
+		row(k, a + 20, b, 64, (100, -100), ["House2", "House", "Cedar"], jitter=10, scale=(0.9, 1.3), skip=[(390, 660, -1)], turns=turns)
+	put(k, "SeikoHouse", 510, -(24 + 37 * 2.0), 2.0, clear=50)  # downhill of shot 1, so the canal and fence show over the wall
+	# run shot 4's near field: a house with its lit vending machine on the right, a curve mirror on the left
+	put(k, "House", 5250, 46)
+	put(k, "House2", 5290, -46)
+	put(k, "Mirror", 5232, -31)
 
 	# Mountain road: guardrails (with ditch and verge), curve mirrors, cedars in layers, ridges
 	mountain = [(760.0, TUNNEL[0] - 40), (TUNNEL[1] + 40, 2700.0), (3000.0, 3700.0)]
-	clear = [(2560, 3000, 1), (2760, 2980, -1), (3450, 3780, -1)]  # side review camera; school front; hospital sightline
+	clear = [(2560, 3000, 1), (2690, 2910, -1), (3450, 3780, -1)]  # side review camera; school front; hospital sightline
 	for a, b in mountain:
 		row(k, a, b, 48, (-29, 29), ["Guardrail"], flat=True)
 		row(k, a + 60, b, 210, (-31, 31), ["Mirror"])
@@ -554,14 +591,15 @@ def build(k):
 			put(k, "Cedar", d, s * 46, k.rng.uniform(0.9, 1.2))
 		d += 30
 	for s in (-1, 1):
-		put(k, "Mountain", (TUNNEL[0] + TUNNEL[1]) / 2, s * 300, 0.6, clear=140)
+		put(k, "Mountain", (TUNNEL[0] + TUNNEL[1]) / 2, s * 420, 0.6, clear=380)
 
-	put(k, "School", 2860, -135, clear=60)
+	put(k, "School", 2790, -135, clear=60)  # square in the side shot (it looks across the road at 2768)
+	row(k, 2600, 2960, 22, (46, 70, 95, 120), ["Cedar"], jitter=6, scale=(0.3, 0.5))  # low growth under the side camera
 	put(k, "Hospital", 3730, -150, clear=80)
 
 	# Forest and far ridges, clear of the landmarks, the side camera and the hospital sightline
 	avoid = []
-	for d, off, r in ((2860, -135, 130), (3730, -150, 140), (430, -72, 90), (3650, -70, 110), (2740, 110, 140)):
+	for d, off, r in ((2790, -135, 130), (3730, -150, 140), (510, -98, 130), (3650, -70, 110), (2740, 110, 140)):
 		(x, _, z), _ = orig(d, off)
 		avoid.append((x, z, r))
 	placed, tries = 0, 0
@@ -572,7 +610,16 @@ def build(k):
 		if all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid) and k.clear_of_road(x, z, 70):
 			k.place("Cedar", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(0.9, 1.5))
 			placed += 1
-	k.field(14, ["Mountain"], clearance=420, margin=650, scale=(0.8, 1.5))
+	placed, tries = 0, 0  # far ridges, kept well away from the landmarks so none stands in front of them
+	while placed < 14 and tries < 6000:
+		tries += 1
+		x = k.rng.uniform(k.lo.x - 650, k.hi.x + 650)
+		z = k.rng.uniform(k.lo.z - 650, k.hi.z + 650)
+		sc = k.rng.uniform(0.8, 1.4)
+		reach = 580 * sc + 40  # a ridge spans about 560 studs from its centre at scale 1
+		if all(math.hypot(x - ax, z - az) > r + reach for ax, az, r in avoid) and k.clear_of_road(x, z, reach):
+			k.place("Mountain", (x, -1.0, z), k.rng.uniform(0, math.tau), sc)
+			placed += 1
 
 	# Night sky and a big full moon (sky dressing, the game's Sky moon; not a prop asset), set up-left of run shot 3
 	moon = bpy.data.objects.new("SkyMoon", bpy.data.meshes.new("SkyMoon"))
@@ -582,7 +629,7 @@ def build(k):
 	bm.free()
 	moon.data.materials.append(k.mat("EEF6FF", emit=8.0))
 	eye, t, right, ey = shot_eye(k, 0.62)
-	az, el, dist = math.radians(34), math.radians(19), 1800
+	az, el, dist = math.radians(-4), math.radians(23), 1800  # nearer the frame centre: no edge stretch
 	v = (t * math.cos(az) - right * math.sin(az)) * dist * math.cos(el)
 	moon.location = kit.rb(eye.x + v.x, ey + dist * math.sin(el), eye.z + v.z)
 	k.col.objects.link(moon)
@@ -595,7 +642,7 @@ def build(k):
 		while d < b:
 			for s in (-1, 1):
 				pos, _ = orig(d, s * 36, 8)
-				k.light(pos, WARM, energy=9000, radius=4)
+				k.light(pos, WARM, energy=3500, radius=4)
 			d += 88
 	for a, b in mountain:
 		d = a + 30
@@ -603,7 +650,7 @@ def build(k):
 			pos, _ = orig(d, 22, 18)
 			k.light(pos, SODIUM, energy=22000, radius=5)
 			d += 160
-	k.light(orig(2860, -70, 20)[0], "FFE8B0", energy=50000, radius=8)  # school gate
-	k.light(orig(2860, -100, 50)[0], WARM, energy=50000, radius=10)
+	k.light(orig(2790, -70, 20)[0], "FFE8B0", energy=50000, radius=8)  # school gate
+	k.light(orig(2790, -100, 50)[0], WARM, energy=50000, radius=10)
 	k.light(orig(3730, -80, 60)[0], "6FA8FF", energy=160000, radius=20)
-	k.light(orig(430, -32, 20)[0], "FFD58A", energy=40000, radius=6)
+	k.light(orig(510, -80, 50)[0], "B8C8E0", energy=9000, radius=12)  # soft cool fill, no glow on the stone

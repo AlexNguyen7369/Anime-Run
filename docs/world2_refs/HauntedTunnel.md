@@ -19,3 +19,11 @@ narrow single-lane tunnel. The game road is 36 studs wide, so the opening is wid
 hospital's later UFO damage is not modelled. The torii over the road from the first draft was dropped to stay within
 the 12-mesh budget. Seiko's stone torii now carries the shrine read. Round 2 (2026-11-23): mirrored the school (glass tower now
 on the viewer's right) and the hospital wings to match the source framing. The moon is placed up-left of run shot 3.
+
+Round 3 (2026-11-23), judged in the 6 review shots:
+- Seiko's torii is weathered grey granite (thick round pillars, a curved kasagi with upturned ends, shimaki, a nuki
+  through the pillars, speckles) with stone bridge rails. It is placed downhill of run shot 1 at 2x scale, so the torii,
+  the fence and the house fill the left of the frame.
+- The portal hill rises back from the parapet under ivy and cedars. The voussoirs are 10 large stones in one grey-green
+  tone with a stepped reveal. The ivy hangs as a heavy, uneven mass over the right of the arch. Three large A-frame
+  barriers and a tall red-and-white board stand at the mouth. The vault is a black void, under a stronger green wash.

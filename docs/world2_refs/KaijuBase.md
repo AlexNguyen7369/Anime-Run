@@ -20,3 +20,11 @@ free of gore. The Defense Force and Monster Sweeper emblems are replaced by inve
 including its training grounds and Self-Defense Force camp, is not reproduced. Only the HQ, the tower, the hangars and
 the walls stand in for it.
 The clouds are sky dressing (the game's Sky), not prop assets.
+
+Round 3 (2026-11-23), judged in the 6 review shots:
+- The corpse flank is a tall wall of layered ridge plates with grooves over a pale belly band. The head (horns, open
+  toothed jaw) faces the runner. Rappel lines carry large sweepers (hood, round visor, big green pack).
+- The rail cannon's barrel is 30 thick at 10 degrees and runs through two rail gantries. It has a 14-ring coil stack
+  and 32 drooping cables. The second cannon's muzzle faces run shot 4.
+- The HQ has taller end pavilions, strong floor bands and a front row of white cars. Nothing tall stands behind it.
+  City tiles have streets on all four edges, random quarter turns and a park corner. The base wall has a grass verge.

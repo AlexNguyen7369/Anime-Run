@@ -47,15 +47,15 @@ def seg(p, a, b, col, thick=0.5, wide=None):
 
 
 def worker(p, x, y, z, s=1.0, sit=False):
-	"""A Monster Sweeper in a white hooded suit (no face): body, hood, visor, green pack, legs."""
-	bx(p, (1.8 * s, 2.6 * s, 1.2 * s), (x, y + 2.6 * s, z), SUIT)
-	p.append(("ball", (1.6 * s, 1.7 * s, 1.6 * s), (x, y + 4.6 * s, z), SUIT, {"subdiv": 1}))
-	bx(p, (1.1 * s, 0.8 * s, 0.2 * s), (x, y + 4.5 * s, z - 0.8 * s), "3A4048")
-	bx(p, (1.4 * s, 1.8 * s, 0.8 * s), (x, y + 2.8 * s, z + 0.9 * s), "5A6A44")
+	"""A Monster Sweeper in a white hooded suit (no face): body, hood, round visor, big green pack, legs."""
+	bx(p, (1.9 * s, 2.6 * s, 1.3 * s), (x, y + 2.6 * s, z), SUIT)
+	p.append(("ball", (1.9 * s, 2.0 * s, 1.9 * s), (x, y + 4.7 * s, z + 0.1 * s), SUIT, {"subdiv": 1}))
+	p.append(("cyl", (1.2 * s, 0.3 * s, 1.2 * s), (x, y + 4.6 * s, z - 0.95 * s), "2A3440", {"rot": (90, 0, 0), "seg": 10, "rough": 0.1}))
+	bx(p, (1.8 * s, 2.6 * s, 1.2 * s), (x, y + 2.9 * s, z + 1.2 * s), "5A6A44")
 	if sit:
-		bx(p, (1.6 * s, 0.9 * s, 2.4 * s), (x, y + 1.0 * s, z - 1.4 * s), SUIT)
+		bx(p, (1.7 * s, 0.9 * s, 2.4 * s), (x, y + 1.0 * s, z - 1.4 * s), SUIT)
 	else:
-		bx(p, (1.6 * s, 2.4 * s, 1.0 * s), (x, y + 0.6 * s, z), SUIT)
+		bx(p, (1.7 * s, 2.4 * s, 1.1 * s), (x, y + 0.6 * s, z), SUIT)
 
 
 def car(p, x, z, col, yaw=0, state=0):
@@ -208,65 +208,63 @@ def build(k):
 	bx(ru, (18, 0.2, 12), (0, -0.85, 2), SCORCH)
 	k.prop("Rubble", ru)
 
-	# --- Kaiju corpse (hero) with its two gantries: a huge reddish-brown beast lying on its belly, faceted rough hide
-	# covered in rocky ridged plates, a horned head with a toothed snout on the ground, a clawed forelimb toward the
-	# road, the rear stripped to bleached ribs, a stake-and-rope line along the back, teal lattice gantries with blue and
-	# yellow ropes hanging onto it, white-suited sweepers on the ropes and the ground, skip bins.
-	# Local +X head to tail, -Z (its flank) to the road. ---
+	# --- Kaiju corpse (hero) with its two gantries: a huge reddish-brown beast lying on its belly. Its road flank is a
+	# towering rock-like wall of layered horizontal ridge plates with deep grooves over a pale belly band; the back is
+	# a ridge of dorsal plates with the sweepers' stake-and-rope line; a horned head with an open toothed jaw rests on
+	# the ground; the tail end is stripped to bleached ribs. Teal lattice gantries hang blue and yellow ropes down the
+	# flank, and large white-suited sweepers rappel on them. Local +X head to tail, -Z (the flank) to the road. ---
 	kc = []
-	body = [(-50, 30, 0, 92, 60, 72), (0, 34, 0, 96, 66, 76), (48, 30, 0, 84, 56, 68)]
-	for x, y, z, sx, sy, sz in body:
-		kc.append(("ball", (sx, sy, sz), (x, y, z), FLESH, {"subdiv": 2}))
-	kc.append(("ball", (44, 32, 40), (-98, 20, -6), FLESH2, {"subdiv": 2}))
-	kc.append(("cyl", (26, 42, 22), (-130, 14, -8), FLESH2, {"rot": (0, 0, -90), "taper": 0.55, "seg": 8}))
-	bx(kc, (40, 5, 20), (-128, 2.5, -8), "6A2E24", rot=(0, 0, -4))
-	for i in range(7):
-		for zz in (-17, 1):
-			kc.append(("cone", (2.4, 4.5, 2.4), (-145 + i * 4.5, 6.5, zz), BONE, {"seg": 5}))
-	for s in (-1, 1):
-		bx(kc, (16, 4, 5), (-110, 30, -6 + s * 13), PLATE, rot=(0, s * 10, -14))
-		kc.append(("cone", (6, 30, 6), (-88, 40, -6 + s * 12), BONE2, {"rot": (s * 18, 0, 55), "seg": 8}))
-	bx(kc, (5, 1.4, 1), (-112, 25, -26.5), "2A2020")
-	# rocky ridged plates over the back and the road flank (faceted chunks in three tones)
-	for i in range(56):
-		x = rnd.uniform(-90, 80)
-		bi = min(body, key=lambda b: abs(b[0] - x))
-		a = rnd.uniform(-1.3, 0.25) * math.pi / 2  # mostly the road flank (-Z) and the top
-		ry, rzz = bi[4] / 2, bi[5] / 2
-		px = x
-		py = bi[1] + math.cos(a) * ry * 0.92
-		pz = math.sin(a) * rzz * 0.92
-		s = rnd.uniform(6, 14)
-		bx(kc, (s, s * 0.35, s * rnd.uniform(0.6, 1.1)), (px, py, pz), (FLESH2, FLESH3, PLATE, "8A3E30")[i % 4], rot=(math.degrees(a) + rnd.uniform(-15, 15), rnd.uniform(0, 90), rnd.uniform(-20, 20)))
-	for i in range(9):  # dorsal ridge plates
-		x = -80 + i * 17
-		h = 22 - abs(i - 3) * 2.2
-		kc.append(("cone", (12, h, 6), (x, 60 - abs(x) * 0.12 + h / 2 - 4, 0), PLATE, {"seg": 4, "rot": (0, 45, -12)}))
-	kc.append(("cyl", (16, 46, 16), (-62, 12, -40), FLESH2, {"rot": (60, 0, 0), "seg": 8}))
-	kc.append(("ball", (26, 12, 22), (-62, 4, -60), FLESH2, {"subdiv": 2}))
-	for c in (-8, 0, 8):
-		kc.append(("cone", (4, 12, 4), (-62 + c, 3, -72), BONE2, {"rot": (-80, 0, 0), "seg": 6}))
-	kc.append(("ball", (40, 30, 36), (70, 14, -30), FLESH2, {"subdiv": 2}))
-	for i in range(7):
-		x = 92 + i * 11
-		bx(kc, (8, 7, 8), (x, 34 - i * 2.4, 0), BONE, rot=(0, 0, 8))
-		r = 30 - i * 2.6
-		for s in (-1, 1):
-			bx(kc, (3, r, 3), (x, 30 - i * 2.4 - r * 0.2, s * r * 0.45), BONE, rot=(s * 58, 0, 0))
-			bx(kc, (3, r * 0.8, 3), (x, 16 - i * 1.8 - r * 0.2, s * r * 0.92), BONE2, rot=(-s * 10, 0, 0))
+	for x, y, z, sx, sy, sz in ((-50, 32, 4, 92, 62, 64), (0, 36, 4, 96, 68, 66), (48, 32, 4, 84, 58, 60)):
+		kc.append(("ball", (sx, sy, sz), (x, y, z), FLESH2, {"subdiv": 2}))
+	bx(kc, (180, 4, 6), (0, 1.0, -37), "C8A88C")  # pale belly band
+	for i in range(10):
+		y = 5.5 + i * 6.0
+		z = -35 + i * i * 0.32
+		x0, x1 = -88 + i * 3, 92 - i * 4
+		bx(kc, (x1 - x0, 1.4, 6), ((x0 + x1) / 2, y - 3.2, z + 1.2), "3A1A14")  # groove
+		x = x0
+		while x < x1 - 2:
+			ln = min(rnd.uniform(16, 32), x1 - x)
+			bx(kc, (ln - 0.8, 5.4, 7), (x + ln / 2, y, z + rnd.uniform(-0.6, 0.6)), (FLESH, FLESH3, "8E4232", FLESH)[rnd.randrange(4)], rot=(rnd.uniform(-5, 5), rnd.uniform(-2, 2), rnd.uniform(-3, 3)))
+			x += ln
+	for i in range(11):  # dorsal ridge plates
+		x = -84 + i * 16
+		h = 24 - abs(i - 4) * 2.0
+		kc.append(("cone", (13, h, 7), (x, 66 - abs(x) * 0.1 + h / 2 - 5, 2), PLATE, {"seg": 4, "rot": (0, 45, -14)}))
+	# head: skull, tapered snout, open lower jaw with teeth, brow ridges, long swept horns
+	kc.append(("ball", (50, 38, 46), (-112, 24, -8), FLESH2, {"subdiv": 2}))
+	kc.append(("cyl", (28, 46, 24), (-150, 22, -10), FLESH2, {"rot": (0, 0, -90), "taper": 0.5, "seg": 8}))
+	bx(kc, (44, 5, 22), (-148, 6, -10), "6A2E24", rot=(0, 0, -14))
 	for i in range(8):
-		a = i * 0.22
-		kc.append(("ball", (22 - i * 2, 16 - i * 1.5, 22 - i * 2), (172 + i * 15, 6 - i * 0.5, 30 * math.sin(a)), FLESH2 if i < 3 else BONE2, {"subdiv": 1}))
-	# stake-and-rope line along the back (tall bright stakes, thick white lines, orange flags)
-	stakes = [(x, 60 - abs(x) * 0.12 + 1) for x in range(-75, 86, 12)]
+		kc.append(("cone", (2.6, 5, 2.6), (-166 + i * 4.6, 13.5, -19), BONE, {"seg": 5, "rot": (180, 0, 0)}))
+		kc.append(("cone", (2.6, 5, 2.6), (-166 + i * 4.6, 8 + i * 0.9, -19), BONE, {"seg": 5}))
+	for s in (-1, 1):
+		bx(kc, (18, 4, 6), (-122, 38, -8 + s * 14), PLATE, rot=(0, s * 10, -14))
+		kc.append(("cone", (7, 44, 7), (-96, 50, -8 + s * 14), BONE2, {"rot": (s * 16, 0, 62), "seg": 8}))
+	bx(kc, (6, 1.6, 1), (-126, 30, -31), "2A2020")
+	kc.append(("cyl", (16, 46, 16), (-62, 12, -44), FLESH2, {"rot": (60, 0, 0), "seg": 8}))
+	kc.append(("ball", (26, 12, 22), (-62, 4, -64), FLESH2, {"subdiv": 2}))
+	for c in (-8, 0, 8):
+		kc.append(("cone", (4, 12, 4), (-62 + c, 3, -76), BONE2, {"rot": (-80, 0, 0), "seg": 6}))
+	for i in range(5):  # stripped tail end
+		x = 100 + i * 12
+		bx(kc, (8, 7, 8), (x, 30 - i * 3, 0), BONE, rot=(0, 0, 8))
+		r = 26 - i * 3
+		for s in (-1, 1):
+			bx(kc, (3, r, 3), (x, 26 - i * 3 - r * 0.2, s * r * 0.45), BONE, rot=(s * 58, 0, 0))
+	for i in range(6):
+		kc.append(("ball", (20 - i * 2, 14 - i * 1.5, 20 - i * 2), (165 + i * 15, 5 - i * 0.5, 26 * math.sin(i * 0.22)), BONE2, {"subdiv": 1}))
+	# stake-and-rope line along the top of the flank: tall bright stakes, two thick white lines, orange flags
+	top_y = lambda x: 66 - abs(x) * 0.1
+	stakes = [(x, top_y(x)) for x in range(-80, 91, 12)]
 	for x, y in stakes:
-		kc.append(("cyl", (1.2, 10, 1.2), (x, y + 3, -10), "C8CED4", {"seg": 6, "metal": 0.6}))
-		bx(kc, (2.2, 1.4, 0.2), (x + 1.2, y + 7.4, -10), STRIPE)
+		kc.append(("cyl", (1.4, 12, 1.4), (x, y + 4, -12), "D8DCE0", {"seg": 6, "metal": 0.5}))
+		bx(kc, (2.6, 1.6, 0.2), (x + 1.4, y + 9.4, -12), STRIPE)
 	for (x0, y0), (x1, y1) in zip(stakes, stakes[1:]):
-		seg(kc, (x0, y0 + 6, -10), (x1, y1 + 6, -10), "F2F2EE", thick=0.7)
-		seg(kc, (x0, y0 + 2, -10), (x1, y1 + 2, -10), "F2F2EE", thick=0.7)
-	# gantries at x = -40 and 80, legs at z = +-82; ropes from the top girders down onto the corpse
-	GH, GS = 96.0, 82.0
+		seg(kc, (x0, y0 + 8, -12), (x1, y1 + 8, -12), "F4F4F0", thick=0.8)
+		seg(kc, (x0, y0 + 3, -12), (x1, y1 + 3, -12), "F4F4F0", thick=0.8)
+	# gantries at x = -40 and 80 (legs at z = +-82) with ropes down the flank to the ground
+	GH, GS = 100.0, 82.0
 	for gx in (-40, 80):
 		for z in (-GS, GS):
 			for x in (-8, 8):
@@ -282,24 +280,25 @@ def build(k):
 			z = -GS + (i + 0.5) * GS * 2 / 8
 			bx(kc, (0.8, 11, 0.8), (gx + 6, GH - 4, z), "286A66", rot=(45 if i % 2 else -45, 0, 0))
 		bx(kc, (16, 6, 10), (gx, GH - 4, -22), "E8C840")
-		for i, z in enumerate(range(-70, 1, 10)):  # 8 ropes per gantry, landing on the back and the road flank
-			bottom = 66 if z > -30 else 66 + (z + 30) * 1.1
-			bottom = max(bottom, 6)
-			seg(kc, (gx + (i % 3 - 1) * 3, GH - 9, z), (gx + (i % 3 - 1) * 5, bottom, z + 2), (ROPE_B, ROPE_Y)[i % 2], thick=0.5)
-	# sweepers: on the flank ropes (large, readable), on the back line, and on the ground
-	for x, y, z in ((-58, 36, -36), (-36, 22, -40), (-12, 44, -32), (14, 28, -40), (40, 40, -32), (64, 20, -36)):
-		worker(kc, x, y, z, 1.7)
+		for j, z in enumerate((-60, -50, -42, -30, -18, -8)):
+			seg(kc, (gx - 4 + j * 1.6, GH - 9, z), (gx - 4 + j * 1.6, top_y(gx) if z > -20 else 2, z if z > -20 else -44), (ROPE_B, ROPE_Y)[j % 2], thick=0.6)
+	# rappel lines from the stake line down the flank, each with a large sweeper on it
+	for i, x in enumerate(range(-70, 81, 15)):
+		y0 = top_y(x) + 2
+		seg(kc, (x, y0, -14), (x + 2, 0, -44), (ROPE_B, ROPE_Y)[i % 2], thick=0.6)
+		f = 0.25 + (i % 3) * 0.22
+		worker(kc, x + 2 * f, y0 * (1 - f) - 3, -14 - 30 * f - 3.5, 3.2)
 	for x in (-50, -10, 30, 70):
-		worker(kc, x, 60 - abs(x) * 0.12, -4, 1.6)
-	for x, z in ((-30, -70), (-20, -74), (30, -66), (90, -62), (110, -54), (0, -80)):
-		worker(kc, x, -1, z, 1.6)
-	for x, z in ((-10, -88), (60, -80)):
+		worker(kc, x, top_y(x) - 1, -4, 3.0)
+	for x, z in ((-30, -72), (-14, -78), (30, -70), (96, -62), (112, -56), (4, -86)):
+		worker(kc, x, -1, z, 3.0)
+	for x, z in ((-10, -96), (60, -86)):
 		bx(kc, (14, 6, 8), (x, 2, z), "2F5FA8")
 		bx(kc, (14.4, 0.6, 8.4), (x, 5.2, z), "244A84")
-	kc.append(("cyl", (320, 1, 150), (20, -0.9, -6), "4A4642", {"seg": 18}))
+	kc.append(("cyl", (340, 1, 170), (10, -0.9, -6), "4A4642", {"seg": 18}))
 	for i in range(14):
-		s = rnd.uniform(5, 12)
-		bx(kc, (s, s * 0.6, s), (rnd.uniform(-150, 200), s * 0.3 - 1, rnd.choice((-1, 1)) * rnd.uniform(50, 70)), (ROCK, CONC2, CONC)[i % 3], rot=(rnd.uniform(-20, 20), rnd.uniform(0, 90), 0))
+		s_ = rnd.uniform(5, 12)
+		bx(kc, (s_, s_ * 0.6, s_), (rnd.uniform(-170, 200), s_ * 0.3 - 1, rnd.choice((-1, 1)) * rnd.uniform(56, 76)), (ROCK, CONC2, CONC)[i % 3], rot=(rnd.uniform(-20, 20), rnd.uniform(0, 90), 0))
 	k.prop("KaijuCorpse", kc)
 
 	# --- Sweeper van set (mid): one-box van with a sloped nose and raked windscreen, side windows, wheel arches, a plain
@@ -328,8 +327,8 @@ def build(k):
 	worker(va, 9.5, -1, 4)
 	for i in range(4):
 		va.append(("cone", (1.6, 3, 1.6), (-8, 0.5, -10 + i * 6), STRIPE, {"seg": 8}))
-	va.append(("cyl", (0.6, 18, 0.6), (-10, 8, 14), "6A6E74", {"seg": 6}))
-	bx(va, (6, 3, 1), (-10, 17, 14), "E8ECF0", emit=1.2)
+	va.append(("cyl", (0.6, 11, 0.6), (-10, 4.5, 14), "6A6E74", {"seg": 6}))
+	bx(va, (2.4, 1.4, 1.2), (-10, 10.5, 14), "E8ECF0", emit=1.0)
 	bx(va, (5, 3, 5), (-10, 0.5, 14), "E8C840")
 	k.prop("SweeperVan", va)
 
@@ -343,11 +342,13 @@ def build(k):
 	bx(hq, (HW, HH, HD), (0, HH / 2 - 1, 0), BASE)
 	for s in (-1, 1):
 		px = s * (HW / 2 - 15)
-		bx(hq, (30, HH + 6, HD + 4), (px, (HH + 6) / 2 - 1, -2), "E4E4DE")
-		bx(hq, (31, 1.6, HD + 5), (px, HH + 5.6, -2), BASE2)
-		bx(hq, (0.6, 24, 0.6), (px + s * 6, HH + 17, 0), "8A9096")
-		bx(hq, (6, 0.4, 0.4), (px + s * 6, HH + 22, 0), "8A9096")
-		bx(hq, (4, 0.4, 0.4), (px + s * 6, HH + 26, 0), "8A9096")
+		bx(hq, (30, HH + 16, HD + 4), (px, (HH + 16) / 2 - 1, -2), "E4E4DE")
+		bx(hq, (31, 1.6, HD + 5), (px, HH + 15.6, -2), BASE2)
+		for f in range(NF + 1):
+			bx(hq, (30.6, 1.0, 1.0), (px, f * FH + 1.4, -HD / 2 - 4.4), "B4B4AE")
+		bx(hq, (0.6, 24, 0.6), (px + s * 6, HH + 27, 0), "8A9096")
+		bx(hq, (6, 0.4, 0.4), (px + s * 6, HH + 32, 0), "8A9096")
+		bx(hq, (4, 0.4, 0.4), (px + s * 6, HH + 36, 0), "8A9096")
 	for f in range(NF):
 		y = f * FH + 4
 		for c in range(26):
@@ -356,7 +357,7 @@ def build(k):
 				continue
 			pav = abs(x) > HW / 2 - 30
 			bx(hq, (5.6, 4.0, 0.4), (x, y, -HD / 2 - (4.1 if pav else 0.1)), WINDOW, rough=0.2)
-		bx(hq, (HW - 60, 0.5, 0.5), (0, f * FH + 1.4, -HD / 2 - 0.3), "D4D4CE")
+		bx(hq, (HW - 60, 1.0, 1.0), (0, f * FH + 1.4, -HD / 2 - 0.5), "B4B4AE")
 	bx(hq, (32, HH + 14, HD + 10), (0, (HH + 14) / 2 - 1, -2), "F2F2EE")
 	bx(hq, (10, HH + 4, 0.6), (0, (HH + 4) / 2 + 6, -HD / 2 - 7.2), "3E5670", rough=0.1, metal=0.4)
 	for q in range(3):
@@ -375,8 +376,12 @@ def build(k):
 		bx(hq, (1.4, 9, 1.4), (x, 3.5, -HD / 2 - 18), "D8D8D4")
 	bx(hq, (14, 7, 0.4), (0, 2.5, -HD / 2 - 7.4), "2E4256", rough=0.1)
 	bx(hq, (0.5, 22, 0.5), (0, HH + 24, -2), "8A9096")
-	bx(hq, (HW + 20, 0.6, 80), (0, -0.7, -HD / 2 - 48), "5A5C60")
-	bx(hq, (8, 0.62, 80), (0, -0.68, -HD / 2 - 48), "6E7074")
+	bx(hq, (HW + 20, 0.6, 104), (0, -0.7, -HD / 2 - 60), "4A4C50")
+	bx(hq, (8, 0.62, 104), (0, -0.68, -HD / 2 - 60), "6E7074")
+	for c in range(30):  # front row of white cars along the lot edge
+		x = -HW / 2 + 6 + c * 7.8
+		if abs(x) > 6:
+			car(hq, x, -HD / 2 - 104, ("F4F4F4", "E8E8E8", "D8DCE0")[c % 3], yaw=90)
 	for z in (-HD / 2 - 40, -HD / 2 - 72):
 		for s in (-1, 1):
 			for c in range(9):
@@ -468,96 +473,120 @@ def build(k):
 	bx(bw, (2.6, 8, 3), (14, 3, 0), BASE2)
 	bx(bw, (0.5, 6, 0.5), (14, 10, 0), "6A7078")
 	bx(bw, (3, 0.8, 1.2), (13, 13.3, -0.6), "FFF2D0", emit=3.0)
+	bx(bw, (28, 0.4, 10), (0, -0.8, 7), "5E7A44")  # grass verge inside the base
+	for x in (-8, 4):
+		bw.append(("ball", (7, 5, 6), (x, 1.5, 8), "3E6A3A", {"subdiv": 1}))
 	k.prop("BaseWall", bw)
 
-	# --- Rail cannon (hero): the anti-kaiju rail gun lying low along a long rail bed: ballast, two rails and sleepers,
-	# a heavy carriage, a massive barrel at 6 degrees, a dense stack of ring coils at the breech, a riveted square
-	# muzzle, tall striped capacitor tanks on both sides, dozens of drooping cable bundles. Barrel to +X. ---
+	# --- Rail cannon (hero): the anti-kaiju rail gun on its long rail bed: ballast, two rails and sleepers, a heavy
+	# carriage, a massive barrel raised 10 degrees running through two rail gantries, a dense coil stack at the breech,
+	# a riveted square muzzle, tall striped capacitor tanks on both sides, dozens of drooping cable bundles. Barrel to +X.
 	rg = []
-	bx(rg, (250, 1.2, 30), (10, -0.6, 0), "6A645C")
-	for z in (-7, 7):
-		bx(rg, (250, 1.2, 1.6), (10, 0.6, z), "8A8E94", metal=0.7)
+	bx(rg, (250, 1.2, 34), (10, -0.6, 0), "6A645C")
+	for z in (-8, 8):
+		bx(rg, (250, 1.4, 1.8), (10, 0.7, z), "8A8E94", metal=0.7)
 	for x in range(-112, 134, 7):
-		bx(rg, (2.2, 0.7, 20), (x, 0.1, 0), "4A4038")
-	bx(rg, (60, 12, 26), (-30, 6.6, 0), "4E545C", metal=0.4)
-	bx(rg, (40, 8, 22), (-30, 16.6, 0), "5A6068", metal=0.4)
-	for x in (-55, -5):
-		for z in (-9, 9):
-			rg.append(("cyl", (5, 3, 5), (x, 2.6, z), "2A2A2A", {"rot": (90, 0, 0), "seg": 10}))
-	el = 6.0
-	ax, ay = -46.0, 26.0
+		bx(rg, (2.4, 0.7, 22), (x, 0.1, 0), "4A4038")
+	bx(rg, (64, 14, 30), (-30, 7.6, 0), "4E545C", metal=0.4)
+	bx(rg, (44, 10, 26), (-30, 19.6, 0), "5A6068", metal=0.4)
+	for x in (-56, -4):
+		for z in (-10, 10):
+			rg.append(("cyl", (6, 3, 6), (x, 3, z), "2A2A2A", {"rot": (90, 0, 0), "seg": 10}))
+	el = 10.0
+	ax, ay = -50.0, 30.0
 	ce, se_ = math.cos(math.radians(el)), math.sin(math.radians(el))
 
-	def along(t):
-		return (ax + ce * t, ay + se_ * t, 0.0)
+	def along(t, up=0.0):
+		return (ax + ce * t - se_ * up, ay + se_ * t + ce * up, 0.0)
 
-	rg.append(("cyl", (20, 160, 20), along(80), "3A3E44", {"rot": (0, 0, el - 90), "seg": 16, "metal": 0.6, "rough": 0.35}))
-	for i in range(12):  # coil stack at the breech
-		rg.append(("cyl", (40 - (i % 2) * 4, 3.2, 40 - (i % 2) * 4), along(2 + i * 3.6), ("8A9098", "5E666E")[i % 2], {"rot": (0, 0, el - 90), "seg": 18, "metal": 0.6}))
-	for i in range(5):  # a few bands down the barrel
-		rg.append(("cyl", (23, 2, 23), along(60 + i * 18), "5E666E", {"rot": (0, 0, el - 90), "seg": 16, "metal": 0.6}))
-	mx, my, _ = along(162)
-	for dy, dz, w, h in ((12, 0, 30, 6), (-12, 0, 30, 6), (0, 12, 6, 18), (0, -12, 6, 18)):
-		rg.append(("box", (10, h, w), (mx, my + dy, dz), "2E3238", {"rot": (0, 0, el)}))
-	for dy in (-12, 12):
-		for dz in (-11, -5.5, 0, 5.5, 11):
-			rg.append(("box", (1.2, 1.2, 1.2), (mx - 5.4, my + dy, dz), "8A9098", {"rot": (0, 0, el)}))
+	rg.append(("cyl", (30, 166, 30), along(83), "4A5058", {"rot": (0, 0, el - 90), "seg": 18, "metal": 0.6, "rough": 0.35}))
+	for i in range(14):
+		rg.append(("cyl", (52 - (i % 2) * 6, 3.4, 52 - (i % 2) * 6), along(2 + i * 3.8), ("8A9098", "5E666E")[i % 2], {"rot": (0, 0, el - 90), "seg": 20, "metal": 0.6}))
+	for i in range(5):
+		rg.append(("cyl", (34, 2.4, 34), along(66 + i * 20), "5E666E", {"rot": (0, 0, el - 90), "seg": 18, "metal": 0.6}))
+	mx, my, _ = along(168)
+	for dy, dz, w, h in ((17, 0, 40, 7), (-17, 0, 40, 7), (0, 17, 7, 27), (0, -17, 7, 27)):
+		rg.append(("box", (12, h, w), (mx - se_ * dy, my + ce * dy, dz), "2E3238", {"rot": (0, 0, el)}))
+	for dy in (-17, 17):
+		for dz in (-15, -7.5, 0, 7.5, 15):
+			rg.append(("box", (1.4, 1.4, 1.4), (mx - 6.4 - se_ * dy, my + ce * dy, dz), "9AA0A6", {"rot": (0, 0, el)}))
+	for gt in (70.0, 125.0):  # rail gantries straddling the barrel, with cables hanging onto it
+		gx_, gy_, _ = along(gt)
+		for z in (-24, 24):
+			bx(rg, (3, gy_ + 26, 3), (gx_, (gy_ + 26) / 2 - 1, z), "3E4650", metal=0.4)
+		bx(rg, (4, 3, 52), (gx_, gy_ + 25, 0), "3E4650", metal=0.4)
+		for q in range(5):
+			zq = -16 + q * 8
+			mid = (gx_ + 3, gy_ + 14 - abs(zq) * 0.1, zq)
+			seg(rg, (gx_, gy_ + 24, zq), mid, "1E1E1E", thick=1.1)
+			seg(rg, mid, (gx_ + 6, gy_ + 15, zq * 0.6), "1E1E1E", thick=1.1)
 	tanks = []
 	for s in (-1, 1):
-		for j, x in enumerate((-80, -62, -44, -26)):
-			tz = s * (26 + (j % 2) * 4)
-			rg.append(("cyl", (10, 40, 10), (x, 19, tz), "C8CCD0", {"seg": 12, "metal": 0.3}))
-			rg.append(("cyl", (10.4, 2, 10.4), (x, 30, tz), STRIPE, {"seg": 12}))
-			rg.append(("cyl", (7, 2, 7), (x, 40, tz), "8A9098", {"seg": 12}))
-			tanks.append((x, 40, tz))
-	for i, (tx, ty, tz) in enumerate(tanks):  # 3 cables per tank, each sagging between the tank top and a coil
-		for q in range(3):
-			cx_, cy_, _ = along(4 + ((i * 3 + q) % 12) * 3.6)
-			cz = math.copysign(18, tz)
-			mid = ((tx + cx_) / 2, min(ty, cy_ + 18) - 9 - q * 2, (tz + cz) / 2 + q)
-			seg(rg, (tx, ty, tz + q - 1), mid, ("1E1E1E", "2A2A2A", "3A2A1A")[q], thick=0.9)
-			seg(rg, mid, (cx_, cy_ + 10, cz), ("1E1E1E", "2A2A2A", "3A2A1A")[q], thick=0.9)
-	car(rg, -20, -30, OLIVE)
-	bx(rg, (7.2, 5, 9), (-20, 3, -26), "3E4636")
+		for j, x in enumerate((-86, -68, -50, -32)):
+			tz = s * (35 + (j % 2) * 5)
+			rg.append(("cyl", (11, 48, 11), (x, 23, tz), "C8CCD0", {"seg": 12, "metal": 0.3}))
+			rg.append(("cyl", (11.4, 2.4, 11.4), (x, 36, tz), STRIPE, {"seg": 12}))
+			rg.append(("cyl", (8, 2.4, 8), (x, 48, tz), "8A9098", {"seg": 12}))
+			tanks.append((x, 48, tz))
+	cols = ("1E1E1E", "2A2A2A", "3A2A1A", "202830")
+	for i, (tx, ty, tz) in enumerate(tanks):  # 4 cables per tank, each sagging between the tank top and a coil
+		for q in range(4):
+			cx_, cy_, _ = along(4 + ((i * 4 + q) % 14) * 3.8, up=22)
+			cz = math.copysign(14 + q * 2, tz)
+			mid = ((tx + cx_) / 2, min(ty, cy_) - 12 - q * 2.5, (tz + cz) / 2)
+			seg(rg, (tx, ty, tz + q - 1.5), mid, cols[q], thick=1.2)
+			seg(rg, mid, (cx_, cy_, cz), cols[q], thick=1.2)
+	car(rg, -20, -36, OLIVE)
+	bx(rg, (7.2, 5, 9), (-20, 3, -32), "3E4636")
 	k.prop("Railgun", rg)
 
-	# --- City block (mid): a 160-stud tile of the street grid: asphalt streets on two edges with centre dashes,
-	# raised sidewalks, low-rise blocks (some collapsed, scorched), a crater with a rubble rim, wrecked cars, poles ---
+	# --- City block (mid): a 160-stud tile of the street grid. Half-width streets and sidewalks on all four edges, so
+	# tiles turned by any quarter still join up; low-rise blocks (some collapsed, scorched), a crater with a rubble rim,
+	# a small park with trees, wrecked cars, poles. Tiles are laid with random quarter turns for variety. ---
 	cb = []
 	T = 160.0
-	bx(cb, (T, 0.4, 14), (0, -0.75, -T / 2 + 7), ASPHALT)
-	bx(cb, (14, 0.4, T), (-T / 2 + 7, -0.75, 0), ASPHALT)
-	for i in range(8):
-		bx(cb, (8, 0.42, 0.6), (-T / 2 + 18 + i * 19, -0.74, -T / 2 + 7), "D8D8D0")
-		bx(cb, (0.6, 0.42, 8), (-T / 2 + 7, -0.74, -T / 2 + 18 + i * 19), "D8D8D0")
-	bx(cb, (T - 14, 0.8, 3), (7, -0.5, -T / 2 + 15.5), WALK)
-	bx(cb, (3, 0.8, T - 14), (-T / 2 + 15.5, -0.5, 7), WALK)
-	bx(cb, (T - 17, 0.3, T - 17), (8.5, -0.8, 8.5), "9C968A")
-	lows = [(-40, -40, 30, 3, "C8C0B0"), (10, -42, 34, 2, "B8B4AC"), (52, -40, 26, 4, "D4CCB8"), (-44, 20, 28, 2, "B0A898"), (50, 30, 30, 3, "C0BCB4")]
+	bx(cb, (T, 0.3, T), (0, -0.85, 0), "9C968A")
+	for a in range(4):
+		ca, sa = math.cos(a * math.pi / 2), math.sin(a * math.pi / 2)
+
+		def rot2(x, z):
+			return (x * ca - z * sa, x * sa + z * ca)
+
+		x, z = rot2(0, -T / 2 + 3.5)
+		bx(cb, (T if a % 2 == 0 else 7, 0.4, 7 if a % 2 == 0 else T), (x, -0.75, z), ASPHALT)
+		x, z = rot2(0, -T / 2 + 8.5)
+		bx(cb, (T - 14 if a % 2 == 0 else 3, 0.8, 3 if a % 2 == 0 else T - 14), (x, -0.5, z), WALK)
+		for i in range(7):
+			x, z = rot2(-T / 2 + 16 + i * 21, -T / 2 + 0.6)
+			bx(cb, (8 if a % 2 == 0 else 0.6, 0.42, 0.6 if a % 2 == 0 else 8), (x, -0.74, z), "D8D8D0")
+		x, z = rot2(-50, -T / 2 + 10.5)
+		cb.append(("cyl", (1.0, 26, 1.0), (x, 12, z), "9A9A96", {"seg": 6}))
+	lows = [(-40, -40, 30, 3, "C8C0B0"), (10, -42, 34, 2, "B8B4AC"), (52, -40, 26, 4, "D4CCB8"), (-44, 22, 28, 2, "B0A898")]
 	for i, (x, z, w, nf, col) in enumerate(lows):
 		h = nf * 7
 		broken = i in (1, 3)
-		bx(cb, (w, h * (0.55 if broken else 1), 22), (x, h * (0.55 if broken else 1) / 2 - 1, z), col)
+		hh = h * (0.55 if broken else 1)
+		bx(cb, (w, hh, 22), (x, hh / 2 - 1, z), col)
 		for f in range(nf if not broken else 1):
 			bx(cb, (w - 3, 2.4, 0.3), (x, f * 7 + 3.5, z - 11.1), WINDOW)
 		if broken:
-			cb.append(("wedge", (w, h * 0.6, 12), (x, h * 0.55 + h * 0.3 - 1, z + 5), col))
-			bx(cb, (w * 0.6, 1, 14), (x + 3, h * 0.55, z - 6), CONC, rot=(18, 10, -8))
-			bx(cb, (w * 0.8, h * 0.4, 0.3), (x, h * 0.3, z - 11.2), SCORCH)
+			cb.append(("wedge", (w, h * 0.6, 12), (x, hh + h * 0.3 - 1, z + 5), col))
+			bx(cb, (w * 0.8, hh * 0.7, 0.3), (x, hh * 0.4, z - 11.2), SCORCH)
 		else:
 			bx(cb, (w + 0.6, 0.8, 22.6), (x, h - 0.6, z), "8E8A82")
-	cb.append(("cyl", (34, 0.6, 34), (8, -0.6, 20), "26221E", {"seg": 12}))  # crater
-	cb.append(("cyl", (22, 0.8, 22), (8, -0.5, 20), "1A1816", {"seg": 10}))
-	for i in range(9):
-		a = i / 9 * math.tau
-		s = rnd.uniform(3, 6)
-		bx(cb, (s, s * 0.6, s), (8 + math.cos(a) * 18, s * 0.3 - 1, 20 + math.sin(a) * 18), (ROCK, CONC2, DUST)[i % 3], rot=(rnd.uniform(-20, 20), rnd.uniform(0, 90), 0))
-	car(cb, -30, -T / 2 + 4, "2F6FD8", yaw=8)
-	car(cb, 40, -T / 2 + 10, "E8E8E8", yaw=-30, state=1)
-	car(cb, -T / 2 + 5, 40, "D8302F", yaw=95, state=2)
-	for x in (-50, 0, 50):
-		cb.append(("cyl", (1.0, 26, 1.0), (x, 12, -T / 2 + 16.5), "9A9A96", {"seg": 6}))
-		bx(cb, (7, 0.5, 0.5), (x, 24, -T / 2 + 16.5), "6A6A66")
+	bx(cb, (44, 0.4, 40), (44, -0.6, 36), "5E7A44")  # park
+	for x, z in ((32, 24), (52, 26), (40, 46), (60, 48), (28, 50)):
+		cb.append(("cyl", (1.2, 6, 1.2), (x, 2, z), "4A3A2A", {"seg": 5}))
+		cb.append(("ball", (9, 8, 9), (x, 8, z), ("3E6A3A", "4A7A40")[x % 2], {"subdiv": 1}))
+	cb.append(("cyl", (30, 0.6, 30), (-4, -0.6, 30), "26221E", {"seg": 12}))  # crater
+	cb.append(("cyl", (20, 0.8, 20), (-4, -0.5, 30), "1A1816", {"seg": 10}))
+	for i in range(8):
+		a = i / 8 * math.tau
+		s_ = rnd.uniform(3, 6)
+		bx(cb, (s_, s_ * 0.6, s_), (-4 + math.cos(a) * 16, s_ * 0.3 - 1, 30 + math.sin(a) * 16), (ROCK, CONC2, DUST)[i % 3], rot=(rnd.uniform(-20, 20), rnd.uniform(0, 90), 0))
+	car(cb, -30, -T / 2 + 3, "2F6FD8", yaw=90)
+	car(cb, 40, -T / 2 + 4, "E8E8E8", yaw=60, state=1)
+	car(cb, -T / 2 + 3, 40, "D8302F", yaw=5, state=2)
 	k.prop("CityBlock", cb)
 
 	# --- Smoke column (mid): scorched base with embers, a column of grey puffs widening as it rises ---
@@ -581,21 +610,25 @@ def build(k):
 	skip = [(d - 300, d + 300) for d, _, _ in corpses]
 	side = skip + [(3300.0, 3540.0)]  # right side clear under the side review camera (build_track 05_side)
 	gun = skip + [(3300.0, 3660.0)]  # open ground round the rail cannon
-	row(k, 40, city_end, 30, (-28, 28), ["Rubble", "Rubble", "SweeperVan"], jitter=5, turn=math.pi, chance=0.7, scale=(0.8, 1.3))
+	# rubble 42 out: even turned, its widest reach (about 16) stays 24+ from the centre line
+	row(k, 40, city_end, 30, (-42, 42), ["Rubble"], jitter=3, turn=math.pi, chance=0.6, scale=(0.8, 1.1))
 	row(k, 40, city_end, 46, (-58,), ["Apartment", "Apartment", "Office"], jitter=4, skip=gun, turn=0.25, lean=0.2)
 	row(k, 40, city_end, 46, (58,), ["Apartment", "Apartment", "Office"], jitter=4, skip=side, turn=0.25, lean=0.2)
 	row(k, 60, city_end, 62, (-110,), ["Office", "Apartment", "Office"], jitter=10, scale=(1.0, 1.6), skip=gun, turn=0.3, lean=0.25)
 	row(k, 60, city_end, 62, (110,), ["Office", "Apartment", "Office"], jitter=10, scale=(1.0, 1.6), skip=side, turn=0.3, lean=0.25)
 	for d, off, s in corpses:
-		put(k, "KaijuCorpse", d, off, s, clear=60)
-		for dd in (-60, 0, 60, 120):
-			put(k, "SweeperVan", d + dd, 32 if off > 0 else -32, turn=k.rng.uniform(-0.4, 0.4))
+		ob = put(k, "KaijuCorpse", d, off, s, clear=60)
+		if ob and off < 0:
+			ob.scale[0] = -ob.scale[0]  # mirrored so the head (not the stripped tail) faces the approaching runner
+	vans = [(520, -40), (565, -40), (615, -40), (760, -40), (2420, 40), (2462, 40), (2505, 40), (2640, 40)]
+	for d, off in vans:  # parked by the corpses, in run shots 1 and 2
+		put(k, "SweeperVan", d, off, 1.15, turn=k.rng.uniform(-0.3, 0.3))
 	put(k, "Railgun", 3480, -80, clear=50)
-	# Base: low perimeter wall, hangars (kept out of the HQ view), a second rail cannon by the last straight
+	# Base: low perimeter wall, hangars (kept out of the HQ view), a second rail cannon (muzzle to run shot 4)
 	row(k, base0, k.length - 80, 28, (-31, 31), ["BaseWall"])
-	row(k, base0 + 60, k.length - 100, 110, (75, -75), ["Hangar"], skip=[(4250, 4950)])
+	row(k, base0 + 60, k.length - 100, 110, (75, -75), ["Hangar"], skip=[(4250, 4950), (6560, 6960)])
 	row(k, base0 + 100, k.length - 100, 140, (150, -150), ["Hangar", "Apartment"], jitter=10, skip=[(4250, 4950)])
-	put(k, "Railgun", 6620, 90, clear=60)
+	put(k, "Railgun", 6800, 110, clear=50, turn=math.pi)
 	# HQ (with its tower) square-on to run shot 3, ahead-left of the camera
 	eye, t, right = shot_eye(k, 0.62)
 	a = math.radians(-16)
@@ -604,31 +637,41 @@ def build(k):
 	look = eye - hqc
 	k.place("DefenseHQ", (hqc.x, -1.0, hqc.z), math.atan2(-look.x, -look.z))
 	print("KAIJUBASE HQ clear", round(min((Vector((w.x, 0, w.z)) - Vector((hqc.x, 0, hqc.z))).length for w in k.wps)))
-	# Street grid tiles over the city and the infield, then smoke and the far skyline
+	behind = hqc + fwd * 420  # nothing tall behind the HQ, so its roofline stays clean in shot 3
+	tall_avoid = [(hqc.x, hqc.z, 260), (behind.x, behind.z, 460)]
 	avoid = [(hqc.x, hqc.z, 260)]
-	for d, off, s in corpses + [(3480, -80, 1.0), (6620, 90, 1.0)]:
+	for d, off, s in corpses + [(3480, -80, 1.0), (6800, 110, 1.0)]:
 		x, z, _ = local(k, d, off, 0, 0)
-		avoid.append((x, z, 200))
-	x0, z0 = k.lo.x - 400, k.lo.z - 400
-	gx = x0
+		avoid.append((x, z, 210))
+	# Street grid tiles (random quarter turns) over the city and the infield, a few towers on them
+	towers = []
+	gx = k.lo.x - 400
 	while gx < k.hi.x + 400:
-		gz = z0
+		gz = k.lo.z - 400
 		while gz < k.hi.z + 400:
 			if k.clear_of_road(gx, gz, 190) and all(math.hypot(gx - ax, gz - az) > r for ax, az, r in avoid):
-				k.place("CityBlock", (gx, -1.0, gz), 0.0)
-				if k.rng.random() < 0.18:
-					k.place(k.rng.choice(["Office", "Apartment"]), (gx + 10, -1.0, gz + 10), k.rng.choice((0, math.pi / 2, math.pi)), k.rng.uniform(1.0, 1.8))
+				k.place("CityBlock", (gx, -1.0, gz), k.rng.choice((0, 1, 2, 3)) * math.pi / 2)
+				if k.rng.random() < 0.14 and all(math.hypot(gx - ax, gz - az) > r for ax, az, r in tall_avoid):
+					k.place(k.rng.choice(["Office", "Apartment"]), (gx, -1.0, gz), k.rng.choice((0, math.pi / 2, math.pi)), k.rng.uniform(1.0, 1.8))
+					towers.append((gx, gz, 60))
 			gz += 160
 		gx += 160
-	placed, tries = 0, 0
-	while placed < 9 and tries < 400:
+	placed, tries = 0, 0  # smoke columns, clear of the road rows, towers and landmarks
+	while placed < 9 and tries < 800:
 		tries += 1
 		x = k.rng.uniform(k.lo.x - 200, k.hi.x + 200)
 		z = k.rng.uniform(k.lo.z - 200, k.hi.z + 200)
-		if k.clear_of_road(x, z, 120) and all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid[:1]):
+		if k.clear_of_road(x, z, 220) and all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid + towers + tall_avoid):
 			k.place("Smoke", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(0.8, 1.4))
 			placed += 1
-	k.field(70, ["Office", "Apartment", "Office"], clearance=420, margin=480, scale=(1.2, 2.4))
+	placed, tries = 0, 0  # far skyline
+	while placed < 70 and tries < 3000:
+		tries += 1
+		x = k.rng.uniform(k.lo.x - 480, k.hi.x + 480)
+		z = k.rng.uniform(k.lo.z - 480, k.hi.z + 480)
+		if k.clear_of_road(x, z, 420) and all(math.hypot(x - ax, z - az) > r for ax, az, r in tall_avoid):
+			k.place(k.rng.choice(["Office", "Apartment", "Office"]), (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(1.2, 2.4))
+			placed += 1
 	# Clear day with big cumulus clouds (sky dressing, the game's Sky clouds; not prop assets)
 	k.sky(
 		[(0.0, "DDEAF2"), (0.04, "B8D4EC"), (0.18, "78AEE0"), (0.5, "3F7CC8"), (1.0, "2A5CA8")],
