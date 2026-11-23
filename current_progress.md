@@ -226,6 +226,7 @@
 222. 2026-11-23 — Alex Nguyen — World 2: per-world enemy names (NpcConfig.World2) and Tracks panel copy (TrackCards World 2 table), World 1 tables unchanged.
 223. 2026-11-23 — Alex Nguyen — World 2 gate Blender draft (tools/blender/world2/build_gate.py, locked and open renders) and the matching SpawnArea tweak: a dim sealed portal with thicker chains and padlock in front.
 224. 2026-11-23 — Alex Nguyen — World 2: all 10 track biomes built in Blender (tools/blender/world2/biomes, kit facing and sky fixes) and rendered at full size through the Blender MCP; approval page assets/world2_draft/index.html (gate plus 6 shots per track).
+225. 2026-11-23 — Alex Nguyen — World 2 rules audit (1 fail fixed): the team is per world (Team and Equipped saved under Worlds.W2 in World 2), and the parody list points to WORLD2_SPEC's enemy list.
 
 ## What's next
 **Owner reviews assets/world2_draft/index.html and approves or marks changes per track; then the approved drafts become game BiomeThemes and asset uploads.**
