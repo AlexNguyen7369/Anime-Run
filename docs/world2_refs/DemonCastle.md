@@ -25,3 +25,15 @@ fire tiers climb about 70% of the slab with ash flecks; the ruins' pink fire is 
 high-rise faces (`anime_castle2`); `Hound` heads sit side by side above the shoulders with gaping jaws, the left one in a
 pale pointed-ear helm, the tan mane rising behind them (`cerberus_gate`); `Wyvern` has a long narrow skull with six
 horns swept back and red eyes (`kaisel_flight`).
+
+Round 5 (2026-11-23, new builder, shaped live in Blender then ported): `ChainTower` huge chains now sag diagonally in
+from anchors far off to the sides (1150 out, 2050 up) into the upper faces, with thinner chains crossing every face
+(`webtoon_castle`); the tower fire is continuous translucent flame bands with tongues and wide black ash streaks over the
+floor bands, not separate spikes. The ruins' pink fire is soft, wide, low-opacity sheets hugging the front and outer
+side faces, with more lit (pale pink) windows (`anime_castle2`). `Hound` heads have jaws thrown open with fang rows on
+both jaws, a red maw and tongue, and the pale pointed-ear helm on the viewer's left head (`cerberus_gate`). `Wyvern`
+has a diamond-section ridged skull with swept-back and flared horns, full dark membranes in a raised V that read from
+the front, and a rider at about 1.3 times the body height: purple armour, gold pauldrons, belt and knee plates, antler
+horns, a white flame mane, a tail and a blue blade (a changed design after `baran_anime`, no logos). `Gate` gains
+tall dark-red square pillars wrapped in fire on both sides (`cerberus_gate`). The 33% shot's dark slab is the road deck
+on the stair climb (shared road, not a biome prop); a lamp now lights it.
