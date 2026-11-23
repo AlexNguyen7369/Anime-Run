@@ -195,7 +195,7 @@ local function showPick(message)
 		if type(trackNumber) == "number" then
 			local n = math.floor(trackNumber)
 			local trackButton = button("Track" .. n, pickTracks, "TRACK " .. n)
-			pickFrame.Button(trackButton, "Go")
+			pickFrame.Button(trackButton, "Gold") -- design doc 4.46 duel frame: cream wood track tiles
 			trackButton.Activated:Connect(function()
 				duelRemote:FireServer("Pick", n)
 				PanelSwitch.Close("DuelPick")

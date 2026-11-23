@@ -19,8 +19,8 @@ local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild(
 local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
-local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
 
 local Palette = UiTheme.Palette
 local ICON = require(script.Parent.RollToast.Ui:WaitForChild("HudIcons")).Items.Image -- the Backpack's logo
@@ -196,10 +196,14 @@ local stepMore = action("More", stepper, "+")
 local stepMax = action("Max", stepper, "Max")
 local confirmYes = action("Yes", confirm, "Sell")
 local confirmNo = action("Cancel", confirm, "Cancel")
-for _, button in { stepLess, stepMore, stepMax, confirmNo } do
-	cg.Button(button, "Idle")
+-- Design doc 4.46 item menu frame: cream wood stepper tiles round a lacquer count, Sell a vermilion tile, Cancel paper.
+for _, button in { stepLess, stepMore, stepMax } do
+	cg.Button(button, "Gold")
 end
-cg.Button(confirmYes, "Danger")
+cg.Button(confirmNo, "Idle")
+cg.Button(confirmYes, "Go")
+AnimeSkin.Dojo.Lacquer(stepCount)
+stepCount:SetAttribute("DojoTextColor", AnimeSkin.Dojo.Colors.Cream)
 
 -- The question (Body), the stepper (Less, count, More, Max) under it, Yes and Cancel at the bottom of the content.
 local function layConfirm(g)
@@ -269,6 +273,13 @@ local stepValue, stepLimit, stepWords = 1, 1, nil
 
 local function hideAll()
 	root.Enabled = false
+	scrim.Visible = true
+	for _, frame in { menu, confirm, picker } do
+		local scroll = DojoHandscroll.Get(frame)
+		if scroll then
+			scroll.Stop() -- a roll-up still running never hides what opens next
+		end
+	end
 	menu.Visible, confirm.Visible, picker.Visible = false, false, false
 	onConfirm, onScrim = nil, nil
 	for _, child in pickerGrid:GetChildren() do
@@ -279,15 +290,28 @@ local function hideAll()
 end
 ItemMenu.Close = hideAll
 
+-- Design doc 4.46: the shown popup rolls up to its centre, then everything hides. The scrim goes at once, so the world
+-- under it takes input during the roll (4.20).
+local function rollClose()
+	local shown = menu.Visible and menu or confirm.Visible and confirm or picker.Visible and picker or nil
+	if not (root.Enabled and shown) then
+		hideAll()
+		return
+	end
+	onConfirm, onScrim = nil, nil
+	scrim.Visible = false
+	DojoHandscroll.Close(shown, hideAll)
+end
+
 scrim.Activated:Connect(function()
 	if onScrim then
 		onScrim()
 	else
-		hideAll()
+		rollClose()
 	end
 end)
-pickerClose.Activated:Connect(hideAll)
-confirmNo.Activated:Connect(hideAll)
+pickerClose.Activated:Connect(rollClose)
+confirmNo.Activated:Connect(rollClose)
 
 local function drawStep()
 	stepCount.Text = stepValue .. " / " .. stepLimit
@@ -350,7 +374,7 @@ function ItemMenu.Confirm(options, yes)
 		end
 	end
 	confirm.Visible = true
-	UiMotion.Pop(confirm)
+	DojoHandscroll.Open(confirm) -- design doc 4.46: unrolls from its centre, input live
 end
 confirmYes.Activated:Connect(function()
 	if onConfirm and not busy then
@@ -452,7 +476,7 @@ local function openPicker(kindName, entry)
 	end
 	fit(picker, PICKER_SIZE)
 	picker.Visible = true
-	UiMotion.Pop(picker)
+	DojoHandscroll.Open(picker)
 end
 
 local function openSale(kindName, entry, row)
@@ -549,7 +573,7 @@ function ItemMenu.Open(kindName, entry, anchor)
 	end
 	placeMenu(anchor)
 	menu.Visible = true
-	UiMotion.Pop(menu, 0.06)
+	DojoHandscroll.Open(menu)
 end
 
 -- The menu of a chest tile, which stands for every entry of chest `id`: Open takes the first. Only the server's answer opens the reveal.
@@ -611,7 +635,7 @@ function ItemMenu.OpenChest(id, anchor)
 	end
 	placeMenu(anchor)
 	menu.Visible = true
-	UiMotion.Pop(menu, 0.06)
+	DojoHandscroll.Open(menu)
 end
 
 -- From an Index tile, which stands for a catalog id: its first free entry, otherwise its first worn one (SIDEKICK_SPEC).
