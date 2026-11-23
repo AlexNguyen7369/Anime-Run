@@ -28,7 +28,7 @@ import kit
 DUST, ASH, CONC, CONC2, RUST = "8C877C", "4A4A4C", "C8C2B6", "8A9098", "8A5A3A"
 ROCK, WINDOW, GLASS, SCORCH = "5C5650", "2A3440", "6E8EAA", "2A2624"
 FLESH, FLESH2, FLESH3, PLATE, BONE, BONE2 = "8A4A3A", "6E3A2E", "9C5A44", "5A4A4A", "E6DCC4", "C8BCA0"
-HIDE, HIDE2 = "A85842", "6E2E22"  # red-brown kaiju hide and its ink-dark shadow streaks
+HIDE, HIDE2 = "86402F", "5A2419"  # red-brown kaiju hide and its ink-dark shadow streaks
 SUIT, TEAL, ROPE_Y, ROPE_B = "F4F4F0", "2F7F7A", "E8C840", "2E6FD0"
 BASE, BASE2, STRIPE, NAVY, OLIVE = "ECECE6", "A8AEB4", "FF8A1E", "2E3E58", "4A5240"
 ASPHALT, WALK = "3A3A3E", "A8A49C"
@@ -48,6 +48,15 @@ def seg(p, a, b, col, thick=0.5, wide=None):
 	rz = math.degrees(math.atan2(dy, math.hypot(dx, dz)))
 	ry = math.degrees(math.atan2(-dz, dx))
 	bx(p, (ln, thick, wide or thick), ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2), col, rot=(0, ry, rz))
+
+
+def cab(p, a, b, col, thick=0.5):
+	"""A thin cable piece from a to b: a 3-sided cylinder (8 tris, a box is 12), oriented like seg()."""
+	dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
+	ln = math.sqrt(dx * dx + dy * dy + dz * dz)
+	rz = math.degrees(math.atan2(dy, math.hypot(dx, dz)))
+	ry = math.degrees(math.atan2(-dz, dx))
+	p.append(("cyl", (thick, ln, thick), ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2), col, {"seg": 3, "rot": (0, ry, rz - 90)}))
 
 
 def turn(p, n0, x0, z0, deg):
@@ -108,9 +117,16 @@ def sitter(p, x, y, z, s=1.0, face=0, pose=0):
 	sm = {"smooth": True}
 	tilt = (-14, 16, -8, -24)[pose]
 	p.append(("cyl", (2.2 * s, 2.8 * s, 1.8 * s), (x, y + 1.9 * s, z + 0.3 * s), SUIT, {"seg": 8, "rot": (tilt, 0, 0), "taper": 0.85, **sm}))  # torso
-	p.append(("ball", (2.6 * s, 1.3 * s, 2.1 * s), (x, y + 1.3 * s, z + 1.2 * s), "E4E4DE", {"subdiv": 1, **sm}))  # hood down on the back
+	p.append(("ball", (2.4 * s, 1.2 * s, 1.5 * s), (x, y + 3.15 * s, z + 0.75 * s), "E4E4DE", {"subdiv": 1, **sm}))  # hood down, bunched behind the neck
 	p.append(("ball", (1.6 * s, 1.8 * s, 1.7 * s), (x, y + 3.9 * s, z - 0.3 * s), "D9A882", {"subdiv": 1, **sm}))  # head
-	p.append(("ball", (1.7 * s, 0.9 * s, 1.8 * s), (x, y + 4.6 * s, z - 0.1 * s), "2A2420", {"subdiv": 1}))  # hair
+	hair = ("1E1C1E", "5A3A22", "C2622A", "8E969C")[pose]  # black spiky, brown, orange spiky, grey beanie (sweeper_members)
+	if pose == 3:
+		p.append(("ball", (1.75 * s, 1.6 * s, 1.8 * s), (x, y + 4.45 * s, z - 0.15 * s), hair, {"subdiv": 1, **sm}))  # beanie
+	else:
+		p.append(("ball", (1.7 * s, 0.8 * s, 1.8 * s), (x, y + 4.6 * s, z - 0.1 * s), hair, {"subdiv": 1}))  # hair
+		if pose in (0, 2):
+			for q in range(4):  # spikes
+				p.append(("cone", (0.6 * s, 1.0 * s, 0.6 * s), (x + (q - 1.5) * 0.4 * s, y + 5.0 * s, z + (0.4 - (q % 2) * 0.6) * s), hair, {"seg": 4, "rot": ((q % 2) * 30 - 15, 0, (q - 1.5) * 18)}))
 	for side in (-1, 1):
 		hip = (x + side * 0.55 * s, y + 0.5 * s, z)
 		up_knee = (x + side * 0.6 * s, y + 1.7 * s, z - 2.0 * s), (x + side * 0.6 * s, y + 0.3 * s, z - 2.7 * s)
@@ -222,13 +238,13 @@ def shot_eye(k, f):
 	return p + right * 10 - t * 14, t, right
 
 
-HULL = "A85843"  # the torso hide masses (own material: their faces are repainted with the band and ink shadows)
+HULL = "86402E"  # the torso hide masses (own material: their faces are repainted with the band and ink shadows)
 MYC = 50.0  # hide mass centre height: the masses sink below the ground, so the flank rises as a steep wall
 MASSES = [(-150, 110, 115, 62), (-30, 130, 145, 72), (95, 120, 135, 70), (190, 92, 82, 56)]  # x, rx, ry, rz
 BAND = ("B2A290",)  # grey-beige pale band
 CRAG = ("D2AC8C", "C8A080", "DCB898", "BE9474", "D6B092")  # ridge crags: pale tan against the sky (sweeper_cleaning2)
 CRAG_TOP = "E6CCB0"  # lighter top faces of the ridge crags
-INK = ("5A1E16", "4E1A14", "642419")  # dark red-brown ink shadows
+INK = ("3E1410", "34100C", "481812")  # dark red-brown ink shadows
 
 
 def corpse_z(x, y):
@@ -271,38 +287,44 @@ def on_hide(p, shape, size, x, y, up, col, off=0.45, **o):
 
 
 def ink_tongues(p, rnd, band_top):
-	"""Ink shadows (sweeper_cleaning1): long tapered flame tongues, broad at the base, pointed at the top, slanted,
-	dark red-brown, in groups of 2-3 side by side with ragged uneven tips; each tongue a flat frustum base and a
-	pointed tip lying just off the hide. No closed or curved shapes."""
+	"""Ink shadows (sweeper_cleaning1): big tapered flame tongues, broad at the base, pointed at the top, slanted, near-
+	black red-brown, in groups of 3-4 side by side with ragged uneven tips, covering about 40% of every bulge; each
+	tongue a flat frustum base and a pointed tip lying just off the hide. No closed or curved shapes."""
 	for hx, rx, ry, rz in MASSES:
-		for q in range(4):
-			x0 = hx + rx * (q - 1.5) * 0.42 + rnd.uniform(-8, 8)
-			slant = rnd.uniform(18, 38)  # one lean direction for all tongues, so no two cross into an X
-			for j in range(rnd.choice((2, 3))):
-				x = x0 + j * rnd.uniform(9, 14) * (1 if slant > 0 else -1)
-				y0 = band_top(x) + rnd.uniform(8, 22)
-				h, w = rnd.uniform(42, 76), rnd.uniform(13, 20)
+		for q in range(7):
+			x0 = hx + rx * (q - 3) * 0.28 + rnd.uniform(-6, 6)
+			slant = rnd.uniform(16, 36)  # one lean direction for all tongues, so no two cross into an X
+			for j in range(rnd.choice((3, 3, 4))):
+				x = x0 + j * rnd.uniform(10, 15)
+				y0 = band_top(x) + rnd.uniform(-2, 30)
+				h, w = rnd.uniform(56, 104), rnd.uniform(17, 27)
 				up = (math.sin(math.radians(slant)), math.cos(math.radians(slant)))
 				col = rnd.choice(INK)
-				ya = y0 + h * 0.25
 				if max(corpse_z(x + up[0] * h * f_, y0 + h * f_) for f_ in (0.0, 0.5, 1.0)) > -25:
 					continue  # only fully on the flank: off the torso edge a tongue would stick out as a spike
-				on_hide(p, "cone", (w, h * 0.5, 0.3), x + up[0] * h * 0.25, ya, up, col, seg=3, taper=0.45)  # broad base
+				on_hide(p, "cone", (w, h * 0.5, 0.3), x + up[0] * h * 0.25, y0 + h * 0.25, up, col, seg=3, taper=0.45)  # broad base
 				on_hide(p, "cone", (w * 0.45, h * 0.5, 0.3), x + up[0] * h * 0.75, y0 + h * 0.75, up, col, seg=3)  # pointed tip
 
 
-def band_steps(p, rnd, band_top):
-	"""The pale band's torn top edge (sweeper_cleaning2): flat band-coloured plates in irregular steps of mixed width and
-	height over the painted band's edge, each with a thin dark shadow lip under the hide just above it."""
+def band_edge(p, rnd, band_top):
+	"""The pale band's ragged top edge (sweeper_cleaning2): pointed hide-red tongues of mixed width and depth dip down
+	into the band, with a dark shadow sliver along one flank of some, and band-coloured shards point up into the hide
+	between them, so the edge never runs level. HIDE is its own material, so corpse_paint leaves the tongues red."""
 	x = -236.0
 	while x < 250:
-		w = rnd.uniform(6, 18)
+		w = rnd.uniform(7, 26)
 		cx = x + w / 2
-		top = band_top(cx) + rnd.uniform(-6, 9)
+		top = band_top(cx) + rnd.uniform(-4, 6)
 		if corpse_z(cx, top) < -20:
-			on_hide(p, "box", (w, 26, 0.3), cx, top - 13, (0, 1), BAND[0], off=0.4)
-			on_hide(p, "box", (w + 0.6, 1.6, 0.3), cx, top + 0.6, (0, 1), "4A2018", off=0.4)  # shadow lip
-		x += w * rnd.uniform(0.85, 1.0)
+			h = rnd.uniform(14, 40)  # hide tongue pointing down into the band
+			tilt = rnd.uniform(-0.35, 0.35)
+			on_hide(p, "cone", (w, h, 0.3), cx, top - h / 2 + 4, (tilt, -1), HIDE, off=0.45, seg=3)
+			if rnd.random() < 0.5:
+				on_hide(p, "cone", (w * 0.35, h * 0.8, 0.3), cx + w * 0.3, top - h * 0.45 + 3, (tilt, -1), "3A1A12", off=0.5, seg=3)
+			if rnd.random() < 0.6:  # band shard pointing up into the hide
+				h2 = rnd.uniform(10, 26)
+				on_hide(p, "cone", (w * rnd.uniform(0.5, 0.9), h2, 0.3), x + w + rnd.uniform(-2, 2), top + h2 / 2 - 4, (rnd.uniform(-0.3, 0.3), 1), BAND[0], off=0.42, seg=3)
+		x += w * rnd.uniform(0.9, 1.3)
 
 
 def corpse_paint(k, ob, band_top):
@@ -352,24 +374,28 @@ def kaiju_corpse(k):
 		z0, z1 = flank_z(x, y - 2), flank_z(x, y + 2)
 		return -math.degrees(math.atan2(z1 - z0, 4))
 
-	for i in range(170):  # dense dark speckle chips lying flush on the band (thin triangles 0.1 off the hide)
+	for i in range(300):  # dense dark speckle chips lying flush on the band, big enough to read from the road
 		x, y = rnd.uniform(-240, 260), rnd.uniform(3, 0.4 * top_y(0))
 		z = flank_z(x, y)
-		if z > -20 or y > band_top(x) - 2:
+		if z > -20 or y > band_top(x) - 4:
 			continue
-		w = rnd.uniform(1.4, 3.2)
-		kc.append(("cone", (w, w * rnd.uniform(0.6, 1.1), 0.3), (x, y, z - 0.25), rnd.choice(("4E4438", "625646", "3E362C")), {"seg": 3, "rot": (lean_at(x, y), 0, rnd.uniform(0, 120))}))
-	x = -236.0
-	while x < 262:  # big beige jagged leaning rock crags of uneven height along the top silhouette (sweeper_cleaning2)
-		ty = top_y(x)
-		h = ty * rnd.choice((rnd.uniform(0.1, 0.18), rnd.uniform(0.2, 0.32)))  # very uneven heights, about 2x the old crags
-		w = rnd.uniform(30, 56)
-		lean = rnd.uniform(12, 36) * rnd.choice((-1, 1))  # crags lean along the ridge
-		kc.append(("cone", (w, h * 1.35, w * rnd.uniform(0.55, 0.9)), (x, ty + h * 0.35, rnd.uniform(-12, 6)), rnd.choice(CRAG), {"seg": 4, "taper": rnd.uniform(0.3, 0.55), "rot": (rnd.uniform(-12, 12), rnd.uniform(-20, 20), lean)}))
-		if rnd.random() < 0.6:  # a broken slab leaning against it
-			w2 = w * rnd.uniform(0.45, 0.7)
-			kc.append(("box", (w2, h * 0.8, w2 * 0.7), (x + rnd.uniform(-8, 8), ty + h * 0.15, rnd.uniform(-14, 2)), rnd.choice(CRAG), {"rot": (rnd.uniform(-25, 25), rnd.uniform(0, 90), rnd.uniform(-35, 35))}))
-		x += rnd.uniform(24, 38)
+		w = rnd.uniform(3.0, 7.0)
+		kc.append(("cone", (w, w * rnd.uniform(0.6, 1.1), 0.3), (x, y, z - 0.25), rnd.choice(("4E4438", "625646", "3E362C", "6E6252")), {"seg": 3, "rot": (lean_at(x, y), 0, rnd.uniform(0, 120))}))
+	x, run, left = -236.0, 1, 0
+	while x < 262:  # pale-tan saw-tooth rock ridge (sweeper_cleaning2): faceted wedges and pointed tetras with sloped
+		ty = top_y(x)  # tops, leaning into each other in runs, bases sunk into the hide
+		if left <= 0:
+			run, left = -run, rnd.randint(3, 5)  # each run of crags leans the same way, then the lean flips
+		left -= 1
+		h = ty * rnd.choice((rnd.uniform(0.07, 0.12), rnd.uniform(0.12, 0.2)))
+		w = rnd.uniform(34, 60)
+		lean = run * rnd.uniform(22, 38)
+		zc = rnd.uniform(-12, 6)
+		if rnd.random() < 0.55:  # pointed tetra-like crag
+			kc.append(("cone", (w, h * 1.5, w * rnd.uniform(0.6, 0.9)), (x, ty + h * 0.3, zc), rnd.choice(CRAG), {"seg": 3, "taper": rnd.uniform(0.15, 0.35), "rot": (rnd.uniform(-10, 10), rnd.uniform(0, 120), lean)}))
+		else:  # wedge outcrop: one long sloped face
+			kc.append(("wedge", (w * 0.7, h * 1.2, w), (x, ty + h * 0.25, zc), rnd.choice(CRAG), {"rot": (rnd.uniform(-8, 8), 90 * run + rnd.uniform(-25, 25), rnd.uniform(-10, 10))}))
+		x += w * rnd.uniform(0.35, 0.5)
 	# neck and head, resting on the ground
 	kc.append(("ball", (100, 120, 110), (-215, 56, -8), HIDE, {"subdiv": 3, "smooth": True}))  # neck
 	kc.append(("ball", (92, 90, 90), (-275, 44, -12), HIDE, {"subdiv": 1}))
@@ -480,7 +506,7 @@ def kaiju_corpse(k):
 		s_ = rnd.uniform(5, 12)
 		bx(kc, (s_, s_ * 0.6, s_), (rnd.uniform(-380, 420), s_ * 0.3 - 1, rnd.choice((-1, 1)) * rnd.uniform(110, 128)), (ROCK, CONC2, CONC)[i % 3], rot=(rnd.uniform(-20, 20), rnd.uniform(0, 90), 0))
 	ink_tongues(kc, rnd, band_top)
-	band_steps(kc, rnd, band_top)
+	band_edge(kc, rnd, band_top)
 	ob = k.prop("KaijuCorpse", kc)
 	corpse_paint(k, ob, band_top)
 	return ob
@@ -550,14 +576,14 @@ def rail_cannon(k):
 	for v, w, sz in ((12, 0, (8, 4, 24)), (-12, 0, (8, 4, 24)), (0, 12, (8, 24, 4)), (0, -12, (8, 24, 4))):
 		mz(sz, -1.0, v, w, "3A3E44")  # inner step ring, recessed 3 behind the face
 	mz((0.6, 20, 20), -4.8, 0, 0, "08080A")  # the bore, black, deep inside the step
-	for side in (-1, 1):  # rivet rows on the face and round the outer faces
-		for q in range(6):
-			r_ = -12.5 + q * 5
-			mz((1.2, 1.4, 1.4), 6.3, side * 17.5, r_, "9AA0A6")
-			mz((1.2, 1.4, 1.4), 6.3, r_, side * 17.5, "9AA0A6")
-			for u in (-3, 3):
-				mz((1.4, 1.2, 1.4), u, side * (H + 0.3), r_, "9AA0A6")
-				mz((1.4, 1.4, 1.2), u, r_, side * (H + 0.3), "9AA0A6")
+	for side in (-1, 1):  # small rivets only round the face edges (railgun.jpg); plain plate seams on the side faces
+		for q in range(8):
+			r_ = -15.75 + q * 4.5
+			mz((0.8, 0.8, 0.8), 6.2, side * 19.2, r_, "9AA0A6")
+			mz((0.8, 0.8, 0.8), 6.2, r_, side * 19.2, "9AA0A6")
+		for u in (-2.0, 2.5):
+			mz((0.5, 0.3, 2 * (H - CH)), u, side * (H + 0.1), 0, "1E2226")
+			mz((0.5, 2 * (H - CH), 0.3), u, 0, side * (H + 0.1), "1E2226")
 	for gt in (95.0, 140.0):  # barrel supports: a pillar from the rail bed and a saddle under the barrel
 		gx_, gy_, _ = along(gt, -15)
 		bx(rg, (8, gy_ - 1, 14), (gx_, (gy_ - 1) / 2, 0), "3E4650", metal=0.4)
@@ -582,17 +608,17 @@ def rail_cannon(k):
 	for side in (-1, 1):  # junction boxes at the back of each side deck, where the cable runs end
 		for jx in (-104, -88):
 			bx(rg, (7, 4, 6), (jx, 8.3, side * 46), "3A3E44", metal=0.4)
-	for b in range(16):  # bundles of 3-5 cables on each side (railgun.jpg): each cable leaves a disc rim at mid-height,
+	for b in range(32):  # bundles of 3-5 thin cables on each side (railgun.jpg): each cable leaves a disc rim high up,
 		side = (-1, 1)[b % 2]  # arcs out over the side-deck handrail, then runs back along the rail in long, low, sagging
-		i = (b // 2) % 8  # loops between the post tops to a junction box; nothing stands up from the ground
+		i = (b // 4) % 8  # loops between the post tops to a junction box; nothing stands up from the ground
 		t, R = 4 + i * 7, DISC[i] + 0.7
 		x0 = along(t)[0]
 		first = min((px for px in POSTS if px >= x0 - 2), default=POSTS[-1])
-		spans = [px for px in reversed(POSTS) if px < first and px > -100][: crng.choice((2, 3))]
+		spans = [px for px in reversed(POSTS) if px < first and px > -100][: crng.choice((1, 2, 2))]
 		jx = crng.choice((-104, -88))
 		for m in range(crng.choice((3, 4, 5))):
 			zo = (m - 2) * 0.7
-			a = math.radians(crng.uniform(80, 100))
+			a = math.radians(crng.uniform(25, 85) if b % 4 < 2 else crng.uniform(60, 95))  # upper rim and mid rim
 			c0 = along(t + crng.uniform(-1, 1), R * math.cos(a))
 			p0 = (c0[0], c0[1], side * R * math.sin(a))
 			top = (first + crng.uniform(-1, 1), 12.0 + m * 0.15, side * (50.5 + zo * 0.4))
@@ -607,12 +633,12 @@ def rail_cannon(k):
 				prev = nxt
 			pts_.append(((prev[0] + jx) / 2, 9.5, side * (49 + zo)))  # down onto the deck to the junction box
 			pts_.append((jx + 3.5, 9.0, side * (46 + zo * 0.5)))
-			th = crng.uniform(0.8, 1.1)
+			th = crng.uniform(0.5, 0.65)
 			for a_, b_ in zip(pts_, pts_[1:]):  # each piece runs a little past its ends, so the joints close up
 				d = [b_[q] - a_[q] for q in range(3)]
 				ln = math.sqrt(sum(v * v for v in d)) or 1.0
 				e = [v / ln * th * 0.5 for v in d]
-				seg(rg, tuple(a_[q] - e[q] for q in range(3)), tuple(b_[q] + e[q] for q in range(3)), cols[(b + m) % 4], thick=th)
+				cab(rg, tuple(a_[q] - e[q] for q in range(3)), tuple(b_[q] + e[q] for q in range(3)), cols[(b + m) % 4], thick=th)
 	for x in range(-110, 132, 3):  # rack-tooth centre rail
 		bx(rg, (1.4, 1.0, 2.6), (x, 1.6, 0), "6E7278", metal=0.6)
 	bx(rg, (250, 1.0, 3.0), (10, 0.8, 0), "5A5E64", metal=0.6)
@@ -740,19 +766,23 @@ def build(k):
 	va = []
 	VW = "F4F4F2"
 	bx(va, (6.6, 2.6, 15.4), (0, 1.9, 0), VW)  # lower body
-	bx(va, (6.4, 3.4, 13.0), (0, 4.9, 1.1), VW)  # upper body behind the raked screen
-	va.append(("wedge", (6.4, 3.4, 2.4), (0, 4.9, -6.6), VW))  # screen slope (rises toward +Z)
-	bx(va, (6.0, 4.0, 0.3), (0, 5.0, -6.75), "34404E", rough=0.1, rot=(33, 0, 0))  # tall windscreen, raked back along the slope
+	bx(va, (6.4, 3.4, 11.2), (0, 4.9, 2.0), VW)  # upper body behind the raked screen
+	va.append(("wedge", (6.4, 0.7, 1.3), (0, 3.55, -7.05), VW))  # short sloped nose (Hiace)
+	va.append(("wedge", (6.4, 3.2, 3.0), (0, 5.0, -5.1), VW))  # windscreen slope, raked back 43 degrees
+	bx(va, (5.0, 3.0, 0.2), (0, 5.0, -5.2), "34404E", rough=0.1, rot=(43, 0, 0))  # raked windscreen, top below the roof
+	for x in (-2.85, 2.85):
+		bx(va, (0.8, 4.3, 0.4), (x, 5.0, -5.2), VW, rot=(43, 0, 0))  # thick A-pillars
+		bx(va, (1.2, 0.8, 0.2), (x * 0.9, 2.5, -7.75), "F0F0D8", emit=0.6)  # headlamps
+		bx(va, (0.5, 0.7, 0.8), (x * 1.27, 4.5, -4.3), "2A2E34")  # door mirrors
+	for x in (-1.2, 1.2):
+		bx(va, (2.0, 0.15, 0.15), (x, 3.98, -6.25), "1A1C20", rot=(43, 0, 12 if x < 0 else -12))  # wipers at the glass base
 	bx(va, (4.2, 0.9, 0.2), (0, 2.5, -7.75), "2A2E34")  # grille
-	for x in (-2.55, 2.55):
-		bx(va, (1.2, 0.8, 0.2), (x, 2.5, -7.75), "F0F0D8", emit=0.6)  # headlamps
-		bx(va, (0.5, 0.7, 0.8), (x * 1.42, 4.4, -5.6), "2A2E34")  # door mirrors
 	bx(va, (6.8, 0.8, 0.6), (0, 0.9, -7.8), "5A5E64")  # bumper
 	bx(va, (1.8, 0.8, 0.15), (0, 1.0, -8.15), "E8E8E0")  # blank plate
 	for s_ in (-1, 1):
-		bx(va, (0.2, 2.9, 2.8), (s_ * 3.25, 4.95, -4.4), "34404E", rough=0.1)  # cab door window
-		for z in (-0.5, 2.9, 6.1):  # big side windows
-			bx(va, (0.2, 2.9, 3.1), (s_ * 3.25, 4.95, z), "34404E", rough=0.1)
+		bx(va, (0.2, 2.6, 2.2), (s_ * 3.25, 4.85, -2.6), "34404E", rough=0.1)  # cab door window
+		for z in (0.4, 3.4, 6.3):  # big side windows
+			bx(va, (0.2, 2.6, 2.7), (s_ * 3.25, 4.85, z), "34404E", rough=0.1)
 		bx(va, (0.2, 0.7, 15.4), (s_ * 3.35, 2.9, 0), "C82828")  # plain red band
 		for z in (-5.2, 5.0):
 			bx(va, (0.2, 1.8, 3.2), (s_ * 3.33, 0.9, z), "2A2A2A")  # wheel arch
@@ -769,7 +799,7 @@ def build(k):
 		bx(va, (6.4, 0.35, 0.5), (0, 7.3, z), "9AA0A6", metal=0.6)
 	for x in (-3.0, 3.0):
 		bx(va, (0.4, 0.4, 11.5), (x, 7.5, 1.5), "9AA0A6", metal=0.6)
-	for j, z in enumerate((-5.0, -2.2, 0.6, 3.4)):  # four sitting in a row along the rack in mixed poses (sweeper_members)
+	for j, z in enumerate((-2.6, 0.2, 3.0, 5.8)):  # four sitting in a row along the rack in mixed poses (sweeper_members)
 		sitter(va, 0.6, 7.7, z, 0.65, face=-90 + (18, -14, 24, -20)[j], pose=j)
 	lounger(va, -2.0, 7.55, -1.5, 0.95)  # one lying flat along the rack, head forward on the front rail
 	worker(va, 4.9, -1, 1.0, 1.0, lean=-6, crossed=True, lo=True)  # leaning on the van, arms crossed

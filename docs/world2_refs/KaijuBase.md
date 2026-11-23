@@ -179,3 +179,19 @@ Round 14 (2026-11-23), shaped live in Blender against railgun.jpg, sweeper_clean
 - Van: the four roof sitters each have their own pose (knees up; legs out leaning back on the hands; one knee up;
   cross-legged and hunched) and their own turn. Every other van along the road is mirrored, and the vans' yaw varies
   more. The lying sweeper lies flat on his front along the rack, head forward on his folded arms at the front rail.
+
+Round 15 (2026-11-23), new builder, shaped live in Blender (scene W2_T5) against sweeper_cleaning1/2, railgun.jpg and
+sweeper_members, after the owner's 6.5/10 review:
+- Hide about 20% darker (deep brick red-brown, 86402E), and the ink shadows near-black red-brown. Flame-tongue groups
+  are bigger (56-104 tall) and denser: 7 groups of 3-4 per bulge, about 40% of the flank.
+- Pale band edge: the rectangular steps are gone. Pointed hide-red tongues of mixed width (7-26) and depth dip down into
+  the band, some with a dark shadow sliver, and band-coloured shards point up between them. Speckle chips are 2x larger
+  (3-7) and denser (300 tries), so they read from run shot 02.
+- Ridge crags: faceted 3-sided crags with sloped, truncated tops and wedge outcrops, overlapping in runs that lean the
+  same way, bases sunk into the hide: one continuous saw-tooth silhouette, still pale tan.
+- Rail cannon: 32 bundles of 3-5 cables at about 60% of the old thickness (twice the count), half of them leaving the
+  disc rims high up. Cables are 3-sided (8 tris a piece) to stay in budget. The muzzle keeps small rivets on its face
+  edges only; its outer faces carry plain plate seams.
+- Van: Hiace front with a short sloped nose, a windscreen raked back 43 degrees whose top sits below the roof, thick
+  A-pillars and two wipers. Roof sitters moved back onto the rack (the front sitter's limbs no longer pass through it);
+  each has his hood bunched behind the neck and his own hair: black spiky, brown, orange spiky, grey beanie.
