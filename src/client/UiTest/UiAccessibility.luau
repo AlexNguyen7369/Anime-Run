@@ -8,8 +8,9 @@
 --                        once and nothing loops; with it off (and Roblox's Reduced Motion off) Pop and Pulse animate.
 --   ui_handscroll        Client/DojoHandscroll (design doc 4.46) on a probe frame: half unrolled the paper is half wide,
 --                        the content keeps its size and place, the rollers ride the paper edges; reduced, Open never rolls;
---                        midway through an Open a child at the panel's edge is hidden and one at its centre shows; at
---                        rest both show, same parent, own transparency.
+--                        midway through an Open a child at the panel's edge is not drawn (fully transparent, not
+--                        interactable) and one at its centre shows; at rest both show, same parent, own transparency; a
+--                        child its owner hides mid-roll stays hidden (the scroll never writes Visible).
 --   (ui_speed_float retired: no Speed stat and no Speed read-out, design doc 4.13, owner 2026-11-01)
 --   ui_safe_insets       Client/SafeInsets: every player ScreenGui except the full-bleed ones uses DeviceSafeInsets
 --                        (also one added later); every shown button / label lies inside its gui's safe rect.
@@ -471,6 +472,7 @@ function Access.Build(h)
 					return b
 				end
 				local edge, middle = probeButton("ProbeEdge", 10), probeButton("ProbeMiddle", 270) -- panel 600 wide
+				local owned = probeButton("ProbeOwned", 530) -- its owner hides it before the paper reaches it
 				scroll.SetProgress(1)
 				h.frames(1)
 				Handscroll.Open(panel)
@@ -480,8 +482,12 @@ function Access.Build(h)
 						break
 					end
 				end
-				h.check(res, "handscroll_edge_hidden_midway", edge.Visible, false, not edge.Visible)
-				h.check(res, "handscroll_middle_shown_midway", middle.Visible, true, middle.Visible)
+				-- not drawn yet: fully transparent and not interactable (the scroll leaves Visible to the owner)
+				local edgeHidden = not edge.Visible or (edge.TextTransparency >= 0.99 and not edge.Interactable)
+				h.check(res, "handscroll_edge_hidden_midway", edgeHidden, true, edgeHidden)
+				local middleShown = middle.Visible and middle.TextTransparency < 0.99 and middle.Interactable
+				h.check(res, "handscroll_middle_shown_midway", middleShown, true, middleShown)
+				owned.Visible = false -- the owner's own hide, before the paper reaches it
 				task.wait(Handscroll.OPEN.Time + 0.3)
 				h.frames(1)
 				for _, b in { edge, middle } do
@@ -495,7 +501,9 @@ function Access.Build(h)
 						0.2,
 						math.abs(b.TextTransparency - 0.2) < 0.01
 					)
+					h.check(res, tag .. "_interactable", b.Interactable, true, b.Interactable)
 				end
+				h.check(res, "handscroll_owner_hide_kept", owned.Visible, false, not owned.Visible)
 			end
 		end)
 		player:SetAttribute(cfg.ReduceAttr, saved)
