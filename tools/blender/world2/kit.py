@@ -76,7 +76,7 @@ class Kit:
 	# --- prop meshes (Roblox-style local space: Y up, -Z toward the road) ---
 	def prop(self, name, parts):
 		"""parts: list of (shape, size(x,y,z), pos(x,y,z), color, opts) with shape in box|cyl|ball|cone|wedge.
-		opts: rough, metal, emit, rot (x,y,z degrees), taper (cone top scale). Pos is the part centre, Y up."""
+		opts: rough, metal, emit, rot (x,y,z degrees), taper (cone top scale), subdiv (ball), smooth. Pos is the part centre, Y up."""
 		key = "W2_%s_%s" % (self.biome, name)
 		bm = bmesh.new()
 		mats = []
@@ -91,7 +91,7 @@ class Kit:
 			if shape == "box":
 				geom = bmesh.ops.create_cube(bm, size=1.0)
 			elif shape == "ball":
-				geom = bmesh.ops.create_icosphere(bm, subdivisions=2, radius=0.5)
+				geom = bmesh.ops.create_icosphere(bm, subdivisions=o.get("subdiv", 2), radius=0.5)
 			elif shape in ("cyl", "cone"):
 				top = o.get("taper", 0.0 if shape == "cone" else 1.0)
 				geom = bmesh.ops.create_cone(
@@ -116,7 +116,7 @@ class Kit:
 			bmesh.ops.transform(bm, matrix=mtx, verts=verts)
 			for f in set(bm.faces) - before:
 				f.material_index = idx
-				f.smooth = False
+				f.smooth = o.get("smooth", False)
 		me = bpy.data.meshes.new(key)
 		bm.to_mesh(me)
 		bm.free()

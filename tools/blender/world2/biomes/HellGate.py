@@ -52,8 +52,13 @@ def hand(curl):
 	]
 	for i, x in enumerate((-5.2, -1.8, 1.8, 5.2)):
 		ln = (11, 13, 12, 9)[i]
-		parts.append(("box", (3, ln, 3.4), (x, 55 + ln / 2 - curl * 0.04 * ln, -curl * 0.05 * ln), PALE, {"rot": (curl, 0, 0)}))
-		parts.append(("box", (2.8, ln * 0.7, 3.2), (x, 55 + ln - curl * 0.08 * ln + ln * 0.3, -curl * 0.14 * ln), PALE2, {"rot": (curl * 1.8, 0, 0)}))
+		# chained from the knuckle on the palm top (y 55); Kit rot (a, 0, 0) tilts +Y toward +Z
+		a1, a2 = math.radians(curl), math.radians(curl * 1.8)
+		mid = (x, 55 + math.cos(a1) * ln / 2, math.sin(a1) * ln / 2)
+		tip = (x, 55 + math.cos(a1) * ln, math.sin(a1) * ln)
+		l2 = ln * 0.7
+		parts.append(("box", (3, ln + 1, 3.4), mid, PALE, {"rot": (curl, 0, 0)}))
+		parts.append(("box", (2.8, l2 + 1, 3.2), (x, tip[1] + math.cos(a2) * l2 / 2, tip[2] + math.sin(a2) * l2 / 2), PALE2, {"rot": (curl * 1.8, 0, 0)}))
 	parts.append(("box", (3.4, 11, 3.6), (-9, 46, -2), PALE, {"rot": (20, 0, 40)}))
 	return parts
 

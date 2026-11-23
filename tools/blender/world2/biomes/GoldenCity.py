@@ -140,7 +140,7 @@ def build(k):
 			clock.append(("cone", (10, 16, 10), (x, 78, z), GOLDD, {"metal": 1, "rough": 0.25, "seg": 8}))
 	k.prop("ClockTower", clock)
 	# The barrier: a huge faint dome over the whole city
-	k.prop("Barrier", [("ball", (2, 2, 2), (0, 0, 0), "FFE9B0", {"alpha": 0.12, "rough": 0.1, "emit": 0.15})])
+	k.prop("Barrier", [("ball", (2, 2, 2), (0, 0, 0), "FFE9B0", {"alpha": 0.12, "rough": 0.1, "emit": 0.15, "subdiv": 5, "smooth": True})])
 
 	k.ground("B8923A", margin=600, rough=0.5)
 	ground_along(k, 100, (-26, 26), ["Lamp"], jitter=1)
