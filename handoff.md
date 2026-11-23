@@ -1,3 +1,11 @@
+## RESUME HERE (2026-11-23 evening, world2): likeness loop, 2 of 10 tracks pass
+- PASS at 7/10 by independent review, frozen for owner approval: Track 4 HauntedTunnel, Track 8 MonsterDen. Do not edit them.
+- Others (latest score): T1 DevilTokyo 6.5, T2 DemonCastle 5, T3 RuinedCityZ 6.5, T5 KaijuBase 6.5, T6 ElvenPlains / T9 GoldenCity under review, T7 AntIsland 5.5, T10 HellGate 6.5.
+- Loop: builder round -> fresh read-only reviewer (prompt: grounded in a named ref image, settled rulings listed) -> repeat until >= 7, then show the owner. Coordinator rulings settle reviewer flip-flops by reading the ref (corpse hide, crew, astronaut facing road, arm mix, railgun cables from disc rims, ant pale chitin, chains sag diagonally from high side anchors).
+- Builders that stall (huge context, never used the Blender MCP) are replaced by fresh ones that must shape hero models live in their own MCP scene (W2_T<n>) with `look`, then port to the biome module.
+- build_track.py close-ups: fit to frame, render at origin with the track hidden, neutral studio sky (e3d736e, ede0aa3). Renders started before ede0aa3 need close-ups re-rendered (scratchpad closeups.py: run(n, render=False) then model_shots).
+- Red/orange and purple flat pads in overviews are kit start/finish/checkpoint pads, not props.
+
 ## RESUME HERE (2026-11-23 12:40, world2): likeness loop restarted after the session was killed
 - Checkpoint aa4c2da holds the killed round (MODEL_SHOTS in every biome, tools/blender/world2/clearance.py, likeness fixes). 6 fresh builders (T1, T10, T2+7, T3+8, T4+5, T6+9) finish that round from the old briefs/messages/reviews (copied to the session scratchpad `resume/`).
 - Loop: builder round -> fresh independent reviewer per pair (scene shots + m_* close-ups) -> repeat until every track scores overall >= 7/10, then show the owner for approval (owner 2026-11-23: "once all revirewer scores are at least 7, then come back for approval").
