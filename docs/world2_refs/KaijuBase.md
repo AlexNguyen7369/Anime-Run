@@ -195,3 +195,21 @@ sweeper_members, after the owner's 6.5/10 review:
 - Van: Hiace front with a short sloped nose, a windscreen raked back 43 degrees whose top sits below the roof, thick
   A-pillars and two wipers. Roof sitters moved back onto the rack (the front sitter's limbs no longer pass through it);
   each has his hood bunched behind the neck and his own hair: black spiky, brown, orange spiky, grey beanie.
+
+Round 16 (2026-11-23), shaped live in Blender (scene W2_T5) against railgun.jpg and sweeper_cleaning1/2. Coordinator
+rulings, locked from this round on: cables are near-black, medium (about 1.5x round 15), smooth loops that sag below the
+rail top and end cleanly on the deck; the band speckle is dense, medium-small, on pale tan, under the tongued edge.
+- Rail cannon mount: the barrel lies level and low (axis 28 up) on a long low carriage with road wheels, between two
+  toothed rack rails. The tall pylons are gone; two low saddles sit on the carriage.
+- Coil stack: eight equal discs (radius 26), centred on the barrel axis with equal gaps and square to it. Each has a
+  raised rim ring with 20 teeth and 12 radial blades on its front face.
+- Cables: 32 bundles of 3-5 near-black cables, 0.75-1.0 thick. Each leaves a disc rim, arcs out to a handrail post top
+  (2 pieces), then hangs in one smooth loop outside the deck edge, below the rail top, and ends flat on the deck
+  (3 pieces). The foot zigzag is gone.
+- Corpse ink: about a third as many tongues, each about 3x longer (110-170), in two parallel diagonal rows per bulge,
+  all leaning the same way (34 degrees). Each is 4 tapering plates with a flame taper to a long point.
+- Band speckle: chips 1.6-3.4 (about half of round 15), 360 tries.
+- Cleanup ropes: 18 long ropes per gantry (blue, yellow, black) hang from the beams to the ground in front of the flank,
+  with a slight hang, plus the 16 ridge ropes: about twice the old count.
+- Tail (the red slab in run shot 02): now a round tapering tail that curls away from the road, with pale crags along its
+  top, so it no longer reads as a wall.

@@ -287,23 +287,26 @@ def on_hide(p, shape, size, x, y, up, col, off=0.45, **o):
 
 
 def ink_tongues(p, rnd, band_top):
-	"""Ink shadows (sweeper_cleaning1): big tapered flame tongues, broad at the base, pointed at the top, slanted, near-
-	black red-brown, in groups of 3-4 side by side with ragged uneven tips, covering about 40% of every bulge; each
-	tongue a flat frustum base and a pointed tip lying just off the hide. No closed or curved shapes."""
+	"""Ink shadows (sweeper_cleaning1): few, long flame tongues in parallel diagonal rows, all leaning the same way,
+	broad at the base and pointed at the top, near-black red-brown, about 40% of the flank. Each tongue is a chain of
+	4 flat tapering plates lying just off the hide, so it follows the curved flank. No closed or curved shapes."""
+	slant = 34.0
+	up = (math.sin(math.radians(slant)), math.cos(math.radians(slant)))
 	for hx, rx, ry, rz in MASSES:
-		for q in range(7):
-			x0 = hx + rx * (q - 3) * 0.28 + rnd.uniform(-6, 6)
-			slant = rnd.uniform(16, 36)  # one lean direction for all tongues, so no two cross into an X
-			for j in range(rnd.choice((3, 3, 4))):
-				x = x0 + j * rnd.uniform(10, 15)
-				y0 = band_top(x) + rnd.uniform(-2, 30)
-				h, w = rnd.uniform(56, 104), rnd.uniform(17, 27)
-				up = (math.sin(math.radians(slant)), math.cos(math.radians(slant)))
+		for row_ in range(2):  # a lower and an upper row, the upper one offset by half a step
+			x = hx - rx * 0.85 + row_ * 13 + rnd.uniform(-4, 4)
+			while x < hx + rx * 0.75:
+				y0 = band_top(x) + rnd.uniform(0, 12) + row_ * 58
+				L, w = rnd.uniform(110, 170), rnd.uniform(20, 28)
 				col = rnd.choice(INK)
-				if max(corpse_z(x + up[0] * h * f_, y0 + h * f_) for f_ in (0.0, 0.5, 1.0)) > -25:
-					continue  # only fully on the flank: off the torso edge a tongue would stick out as a spike
-				on_hide(p, "cone", (w, h * 0.5, 0.3), x + up[0] * h * 0.25, y0 + h * 0.25, up, col, seg=3, taper=0.45)  # broad base
-				on_hide(p, "cone", (w * 0.45, h * 0.5, 0.3), x + up[0] * h * 0.75, y0 + h * 0.75, up, col, seg=3)  # pointed tip
+				for q in range(4):
+					f0, f1 = q / 4, (q + 1) / 4
+					px, py = x + up[0] * L * (f0 + f1) / 2, y0 + up[1] * L * (f0 + f1) / 2
+					if corpse_z(px, py) > -25 or py > corpse_top(px) - 6:
+						break  # only on the flank: off the torso edge a piece would stick out as a spike
+					w0, w1 = w * (1 - f0) ** 1.5 + 0.4, w * (1 - f1) ** 1.5 + 0.4  # flame taper: broad base, long point
+					on_hide(p, "cone", (w0, L / 4 + 1.0, 0.3), px, py, up, col, seg=4, taper=w1 / w0)
+				x += rnd.uniform(30, 40)
 
 
 def band_edge(p, rnd, band_top):
@@ -374,12 +377,12 @@ def kaiju_corpse(k):
 		z0, z1 = flank_z(x, y - 2), flank_z(x, y + 2)
 		return -math.degrees(math.atan2(z1 - z0, 4))
 
-	for i in range(300):  # dense dark speckle chips lying flush on the band, big enough to read from the road
+	for i in range(360):  # dense medium-small dark speckle chips lying flush on the band (sweeper_cleaning2)
 		x, y = rnd.uniform(-240, 260), rnd.uniform(3, 0.4 * top_y(0))
 		z = flank_z(x, y)
 		if z > -20 or y > band_top(x) - 4:
 			continue
-		w = rnd.uniform(3.0, 7.0)
+		w = rnd.uniform(1.6, 3.4)
 		kc.append(("cone", (w, w * rnd.uniform(0.6, 1.1), 0.3), (x, y, z - 0.25), rnd.choice(("4E4438", "625646", "3E362C", "6E6252")), {"seg": 3, "rot": (lean_at(x, y), 0, rnd.uniform(0, 120))}))
 	x, run, left = -236.0, 1, 0
 	while x < 262:  # pale-tan saw-tooth rock ridge (sweeper_cleaning2): faceted wedges and pointed tetras with sloped
@@ -431,14 +434,15 @@ def kaiju_corpse(k):
 	for c in (-10, 0, 10):
 		kc.append(("cone", (6, 20, 6), (28, 5, -124 + c), BONE2, {"rot": (0, 0, 80), "seg": 6}))
 	# long tail curving away from the road: one continuous tapering tail to a point
-	pts = [(225 + i * 28, 8 + 50 * math.sin(i * 0.16), 60 - i * 4.6) for i in range(12)]
+	pts = [(225 + i * 26, 8 + 1.9 * i * i, 56 - i * 4.2) for i in range(12)]  # curls away from the road
 	for i in range(11):
 		x, z, r = pts[i]
 		x1, z1, r1 = pts[i + 1]
 		ln, ry = math.hypot(x1 - x, z1 - z), math.degrees(math.atan2(-(z1 - z), x1 - x))
-		kc.append(("cyl", (r * 0.85, ln * 1.3, r), ((x + x1) / 2, r * 0.3, (z + z1) / 2), HIDE, {"seg": 9, "rot": (0, ry, -90), "taper": r1 / r}))
+		kc.append(("cyl", (r, ln * 1.15, r), ((x + x1) / 2, r * 0.42, (z + z1) / 2), HIDE, {"seg": 9, "rot": (0, ry, -90), "taper": r1 / r, "smooth": True}))
+		kc.append(("cone", (r * 0.7, r * 0.55, r * 0.5), ((x + x1) / 2, r * 0.9, (z + z1) / 2), CRAG[i % len(CRAG)], {"seg": 3, "taper": 0.2, "rot": (0, ry, 24)}))  # pale crag on the tail ridge
 	x, z, r = pts[11]
-	kc.append(("cone", (r * 0.85, 30, r), (x + 13, r * 0.3, z), HIDE, {"seg": 9, "rot": (0, 0, -90)}))
+	kc.append(("cone", (r, 30, r), (x + 13, r * 0.42, z + 6), HIDE, {"seg": 9, "rot": (0, -12, -90)}))
 	# stake-and-rope lines (sweeper_cleaning1/2): separate upright grey A-frame posts every 20 studs, a thin dark rope
 	# sagging between the post tops; one line along the back among the crags and one across the flank
 	lines = [[(x, top_y(x) - 2, -12) for x in range(-200, 241, 20)]]
@@ -455,7 +459,7 @@ def kaiju_corpse(k):
 				t = q / 3
 				pts_.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t + PH - 0.3 - 5.0 * 4 * t * (1 - t), z0 + (z1 - z0) * t - 0.8))
 			for a_, b_ in zip(pts_, pts_[1:]):
-				seg(kc, a_, b_, "2A2622", thick=0.45)
+				cab(kc, a_, b_, "2A2622", thick=0.45)
 	# two teal lattice gantries straddling the body; from each, ropes down to sweepers braced feet-first on the hide
 	GH, GS = 220.0, 104.0
 	for gx in (-80, 140):  # the tail-side gantry stands clear of the folded hind leg
@@ -489,11 +493,16 @@ def kaiju_corpse(k):
 		ys = [top_y(x) - 4, top_y(x) * 0.7, top_y(x) * 0.45, 30, 2]
 		pts_ = [(x + rnd.uniform(-1, 1), y, flank_z(x, y) - 1.0) for y in ys]
 		for a_, b_ in zip(pts_, pts_[1:]):
-			seg(kc, a_, b_, (ROPE_B, ROPE_Y, "2E9A96")[i % 3], thick=0.55)
-	for gx in (-80, 140):  # thin ropes hanging straight down from the gantry beams to the ground
-		for q in range(5):
-			z = -96 + q * 3.2
-			seg(kc, (gx + rnd.uniform(-6, 6), GH - 2, z), (gx + rnd.uniform(-8, 8), 0.5, z - 2), (ROPE_Y, ROPE_B, "2E9A96")[q % 3], thick=0.5)
+			cab(kc, a_, b_, (ROPE_B, ROPE_Y, "2E9A96")[i % 3], thick=0.55)
+	for gx in (-80, 140):  # dozens of long ropes from the gantry beams to the ground, in front of the flank
+		for q in range(18):
+			z = -100 + q * 1.6 + rnd.uniform(-0.5, 0.5)
+			x0 = gx + rnd.choice((-7, 7)) + rnd.uniform(-1, 1)
+			x1 = x0 + rnd.uniform(-14, 14)
+			mid = (x0 + (x1 - x0) * 0.6, GH * 0.4, z - rnd.uniform(0, 3))  # a slight hang
+			col = (ROPE_B, ROPE_Y, "1A1A1C")[q % 3]
+			cab(kc, (x0, GH - 2, z), mid, col, thick=0.6)
+			cab(kc, mid, (x1, 0.3, z - 2), col, thick=0.6)
 	for x in (-40, 50):  # on the back
 		worker(kc, x, top_y(x) - 4, -8, 1.8, lo=True)
 	for x, z, sc in ((-20, -100, 1.15), (20, -96, 1.15), (150, -88, 1.1), (-140, -150, 1.15)):  # ground crew: human scale
@@ -522,17 +531,19 @@ def rail_cannon(k):
 	Barrel to +X."""
 	rg = []
 	bx(rg, (250, 1.2, 34), (10, -0.6, 0), "6A645C")
-	for z in (-8, 8):
-		bx(rg, (250, 1.4, 1.8), (10, 0.7, z), "8A8E94", metal=0.7)
-	for x in range(-112, 134, 7):
-		bx(rg, (2.4, 0.7, 22), (x, 0.1, 0), "4A4038")
-	bx(rg, (64, 14, 30), (-30, 7.6, 0), "4E545C", metal=0.4)
-	bx(rg, (44, 10, 26), (-30, 19.6, 0), "5A6068", metal=0.4)
-	for x in (-56, -4):
-		for z in (-10, 10):
+	for z in (-13, 13):  # two toothed rack rails (railgun.jpg) either side of the carriage
+		bx(rg, (250, 1.4, 2.2), (10, 0.7, z), "8A8E94", metal=0.7)
+		for x in range(-112, 134, 4):
+			bx(rg, (1.8, 1.0, 2.4), (x, 1.9, z), "6E7278", metal=0.6)
+	for x in range(-112, 134, 9):
+		bx(rg, (2.4, 0.7, 34), (x, 0.1, 0), "4A4038")
+	bx(rg, (190, 9, 22), (20, 5.5, 0), "4E545C", metal=0.4)  # long low carriage the barrel lies on
+	bx(rg, (186, 2, 18), (20, 11, 0), "3E444A", metal=0.4)  # cradle under the barrel
+	for x in (-60, -20, 20, 60, 100):
+		for z in (-11, 11):
 			rg.append(("cyl", (6, 3, 6), (x, 3, z), "2A2A2A", {"rot": (90, 0, 0), "seg": 10}))
-	el = 10.0
-	ax, ay = -50.0, 30.0
+	el = 0.0  # the barrel lies level and low (railgun.jpg)
+	ax, ay = -50.0, 28.0
 	ce, se_ = math.cos(math.radians(el)), math.sin(math.radians(el))
 
 	def along(t, up=0.0):
@@ -545,13 +556,18 @@ def rail_cannon(k):
 		e = (Matrix.Rotation(math.radians(-el), 4, "Y") @ Matrix.Rotation(math.radians(roll), 4, "X")).to_euler("YXZ")
 		return (math.degrees(e.x), math.degrees(e.z), -math.degrees(e.y))
 
-	DISC = [26 + i * 8 / 7 for i in range(8)]  # disc radii, stepping up toward the front (muzzle) disc
+	DISC = [26.0] * 8  # equal discs, centred on the barrel axis, equal gaps (railgun.jpg)
 
-	for i in range(8):  # separate thick coil discs with air gaps, smooth rims, thin radial blades on each front face
-		t, R = 4 + i * 7, DISC[i]
-		rg.append(("cyl", (R * 2, 4.2, R * 2), along(t), ("8A9098", "6A727A")[i % 2], {"rot": (0, 0, el - 90), "seg": 32, "metal": 0.6}))
-		for f in range(24):
-			a = f * 15 + (i % 2) * 7.5
+	for i in range(8):  # separate thick coil discs with air gaps, square to the barrel, radial blades on each front
+		t, R = 4 + i * 7, DISC[i]  # face and a raised toothed ring round each rim
+		rg.append(("cyl", (R * 2, 4.2, R * 2), along(t), ("8A9098", "6A727A")[i % 2], {"rot": (0, 0, el - 90), "seg": 24, "metal": 0.6}))
+		rg.append(("cyl", (R * 2 + 1.6, 2.2, R * 2 + 1.6), along(t), "5A6068", {"rot": (0, 0, el - 90), "seg": 24, "metal": 0.6}))  # rim ring
+		for f in range(20):
+			a = f * 18
+			c = along(t, (R + 1.3) * math.cos(math.radians(a)))
+			rg.append(("box", (2.6, 1.6, 2.0), (c[0], c[1], (R + 1.3) * math.sin(math.radians(a))), "4A525A", {"rot": brot(a), "metal": 0.5}))  # rim tooth
+		for f in range(12):
+			a = f * 30 + (i % 2) * 15
 			r_ = (23 + R - 1.2) / 2
 			c = along(t + 2.6, r_ * math.cos(math.radians(a)))
 			rg.append(("box", (1.0, R - 24.2, 0.9), (c[0], c[1], r_ * math.sin(math.radians(a))), "4A525A", {"rot": brot(a), "metal": 0.5}))
@@ -584,10 +600,9 @@ def rail_cannon(k):
 		for u in (-2.0, 2.5):
 			mz((0.5, 0.3, 2 * (H - CH)), u, side * (H + 0.1), 0, "1E2226")
 			mz((0.5, 2 * (H - CH), 0.3), u, 0, side * (H + 0.1), "1E2226")
-	for gt in (95.0, 140.0):  # barrel supports: a pillar from the rail bed and a saddle under the barrel
+	for gt in (95.0, 140.0):  # low saddles on the carriage, round the barrel
 		gx_, gy_, _ = along(gt, -15)
-		bx(rg, (8, gy_ - 1, 14), (gx_, (gy_ - 1) / 2, 0), "3E4650", metal=0.4)
-		bx(rg, (10, 4, 26), (gx_, gy_ - 1, 0), "4A5058", metal=0.4, rot=(0, 0, el))
+		bx(rg, (10, 4, 30), (gx_, gy_ - 1, 0), "4A5058", metal=0.4)
 	for s in (-1, 1):  # ribbed grey capacitor tanks: dark ring bands and vertical ribs
 		for j, x in enumerate((-62, -78)):  # two tanks each side of the barrel axis, behind the coil drum
 			tz = s * 30
@@ -608,40 +623,29 @@ def rail_cannon(k):
 	for side in (-1, 1):  # junction boxes at the back of each side deck, where the cable runs end
 		for jx in (-104, -88):
 			bx(rg, (7, 4, 6), (jx, 8.3, side * 46), "3A3E44", metal=0.4)
-	for b in range(32):  # bundles of 3-5 thin cables on each side (railgun.jpg): each cable leaves a disc rim high up,
-		side = (-1, 1)[b % 2]  # arcs out over the side-deck handrail, then runs back along the rail in long, low, sagging
-		i = (b // 4) % 8  # loops between the post tops to a junction box; nothing stands up from the ground
+	for b in range(32):  # bundles of 3-5 near-black cables on each side (railgun.jpg): each leaves a disc rim high up,
+		side = (-1, 1)[b % 2]  # arcs out to a handrail post top, then hangs in one smooth loop that sags below the rail
+		i = (b // 4) % 8  # top and ends flat on the deck: 5 pieces, no foot zigzag, nothing standing on the ground
 		t, R = 4 + i * 7, DISC[i] + 0.7
 		x0 = along(t)[0]
 		first = min((px for px in POSTS if px >= x0 - 2), default=POSTS[-1])
-		spans = [px for px in reversed(POSTS) if px < first and px > -100][: crng.choice((1, 2, 2))]
-		jx = crng.choice((-104, -88))
+		back = crng.choice((16, 32, 32, 48))
 		for m in range(crng.choice((3, 4, 5))):
-			zo = (m - 2) * 0.7
-			a = math.radians(crng.uniform(25, 85) if b % 4 < 2 else crng.uniform(60, 95))  # upper rim and mid rim
+			zo = (m - 2) * 0.8
+			a = math.radians(crng.uniform(20, 70) if b % 4 < 2 else crng.uniform(55, 85))  # upper rim and mid rim
 			c0 = along(t + crng.uniform(-1, 1), R * math.cos(a))
 			p0 = (c0[0], c0[1], side * R * math.sin(a))
-			top = (first + crng.uniform(-1, 1), 12.0 + m * 0.15, side * (50.5 + zo * 0.4))
-			pts_ = curve(p0, ((p0[0] + top[0]) / 2, max(p0[1], 22.0) + 3, side * 44), top, 3)  # out over the rail
-			prev = top
-			for px in spans:  # long low sagging loops along the rail, post top to post top
-				nxt = (px + crng.uniform(-1, 1), 12.0 + m * 0.15, side * (50.5 + zo * 0.4))
-				sag = crng.uniform(3.0, 4.5)
-				for u in (0.3, 0.7):  # a smooth catenary-like dip, not a V
-					pts_.append((prev[0] + (nxt[0] - prev[0]) * u, prev[1] + (nxt[1] - prev[1]) * u - sag * 4 * u * (1 - u) * 1.15, side * (51.5 + zo)))
-				pts_.append(nxt)
-				prev = nxt
-			pts_.append(((prev[0] + jx) / 2, 9.5, side * (49 + zo)))  # down onto the deck to the junction box
-			pts_.append((jx + 3.5, 9.0, side * (46 + zo * 0.5)))
-			th = crng.uniform(0.5, 0.65)
+			top = (first + crng.uniform(-1.5, 1.5), 11.6 + m * 0.15, side * (50.5 + zo * 0.3))
+			pts_ = curve(p0, ((p0[0] + top[0]) / 2, p0[1] + 4, side * (R * math.sin(a) + 14)), top, 2)  # out to the post top
+			end = (top[0] - back + crng.uniform(-3, 3), 6.7, side * (48.5 + zo))  # flat on the deck
+			sag = crng.uniform(0.5, 2.5)  # the loop dips below the rail top, outside the deck edge
+			pts_ += curve(top, ((top[0] + end[0]) / 2, sag, side * (53.5 + zo)), end, 3)[1:]
+			th = crng.uniform(0.75, 1.0)
 			for a_, b_ in zip(pts_, pts_[1:]):  # each piece runs a little past its ends, so the joints close up
 				d = [b_[q] - a_[q] for q in range(3)]
 				ln = math.sqrt(sum(v * v for v in d)) or 1.0
 				e = [v / ln * th * 0.5 for v in d]
 				cab(rg, tuple(a_[q] - e[q] for q in range(3)), tuple(b_[q] + e[q] for q in range(3)), cols[(b + m) % 4], thick=th)
-	for x in range(-110, 132, 3):  # rack-tooth centre rail
-		bx(rg, (1.4, 1.0, 2.6), (x, 1.6, 0), "6E7278", metal=0.6)
-	bx(rg, (250, 1.0, 3.0), (10, 0.8, 0), "5A5E64", metal=0.6)
 	for s in (-1, 1):  # grated side decks outside the coil drum, with posts and handrails
 		bx(rg, (250, 0.6, 10), (10, 6, s * 46), "5A6068", metal=0.4)
 		for x in range(-110, 135, 16):
