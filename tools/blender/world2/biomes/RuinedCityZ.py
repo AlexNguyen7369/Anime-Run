@@ -295,6 +295,17 @@ def _hero_hq(k, rng):
 		if j % 3 == 0:
 			p.append(("box", (s * 0.8, 0.8, 0.4), (x, top + hh * rng.uniform(0.4, 0.85), z - s / 2 - 0.2), "8AB0D0", {"emit": 0.8}))
 	p.append(("box", (30, 108, 30), (0, top + 54, 0), "222830"))
+	for j in range(4):  # thin towers, tallest at the centre
+		a = j * math.tau / 4 + 0.4
+		hh = 150 - j * 8
+		p.append(("box", (8, hh, 8), (math.cos(a) * 19, top + hh / 2, math.sin(a) * 19), ("303842", "222830")[j % 2]))
+	for j in range(60):  # the lower tiers spilling down the upper hull faces
+		a = rng.uniform(0, math.tau)
+		r = rng.uniform(100, 158)
+		ys = RIM + 3 + HH * (HB - r) / (HB - HT)  # the hull surface at this radius
+		hh = rng.uniform(8, 22)
+		sz = rng.uniform(9, 18)
+		p.append(("box", (sz, hh + 6, sz * rng.uniform(0.7, 1.3)), (math.cos(a) * r, ys + hh / 2 - 3, math.sin(a) * r), (body, "222830", body2, "303842")[j % 4], {"rot": (0, -math.degrees(a), 0)}))
 	p.append(("box", (16, 14, 16), (0, top + 115, 0), body2))
 	# the brown cratered plain it stands on (ref New_Hero_Association_Headquarters_Anime), reaching back to the city
 	p.append(("cyl", (1300, 0.3, 1300), (0, 0.15, 0), "6E5A44", {"seg": 40}))
@@ -313,13 +324,13 @@ def _hero_hq(k, rng):
 		c, s = math.cos(ang), math.sin(ang)
 		cx, cz = x0 + c * ln / 2, z0 + s * ln / 2
 		rot = {"rot": (0, -math.degrees(ang), 0)}
-		p.append(("box", (ln + 2, 4, 44), (cx, y, cz), "9A9EA2", rot))
+		p.append(("box", (ln + 2, 4, 44), (cx, y, cz), "6E7276", rot))
 		for dz in (-21, 21):
-			p.append(("box", (ln + 2, 2.4, 1.6), (cx - s * dz, y + 3, cz + c * dz), "B8BCC0", rot))
+			p.append(("box", (ln + 2, 2.4, 1.6), (cx - s * dz, y + 3, cz + c * dz), "868A8E", rot))
 		for dz in (-7, 7):
 			for j in range(int(ln / 26)):
 				t = (j + 0.5) * 26
-				p.append(("box", (10, 0.3, 1.0), (x0 + c * t - s * dz, y + 2.1, z0 + s * t + c * dz), "E8E8E0", rot))
+				p.append(("box", (10, 0.3, 1.0), (x0 + c * t - s * dz, y + 2.1, z0 + s * t + c * dz), "F4F4EE", rot))
 		for j in range(int(ln / 70) + 1):
 			t = j * 70 + 20
 			p.append(("box", (10, y - 2, 14), (x0 + c * t, (y - 2) / 2, z0 + s * t), "6E7276", rot))
@@ -676,12 +687,12 @@ def _crater(k, rng):
 	(about a quarter of the pit's width) juts from the right wall, turns down at an elbow and ends in a wide bell
 	collar. Footprint radius about 145."""
 	EARTH = ("454038", "302822", "16130F", "3A3630")  # grey-brown, dark umber, near-black, grey
-	TOPC, PLATE = "4A4846", ("6A6864", "5E5C58", "747270")
-	RP, RO, HP, HL = 40, 104, 46, 7  # pit radius, plateau edge, plateau height, front lip height
+	TOPC, PLATE, UNDER = "8A8884", ("8E8C88", "9A9894", "84827E"), "3A3632"  # light grey asphalt like the road
+	RP, RO, HP, HL = 40, 104, 46, 1.5  # pit radius, plateau edge, plateau height, front lip (street level)
 
 	def height(a):  # plateau height at angle a: low across the front notch (-Z), full elsewhere
 		off = abs((math.degrees(a) - 270 + 180) % 360 - 180)
-		w = max(0.0, min(1.0, (off - 48) / 20))
+		w = max(0.0, min(1.0, (off - 60) / 16))  # a wide notch: the road camera sees the walls and the pipe
 		return HL + (HP - HL) * w
 
 	p = [("cyl", (288, 0.2, 288), (0, 0.1, 0), "46443F", {"seg": 32}), ("cyl", (RP * 2 + 6, 0.3, RP * 2 + 6), (0, 0.2, 0), "0C0A08", {"seg": 20})]
@@ -691,11 +702,13 @@ def _crater(k, rng):
 		c, s = math.cos(a), math.sin(a)
 		h = height(a)
 		rr = {"rot": (0, -math.degrees(a) + 90, 0)}
-		p.append(("box", (22, h - 2, RO - RP + 2), (c * (RP + RO) / 2, (h - 2) / 2, s * (RP + RO) / 2), EARTH[i % 2], rr))  # earth body: the notch flanks show dark
-		p.append(("box", (22.4, 2.4, RO - RP + 2), (c * (RP + RO) / 2, h - 1, s * (RP + RO) / 2), TOPC, rr))  # asphalt crust
+		if h > 4:
+			p.append(("box", (22, h - 2, RO - RP + 2), (c * (RP + RO) / 2, (h - 2) / 2, s * (RP + RO) / 2), ("6A6864", "625F5B")[i % 2], rr))  # heaved grey roadbed body
+		ct = min(2.4, h)
+		p.append(("box", (22.4, ct, RO - RP + 2), (c * (RP + RO) / 2, h - ct / 2, s * (RP + RO) / 2), TOPC, rr))  # asphalt crust
 		sk = rng.uniform(22, 32) if h > HL + 1 else 10
 		hs = h * rng.uniform(0.85, 0.98)
-		p.append(("wedge", (23, hs, sk), (c * (RO + sk / 2 - 1), hs / 2, s * (RO + sk / 2 - 1)), ("3E3C39", "36342F")[i % 2], {"rot": (0, math.degrees(math.atan2(-c, -s)), 0)}))
+		p.append(("wedge", (23, hs, sk), (c * (RO + sk / 2 - 1), hs / 2, s * (RO + sk / 2 - 1)), ("74726E", "6A6864")[i % 2], {"rot": (0, math.degrees(math.atan2(-c, -s)), 0)}))
 	for i in range(40):  # pit walls: tall jagged stacks of mottled dark earth, no grid
 		a = (i + rng.uniform(-0.4, 0.4)) * math.tau / 40
 		c, s = math.cos(a), math.sin(a)
@@ -715,26 +728,38 @@ def _crater(k, rng):
 		rot = (-rng.uniform(10, 22), -math.degrees(a) + 90 + rng.uniform(-15, 15), rng.uniform(-8, 8))
 		w, dd = rng.uniform(26, 36), rng.uniform(22, 28)
 		p.append(("box", (w, 4, dd), (c * r, y, s * r), PLATE[i % 3], {"rot": rot}))
-		p.append(("box", (w * 0.85, 3, dd * 0.8), (c * (r + 1.5), y - 3.2, s * (r + 1.5)), EARTH[i % 4], {"rot": rot}))
-	# the street on the low front lip: a lane dash and two kerbs with a reddish sidewalk, all running to the hole
+		p.append(("box", (w * 0.85, 3, dd * 0.8), (c * (r + 1.5), y - 3.2, s * (r + 1.5)), UNDER, {"rot": rot}))  # dark cracked underside
+	# the street at ground level across the front notch, running straight into the fractured lip: a white centre
+	# dash, grey concrete kerbs, and beyond each kerb a reddish paved sidewalk with joints and a yellow line
 	for j in range(5):
-		p.append(("box", (1.4, 0.2, 7), (0, HL + 0.1, -(RP + 10 + j * 13)), "D8D2C0"))
-	z0 = math.sqrt(RP * RP - 28 * 28) + 3
+		p.append(("box", (1.4, 0.2, 7), (0, HL + 0.1, -(RP + 8 + j * 13)), "F0F0EA", {"emit": 0.2}))
+	z0 = math.sqrt(RP * RP - 26 * 26) + 2
 	ln = RO + 8 - z0
+	zm = -(z0 + ln / 2)
 	for sx in (-1, 1):
-		p.append(("box", (1.6, 1.0, ln), (sx * 28, HL + 0.5, -(z0 + ln / 2)), "9A968C"))
-		p.append(("box", (12, 0.5, ln), (sx * 35, HL + 0.25, -(z0 + ln / 2)), "7A5A4A"))
-		p.append(("box", (0.5, 0.06, ln), (sx * 30, HL + 0.53, -(z0 + ln / 2)), "D8B23A"))
-	# the sewer pipe on the right wall (seen from the front), about a quarter of the pit's width
-	PIPE, PJ = "8E8C88", "76746F"
+		p.append(("box", (2.4, 1.6, ln), (sx * 26, HL + 0.8, zm), "A8A6A0"))
+		p.append(("box", (12, 0.6, ln), (sx * 33.4, HL + 0.3, zm), "8A5A4C"))
+		for j in range(int(ln / 6)):
+			p.append(("box", (12.1, 0.08, 0.3), (sx * 33.4, HL + 0.62, -(z0 + 3 + j * 6)), "6A4238"))
+		p.append(("box", (0.6, 0.08, ln), (sx * 38.6, HL + 0.64, zm), "E0B83A"))
+	# the sewer pipe on the right wall (seen from the front), about a quarter of the pit's width: a mid-grey concrete
+	# barrel out of the wall on a diagonal, darker band rings, an elbow, and a large open bell facing up and to the viewer
+	PIPE, BAND = "7A7874", "524F4B"
+	ex, ey, ez = -RP + 15, 24, 8  # the elbow
+	ax = (0.0, 0.906, -0.423)  # the bell's axis: up and toward the front
+
+	def bell(t):
+		return (ex, 10 + ax[1] * t, ez - 6 + ax[2] * t)
+
 	p += [
-		("cyl", (19, 30, 19), (-RP - 2, 30, 6), PIPE, {"seg": 14, "rot": (0, 0, 78)}),
-		("cyl", (22, 3, 22), (-RP + 6, 28.4, 6), PJ, {"seg": 14, "rot": (0, 0, 78)}),
-		("ball", (19.5, 19.5, 19.5), (-RP + 15, 26.5, 6), PIPE, {"subdiv": 2, "smooth": True}),
-		("cyl", (19, 10, 19), (-RP + 16, 19.5, 6), PIPE, {"seg": 14}),
-		("cyl", (28, 13, 28), (-RP + 16, 8.5, 6), PJ, {"seg": 16}),
-		("cyl", (29.5, 2, 29.5), (-RP + 16, 14.6, 6), PIPE, {"seg": 16}),
-		("cyl", (23, 0.6, 23), (-RP + 16, 15.4, 6), "1A1816", {"seg": 16}),
+		("cyl", (17, 30, 17), (ex - 12.3, ey + 8.6, ez), PIPE, {"seg": 14, "rot": (0, 0, 55)}),
+		("cyl", (19.5, 2.2, 19.5), (ex - 6.5, ey + 4.6, ez), BAND, {"seg": 14, "rot": (0, 0, 55)}),
+		("cyl", (19.5, 2.2, 19.5), (ex - 15, ey + 10.5, ez), BAND, {"seg": 14, "rot": (0, 0, 55)}),
+		("ball", (17.5, 17.5, 17.5), (ex, ey, ez), PIPE, {"subdiv": 2, "smooth": True}),
+		("cyl", (17, 9, 17), (ex, ey - 5, ez), PIPE, {"seg": 14}),
+		("cyl", (28, 10, 28), bell(0), PIPE, {"seg": 18, "rot": (-25, 0, 0)}),
+		("cyl", (29.5, 2, 29.5), bell(-2.5), BAND, {"seg": 18, "rot": (-25, 0, 0)}),
+		("cyl", (23, 0.6, 23), bell(4.8), "141210", {"seg": 18, "rot": (-25, 0, 0)}),  # the open mouth
 	]
 	for j in range(9):  # rock clods and plate chunks fallen to the pit floor
 		a = rng.uniform(0, math.tau)
@@ -746,12 +771,6 @@ def _crater(k, rng):
 		r = rng.uniform(55, 95)
 		sz = rng.uniform(4, 8)
 		p.append(("box", (sz, 2.2, sz * 0.8), (math.cos(a) * r, height(a) + 1, math.sin(a) * r), PLATE[j % 3], {"rot": (rng.uniform(-25, 25), rng.uniform(0, 90), rng.uniform(-25, 25))}))
-	# a wrecked block leaning on the back of the plateau (ref Meteor_fragment_aftermath): body, dark storey bands, rebar
-	rot, yb = (0, 0, -16), HP
-	p.append(("box", (22, 46, 16), (-40, yb + 20, 72), CONC2, {"rot": rot}))
-	for b in (-14, -4, 6, 16):
-		p.append(("box", (22.4, 3, 16.4), (-40 + b * math.sin(math.radians(16)), yb + 20 + b * math.cos(math.radians(16)), 72), "1E2226", {"rot": rot}))
-	_rebar(p, -36, yb + 42, 72, 4, rng, spread=5)
 	for i in range(12):  # cracks out from the slope, flat on the street
 		a = i * math.tau / 12 + 0.2
 		ln = rng.uniform(8, 12)

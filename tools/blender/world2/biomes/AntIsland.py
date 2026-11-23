@@ -27,7 +27,7 @@ HOLE, LIP = "0C0A0C", "54402C"
 GRASS, GRASS2, GRASS3 = "4A6A34", "3A5A2C", "6A7A44"
 PINE, PINE2, CAMEL, BLOOM = "24402A", "2E5232", "1E3A22", "C42A3A"
 THATCH, THATCH2, ROPE = "B49A64", "9A8050", "5A4A32"
-ANT, ANT2, EYE = "868AA0", "4E5266", "FF2A30"  # slate chitin with dark plates, as the refs (not near-white)
+ANT, ANT2, EYE = "C8C2B2", "A8A394", "FF2A30"  # pale bone-grey chitin, plates a shade darker (coordinator ruling)
 EGG, EGG2, CAVE, CAVE2 = "4AB8FF", "9ADCFF", "1E2E2A", "2C3E36"
 CONC, CONC2, WIN = "8A8679", "6E6A60", "22262C"
 OLIVE, OLIVE2, CRATE, STEEL = "4E5A3A", "3E4A2E", "7A6440", "6A7078"
@@ -142,11 +142,12 @@ def _bank(k, color):
 
 
 def _ant(p, pos, yaw=0.0, s=1.0, tilt=0.0, out=None):
-	"""A generic giant ant as the source draws them: slate chitin with dark plates, a large banded abdomen with plate
-	ridges and spikes, spikes down the back, an angular shield-like head with a spiked crown, two big almond and two small
-	red eyes, long curved sickle mandibles, elbowed antennae, and long thin spidery legs with high knees. Faces -Z at yaw 0; `tilt` pitches it (climbing). `out` collects its centre."""
+	"""A generic giant ant as the source draws them (webtoon_gate, ant_black): pale bone-grey chitin, legs the same; an
+	angular shield-wedge head with a spiked crown, two big almond and two small red eyes, long curved sickle mandibles,
+	elbowed antennae; a spiky plated thorax; a banded, plated abdomen; long legs bent sharply at knees that rise above the
+	body. Faces -Z at yaw 0; `tilt` pitches it (positive lifts the head: climbing). `out` collects its centre."""
 	m = _rotm(tilt, yaw, 0)
-	BAND, JOINT = "3E4254", "343848"
+	BAND, JOINT = "5E5850", "8E8878"
 
 	def at(x, y, z):
 		q = _turn(m, (x * s, y * s, z * s))
@@ -156,54 +157,60 @@ def _ant(p, pos, yaw=0.0, s=1.0, tilt=0.0, out=None):
 		return (a * s, b * s, c * s)
 
 	def o(extra=None, r=(0, 0, 0)):
-		d = {"rot": (tilt + r[0], yaw + r[1], r[2])}
+		d = {"rot": (tilt + r[0], yaw + r[1], r[2]), "emit": 0.12}
 		d.update(extra or {})
 		return d
 
 	def seg(a, b, t, col, shape="cyl", t2=None, opts=None):
-		_seg(p, at(*a), at(*b), t * s, col, opts or {"emit": 0.15}, shape, None if t2 is None else t2 * s)
+		_seg(p, at(*a), at(*b), t * s, col, opts or {"emit": 0.12}, shape, None if t2 is None else t2 * s)
 
 	if out is not None:
 		out.append(at(0, 0, 0))
-	sm = {"subdiv": 2, "smooth": True, "rough": 0.5, "emit": 0.15}
-	p.append(("ball", sz(18, 15, 26), at(0, 11, 17), ANT, o(sm, (-12, 0, 0))))  # a large banded abdomen
-	for i, zz in enumerate((8, 11.5, 15, 18.5, 22, 25.5)):
-		f = math.sqrt(max(0.12, 1 - ((zz - 17) / 13) ** 2))
-		p.append(("cyl", sz(18.4 * f, 1.2, 15.4 * f), at(0, 11 + (17 - zz) * 0.21, zz), BAND, o({"seg": 14}, (78, 0, 0))))
-	for zz in (9, 13, 17, 21):  # plate ridges and spikes along the top
-		yy = 18 + (17 - zz) * 0.2 - abs(zz - 15) * 0.15
-		p.append(("box", sz(9, 1.4, 3), at(0, yy - 0.6, zz), ANT2, o(None, (-12, 0, 0))))
-		seg((0, yy, zz), (0, yy + 5, zz + 3), 2.6, ANT, "cone", 0.1)
+	sm = {"subdiv": 1, "smooth": True, "rough": 0.5}
+	# abdomen: a core and overlapping plate rings stepping back, dark crevices between, spikes on the top plates
+	p.append(("ball", sz(19, 15, 28), at(0, 12, 19), BAND, o(sm, (-10, 0, 0))))
+	for i, zz in enumerate((8.5, 12.8, 17.1, 21.4, 25.7, 30, 33.4)):
+		f = math.sqrt(max(0.12, 1 - ((zz - 19) / 16) ** 2))
+		yy = 12 + (19 - zz) * 0.18
+		p.append(("cyl", sz(22 * f, 3.8, 18 * f), at(0, yy, zz), ANT if i % 2 == 0 else ANT2, o({"seg": 12, "taper": 0.8}, (-80, 0, 0))))
+		if i < 4:
+			seg((0, yy + 8.8 * f, zz), (0, yy + 8.8 * f + 5, zz + 3), 2.6, ANT, "cone", 0.1)
 	p.append(("ball", sz(4, 4, 5), at(0, 9.5, 4.5), JOINT, o({"subdiv": 1})))
-	p.append(("ball", sz(8, 8, 12), at(0, 10.5, -2), ANT, o(sm)))
+	# thorax: plated, with a row of back spikes and side spines
+	p.append(("ball", sz(8.5, 8, 12), at(0, 10.5, -2), ANT, o(sm)))
 	for i, zz in enumerate((-6, -2.5, 1)):
-		seg((0, 13.5, zz), (0, 19 - i, zz + 3), 2.2, ANT, "cone", 0.1)
+		p.append(("box", sz(8 - i, 1.6, 3.4), at(0, 14.3 - i * 0.3, zz), ANT2, o(None, (-8, 0, 0))))
+		seg((0, 14.5, zz), (0, 20 - i, zz + 3), 2.2, ANT, "cone", 0.1)
 		for sx in (-1, 1):
-			seg((sx * 3, 12.5, zz), (sx * 7, 15, zz + 2), 1.4, ANT, "cone", 0.1)
-	# an angular, shield-like head: flat top plate, an angled face, cheek plates, a spiked crown
-	p.append(("box", sz(12, 3, 12), at(0, 14, -11), ANT, o(None, (-12, 0, 0))))
-	p.append(("box", sz(11, 9, 2.4), at(0, 10.6, -17.2), ANT, o(None, (24, 0, 0))))
-	p.append(("box", sz(8, 3, 7), at(0, 7.4, -14), ANT2, o(None, (8, 0, 0))))
+			seg((sx * 3.5, 12.5, zz), (sx * 8, 15, zz + 2), 1.4, ANT, "cone", 0.1)
+	# head: an angular shield wedge, wide at the brow and narrowing to the jaw, a V-shaped face, a spiked crown
+	p.append(("box", sz(12, 4, 10), at(0, 15, -12), ANT, o(None, (-6, 0, 0))))
+	p.append(("cyl", sz(12, 10, 9), at(0, 10, -13), ANT2, o({"seg": 4, "taper": 0.3}, (180, 45, 0))))
 	for sx in (-1, 1):
-		p.append(("box", sz(2.6, 8, 10), at(sx * 5.6, 11, -12.5), ANT2, o(None, (0, sx * 14, sx * -12))))
-	for i, (sx_, up) in enumerate(((-1, 0.7), (-0.5, 1.1), (0, 1.3), (0.5, 1.1), (1, 0.7))):  # spiked crown
-		seg((sx_ * 4, 15, -10), (sx_ * 7.5, 15 + 7 * up, -5 + abs(sx_) * 2), 2.2, ANT, "cone", 0.1)
+		p.append(("box", sz(7, 14, 1.8), at(sx * 3.4, 10.6, -18.4), ANT, o(None, (18, -sx * 26, -sx * 34))))  # V face, narrowing to the jaw
+		p.append(("box", sz(2.4, 9, 8), at(sx * 4.6, 10.5, -13.5), ANT2, o(None, (0, -sx * 10, -sx * 34))))  # cheeks slanting in
+		seg((sx * 1.2, 15.6, -19), (sx * 10, 20.5, -15.5), 2.6, ANT, "cone", 0.15)  # brow blade sweeping up over the eye
+		seg((sx * 6, 15.5, -11), (sx * 13, 18, -7), 2.4, ANT, "cone", 0.1)  # side horns
+	for sx_, up, back in ((-1, 0.8, 3), (-0.5, 1.15, 5), (0, 1.35, 6), (0.5, 1.15, 5), (1, 0.8, 3)):  # spiked crown
+		seg((sx_ * 4.5, 16.5, -11), (sx_ * 8.5, 17 + 10 * up, -11 + back + 3), 3.0, ANT, "cone", 0.1)
+	p.append(("box", sz(4, 3, 3), at(0, 6.8, -18.5), ANT2, o(None, (10, 0, 0))))  # jaw
 	for sx in (-1, 1):
-		p.append(("ball", sz(3.6, 2.2, 1.4), at(sx * 3.2, 11.8, -18.4), EYE, o({"emit": 5, "subdiv": 2}, (24, sx * 12, sx * -24))))  # big almond eyes
-		p.append(("ball", sz(1.4, 1.4, 1), at(sx * 1.5, 14.6, -17.4), EYE, o({"emit": 5, "subdiv": 1}, (24, 0, 0))))
-		seg((sx * 3.6, 7.6, -17), (sx * 8, 7.2, -24), 2.6, ANT2, "cyl", 2.2)  # long curved sickle mandible
-		seg((sx * 8, 7.2, -24), (sx * 8.6, 7, -32), 2.2, ANT2, "cyl", 1.8)
-		seg((sx * 8.6, 7, -32), (sx * 5.6, 7, -38.5), 1.8, ANT2, "cyl", 1.3)
-		seg((sx * 5.6, 7, -38.5), (sx * 1.2, 7, -40.5), 1.3, "D8D0C0", "cone", 0.1)
-		seg((sx * 1.6, 15.4, -16), (sx * 4.4, 23, -19), 0.6, ANT2)  # elbowed antenna
-		seg((sx * 4.4, 23, -19), (sx * 10, 24, -28), 0.5, ANT2)
-		for zz, kz, fz in ((-5, -12, -24), (-2, -3, -4), (1, 8, 20)):  # long legs, knees high
-			hip, knee, ank, foot = (sx * 4, 9, zz), (sx * 12.5, 19, kz * 0.8), (sx * 19, 4.5, fz * 0.8), (sx * 21, 0, fz * 0.85)
+		p.append(("ball", sz(4.2, 2.2, 1.4), at(sx * 3.6, 13.4, -19.4), EYE, o({"emit": 5, "subdiv": 2}, (22, -sx * 28, sx * 22))))  # big almond eyes
+		p.append(("ball", sz(1.6, 1.6, 1), at(sx * 2.2, 10.4, -20.0), EYE, o({"emit": 5, "subdiv": 1}, (22, -sx * 28, 0))))  # small eyes below
+		seg((sx * 3.2, 7.4, -18), (sx * 7.5, 7.0, -24), 2.6, ANT2, "cyl", 2.2)  # long curved sickle mandible
+		seg((sx * 7.5, 7.0, -24), (sx * 8.8, 6.8, -31), 2.2, ANT2, "cyl", 1.8)
+		seg((sx * 8.8, 6.8, -31), (sx * 6, 6.6, -37.5), 1.8, ANT2, "cyl", 1.3)
+		seg((sx * 6, 6.6, -37.5), (sx * 1.2, 6.5, -40), 1.3, "E8E0CC", "cone", 0.1)
+		seg((sx * 1.8, 16, -15), (sx * 4.5, 25, -17), 0.6, ANT2)  # elbowed antenna
+		seg((sx * 4.5, 25, -17), (sx * 11, 26, -27), 0.5, ANT2)
+		for zz, kz, fz in ((-5, -13, -27), (-2, -3, -4), (1, 10, 26)):  # long legs, knees rising well above the body
+			hip, knee, ank, foot = (sx * 4.5, 9, zz), (sx * 13, 27, kz), (sx * 23, 5, fz * 0.95), (sx * 25, 0, fz)
 			seg(hip, knee, 2.2, ANT)
-			p.append(("ball", sz(2.8, 2.8, 2.8), at(*knee), JOINT, o({"subdiv": 1})))
-			seg(knee, ank, 1.9, ANT, "cyl", 1.2)
-			seg(ank, foot, 1.2, ANT2, "cone", 0.2)
-			seg(((knee[0] + ank[0]) / 2, (knee[1] + ank[1]) / 2, (knee[2] + ank[2]) / 2), ((knee[0] + ank[0]) / 2 + sx * 3, (knee[1] + ank[1]) / 2 + 1, (knee[2] + ank[2]) / 2), 0.9, ANT, "cone", 0.1)
+			p.append(("ball", sz(3, 3, 3), at(*knee), JOINT, o({"subdiv": 1})))
+			seg(knee, ank, 2.0, ANT, "cyl", 1.2)
+			seg(ank, foot, 1.2, ANT, "cone", 0.2)
+			mid = ((knee[0] + ank[0]) / 2, (knee[1] + ank[1]) / 2, (knee[2] + ank[2]) / 2)
+			seg(mid, (mid[0] + sx * 3, mid[1] + 1, mid[2]), 0.9, ANT, "cone", 0.1)
 
 
 def _hgt(r):
@@ -217,13 +224,13 @@ def _hgt(r):
 	return pts[-1][1]
 
 
-HALLA = ((760, 0), (600, 34), (440, 80), (300, 128), (190, 172), (140, 190))  # a broad, low shield
+HALLA = ((760, 0), (600, 40), (440, 98), (300, 176), (190, 290), (140, 336))  # a broad shield under a tall pale summit
 
 
 def _hallasan(k):
 	p = []
 	pts = HALLA
-	cols = ("2A4224", "2E4826", "34502C", "4E5A3A", "8A8670")
+	cols = ("2A4224", "2E4826", "4E5A3A", "A8A08A", "CCC4B0")  # forest below, the pale rocky summit above (anime_island)
 	for i, ((r0, h0), (r1, h1)) in enumerate(zip(pts, pts[1:])):
 		p.append(("cone", (r0 * 2, h1 - h0, r0 * 2), (0, (h0 + h1) / 2, 0), cols[i], {"seg": 24, "taper": r1 / r0}))
 	top = pts[-1][1]
@@ -231,8 +238,8 @@ def _hallasan(k):
 	for i in range(28):  # pale rock spread wide and low round the crater: an inner broken rim and outer outcrops
 		a = i * math.tau / 28 + (i % 3) * 0.06
 		rr = (120 + (i * 13 % 5) * 6) if i % 2 else (190 + (i * 17 % 5) * 14)
-		h = 12 + (i * 7 % 5) * 5
-		w = 60 + (i * 5 % 4) * 12
+		h = 22 + (i * 7 % 5) * 9
+		w = 70 + (i * 5 % 4) * 14
 		p.append(("cone", (w, h, w * 0.7), (math.sin(a) * rr, _hgt(rr) - 6 + h / 2, -math.cos(a) * rr), ("D8D0C0", "C4BCAA", "B0A894")[i % 3], {"seg": 6, "taper": 0.45 + (i % 3) * 0.08, "rot": ((i * 11 % 17) - 8, -math.degrees(a) + i * 7, (i * 5 % 13) - 6)}))
 	p.append(("ball", (130, 50, 140), (-120, top, 10), "CCC4B2", {"subdiv": 2, "rough": 1.0}))  # the pale lava dome on the west rim
 	for i in range(6):
@@ -263,6 +270,7 @@ def _hallasan(k):
 	k.prop("Hallasan", p)
 
 
+HS = [1.0]  # Hallasan instance scale, for the review shot
 NEST_ANTS = []  # footprint centres of the nest's ants (local), for the clearance check
 
 
@@ -299,13 +307,17 @@ def _nest(k):
 	for x, z in ((40, 30), (-50, -10)):
 		p.append(("cone", (16, 40, 16), (x, 80, z), "72604A", {"seg": 8, "taper": 0.25}))
 	NEST_ANTS.clear()  # (local pos, yaw deg, scale, tilt deg): placed as Ant instances by build()
-	for j, (hp, a) in enumerate(holes[::3]):  # climbing out of tunnel mouths, each at its own angle
-		yaw = -math.degrees(a) + 180 + (j % 3 - 1) * 25
-		at = (hp[0] + math.sin(a) * 10, hp[1] - 6, hp[2] - math.cos(a) * 10)
+	for j, (hp, a) in enumerate(holes[::3]):  # crawling out of tunnel mouths and down the slope, feet on the surface
+		yaw = -math.degrees(a) + (j % 3 - 1) * 20
+		x, z = hp[0] + math.sin(a) * 16, hp[2] - math.cos(a) * 16 * 0.9
+		rr = math.hypot(x, z / 0.9)
+		at = (x, surf(rr) - 1.5, z)
+		tilt = -math.degrees(math.atan((surf(rr - 6) - surf(rr + 6)) / 12)) * 0.9  # head down the slope
+		sc = 1.5 + (j % 3) * 0.15
 		if j % 4 == 0:  # a few are part of the mesh so the close-up shows them
-			_ant(p, at, yaw, 1.5, -18 - (j % 4) * 6)
+			_ant(p, at, yaw, 1.5, tilt)
 		else:
-			NEST_ANTS.append((at, yaw, 1.5 + (j % 3) * 0.15, -18 - (j % 4) * 6))
+			NEST_ANTS.append((at, yaw, sc, tilt))
 	for j, (a, r, turn, s) in enumerate(((-0.7, 212, 30, 1.7), (-0.42, 236, -50, 1.9), (-0.25, 205, 10, 1.6), (0.02, 228, 75, 1.8), (0.3, 214, -20, 2.0), (0.52, 240, 140, 1.7), (0.1, 262, -100, 1.5), (-0.55, 255, 160, 1.6))):
 		NEST_ANTS.append(((math.sin(a) * r, 0, -math.cos(a) * r), -math.degrees(a) + 180 + turn, s, 0))
 	k.prop("Nest", p)
@@ -336,30 +348,26 @@ def _chamber(k):
 		p.append(("box", (1, 26 + i % 3 * 6, 6), (sx * (58 - (i // 2) * 2), 50, -22 + (i // 2) * 14), "3E6A3A", {"rot": (0, 0, sx * 6)}))
 	for gz in range(5):  # terraces rising toward the back so every row shows over the road wall
 		p.append(("box", (118, 4 + gz * 4, 12), (0, 10 + gz * 2, -26 + gz * 11), CAVE2))
-	eggs = []
-	for gz in range(5):
-		for gx in range(14):
-			x = -52 + gx * 8 + (gz % 2) * 4 + ((gx * 7 + gz) % 3 - 1)
-			z = -26 + gz * 11 + ((gx * 5) % 3 - 1) * 1.5
-			if math.hypot(x, z - 2) < 24:
+	eggs = {}
+	for gz in range(5):  # squat rounded ovoid eggs packed shoulder to shoulder on each terrace (queen_anime, queen_eggs)
+		for gx in range(18):
+			x = -55 + gx * 6.5 + (gz % 2) * 3.2 + ((gx * 7 + gz) % 3 - 1) * 0.6
+			z = -26 + gz * 11 + ((gx * 5) % 3 - 1) * 1.2
+			if math.hypot(x, z - 2) < 23:
 				continue
-			s = 6.6 + ((gx + gz * 2) % 3) * 0.8
-			y = 12 + gz * 4 + s * 0.7
-			o = {"emit": 0.35, "subdiv": 2 if gz < 2 else 1, "smooth": True, "rough": 0.25}
+			sw = 7.4 + ((gx + gz * 2) % 3) * 0.6
+			y = 12 + gz * 4 + sw * 0.32
 			col = ("2E8AB0", "3AA6C0", "2A7AA0")[(gx + gz) % 3]
-			p.append(("ball", (s, s * 1.2, s), (x, y, z), col, o))  # a teardrop egg: rounded base, pointed top
-			p.append(("cone", (s * 0.86, s * 0.9, s * 0.86), (x, y + s * 0.82, z), col, {"seg": 8, "emit": 0.35, "smooth": True, "rough": 0.25}))
-			eggs.append((x, y + s * 0.5, z))
-	for i in range(0, len(eggs) - 15, 4):  # pale web strands over the clutch, at varied heights
-		a, b = eggs[i], eggs[i + 15 if i % 8 else i + 1]
-		mx, my, mz = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2 + 2, (a[2] + b[2]) / 2
-		ln = math.hypot(b[0] - a[0], b[2] - a[2]) + 3
-		ang = math.degrees(math.atan2(b[0] - a[0], b[2] - a[2]))
-		p.append(("box", (0.35, 0.35, ln), (mx, my, mz), "EEF6FF", {"alpha": 0.6, "emit": 0.3, "rot": (0, ang, 0)}))
-	for gz in range(4):  # translucent web sheets draped over the rows
-		for part_ in range(3):
-			x0 = -40 + part_ * 40 + (gz % 2) * 8
-			p.append(("box", (34, 0.3, 14), (x0, 24 + gz * 4.4, -20 + gz * 11), "E8F0FF", {"alpha": 0.3, "emit": 0.4, "rot": ((gz % 2) * 8 - 4, (part_ - 1) * 6, (part_ - 1) * 5)}))
+			p.append(("ball", (sw, sw * 1.1, sw * 0.95), (x, y, z), col, {"emit": 0.4, "subdiv": 2, "smooth": True, "rough": 0.25}))
+			eggs[(gx, gz)] = (x, y + sw * 0.48, z)
+	web = {"alpha": 0.7, "emit": 0.5}
+	for (gx, gz), a in eggs.items():  # white web strands sagging from egg top to egg top, across and between rows
+		for n in ((gx + 1, gz), (gx, gz + 1)):
+			b = eggs.get(n)
+			if b and (n[1] == gz or (gx + gz) % 2 == 0):
+				mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2 - 1.2, (a[2] + b[2]) / 2)
+				_seg(p, a, mid, 0.3, "F2F6FF", web)
+				_seg(p, mid, b, 0.3, "F2F6FF", web)
 	for i in range(6):  # strands hanging at the back wall
 		p.append(("box", (0.3, 30 + i % 3 * 8, 0.3), (-40 + i * 16, 58 - i % 3 * 4, 32 + (i % 2) * 4), "EEF6FF", {"alpha": 0.5, "emit": 0.3}))
 	# one big glowing egg, its top broken open
@@ -676,6 +684,7 @@ def build(k):
 			if dd > bd:
 				best, bd = (x, z), dd
 	hs = max(0.4, min(1.25, (bd - 60) / 760))
+	HS[0] = hs
 	k.place("Hallasan", (best[0], -1.0, best[1]), 0.4, hs)
 	print("HALLASAN at", (round(best[0]), round(best[1])), "clear", round(bd), "scale", round(hs, 2))
 	keep = [(best[0], best[1], 760 * hs + 20)]
@@ -734,6 +743,22 @@ def build(k):
 			k.place(name, (x, -1.0, z), yaw + math.pi / 2)
 			keep.append((x, z, 34))
 			homes.append(d)
+	# Ant packs roaming the island (webtoon_gate swarms): framed by the 33% and 90% run shots, then every 520 studs
+	packs = 0
+	for d in [L * 0.33 + 60, L * 0.33 + 130, L * 0.9 + 50, L * 0.9 + 120] + [L * 0.06 + 400 + 520 * i for i in range(40)]:
+		if d > L - 100:
+			continue
+		for side in (-1, 1):
+			for n in range(4):
+				sc = k.rng.uniform(0.85, 1.15)
+				off = side * (24 + 46 * sc + n * 16 + k.rng.uniform(0, 12))
+				(x, _, z), yaw = k.beside(d + k.rng.uniform(-26, 26) + n * 9, off)
+				if not k.clear_of_road(x, z, 24 + 46 * sc) or any(math.hypot(x - a_, z - b_) < r + 30 for a_, b_, r in keep):
+					continue
+				k.place("Ant", (x, -1.0, z), yaw + k.rng.uniform(-1.2, 1.2) + (math.pi if (n + packs) % 3 == 0 else 0), sc)
+				keep.append((x, z, 26 * sc))
+				packs += 1
+	print("ANT PACKS", packs)
 	skip = tuple((c - (150 if i == 0 else 55), c + 55) for i, c in enumerate(camps)) + ((cd - 80, cd + 80),) + tuple((h - 30, h + 30) for h in homes)  # the first camp is framed by a run shot
 	# Road edge: lava-stone field walls and brush; then villages, ruins and burning mounds; then the island scatter
 	_row(k, 34, (-52, 52), ["Brush"], 46, jitter=4, face_road=False, scale=(0.9, 1.2), skip=skip)
@@ -761,10 +786,20 @@ def build(k):
 		x, z = _ell(cx, cz, a * f, b * f, th, phi)
 		out = math.atan2(-(x - cx), -(z - cz))
 		k.place("Cliff", (x, -4.0, z), out + k.rng.uniform(-0.4, 0.4), k.rng.uniform(1.0, 1.7))
-	for i in range(48):  # a dense, even blockade ring just off the coast
-		th = i * math.tau / 48
-		x, z = _ell(cx, cz, a + 260, b + 260, th, phi)
-		k.place("Ship", (x, -4.0, z), -th + k.rng.uniform(-0.15, 0.15), k.rng.uniform(3.0, 3.6))
+	# The blockade: 48 ships spaced evenly by arc length on a wide ring well out in open water (anime_island)
+	ring, off = [], max(700.0, b * 0.35)
+	for i in range(1440):
+		ring.append(_ell(cx, cz, a + off, b + off, i * math.tau / 1440, phi))
+	cum = [0.0]
+	for (x0, z0), (x1, z1) in zip(ring, ring[1:] + ring[:1]):
+		cum.append(cum[-1] + math.hypot(x1 - x0, z1 - z0))
+	j = 0
+	for i in range(48):
+		want = cum[-1] * i / 48
+		while cum[j + 1] < want:
+			j += 1
+		(x0, z0), (x1, z1) = ring[j], ring[(j + 1) % len(ring)]
+		k.place("Ship", (x0, -4.0, z0), math.atan2(-(x1 - x0), -(z1 - z0)) + k.rng.uniform(-0.2, 0.2), k.rng.uniform(3.0, 3.6))
 	# Overcast dusk over a war zone; cool lamps along the road, floodlit camps, blue glow in the chamber
 	k.sky([(0.0, "D8946A"), (0.04, "A07A70"), (0.12, "6E6670"), (0.35, "4A4C5A"), (1.0, "2A2C38")], strength=0.9, sun=(2.4, "FFB070", 12, 230))
 	d = 40
@@ -797,5 +832,17 @@ def build(k):
 		d += 20
 	p, right, t = k.at(pick[1])
 	eye = p + right * 10 - t * 14
-	EXTRA_SHOTS = [("06_hallasan", (eye.x, p.y + 8.5, eye.z), (hx, 110.0, hz))]
+	# keep the review shot's sightline to the summit open: no scatter in the first 700 studs of it
+	ex, ez = eye.x, eye.z
+	ux, uz = hx - ex, hz - ez
+	ln = math.hypot(ux, uz)
+	ux, uz = ux / ln, uz / ln
+	for ob in list(k.col.objects):
+		if ob.type == "MESH" and ob.data.name.split("_")[-1] in ("Brush", "Mound", "Choga", "Ruin"):
+			vx, vz = ob.location.x - ex, -ob.location.y - ez
+			along = vx * ux + vz * uz
+			if 0 < along < 700 and abs(vx * uz - vz * ux) < 40 + along * 0.12:
+				bpy.data.objects.remove(ob)
+				k.instances -= 1
+	EXTRA_SHOTS = [("06_hallasan", (eye.x, p.y + 8.5, eye.z), (hx, HALLA[-1][1] * HS[0] * 0.45, hz))]
 	print("EXTRA 06_hallasan at", round(pick[1] / L, 2), round(pick[0]), "deg off heading")

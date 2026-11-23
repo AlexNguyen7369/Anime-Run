@@ -17,3 +17,25 @@ statues seen across the series. Reference images are look-only: they sit in `bui
 Not matched: the source's haze is a soft volume; a volume fog blacked out the render at this map scale, so the haze is
 the sky gradient plus paler far woods and mountains. The army's crimson dusk sky is not used (the track keeps one
 daytime sky, as the town shot). No wide exterior shot of Aura's castle was found; it is rebuilt from the interior shots.
+
+Round 4 (2026-11-23, new builder; shaped live in Blender through the MCP, ported to `ElvenPlains.py`, headless render
+is the source of truth). Fixes from the 5.7/10 review:
+- `HeroStatue` (refs 05, 08): no longer a bell with a ball head. Slimmer figure; the cape hangs from the shoulder line
+  in nine alternating vertical fold ridges round the back to the hem, open at the front; short shoulder mantle; four
+  stacked collar rings; a 4-stud head (7.5 heads) with a full bob wider than the face, side locks to the jaw and five
+  pointed bangs; hands stacked on the pommel at chest height, crossguard just below, blade to the plinth. Faceless,
+  plain bar clasp, no crest (design doc 5).
+- `Rank` (ref 04): near-black plate (`DSTEEL`), broad breastplate and faulds, big round pauldrons with a lower lame,
+  thicker limbs; every other pole is a halberd with a broad axe blade and horn turned to the front, the rest spears.
+- `RuinedCastle` (refs 12, 13): the great hall now runs back from the gate with its gable on the road side: a huge
+  round-arched window open to the sky, its head shattered on the right (voussoirs survive on the left), one mullion
+  and a transom left, the right pier broken low. The gatehouse top is broken (tower stump, slanted break, half lintel,
+  fallen blocks); the front curtain walls have long breaches and knocked-out crenels.
+- `Mountain` (ref 01): three broad massifs of uneven height (not a row of pyramids), snow mantles on the same slope as
+  the rock, rounded summits, a lower snowy shoulder each, over hazed foothills; four instances round the horizon.
+- Plains (ref 01): `Mound` is now a low rolling swell with a winding dirt path, bare-earth patches and two pines,
+  scattered large over the infield and small nearer the road.
+- `Cottage` (ref 06): rebuilt as a tall three-storey town house with its steep gable on the street: stone ground floor,
+  two jettied timber-framed storeys, open gable with king post and collar. The floating roof blocks (gable braces that
+  poked through the roof) are gone. One mesh (12-mesh cap), so every cottage has the third storey; variety stays in
+  mirroring, turn and scale.

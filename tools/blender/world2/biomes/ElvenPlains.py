@@ -8,12 +8,13 @@ on the horizon. Landmarks, each from the source and rebuilt from primitives:
   below the wall the arc's scar: a band of felled dark trunks, stumps and bare earth.
 - RuinedCastle (hero): the broken castle where the Guillotine waits (EP9 interior: tall round-arched windows in
   brick-coursed stone, a broken vault): a ruined hall and keep with Romanesque arched window rows and a collapsed gable.
-- Rank: her headless army, about thirty tall suits of grey plate with an empty gorget ring above the shoulders (no
+- Rank: her headless army, about thirty bulky suits of near-black plate with an empty gorget ring above the shoulders (no
   heads, no gore), halberd tips up, massed on a raised mound among pines.
 - HeroStatue: the village statue of the hero: slim patina figure about 7.5 heads tall, floor-length cape flaring at the
   hem, stacked high collar, bob hair, both hands on the pommel of a long sword planted to the plinth, on a wide
   two-course ashlar plinth, crowned with nine five-petal blue blooms (faceless; no crest).
-- Cottage: half-timbered village house; Flowers: low blue-moon-weed clusters.
+- Cottage: three-storey half-timbered town house, gable to the street; Mound: rolling swell with a dirt path;
+  Flowers: low blue-moon-weed clusters.
 Everything in-house, parts only; no crest, text or numerals (design doc 5). Proposed look; the owner approves the
 render set (design doc 4.46). Budget (BIOME_ENVIRONMENT_SPEC 4.5): 12 meshes, 2 hero (Town, RuinedCastle)."""
 
@@ -33,6 +34,7 @@ EARTH, EARTH2, DEADWOOD = "7A6448", "8E7656", "4A3828"
 PATINA, PATINA2, PATINA3, PLINTH, PLINTH2 = "5E9C86", "467C6A", "7AB6A0", "A0A89E", "8A9288"
 BLUE, BLUE2, WHITE = "7E8EF2", "A9B6FF", "F4F6FF"
 STEEL, STEEL2, STEEL3 = "5E6474", "3E4350", "828A98"
+DSTEEL, DSTEEL2, DSTEEL3 = "3A3E48", "2A2D35", "50555F"  # the army's near-black plate (ref 04)
 SNOW, ROCK1, ROCK2, ROCKD = "F2F6FA", "A6B6CA", "98A8BE", "6E7C92"
 SQ2 = math.sqrt(2)
 
@@ -134,75 +136,100 @@ def far_wood():
 
 
 def cottage():
-	"""Half-timbered village house: stone ground floor, jettied plaster upper storey with a dark timber frame and
-	braces, steep shingled gable roof, chimney, shuttered windows, door, a wattle fence and barrels."""
-	W, D = 22, 16
+	"""Half-timbered town house (ref 06): a tall, steep gable turned to the street over three storeys: stone ground
+	floor, a jettied plaster storey and a second jetty above it, each with dark posts, rails, K braces and leaded
+	windows; open gable with a king post, collar and window; steep shingled roof, chimney, shutters, window box, a
+	fence and barrels. Gable front is -Z."""
+	W, D = 18, 22
+	WIN = "3E5A7A"
 	p = [
 		("box", (W, 9, D), (0, 4.5, 0), STONEB),
 		("box", (W + 0.4, 1, D + 0.4), (0, 0.5, 0), "8C877C"),
-		("box", (W + 2, 10, D + 2), (0, 14.5, 0), PLASTER),  # jettied storey, 1 stud out each side
-		("box", (W + 2.4, 1, D + 2.4), (0, 9.6, 0), TIMBER),  # jetty beam
-		("box", (W + 2.4, 0.8, D + 2.4), (0, 19.2, 0), TIMBER),  # wall plate
 	]
-	# roof as two thin shingled slabs over open gable ends (plaster triangles with a timber frame and a window)
-	RH, half = 13, (D + 2) / 2
-	pitch = math.degrees(math.atan2(RH, half))
-	slope = math.hypot(RH, half) + 1.6
-	ca, sa = math.cos(math.radians(pitch)), math.sin(math.radians(pitch))
-	top = 19.6 + RH + 0.5
-	for sz in (-1, 1):
-		p.append(("box", (W + 5, 0.9, slope), (0, top - sa * slope / 2 + ca * 0.45, sz * (ca * slope / 2 + sa * 0.45)), ROOF, {"rot": (sz * pitch, 0, 0)}))
-		for t in (0.22, 0.44, 0.66, 0.88):  # shingle courses
-			p.append(("box", (W + 4.8, 0.3, 0.45), (0, top - sa * slope * t + ca * 1.0, sz * (ca * slope * t + sa * 1.0)), "684A3C", {"rot": (sz * pitch, 0, 0)}))
-	p.append(("box", (W + 5.4, 1.0, 1.4), (0, top + 0.6, 0), "684A3C"))  # ridge
-	for sx in (-1, 1):
-		gx = sx * (W / 2 + 1.0)
+	storeys = ((W + 2, D + 2, 9.6, 10.0), (W + 4, D + 4, 20.0, 9.0))  # (width, depth, floor, height): two jetties
+	for w, d, y, h in storeys:
 		p += [
-			("wedge", (0.6, RH, half), (gx, 19.6 + RH / 2 - 0.3, -half / 2), PLASTER),
-			("wedge", (0.6, RH, half), (gx, 19.6 + RH / 2 - 0.3, half / 2), PLASTER, {"rot": (0, 180, 0)}),
-			("box", (0.7, RH - 1, 0.7), (gx + sx * 0.1, 19.6 + (RH - 1) / 2, 0), TIMBER),
-			("box", (0.7, 0.6, D + 1), (gx + sx * 0.1, 19.6 + 4.5, 0), TIMBER),
-			("box", (0.6, 3, 2.6), (gx + sx * 0.15, 19.6 + 7.4, 0), "3E5A7A", {"rough": 0.3}),
-			("box", (0.6, 0.6, 8.5), (gx + sx * 0.1, 19.6 + 2.3, -3.6), TIMBER, {"rot": (-32, 0, 0)}),
-			("box", (0.6, 0.6, 8.5), (gx + sx * 0.1, 19.6 + 2.3, 3.6), TIMBER, {"rot": (32, 0, 0)}),
+			("box", (w, h, d), (0, y + h / 2, 0), PLASTER),
+			("box", (w + 0.4, 0.9, d + 0.4), (0, y + 0.1, 0), TIMBER),  # jetty beam
+			("box", (w + 0.4, 0.6, d + 0.4), (0, y + h / 2, 0), TIMBER),  # mid rail
 		]
-		for z in (-8, -3, 3, 8):  # posts on the jettied storey's end walls
-			p.append(("box", (0.4, 10, 0.8), (sx * (W / 2 + 1.15), 14.5, z), TIMBER))
-		p.append(("box", (0.4, 3.2, 3.2), (sx * (W / 2 + 1.2), 15.8, 0), "3E5A7A", {"rough": 0.3}))
-	for sz in (-1, 1):  # timber frame on both long faces: posts, mid rail, K braces, leaded windows
-		zf = sz * (D / 2 + 1.15)
-		for x in (-11.5, -6, 0, 6, 11.5):
-			p.append(("box", (0.8, 10, 0.4), (x, 14.5, zf), TIMBER))
-		p.append(("box", (W + 2, 0.7, 0.4), (0, 14.8, zf), TIMBER))
-		for x, r in ((-8.75, 32), (8.75, -32), (-3, -32), (3, 32)):
-			p.append(("box", (0.6, 6, 0.4), (x, 12.2, zf), TIMBER, {"rot": (0, 0, r)}))
-		for x in (-8.75, 3) if sz < 0 else (-3, 8.75):
-			p.append(("box", (3.2, 3.2, 0.5), (x, 17.2, zf), "3E5A7A", {"rough": 0.3}))
+		for sz in (-1, 1):  # street gable face and back: posts, K braces, windows
+			zf = sz * (d / 2 + 0.15)
+			for x in (-w / 2 + 0.4, -w / 6, w / 6, w / 2 - 0.4):
+				p.append(("box", (0.8, h, 0.4), (x, y + h / 2, zf), TIMBER))
+			for x, r in ((-w / 3, 30), (w / 3, -30)):
+				p.append(("box", (0.6, h / 2 + 1.2, 0.4), (x, y + h * 0.27, zf), TIMBER, {"rot": (0, 0, r)}))
+			p.append(("box", (w / 3 - 1.6, h * 0.36, 0.5), (0, y + h * 0.72, zf), WIN, {"rough": 0.3}))
+			for x in (-w / 3, w / 3):
+				p.append(("box", (2.6, h * 0.3, 0.5), (x, y + h * 0.76, zf), WIN, {"rough": 0.3}))
+		for sx in (-1, 1):  # long sides: posts and a window
+			xf = sx * (w / 2 + 0.15)
+			for z in (-d / 2 + 0.4, -d / 6, d / 6, d / 2 - 0.4):
+				p.append(("box", (0.4, h, 0.8), (xf, y + h / 2, z), TIMBER))
+			p.append(("box", (0.5, h * 0.34, 3.0), (xf, y + h * 0.72, 0), WIN, {"rough": 0.3}))
+	# steep roof: ridge along Z, gable on the street; two shingled slabs with courses and a ridge cap
+	E, RH = 29.0, 19.0
+	half = (W + 4) / 2 + 0.6
+	pitch = math.degrees(math.atan2(RH, half))
+	slope = math.hypot(RH, half) + 1.8
+	ca, sa = math.cos(math.radians(pitch)), math.sin(math.radians(pitch))
+	top = E + RH + 0.5
+	L = D + 7
+	for sx in (-1, 1):
+		p.append(("box", (slope, 0.9, L), (sx * (ca * slope / 2 + sa * 0.45), top - sa * slope / 2 + ca * 0.45, 0), ROOF, {"rot": (0, 0, -sx * pitch)}))
+		for t in (0.2, 0.4, 0.6, 0.8):  # shingle courses
+			p.append(("box", (0.45, 0.3, L - 0.2), (sx * (ca * slope * t + sa * 1.0), top - sa * slope * t + ca * 1.0, 0), "684A3C", {"rot": (0, 0, -sx * pitch)}))
+	p.append(("box", (1.4, 1.0, L + 0.4), (0, top + 0.6, 0), "684A3C"))  # ridge
+	for sz in (-1, 1):  # open gable ends: plaster triangle, king post, collar, gable window
+		gz = sz * ((D + 4) / 2 + 0.2)
+		hw = (W + 4) / 2
+		p += [
+			("wedge", (0.6, RH, hw), (-hw / 2, E + RH / 2, gz), PLASTER, {"rot": (0, 90, 0)}),
+			("wedge", (0.6, RH, hw), (hw / 2, E + RH / 2, gz), PLASTER, {"rot": (0, -90, 0)}),
+			("box", (0.8, RH - 1.5, 0.5), (0, E + (RH - 1.5) / 2, gz + sz * 0.3), TIMBER),
+			("box", (W - 2, 0.7, 0.5), (0, E + 6.5, gz + sz * 0.3), TIMBER),
+			("box", (2.6, 3.4, 0.5), (-3.2, E + 3.0, gz + sz * 0.3), WIN, {"rough": 0.3}),
+			("box", (2.6, 3.4, 0.5), (3.2, E + 3.0, gz + sz * 0.3), WIN, {"rough": 0.3}),
+			("box", (1.8, 2.4, 0.5), (0, E + 10.5, gz + sz * 0.3), WIN, {"rough": 0.3}),
+		]
+	# ground floor street front: door, shuttered window with a flower box
+	zf = -D / 2 - 0.2
 	p += [
-		("box", (4.4, 7, 0.6), (-6, 3.5, -D / 2 - 0.2), "6A4A32"),
-		("box", (5.4, 0.8, 0.8), (-6, 7.3, -D / 2 - 0.3), TIMBER),
-		("box", (4, 3.6, 0.5), (4, 5, -D / 2 - 0.2), "2E3E52", {"rough": 0.3}),
-		("box", (1.6, 3.8, 0.4), (1.2, 5, -D / 2 - 0.5), "3F6A4E"),
-		("box", (1.6, 3.8, 0.4), (6.8, 5, -D / 2 - 0.5), "3F6A4E"),
-		("box", (4.6, 1, 1.2), (4, 2.8, -D / 2 - 0.7), TIMBER),
+		("box", (4.0, 7, 0.6), (-4, 3.5, zf), "6A4A32"),
+		("box", (5.0, 0.8, 0.8), (-4, 7.3, zf - 0.1), TIMBER),
+		("box", (3.6, 3.4, 0.5), (4, 5, zf), "2E3E52", {"rough": 0.3}),
+		("box", (1.4, 3.6, 0.4), (1.5, 5, zf - 0.3), "3F6A4E"),
+		("box", (1.4, 3.6, 0.4), (6.5, 5, zf - 0.3), "3F6A4E"),
+		("box", (4.2, 1, 1.2), (4, 2.8, zf - 0.5), TIMBER),
 	]
-	for x in (2.6, 4, 5.4):
-		p.append(("ball", (1.2, 1, 1.2), (x, 3.6, -D / 2 - 0.8), BLUE, {"subdiv": 1, "emit": 0.1}))
-	p += [("box", (3.4, 14, 3.4), (7, 27, 3), "8C877C"), ("box", (4, 1, 4), (7, 34.4, 3), "6E6A62")]
-	for x in range(-14, 15, 4):
-		p.append(("box", (0.5, 4, 0.5), (x, 2, -D / 2 - 9), TIMBER))
-	p += [("box", (29, 0.5, 0.4), (0, 3.2, -D / 2 - 9), TIMBER), ("box", (29, 0.5, 0.4), (0, 1.6, -D / 2 - 9), TIMBER)]
-	for x, z in ((W / 2 + 2.5, -4), (W / 2 + 2.5, -1)):
+	for x in (2.8, 4, 5.2):
+		p.append(("ball", (1.1, 1, 1.1), (x, 3.6, zf - 0.6), BLUE, {"subdiv": 1, "emit": 0.1}))
+	p += [("box", (3.4, 18, 3.4), (5, E + 9, 6), "8C877C"), ("box", (4, 1, 4), (5, E + 18.4, 6), "6E6A62")]  # chimney
+	for x in range(-12, 13, 4):
+		p.append(("box", (0.5, 4, 0.5), (x, 2, -D / 2 - 7), TIMBER))
+	p += [("box", (25, 0.5, 0.4), (0, 3.2, -D / 2 - 7), TIMBER), ("box", (25, 0.5, 0.4), (0, 1.6, -D / 2 - 7), TIMBER)]
+	for x, z in ((W / 2 + 2.2, -6), (W / 2 + 2.2, -3)):
 		p.append(("cyl", (2.4, 3.4, 2.4), (x, 1.7, z), "7A5636", {"seg": 8}))
 		p.append(("cyl", (2.6, 0.4, 2.6), (x, 2.4, z), DARK, {"seg": 8}))
 	return p
 
 
+def seg(shape, d, p1, p2, color, **opt):
+	"""A cyl or cone of diameter d from Roblox point p1 to p2 (a cone's narrow top at p2): kit.prop rot solved for the axis."""
+	v = [p2[i] - p1[i] for i in range(3)]
+	L = math.sqrt(sum(c * c for c in v)) or 1.0
+	X, Y, Z = (c / L for c in v)
+	rot = (math.degrees(math.acos(max(-1.0, min(1.0, Y)))), math.degrees(math.atan2(X, Z)), 0)
+	mid = tuple((p1[i] + p2[i]) / 2 for i in range(3))
+	return (shape, (d, L, d), mid, color, dict(opt, rot=rot))
+
+
 def hero_statue():
 	"""The hero's statue (ref 05, 08). Wide two-course ashlar plinth; a slim patina figure about 30 studs tall
-	(7.5 heads): boots, floor-length cape flaring at the hem, tunic, stacked high collar, bob hair, both hands on the
-	pommel at chest height, a long blade planted to the plinth, a crown of nine five-petal blue blooms. Faceless;
-	the cape clasp is a plain bar. Front is -Z."""
+	(7.5 heads): boots and legs in the cape's front opening, a floor-length cape hanging from the shoulders in vertical
+	fold ridges and flaring at the hem, a short shoulder mantle, tunic with strap rungs, a stacked high collar, a full bob
+	(crown, side locks to the jaw, pointed bangs), both hands stacked on the pommel at chest height, the long blade planted
+	to the plinth, a crown of nine five-petal blue blooms. Faceless; the cape clasp is a plain bar. Front is -Z."""
 	p = [
 		("box", (22, 3, 22), (0, 1.5, 0), PLINTH2),
 		("box", (23, 0.6, 23), (0, 3.2, 0), PLINTH),
@@ -218,47 +245,72 @@ def hero_statue():
 		p.append(("box", (0.25, 3, 22.2), (x, 1.5, 0), "7E8880"))
 	y0 = 16.1
 	sm = {"smooth": True}
+	# legs and boots in the front opening, slim tunic, belt, strap rungs
+	for sx in (-1, 1):
+		p += [
+			("box", (1.3, 2.4, 2.6), (sx * 0.9, y0 + 1.2, -0.9), PATINA2),
+			("cyl", (1.2, 10.4, 1.3), (sx * 0.85, y0 + 7.4, -0.5), PATINA, dict(sm, seg=8)),
+		]
 	p += [
-		# boots and legs, seen in the cape's front opening
-		("box", (1.5, 2.2, 2.8), (-1.0, y0 + 1.1, -1.2), PATINA2),
-		("box", (1.5, 2.2, 2.8), (1.0, y0 + 1.1, -1.2), PATINA2),
-		("box", (1.3, 9, 1.5), (-1.0, y0 + 6.6, -0.8), PATINA),
-		("box", (1.3, 9, 1.5), (1.0, y0 + 6.6, -0.8), PATINA),
-		("cone", (4.6, 5.2, 2.8), (0, y0 + 12.4, -0.7), PATINA, {"seg": 10, "taper": 0.86, "smooth": True}),  # tunic skirt
-		("box", (4.4, 0.6, 2.7), (0, y0 + 15.2, -0.7), PATINA2),  # belt
-		("cone", (4.2, 8.2, 2.6), (0, y0 + 19.3, -0.5), PATINA, {"seg": 10, "taper": 1.12, "smooth": True}),  # chest
-		("box", (0.5, 7.4, 0.3), (0, y0 + 19.6, -1.9), PATINA2),  # front placket
-		# the cape: a smooth bell from the shoulders to the plinth, flaring at the hem, open at the front
-		("cone", (10.6, 23.2, 6.0), (0, y0 + 11.9, 1.1), PATINA2, {"seg": 20, "taper": 0.5, "smooth": True}),
-		("cone", (11.0, 0.6, 6.4), (0, y0 + 0.6, 1.1), PATINA2, {"seg": 20, "smooth": True, "taper": 0.98}),  # hem lip
-		("ball", (7.6, 2.8, 4.4), (0, y0 + 23.0, 0.4), PATINA2, {"subdiv": 3, "smooth": True}),  # mantle over the shoulders
-		("box", (1.8, 1.0, 0.5), (0, y0 + 22.6, -1.9), PATINA3),  # clasp (plain bar)
-		# stacked high collar
-		("cyl", (3.0, 0.8, 3.0), (0, y0 + 24.4, 0.1), PATINA2, {"seg": 14, "smooth": True}),
-		("cyl", (2.7, 0.8, 2.7), (0, y0 + 25.2, 0.1), PATINA, {"seg": 14, "smooth": True}),
-		("cyl", (2.4, 0.8, 2.4), (0, y0 + 26.0, 0.1), PATINA2, {"seg": 14, "smooth": True}),
-		# head and bob hair
-		("ball", (2.5, 3.3, 2.8), (0, y0 + 27.6, -0.1), PATINA, {"subdiv": 3, "smooth": True}),
-		("ball", (3.3, 3.0, 3.4), (0, y0 + 28.7, 0.35), PATINA3, {"subdiv": 3, "smooth": True}),  # bob: crown and back
-		("ball", (3.4, 3.0, 3.2), (0, y0 + 27.7, 0.55), PATINA3, {"subdiv": 3, "smooth": True}),  # bob: sides to the jaw
-		("ball", (2.9, 1.1, 1.0), (0, y0 + 28.8, -1.2), PATINA3, {"subdiv": 2, "smooth": True}),  # bangs
-		# forearms out of the cape, hands stacked on the pommel at the waist
-		("cyl", (0.9, 3.4, 0.9), (-1.5, y0 + 18.9, -2.0), PATINA2, {"seg": 8, "smooth": True, "rot": (90, -40, 0)}),
-		("cyl", (0.9, 3.4, 0.9), (1.5, y0 + 18.9, -2.0), PATINA2, {"seg": 8, "smooth": True, "rot": (90, 40, 0)}),
-		("ball", (2.2, 1.4, 1.5), (0, y0 + 19.0, -3.2), PATINA, {"subdiv": 1, "smooth": True}),  # hands
-		# the sword: pommel above the hands, crossguard below, long blade planted on the plinth
-		("ball", (1.0, 1.0, 1.0), (0, y0 + 20.1, -3.2), PATINA3, {"subdiv": 1, "smooth": True}),
-		("box", (5.0, 0.6, 0.7), (0, y0 + 17.6, -3.2), PATINA2),
-		("box", (0.8, 0.8, 0.8), (-2.6, y0 + 17.6, -3.2), PATINA2, {"rot": (0, 0, 45)}),
-		("box", (0.8, 0.8, 0.8), (2.6, y0 + 17.6, -3.2), PATINA2, {"rot": (0, 0, 45)}),
-		("box", (1.3, 16.2, 0.35), (0, y0 + 9.2, -3.2), PATINA3, {"metal": 0.3, "rough": 0.4}),
-		("box", (0.3, 15.6, 0.45), (0, y0 + 9.4, -3.2), PATINA2),  # fuller
-		("wedge", (1.3, 1.1, 0.35), (0, y0 + 0.6, -3.2), PATINA3, {"rot": (0, 0, 180)}),
+		("cone", (3.8, 4.6, 2.4), (0, y0 + 14.4, -0.4), PATINA, dict(sm, seg=10, taper=0.85)),  # tunic skirt
+		("box", (3.4, 0.6, 2.3), (0, y0 + 16.8, -0.4), PATINA2),  # belt
+		("cone", (3.3, 7.0, 2.2), (0, y0 + 20.5, -0.3), PATINA, dict(sm, seg=10, taper=1.15)),  # chest
+		("box", (0.45, 7.0, 0.3), (0, y0 + 20.4, -1.55), PATINA2),  # front placket
+	]
+	for y in (y0 + 17.8, y0 + 21.6, y0 + 22.9):
+		p.append(("box", (1.8, 0.35, 0.3), (0, y, -1.62), PATINA3))  # strap rungs
+	# the cape: vertical fold ridges hanging from the shoulder line round the back to the hem, open at the front
+	SH, HEM = y0 + 23.6, y0 + 0.5
+	p.append(("cone", (8.8, SH - HEM - 0.6, 5.2), (0, (SH + HEM) / 2 - 0.3, 1.0), PATINA2, dict(sm, seg=16, taper=0.62)))
+	n = 9
+	for j in range(n):
+		a = math.radians(-148 + j * 296 / (n - 1))  # 0 = straight back, +-148 = the front edges
+		top = (3.3 * math.sin(a), SH, 0.6 + 1.6 * math.cos(a))
+		bot = (5.3 * math.sin(a), HEM, 1.0 + 3.6 * math.cos(a))
+		d = 2.3 if j % 2 else 2.8  # alternating fold ridges
+		p.append(seg("cone", d, bot, top, (PATINA2, PATINA)[j % 2], seg=8, taper=0.6, smooth=True))
+	p.append(("cone", (11.4, 0.6, 7.8), (0, HEM + 0.3, 1.0), PATINA2, dict(sm, seg=18, taper=0.95)))  # hem lip
+	# short shoulder mantle, clasp, stacked high collar
+	p += [
+		("ball", (8.0, 3.0, 4.6), (0, SH - 0.2, 0.5), PATINA2, dict(sm, subdiv=3)),
+		("cone", (8.4, 2.4, 4.8), (0, SH - 1.4, 0.5), PATINA2, dict(sm, seg=16, taper=0.85)),
+		("box", (2.0, 0.9, 0.5), (0, SH - 0.6, -2.0), PATINA3),  # clasp (plain bar)
+	]
+	for i, dd in enumerate((2.8, 2.3, 2.6, 2.2)):
+		p.append(("cyl", (dd, 0.5, dd), (0, SH + 0.8 + i * 0.5, 0.2), (PATINA2, PATINA)[i % 2], dict(sm, seg=14)))
+	# head (about 4 studs: 7.5 heads) and a full bob: crown, back and sides wider than the face, side locks to the
+	# jaw, pointed bangs over the brow
+	HY = SH + 4.6
+	p += [
+		("ball", (2.6, 3.5, 2.8), (0, HY - 0.5, -0.2), PATINA, dict(sm, subdiv=3)),  # face
+		("ball", (3.9, 2.9, 3.9), (0, HY + 0.7, 0.15), PATINA3, dict(sm, subdiv=3)),  # crown
+		("ball", (3.9, 3.4, 3.0), (0, HY - 0.3, 0.75), PATINA3, dict(sm, subdiv=3)),  # back of the bob
+	]
+	for sx in (-1, 1):
+		p.append(("ball", (1.1, 3.4, 2.6), (sx * 1.45, HY - 0.6, 0.1), PATINA3, dict(sm, subdiv=2)))  # side lock to the jaw
+	for x in (-1.2, -0.6, 0.0, 0.6, 1.2):  # bangs: strands pointing down to the brow
+		p.append(seg("cone", 0.85, (x * 1.0, HY + 1.5, -1.25), (x * 1.08, HY - 0.15 - abs(x) * 0.3, -1.6), PATINA3, seg=5))
+	# forearms out of the cape edges up to the hands stacked on the pommel at chest height
+	HAND = (0, y0 + 19.6, -2.4)
+	for sx in (-1, 1):
+		p.append(seg("cyl", 0.95, (sx * 2.6, y0 + 18.4, -1.2), (sx * 0.5, HAND[1] - 0.1, HAND[2] + 0.2), PATINA2, seg=8, smooth=True))
+	p += [
+		("box", (2.0, 1.0, 1.4), (0, HAND[1] - 0.3, HAND[2]), PATINA),  # lower hand round the grip
+		("box", (2.1, 0.9, 1.3), (0, HAND[1] + 0.55, HAND[2] - 0.15), PATINA3),  # upper hand stacked on it
+		("box", (2.0, 0.25, 0.2), (0, HAND[1] + 0.1, HAND[2] - 0.85), PATINA2),  # knuckle line
+		# the sword: pommel above the hands, grip below, crossguard, long fullered blade planted on the plinth
+		("ball", (0.9, 0.9, 0.9), (0, HAND[1] + 1.4, HAND[2]), PATINA3, dict(sm, subdiv=2)),
+		("cyl", (0.5, 1.6, 0.5), (0, HAND[1] - 1.3, HAND[2]), PATINA2, {"seg": 6}),
+		("box", (4.4, 0.6, 0.6), (0, HAND[1] - 2.3, HAND[2]), PATINA2),
+		("box", (0.9, 0.9, 0.7), (0, HAND[1] - 2.3, HAND[2]), PATINA3, {"rot": (0, 0, 45)}),
+		("box", (1.2, HAND[1] - 2.6 - y0 - 1.0, 0.35), (0, (HAND[1] - 2.6 + y0 + 1.0) / 2, HAND[2]), PATINA3, {"metal": 0.3, "rough": 0.4}),
+		("box", (0.3, HAND[1] - 3.4 - y0 - 1.0, 0.45), (0, (HAND[1] - 3.4 + y0 + 1.0) / 2, HAND[2]), PATINA2),  # fuller
+		("wedge", (1.2, 1.0, 0.35), (0, y0 + 0.5, HAND[2]), PATINA3, {"rot": (0, 0, 180)}),
 	]
 	for j in range(9):  # crown of nine five-petal blue blooms round the bob
 		a = j * math.tau / 9
-		bx, bz = 1.72 * math.cos(a), 0.35 + 1.72 * math.sin(a)
-		by = y0 + 29.5 - 0.25 * math.sin(a)
+		bx, bz = 1.9 * math.cos(a), 0.15 + 1.9 * math.sin(a)
+		by = HY + 1.3 - 0.25 * math.sin(a)
 		tilt = (math.degrees(-math.sin(a)) * 0.5, 0, math.degrees(math.cos(a)) * 0.5)
 		for q in range(5):
 			pa = q * math.tau / 5 + a
@@ -285,38 +337,41 @@ def rank():
 	i = 0
 	for r, (z, n) in enumerate(((-17, 8), (-7, 8), (3, 7), (13, 7))):
 		for c in range(n):
-			x = (c - (n - 1) / 2) * 9.2 + (r % 2) * 2.2 + ((c * 7 + r * 3) % 5 - 2) * 0.4
+			x = (c - (n - 1) / 2) * 10.4 + (r % 2) * 2.2 + ((c * 7 + r * 3) % 5 - 2) * 0.4
 			zz = z + ((c * 5 + r) % 3 - 1) * 0.8
 			y = -2 + 7 * math.sqrt(max(0.0, 1 - (x / MX) ** 2 - (zz / MZ) ** 2)) - 0.4
 			def at(px, py, pz):
 				return (x + px * S, y + py * S, zz + pz * S)
 			for sx in (-1, 1):
 				p += [
-					("box", (1.3 * S, 0.9 * S, 2.6 * S), at(sx * 0.8, 0.45, -0.5), STEEL2, m),  # sabaton
-					("cyl", (1.25 * S, 5 * S, 1.4 * S), at(sx * 0.8, 3.3, 0), STEEL2, dict(ms, seg=8)),  # greave
-					("cyl", (1.7 * S, 1.3 * S, 1.7 * S), at(sx * 0.8, 5.9, -0.15), STEEL3, dict(ms, seg=8)),  # knee cop
-					("cone", (1.5 * S, 4.2 * S, 1.6 * S), at(sx * 0.85, 8.4, 0), STEEL, dict(ms, seg=8, taper=1.3)),  # cuisse
-					("cyl", (2.7 * S, 2.3 * S, 2.7 * S), at(sx * 2.55, 17.4, 0), STEEL3, dict(ms, seg=10, rot=(0, 0, 90))),  # pauldron
-					("cyl", (1.15 * S, 4.2 * S, 1.2 * S), at(sx * 2.6, 14.4, 0.1), STEEL2, dict(ms, seg=8)),  # arm
-					("box", (1.4 * S, 1.7 * S, 1.5 * S), at(sx * 2.6, 11.6, -0.2), STEEL, m),  # gauntlet
+					("box", (1.5 * S, 1.0 * S, 2.8 * S), at(sx * 0.95, 0.5, -0.5), DSTEEL2, m),  # sabaton
+					("cyl", (1.5 * S, 5 * S, 1.6 * S), at(sx * 0.95, 3.3, 0), DSTEEL2, dict(ms, seg=8)),  # greave
+					("cyl", (2.0 * S, 1.4 * S, 2.0 * S), at(sx * 0.95, 5.9, -0.15), DSTEEL3, dict(ms, seg=8)),  # knee cop
+					("cone", (1.9 * S, 4.2 * S, 2.0 * S), at(sx * 1.0, 8.4, 0), DSTEEL, dict(ms, seg=8, taper=1.3)),  # cuisse
+					("ball", (3.9 * S, 3.3 * S, 3.9 * S), at(sx * 3.4, 17.5, 0), DSTEEL3, dict(ms, subdiv=1)),  # big round pauldron
+					("cyl", (3.6 * S, 0.7 * S, 3.5 * S), at(sx * 3.5, 16.0, 0), DSTEEL2, dict(ms, seg=8)),  # its lower lame
+					("cyl", (1.6 * S, 4.4 * S, 1.7 * S), at(sx * 3.6, 13.6, 0.1), DSTEEL2, dict(ms, seg=8)),  # arm
+					("box", (1.8 * S, 2.0 * S, 1.9 * S), at(sx * 3.6, 10.8, -0.2), DSTEEL, m),  # gauntlet
 				]
 			p += [
-				("cone", (4.8 * S, 3.0 * S, 3.4 * S), at(0, 11.0, 0), STEEL2, dict(ms, seg=10, taper=0.72)),  # faulds skirt
-				("cyl", (3.2 * S, 1.0 * S, 2.3 * S), at(0, 12.8, 0), DARK, dict(m, seg=10)),  # waist belt
-				("cone", (3.4 * S, 5.0 * S, 2.6 * S), at(0, 15.7, -0.05), STEEL, dict(ms, seg=12, taper=1.42)),  # breastplate
-				("box", (0.3 * S, 4.4 * S, 0.3 * S), at(0, 15.6, -1.7), STEEL3, m),  # ridge
-				("cyl", (2.5 * S, 1.6 * S, 2.5 * S), at(0, 18.9, 0), STEEL3, dict(ms, seg=12)),  # empty gorget ring
-				("cyl", (1.8 * S, 1.0 * S, 1.8 * S), at(0, 19.3, 0), DARK, {"seg": 12}),  # its dark hollow
+				("cone", (6.0 * S, 3.2 * S, 4.0 * S), at(0, 10.9, 0), DSTEEL2, dict(ms, seg=10, taper=0.72)),  # faulds skirt
+				("cyl", (4.4 * S, 1.0 * S, 3.0 * S), at(0, 12.8, 0), DARK, dict(m, seg=10)),  # waist belt
+				("cone", (4.6 * S, 5.4 * S, 3.4 * S), at(0, 15.9, -0.05), DSTEEL, dict(ms, seg=12, taper=1.45)),  # broad breastplate
+				("box", (0.35 * S, 4.8 * S, 0.35 * S), at(0, 15.8, -2.25), DSTEEL3, m),  # ridge
+				("cyl", (2.8 * S, 1.4 * S, 2.8 * S), at(0, 19.2, 0), DSTEEL3, dict(ms, seg=12)),  # empty gorget ring
+				("cyl", (2.0 * S, 1.0 * S, 2.0 * S), at(0, 19.5, 0), "121316", {"seg": 12}),  # its dark hollow
 			]
-			wx = 3.6 if i % 2 == 0 else -3.6
-			if i % 3 != 2:  # halberd: shaft, axe blade, back spike, top spike
+			wx = 4.8 if (i // 2) % 2 == 0 else -4.8
+			if i % 2 == 0:  # halberd: shaft, broad axe blade, blade horn, back spike, top spike
 				p += [
-					("cyl", (0.5, 26 * S, 0.5), at(wx, 13, -0.6), "3E3228", {"seg": 5}),
-					("wedge", (0.35, 2.2 * S, 1.6 * S), at(wx, 23.8, -1.4), STEEL3, dict(m, rot=(0, 90, 0))),
-					("cone", (0.9, 3.0 * S, 0.9), at(wx, 27.5, -0.6), STEEL3, {"seg": 4}),
+					("cyl", (0.55, 26 * S, 0.55), at(wx, 13, -0.8), "2E261E", {"seg": 5}),
+					("box", (2.4, 4.2 * S, 0.35), at(wx * 1.27, 24.0, -0.8), STEEL3, m),  # broad axe blade, outboard
+					("box", (1.0, 1.6 * S, 0.35), at(wx * 1.46, 26.4, -0.8), STEEL3, m),  # blade horn
+					("box", (1.4, 0.6, 0.35), at(wx * 0.79, 24.6, -0.8), STEEL3, m),  # back spike
+					("cone", (0.9, 3.0 * S, 0.9), at(wx, 27.9, -0.8), STEEL3, {"seg": 4}),
 				]
 			else:  # spear
-				p += [("cyl", (0.45, 24 * S, 0.45), at(wx, 12, -0.6), "3E3228", {"seg": 5}), ("cone", (1.0, 3.2 * S, 1.0), at(wx, 25.6, -0.6), STEEL3, {"seg": 4})]
+				p += [("cyl", (0.5, 24 * S, 0.5), at(wx, 12, -0.8), "2E261E", {"seg": 5}), ("cone", (1.0, 3.2 * S, 1.0), at(wx, 25.6, -0.8), STEEL3, {"seg": 4})]
 			i += 1
 	return p
 
@@ -362,45 +417,78 @@ def ruined_castle():
 	for i, ((x1, z1), (x2, z2)) in enumerate(walls):
 		L = math.hypot(x2 - x1, z2 - z1)
 		yaw = -math.degrees(math.atan2(z2 - z1, x2 - x1))
-		h = (26, 18, 22, 12, 20, 16)[i]
+		h = (22, 14, 22, 12, 20, 16)[i]
 		cx, cz = (x1 + x2) / 2, (z1 + z2) / 2
 		p.append(("box", (L, h, 6), (cx, Y + h / 2, cz), RUIN, {"rot": (0, yaw, 0)}))
 		p.append(("box", (L + 0.4, 3, 6.4), (cx, Y + 1.5, cz), MOSS, {"rot": (0, yaw, 0)}))
 		p.append(("box", (L + 0.2, 0.4, 6.2), (cx, Y + h * 0.55, cz), RUIN2, {"rot": (0, yaw, 0)}))
 		n = int(L // 7)
 		for j in range(n):
-			if (j + i) % 3 == 2:
-				continue
+			if (j * 7 + i) % 5 in (1, 2) or (i < 2 and 0.3 < (j + 0.5) / n < 0.55):
+				continue  # knocked-out crenels, and a long breach in each front wall
 			t = (j + 0.5) / n
 			p.append(("box", (3.4, 3.4, 6.2), (x1 + (x2 - x1) * t, Y + h + 1.7, z1 + (z2 - z1) * t), RUIN2, {"rot": (0, yaw, 0)}))
-	# Gatehouse with a round arch
-	for x in (-18, 18):
-		p += [("box", (14, 36, 14), (x, Y + 18, -60), RUIN2), ("box", (15, 2, 15), (x, Y + 36, -60), RUIN)]
-	p += [("box", (22, 10, 7), (0, Y + 27, -60), RUIN2)]
-	p += arch_window(0, Y + 9, -60, 14, 18, 7.4, seg=12)
-	# The great hall: long side walls with rows of tall paired round-arched windows, broken gable ends
-	HX, HZ, HL, HH = -20, 5, 90, 40
-	for s in (-1, 1):
-		z = HZ + s * 16
-		top = [HH, HH - 6, HH, HH - 14, HH - 4, HH - 20] if s < 0 else [HH - 10, HH, HH - 2, HH - 16, HH, HH - 8]
-		for j, h in enumerate(top):  # wall bays of uneven broken height
-			x = HX - HL / 2 + HL / 12 + j * HL / 6
-			p.append(("box", (HL / 6 + 0.2, h, 5), (x, Y + h / 2, z), RUIN))
-			p.append(("box", (HL / 6 + 0.4, 0.4, 5.4), (x, Y + 8, z), RUIN2))
-			if h > 24:
-				p += arch_window(x - 3, Y + 18, z, 3.6, 12, 5.6)
-				p += arch_window(x + 3, Y + 18, z, 3.6, 12, 5.6)
-				p.append(("box", (12, 0.8, 6), (x, Y + 11.6, z), RUIN3))
-			p.append(("box", (4, h * 0.9, 4), (x - HL / 12, Y + h * 0.45, z + s * 3.5), RUIN2))  # buttress
-	# West gable end: a tall wall with one huge broken arched window (ref 12)
-	gx = HX - HL / 2
-	p += [("box", (5, 54, 36), (gx, Y + 27, HZ), RUIN), ("wedge", (5, 16, 18), (gx, Y + 62, HZ - 9), RUIN, {"rot": (0, 180, 0)})]
-	p += arch_window(gx, Y + 26, HZ, 14, 30, 5.6, yaw=90, seg=14)
-	p += [("box", (5.4, 0.5, 36.4), (gx, Y + y, HZ), RUIN2) for y in (10, 20, 46)]
-	# East end collapsed: rubble heap and a fallen vault rib
+	# Gatehouse with a round arch, its top broken: one tower stump, the other cut on a slant, the lintel half gone
 	p += [
-		("ball", (36, 12, 34), (HX + HL / 2, Y + 2, HZ), RUIN2, {"subdiv": 1}),
-		("box", (6, 4, 6), (HX + HL / 2 + 10, Y + 2, HZ - 14), RUIN, {"rot": (12, 30, 8)}),
+		("box", (14, 26, 14), (-18, Y + 13, -60), RUIN2),
+		("box", (8, 6, 14), (-21, Y + 29, -60), RUIN2),  # surviving corner of the left tower top
+		("box", (14, 20, 14), (18, Y + 10, -60), RUIN2),
+		("wedge", (14, 7, 14), (18, Y + 23.5, -60), RUIN2, {"rot": (0, 90, 0)}),  # slanted break
+		("box", (11, 6, 7), (-5.5, Y + 21, -60), RUIN2),  # what is left of the lintel
+		("box", (6, 4, 5), (8, Y + 2, -70), RUIN2, {"rot": (10, 30, 14)}),  # fallen blocks
+		("box", (5, 3.4, 5), (14, Y + 1.7, -72), RUIN, {"rot": (0, 50, -10)}),
+		("box", (4, 3, 4), (-2, Y + 1.5, -71), RUIN2, {"rot": (18, 12, 0)}),
+	]
+	p += arch_window(0, Y + 7.5, -60, 12, 15, 7.4, seg=12)
+	# The great hall runs back from the gate: its front gable faces the road with the huge broken arched window
+	# (refs 12, 13): the arch head shattered open on the right, one mullion and a transom left in it; side walls with
+	# rows of tall paired round-arched windows at uneven broken heights; the back end collapsed
+	HX, HZ, HL, HH = -12, 12, 84, 40
+	gz = HZ - HL / 2  # front gable line
+	for s_ in (-1, 1):
+		x = HX + s_ * 17
+		top = [HH, HH - 6, HH, HH - 14, HH - 4, HH - 20] if s_ < 0 else [HH - 10, HH, HH - 2, HH - 16, HH, HH - 8]
+		for j, h in enumerate(top):  # wall bays of uneven broken height
+			z = gz + HL / 12 + j * HL / 6
+			p.append(("box", (5, h, HL / 6 + 0.2), (x, Y + h / 2, z), RUIN))
+			p.append(("box", (5.4, 0.4, HL / 6 + 0.4), (x, Y + 8, z), RUIN2))
+			if h > 24:
+				p += arch_window(x, Y + 18, z - 3, 3.6, 12, 5.6, yaw=90)
+				p += arch_window(x, Y + 18, z + 3, 3.6, 12, 5.6, yaw=90)
+				p.append(("box", (6, 0.8, 12), (x, Y + 11.6, z), RUIN3))
+			p.append(("box", (4, h * 0.9, 4), (x + s_ * 3.5, Y + h * 0.45, z - HL / 12), RUIN2))  # buttress
+	# front gable: a tall wall with the huge round-arched window open to the sky, its head shattered on the right
+	# (voussoirs survive on the left only), one mullion and a transom left standing, the right half broken low
+	AW, SILL, AH = 22, 16, 44  # opening width, sill height, opening height to the crown
+	R = AW / 2
+	cy = Y + SILL + AH - R  # centre of the arch head
+	p += [
+		("box", (12, 70, 5), (HX - R - 6, Y + 35, gz), RUIN),  # left pier to the gable top
+		("wedge", (12, 16, 5), (HX - R - 6, Y + 78, gz), RUIN, {"rot": (0, 90, 0)}),
+		("box", (12, 46, 5), (HX + R + 6, Y + 23, gz), RUIN),  # right pier, broken lower
+		("box", (7, 7, 5), (HX + R + 4, Y + 48, gz), RUIN2, {"rot": (0, 0, 24)}),  # jagged break
+		("box", (AW + 0.2, SILL, 5), (HX, Y + SILL / 2, gz), RUIN),  # sill wall
+		("box", (AW + 24.4, 0.6, 5.6), (HX, Y + SILL, gz), RUIN2),
+		("box", (12.6, 0.6, 5.6), (HX - R - 6, Y + 40, gz), RUIN2),
+		("box", (1.1, AH - R + 2, 1.2), (HX + 1.5, Y + SILL + (AH - R + 2) / 2, gz), RUIN3),  # mullion
+		("box", (AW, 1.0, 1.2), (HX, Y + SILL + AH * 0.42, gz), RUIN3),  # transom
+		("box", (1.0, 7, 1.0), (HX + 6.5, Y + SILL + 3.5, gz), RUIN3),  # stub of a second mullion
+		("box", (4, 3, 4), (HX + 8, Y + 1.5, gz - 8), RUIN2, {"rot": (14, 30, 0)}),  # fallen tracery
+	]
+	for q in range(8):  # voussoirs from the left springing round past the crown, then broken off
+		t = math.radians(180 - q * 15)
+		p.append(("box", (2.6, 3.6, 5.4), (HX + (R + 1.6) * math.cos(t), cy + (R + 1.6) * math.sin(t), gz), RUIN3, {"rot": (0, 0, q * 15 - 90)}))
+	for q in range(6):  # wall over the arch on the left, stepped down to the break
+		x = HX - R + q * 3.6
+		top = Y + (74, 74, 74, 72, 70, 66)[q]
+		yb = cy + math.sqrt(max(0.0, (R + 3.4) ** 2 - (x - HX) ** 2))
+		if top > yb:
+			p.append(("box", (3.8, top - yb, 5), (x, (top + yb) / 2, gz), RUIN))
+	# the back end collapsed: rubble heap and a fallen vault rib
+	p += [
+		("ball", (34, 12, 30), (HX, Y + 2, HZ + HL / 2), RUIN2, {"subdiv": 1}),
+		("box", (6, 4, 6), (HX + 14, Y + 2, HZ + HL / 2 + 8), RUIN, {"rot": (12, 30, 8)}),
+		("box", (5, 20, 5), (HX - 6, Y + 6, HZ + HL / 2 - 10), RUIN2, {"rot": (0, 20, 64)}),
 	]
 	# Square keep with arched window rows and a broken crown
 	kx, kz = 45, 30
@@ -425,7 +513,7 @@ def ruined_castle():
 	# Court rubble, ivy
 	for x, z, s in ((-10, 40, 9), (40, -30, 7), (-55, 40, 8), (0, -35, 6)):
 		p.append(("ball", (s * 1.6, s * 0.7, s * 1.3), (x, Y + s * 0.2, z), RUIN2, {"subdiv": 1}))
-	for x, z, h, w in ((gx - 2.8, HZ + 10, 30, (1, 30, 8)), (kx - 15.4, kz + 4, 34, (1, 34, 7)), (75.2, 30, 14, (1, 14, 6))):
+	for x, z, h, w in ((HX - 15, gz - 2.8, 30, (8, 30, 1)), (kx - 15.4, kz + 4, 34, (1, 34, 7)), (75.2, 30, 14, (1, 14, 6))):
 		p.append(("box", w, (x, Y + h / 2 + 2, z), MOSS))
 	return p
 
@@ -523,24 +611,52 @@ def town():
 	return p
 
 
+def swell():
+	"""A low rolling swell of the plain (ref 01): two overlapping grass domes, a pale dirt path winding over them and on
+	across the flat, bare-earth patches, two pines. Fits inside a 180-stud radius."""
+	RX, RY, RZ = 160, 11, 110
+
+	def ground(x, z):
+		return -1 + RY * math.sqrt(max(0.0, 1 - (x / RX) ** 2 - (z / RZ) ** 2))
+
+	p = [
+		("ball", (RX * 2, RY * 2, RZ * 2), (0, -1, 0), GRASS3, {"subdiv": 3, "smooth": True}),
+		("ball", (180, 16, 130), (70, -2, 40), GRASS2, {"subdiv": 3, "smooth": True}),
+	]
+	pts = [(-178, -40), (-130, -30), (-85, -8), (-40, 4), (0, 0), (40, -14), (80, -30), (118, -24), (150, 0), (178, 22)]
+	for (x1, z1), (x2, z2) in zip(pts, pts[1:]):  # the path, patch by patch, sitting on the swell
+		mx, mz = (x1 + x2) / 2, (z1 + z2) / 2
+		L = math.hypot(x2 - x1, z2 - z1) + 6
+		yaw = -math.degrees(math.atan2(z2 - z1, x2 - x1))
+		p.append(("ball", (L, 1.6, 7), (mx, ground(mx, mz) + 0.1, mz), EARTH2, {"subdiv": 2, "rot": (0, yaw, 0)}))
+	for x, z, w, d in ((-60, 50, 46, 22), (90, 60, 34, 18), (30, -60, 40, 20)):  # bare-earth patches
+		p.append(("ball", (w, 1.8, d), (x, ground(x, z) + 0.1, z), EARTH, {"subdiv": 2, "rot": (0, x * 0.4, 0)}))
+	p += pine(-90, 60, 30, ground(-90, 60) - 0.5) + pine(110, -60, 26, ground(110, -60) - 0.5)
+	return p
+
+
 def mountain():
-	"""One broad snow massif (ref 01): hazed green-grey foothill swells, then broad peaks of varied height along an
-	uneven ridgeline with a dark rock band under each snowfield and smooth snow caps; desaturated blue-grey for
-	distance, smooth-shaded so no facet seams read against the sky."""
+	"""A broad snow range (ref 01): hazed green-grey foothill swells under three broad massifs of uneven height, each a
+	broad rock body with a dark rock band and a snow mantle down its upper slopes, and a lower snowy shoulder to one
+	side; desaturated blue-grey for distance, smooth-shaded so the summits and shoulders read rounded, without seams."""
 	sm = {"smooth": True}
 	p = []
-	for x, z, r, h in ((-1000, -60, 1100, 220), (-200, -20, 1300, 260), (700, -40, 1200, 240), (1300, -80, 800, 180)):  # foothills
-		p.append(("ball", (r, h * 2, r * 0.5), (x, 0, z), "A2B8B4", {"subdiv": 3, "smooth": True}))
-	peaks = ((-1150, 80, 300, 420), (-820, 20, 470, 600), (-470, 60, 400, 520), (-120, 40, 560, 760), (240, 80, 480, 640), (560, 30, 420, 560), (880, 70, 340, 480), (1180, 40, 260, 380))
-	for i, (x, z, h, r) in enumerate(peaks):
-		lean = (i % 3 - 1) * 4
-		yaw = i * 37
-		base = 30 + (i * 53) % 90  # peaks rise from different heights: an uneven ridgeline
-		hh = h + 200 - base
-		o = dict(sm, seg=12, rot=(lean, yaw, -lean))
-		p.append(("cone", (r * 1.6, hh, r * 1.0), (x, base + hh / 2, z), ROCK1 if i % 2 else ROCK2, o))
-		p.append(("cone", (r * 1.14, hh * 0.72, r * 0.71), (x, base + hh * 0.64, z - 4), ROCKD, o))  # bare rock band
-		p.append(("cone", (r * 0.78, hh * 0.5, r * 0.49), (x, base + hh * 0.75 + 3, z - 7), SNOW, dict(o, seg=7, smooth=False)))  # snowfield, ragged edge
+	for x, z, r, h in ((-1100, -160, 1300, 200), (-100, -200, 1500, 240), (950, -180, 1300, 210)):  # foothills
+		p.append(("ball", (r, h * 2, r * 0.45), (x, 0, z), "A2B8B4", dict(sm, subdiv=2)))
+	for x, z, w, h, sh in ((-950, 60, 1250, 560, 1), (180, 0, 1550, 780, -1), (1150, 80, 1000, 440, 1)):
+		d = w * 0.55
+		p += [
+			("cone", (w, h, d), (x, h / 2, z), ROCK2, dict(sm, seg=18, taper=0.1)),  # broad rock body
+			("cone", (w * 0.7, h * 0.27, d * 0.7), (x, h * 0.42, z - 3), ROCKD, dict(sm, seg=18, taper=0.62)),  # dark rock band
+			# snow mantle on the same slope as the body, a hair proud of it, its summit rounded by smooth shading
+			("cone", (w * 0.62, h * 0.56, d * 0.62), (x, h * 0.72, z - 4), SNOW, dict(sm, seg=18, taper=0.17)),
+			("ball", (w * 0.13, h * 0.07, d * 0.13), (x, h * 0.99, z - 4), SNOW, dict(sm, subdiv=2)),  # rounded summit
+		]
+		sx = x + sh * w * 0.38  # a lower snowy shoulder to one side
+		p += [
+			("cone", (w * 0.6, h * 0.6, d * 0.6), (sx, h * 0.3, z + 30), ROCK1, dict(sm, seg=14, taper=0.08)),
+			("cone", (w * 0.32, h * 0.3, d * 0.32), (sx, h * 0.46, z + 26), SNOW, dict(sm, seg=14, taper=0.1)),
+		]
 	return p
 
 
@@ -556,7 +672,7 @@ def build(k):
 	k.prop("RuinedCastle", ruined_castle())
 	k.prop("Town", town())
 	k.prop("Mountain", mountain())
-	k.prop("Mound", [("ball", (140, 34, 100), (0, -4, 0), "7DB25E", {"subdiv": 3, "smooth": True}), ("ball", (80, 30, 70), (40, -2, 18), "78AC5A", {"subdiv": 3, "smooth": True})] + pine(-30, 10, 34, 8) + pine(20, -16, 28, 9) + pine(46, 20, 30, 11))
+	k.prop("Mound", swell())  # low rolling swells with dirt paths and bare earth
 
 	k.ground(GRASS, margin=4200)  # grass to the horizon
 	cx, cz = (k.lo.x + k.hi.x) / 2, (k.lo.z + k.hi.z) / 2
@@ -661,7 +777,8 @@ def build(k):
 
 	lo, hi = (k.lo.x - 500, k.lo.z - 500), (k.hi.x + 500, k.hi.z + 500)
 	scatter(110, ["Forest", "Forest", "Pine"], 130, lo, hi, (1.0, 1.8))  # infield and near woods with paths
-	scatter(12, ["Mound"], 170, lo, hi, (0.8, 1.6))
+	scatter(26, ["Mound"], 270, lo, hi, (0.9, 1.25))  # rolling swells with dirt paths over the plain
+	scatter(60, ["Mound"], 130, lo, hi, (0.45, 0.52))  # smaller swells nearer the road
 	scatter(40, ["Flowers"], 60, (k.lo.x - 200, k.lo.z - 200), (k.hi.x + 200, k.hi.z + 200), (1.2, 2.0))
 	scatter(6, ["RuinWall"], 120, lo, hi, (1.0, 1.3))
 	# Hazed far woods in a ring beyond the track, then the snow massif on the horizon
@@ -673,7 +790,7 @@ def build(k):
 		if free(x, z, 120):
 			k.place("FarWood", (x, -1.0, z), a + math.pi / 2 + k.rng.uniform(-0.4, 0.4), k.rng.uniform(1.0, 1.8))
 	ta = math.atan2(tz - cz, tx - cx)  # the massif stands behind the hill town, as in ref 01
-	for j, (da, rr, sc) in enumerate(((-0.6, 3500, 1.1), (0.0, 3800, 1.35), (0.6, 3500, 1.1), (math.pi, 3900, 0.8))):
+	for j, (da, rr, sc) in enumerate(((0.0, 3800, 1.3), (-1.3, 3900, 0.85), (1.5, 4000, 0.7), (math.pi, 3900, 0.9))):
 		a = ta + da
 		r = span + rr
 		k.place("Mountain", (cx + r * math.cos(a), -1.0, cz + r * math.sin(a)), -a + math.pi / 2, sc)

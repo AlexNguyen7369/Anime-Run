@@ -50,15 +50,17 @@ def lit(*a):
 	return (h * 2654435761 >> 7) % 10
 
 
-def window(p, x, y, zf, w, h, on, frame=FRAME, sill=TILE3, mullion=True, panes=2):
-	"""A framed window on a facade whose front face is at zf (road side is -Z): frame, glass, sill, and mullions splitting
-	it into `panes` panes."""
+def window(p, x, y, zf, w, h, on, frame=FRAME, sill=TILE3, mullion=True, panes=2, transom=False):
+	"""A framed window on a facade whose front face is at zf (road side is -Z): frame, glass, sill, mullions splitting
+	it into `panes` panes, and optionally a horizontal transom bar near the top."""
 	B(p, (w + 0.8, h + 0.8, 0.4), (x, y, zf - 0.1), frame)
 	B(p, (w, h, 0.3), (x, y, zf - 0.3), on or DARK, emit=1.6 if on else 0)
 	B(p, (w + 1.2, 0.4, 1.0), (x, y - h / 2 - 0.6, zf - 0.5), sill)
 	if mullion:
 		for i in range(1, panes):
 			B(p, (0.3, h, 0.2), (x - w / 2 + i * w / panes, y, zf - 0.5), frame)
+	if transom:
+		B(p, (w, 0.35, 0.25), (x, y + h * 0.22, zf - 0.5), frame)
 
 
 def side_window(p, xs, z, y, w, h, on, frame=FRAME):
@@ -70,9 +72,15 @@ def side_window(p, xs, z, y, w, h, on, frame=FRAME):
 
 
 def ac_unit(p, x, y, z, face=-1):
-	"""An outdoor air-conditioner unit: casing and a dark fan disk on the -Z (face -1) or +Z (face 1) side."""
-	B(p, (2.8, 2.0, 1.2), (x, y, z), "E6E6E2")
-	C(p, (1.5, 0.2, 1.5), (x - 0.4, y, z + face * 0.65), "50545A", rot=(90, 0, 0))
+	"""An outdoor air-conditioner unit on two wall brackets: a deep box casing, a dark fan grille disk with a cross bar on
+	the -Z (face -1) or +Z (face 1) side, a side vent and a pipe cover to the wall."""
+	B(p, (2.8, 2.0, 1.6), (x, y, z), "E2E4E0")
+	C(p, (1.5, 0.2, 1.5), (x - 0.4, y, z + face * 0.85), "3A3E44", rot=(90, 0, 0))
+	B(p, (1.6, 0.2, 0.1), (x - 0.4, y, z + face * 0.97), "8A8E92")
+	B(p, (0.7, 1.6, 0.2), (x + 0.95, y, z + face * 0.82), "B8BAB6")
+	for dx in (-1.0, 1.0):
+		B(p, (0.25, 0.25, 2.0), (x + dx, y - 1.1, z - face * 0.2), STEEL)  # brackets back to the wall
+	B(p, (0.4, 1.6, 0.4), (x + 1.7, y + 0.5, z - face * 0.5), "D8D8D4")  # pipe cover
 
 
 def vending_pair(p, x0, z0, n=2, face=-1):
@@ -132,7 +140,7 @@ def mansion():
 			x = -(W - 6) / 2 + unit * (u + 0.5)
 			r = lit(f, u)
 			on = (WARM, "FFE6C0", TV)[r % 3] if r < 6 else None
-			window(p, x - 1.5, y0 + 4.3, zf, 7.5, 6.4, on, frame="E8E8E4", panes=4)  # white frame, 4 panes
+			window(p, x - 1.5, y0 + 4.3, zf, 7.5, 6.4, on, frame="E8E8E4", panes=4, transom=True)  # white, 4 panes, transom
 			ac_unit(p, x + 4.2, y0 + 6.2, zf - 0.8)  # one per unit, hung on the wall above the balcony wall
 			if r % 4 != 1:
 				B(p, (9, 0.25, 0.25), (x - 1, y0 + 7.4, zf - 3.6), STEEL)
@@ -383,8 +391,10 @@ def hq():
 	# Hedge planters along the base and a row of tall conifers in front of them, both sides of the entrance
 	for s in (-1, 1):
 		for x in (40, 72):
-			B(p, (28, 2.4, 4.4), (s * x, 1.2, -D / 2 - 11), "9A968C")
-			B(p, (27, 2.8, 3.6), (s * x, 3.6, -D / 2 - 11), "3A5A36")
+			B(p, (28, 2.4, 4.4), (s * x, 1.2, -D / 2 - 11), "9A968C")  # raised planter
+			B(p, (27, 1.2, 3.6), (s * x, 3.0, -D / 2 - 11), "3A5A36")
+			for m in (-9, 0, 9):  # low rounded hedge mounds (gov_building4.jpg)
+				p.append(("ball", (8.5, 2.8, 4.0), (s * x + m, 3.6, -D / 2 - 11), "3E6238", {"subdiv": 1}))
 		for x in range(36, 90, 9):
 			C(p, (0.9, 4, 0.9), (s * x, 2, -D / 2 - 16), "4A3A2A", seg=6)
 			p.append(("cone", (7, 20, 7), (s * x, 14, -D / 2 - 16), "2C4A30", {"seg": 8, "taper": 0.0}))
@@ -459,33 +469,39 @@ def street_kit():
 	H = 36
 	arms = ((34, 11, (-3.5, 0, 3.5)), (31.5, 9, (-3, 3)), (29, 9, (-3, 3)), (26.5, 7, (-2.5, 2.5)))
 	for px, tbox in ((-12, False), (12, True)):
-		C(p, (1.5, H, 1.5), (px, H / 2, 1), "9A988E", taper=0.65)
+		C(p, (1.5, H, 1.5), (px, H / 2, 1), "8C9092", taper=0.65)  # grey concrete
 		C(p, (1.7, 2.4, 1.7), (px, 1.2, 1), "E8C030")
 		C(p, (1.72, 0.6, 1.72), (px, 1.6, 1), "1A1A1A")
 		for y in (7, 13, 18.5):
-			C(p, (1.55, 0.35, 1.55), (px, y, 1), "D0D0C8", seg=6)  # banding
+			C(p, (1.6, 0.45, 1.6), (px, y, 1), "5A6066", seg=6, metal=0.6, rough=0.4)  # metal band clamps
 		for i in range(6):
 			B(p, (0.2, 0.2, 1.4), (px, 8 + i * 3, 1 + (i % 2 - 0.5) * 1.4), STEEL)  # step bolts
 		for y, w, ins in arms:
-			B(p, (0.5, 0.5, w), (px, y, 1), STEEL)  # crossarm across the street direction
+			B(p, (0.5, 0.5, w), (px, y, 1), "7A8086", metal=0.5, rough=0.5)  # grey steel crossarm
 			for zz in ins:
-				C(p, (0.45, 0.9, 0.45), (px, y + 0.7, 1 + zz), "D8D8D0", seg=6)
+				C(p, (0.45, 0.9, 0.45), (px, y + 0.7, 1 + zz), "F2F2EE", seg=6)  # white insulator
+				C(p, (0.8, 0.25, 0.8), (px, y + 1.2, 1 + zz), "F2F2EE", seg=6)  # its cap
 		if tbox:
 			B(p, (2.6, 4.2, 2.2), (px, 22.5, -1.0), "8A9096")
 			for i in range(4):
 				B(p, (0.25, 3.6, 0.5), (px - 1.05 + i * 0.7, 22.5, -2.3), "7A8086")  # fins
 			B(p, (2.9, 0.4, 2.5), (px, 24.8, -1.0), "6A7076")
-			for i in range(3):
-				C(p, (0.4, 0.9, 0.4), (px - 0.8 + i * 0.8, 25.4, -1.0), "D8D8D0", seg=6)  # bushings
-			B(p, (0.5, 0.5, 2.4), (px, 23.5, 0.1), STEEL)
+			for i, (ty, tz) in enumerate(((29.9, -3), (32.4, -3), (29.9, 3))):
+				bx = px - 0.8 + i * 0.8
+				C(p, (0.5, 1.0, 0.5), (bx, 25.4, -1.0), "F2F2EE", seg=6)  # white bushing
+				wire(p, bx, 25.9, -1.0, px, ty, 1 + tz, 0.16, 0.4, n=2)  # drop lead up to a power wire
+			B(p, (0.5, 0.5, 2.4), (px, 23.5, 0.1), STEEL)  # bracket
 		C(p, (0.4, 22, 0.4), (px + 0.6, 21, 1.8), "1A1B1E", seg=6)  # riser cable
-		C(p, (2.4, 0.3, 2.4), (px + 0.9, 17, 2.0), "1A1B1E", seg=8, rot=(0, 0, 90))  # cable coil
+		for i in range(8):  # coiled slack: a loop of thick black cable lashed to the pole
+			a0, a1 = i * math.pi / 4, (i + 1) * math.pi / 4
+			wire(p, px + 0.9, 16 + 1.3 * math.cos(a0), 1 + 1.3 * math.sin(a0) + 1, px + 0.9, 16 + 1.3 * math.cos(a1), 1 + 1.3 * math.sin(a1) + 1, 0.35, 0.0, n=1)
+		wire(p, px - 4, 21.6, 2.8, px + 4, 21.6, 2.8, 0.6, 4.0, n=4)  # a hanging slack loop of the telecom cable
 		B(p, (0.5, 0.5, 2.2), (px, 21.6, 1.8), STEEL)  # telecom bracket
 	# Wires along the street, each drooping between the poles (24-stud spans, sag 3) and drawn as 4 pieces pole to pole and
 	# 2 pieces for each half span out to the kit ends (the low point of the neighbour spans): 7 thin power wires from the
-	# insulators and a loose telecom bundle of 3 lower down that droops more
+	# insulators and one thick black telecom cable lower down that droops more
 	lines = [(y + 0.9, zz, 0.22, 3.0) for y, w, ins in arms[:3] for zz in ins]
-	lines += [(21.6, 1.8 + dz, 0.3, 4.5) for dz in (-0.35, 0.0, 0.35)]
+	lines += [(21.6, 1.8, 0.6, 4.5)]  # one thick black telecom cable
 	for y, zz, r, sag in lines:
 		z = 1 + zz
 		wire(p, -12, y, z, 12, y, z, r, sag)
@@ -552,23 +568,28 @@ def low_block():
 
 
 def roof_tile():
-	"""320 x 320 of low back-street rooftops for the far city out to the horizon: an 8 x 8 grid of 2-7 storey blocks in
-	muted greys and tans, roof units and tanks, and a few lit window strips."""
+	"""320 x 320 of mid-rise back-street blocks for the far city out to the horizon (tokyo_night_skyline.jpg): a 6 x 6
+	grid of 3-8 storey blocks in muted greys and tans. Each block carries 1-2 window bands (most lit warm or cool, some
+	dark), split into rows of separate windows by 2 dark piers per axis that cross the whole block (one box serves two
+	opposite faces and every band, which keeps the mesh inside the 3k mid-prop budget)."""
 	p = []
 	B(p, (320, 0.4, 320), (0, 0.2, 0), "34363A")
-	for i in range(8):
-		for j in range(8):
-			x, z = -140 + i * 40, -140 + j * 40
-			h = 8 + lit(i, j) * 2.4
-			w = 26 + lit(j, i, 2) * 1.0
+	pitch = 320 / 6
+	for i in range(6):
+		for j in range(6):
+			x, z = -160 + pitch / 2 + i * pitch, -160 + pitch / 2 + j * pitch
+			h = 10 + lit(i, j) * 2.6
+			w = 34 + lit(j, i, 2) * 1.2
+			d = w - 2
 			col = ("8A8C8C", "9A948A", "7A7C80", "A8A498", "6E7276")[lit(i, j, 5) % 5]
-			B(p, (w, h, w - 2), (x, h / 2, z), col)
-			if lit(i, j, 7) < 6:
-				B(p, (6, 3, 6), (x + 6, h + 1.5, z + 4), "8E9094")
-			# Lit window bands: an emissive ring inset round the block at 1-2 floors, read as lit rooms from afar
-			for b in range(1 + (h > 18)):
-				col = (WARM, "F2E6D0", TV, "FFE6C0")[lit(j, i, b) % 4]
-				B(p, (w + 0.2, 1.4, w - 1.8), (x, h * (0.35 + 0.35 * b), z), col, emit=1.3)
+			B(p, (w, h, d), (x, h / 2, z), col)
+			for b in range(1 + (h > 20)):
+				on = lit(j, i, b + 11) < 7
+				wc = (WARM, "F2E6D0", TV, "FFE6C0")[lit(j, i, b) % 4] if on else "262A32"
+				B(p, (w + 0.2, 2.6, d + 0.2), (x, h * (0.32 + 0.34 * b), z), wc, emit=1.4 if on else 0)
+			for t in (-1, 1):  # dark piers: 3 windows per band on every face
+				B(p, (1.8, h - 1, d + 0.6), (x + t * w / 6, (h - 1) / 2, z), col)
+				B(p, (w + 0.6, h - 1, 1.8), (x, (h - 1) / 2, z + t * d / 6), col)
 	return p
 
 
@@ -644,9 +665,34 @@ def hexcol(h):
 	return (lin[0], lin[1], lin[2], 1.0)
 
 
-def street(k, side, names, front, start, end, gap=(2, 8), avoid=(), flip=0.0):
+def rect(x, z, yaw, w, d):
+	"""Corners (Roblox x, z) of a w x d footprint centred at (x, z) and turned `yaw` about Y, as kit.place turns it."""
+	c, s = math.cos(yaw), math.sin(yaw)
+	return [(x + a * c + b * s, z - a * s + b * c) for a, b in ((-w / 2, -d / 2), (w / 2, -d / 2), (w / 2, d / 2), (-w / 2, d / 2))]
+
+
+def overlap(r1, r2):
+	"""True if two convex footprints (corner lists) overlap: no separating axis among their edge normals."""
+	for r in (r1, r2):
+		for i in range(4):
+			(x0, z0), (x1, z1) = r[i], r[(i + 1) % 4]
+			nx, nz = z0 - z1, x1 - x0
+			p1 = [nx * x + nz * z for x, z in r1]
+			p2 = [nx * x + nz * z for x, z in r2]
+			if max(p1) <= min(p2) or max(p2) <= min(p1):
+				return False
+	return True
+
+
+assert overlap(rect(0, 0, 0, 10, 10), rect(9, 0, 0.3, 10, 10)) and not overlap(rect(0, 0, 0, 10, 10), rect(11, 0, 0, 10, 10))
+
+
+def street(k, side, names, front, start, end, gap=(2, 8), avoid=(), flip=0.0, taken=None):
 	"""Buildings shoulder to shoulder along one side: each one's road face sits about `front` studs from the centre line.
-	`avoid`: (x, z, radius) plots kept free. `flip`: share of mansions turned to show the corridor face to the road."""
+	`avoid`: (x, z, radius) plots kept free. `flip`: share of mansions turned to show the corridor face to the road.
+	`taken`: footprints already placed (shared by every call); a building that would overlap one is skipped, so rows
+	from two laps of the road that meet in the infield never interpenetrate."""
+	taken = [] if taken is None else taken
 	d = start
 	while d < end:
 		name = k.rng.choice(names)
@@ -656,9 +702,12 @@ def street(k, side, names, front, start, end, gap=(2, 8), avoid=(), flip=0.0):
 		free = all(math.hypot(pos[0] - x, pos[2] - z) > r for x, z, r in avoid)
 		if free and k.clear_of_road(pos[0], pos[2], abs(off) * 0.92):
 			yaw += math.pi / 2 if side > 0 else -math.pi / 2  # -Z faces the road, as kit.along
-			if name == "Mansion" and k.rng.random() < flip:
-				yaw += math.pi  # Aki's apartment beat: the corridor face toward the road
-			k.place(name, pos, yaw)
+			foot = rect(pos[0], pos[2], yaw, w * 0.96, dep * 0.96)
+			if not any(overlap(foot, t) for t in taken):
+				taken.append(foot)
+				if name == "Mansion" and k.rng.random() < flip:
+					yaw += math.pi  # Aki's apartment beat: the corridor face toward the road
+				k.place(name, pos, yaw)
 		d += w + k.rng.uniform(*gap)
 
 
@@ -735,12 +784,13 @@ def build(k):
 	# The Jinbocho corner near the start, on the right
 	pos, yaw = k.beside(L * 0.06 + 75, 40 + 10)
 	k.place("Retro", pos, yaw + math.pi / 2)
-	retro_plot = [(pos[0], pos[2], 30)]
+	retro_plot = [(pos[0], pos[2], 45)]  # building, booth and corner signs, with room so no stair or balcony reaches it
+	taken = [rect(pos[0], pos[2], yaw + math.pi / 2, 36, 34)]
 	# Street fronts, a taller back row, the infield as low blocks, the far skyline kept below the HQ
-	street(k, -1, ["ShopHouse", "ShopHouse", "Konbini", "Apaato", "Mansion"], 40, 20, end, avoid=hq_plots, flip=0.5)
-	street(k, 1, ["ShopHouse", "Apaato", "ShopHouse", "Mansion", "Konbini"], 40, 20, end, avoid=hq_plots + retro_plot, flip=0.5)
-	street(k, -1, ["Mansion", "Mansion", "ShopHouse"], 76, 0, end, gap=(6, 20), avoid=hq_plots)
-	street(k, 1, ["Mansion", "Apaato", "Mansion"], 76, 0, end, gap=(6, 20), avoid=hq_plots)
+	street(k, -1, ["ShopHouse", "ShopHouse", "Konbini", "Apaato", "Mansion"], 40, 20, end, avoid=hq_plots, flip=0.5, taken=taken)
+	street(k, 1, ["ShopHouse", "Apaato", "ShopHouse", "Mansion", "Konbini"], 40, 20, end, avoid=hq_plots + retro_plot, flip=0.5, taken=taken)
+	street(k, -1, ["Mansion", "Mansion", "ShopHouse"], 76, 0, end, gap=(6, 20), avoid=hq_plots, taken=taken)
+	street(k, 1, ["Mansion", "Apaato", "Mansion"], 76, 0, end, gap=(6, 20), avoid=hq_plots + retro_plot, taken=taken)
 	# Infield back streets: low blocks on an aligned 110-stud grid, each with a sodium light over its parking and park
 	c = (k.lo + k.hi) / 2
 	for i in range(-4, 5):
@@ -764,6 +814,6 @@ def build(k):
 	d = 24
 	while d < L:
 		for side in (-1, 1):
-			pos, _ = k.beside(d + (0 if side < 0 else 24), side * 22, 18)
-			k.light(pos, SODIUM, energy=26000, radius=4).data.use_shadow = False  # many lamps: shadows off
+			pos, _ = k.beside(d + (0 if side < 0 else 24), side * 16, 15)  # over the road edge, back from the facades
+			k.light(pos, SODIUM, energy=17000, radius=4).data.use_shadow = False  # many lamps: shadows off
 		d += 96

@@ -25,3 +25,14 @@ brown-grey rough earth walls, ribbed, dim; https://static.beebom.com/wp-content/
 `ant_black.ref.jpg` (anime, an ant's head close up: slate-blue chitin, angular plated head, a big almond red eye, curved
 mandibles; https://static.beebom.com/wp-content/uploads/2025/03/Black-Ant.jpg). No wide shot of the nest exterior was
 found; the `Nest` now uses the tunnel ref's dark earth colours, and the `Ant` the head ref's angular head and chitin.
+
+Round 5 (2026-11-23, new builder; Ant and Chamber eggs shaped live in Blender through the MCP and compared with
+`webtoon_gate` and `ant_black`, then ported): the `Ant` follows the coordinator's ruling: pale bone-grey chitin with the
+legs the same colour, an angular shield-wedge head (V face narrowing to the jaw, brow blades, side horns, a five-spike
+crown), two big almond and two small red eyes, long curved sickle mandibles, a bigger banded and plated abdomen with
+back spikes, and long legs bent at knees that rise above the body. The `Chamber` eggs are squat rounded ovoids packed
+shoulder to shoulder, with white web strands sagging from egg to egg (`queen_anime`, `queen_eggs`). The blockade ships
+sit on a wide ring well out in open water, spaced evenly by arc length (`anime_island`). Packs of ants roam beside the
+road (the 33% and 90% run shots and every 520 studs, 24+ studs clear), as the webtoon's swarms. Hallasan's summit is
+raised and its upper slopes are pale rock, so the pale summit dominates the island centre (`anime_island`); the review
+shot's sightline is kept clear of scatter. The nest's climbing ants now sit on the mound surface, heads down the slope.
