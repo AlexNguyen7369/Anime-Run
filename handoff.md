@@ -1,3 +1,9 @@
+## RESUME HERE (2026-11-22, ui-scroll): t1-t5 merged; full harness and PR left
+- Integration branch `feature/alex/ui-scroll-redesign` at 311af3c (merge of orch/ui-scroll/test-all = t3 panels, t4 popups, t5 HUD option A, Studio-run fixes 85c0b3e), pushed. Rules audit PASS. Task worktrees and branches t3/t4/t5/test-all removed.
+- Studio run 2 (synced onto the peer's e579995, then restored and hash-checked, peer told "Studio back"): ui_shop 72/0, ui_market 101/0, ui_layout 891/0, ui_hitboxes 98/0, ui_rebirth 38/0, ui_daily_boosts 13/0, ui_boss 485/0, ui_team 70/0, ui_shared_frames 263/0, ui_handscroll 18/0, ui_hud 16/0. Run 1 greens: see current_progress 216-217.
+- Studio belongs to the peer session animerun-cf: ask for a slot; rules: no focus loop, no resize, no save/publish, snapshot first, restore to the peer's base and hash-check, message "Studio back".
+- Next: full UiTestRun + server harness once on the integration branch (sync method: scratchpad allp3 hunks + FNV h*403 check), then PR into main (body: deliverables, results, rules 4.46/4.40/4.20, UI_SCROLL_SPEC test rules owner 2026-11-22) with a fresh reviewer given only the PR number. Expect the PR to conflict with the peer's PR #26 in GAME_DESIGN_REQUIREMENTS and current_progress: keep both sides.
+
 ## RESUME HERE (2026-11-20, audit-fixes): merged into main on the owner's word
 - Branch `feature/alex/audit-fixes` (contains sakura-polish, PR #22 Summon, PR #23 Team Select assets) merged into main. Full results: nightly-report.md 2026-11-20 section; audit report https://claude.ai/artifact/9UcXdm3HgDirovPXAfXgNs.
 - Team Select night dojo now lives in Client/TeamUi (30520e5) but was never run in Studio. Next: Studio check per the 12-point list (copied below), update UiTeam `team_altars_in_a_row` (Altar2 left of Altar1 left of Altar3) and the altar gear check (judge against Altar<n>/Nameplate), rerun ui_team, team_* clicks, ui_entry_points, ui_sidekicks.
