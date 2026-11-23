@@ -157,3 +157,24 @@ DoorOpen 436, DoorClosed 424, Hill 320, SkyDoor 304, Grass 250, Void 92. Clearan
 - Arms: each new arm must sit a reach plus a hand length (50 x scale) from every placed arm, unless they hang more
   than 60 x scale apart in height, so no arm passes through another. They also keep 15 studs clear of giant hands.
 - Hills: no hill stands within 1.4R + 900 of the dome centre, so no sunlit mound sits in front of the black.
+
+### Round note (2026-11-23): round 6 (new builder, review 6.5/10)
+- Colour in the finale (06, 07): `bone_white()` now uses 80% neutral flat white and 20% lit material, so suits, gloves
+  and arms read white under the red sky. The visor and the new chest V use `ink()`, a pure-black emission with no
+  diffuse or sheen. The visor stays pitch black, and its white highlight is its own shape (`astronauts_row.jpg`). The
+  mitten finger grooves are black ink lines, which no longer catch the warm light as salmon stripes.
+- Astronaut chest (`astronauts_row.jpg`): the grey control box, its red, green and white lights and the red and blue
+  hose connectors are gone. A dark V-shaped opening sits below the joined hands. Each shoulder has a blank pocket
+  (no emblem). 2,920 tris (was 2,992).
+- Astronaut rows: one figure every 19 studs (was 14), so each kneels apart on its own dark shadow patch
+  (`astronauts_welcome.jpg`).
+- Arms (`darkness_devil.jpg`): the spacing check now tests each arm's whole posed bounding box, hand included, with a
+  10-stud gap. It also tests the arm's screen rectangle from the 06 and 07 cameras, plus a half-size rectangle from
+  the 04 approach camera. An arm that fails any test is dropped. Candidates are dense (10 lateral columns, a row
+  every 60 studs), and the checks keep only separate arms. They hang 160-340 studs up over the last 950 studs and
+  the dome. Arms whose top would sit in the low band along the dome's base, seen from 03, are dropped. A short row of
+  tiny far arms still shows just above that strip in 03. Lifting them instead pushed the arms out of the 06 frame.
+- `ArmA` is now one tapering limb from shoulder to wrist, with no elbow seam ring. Both arms have open, solid hands:
+  fingers 1.4 times thicker, and the curl is opened (`ArmA` 22 to 10, `ArmB` 34 to 20).
+- Giant `Hand` rows stand 240 studs out at scale 1.5-1.8 (were 180 and 1.6-2.0), so no hand is cut off at the frame
+  edge in 03.
