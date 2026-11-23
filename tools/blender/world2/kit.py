@@ -264,7 +264,12 @@ class Kit:
 		sep = nt.nodes.new("ShaderNodeSeparateXYZ")
 		ramp = nt.nodes.new("ShaderNodeValToRGB")
 		nt.links.new(tc.outputs["Generated"], sep.inputs[0])
-		nt.links.new(sep.outputs["Z"], ramp.inputs["Fac"])
+		half = nt.nodes.new("ShaderNodeMath")  # view Z runs -1..1; the ramp's 0..1 needs z * 0.5 + 0.5
+		half.operation = "MULTIPLY_ADD"
+		half.inputs[1].default_value = 0.5
+		half.inputs[2].default_value = 0.5
+		nt.links.new(sep.outputs["Z"], half.inputs[0])
+		nt.links.new(half.outputs[0], ramp.inputs["Fac"])
 		cr = ramp.color_ramp
 		first, *rest = stops
 		cr.elements[0].position, cr.elements[0].color = 0.5 + first[0] / 2, hexcol(first[1])
