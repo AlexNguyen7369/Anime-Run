@@ -49,12 +49,12 @@ def seg(p, a, b, col, thick=0.5, wide=None):
 	bx(p, (ln, thick, wide or thick), ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2), col, rot=(0, ry, rz))
 
 
-def worker(p, x, y, z, s=1.0, sit=False, lean=0):
+def worker(p, x, y, z, s=1.0, sit=False, lean=0, crossed=False):
 	"""A Monster Sweeper in a loose white suit, facing -Z: a rounded, loose hood round a plain face, dark goggles, a white
 	respirator with a round side filter, harness straps and belt, a tall green pack, baggy rounded arms and legs."""
 	sm = {"smooth": True}
 	p.append(("cyl", (2.3 * s, 2.8 * s, 1.9 * s), (x, y + 2.8 * s, z), SUIT, {"seg": 12, "rot": (lean, 0, 0), "taper": 0.8, **sm}))  # loose suit
-	p.append(("ball", (2.5 * s, 1.0 * s, 2.0 * s), (x, y + 4.1 * s, z), SUIT, {"subdiv": 2, **sm}))  # shoulders
+	p.append(("ball", (2.5 * s, 1.0 * s, 2.0 * s), (x, y + 4.1 * s, z), SUIT, {"subdiv": 1, **sm}))  # shoulders
 	p.append(("ball", (2.5 * s, 2.5 * s, 2.4 * s), (x, y + 5.0 * s, z + 0.2 * s), SUIT, {"subdiv": 2, **sm}))  # rounded loose hood
 	p.append(("cyl", (1.9 * s, 0.35 * s, 1.9 * s), (x, y + 4.9 * s, z - 0.95 * s), "E4E4DE", {"rot": (90, 0, 0), "seg": 14, **sm}))  # hood rim
 	bx(p, (1.15 * s, 1.3 * s, 0.3 * s), (x, y + 4.95 * s, z - 1.1 * s), "D9A882")  # face
@@ -66,14 +66,32 @@ def worker(p, x, y, z, s=1.0, sit=False, lean=0):
 	bx(p, (2.3 * s, 0.35 * s, 1.95 * s), (x, y + 1.7 * s, z), "2A2A2E")  # belt
 	bx(p, (1.7 * s, 4.4 * s, 1.15 * s), (x, y + 3.9 * s, z + 1.45 * s), "5A6A44")  # tall green pack
 	bx(p, (1.5 * s, 0.5 * s, 1.05 * s), (x, y + 6.2 * s, z + 1.45 * s), "4A5838")
+	hose = ((x + 0.85 * s, y + 2.2 * s, z + 1.7 * s), (x + 1.55 * s, y + 1.2 * s, z + 0.7 * s), (x + 1.15 * s, y + 1.75 * s, z - 0.3 * s))
+	for a_, b_ in zip(hose, hose[1:]):  # teal hose looping from the pack to the hip
+		seg(p, a_, b_, "2E9A96", thick=0.28 * s)
+	if crossed:  # arms folded across the chest
+		bx(p, (2.3 * s, 0.75 * s, 0.85 * s), (x, y + 3.4 * s, z - 1.05 * s), SUIT)
 	for side in (-1, 1):
-		p.append(("cyl", (0.8 * s, 2.5 * s, 0.8 * s), (x + side * 1.35 * s, y + 3.0 * s, z - 0.3 * s), SUIT, {"seg": 8, "rot": (-25, 0, side * 12), "taper": 0.8, **sm}))  # baggy arm
-		p.append(("ball", (0.7 * s, 0.7 * s, 0.7 * s), (x + side * 1.5 * s, y + 1.85 * s, z - 0.85 * s), "8A9098", {"subdiv": 1}))  # glove
+		if not crossed:
+			p.append(("cyl", (0.8 * s, 2.5 * s, 0.8 * s), (x + side * 1.35 * s, y + 3.0 * s, z - 0.3 * s), SUIT, {"seg": 8, "rot": (-25, 0, side * 12), "taper": 0.8, **sm}))  # baggy arm
+			p.append(("ball", (0.7 * s, 0.7 * s, 0.7 * s), (x + side * 1.5 * s, y + 1.85 * s, z - 0.85 * s), "8A9098", {"subdiv": 1}))  # glove
 		if sit:
 			p.append(("cyl", (0.9 * s, 2.4 * s, 0.9 * s), (x + side * 0.5 * s, y + 1.0 * s, z - 1.2 * s), SUIT, {"seg": 8, "rot": (90, 0, 0), **sm}))
 		else:
 			p.append(("cyl", (1.0 * s, 2.4 * s, 1.0 * s), (x + side * 0.5 * s, y + 0.6 * s, z), SUIT, {"seg": 8, "taper": 0.85, **sm}))  # baggy leg
 			bx(p, (0.85 * s, 0.5 * s, 1.25 * s), (x + side * 0.5 * s, y - 0.45 * s, z - 0.15 * s), "4A4E56")  # boots
+
+
+def lying(p, x, y, z, s=1.0):
+	"""A Monster Sweeper lying on his back along Z (head to -Z), y at his back: loose suit, hood, goggles, pack under."""
+	bx(p, (1.7 * s, 1.0 * s, 4.0 * s), (x, y + 0.5 * s, z + 0.4 * s), "5A6A44")  # pack under the back
+	p.append(("cyl", (2.3 * s, 3.0 * s, 1.8 * s), (x, y + 1.6 * s, z + 0.6 * s), SUIT, {"seg": 12, "rot": (90, 0, 0), "smooth": True}))
+	p.append(("ball", (2.4 * s, 2.2 * s, 2.4 * s), (x, y + 1.7 * s, z - 1.9 * s), SUIT, {"subdiv": 2, "smooth": True}))  # hood
+	bx(p, (1.1 * s, 0.3 * s, 1.2 * s), (x, y + 2.85 * s, z - 2.0 * s), "D9A882")  # face up
+	bx(p, (1.2 * s, 0.25 * s, 0.38 * s), (x, y + 2.95 * s, z - 2.3 * s), "16181C")  # goggles
+	for side in (-1, 1):
+		p.append(("cyl", (1.0 * s, 2.6 * s, 0.9 * s), (x + side * 0.55 * s, y + 1.1 * s, z + 3.3 * s), SUIT, {"seg": 8, "rot": (90, 0, 0), "smooth": True}))  # legs
+		p.append(("cyl", (0.75 * s, 2.4 * s, 0.75 * s), (x + side * 1.4 * s, y + 1.5 * s, z - 0.6 * s), SUIT, {"seg": 8, "rot": (90, 0, side * 20), "smooth": True}))  # arms behind the head
 
 
 def car(p, x, z, col, yaw=0, state=0):
@@ -278,23 +296,45 @@ def build(k):
 		z0, z1 = flank_z(x, y - 2), flank_z(x, y + 2)
 		return -math.degrees(math.atan2(z1 - z0, 4))
 
-	kc.append(("ball", (470, 62, 146), (0, 24, -1.5), "DDBFA4", {"subdiv": 3, "smooth": True}))  # one wide pale band low on the side
-	for i in range(50):  # mottling on the band: flush darker and paler blotches
-		x, y = rnd.uniform(-200, 200), rnd.uniform(6, 34)
-		z = flank_z(x, y)
-		if z > -12:
+	BX, BY, BZ, BC = 235.0, 31.0, 73.0, 24.0  # pale band ellipsoid radii and centre height
+
+	def band_z(x, y):
+		"""Road-side surface of the pale band at (x, y), or 0 off the band."""
+		u = 1 - (x / BX) ** 2 - ((y - BC) / BY) ** 2
+		return -BZ * math.sqrt(u) - 1.5 if u > 0 else 0.0
+
+	kc.append(("ball", (BX * 2, BY * 2, BZ * 2), (0, BC, -1.5), "BCAC96", {"subdiv": 3, "smooth": True}))  # wide grey-beige band low on the side
+	for i in range(130):  # dense dark speckle on the band
+		x, y = rnd.uniform(-215, 215), rnd.uniform(4, 50)
+		z = band_z(x, y)
+		if z > -20:
 			continue
-		w = rnd.uniform(6, 16)
-		bx(kc, (w, w * rnd.uniform(0.3, 0.6), 1.0), (x, y, z - 1.6), rnd.choice(("C49C80", "B88C70", "E8D2BC")), rot=(lean_at(x, y), 0, rnd.uniform(-30, 30)))
-	for i in range(110):  # ink-like shadow streaks: thin dark angular plates lying flush on the bulges (not slabs)
-		x, y = rnd.uniform(-205, 205), rnd.uniform(48, 190)
-		if y > top_y(x) - 10:
+		w = rnd.uniform(1.6, 4.5)
+		bx(kc, (w, w * rnd.uniform(0.5, 1.0), 0.8), (x, y, z + 0.1), rnd.choice(("5E5244", "726452", "4A4036")), rot=(-math.degrees(math.atan2(band_z(x, y + 1) - band_z(x, y - 1), 2)), 0, rnd.uniform(0, 90)))
+	for i in range(30):  # ragged top edge: red hide tongues licking down over the band
+		x = -210 + i * 14.5 + rnd.uniform(-4, 4)
+		h, w = rnd.uniform(10, 24), rnd.uniform(9, 18)
+		y = 52 - h / 2 + rnd.uniform(-2, 3)
+		z = band_z(x, y)
+		if z > -20:
 			continue
-		z = flank_z(x, y)
-		if z > -14:
-			continue
-		w, h = rnd.uniform(18, 42), rnd.uniform(3, 9)
-		kc.append(("wedge", (w, h, 1.0), (x, y, z - 0.2), rnd.choice((HIDE2, "5A2418", "7A3628")), {"rot": (lean_at(x, y), 0, rnd.uniform(-35, 35))}))
+		kc.append(("cone", (w, h, 1.2), (x, y, z - 0.2), HIDE, {"seg": 3, "rot": (-math.degrees(math.atan2(band_z(x, y + 1) - band_z(x, y - 1), 2)), 0, 180 + rnd.uniform(-15, 15))}))
+	INK = ("4A1612", "561C16", "3E1210")
+	for hx, sy, sz, f in [h + (f,) for h in hull for f in (0.3, 0.5)]:  # large maroon ink shadows: jagged, branching runs, lower half of each bulge
+		x, y = hx - 50 + rnd.uniform(-8, 8), sy * f + rnd.uniform(-6, 6)
+		for i in range(10):
+			z = flank_z(x, y)
+			if z < -14 and y > 50:
+				ang = rnd.uniform(-40, 40)
+				w, h = rnd.uniform(26, 40), rnd.uniform(12, 22)
+				kc.append(("wedge", (w, h, 1.6), (x, y, z + 0.6), rnd.choice(INK), {"rot": (lean_at(x, y), 0, ang)}))
+				if i % 4 == 1:  # a branch running down
+					bx_, by_ = x + rnd.uniform(-6, 6), y - rnd.uniform(10, 18)
+					zb = flank_z(bx_, by_)
+					if zb < -14 and by_ > 50:
+						kc.append(("wedge", (rnd.uniform(8, 14), rnd.uniform(12, 20), 1.6), (bx_, by_, zb + 0.6), rnd.choice(INK), {"rot": (lean_at(bx_, by_), 0, rnd.uniform(-70, -20) * rnd.choice((-1, 1)))}))
+			x += rnd.uniform(9, 14)
+			y += rnd.uniform(-7, 7)
 	ROCKS = ("8E4A38", "844434", "96503C", "7E4232")
 	for i in range(24):  # a jagged rocky ridge along the top silhouette only
 		x = -195 + i * 17 + rnd.uniform(-5, 5)
@@ -341,17 +381,17 @@ def build(k):
 		kc.append(("cyl", (r * 0.85, ln * 1.3, r), ((x + x1) / 2, r * 0.3, (z + z1) / 2), HIDE, {"seg": 9, "rot": (0, ry, -90), "taper": r1 / r}))
 	x, z, r = pts[12]
 	kc.append(("cone", (r * 0.85, 30, r), (x + 13, r * 0.3, z), HIDE, {"seg": 9, "rot": (0, 0, -90)}))
-	# stake-and-rope lines (as in the source): A-frame stakes every 9 studs with a rope sagging between them, one line
+	# stake-and-rope lines (as in the source): stout A-frame stakes every 18 studs with a rope sagging between them, one line
 	# along the back and one along the flank
-	lines = [[(x, top_y(x) - 2, -12) for x in range(-180, 181, 9)]]
-	lines.append([(x, top_y(x) * 0.62, flank_z(x, top_y(x) * 0.62) - 3) for x in range(-180, 181, 9)])
+	lines = [[(x, top_y(x) - 2, -12) for x in range(-180, 181, 18)]]
+	lines.append([(x, top_y(x) * 0.62, flank_z(x, top_y(x) * 0.62) - 3) for x in range(-180, 181, 18)])
 	for line in lines:
 		for x, y, z in line:
 			for lx in (-2.2, 2.2):  # A-frame: two legs meeting at the top
-				seg(kc, (x + lx, y, z), (x, y + 13, z - 1.5), "8A8E94", thick=1.0)
+				seg(kc, (x + lx, y, z), (x, y + 13, z - 1.5), "8A8E94", thick=1.8)
 			bx(kc, (1.8, 1.2, 1.4), (x, y + 13, z - 1.5), "5A5E64")
 		for (x0, y0, z0), (x1, y1, z1) in zip(line, line[1:]):
-			mid = ((x0 + x1) / 2, (y0 + y1) / 2 + 9, (z0 + z1) / 2 - 1.5)
+			mid = ((x0 + x1) / 2, (y0 + y1) / 2 + 4, (z0 + z1) / 2 - 1.5)  # deep sag
 			seg(kc, (x0, y0 + 12.5, z0 - 1.5), mid, "D8CFAE", thick=0.8)
 			seg(kc, mid, (x1, y1 + 12.5, z1 - 1.5), "D8CFAE", thick=0.8)
 	# two teal lattice gantries straddling the body, long ropes from their tops onto the flank and to the ground
@@ -379,6 +419,16 @@ def build(k):
 				t = 0.82
 				px, py, pz = (top[0] + (end[0] - top[0]) * t, top[1] + (end[1] - top[1]) * t, top[2] + (end[2] - top[2]) * t)
 				worker(kc, px + 2, py - 14, pz - 4, 4.8, lean=(-8, 6, -4)[j])
+	for i in range(16):  # thin ropes from the ridge draped down the hide to the ground
+		x = -185 + i * 24 + rnd.uniform(-4, 4)
+		ys = [top_y(x) - 4, top_y(x) * 0.7, top_y(x) * 0.45, 30, 2]
+		pts_ = [(x + rnd.uniform(-1, 1), y, min(flank_z(x, y), band_z(x, y) if y < 56 else 0) - 1.2) for y in ys]
+		for a_, b_ in zip(pts_, pts_[1:]):
+			seg(kc, a_, b_, (ROPE_B, ROPE_Y, "2E9A96")[i % 3], thick=0.55)
+	for gx in (-80, 100):  # thin ropes hanging straight down from the gantry beams to the ground
+		for q in range(5):
+			z = -96 + q * 3.2
+			seg(kc, (gx + rnd.uniform(-6, 6), GH - 2, z), (gx + rnd.uniform(-8, 8), 0.5, z - 2), (ROPE_Y, ROPE_B, "2E9A96")[q % 3], thick=0.5)
 	for x, sc in ((-40, 1.8), (50, 1.8)):  # on the back
 		worker(kc, x, top_y(x) - 4, -8, sc)
 	for x, z, sc in ((-20, -96, 1.15), (20, -92, 1.15), (150, -84, 1.1), (-140, -150, 1.15)):  # ground crew: human scale
@@ -426,12 +476,12 @@ def build(k):
 		bx(va, (6.4, 0.35, 0.5), (0, 7.3, z), "9AA0A6", metal=0.6)
 	for x in (-3.0, 3.0):
 		bx(va, (0.4, 0.4, 11.5), (x, 7.5, 1.5), "9AA0A6", metal=0.6)
-	for x, z in ((-1.5, -2.0), (1.5, 3.0)):
-		worker(va, x, 7.4, z, 1.0, sit=True)
-	worker(va, 8, -1, -4)
-	worker(va, 9.5, -1, 4)
-	for i in range(4):
-		va.append(("cone", (1.6, 3, 1.6), (-8, 0.5, -10 + i * 6), STRIPE, {"seg": 8}))
+	for x in (-1.6, 1.6):  # sitting on the front of the rack, legs over the windscreen
+		worker(va, x, 7.0, -4.6, 1.0, sit=True)
+	lying(va, 0.4, 7.7, 4.2, 0.95)  # lying down on the rack
+	worker(va, 4.9, -1, 1.0, 1.0, lean=-6, crossed=True)  # leaning on the van, arms crossed
+	worker(va, 9.5, -1, 5)
+	va.append(("cone", (1.6, 3, 1.6), (-8, 0.5, -10), STRIPE, {"seg": 6}))  # one cone (mid-prop tri cap)
 	va.append(("cyl", (0.6, 11, 0.6), (10, 4.5, 20), "6A6E74", {"seg": 6}))  # light tower, clear of the roof crew
 	bx(va, (2.4, 1.4, 1.2), (10, 10.5, 20), "E8ECF0", emit=1.0)
 	bx(va, (5, 3, 5), (10, 0.5, 20), "E8C840")
@@ -638,8 +688,8 @@ def build(k):
 			seg(rg, (gx_, gy_ + 24, zq), mid, "1E1E1E", thick=1.1)
 			seg(rg, mid, (gx_ + 6, gy_ + 15, zq * 0.6), "1E1E1E", thick=1.1)
 	for s in (-1, 1):  # ribbed grey capacitor tanks: dark ring bands and vertical ribs
-		for j, x in enumerate((-46, -28, -10, 8)):  # either side of the breech coils
-			tz = s * (35 + (j % 2) * 5)
+		for j, x in enumerate((-62, -78)):  # two tanks each side of the barrel axis, behind the coil drum
+			tz = s * 30
 			rg.append(("cyl", (11, 48, 11), (x, 23, tz), "8E969E", {"seg": 12, "metal": 0.5, "rough": 0.4}))
 			for q in range(8):
 				rg.append(("cyl", (12.4, 1.8, 12.4), (x, 2 + q * 6, tz), ("3E444A", STRIPE)[q == 4], {"seg": 12, "metal": 0.5}))
@@ -647,19 +697,19 @@ def build(k):
 				ang = a_ * math.pi / 2 + math.pi / 4
 				bx(rg, (1.0, 46, 1.0), (x + math.cos(ang) * 5.8, 23, tz + math.sin(ang) * 5.8), "5A6268")
 			rg.append(("cyl", (8, 2.4, 8), (x, 48, tz), "5E666E", {"seg": 12}))
-	cols = ("1E1E1E", "2A2A2A", "3A2A1A", "202830")
-	for i in range(14):  # 84 long cable bundles: from the coil rings out and down both sides in sagging loops, back onto the deck
-		cx_, cy_, _ = along(2 + i * 3.9)
+	cols = ("141414", "1E1E20", "2A2A2C", "18181A")
+	for i in range(14):  # 84 thick black cable bundles spilling from the coil discs over both side decks to the ground
+		cx_, cy_, _ = along(4 + i * 3.6)
 		for q, side in enumerate((-1, 1, -1, 1, -1, 1)):
-			dx = rnd.uniform(-12, 16)
-			out = rnd.uniform(46, 52)
-			pts_ = [(cx_, cy_ + 6 - q * 3, side * 29),  # off the ring rim
-				(cx_ + dx * 0.4, cy_ * 0.55, side * (out - 8)),  # out and down
-				(cx_ + dx * 0.8, rnd.uniform(6, 12), side * out),  # sagging low at the outside
-				(cx_ + dx, 2.0, side * (out - 8)),  # along the ground
-				(cx_ + dx * 1.2, 6.5, side * rnd.uniform(23, 27))]  # up onto the side deck
+			dx = rnd.uniform(4, 44)  # cables spill forward along the deck too, clear of the tanks behind the drum
+			out = rnd.uniform(44, 51)
+			a0 = math.radians(rnd.uniform(-40, 25))  # leaves the disc rim on its flank
+			p0 = (cx_, cy_ + 30 * math.sin(a0), side * 30 * math.cos(a0))  # off the disc rim
+			p2 = (cx_ + dx, 0.9, side * out)  # on the ground beyond the side deck
+			c = ((p0[0] + p2[0]) / 2, 20.0, side * 30)  # pulls the curve up over the deck rail (11 high at 24.2 out)
+			pts_ = [tuple((1 - t) ** 2 * p0[k_] + 2 * (1 - t) * t * c[k_] + t * t * p2[k_] for k_ in range(3)) for t in (0, 0.2, 0.4, 0.6, 0.8, 1.0)]  # sagging arc
 			for a_, b_ in zip(pts_, pts_[1:]):
-				seg(rg, a_, b_, cols[(i + q) % 4], thick=(1.8, 2.4)[q % 2])
+				seg(rg, a_, b_, cols[(i + q) % 4], thick=(2.0, 2.6)[q % 2])
 	for x in range(-110, 132, 3):  # rack-tooth centre rail
 		bx(rg, (1.4, 1.0, 2.6), (x, 1.6, 0), "6E7278", metal=0.6)
 	bx(rg, (250, 1.0, 3.0), (10, 0.8, 0), "5A5E64", metal=0.6)
@@ -790,6 +840,10 @@ def build(k):
 	for d, off, s in corpses + [(3480, -80, 1.0), (gun2[0], gun2[1], 1.0)]:
 		x, z, _ = local(k, d, off, 0, 0)
 		avoid.append((x, z, 210))
+	for d, off, s in corpses:  # and along each corpse's full length, head to tail tip
+		for lx in (-380, -250, -120, 120, 250, 380, 500):
+			x, z, _ = local(k, d, off, lx, 0)
+			avoid.append((x, z, 170))
 	# Street grid tiles (random quarter turns) over the city and the infield, a few towers on them
 	towers = []
 	gx = k.lo.x - 400

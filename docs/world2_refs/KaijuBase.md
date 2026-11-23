@@ -94,3 +94,16 @@ Round 9 (2026-11-23), final coordinator ruling on the corpse (sweeper_cleaning1/
 - Rail cannon: 84 long cable bundles run from the coil rings out and down both sides in sagging loops, along the
   ground and back up onto the side decks (railgun.jpg). They stay 24+ from the road.
 - Van: a taller windscreen raked back along the nose slope, and bigger side windows.
+
+Round 10 (2026-11-23):
+- Rail cannon: two ribbed tanks stand on each side of the barrel axis, behind the coil drum. 84 thick black cable
+  bundles leave the coil discs and run in long sagging arcs over both side-deck rails to the ground, clear of the tanks
+  and the rail bed (railgun.jpg).
+- Corpse (the form is settled): large dark-maroon ink shadows in jagged, branching runs on the lower half of each
+  bulge (sweeper_cleaning1). The pale band is grey-beige with dense dark speckle and a ragged top edge broken by red
+  tongues (sweeper_cleaning2). 16 thin blue, teal and yellow ropes drape from the ridge over the hide to the ground, and
+  10 more hang straight from the gantry beams. The stake lines have stout posts every 18 studs and a deep rope sag.
+- Crew: a teal hose loops from each sweeper's pack to the hip. On the van, two sweepers sit on the front of the rack
+  with their legs over the windscreen, one lies on the rack, and one leans on the van with arms crossed
+  (sweeper_members).
+- City tiles now keep clear of each corpse's full length, so the tail no longer runs through blocks.
