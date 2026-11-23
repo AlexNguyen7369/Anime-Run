@@ -14,6 +14,7 @@ local RaceConfig = require(Shared.RaceConfig)
 local Monetization = require(Shared.MonetizationConfig)
 local Daily = require(Shared.DailyLoginConfig)
 local Spec = require(script.Parent.UiSpec)
+local Handscroll = require(script.Parent.Parent:WaitForChild("DojoHandscroll"))
 
 local Contracts = {}
 
@@ -42,6 +43,15 @@ function Contracts.Build(h)
 	local function modulePresent(res, name)
 		local object = script.Parent.Parent:FindFirstChild(name)
 		check(res, "shared_client_module_" .. name, object ~= nil and object:IsA("ModuleScript"), true)
+	end
+	-- Design doc 4.46: a panel unrolls over DojoHandscroll.OPEN and its content inks in as the paper reaches it, so it is
+	-- sampled once its handscroll (on the PanelFrame panel, the one PanelSwitch animates) is at rest; at most 1 s more.
+	local function waitHandscroll(panel, openedAt)
+		local scroll = Handscroll.Get(panel)
+		local settle = openedAt + Handscroll.OPEN.Time + 0.1
+		while scroll and (scroll.Progress < 1 or os.clock() < settle) and os.clock() < settle + 1 do
+			task.wait()
+		end
 	end
 	local function sameLine(a, b)
 		return math.abs(a.AbsolutePosition.Y - b.AbsolutePosition.Y) <= Spec.Tolerance
@@ -315,25 +325,46 @@ function Contracts.Build(h)
 			while closing and h.visible(closing) and os.clock() < deadline do
 				task.wait()
 			end
+			local openedAt = os.clock()
 			h.switch.Action(frame.Action)
 			h.frames(2)
 			local panel = required(res, frame.Panel, "Frame")
 			if not panel then
 				continue
 			end
+			waitHandscroll(panel, openedAt) -- 4.46: the unroll hides content near the edges until it is done
 			local prefix = "frame_" .. string.lower(frame.Action)
 			check(res, prefix .. "_shown", h.visible(panel), true)
 			check(res, prefix .. "_shared_marker", panel:GetAttribute("PanelFrame"), true)
 			local header = required(res, frame.Panel .. "/Header", "Frame")
 			local legacyDaily = frame.Action == "Daily" or frame.Action == "Quests"
-			local icon =
-				required(res, frame.Panel .. (legacyDaily and "/Header/CalendarIcon" or "/Header/Icon"), "ImageLabel")
+			-- Pre-existing (QuestAnimeStyle, kept in 4.46): while its AnimeQuests layer shows, the modal's Header, Title
+			-- and Close are hidden and the layer's Banner logo, title and seal close are the ones shown, so judge those.
+			local layer = legacyDaily and h.find(frame.Panel .. "/AnimeQuests")
+			local quests = layer ~= nil and h.visible(layer)
+			local band = quests and required(res, frame.Panel .. "/AnimeQuests/Banner", "Frame") or header
+			local icon = required(
+				res,
+				frame.Panel
+					.. (
+						quests and "/AnimeQuests/Banner/Logo"
+						or legacyDaily and "/Header/CalendarIcon"
+						or "/Header/Icon"
+					),
+				"ImageLabel"
+			)
 			local title = required(
 				res,
-				frame.Panel .. ((legacyDaily or frame.Action == "Shop") and "/Title" or "/Header/Title"),
+				frame.Panel
+					.. (
+						quests and "/AnimeQuests/Banner/Title"
+						or (legacyDaily or frame.Action == "Shop") and "/Title"
+						or "/Header/Title"
+					),
 				"TextLabel"
 			)
-			local close = required(res, frame.Panel .. "/" .. frame.Close, "GuiButton")
+			local close =
+				required(res, frame.Panel .. (quests and "/AnimeQuests/Close" or "/" .. frame.Close), "GuiButton")
 			if title then
 				check(res, prefix .. "_title", containsText(title.Text, frame.Title), true)
 			end
@@ -343,28 +374,26 @@ function Contracts.Build(h)
 			local closes, headers = 0, 0
 			for _, object in panel:GetDescendants() do
 				if object:IsA("GuiButton") and object.Name == "Close" then
-					closes += 1
+					-- one close the player can see (kept in 4.46; the modal's, hidden under the Quests layer, is not a second)
+					closes += h.visible(object) and 1 or 0
 				elseif object:IsA("Frame") and object.Name == "Header" then
 					headers += 1
 				end
 			end
 			check(res, prefix .. "_one_close", closes, 1)
 			check(res, prefix .. "_one_header", headers, 1)
-			check(res, prefix .. "_rounded", panel:FindFirstChildWhichIsA("UICorner") ~= nil, true)
-			check(res, prefix .. "_outline", panel:FindFirstChildWhichIsA("UIStroke") ~= nil, true)
-			if header then
-				local gradient = header:FindFirstChildWhichIsA("UIGradient")
-				check(res, prefix .. "_gradient", gradient ~= nil, true)
-				if gradient then
-					local c = gradient.Color.Keypoints[1].Value
-					local colour = frame.Colour
-					local matches = colour == "red" and c.R > c.G and c.R > c.B
-						or colour == "blue" and c.B > c.R and c.B > c.G
-						or colour == "purple" and c.R > c.G and c.B > c.G
-						or colour == "orange" and c.R > c.G and c.G > c.B
-					check(res, prefix .. "_colour_" .. colour, matches, true)
-				end
-			end
+			-- Design doc 4.46 (owner 2026-11-22): the handscroll is the panel's body (paper between two rollers), in place
+			-- of the 4.42 rounded, outlined fill; the header colour gradient check is retired (the header has no fill).
+			local scroll = panel:FindFirstChild("Handscroll")
+			local paper = scroll and scroll:FindFirstChild("Paper")
+			check(res, prefix .. "_handscroll", scroll ~= nil and paper ~= nil, true)
+			check(
+				res,
+				prefix .. "_handscroll_rollers",
+				scroll ~= nil and scroll:FindFirstChild("RollerL") ~= nil and scroll:FindFirstChild("RollerR") ~= nil,
+				true
+			)
+			check(res, prefix .. "_paper_shown", paper ~= nil and h.visible(paper), true)
 			if close then
 				local c = close.BackgroundColor3
 				check(res, prefix .. "_close_red", c.R > c.G and c.R > c.B and close.BackgroundTransparency < 0.5, true)
@@ -376,11 +405,16 @@ function Contracts.Build(h)
 					math.abs(close.AbsoluteSize.X - close.AbsoluteSize.Y) <= Spec.Tolerance
 				)
 			end
-			if header and icon and title and close then
+			if band and icon and title and close then
 				-- Legacy Close parent is Panel, but it must occupy the header band just like the reused Close.
-				h.geometry.Group(res, prefix .. "_header", header, { icon, title, close })
+				h.geometry.Group(res, prefix .. "_header", band, { icon, title, close })
 			end
-			h.geometry.Panel(res, prefix, panel)
+			-- Pre-existing, kept in 4.46: phones show the Market grid or its detail card and open on the grid
+			-- (market_phone_opens_grid_only), so Detail is left out at phone viewports as in UiShopMarket's market geometry.
+			local detail = frame.Action == "Market" and h.find(Spec.Market.Detail)
+			h.geometry.Panel(res, prefix, panel, function(d, vp)
+				return detail and vp.Y <= Spec.Market.PhoneMaxHeight and detail:IsAncestorOf(d) or false
+			end)
 		end
 		restore()
 	end
