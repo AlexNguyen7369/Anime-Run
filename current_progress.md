@@ -225,8 +225,9 @@
 221. 2026-11-23 — Alex Nguyen — World 2 Phase A on feature/alex/world2-place: design doc 4.47 and WORLD2_SPEC, WorldConfig/WorldSave (World 2 progress under Worlds.W2), a locked World 2 gate in the plaza, /world1 and /world2 admin travel, 10 World 2 track routes, and the Blender-first draft pipeline (tools/blender/world2) with the Track 1 Devil Hunter Tokyo renders.
 222. 2026-11-23 — Alex Nguyen — World 2: per-world enemy names (NpcConfig.World2) and Tracks panel copy (TrackCards World 2 table), World 1 tables unchanged.
 223. 2026-11-23 — Alex Nguyen — World 2 gate Blender draft (tools/blender/world2/build_gate.py, locked and open renders) and the matching SpawnArea tweak: a dim sealed portal with thicker chains and padlock in front.
+224. 2026-11-23 — Alex Nguyen — World 2: all 10 track biomes built in Blender (tools/blender/world2/biomes, kit facing and sky fixes) and rendered at full size through the Blender MCP; approval page assets/world2_draft/index.html (gate plus 6 shots per track).
 
 ## What's next
-**Render World 2 Tracks 2-10 in Blender and give the owner the full approval set of all 10 tracks.**
+**Owner reviews assets/world2_draft/index.html and approves or marks changes per track; then the approved drafts become game BiomeThemes and asset uploads.**
 
-**Why this is next:** the owner rules that every World 2 track is approved from Blender renders before it goes in the game; the game biome themes, asset uploads and Studio screenshots all wait on that approval.
+**Why this is next:** the owner rules that nothing of World 2 goes in the game before its Blender draft is approved; the game biomes, uploads and Studio screenshots all wait on that.
