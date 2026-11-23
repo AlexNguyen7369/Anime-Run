@@ -786,6 +786,26 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   - The kanji and short sub lines under each title stay (decoration only).
 - Display only: the server decides every number, cost and claim, as before.
 
+### 4.46 World 2 (owner 2026-11-23)
+- World 2 is a **separate place** in the same universe, built from the same source tree (`world2.project.json` adds
+  `ReplicatedStorage.WorldId = 2`; `Shared/WorldConfig`). Spec: `docs/WORLD2_SPEC.md`.
+- Gate: a World 2 gate stands in the World 1 spawn plaza. It is **locked for everyone** for now ("COMING SOON"); admins
+  travel with `/world2` and back with `/world1`. Opening rule (**proposed**): World 1 Track 10 beaten and rebirth >= 5,
+  no Money cost, nothing resets.
+- Shared across worlds: Money, Gems, Rebirth, stat points, Index, Copies, Sidekicks, Relics, passes. Per world: `BestTrack`,
+  `Checkpoint`, `RaceBestTimes` (World 2 saves them under `Worlds.W2`; World 1's layout is unchanged) and the team.
+- 10 tracks, one per new series first, then classic arcs: Saw Man, Solo Levelup, One Punch, Dandadan, Kaiju No. 8,
+  Frieren, then Solo Levelup, One Punch, Frieren, Saw Man (names and enemies **proposed**, `WORLD2_SPEC`). Routes reuse
+  World 1's validated track routes; biomes are new.
+- Blender first (owner 2026-11-23): every World 2 track and asset is made and rendered in Blender
+  (`tools/blender/world2`) and approved by the owner before it goes in the game.
+- Speed: a per-world cruise table; the studs/s band stays World 1's (48-800). World 1 characters run at x0.1 there
+  (**proposed**), World 2 adds the Eternal rarity (780, **proposed**).
+- World 2 only: a **team of 4** (slot 4 unlocked on first entry; this amends 4.2 and 4.8 for World 2: bonuses need any 3
+  matching members) and **Awakening** (duplicate Copies buy up to 5 stars per character; costs and gains **proposed**).
+- Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,
+  Kaiju No. 8 and Frieren (owner 2026-11-23). World 2 rolls only World 2 characters.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -848,6 +868,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-23: owner: World 2 (4.46): separate place, locked plaza gate with /world2 for admins, per-world progress, 10 tracks Blender-first, per-world cruise, team of 4 and Awakening in World 2, 6 series.
 - 2026-11-20: owner: game-wide Scroll Dojo look from the Summon and Team pages, center-out handscroll open about 0.45 s with input live, HUD and boss UI in scope; references first (4.46 draft; 4.20, 4.42 replaced for redesigned GUIs on approval).
 - 2026-11-20: owner approved the Scroll Dojo references: every frame, HUD option A, Money and Gems on lacquer plates (4.40 no-box rule replaced), Shop in three columns, kanji and sub lines kept, game potion art; the Upgrades tree is left as it is (4.46).
 - 2026-11-22: owner, HUD option A details: the team row keeps its circles and arc (lacquer and gold look only); the Turbo bar becomes wood with a vermilion fill (4.40, 4.46).

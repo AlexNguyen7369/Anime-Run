@@ -15,6 +15,8 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RebirthConfig = require(Shared:WaitForChild("RebirthConfig"))
 local PayoutCurve = require(Shared:WaitForChild("PayoutCurve"))
+local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
+local WorldSave = require(Shared:WaitForChild("WorldSave"))
 local MoneyService = require(script.Parent.MoneyService)
 local GachaService = require(script.Parent.GachaService)
 local UpgradeService = require(script.Parent.UpgradeService)
@@ -265,7 +267,7 @@ function PlayerData.Load(player, userId)
 		player:SetAttribute("DataReadOnly", true)
 		warn("PlayerData: save version " .. tostring(updated.Version) .. " is newer than " .. VERSION .. ", read-only")
 	end
-	apply(updated)
+	apply(WorldSave.View(updated, WorldConfig.Id)) -- World 2 reads its own track progress (design doc 4.46)
 	player:SetAttribute("DataFailed", nil)
 	player:SetAttribute("DataLoaded", true)
 	-- The mailbox was persisted even if the recipient was offline. Claim through the same
@@ -419,7 +421,8 @@ local function save(player, userId, release)
 			end
 			-- Start from the stored record so keys this version does not know are kept, then overlay ours.
 			local merged = table.clone(current)
-			for key, value in GiftMailbox.Merge(table.clone(payload), current, known) do
+			local worldPayload = WorldSave.Fold(payload, current, WorldConfig.Id) -- design doc 4.46
+			for key, value in GiftMailbox.Merge(table.clone(worldPayload), current, known) do
 				merged[key] = value
 			end
 			for _, key in DROPPED_KEYS do

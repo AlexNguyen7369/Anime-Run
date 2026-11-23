@@ -27,6 +27,7 @@ local RelicConfig = require(Shared.RelicConfig)
 local RelicService = require(script.Parent.RelicService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local WeatherService = require(script.Parent.WeatherService)
+local WorldTravel = require(script.Parent.WorldTravel)
 
 local AdminService = {}
 
@@ -546,6 +547,31 @@ AdminService.Commands = {
 			return true, "save erased"
 		end,
 	},
+	-- World travel (design doc 4.46): the World 2 gate is locked, so admins go by command.
+	world1 = {
+		Usage = "/world1 [player]",
+		Help = "send to the World 1 place",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return 1
+		end,
+		Apply = function(p, id)
+			return WorldTravel.Go(p, id)
+		end,
+	},
+	world2 = {
+		Usage = "/world2 [player]",
+		Help = "send to the World 2 place (its gate is locked for everyone else)",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return 2
+		end,
+		Apply = function(p, id)
+			return WorldTravel.Go(p, id)
+		end,
+	},
 	tp = {
 		Usage = "/tp <track number | vfxarea | home> [player]",
 		Help = "move the runner to a track, or walk to the VFX showcase area or back to spawn",
@@ -607,6 +633,8 @@ local ORDER = {
 	"wipe",
 	"newplayer",
 	"tp",
+	"world1",
+	"world2",
 }
 
 local function helpText()
