@@ -50,13 +50,15 @@ def lit(*a):
 	return (h * 2654435761 >> 7) % 10
 
 
-def window(p, x, y, zf, w, h, on, frame=FRAME, sill=TILE3, mullion=True):
-	"""A framed window on a facade whose front face is at zf (road side is -Z): frame, glass, sill, centre mullion."""
+def window(p, x, y, zf, w, h, on, frame=FRAME, sill=TILE3, mullion=True, panes=2):
+	"""A framed window on a facade whose front face is at zf (road side is -Z): frame, glass, sill, and mullions splitting
+	it into `panes` panes."""
 	B(p, (w + 0.8, h + 0.8, 0.4), (x, y, zf - 0.1), frame)
 	B(p, (w, h, 0.3), (x, y, zf - 0.3), on or DARK, emit=1.6 if on else 0)
 	B(p, (w + 1.2, 0.4, 1.0), (x, y - h / 2 - 0.6, zf - 0.5), sill)
 	if mullion:
-		B(p, (0.3, h, 0.2), (x, y, zf - 0.5), frame)
+		for i in range(1, panes):
+			B(p, (0.3, h, 0.2), (x - w / 2 + i * w / panes, y, zf - 0.5), frame)
 
 
 def side_window(p, xs, z, y, w, h, on, frame=FRAME):
@@ -74,22 +76,29 @@ def ac_unit(p, x, y, z, face=-1):
 
 
 def vending_pair(p, x0, z0, n=2, face=-1):
-	"""n vending machines side by side against a wall, front toward face (-Z or +Z): bright red and white bodies, a
-	glowing upper product grid, button strip, dispenser slot, and a recycling bin at the end."""
+	"""n vending machines side by side against a wall, front toward face (-Z or +Z), after vending_night.jpg: red or white
+	bodies; an upper lit window with 3 horizontal shelves of small bottles over pale price strips; a poster panel in the
+	middle of the body beside a dark coin unit; the dispenser slot; a red recycling bin with a domed lid at the end."""
+	f = face
 	for i in range(n):
 		x = x0 + i * 3.8
 		body = ("C8282A", "F2F2F0", "C8282A", "E8E8E6")[i % 4]
 		B(p, (3.6, 7, 3), (x, 3.5, z0), body)
-		B(p, (3.0, 3.4, 0.2), (x, 5.0, z0 + face * 1.55), "F8FCFF", emit=3.2)
+		B(p, (3.0, 3.2, 0.2), (x, 5.0, z0 + f * 1.55), "F8FCFF", emit=2.6)  # lit window
 		for r in range(3):
-			for c in range(4):
-				B(p, (0.5, 0.7, 0.2), (x - 1.05 + c * 0.7, 3.9 + r * 1.1, z0 + face * 1.7), ("C85040", "E8C060", "4A7AB0", "E8E4D8")[(i + r + c) % 4])
-		B(p, (3.0, 0.5, 0.2), (x, 2.9, z0 + face * 1.6), "1E2024")  # dark button strip
-		for c in range(5):
-			B(p, (0.3, 0.2, 0.1), (x - 1.0 + c * 0.5, 2.9, z0 + face * 1.72), "F0D060", emit=1.5)
-		B(p, (2.4, 0.9, 0.3), (x - 0.3, 0.8, z0 + face * 1.5), "15161A")
-	B(p, (1.6, 2.6, 1.6), (x0 + n * 3.8 - 0.8, 1.3, z0), "2E5A90")
-	C(p, (0.8, 0.2, 0.8), (x0 + n * 3.8 - 0.8, 2.7, z0), "15161A")
+			y = 3.75 + r * 1.05
+			B(p, (2.9, 0.18, 0.3), (x, y - 0.05, z0 + f * 1.65), "B8D0F0", emit=1.2)  # price strip
+			for c in range(6):
+				col = ("3A8A4A", "E8E4D8", "C83A30", "D8A040", "4A6AB0", "F0F0EC")[(i * 2 + r + c) % 6]
+				B(p, (0.34, 0.75, 0.3), (x - 1.15 + c * 0.46, y + 0.45, z0 + f * 1.7), col)
+		B(p, (1.7, 1.4, 0.15), (x - 0.55, 2.45, z0 + f * 1.56), ("D8C8A0", "6A8AB0", "E0B070")[i % 3], emit=0.5)  # poster
+		B(p, (0.9, 1.4, 0.3), (x + 1.05, 2.45, z0 + f * 1.6), "1E2024")  # dark coin unit
+		B(p, (0.3, 0.2, 0.1), (x + 1.05, 2.8, z0 + f * 1.76), "60E070", emit=1.5)
+		B(p, (2.6, 0.9, 0.3), (x - 0.2, 0.8, z0 + f * 1.5), "15161A")  # dispenser slot
+	bx = x0 + n * 3.8 - 0.6
+	B(p, (1.8, 2.8, 1.8), (bx, 1.4, z0), "C02A26")  # red recycling bin
+	p.append(("ball", (1.9, 1.0, 1.9), (bx, 2.8, z0), "C02A26", {"subdiv": 1}))
+	C(p, (0.8, 0.2, 0.8), (bx, 2.2, z0 + f * 0.92), "2A1A1A", rot=(90, 0, 0))  # bottle slot
 
 
 def mansion():
@@ -123,8 +132,8 @@ def mansion():
 			x = -(W - 6) / 2 + unit * (u + 0.5)
 			r = lit(f, u)
 			on = (WARM, "FFE6C0", TV)[r % 3] if r < 6 else None
-			window(p, x - 1.5, y0 + 4.3, zf, 7.5, 6.4, on)
-			ac_unit(p, x + 4.2, y0 + 1.8, zf - 1.2)
+			window(p, x - 1.5, y0 + 4.3, zf, 7.5, 6.4, on, frame="E8E8E4", panes=4)  # white frame, 4 panes
+			ac_unit(p, x + 4.2, y0 + 6.2, zf - 0.8)  # one per unit, hung on the wall above the balcony wall
 			if r % 4 != 1:
 				B(p, (9, 0.25, 0.25), (x - 1, y0 + 7.4, zf - 3.6), STEEL)
 				B(p, (2.2, 2.6, 0.2), (x - 3, y0 + 6, zf - 3.6), ("E8E2D2", "6A8AC0", "C05A5A", "E0C070")[(u + f) % 4])
@@ -154,6 +163,18 @@ def mansion():
 		B(p, (2.2, 5.5, 0.3), (W / 2 + 4.5, f * fh + 4.5, 4.1), COOL, emit=1.6)
 	for x in (-W / 2 + 0.8, W / 2 - 0.8):
 		C(p, (0.7, H, 0.7), (x, H / 2, zf - 0.5), "B8B2A4", seg=6)
+	# Fence round the roof edge: posts every 4 studs and two rails
+	for y in (H + 3.0, H + 5.2):
+		B(p, (W, 0.3, 0.3), (0, y, zf + 0.4), STEEL)
+		B(p, (W, 0.3, 0.3), (0, y, zb - 0.4), STEEL)
+		for xs in (-W / 2 + 0.4, W / 2 - 0.4):
+			B(p, (0.3, 0.3, D), (xs, y, 0), STEEL)
+	for x in range(-28, 29, 4):
+		for z in (zf + 0.4, zb - 0.4):
+			B(p, (0.25, 4, 0.25), (x, H + 3.5, z), STEEL)
+	for z in range(-10, 11, 4):
+		for xs in (-W / 2 + 0.4, W / 2 - 0.4):
+			B(p, (0.25, 4, 0.25), (xs, H + 3.5, z), STEEL)
 	B(p, (10, 6, 10), (-14, H + 3, 4), TILE2)
 	for dx in (-2, 2):
 		for dz in (-2, 2):
@@ -179,8 +200,8 @@ def apaato():
 			B(p, (3.2, 6.6, 0.4), (x, y0 + 3.6, zf - 0.3), "6E7C86")
 			window(p, x + 4.5, y0 + 5, zf, 3, 2.4, "F4E6C8" if lit(f, i) < 6 else None, frame="9A9A98", sill=STEEL, mullion=False)
 			B(p, (1.6, 2, 0.8), (x - 3, y0 + 5.6, zf - 0.5), "9AA0A6")
-			if f == 1:
-				B(p, (2.4, 3, 2.2), (x + 4.5, y0 + 2.3, zf - 1.4), "ECECEC")
+			if f == 1 and i < 3:
+				B(p, (2.4, 3, 2.0), (x + 4.5, y0 + 2.3, zf - 1.2), "ECECEC")  # washing machine by the door
 		for xs in (-W / 2, W / 2):
 			side_window(p, xs, 2, y0 + 5, 4, 3, "F4E6C8" if lit(f, xs) < 5 else None, frame="9A9A98")
 	B(p, (W + 2, 0.8, 4), (0, fh + 0.4, zf - 2), STEEL2)
@@ -214,6 +235,8 @@ def apaato():
 def corner_signs(p, x, zf, top, n, k0):
 	"""A narrow vertical sign stack on a building corner: dark frame, small lit panels with glyph blocks."""
 	B(p, (0.8, n * 3.2 + 1, 2.8), (x, top - n * 1.6, zf - 1.8), "15151C")
+	for y in (top - 0.6, top - n * 3.2 + 0.4):
+		B(p, (0.5, 0.5, 1.0), (x, y, zf - 0.4), STEEL)  # brackets back to the wall
 	for j in range(n):
 		y = top - 1.6 - j * 3.2
 		B(p, (1.0, 2.6, 2.2), (x, y, zf - 1.8), SIGNS[(j + k0) % 6], emit=0.9)
@@ -253,9 +276,9 @@ def shophouse():
 	for px in (6.5, 8.5):  # potted plants
 		C(p, (1.4, 1.2, 1.4), (px, 0.6, zf - 1.2), "8A5A3A", seg=8)
 		p.append(("ball", (1.8, 1.8, 1.8), (px, 1.9, zf - 1.2), "3E6A40", {"subdiv": 1}))
-	C(p, (0.6, H, 0.6), (-W / 2 + 0.6, H / 2, zf - 0.4), "8A8478", seg=6)  # front drainpipe
-	corner_signs(p, -W / 2 - 0.4, zf, H - 2, 6, 1)
-	corner_signs(p, W / 2 + 0.4, zf, H - 6, 4, 4)
+	C(p, (0.6, H, 0.6), (-W / 2 + 1.8, H / 2, zf - 0.4), "8A8478", seg=6)  # front drainpipe
+	corner_signs(p, -W / 2 + 0.6, zf, H - 2, 6, 1)
+	corner_signs(p, W / 2 - 0.6, zf, H - 6, 4, 4)
 	C(p, (0.6, H, 0.6), (W / 2 - 0.6, H / 2, D / 2 - 0.6), "8A8478", seg=6)
 	vending_pair(p, W / 2 + 2.2, zf + 2, n=2)
 	B(p, (W + 0.6, 1, D + 0.6), (0, H + 0.5, 0), "9A9488")
@@ -315,8 +338,8 @@ def hq():
 	B(p, (W + 20, 1.6, D + 20), (0, base + 0.8, 0), "C4C6C4")
 	for f in range(n):
 		y0 = base + 1.6 + f * fh
-		B(p, (W + 8, 1.8, D + 8), (0, y0 + 0.9, 0), "C8CAC8", emit=0.12)  # deep slab band
-		B(p, (W - 1, fh - 1.8, D - 1), (0, y0 + 1.8 + (fh - 1.8) / 2, 0), "1C222C")  # recessed dark ribbon glazing
+		B(p, (W + 14, 2.4, D + 14), (0, y0 + 1.2, 0), "DCD6C8", emit=0.25)  # deep pale-beige slab band, 7 studs out
+		B(p, (W - 1, fh - 2.4, D - 1), (0, y0 + 2.4 + (fh - 2.4) / 2, 0), "34404E")  # recessed ribbon glazing
 		for s_ in range(int(W / 10)):
 			if lit(f, s_) < 2:
 				B(p, (8, 4.2, 0.2), (-W / 2 + 5 + s_ * 10, y0 + 4.8, -D / 2 + 0.4), (WARM, "F2E6D0")[s_ % 2], emit=1.0)
@@ -330,6 +353,15 @@ def hq():
 	for z in range(-30, 35, 10):
 		for xs in (-W / 2 - 0.4, W / 2 + 0.4):
 			B(p, (1.2, n * fh, 1.4), (xs, base + 1.6 + n * fh / 2, z), "B0B2B0")
+	# Two mullions in every bay between the piers: narrow-paned ribbon windows (gov_building4.jpg)
+	ym = base + 1.6 + n * fh / 2
+	for b in range(-85, 85, 10):
+		for m in (10 / 3, 20 / 3):
+			B(p, (0.5, n * fh, 0.6), (b + m, ym, -D / 2 - 0.1), "A8A49A")
+	for b in range(-35, 35, 10):
+		for m in (10 / 3, 20 / 3):
+			for xs in (-W / 2 - 0.1, W / 2 + 0.1):
+				B(p, (0.6, n * fh, 0.5), (xs, ym, b + m), "A8A49A")
 	B(p, (W + 10, 2.4, D + 10), (0, top + 1.2, 0), "D0D2D0", emit=0.15)
 	B(p, (60, 8, 30), (20, top + 6, 10), "9A9C9A")  # penthouse and roof plant
 	for x in (-30, -18, -6):
@@ -348,9 +380,14 @@ def hq():
 	for x in range(-56, 60, 14):
 		B(p, (7, 0.2, 1.4), (x, 0.5, fz), "FFE0B0", emit=1.6)
 		C(p, (0.6, 2.6, 0.6), (x, 1.5, fz - 18), "DADAD0", seg=6, emit=1.0)
-	for x in (-46, 46):
-		B(p, (12, 2, 7), (x, 1.2, fz + 8), "6A6A66")
-		p.append(("ball", (10, 8, 7), (x, 6, fz + 8), "3A5A3A", {"subdiv": 1}))
+	# Hedge planters along the base and a row of tall conifers in front of them, both sides of the entrance
+	for s in (-1, 1):
+		for x in (40, 72):
+			B(p, (28, 2.4, 4.4), (s * x, 1.2, -D / 2 - 11), "9A968C")
+			B(p, (27, 2.8, 3.6), (s * x, 3.6, -D / 2 - 11), "3A5A36")
+		for x in range(36, 90, 9):
+			C(p, (0.9, 4, 0.9), (s * x, 2, -D / 2 - 16), "4A3A2A", seg=6)
+			p.append(("cone", (7, 20, 7), (s * x, 14, -D / 2 - 16), "2C4A30", {"seg": 8, "taper": 0.0}))
 	for x in (-6, 0, 6):
 		C(p, (0.5, 24, 0.5), (x, 12, fz + 12), "C8C8C8", seg=6)
 	B(p, (60, 1.4, 14), (0, 14, -D / 2 - 14), "C4C6C4")
@@ -375,25 +412,33 @@ def office():
 				B(p, (0.2, 3.6, 4.2), (-W / 2 - 0.15, b * 6 + 2.6, -17.5 + s * 5), ("9FC8FF", WARM)[s % 2], emit=1.5)
 	B(p, (W - 8, 10, W - 8), (0, H + 5, 0), "2A3040")
 	p.append(("ball", (2.4, 2.4, 2.4), (0, H + 11, 0), "FF2B2B", {"emit": 10}))
+	for dx in (-1, 1):  # red aircraft-warning beacons on the roof corners (tokyo_night_skyline.jpg)
+		for dz in (-1, 1):
+			B(p, (2.2, 2.2, 2.2), (dx * (W / 2 - 1.5), H + 1.2, dz * (W / 2 - 1.5)), "FF2B2B", emit=10)
 	return p
 
 
-def wire(p, x0, y0, z0, x1, y1, z1, r, sag):
-	"""A sagging wire from (x0,y0,z0) to (x1,y1,z1): two straight pieces meeting `sag` studs below the midpoint."""
-	mx, my, mz = (x0 + x1) / 2, (y0 + y1) / 2 - sag, (z0 + z1) / 2
-	for a, b in (((x0, y0, z0), (mx, my, mz)), ((mx, my, mz), (x1, y1, z1))):
+def wire(p, x0, y0, z0, x1, y1, z1, r, sag, n=4, t0=0.0, t1=1.0):
+	"""A drooping cable on the span (x0,y0,z0)-(x1,y1,z1), dipping `sag` studs at mid-span (a parabola, close to a
+	catenary at this sag), drawn from span fraction t0 to t1 as n thin straight pieces."""
+
+	def at(t):
+		return (x0 + (x1 - x0) * t, y0 + (y1 - y0) * t - sag * 4 * t * (1 - t), z0 + (z1 - z0) * t)
+
+	for k in range(n):
+		a, b = at(t0 + (t1 - t0) * k / n), at(t0 + (t1 - t0) * (k + 1) / n)
 		dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
 		ln = math.sqrt(dx * dx + dy * dy + dz * dz)
 		rx = math.degrees(math.acos(max(-1.0, min(1.0, dy / ln))))
 		ry = math.degrees(math.atan2(dx, dz))
-		p.append(("cyl", (r, ln, r), ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2), "101114", {"seg": 4, "rot": (rx, ry, 0)}))
+		p.append(("cyl", (r, ln + r, r), ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2), "101114", {"seg": 3, "rot": (rx, ry, 0)}))
 
 
 def street_kit():
 	"""48 studs of narrow-street edge, placed with its road side (-Z) toward the road at 35 studs from the centre line:
 	dark pavement on a raised kerb, white guardrail, a curved-arm sodium lamp with its warm pool, and two concrete utility
-	poles (transformer drum on the second) with 8 sagging wires per span, thick black cable bundles, and 3 wires crossing
-	high over the street to the far side (lowest point 22+ studs up, the road top is at 1)."""
+	poles crowded with crossarms and insulators (a finned transformer box on the second), 7 thin drooping power wires and
+	a loose telecom bundle per span. The wires crossing the street are the separate CrossWire prop."""
 	p = []
 	B(p, (48.2, 0.6, 10), (0, 0.3, -1), PAVE)
 	B(p, (48.2, 0.9, 0.8), (0, 0.45, -6), CURB)
@@ -401,7 +446,7 @@ def street_kit():
 	for y in (2.0, 2.8):
 		B(p, (48, 0.35, 0.3), (0, y, -5.2), "EDEDE8")
 	for x in range(-22, 24, 6):
-		C(p, (0.35, 2.4, 0.35), (x, 1.8, -5.2), "EDEDE8", seg=6)
+		B(p, (0.35, 2.4, 0.35), (x, 1.8, -5.2), "EDEDE8")
 	# Lamp and its pool (head ends 28.2 studs from the centre line on a straight, 24+ inside bends: kit at 35, head edge at local z -6.8)
 	C(p, (0.7, 17, 0.7), (0, 8.5, 0.5), "5E6E66")
 	B(p, (0.5, 3, 0.5), (0, 17.5, -0.4), "5E6E66", rot=(-35, 0, 0))
@@ -409,34 +454,43 @@ def street_kit():
 	B(p, (1.4, 0.7, 2.6), (0, 18.5, -5.5), "4A5A52")
 	B(p, (1.1, 0.2, 2.2), (0, 18.1, -5.5), SODIUM, emit=10)
 	C(p, (16, 0.05, 10), (0, 0.66, -1), SODIUM, seg=16, emit=0.6, alpha=0.35)
-	# Two poles at x = -12 and +12
+	# Two poles at x = -12 and +12 (utility_poles_takadanobaba.jpg): 4 crossarms with insulators, banding, step bolts, a
+	# riser cable and a cable coil; the second carries a grey finned transformer box with bushings on top
 	H = 36
-	for px, drum in ((-12, False), (12, True)):
+	arms = ((34, 11, (-3.5, 0, 3.5)), (31.5, 9, (-3, 3)), (29, 9, (-3, 3)), (26.5, 7, (-2.5, 2.5)))
+	for px, tbox in ((-12, False), (12, True)):
 		C(p, (1.5, H, 1.5), (px, H / 2, 1), "9A988E", taper=0.65)
 		C(p, (1.7, 2.4, 1.7), (px, 1.2, 1), "E8C030")
 		C(p, (1.72, 0.6, 1.72), (px, 1.6, 1), "1A1A1A")
+		for y in (7, 13, 18.5):
+			C(p, (1.55, 0.35, 1.55), (px, y, 1), "D0D0C8", seg=6)  # banding
 		for i in range(6):
-			B(p, (0.2, 0.2, 1.4), (px, 8 + i * 3, 1 + (i % 2 - 0.5) * 1.4), STEEL)
-		for y, w in ((34, 11), (30, 9)):
-			B(p, (0.6, 0.6, w), (px, y, 1), STEEL)  # crossarms across the street direction
-			for zz in (-w / 2 + 1, 0, w / 2 - 1):
-				C(p, (0.5, 1.0, 0.5), (px, y + 0.8, 1 + zz), "D8D8D0", seg=6)
-		if drum:
-			for dx in (-1.7, 1.7):  # two big transformer drums on the road side of the pole
-				C(p, (2.8, 4.6, 2.8), (px + dx, 24.5, -1.2), "8A9096", seg=12)
-				C(p, (3.0, 0.4, 3.0), (px + dx, 26.9, -1.2), "6A7076", seg=12)
-			B(p, (5.6, 0.5, 0.5), (px, 27.4, -0.2), STEEL)
-		B(p, (1.0, 2.2, 1.6), (px - 1.0, 21, 1), "8A9096")
-		C(p, (0.6, 20, 0.6), (px + 0.6, 22, 1.8), "1A1B1E", seg=6)
-	# Wires along the street: 8 per span (6 thin, 2 thick cable bundles), from x=-24 to -12, -12 to 12, 12 to 24
-	# Every span sags into a V: pole to pole (24 studs, sag 4.5); the kit ends at the low point of the next span
-	lines = ((34.6, -4.5, 0.35), (34.6, -1.5, 0.35), (34.6, 3.5, 0.35), (30.6, -3.5, 0.35), (30.6, 3.5, 0.35), (30.6, 0, 0.35), (26, 0.0, 1.6), (23.5, 1.5, 1.2))
-	sag = 4.5
-	for y, z, r in lines:
-		zz = 1 + z
-		wire(p, -12, y, zz, 12, y, zz, r, sag)
-		wire(p, -24, y - sag, zz, -12, y, zz, r, 0.0)
-		wire(p, 12, y, zz, 24, y - sag, zz, r, 0.0)
+			B(p, (0.2, 0.2, 1.4), (px, 8 + i * 3, 1 + (i % 2 - 0.5) * 1.4), STEEL)  # step bolts
+		for y, w, ins in arms:
+			B(p, (0.5, 0.5, w), (px, y, 1), STEEL)  # crossarm across the street direction
+			for zz in ins:
+				C(p, (0.45, 0.9, 0.45), (px, y + 0.7, 1 + zz), "D8D8D0", seg=6)
+		if tbox:
+			B(p, (2.6, 4.2, 2.2), (px, 22.5, -1.0), "8A9096")
+			for i in range(4):
+				B(p, (0.25, 3.6, 0.5), (px - 1.05 + i * 0.7, 22.5, -2.3), "7A8086")  # fins
+			B(p, (2.9, 0.4, 2.5), (px, 24.8, -1.0), "6A7076")
+			for i in range(3):
+				C(p, (0.4, 0.9, 0.4), (px - 0.8 + i * 0.8, 25.4, -1.0), "D8D8D0", seg=6)  # bushings
+			B(p, (0.5, 0.5, 2.4), (px, 23.5, 0.1), STEEL)
+		C(p, (0.4, 22, 0.4), (px + 0.6, 21, 1.8), "1A1B1E", seg=6)  # riser cable
+		C(p, (2.4, 0.3, 2.4), (px + 0.9, 17, 2.0), "1A1B1E", seg=8, rot=(0, 0, 90))  # cable coil
+		B(p, (0.5, 0.5, 2.2), (px, 21.6, 1.8), STEEL)  # telecom bracket
+	# Wires along the street, each drooping between the poles (24-stud spans, sag 3) and drawn as 4 pieces pole to pole and
+	# 2 pieces for each half span out to the kit ends (the low point of the neighbour spans): 7 thin power wires from the
+	# insulators and a loose telecom bundle of 3 lower down that droops more
+	lines = [(y + 0.9, zz, 0.22, 3.0) for y, w, ins in arms[:3] for zz in ins]
+	lines += [(21.6, 1.8 + dz, 0.3, 4.5) for dz in (-0.35, 0.0, 0.35)]
+	for y, zz, r, sag in lines:
+		z = 1 + zz
+		wire(p, -12, y, z, 12, y, z, r, sag)
+		wire(p, -36, y, z, -12, y, z, r, sag, n=2, t0=0.5)
+		wire(p, 12, y, z, 36, y, z, r, sag, n=2, t1=0.5)
 	# Orange curve mirror on its own post at the kerb
 	C(p, (0.5, 10, 0.5), (-20, 5, -4.4), "E07020", seg=6)
 	C(p, (3.6, 0.5, 3.6), (-20, 10.5, -5.0), "E07020", seg=14, rot=(90, 0, 0))
@@ -449,7 +503,7 @@ def cross_wire():
 	-Z; sag 7, so the lowest point is 20.5 studs up (road top at 1). Its own prop so the clearance check can exempt it."""
 	p = []
 	for y, dz in ((33, -2), (30, 0), (27.5, 2)):
-		wire(p, 12, y, 1 + dz, 12, y, -69 + dz, 0.35, 7.0)
+		wire(p, 12, y, 1 + dz, 12, y, -69 + dz, 0.22, 7.0, n=6)
 	return p
 
 
@@ -511,8 +565,10 @@ def roof_tile():
 			B(p, (w, h, w - 2), (x, h / 2, z), col)
 			if lit(i, j, 7) < 6:
 				B(p, (6, 3, 6), (x + 6, h + 1.5, z + 4), "8E9094")
-			if lit(i, j, 9) < 5:
-				B(p, (w - 4, 2.2, 0.2), (x, h * 0.6, z - (w - 2) / 2 - 0.1), (WARM, "F2E6D0", TV)[lit(j, i) % 3], emit=1.0)
+			# Lit window bands: an emissive ring inset round the block at 1-2 floors, read as lit rooms from afar
+			for b in range(1 + (h > 18)):
+				col = (WARM, "F2E6D0", TV, "FFE6C0")[lit(j, i, b) % 4]
+				B(p, (w + 0.2, 1.4, w - 1.8), (x, h * (0.35 + 0.35 * b), z), col, emit=1.3)
 	return p
 
 
@@ -538,7 +594,7 @@ def retro():
 				C(p, (1.2, 0.6, 3.6), (xs + s * 0.3, 17.4 + f * 8, z), "E8DCC8", seg=10, rot=(0, 0, 90))  # arch head
 		side_window(p, xs, -3, 4.5, 8, 5, "FFD8A0", frame="3A2A22")
 		C(p, (0.6, 28, 0.6), (xs + s * 0.4, 14, D / 2 - 0.6), "6A5A4A", seg=6)
-	corner_signs(p, -W / 2 - 0.4, zf, 26, 5, 2)  # narrow sign stack on the near corner
+	corner_signs(p, -W / 2 + 0.6, zf, 26, 5, 2)  # narrow sign stack on the near corner
 	B(p, (W - 4, 7, 0.3), (0, 4.5, zf - 0.1), "FFD8A0", emit=2.4)
 	for x in range(-12, 14, 4):
 		B(p, (0.5, 7.4, 0.5), (x, 4.5, zf - 0.4), "3A2A22")
@@ -548,13 +604,13 @@ def retro():
 	bx = -8  # in front of the facade (near end for the 0.06 run camera), so every camera that sees the building sees the booth
 	for dx in (-1.6, 1.6):
 		for dz in (-1.6, 1.6):
-			B(p, (0.4, 8, 0.4), (bx + dx, 4, zf - 4 + dz), "2E8A4A")
-	B(p, (3.8, 0.6, 3.8), (bx, 8.2, zf - 4), "2E8A4A")
-	B(p, (3.2, 1.0, 3.2), (bx, 9.0, zf - 4), "7AE0A0", emit=3)  # lit green roof cap, reads over the road wall
-	B(p, (3.4, 0.3, 3.4), (bx, 7.8, zf - 4), "F4FFF4", emit=4)
-	B(p, (3.2, 7, 3.2), (bx, 4, zf - 4), "C8F0D8", alpha=0.5, emit=2.2)
-	B(p, (1.2, 1.8, 0.8), (bx, 4.6, zf - 2.7), "3A8A5A")
-	B(p, (3.8, 0.4, 3.8), (bx, 0.2, zf - 4), "2E8A4A")
+			B(p, (0.4, 8, 0.4), (bx + dx, 4, zf - 7 + dz), "2E8A4A")
+	B(p, (3.8, 0.6, 3.8), (bx, 8.2, zf - 7), "2E8A4A")
+	B(p, (3.2, 1.0, 3.2), (bx, 9.0, zf - 7), "7AE0A0", emit=3)  # lit green roof cap, reads over the road wall
+	B(p, (3.4, 0.3, 3.4), (bx, 7.8, zf - 7), "F4FFF4", emit=4)
+	B(p, (3.2, 7, 3.2), (bx, 4, zf - 7), "C8F0D8", alpha=0.5, emit=2.2)
+	B(p, (1.2, 1.8, 0.8), (bx, 4.6, zf - 5.7), "3A8A5A")
+	B(p, (3.8, 0.4, 3.8), (bx, 0.2, zf - 7), "2E8A4A")
 	return p
 
 
@@ -700,6 +756,7 @@ def build(k):
 			if math.hypot(i, j) <= 6.6 and k.clear_of_road(x, z, 330) and all(math.hypot(x - a, z - b) > r + 230 for a, b, r in hq_plots):
 				k.place("RoofTile", (x, 0.0, z), 0.0)
 	k.field(40, ["Office"], clearance=230, margin=450, scale=(0.4, 0.55))
+	k.field(30, ["Office"], clearance=520, margin=1100, scale=(0.35, 0.5))  # back ring of lit towers to the horizon
 	# Wires over the street: one set per 48 studs from the left kits' second pole (placed last: street layout unchanged)
 	k.along(48, (-35,), ["CrossWire"], start=24, end=end)
 	# Night: teal-blue ambient for cool shadows, warm sodium point lights at the lamps
