@@ -116,7 +116,7 @@ Layout ideas from the owner's reference (redesign 2026-11-05), no copied art. Mo
 - More Gems column: Small, Medium, Large and Huge, biggest first. A "+N% More!" badge is calculated from the listed prices against the smallest pack and rounded down.
 - A blur covers the world while the page is open.
 - Left out of the reference on purpose: luck potions, Shiny Hunter, rate up, extra banners.
-- Drawn portraits appear only in the Sidekick index and Bag equip (owner 2026-11-05). `render_portrait.py --blend` renders them.
+- Drawn portraits appear only in the Sidekick index, Bag equip (owner 2026-11-05) and the summon page's Featured Banner rows (owner 2026-11-22, design doc 4.36). `render_portrait.py --blend` renders them.
 - Uploaded models and images are listed in the generated `src/shared/SidekickArt.luau`, never in the character registries (`CharacterModelAssets`, `CharacterPortraits`, `CharacterHeads`), so no Sidekick reaches character code.
 
 ## Summon reveal (owner 2026-11-05)
