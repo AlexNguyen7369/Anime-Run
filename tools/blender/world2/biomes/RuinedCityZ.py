@@ -181,15 +181,16 @@ def _saitama_apartment(k, rng):
 	brick balcony stack; both end walls (+-X) are the huge blank stained concrete walls."""
 	w, d, g, fh, floors = 26, 34, 10, 9, 8
 	h = g + floors * fh
-	wall = "9A9388"
+	wall = "8A8C90"  # cool mid-grey stained concrete (refs: day and S1E4 night)
 	p = [("box", (w, h, d), (0, h / 2, 0), wall)]
 	# Street face (-Z): deep brick balcony stack, three units per floor, a round-fan AC unit on every balcony
-	p.append(("box", (w, h - g, 0.3), (0, g + (h - g) / 2, -d / 2 - 0.15), BRICK2))
+	p.append(("box", (w, h - g, 0.3), (0, g + (h - g) / 2, -d / 2 - 0.15), "1C1816"))  # black recesses behind the balconies
 	DB = 9  # balcony depth: deep brick boxes standing well out of the wall
 	for fl in range(floors):
 		y = g + fl * fh
 		p.append(("box", (w + 0.8, 1.2, DB), (0, y, -d / 2 - DB / 2), "8A8278"))
 		p.append(("box", (w + 0.8, 0.5, 0.6), (0, y - 0.6, -d / 2 - DB + 0.3), "5E4A3E"))  # dark drip edge under each slab
+		p.append(("box", (w + 0.6, 0.3, DB - 0.4), (0, y - 0.72, -d / 2 - DB / 2), "24201E"))  # dark soffit under the slab
 		for x in (-13, -4.33, 4.33, 13):
 			p.append(("box", (0.9, fh, DB), (x, y + fh / 2, -d / 2 - DB / 2), BRICK))
 		for ux in (-8.67, 0, 8.67):
@@ -197,12 +198,12 @@ def _saitama_apartment(k, rng):
 			p.append(("box", (7.8, 0.45, 1.3), (ux, y + 4.9, -d / 2 - DB + 0.5), "9A8A78"))
 			for i in range(3):  # brick coursing lines on the parapet
 				p.append(("box", (7.62, 0.12, 1.02), (ux, y + 1.4 + i * 1.1, -d / 2 - DB + 0.5), "5E382A"))
-			p.append(("box", (4.4, 6.6, 0.3), (ux - 1.4, y + 3.8, -d / 2 - 0.35), "262A2E", {"rough": 0.3}))
-			# AC unit standing on the balcony, its top and fan grille above the parapet, as in the ref
-			p.append(("box", (3.4, 2.8, 1.8), (ux + 1.8, y + 6.6, -d / 2 - DB + 2.2), "B8B6B0"))
-			p.append(("box", (3.0, 0.3, 1.6), (ux + 1.8, y + 5.1, -d / 2 - DB + 2.2), "6E6C68"))
-			p.append(("cyl", (2.2, 0.3, 2.2), (ux + 1.6, y + 6.6, -d / 2 - DB + 1.25), "4A4A48", {"seg": 12, "rot": (90, 0, 0)}))
-			p.append(("cyl", (0.7, 0.35, 0.7), (ux + 1.6, y + 6.6, -d / 2 - DB + 1.15), "2A2A28", {"seg": 6, "rot": (90, 0, 0)}))
+			p.append(("box", (4.4, 6.6, 0.3), (ux - 1.4, y + 3.8, -d / 2 - 0.35), "0E0E10", {"rough": 0.3}))
+			# AC unit sitting on top of the parapet, its fan grille facing the street (ref)
+			zf = -d / 2 - DB + 0.6
+			p.append(("box", (3.4, 2.6, 1.8), (ux + 1.8, y + 6.45, zf), "B8B6B0"))
+			p.append(("cyl", (2.1, 0.3, 2.1), (ux + 1.6, y + 6.45, zf - 0.95), "4A4A48", {"seg": 12, "rot": (90, 0, 0)}))
+			p.append(("cyl", (0.7, 0.35, 0.7), (ux + 1.6, y + 6.45, zf - 1.05), "2A2A28", {"seg": 6, "rot": (90, 0, 0)}))
 		# steel-railed corner balconies at the far end of both end walls (ref: right edge of the end wall)
 		for sx in (-1, 1):
 			bx = sx * (w / 2 + 2.6)
@@ -211,18 +212,18 @@ def _saitama_apartment(k, rng):
 			p.append(("box", (5.2, 0.3, 0.3), (bx, y + 3.6, d / 2 - 8.4), STEEL))
 			for zz in (-8.4, -6.0, -3.5, -1.0):
 				p.append(("box", (0.22, 3.3, 0.22), (bx + sx * 2.45, y + 1.95, d / 2 + zz + 0.4), STEEL))
-	# Ground floor: rolled shutters with grooves, one boarded, entrance with a canopy, wall lamps
-	for x, boarded in ((-8, False), (0, True)):
-		p.append(("box", (7.5, 7.5, 0.4), (x, 3.75, -d / 2 - 0.2), "7E8086", {"metal": 0.3}))
+	# Ground floor: three grey rolled shutters with grooves and roll boxes, one boarded, a canopy, wall lamps
+	for x, boarded in ((-8.67, False), (0, True), (8.67, False)):
+		p.append(("box", (7.6, 7.5, 0.4), (x, 3.75, -d / 2 - 0.2), "A2A4A8", {"metal": 0.3}))
+		p.append(("box", (8.0, 1.2, 1.2), (x, 8.1, -d / 2 - 0.6), "7E8084"))
 		for i in range(7):
-			p.append(("box", (7.5, 0.25, 0.5), (x, 0.8 + i * 1, -d / 2 - 0.25), "5E6066"))
+			p.append(("box", (7.6, 0.2, 0.5), (x, 0.8 + i * 1, -d / 2 - 0.25), "6E7074"))
 		if boarded:
 			for dy, r in ((2.5, 18), (5, -14)):
 				p.append(("box", (8.2, 1, 0.4), (x, dy, -d / 2 - 0.6), BOARD, {"rot": (0, 0, r)}))
-	p.append(("box", (5, 7.5, 0.4), (8, 3.75, -d / 2 - 0.2), DARK))
-	p.append(("box", (8, 0.5, 3.4), (8, 8, -d / 2 - 1.7), "8A8278"))
-	for x in (-10, -5, 0):
-		p.append(("box", (1.0, 0.6, 0.6), (x, 8.6, -d / 2 - 0.5), "E8E4D0", {"emit": 0.4}))
+	p.append(("box", (w, 0.5, 3.4), (0, 9.2, -d / 2 - 1.7), "8A8278"))
+	for x in (-12, -4.3, 4.3, 12):
+		p.append(("box", (1.0, 0.6, 0.6), (x, 8.6, -d / 2 - 2.6), "E8E4D0", {"emit": 0.4}))
 	# Low brown railing fence in front of the shutters, shrubs behind it
 	p.append(("box", (w + 2, 2.0, 1), (0, 1.0, -d / 2 - 8), "8E8A82"))
 	for i in range(15):
@@ -235,13 +236,16 @@ def _saitama_apartment(k, rng):
 	for face, cx in (("x+", w / 2), ("x-", -w / 2)):
 		for _ in range(7):
 			pw = rng.uniform(6, 11)
-			_add(p, face, cx, 0, rng.uniform(-d / 2 + pw / 2 + 1, d / 2 - pw / 2 - 1), 0.12, rng.uniform(g + pw, h - pw), pw, pw * rng.uniform(0.9, 1.3), 0.24, rng.choice(("847C72", "8C857A", "7A7268")))
+			_add(p, face, cx, 0, rng.uniform(-d / 2 + pw / 2 + 1, d / 2 - pw / 2 - 1), 0.12, rng.uniform(g + pw, h - pw), pw, pw * rng.uniform(0.9, 1.3), 0.24, rng.choice(("6E7074", "74767A", "66686C")))
 		for fl in range(1, floors + 1):
-			_add(p, face, cx, 0, 0, 0.18, g + fl * fh, d, 0.35, 0.3, "7E776C")
+			_add(p, face, cx, 0, 0, 0.18, g + fl * fh, d, 0.35, 0.3, "6E7074")
 		for fl in range(floors):
 			for u in (-11, -3.5, 3.5, 11):
 				_add(p, face, cx, 0, u, 0.32, g + fl * fh + 5, 0.9, 0.9, 0.6, "2E2C28")
-		_stains(p, face, cx, 0, d, g, h - g, rng, n=7, patches=0)
+		for _ in range(9):  # vertical grey stain streaks running down from the roof line and the floor seams
+			ln = rng.uniform(12, 45)
+			top_y = rng.choice((h, g + rng.randint(3, floors) * fh))
+			_add(p, face, cx, 0, rng.uniform(-d / 2 + 2, d / 2 - 2), 0.3, top_y - ln / 2, rng.uniform(0.8, 2.6), ln, 0.2, rng.choice(("5E6064", "686A6E")))
 	p.append(("cyl", (0.9, h, 0.9), (w / 2 + 0.6, h / 2, -d / 2 + 1), "5E5E5A", {"seg": 6}))
 	_grid(p, "z+", 0, d / 2, w - 4, g, floors, fh, 4, rng, broken=0.2)
 	# Roof: parapet, railing posts and rail all round, water tank, stair core, antenna
@@ -264,37 +268,40 @@ def _hero_hq(k, rng):
 	and on its top a dense stepped cluster of dark blocks peaking in the middle; wide highways on piers radiating out.
 	No emblem."""
 	body, body2, deck, rib = "2A3038", "3A424C", "6E747C", "4A525C"
+	RIM, HB, HT, HH = 52, 197, 76, 90  # rim wall height; hull foot radius (75% of the deck's 263), top radius, height
+	top = RIM + 3 + HH
 	p = [
-		("cyl", (520, 26, 520), (0, 13, 0), body2, {"seg": 40}),
-		("cyl", (526, 3, 526), (0, 27.5, 0), deck, {"seg": 40}),
+		("cyl", (520, RIM, 520), (0, RIM / 2, 0), body2, {"seg": 40}),
+		("cyl", (526, 3, 526), (0, RIM + 1.5, 0), deck, {"seg": 40}),
 		("cyl", (530, 2, 530), (0, 8, 0), "1E2228", {"seg": 40}),
-		("cone", (310, 80, 310), (0, 69, 0), body, {"seg": 8, "taper": 0.45}),
-		("cyl", (150, 4, 150), (0, 111, 0), deck, {"seg": 8}),
+		("cyl", (524, 1.5, 524), (0, RIM - 6, 0), "222830", {"seg": 40}),
+		("cone", (HB * 2, HH, HB * 2), (0, RIM + 3 + HH / 2, 0), body, {"seg": 8, "taper": HT / HB}),
+		("cyl", (HT * 2, 4, HT * 2), (0, top - 2, 0), deck, {"seg": 8}),
 	]
-	for i in range(40):  # dark slots in the rim wall
-		a = i * math.tau / 40
-		p.append(("box", (14, 10, 2), (math.cos(a) * 260, 14, math.sin(a) * 260), "141820", {"rot": (0, -math.degrees(a) + 90, 0)}))
-	for i in range(24):  # hull ribs running down the faceted slope, from r 70 at the top to r 150 at the foot
+	tilt = math.degrees(math.atan2(HB - HT, HH))
+	ln = math.hypot(HB - HT, HH)
+	for i in range(24):  # hull ribs running down the faceted slope from the top to the foot
 		a = (i + 0.5) * math.tau / 24
-		p.append(("box", (4, 92, 5), (math.cos(a) * 112, 69, math.sin(a) * 112), rib, {"rot": (0, -math.degrees(a), 41), "metal": 0.4}))
-	for j in range(46):  # low blocks scattered on the base deck around the hull
+		rm = (HB + HT) / 2 * 0.95  # between the octagon's vertex radius and its face apothem
+		p.append(("box", (5, ln, 6), (math.cos(a) * rm, RIM + 3 + HH / 2, math.sin(a) * rm), rib, {"rot": (0, -math.degrees(a), tilt), "metal": 0.4}))
+	for j in range(30):  # low blocks on the narrow deck ring left around the hull
 		a = rng.uniform(0, math.tau)
-		r = rng.uniform(165, 245)
-		s = rng.uniform(6, 14)
-		hh = rng.uniform(5, 18)
-		p.append(("box", (s, hh, s * rng.uniform(0.7, 1.4)), (math.cos(a) * r, 29 + hh / 2, math.sin(a) * r), (body, body2, "22282E")[j % 3], {"rot": (0, rng.uniform(0, 90), 0)}))
+		r = rng.uniform(210, 250)
+		s = rng.uniform(5, 11)
+		hh = rng.uniform(4, 12)
+		p.append(("box", (s, hh, s * rng.uniform(0.7, 1.4)), (math.cos(a) * r, RIM + 3 + hh / 2, math.sin(a) * r), (body, body2, "22282E")[j % 3], {"rot": (0, rng.uniform(0, 90), 0)}))
 	for j in range(80):  # the stepped tower cluster on the hull top, tallest at the middle
 		r = 72 * math.sqrt(rng.random())
 		a = rng.uniform(0, math.tau)
 		hh = max(10, 150 - r * 1.8 + rng.uniform(-14, 14))
 		s = rng.uniform(10, 20)
 		x, z = math.cos(a) * r, math.sin(a) * r
-		p.append(("box", (s, hh, s * rng.uniform(0.7, 1.3)), (x, 113 + hh / 2, z), (body, "222830", body2, "303842")[j % 4]))
+		p.append(("box", (s, hh, s * rng.uniform(0.7, 1.3)), (x, top + hh / 2, z), (body, "222830", body2, "303842")[j % 4]))
 		if j % 3 == 0:
-			p.append(("box", (s * 0.8, 0.8, 0.4), (x, 113 + hh * rng.uniform(0.4, 0.85), z - s / 2 - 0.2), "8AB0D0", {"emit": 0.8}))
-	p.append(("box", (26, 165, 26), (0, 113 + 82, 0), "222830"))
-	p.append(("box", (14, 24, 14), (0, 113 + 177, 0), body2))
-	p.append(("cyl", (1.5, 26, 1.5), (0, 113 + 202, 0), STEEL, {"seg": 6}))
+			p.append(("box", (s * 0.8, 0.8, 0.4), (x, top + hh * rng.uniform(0.4, 0.85), z - s / 2 - 0.2), "8AB0D0", {"emit": 0.8}))
+	p.append(("box", (26, 165, 26), (0, top + 82, 0), "222830"))
+	p.append(("box", (14, 24, 14), (0, top + 177, 0), body2))
+	p.append(("cyl", (1.5, 26, 1.5), (0, top + 202, 0), STEEL, {"seg": 6}))
 	# the brown cratered plain it stands on (ref New_Hero_Association_Headquarters_Anime), reaching back to the city
 	p.append(("cyl", (1300, 0.3, 1300), (0, 0.15, 0), "6E5A44", {"seg": 40}))
 	for i in range(14):
@@ -323,8 +330,9 @@ def _hero_hq(k, rng):
 			t = j * 70 + 20
 			p.append(("box", (10, y - 2, 14), (x0 + c * t, (y - 2) / 2, z0 + s * t), "6E7276", rot))
 
-	for i in range(12):  # radiating highways; every third one bends and branches on its way out
+	for i in range(12):  # radiating highways, each entering the sheer rim through a dark slot; every third one bends
 		a = i * math.tau / 12 + 0.15
+		p.append(("box", (8, 20, 54), (math.cos(a) * 259, 25, math.sin(a) * 259), "08090C", {"rot": (0, -math.degrees(a), 0)}))
 		road(math.cos(a) * 262, math.sin(a) * 262, a, 300, 22)
 		if i % 3 == 0:
 			x, z, ang = math.cos(a) * 262, math.sin(a) * 262, a
@@ -393,17 +401,17 @@ def _midrise_apartment(k, rng):
 	boarded), rain streaks and patches, rooftop tank, stair core."""
 	w, d, g, fh, floors = 30, 18, 9, 9, 6
 	h = g + floors * fh
-	p = [("box", (w, h, d), (0, h / 2, 0), CONC2)]
-	_grid(p, "z", 0, -d / 2, w, g, floors, fh, 5, rng, frame="8A847A", broken=0.3, boarded=0.1)
-	_grid(p, "z+", 0, d / 2, w, g, floors, fh, 5, rng, frame="8A847A", broken=0.3)
+	p = [("box", (w, h, d), (0, h / 2, 0), "C6CACE")]  # cool white block (refs: ghost-town profile, apartment street)
+	_grid(p, "z", 0, -d / 2, w, g, floors, fh, 5, rng, frame="DADCDE", broken=0.3, boarded=0.1)
+	_grid(p, "z+", 0, d / 2, w, g, floors, fh, 5, rng, frame="DADCDE", broken=0.3)
 	for face, cx in (("x+", w / 2), ("x-", -w / 2)):
-		_grid(p, face, cx, 0, d - 4, g, floors, fh, 2, rng, frame="8A847A", broken=0.3)
+		_grid(p, face, cx, 0, d - 4, g, floors, fh, 2, rng, frame="DADCDE", broken=0.3)
 		_stains(p, face, cx, 0, d, g, h - g, rng, n=2, patches=1)
 	_stains(p, "z", 0, -d / 2, w, g, h - g, rng, n=6, patches=2)
 	for fl in range(floors):
 		y = g + fl * fh
-		p.append(("box", (w, 0.7, 3), (0, y + 0.2, -d / 2 - 1.5), "9A948A"))
-		p.append(("box", (w, 1.8, 0.3), (0, y + 1.3, -d / 2 - 2.9), "8E8880", {"rough": 0.6}))
+		p.append(("box", (w, 0.7, 3), (0, y + 0.2, -d / 2 - 1.5), "B4B8BC"))
+		p.append(("box", (w, 1.8, 0.3), (0, y + 1.3, -d / 2 - 2.9), "D2D4D6", {"rough": 0.6}))
 		p.append(("box", (w, 0.35, 0.35), (0, y + 3.4, -d / 2 - 2.9), STEEL))
 		for x in (-w / 2 + 0.3, -5, 5, w / 2 - 0.3):
 			p.append(("box", (0.35, 3.2, 0.35), (x, y + 1.8, -d / 2 - 2.9), STEEL))
@@ -469,7 +477,7 @@ def _highrise(k, rng):
 	crown, roof plant, mast."""
 	w, d, g, fh, floors = 34, 30, 12, 9, 16
 	h = g + floors * fh
-	body, frame = "6E747C", "7E848A"
+	body, frame = "A4AAB0", "C2C6CA"  # light cool grey
 	p = [("box", (w, h, d), (0, h / 2, 0), body)]
 	_grid(p, "z", 0, -d / 2, w - 4, g, floors, fh, 6, rng, glass=GLASS2, frame=frame, broken=0.25)
 	_grid(p, "z+", 0, d / 2, w - 4, g, floors, fh, 4, rng, glass=GLASS2, frame=frame, broken=0.1)
@@ -478,10 +486,10 @@ def _highrise(k, rng):
 	_stains(p, "z", 0, -d / 2, w, g, h - g, rng, n=6, patches=2)
 	for x in (-w / 2, w / 2):
 		for z in (-d / 2, d / 2):
-			p.append(("box", (2.4, h, 2.4), (x, h / 2, z), "9A948A"))
+			p.append(("box", (2.4, h, 2.4), (x, h / 2, z), "D0D4D8"))
 	p.append(("box", (w - 6, g - 2, 0.4), (0, (g - 2) / 2, -d / 2 - 0.2), "1A1E24", {"rough": 0.2}))
 	p.append(("box", (w + 2, 1, 6), (0, g - 1.5, -d / 2 - 3), "9A948A"))
-	p.append(("box", (w - 8, 12, d - 8), (0, h + 6, 0), "6E6860"))
+	p.append(("box", (w - 8, 12, d - 8), (0, h + 6, 0), "8E9296"))
 	p.append(("box", (w - 6, 1, d - 6), (0, h + 12.5, 0), "9A948A"))
 	for x, z, s in ((-8, -4, 5), (6, 5, 6), (-2, 7, 4)):
 		p.append(("box", (s, 3, s), (x, h + 14.5, z), STEEL))
@@ -496,7 +504,7 @@ def _collapsed(k, rng):
 	a fallen chunk leaning on the foot and rubble."""
 	w, d, g, fh = 32, 28, 9, 9
 	hs = g + 9 * fh
-	p = [("box", (w, hs, d), (0, hs / 2, 0), "A08E78")]
+	p = [("box", (w, hs, d), (0, hs / 2, 0), "8A5A46")]  # brick block
 	_grid(p, "z", 0, -d / 2, w - 2, g, 9, fh, 5, rng, broken=0.55, boarded=0.1)
 	_grid(p, "z+", 0, d / 2, w - 2, g, 9, fh, 4, rng, broken=0.3)
 	for face, cx in (("x+", w / 2), ("x-", -w / 2)):
@@ -665,64 +673,95 @@ def _blocks(k, rng):
 
 
 def _crater(k, rng):
-	"""Hero, infield: an impact pit torn into the street (refs Z-City_Street_Crater, Meteor_fragment_aftermath). The
-	ground cannot be cut, so the street is heaved up around it: a grey asphalt apron with lane dashes climbs to a 30-high
-	rim; inside, near-vertical jagged walls of stacked dark earth strata drop to a black floor; a lip of thick broken
-	asphalt plates overhangs the hole; a huge concrete sewer pipe (about a quarter of the pit's width) juts from the
-	back wall. The rim is low on the front (-Z) side, which is turned to face the road camera, so the pit shows inside.
-	Footprint radius about 160."""
-	STRATA = ("3A3026", "2A221C", "4A3E30", "1E1812")
-	LIP, ASP = "5A5650", "4A4846"
-	p = [("cyl", (320, 0.2, 320), (0, 0.1, 0), "46443F", {"seg": 32}), ("cyl", (168, 0.3, 168), (0, 0.2, 0), "0C0A08", {"seg": 24})]
-	n = 36
-	for i in range(n):
-		a = i * math.tau / n
+	"""Hero, infield: an impact pit torn into a flat city street (refs Z-City_Street_Crater, Meteor_fragment_aftermath).
+	The ground cannot be cut, so the street is a flat-topped asphalt plateau, tilted slightly so its front (-Z, turned
+	to the road camera) is low and the pit shows inside. A lane dash and kerbs with a sidewalk run right up to the lip;
+	8-10 irregular, tilted asphalt plates overhang the hole; the walls are jagged stacks of mottled dark earth; a light
+	grey sewer pipe juts from the right wall, turns down at an elbow and ends in a wider bell collar. Footprint radius
+	about 175."""
+	EARTH = ("4A4038", "33261C", "1A1612")  # grey-brown, umber, near-black
+	TOPC, PLATE = "4A4846", ("3A3936", "45433F", "34322F")
+	RP, RO = 78, 132  # pit lip and plateau edge: the hole fills most of the plateau
+
+	def top(z):  # plateau height: 8 at the front edge, 20 at the sides, 32 at the back edge
+		return 20 + 12 * z / RO
+
+	p = [("cyl", (350, 0.2, 350), (0, 0.1, 0), "46443F", {"seg": 32}), ("cyl", (RP * 2 + 4, 0.3, RP * 2 + 4), (0, 0.2, 0), "0E0C0A", {"seg": 24})]
+	n = 24
+	for i in range(n):  # the plateau: a flat asphalt ring from the lip to its edge, a short ragged skirt outside
+		a = (i + 0.5) * math.tau / n
 		c, s = math.cos(a), math.sin(a)
-		off = abs((math.degrees(a) - 270 + 180) % 360 - 180)  # angle from the front (-Z)
-		w = max(0.0, min(1.0, (off - 25) / 35))
-		H = 9 + 29 * w + rng.uniform(-2, 2)  # rim height: 9 at the front notch, 38 elsewhere
-		yaw_t = -math.degrees(a) + 90
-		p.append(("wedge", (21, H, 44), (c * 114, H / 2, s * 114), (ASP, "52504C")[i % 2], {"rot": (0, math.degrees(math.atan2(-c, -s)), 0)}))
-		if i % 3 == 0:
-			p.append(("box", (10, 0.3, 1.2), (c * 116, H * 0.45 + 0.4, s * 116), "D8D2C0", {"rot": (0, -math.degrees(a), math.degrees(math.atan2(H, 44)))}))
-		layers = max(2, int(H / 7))
-		for j in range(layers):  # the pit wall: stacked jagged earth strata, near vertical
-			hj = H / layers
-			p.append(("box", (16, hj + 0.4, 9), (c * (87 + rng.uniform(-1.8, 1.8)), hj * (j + 0.5), s * (87 + rng.uniform(-1.8, 1.8))), STRATA[(j + i) % 4], {"rot": (rng.uniform(-4, 4), yaw_t + rng.uniform(-6, 6), rng.uniform(-3, 3))}))
-		# the lip: a thick broken asphalt plate overhanging the hole, earth caked under it
-		r = 82 + rng.uniform(-2, 2)
-		rot = (rng.uniform(-8, -2), yaw_t + rng.uniform(-10, 10), rng.uniform(-6, 6))
-		p.append(("box", (rng.uniform(17, 22), 5, 18), (c * r, H + 1.5, s * r), LIP, {"rot": rot}))
-		p.append(("box", (16, 3, 14), (c * (r + 2), H - 2, s * (r + 2)), STRATA[i % 4], {"rot": rot}))
+		h = top(s * (RP + RO) / 2)
+		p.append(("box", (36, h, RO - RP + 2), (c * (RP + RO) / 2, h / 2, s * (RP + RO) / 2), TOPC, {"rot": (0, -math.degrees(a) + 90, 0)}))
+		hs = top(s * RO) * rng.uniform(0.75, 0.97)
+		sk = rng.uniform(12, 24)
+		p.append(("wedge", (37, hs, sk), (c * (RO + sk / 2 - 1), hs / 2, s * (RO + sk / 2 - 1)), "3E3C39", {"rot": (0, math.degrees(math.atan2(-c, -s)), 0)}))
+	for i in range(52):  # pit walls: jagged, mottled stacks of dark earth wedges and clods, no grid
+		a = (i + rng.uniform(-0.4, 0.4)) * math.tau / 52
+		c, s = math.cos(a), math.sin(a)
+		H = top(s * RP)
+		y = 0.0
+		while y < H - 0.5:
+			hj = min(H - y, rng.uniform(3.5, 7.5))
+			r = RP + rng.uniform(-1.5, 4)
+			p.append((rng.choice(("wedge", "box", "wedge")), (rng.uniform(10, 18), hj + 1.2, rng.uniform(6, 11)), (c * r, y + hj / 2, s * r), rng.choice(EARTH), {"rot": (rng.uniform(-18, 18), -math.degrees(a) + 90 + rng.uniform(-25, 25), rng.uniform(-20, 20))}))
+			y += hj * rng.uniform(0.7, 1.0)
+	# 9 big, irregular asphalt plates overhanging the hole, tilted down into it, earth caked under them
+	for i in range(9):
+		a = (i + rng.uniform(-0.3, 0.3)) * math.tau / 9
+		c, s = math.cos(a), math.sin(a)
+		r = RP + rng.uniform(2, 6)
+		y = top(s * r) + 0.6
+		rot = (-rng.uniform(8, 22), -math.degrees(a) + 90 + rng.uniform(-18, 18), rng.uniform(-9, 9))
+		w, dd = rng.uniform(30, 46), rng.uniform(22, 34)
+		p.append(("box", (w, 2.6, dd), (c * r, y, s * r), PLATE[i % 3], {"rot": rot}))
+		p.append(("box", (w * 0.8, 2.4, dd * 0.7), (c * (r + 2), y - 2.4, s * (r + 2)), EARTH[i % 3], {"rot": rot}))
+		# a second shard at an angle breaks the rectangle into a jagged outline
+		p.append(("box", (w * 0.5, 2.2, dd * 0.6), (c * (r - dd * 0.3), y - 1.2, s * (r - dd * 0.3)), PLATE[(i + 1) % 3], {"rot": (rot[0] - 6, rot[1] + rng.choice((-1, 1)) * rng.uniform(20, 35), -rot[2])}))
+	# the street over the plateau: a lane dash and two kerbs with a reddish sidewalk, all reaching the lip
+	for sz in (-1, 1):
+		yt = top(sz * 104)  # the ring segments' top along the street
+		for j in range(6):
+			p.append(("box", (1.2, 0.2, 6), (0, yt + 0.1, sz * (RP + 6 + j * 10)), "D8D2C0"))
+		z0 = math.sqrt(RP * RP - 40 * 40) + 1
+		ln = RO - z0
+		zm = sz * (z0 + ln / 2)
+		for sx in (-1, 1):
+			p.append(("box", (1.6, 1.0, ln), (sx * 40, yt + 0.5, zm), "9A968C"))
+			p.append(("box", (12, 0.5, ln - 4), (sx * 47, yt + 0.25, zm + sz * 2), "7A5A4A"))
+			p.append(("box", (0.5, 0.06, ln - 4), (sx * 42, yt + 0.53, zm + sz * 2), "D8B23A"))
+	# the sewer pipe on the right wall (seen from the front): out of the earth, an elbow down, a wide bell collar
+	PIPE, PJ = "9C9A94", "84827C"
+	p += [
+		("cyl", (11, 26, 11), (-RP - 3, 16.5, 10), PIPE, {"seg": 12, "rot": (0, 0, 80)}),
+		("cyl", (13, 2, 13), (-RP + 3.5, 15.3, 10), PJ, {"seg": 12, "rot": (0, 0, 80)}),
+		("ball", (11.6, 11.6, 11.6), (-RP + 12, 14.2, 10), PIPE, {"subdiv": 2, "smooth": True}),
+		("cyl", (11, 8, 11), (-RP + 12.5, 10.5, 10), PIPE, {"seg": 12}),
+		("cyl", (18, 7, 18), (-RP + 12.5, 3.5, 10), PJ, {"seg": 14}),
+		("cyl", (19, 1.2, 19), (-RP + 12.5, 6.8, 10), PIPE, {"seg": 14}),
+	]
 	for j in range(12):  # rock clods fallen to the foot of the walls
 		a = rng.uniform(0, math.tau)
 		sz = rng.uniform(6, 12)
-		p.append(("ball", (sz, sz * 0.7, sz), (math.cos(a) * 74, sz * 0.3, math.sin(a) * 74), ("4A4036", "2E2620", "5A5044")[j % 3], {"subdiv": 1}))
-	# the huge sewer pipe set into the back wall (+Z), pointing at the middle of the pit
-	p += [
-		("cyl", (38, 30, 38), (0, 17, 86), "8A8680", {"seg": 16, "rot": (90, 0, 0)}),
-		("cyl", (44, 4, 44), (0, 17, 72), "6E6A64", {"seg": 16, "rot": (90, 0, 0)}),
-		("cyl", (31, 1, 31), (0, 17, 69.6), "0E0C0A", {"seg": 14, "rot": (90, 0, 0)}),
-		("box", (10, 4, 6), (-12, 3, 66), "8A8680", {"rot": (20, 30, 10)}),
-	]
-	for j in range(14):  # asphalt chunks on the floor and the apron
+		p.append(("ball", (sz, sz * 0.7, sz), (math.cos(a) * 70, sz * 0.3, math.sin(a) * 70), EARTH[j % 3], {"subdiv": 1}))
+	for j in range(14):  # asphalt chunks on the floor and the plateau
 		a = rng.uniform(0, math.tau)
-		r = rng.uniform(10, 55) if j < 8 else rng.uniform(110, 150)
+		r = rng.uniform(8, 55) if j < 8 else rng.uniform(88, 125)
 		sz = rng.uniform(4, 9)
-		y = 1.5 if j < 8 else 6
-		p.append(("box", (sz, 2.2, sz * 0.8), (math.cos(a) * r, y, math.sin(a) * r), (LIP, ASP)[j % 2], {"rot": (rng.uniform(-30, 30), rng.uniform(0, 90), rng.uniform(-30, 30))}))
+		y = 1.5 if j < 8 else top(math.sin(a) * r) + 1
+		p.append(("box", (sz, 2.2, sz * 0.8), (math.cos(a) * r, y, math.sin(a) * r), PLATE[j % 3], {"rot": (rng.uniform(-30, 30), rng.uniform(0, 90), rng.uniform(-30, 30))}))
 	for j in range(5):  # charred meteor fragments in the pit
-		p.append(("ball", (rng.uniform(10, 18), rng.uniform(7, 12), rng.uniform(10, 16)), (rng.uniform(-24, 24), 3, rng.uniform(-24, 24)), ("2A221E", "3A302A")[j % 2], {"subdiv": 1}))
-	# a wrecked block leaning over the back rim (ref Meteor_fragment_aftermath): body, dark storey bands, rebar
-	rot = (0, 0, -16)
-	p.append(("box", (22, 46, 16), (-96, 40, 70), CONC2, {"rot": rot}))
+		p.append(("ball", (rng.uniform(10, 18), rng.uniform(7, 12), rng.uniform(10, 16)), (rng.uniform(-20, 20), 3, rng.uniform(-20, 20)), ("2A221E", "3A302A")[j % 2], {"subdiv": 1}))
+	# a wrecked block leaning on the back of the plateau (ref Meteor_fragment_aftermath): body, dark storey bands, rebar
+	rot, yb = (0, 0, -16), top(108)
+	p.append(("box", (22, 46, 16), (-62, yb + 20, 108), CONC2, {"rot": rot}))
 	for b in (-14, -4, 6, 16):
-		p.append(("box", (22.4, 3, 16.4), (-96 + b * math.sin(math.radians(16)), 40 + b * math.cos(math.radians(16)), 70), "1E2226", {"rot": rot}))
-	_rebar(p, -92, 62, 70, 4, rng, spread=5)
-	for i in range(14):  # cracks out from the apron, flat on the street
+		p.append(("box", (22.4, 3, 16.4), (-62 + b * math.sin(math.radians(16)), yb + 20 + b * math.cos(math.radians(16)), 108), "1E2226", {"rot": rot}))
+	_rebar(p, -58, yb + 42, 108, 4, rng, spread=5)
+	for i in range(14):  # cracks out from the plateau, flat on the street
 		a = i * math.tau / 14 + 0.2
-		ln = rng.uniform(12, 22)
-		p.append(("box", (ln, 0.1, 1.8), (math.cos(a) * (157 + ln / 2), 0.15, math.sin(a) * (157 + ln / 2)), "141210", {"rot": (0, -math.degrees(a) + rng.uniform(-12, 12), 0)}))
+		ln = rng.uniform(8, 14)
+		p.append(("box", (ln, 0.1, 1.8), (math.cos(a) * (RO + 20 + ln / 2), 0.15, math.sin(a) * (RO + 20 + ln / 2)), "141210", {"rot": (0, -math.degrees(a) + rng.uniform(-12, 12), 0)}))
 	return k.prop("Crater", p)
 
 
@@ -854,11 +893,31 @@ def build(k):
 				_clear_near(k, pos[0], pos[2], 12, ("Kerb", "Rubble", "Barricade"))
 				k.place("Kerb", (pos[0], -1.0, pos[2]), yaw + (math.pi / 2 if side > 0 else -math.pi / 2))
 	# 03 and 04: half-collapsed blocks close to the road ahead
-	for f, ahead, off in ((0.62, 110, 54), (0.62, 170, -54), (0.9, 95, -54), (0.9, 150, 54)):
+	for f, ahead, off in ((0.62, 110, 54), (0.62, 170, -54), (0.9, 150, 54)):
 		pos, yaw = k.beside(L * f + ahead, off)
 		if k.clear_of_road(pos[0], pos[2], 46):
 			_clear_near(k, pos[0], pos[2], 36, BUILD)
 			k.place("Collapsed", (pos[0], -1.0, pos[2]), yaw + (math.pi / 2 if off > 0 else -math.pi / 2))
+	# 04: an intact balconied mid-rise leaning about 20 degrees along the street onto a high-rise neighbour, rubble
+	# heaped at its base (ref Meteor_fragment_aftermath); the same meshes, the lean is the instance's own rotation
+	for ahead, off in ((100, -60), (100, 60), (150, -60), (60, -62)):
+		p, right, t = k.at(L * 0.9 + ahead)
+		base = p + right * off
+		nb = base + t * 52
+		if not (k.clear_of_road(base.x, base.z, 46) and k.clear_of_road(nb.x, nb.z, 46)):
+			continue
+		_clear_near(k, base.x, base.z, 40, BUILD + ("Rubble", "Kerb", "Barricade"))
+		_clear_near(k, nb.x, nb.z, 30, BUILD)
+		_, yaw = k.beside(L * 0.9 + ahead, off)
+		yaw += math.pi / 2 if off > 0 else -math.pi / 2
+		ob = k.place("MidRise", (base.x, -3.5, base.z), yaw)
+		lean = math.radians(20) * (1 if math.cos(yaw) * t.x - math.sin(yaw) * t.z > 0 else -1)  # top toward +t
+		ob.rotation_euler = (0, lean, yaw)
+		k.place("HighRise", (nb.x, -1.0, nb.z), yaw)
+		for dt, dr, sc in ((-16, 0, 1.5), (-6, 8, 1.2), (8, -4, 1.3)):
+			q = base + t * dt + right * (dr if off > 0 else -dr)
+			k.place("Rubble", (q.x, -1.0, q.z), yaw + dt * 0.1, sc)
+		break
 	# 03 / 04: a second crater close beside the road ahead, inside the 62% or the 90% view; sight line cleared
 	done = False
 	for f in (0.62, 0.9):
