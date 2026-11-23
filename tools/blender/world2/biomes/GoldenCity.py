@@ -12,13 +12,14 @@ render set (design doc 4.46). Budget (BIOME_ENVIRONMENT_SPEC 4.5): 12 meshes, 3 
 
 import math
 
+CLEAR_EXEMPT = {"Barrier"}  # the barrier sphere spans the whole city, hundreds of studs over the road (14+ rule)
 MODEL_SHOTS = ["Palace", "Church", "People", "Wagon", "RowA"]  # hero close-ups (build_track.model_shots); RowA holds the townhouse blocks
 
 GOLD, GOLD2, GOLD3, GOLDR, GOLDW = "F2C44C", "DCA83A", "FFE592", "E6AE3E", "6A4812"
 SQ2 = math.sqrt(2)
 
 
-def g(rough=0.24, **o):
+def g(rough=0.3, **o):
 	"""Polished gold."""
 	return dict({"metal": 1.0, "rough": rough}, **o)
 
@@ -123,7 +124,7 @@ def kerb_set():
 	return [
 		("box", (2.4, 1.4, 2.4), (0, 0.7, 0), GOLD2, g()),
 		("cyl", (0.8, 15, 0.8), (0, 8.5, 0), GOLD2, g(seg=8)),
-		("box", (2.2, 3, 2.2), (0, 17.4, 0), "FFD27A", {"emit": 1.2, "metal": 0.3, "rough": 0.2}),
+		("box", (2.2, 3, 2.2), (0, 17.4, 0), "F0B848", g(0.2, emit=0.25)),  # lantern glass, gold and unlit (frozen)
 		("box", (2.8, 0.4, 2.8), (0, 15.8, 0), GOLD2, g()),
 		("cone", (3.4, 2, 3.4), (0, 19.9, 0), GOLDR, g(0.3, seg=4, rot=(0, 45, 0))),
 		("box", (10, 3, 4), (8, 1.5, 0), GOLD2, g()),
@@ -176,6 +177,14 @@ def city_block():
 			p.append(("box", (w * 0.4, 3.6, d + 0.4), (x, y, z), GOLDW, g(0.5)))
 		for f in range(1, fl):
 			p.append(("box", (w + 0.6, 0.6, d + 0.6), (x, 2 + f * 9, z), GOLD3, g()))
+		# piers through the window bands (each box crosses both opposite faces): the bands read as window grids
+		for i in range(1, int(w // 6.5)):
+			p.append(("box", (1.6, fl * 9 - 2, d + 0.8), (x - w / 2 + i * w / int(w // 6.5), 2 + fl * 4.5, z), GOLD if fl % 2 else GOLD2, g()))
+		for i in range(1, int(d // 6.5)):
+			p.append(("box", (w + 0.8, fl * 9 - 2, 1.6), (x, 2 + fl * 4.5, z - d / 2 + i * d / int(d // 6.5)), GOLD if fl % 2 else GOLD2, g()))
+		for sx in (-1, 1):  # quoins
+			for sz in (-1, 1):
+				p.append(("box", (1.4, fl * 9, 1.4), (x + sx * w / 2, 2 + fl * 4.5 - 1, z + sz * d / 2), GOLD3, g()))
 		if tower:
 			p += pyramid(w + 2, 20, (x, H + 0.8, z))
 		else:
@@ -285,7 +294,7 @@ def church():
 	"""Hero: the city's large church: a long nave with a steep roof and a clerestory of tall arched windows over lower
 	side aisles with lean-to roofs and buttresses; a transept with its own gables and an octagonal crossing lantern;
 	a round apse; the west tower rising in stages to a belfry of paired arches with corner pinnacles and a tall
-	octagonal spire; a deep arched portal and a round window (plain ring and spokes). No clock. West front is -Z."""
+	octagonal spire; a deep arched portal and a pair of tall lancet windows (no round window or dial). West front is -Z."""
 	NW, NH, NL, NZ = 40, 46, 120, 50  # nave width, wall height, length, centre z
 	p = [("box", (NW, NH, NL), (0, NH / 2, NZ), GOLD, g()), ("box", (NW + 1.4, 1.4, NL + 1.4), (0, NH + 0.2, NZ), GOLD3, g())]
 	p += rotate(gable(NL, NW + 1, 30, NH + 0.8, o=0.6), 90, 0, NZ)
@@ -321,20 +330,17 @@ def church():
 		for x in (-7, 7):
 			p += rotate([("box", (6, 20, 1.2), (x, 100, -T / 2 - 0.1), GOLDW, g(0.5)), ("cyl", (6, 1.2, 6), (x, 110, -T / 2 - 0.1), GOLDW, g(0.5, rot=(90, 0, 0), seg=8))], side * 90, 0, tzc)
 	p += [("cyl", (T * 0.92, 8, T * 0.92), (0, TH + 4, tzc), GOLD, g(seg=8)), ("cone", (T, 96, T), (0, TH + 56, tzc), GOLDR, g(0.3, seg=8)), ("ball", (5, 5, 5), (0, TH + 106, tzc), GOLD3, g(0.12, subdiv=1))]
-	fz = tzc - T / 2  # portal and round window on the west face
+	fz = tzc - T / 2  # portal and lancet windows on the west face
 	p += [
 		("box", (20, 30, 2), (0, 15, fz - 1), GOLD3, g()),
 		("box", (12, 22, 2.4), (0, 11, fz - 1.4), GOLDW, g(0.5)),
 		("cyl", (12, 2.4, 12), (0, 22, fz - 1.4), GOLDW, g(0.5, rot=(90, 0, 0), seg=12)),
-		("cyl", (26, 0.8, 26), (0, 62, fz - 0.3), GOLD3, g(0.2, rot=(90, 0, 0), seg=20)),
-		("cyl", (23, 1.0, 23), (0, 62, fz - 0.6), GOLDW, g(0.5, rot=(90, 0, 0), seg=20)),
-		("cyl", (5, 1.4, 5), (0, 62, fz - 1.0), GOLD3, g(0.2, rot=(90, 0, 0), seg=10)),
 	]
-	for i in range(8):  # rose window: twelve-ray tracery and a ring of petal lights, so it never reads as a dial
-		p.append(("box", (0.9, 22, 0.6), (0, 62, fz - 1.1), GOLD3, g(rot=(0, 0, i * 22.5))))
-	for i in range(12):
-		a = i * math.tau / 12
-		p.append(("cyl", (3.6, 0.6, 3.6), (7.6 * math.cos(a), 62 + 7.6 * math.sin(a), fz - 1.3), GOLD3, g(0.2, rot=(90, 0, 0), seg=8)))
+	for x in (-6, 6):  # a pair of tall lancet windows over the portal (no round window: it read as a clock face)
+		p += [("box", (6.4, 30, 1.4), (x, 58, fz - 0.6), GOLD3, g()), ("box", (4.2, 27, 1.8), (x, 57, fz - 1.0), GOLDW, g(0.5))]
+		p += rotate(gable(1.4, 6.4, 6, 73, GOLD3), 90, x, fz - 0.6)  # pointed head
+	p += [("box", (1.0, 27, 0.6), (x, 57, fz - 2.0), GOLD3, g()) for x in (-6, 6)]  # mullions
+	p += move(gable(26, 2, 10, 80, o=0.0), 0, 0, fz - 1.0)  # gablet over the lancets
 	return p
 
 
@@ -368,10 +374,10 @@ def people():
 			("box", (1.6 * s, 1.2 * s, 2.6 * s), (x + 0.8 * s, f(0.6), z + f(2.6) * sn), GOLD2, g()),
 			("cone", (6.6 * s, 11.5 * s, 5.6 * s), (x, f(8.4), z + 0.5 * s), GOLD, g(0.22, seg=16, taper=0.48, smooth=True, rot=(5, 0, 0))),  # long cloak, shoulders to calf
 			("cone", (4.6 * s, 2.6 * s, 4.0 * s), (x, f(14.3), z + 0.3 * s), GOLD, g(0.22, seg=16, taper=0.55, smooth=True)),  # capelet over the shoulders
-			("ball", (2.2 * s, 2.6 * s, 2.4 * s), (x, f(16.4), z - 0.2 * s), GOLD3, g(0.2, subdiv=2, smooth=True)),  # head (faceless)
-			("ball", (3.0 * s, 3.2 * s, 3.1 * s), (x, f(16.8), z + 0.45 * s), GOLD, g(0.22, subdiv=2, smooth=True)),  # hood round the back of the head
+			("ball", (2.2 * s, 2.6 * s, 2.4 * s), (x, f(16.3), z - 0.55 * s), GOLD3, g(0.2, subdiv=2, smooth=True)),  # head (faceless)
+			("ball", (3.4 * s, 3.7 * s, 3.3 * s), (x, f(16.7), z + 0.6 * s), GOLD, g(0.22, subdiv=2, smooth=True)),  # hood framing the face
 			("cone", (1.6 * s, 2.8 * s, 1.6 * s), (x, f(16.4), z + 2.2 * s), GOLD, g(0.22, seg=10, smooth=True, rot=(110, 0, 0))),  # hood tip falling back
-			("box", (1.0 * s, 5 * s, 1.1 * s), (x + 2.4 * s, f(12), z - 1.2 * s), GOLD2, g(rot=(-40, 0, -8))),  # forward arm
+			("cone", (1.6 * s, 5 * s, 1.6 * s), (x + 2.1 * s, f(11.2), z - 1.0 * s), GOLD2, g(rot=(150, 0, 6), seg=10, taper=0.65, smooth=True)),  # arm bent forward in a wide sleeve, cuff at the hand
 		]
 		if extra == "staff":
 			p.append(("cyl", (0.6, 19, 0.6), (x + 3.2, 9.5, z - 3.2), GOLDR, g(seg=6, rot=(-10, 0, 0))))
@@ -400,16 +406,21 @@ def wagon():
 				p.append(("box", (0.6, 5.6, 0.5), (x, 3.2, z), GOLD3, g(rot=(a, 0, 0))))
 	p += [("box", (0.6, 0.6, 12), (x, 4.6, -14), GOLD2, g(rot=(-4, 0, 0))) for x in (-2.4, 2.4)]
 	p += [
-		("box", (4, 4.4, 10), (0, 8, -21), GOLD, g()),  # horse body
-		("ball", (4.2, 4.6, 4), (0, 8.2, -16.4), GOLD, g(subdiv=1, smooth=True)),
-		("ball", (4.2, 4.6, 4), (0, 8.4, -25.6), GOLD, g(subdiv=1, smooth=True)),
-		("box", (2.6, 6, 3), (0, 11.8, -27.4), GOLD, g(rot=(-32, 0, 0))),  # neck
-		("box", (2.2, 2.4, 5), (0, 14.4, -29.6), GOLD3, g(rot=(18, 0, 0))),  # head
-		("box", (0.8, 5.4, 2.4), (0, 12.6, -26.4), GOLDR, g(rot=(-32, 0, 0))),  # mane
-		("box", (1, 5, 1), (0, 6.4, -15.4), GOLDR, g(rot=(25, 0, 0))),  # tail
+		# the draught horse, smooth-shaded: barrel body, chest and haunch, arched neck, tapered head, mane, tail
+		("cyl", (4.4, 9, 4.8), (0, 9.2, -21), GOLD, g(rot=(90, 0, 0), seg=14, smooth=True)),
+		("ball", (4.8, 5.2, 5.2), (0, 9.4, -16.6), GOLD, g(subdiv=3, smooth=True)),  # haunch
+		("ball", (4.6, 5.4, 5.0), (0, 9.6, -25.4), GOLD, g(subdiv=3, smooth=True)),  # chest
+		("cone", (3.6, 7.4, 3.0), (0, 13.6, -27.8), GOLD, g(rot=(-34, 0, 0), seg=12, taper=0.62, smooth=True)),  # neck
+		("cone", (2.6, 5.2, 2.2), (0, 15.4, -31.2), GOLD3, g(rot=(-112, 0, 0), seg=12, taper=0.55, smooth=True)),  # head, muzzle forward-down
+		("ball", (1.0, 1.6, 0.8), (-0.8, 17.6, -29.8), GOLD3, g(subdiv=2, smooth=True)),  # ears
+		("ball", (1.0, 1.6, 0.8), (0.8, 17.6, -29.8), GOLD3, g(subdiv=2, smooth=True)),
+		("box", (0.6, 7.0, 1.0), (0, 14.4, -27.2), GOLDR, g(rot=(-34, 0, 0))),  # mane
+		("cone", (1.6, 6.5, 1.2), (0, 7.4, -13.4), GOLDR, g(rot=(155, 0, 0), seg=8, taper=0.4, smooth=True)),  # tail
+		("box", (4.8, 0.6, 3.6), (0, 11.4, -22), GOLD3, g()),  # harness pad
 	]
-	for x, z, r in ((-1.3, -17, 24), (1.3, -17, -12), (-1.3, -25, -26), (1.3, -25, 18)):
-		p.append(("box", (1.1, 6.4, 1.3), (x, 3.2, z), GOLD2, g(rot=(r, 0, 0))))
+	for x, z, r in ((-1.4, -16.8, 12), (1.4, -16.8, -6), (-1.4, -25.2, -12), (1.4, -25.2, 8)):  # legs mid-stride, hooves
+		p.append(("cone", (1.6, 7.6, 1.6), (x, 3.8, z), GOLD2, g(rot=(r, 0, 0), seg=8, taper=0.62, smooth=True)))
+		p.append(("cyl", (1.4, 0.9, 1.6), (x, 0.45, z - 3.4 * math.sin(math.radians(r))), GOLDR, g(seg=8)))
 	p += [("box", (4, 4, 4), (8, 2, 4), GOLD2, g()), ("box", (3, 3, 3), (8, 5.5, 4.4), GOLD3, g(rot=(0, 20, 0))), ("cyl", (3, 4, 3), (8, 2, -2), GOLDR, g(seg=10))]
 	return p
 
@@ -477,7 +488,7 @@ def build(k):
 	hx, hz = (k.hi.x - k.lo.x) / 2, (k.hi.z - k.lo.z) / 2
 	WX, WZ = hx * 1.3 + 160, hz * 1.3 + 160  # wall ring (ellipse) round the whole city
 	RB = max(WX, WZ) * 1.12  # barrier sphere radius
-	gr = k.ground("E2B24E", margin=RB - max(hx, hz) + 1200, rough=0.3)
+	gr = k.ground("E2B24E", margin=RB - max(hx, hz) + 5000, rough=0.3)
 	bsdf = next(n for n in gr.data.materials[0].node_tree.nodes if n.type == "BSDF_PRINCIPLED")
 	bsdf.inputs["Metallic"].default_value = 0.85  # the ground is gold too
 
@@ -526,7 +537,7 @@ def build(k):
 		d += 86
 		i += 1
 	# Frozen people, trees and wagons on the pavements
-	for every, off, names, start, spin in ((120, 36, ["People"], 60, True), (170, 36, ["Tree"], 100, False), (430, 45, ["Wagon"], 220, False)):  # group radius about 11: 24+ from the centre line
+	for every, off, names, start, spin in ((120, 38, ["People"], 60, True), (170, 36, ["Tree"], 100, False), (430, 45, ["Wagon"], 220, False)):  # group radius about 11: 24+ from the centre line
 		d = start
 		while d < k.length - 70:
 			for side in (-1, 1):
