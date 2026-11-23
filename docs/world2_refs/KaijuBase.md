@@ -162,3 +162,20 @@ Round 13 (2026-11-23), shaped live in Blender against railgun.jpg, sweeper_clean
   shots 1 and 4 now see its flank, ridge and stake line, and it stays clear of the road.
 - Van roof crew: four off-duty sweepers sit slouched with their knees up and forearms on their knees, hoods down,
   without packs. The lying one has no pack, and his face sits in the top of his hood (it was floating above the head).
+
+Round 14 (2026-11-23), shaped live in Blender against railgun.jpg, sweeper_cleaning1/2 and sweeper_members:
+- Rail cannon cables: 16 bundles of 3-5 cables, on both sides. Each cable leaves a disc rim at mid-height, arcs out
+  over the side-deck handrail, then runs back along the rail in long, low, sagging loops between the post tops. It ends
+  on the deck at one of two junction boxes at the back of each deck. Each cable has 9-11 pieces, and nothing stands up
+  from the ground. From the side they read as drooping arcs; from the muzzle they spill sideways onto both decks.
+- Ink shadows: pointed flame tongues, broad at the base and pointed at the top, slanted, in groups of 2-3 with uneven
+  tips. They are dark red-brown, not black, and lie just off the hide. There are no closed or curved shapes, so
+  nothing reads as lettering.
+- Ridge crags: pale tan, about 2x larger, of very uneven height and leaning, against the sky. Their top faces are a
+  lighter tan. This supersedes round 13's red-brown crags.
+- Pale band edge: torn steps of mixed width and height (band-coloured flat plates over the painted band's edge), each
+  with a thin dark shadow lip under the hide.
+- The tail-side gantry moved to x 140, clear of the folded hind leg.
+- Van: the four roof sitters each have their own pose (knees up; legs out leaning back on the hands; one knee up;
+  cross-legged and hunched) and their own turn. Every other van along the road is mirrored, and the vans' yaw varies
+  more. The lying sweeper lies flat on his front along the rack, head forward on his folded arms at the front rail.
