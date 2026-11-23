@@ -28,6 +28,7 @@ HAZE = "FF8A4A"  # the horizon colour: the far plain fades into it
 WIDE = 1.4  # the dome is this much wider across the road than along it, so it fills the view from the aisle
 MOUND_H = 0.2  # the astronaut kneels on a flat dark shadow patch this thick (local studs)
 GRASS_EVERY = 150
+ARM_COLS = (-400, -270, -140, 140, 270, 400)  # lateral columns of the arm grid over the darkness
 DARK_LEN = 1550  # the finale stretch (arms, black ground pools) is the last 1550 studs
 
 
@@ -165,16 +166,16 @@ def hand(p, w, f, s, n, k, curl, seg_n=8, sub=1, palm=False):
 	last (index straightest, little finger most curled), and a three-segment thumb. Returns the fingertip points."""
 	tips = []
 	if palm:  # axis-aligned hands only (f up, n toward -Z): soft palm pad, knuckle ridge and thumb muscle over the metacarpals
-		p.append(("ball", (3.4 * k, 4.3 * k, 1.3 * k), add(w, mul(f, 1.9 * k), mul(n, -0.08 * k)), PALE, {"subdiv": sub, "smooth": True}))  # covers the knuckles
-		p.append(("ball", (1.3 * k, 2.7 * k, 1.2 * k), add(w, mul(f, 1.55 * k), mul(s, 1.0 * k), mul(n, 0.12 * k)), PALE, {"subdiv": sub, "smooth": True}))  # outer heel pad: a cupped palm
-		p.append(("ball", (3.0 * k, 1.1 * k, 0.95 * k), add(w, mul(f, 3.15 * k), mul(n, -0.2 * k)), PALE, {"subdiv": sub, "smooth": True}))  # webbing across the finger roots: one smooth line
-		p.append(("ball", (2.8 * k, 1.2 * k, 0.9 * k), add(w, mul(f, 2.8 * k), mul(n, -0.3 * k)), PALE, {"subdiv": sub, "smooth": True}))
-		p.append(("ball", (1.5 * k, 2.2 * k, 1.3 * k), add(w, mul(f, 0.95 * k), mul(s, -0.95 * k), mul(n, 0.2 * k)), PALE, {"subdiv": sub, "smooth": True}))
+		p.append(("ball", (3.0 * k, 4.2 * k, 0.95 * k), add(w, mul(f, 1.9 * k), mul(n, -0.1 * k)), PALE, {"subdiv": sub, "smooth": True}))  # slender flat palm over the knuckles
+		p.append(("ball", (2.7 * k, 1.0 * k, 0.8 * k), add(w, mul(f, 3.15 * k), mul(n, -0.15 * k)), PALE, {"subdiv": sub, "smooth": True}))  # webbing across the finger roots: one smooth line
+		p.append(("ball", (2.6 * k, 1.1 * k, 0.75 * k), add(w, mul(f, 2.8 * k), mul(n, -0.25 * k)), PALE, {"subdiv": sub, "smooth": True}))
+		p.append(("ball", (1.1 * k, 2.0 * k, 0.8 * k), add(w, mul(f, 1.0 * k), mul(s, -0.85 * k), mul(n, 0.05 * k)), PALE, {"subdiv": sub, "smooth": True}))  # low thumb muscle
 	else:
 		seg(p, w, add(w, mul(f, 2.4 * k)), 0.8 * k, PALE, ball=False, seg=seg_n)  # palm core
 	for i, (lat, lengths) in enumerate(FINGERS):
-		kn = add(w, mul(f, (3.0 - 0.18 * abs(lat)) * k), mul(s, lat * 0.72 * k), mul(n, -0.25 * k))
-		seg(p, add(w, mul(s, lat * 0.3 * k)), kn, 0.42 * k, PALE, ball=not palm, seg=seg_n, subdiv=sub, taper=0.9)  # metacarpal (sunk in the palm pad on the ground hand)
+		kn = add(w, mul(f, (3.0 - 0.18 * abs(lat)) * k), mul(s, lat * (0.62 if palm else 0.72) * k), mul(n, (-0.12 if palm else -0.25) * k))
+		if not palm:  # the ground hand's flat palm pad stands in for the metacarpals
+			seg(p, add(w, mul(s, lat * 0.3 * k)), kn, 0.42 * k, PALE, seg=seg_n, subdiv=sub, taper=0.9)  # metacarpal, knuckle
 		if palm:  # a round finger root, so the base blends into the palm instead of showing a cut edge
 			rr = 2 * (0.37 - 0.03 * abs(lat)) * k
 			p.append(("ball", (rr, rr, rr), kn, PALE, {"subdiv": sub, "smooth": True}))
@@ -219,10 +220,10 @@ def ground_hand(curl):
 
 
 def float_arm(bend, wrist, curl):
-	"""A long thin pale arm hanging in the darkness (darkness_devil.jpg): rounded shoulder end, long upper arm, elbow
-	bent only `bend` degrees, long forearm, wrist turned `wrist` degrees, slender hand with curled separated fingers.
-	Built lying along +X (shoulder at the origin end); the build hangs it near vertical, hand down. Centred on its
-	middle so the reach is the same either way."""
+	"""A long pale arm hanging in the darkness (darkness_devil.jpg): rounded shoulder end, long upper arm, a clear elbow
+	knob bent `bend` degrees, long forearm, wrist turned `wrist` degrees, a big slender hand (about a third of the
+	forearm) with curled separated fingers. Built lying along +X (shoulder at the origin end); the build hangs it near
+	vertical, hand down. Centred on its middle so the reach is the same either way."""
 	p = []
 	sh, el = (0, 0, 0), (17, 0, 0)
 	b = math.radians(bend)
@@ -230,10 +231,11 @@ def float_arm(bend, wrist, curl):
 	wb = b + math.radians(wrist)
 	f = (math.cos(wb), 0, -math.sin(wb))
 	s = (math.sin(wb), 0, math.cos(wb))
-	p.append(("ball", (2.7, 2.7, 2.7), sh, PALE, {"subdiv": 2, "smooth": True}))  # rounded shoulder end, no cut
-	seg(p, sh, el, 1.3, PALE, subdiv=2, taper=0.85)
-	seg(p, el, wr, 1.05, PALE, subdiv=2, taper=0.75)
-	tips = hand(p, wr, f, s, (0, -1, 0), 1.0, curl)
+	p.append(("ball", (4.0, 4.0, 4.0), sh, PALE, {"subdiv": 2, "smooth": True}))  # rounded shoulder end, no cut
+	seg(p, sh, el, 1.95, PALE, ball=False, subdiv=2, taper=0.85)
+	p.append(("ball", (3.9, 3.9, 3.9) if bend > 30 else (3.3, 3.3, 3.3), el, PALE, {"subdiv": 2, "smooth": True}))  # elbow knob
+	seg(p, el, wr, 1.6, PALE, subdiv=2, taper=0.75)
+	tips = hand(p, wr, f, s, (0, -1, 0), 1.8, curl)
 	pts = [sh, el, wr] + tips
 	c = mul(add(*pts), -1.0 / len(pts))
 	return glow(shift(p, c), 0.2, (PALE,))
@@ -265,7 +267,7 @@ def astronaut():
 		el = (sx * 2.05, 4.8, -0.9)
 		seg(up, (sx * 1.9, 6.0, 0.15), el, 0.64, SUIT, ball=False, seg=10, taper=0.95)  # upper arm, elbow out
 		up.append(("ball", (1.25, 1.25, 1.25), el, SUIT, r2))  # elbow
-		wr = (sx * 0.62, 6.35, -2.0)
+		wr = (sx * 0.4, 6.35, -2.05)
 		d = norm(add(wr, mul(el, -1)))
 		c = add(mul(el, 0.67), mul(wr, 0.33))
 		seg(up, el, add(wr, mul(d, -0.5)), 0.56, SUIT, ball=False, seg=10, taper=0.9)  # forearm rising to the hands
@@ -273,12 +275,14 @@ def astronaut():
 		seg(up, add(wr, mul(d, -0.55)), add(wr, mul(d, -0.38)), 0.55, WRIST, ball=False, seg=10)  # dark wrist ring
 		seg(up, add(wr, mul(d, 0.15)), add(wr, mul(d, -0.4)), 0.42, GLOVE, ball=False, seg=10, taper=1.5)  # flared gauntlet cuff
 		# The mitten: a wide palm pressed flat to the other at x = 0, the four fingers held together pointing up
-		up.append(("ball", (1.1, 1.7, 1.55), (sx * 0.55, 7.1, -2.3), GLOVE, r2))  # palm
-		up.append(("cyl", (1.0, 1.3, 1.45), (sx * 0.5, 8.1, -2.35), GLOVE, {"seg": 12, "smooth": True}))  # the four fingers held together
-		up.append(("ball", (1.0, 0.9, 1.45), (sx * 0.5, 8.75, -2.35), GLOVE, r2))  # their blunt rounded tips
-		for z in (-2.72, -2.37, -2.02):  # finger-gap grooves on the back of the mitten
-			B(up, (0.1, 1.3, 0.07), (sx * 1.0, 8.2, z), "B4B8C0")
-		seg(up, (sx * 0.86, 6.8, -1.85), (sx * 0.62, 7.65, -1.72), 0.24, GLOVE, ball=False, seg=8)  # thumb along the inside
+		# The joined mittens cover only the lower-middle third of the visor: palm to palm at x = 0, about a third of the
+		# visor wide together, fingertips at the visor's mid-height
+		up.append(("ball", (0.5, 1.35, 1.15), (sx * 0.25, 6.95, -2.3), GLOVE, r2))  # palm
+		up.append(("cyl", (0.46, 0.85, 1.05), (sx * 0.23, 7.75, -2.32), GLOVE, {"seg": 12, "smooth": True}))  # the four fingers held together
+		up.append(("ball", (0.46, 0.5, 1.05), (sx * 0.23, 8.2, -2.32), GLOVE, r2))  # their blunt rounded tips
+		for z in (-2.62, -2.32, -2.02):  # finger-gap grooves on the back of the mitten
+			B(up, (0.08, 0.85, 0.06), (sx * 0.46, 7.75, z), "B4B8C0")
+		seg(up, (sx * 0.5, 6.7, -1.95), (sx * 0.32, 7.35, -1.85), 0.16, GLOVE, ball=False, seg=8)  # thumb along the inside
 		# Helmet side lamp: an upright box, three lights looking forward
 		B(up, (0.45, 1.2, 0.8), (sx * 1.76, 8.35, -0.2), LAMP)
 		for i in range(3):
@@ -313,8 +317,8 @@ def abyss():
 def dark_gate():
 	"""The landmark: one giant panel door standing open at the end of the road (placed at x2 scale, front -Z toward the
 	runner). Posts on plinths, a moulded lintel, the slab swung open away from the runner with raised panels, round knobs
-	on backplates and hinges; a black void slab stands 26 local studs behind the frame (past the road's end, so 24+ off
-	the line) and fills the opening, the black dome beyond it."""
+	on backplates and hinges; a black void fills the opening inside the frame depth (the build stands the gate past the
+	road's end so the void is 24+ off the line), the black dome beyond it."""
 	W, H = 54, 110
 	p = [
 		("box", (8, H + 4, 10), (-W / 2 - 4, (H - 4) / 2, 0), FRAMEC),
@@ -328,8 +332,8 @@ def dark_gate():
 		B(p, (12, 6, 14), (x, 2, 0), "3A2A1A")  # plinth
 		B(p, (11, 5, 13), (x, H - 4, 0), "4A3020")  # capital
 		B(p, (2, H - 12, 11), (x - sx * 2.5, H / 2, 0), "4A3020")  # fluting strip
-	B(p, (W + 20, H + 14, 1), (0, (H + 14) / 2 - 1, 26), BLACK)  # the void behind the opening
-	ang = -140  # swung open toward +Z, away from the runner
+	B(p, (W + 1, H + 1, 3.5), (0, (H + 1) / 2 - 0.5, 2.75), BLACK)  # the void, fitted inside the frame depth behind the opening
+	ang = 115  # swung open toward the runner (-Z), off to the side: the slab reads from the aisle and from the side
 	a = math.radians(ang)
 	hx = -W / 2
 
@@ -472,22 +476,20 @@ def build(k):
 	k.prop("DoorOpen", door(ajar=50))
 	k.prop("SkyDoor", sky_door())
 	k.prop("Hand", glow(ground_hand(28), 0.15, (PALE,)))
-	k.prop("ArmA", float_arm(12, 10, 24))
-	k.prop("ArmB", float_arm(42, -15, 34))
+	k.prop("ArmA", float_arm(6, 8, 22))  # straight, hanging
+	k.prop("ArmB", float_arm(85, -15, 34))  # bent at a clear elbow
 	k.prop("Astronaut", astronaut())
 	k.prop("DarkGate", dark_gate())
 	k.prop("Abyss", abyss())
 	k.prop("Grass", tufts())
 	k.prop("Hill", [("ball", (2, 0.35, 2), (0, 0, 0), HILL, {"subdiv": 3, "smooth": True})])
-	k.prop("Void", [("cyl", (120, 0.3, 120), (0, 0, 0), BLACK, {"seg": 24})])
 
 	c = (k.lo + k.hi) / 2
 	span = max(k.hi.x - k.lo.x, k.hi.z - k.lo.z)
 	g = k.ground(GROUND, margin=24000, rough=1.0)
 	ground_shader(k, g.data.materials[0], c.x, -c.z, span * 0.75, span * 2.6)  # Blender XY: (x, -z)
 	ground_shader(k, k.props["Hill"].data.materials[0], c.x, -c.z, span * 0.75, span * 2.6)
-	for name in ("Abyss", "Void"):
-		matte(k.props[name].data.materials[0])
+	matte(k.props["Abyss"].data.materials[0])
 	for name in ("Hand", "ArmA", "ArmB", "Astronaut"):
 		flat_caps(k.props[name])
 	fill_light(k)
@@ -524,7 +526,7 @@ def build(k):
 	ob = k.place("Abyss", (ctr.x, -1.0, ctr.z), facing((t.x, t.z)), R)
 	ob.visible_shadow = False
 	for mat in (g.data.materials[0], k.props["Hill"].data.materials[0]):
-		dark_under(mat, ctr.x, -ctr.z, R * 1.05, R * 1.8)  # Blender XY: (x, -z)
+		dark_under(mat, ctr.x, -ctr.z, R + 40, R + 380)  # black only past the last astronaut (Blender XY: (x, -z))
 	# Doors fill the sky in strict rows following the road, each face-on to the road's heading; none hang before the dark
 	d = 60.0
 	while d < dark - 200:
@@ -537,42 +539,34 @@ def build(k):
 					continue  # would hang in front of the black dome
 				k.place("SkyDoor", (q.x, y, q.z), yaw, sc).visible_shadow = False  # no door shadows on the plain
 		d += 250
-	# Black ground pooling along the last stretch, sparse at first, closing in toward the gate
-	d = L - 1000
-	while d < L - 40:
-		f = (d - (L - 1000)) / 960
-		for sx in (-1, 1):
-			if k.rng.random() < 0.35 + 0.65 * f:
-				sc = 0.5 + f * 1.1
-				pos, _ = k.beside(d + k.rng.uniform(-20, 20), sx * (26 + 60 * sc + k.rng.uniform(0, 30)))
-				k.place("Void", (pos[0], -0.85, pos[2]), k.rng.uniform(0, math.tau), sc)
-		d += 90 - f * 40
+	# Long pale arms hanging in the dark, half straight and half bent: an even jittered grid over the last stretch, each
+	# cell an arm-length apart; a few more over the open plain. None within 15 studs of a giant hand.
+	hands = [(o.location.x, o.location.y, o.scale.x) for o in k.col.objects if o.data is k.props["Hand"].data]
 
-	# Long pale arms floating in the dark at every angle: near ones 35-65 up beside the aisle, more deeper in
 	def arm(d, off, y, sc):
 		pos, yaw = k.beside(d, off)
+		if any(math.hypot(pos[0] - hx, -pos[2] - hy) < 22 * hs + 30 * sc + 15 for hx, hy, hs in hands):
+			return False  # Blender XY is (x, -z); hand bound ~22 x scale, arm half-length ~30 x scale
 		ob = k.place(k.rng.choice(("ArmA", "ArmB")), (pos[0], y, pos[2]), yaw + k.rng.uniform(0, math.tau), sc)
-		ob.rotation_euler = (math.radians(k.rng.uniform(-10, 10)), math.radians(90 + k.rng.uniform(-14, 14)), ob.rotation_euler[2])  # hanging, hand down
+		ob.rotation_euler = (math.radians(k.rng.uniform(-8, 8)), math.radians(90 + k.rng.uniform(-10, 10)), ob.rotation_euler[2])  # hanging, hand down
+		return True
 
-	d = dark + 60
-	while d < L + 250:
-		for sx in (-1, 1):
-			arm(d + k.rng.uniform(-10, 10), sx * k.rng.uniform(85, 160), k.rng.uniform(55, 95), k.rng.uniform(1.2, 1.6))
-		d += 26
-	for _ in range(110):
-		arm(k.rng.uniform(dark + 100, L + 380), k.rng.choice((-1, 1)) * k.rng.uniform(170, 470), k.rng.uniform(110, 520), k.rng.uniform(1.8, 3.2))
-	# A few hang over the open plain as well, well off the road
+	d, row = dark + 80, 0
+	while d < L + 200:
+		for o in ARM_COLS:
+			off = o + (55 if row % 2 else 0) * (1 if o > 0 else -1)
+			arm(d + k.rng.uniform(-20, 20), off + k.rng.uniform(-20, 20), k.rng.uniform(95, 230), k.rng.uniform(1.9, 2.3))
+		d, row = d + 120, row + 1
 	dd, n = 300.0, 0
 	while dd < dark - 200 and n < 100:
-		off = (1 if n % 2 else -1) * k.rng.uniform(90, 200)
+		off = (1 if n % 2 else -1) * k.rng.uniform(100, 210)
 		pos, _ = k.beside(dd, off)
-		if k.clear_of_road(pos[0], pos[2], 80):
-			arm(dd, off, k.rng.uniform(45, 75), k.rng.uniform(1.4, 1.8))
+		if k.clear_of_road(pos[0], pos[2], 80) and arm(dd, off, k.rng.uniform(62, 90), k.rng.uniform(1.3, 1.5)):
 			n += 1
 		dd += 110
-	# Two rows of kneeling astronauts praying on dark mounds: they face the aisle, turned 15 degrees back toward the
-	# runner so the visor and the praying hands read from the runner's camera
-	ang = math.radians(-15)
+	# Two rows of kneeling astronauts praying on dark shadow patches, side-on down the aisle: each turned 45 degrees from
+	# the road toward the gate, so the visor and the big backpack both read from the runner camera
+	ang = math.radians(45)
 	d = L - 650
 	while d < L - 250:
 		for sx in (-1, 1):
@@ -581,6 +575,7 @@ def build(k):
 			v = (-sx * right.x * math.cos(ang) + t.x * math.sin(ang), -sx * right.z * math.cos(ang) + t.z * math.sin(ang))
 			k.place("Astronaut", (pos[0], -1.0, pos[2]), facing(v), 1.5)
 		d += 14
-	pos, yaw = k.beside(L, 0, 0.0)
-	k.place("DarkGate", pos, yaw + math.pi, 2.0)  # at the road's end, x2: posts 70 off the line, its void 52 past the end
+	p, right, t = k.at(L)
+	q = p + t * 26  # past the road's end: frame face 16 studs out, the void 28+
+	k.place("DarkGate", (q.x, p.y - 1.0, q.z), facing((-t.x, -t.z)), 2.0)  # x2, front toward the runner
 	k.sky([(0.0, HAZE), (0.06, "F0602E"), (0.22, "C02018"), (0.55, "820A12"), (1.0, "3A0208")], strength=1.0, sun=(2.6, "FFEEDD", 40, 15))

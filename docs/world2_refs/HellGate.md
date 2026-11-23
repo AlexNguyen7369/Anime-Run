@@ -116,3 +116,22 @@ DoorOpen 436, DoorClosed 424, Hill 320, SkyDoor 304, Grass 250, Void 92. Clearan
   centre), so the dark rises out of a darkening plain. It reads clearly from the overview and the aisle (06, 07). From
   the low approach angle in 04 a thin pale strip still shows under the dome.
 - `SkyDoor`: a sill under the slab.
+
+### Round note (2026-11-23): round 4 (coordinator rulings)
+- Arms (`darkness_devil.jpg`): `ArmA` hangs straight (6 degree bend). `ArmB` bends 85 degrees at a clear elbow knob.
+  Both are about 1.5 times thicker (upper arm r 1.95, forearm r 1.6) with a rounded shoulder end. The hand is 1.8
+  times larger, about a third of the arm's reach.
+- Arms over the darkness: they hang on an even jittered grid, one row every 120 studs along the last stretch and six
+  lateral columns (140, 270 and 400 studs each side, alternate rows staggered by 55). They sit 95-230 studs up at
+  scale 1.9-2.3, so they are fewer, larger and an arm-length apart. No arm hangs within 15 studs of a giant `Hand`'s
+  bounds, which fixes the arm through the hand in 02.
+- Astronauts: they face side-on down the aisle, turned 45 degrees from the road toward the gate, so the visor and
+  backpack both read from the runner camera. The joined mittens are now about a third of the visor wide, with
+  fingertips at visor mid-height, so the visor and its highlight stay open on both sides and above.
+- Aisle ground: the black ground pools (`Void` prop) are removed. The plain stays pale with a dark shadow patch under
+  each astronaut. The ground and hills fade to black only from just past the last astronaut to the dome edge.
+- `Hand`: a slender flat palm (no bulging pads). The metacarpals are dropped on the ground hand so nothing pokes
+  through the palm. There is a low thumb muscle and closer-set finger roots.
+- `DarkGate`: the void is a black block inside the frame depth, not a free-standing panel. The gate stands 26 studs
+  past the road's end, so the void is 28+ studs off the line. The door swings 115 degrees toward the runner, off to
+  the side, so it reads from the aisle and from the side.
