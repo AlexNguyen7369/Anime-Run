@@ -13,7 +13,8 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 
 ## Save
 - One save per player (`PlayerStats_v2`, VERSION unchanged at 19 so live World 1 servers never go read-only).
-- `Shared/WorldSave.View` swaps `BestTrack`, `Checkpoint` and `RaceBestTimes` for the world's own on load;
+- `Shared/WorldSave.View` swaps `BestTrack`, `Checkpoint`, `RaceBestTimes`, `Team` and `Equipped` (`WorldConfig.PROGRESS_KEYS`)
+  for the world's own on load (a fresh World 2 team is the starter);
   `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys.
 
 ## Travel and gate

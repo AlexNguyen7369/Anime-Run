@@ -178,6 +178,7 @@ Preset trios (the anime's famous team):
 - Art follows design doc section 5 safeguards: in-house models only, no ripped assets, no official logos or audio.
 
 Named in text but not in the cast (design doc section 5, one list): Mahoraka (Mahoraga, Jujutsu Kaisen), Track 5's card definition only (`TRACKS_AND_BIOMES_SPEC`).
+World 2 enemies (design doc 4.47; models later): the 10 tweaked names and their sources are listed in `docs/WORLD2_SPEC.md` "Tracks", part of this one list.
 
 Sidekicks and boss (design doc section 5, one list): Pochito (Pochita, Chainsaw Man), Hawke (Hawk, The Seven Deadly Sins), Kasugay (Kasugai crows, Demon Slayer), Gyokan (Divine Dogs, Jujutsu Kaisen), Choppa (Chopper, One Piece), Beroo (Beru, Solo Leveling), Ryuuk (Ryuk, Death Note), Purple Platina (Star Platinum, JoJo's Bizarre Adventure), Igriz (Igris, Solo Leveling), Kaizel (Kaisel, Solo Leveling), Rikka (Rika, Jujutsu Kaisen), Kurami (Kurama, Naruto), Big Raga (Mahoraga, Jujutsu Kaisen), The Elf Mage (Frieren, Frieren: Beyond Journey's End; ids `boss_mage`, `boss_golem`). Relics: Nobora's Nail (Nobara's nails), Sukana's Finger (Sukuna's fingers), Gojio's Sixfold Eyes (Gojo's Six Eyes), Raga's Wheel (Mahoraga's wheel), all Jujutsu Kaisen.
 

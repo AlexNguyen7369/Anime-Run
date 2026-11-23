@@ -15,8 +15,9 @@ WorldConfig.PLACES = {
 	[2] = nil,
 }
 
--- Per-world progress keys (design doc 4.47): World 1 keeps them at the top of the save, World 2 under Worlds.W2.
-WorldConfig.PROGRESS_KEYS = { "BestTrack", "Checkpoint", "RaceBestTimes" }
+-- Per-world keys (design doc 4.47): track progress and the team. World 1 keeps them at the top of the save, World 2
+-- under Worlds.W2 (a fresh World 2 team falls back to the starter, GachaService.Apply).
+WorldConfig.PROGRESS_KEYS = { "BestTrack", "Checkpoint", "RaceBestTimes", "Team", "Equipped" }
 
 -- The World 2 gate in the World 1 plaza (design doc 4.47): locked for everyone until the owner opens it; admins travel
 -- with /world2 (Server/AdminService).
