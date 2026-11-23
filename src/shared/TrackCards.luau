@@ -2,7 +2,9 @@
 -- Tracks panel card copy (design doc 4.15, docs/TRACKS_AND_BIOMES_SPEC.md "Track card definitions"), by track number.
 -- Road: rbxassetid of the track's road screenshot. Blurb: its proposed one-line definition, tweaked names only.
 
-return {
+local WorldConfig = require(script.Parent.WorldConfig)
+
+local WORLD1 = {
 	[1] = {
 		Road = "rbxassetid://91684524991802",
 		Blurb = "Hidden ninja village of Narito's youth, left a crater by Paine's assault.",
@@ -41,3 +43,20 @@ return {
 	},
 	[10] = { Road = "rbxassetid://131465650836799", Blurb = "Green planet where Freezo hunts the wish-granting orbs." },
 }
+
+-- World 2 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): proposed copy, tweaked names only. Road screenshots come
+-- after the owner approves the Blender drafts.
+local WORLD2 = {
+	[1] = { Blurb = "Night streets of the devil hunters, where Katanah Man's blades wait in the alleys." },
+	[2] = { Blurb = "The Demon King's black castle, its stairs guarded by Barran's red sky." },
+	[3] = { Blurb = "A ghost town of cracked avenues and meteor craters, hunted by Garoo." },
+	[4] = { Blurb = "A cursed mountain tunnel road where Turbo Grammy races anyone after dark." },
+	[5] = { Blurb = "A city wrecked by kaiju, where Kaijo No. 9 slips past the defense force walls." },
+	[6] = { Blurb = "Flowered plains and old elven ruins, where Ora's puppet army once marched." },
+	[7] = { Blurb = "A black volcanic island hollowed by the ant nest, ruled by Berru." },
+	[8] = { Blurb = "The monsters' underground den of caverns and bone bridges, deep in Orochy's lair." },
+	[9] = { Blurb = "A city turned to gold by Machto's curse, frozen in one golden instant." },
+	[10] = { Blurb = "The red sky of Hell, a field of doors, and Makina waiting at the last gate." },
+}
+
+return WorldConfig.Id == 2 and WORLD2 or WORLD1
