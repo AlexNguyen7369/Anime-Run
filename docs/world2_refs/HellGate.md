@@ -20,3 +20,35 @@ Not matched: the source is a black-and-white manga, so the colours (the red-oran
 follow the brief and the colour covers rather than any panel. The astronauts form two rows across an aisle, as in the
 manga panel, not a circle. The brief's "circle" does not match the panel. The source's gore (split bodies, intestines)
 is left out on purpose. The Darkness Devil figure is not modelled.
+
+## Round note, 2026-11-23 (review FAIL 4/10, owner asked for closer 1-1 and more detail)
+
+Props now (12): `DoorClosed`, `DoorOpen`, `SkyDoor`, `Hand`, `ArmA`, `ArmB`, `Astronaut`, `DarkGate`, `Abyss`, `Grass`,
+`Hill`, `Void`. `HandGrasp` and the translucent `Haze` are gone (the haze caused ghosting over the hills).
+
+- The darkness (`Abyss`, hero, matte black, no specular): a curved back wall 900 studs high behind the gate, side walls
+  640 studs out along the last 1000 studs that swell up out of the plain from 1750 studs out, a roof over the last
+  1000 studs, and black ground beyond the threshold. The aisle now runs into a pitch-black wall and sky, as in
+  `astronauts_welcome.jpg`. From the overview it is a large black region. It casts no shadow, so the plain inside stays
+  lit. `Void` discs pool on the ground over the last 1000 studs, sparse at first and closing in toward the gate.
+- Floating arms (`ArmA`, `ArmB`), as in `darkness_devil.jpg`: long thin arms with a rounded shoulder end, bent at the
+  elbow (70 and 115 degrees), and slender hands. Each hand has four separated three-segment fingers that curl and
+  spread, plus a three-segment thumb. There are no cuffs. They float 35-65 studs up, 85-160 studs off the aisle, and
+  more float deeper in the dark. They hang at random yaw, pitch and roll.
+- Hero `Hand`: the same slender hand at hero size with a short forearm out of a mound. Hands beside the road are about
+  85 studs tall at 180 studs out, so the whole hand stays in frame. Colossal hands stand 900+ studs out.
+- `Astronaut`: the visor is centred and rimmed. The palms are pressed together upright before the visor. Lamp boxes
+  with three lenses sit on both sides of the helmet, as in `astronauts_row.jpg`. The suit is white with a faint
+  self-light, and the backpack is large. Each figure is turned 40 degrees from the road toward the gate.
+- `DarkGate`: raised panels and knobs on both faces of the slab, three hinges, and pilaster capitals and fluting on the
+  posts. The Abyss back wall fills the view through the opening. Nothing stands in the opening, which keeps the road
+  clear.
+- Sky doors: strict rows parallel to the road, a row every 250 studs along it. Three tiers (300, 470 and 680 studs up;
+  4, 8 and 10 doors) make the sky denser higher up. Every door is face-on to the road's heading at that point. They
+  cast no shadow on the plain.
+- Plain: the ground is pale and dotted with dark grass-clump patches (`Grass`). The door rows on the ground are straight
+  and square to the road, with no scattered field doors. The sun is warm white and lights the finale from the runner's
+  side.
+
+INSTANCES 8,769 (cap 8,798). Hero tris: Hand 2,592, DarkGate 516, Abyss 480. Mid tris: ArmA and ArmB 1,252 each,
+Astronaut 1,100.
