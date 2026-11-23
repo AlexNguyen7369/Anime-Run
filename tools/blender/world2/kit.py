@@ -230,7 +230,7 @@ class Kit:
 				if not self.clear_of_road(pos[0], pos[2], min(abs(o) - 1, 24)):
 					continue  # another lap of the road runs here
 				if face_road:
-					yaw += math.pi if off < 0 else 0.0  # -Z of the prop faces the road
+					yaw += math.pi / 2 if off > 0 else -math.pi / 2  # turn -Z from along the road to face it
 				else:
 					yaw = self.rng.uniform(0, math.tau)
 				self.place(self.rng.choice(names), pos, yaw, self.rng.uniform(*scale))

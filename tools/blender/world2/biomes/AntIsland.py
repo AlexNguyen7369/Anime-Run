@@ -23,7 +23,7 @@ def row(k, every, offsets, names, clear, jitter=0.0, start=40.0, end=None, scale
 		for off in offsets:
 			o = off + k.rng.uniform(-jitter, jitter) * (1 if off > 0 else -1)
 			pos, yaw = k.beside(d + k.rng.uniform(-jitter, jitter), o)
-			yaw = yaw + (math.pi if off < 0 else 0.0) if face_road else k.rng.uniform(0, math.tau)
+			yaw = yaw + (math.pi / 2 if off > 0 else -math.pi / 2) if face_road else k.rng.uniform(0, math.tau)
 			if k.clear_of_road(pos[0], pos[2], clear):
 				k.place(k.rng.choice(names), (pos[0], -1.0, pos[2]), yaw, k.rng.uniform(*scale))
 		d += every
