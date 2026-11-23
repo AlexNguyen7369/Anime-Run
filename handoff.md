@@ -1,3 +1,7 @@
+## RESUME HERE (2026-11-23 12:40, world2): likeness loop restarted after the session was killed
+- Checkpoint aa4c2da holds the killed round (MODEL_SHOTS in every biome, tools/blender/world2/clearance.py, likeness fixes). 6 fresh builders (T1, T10, T2+7, T3+8, T4+5, T6+9) finish that round from the old briefs/messages/reviews (copied to the session scratchpad `resume/`).
+- Loop: builder round -> fresh independent reviewer per pair (scene shots + m_* close-ups) -> repeat until every track scores overall >= 7/10, then show the owner for approval (owner 2026-11-23: "once all revirewer scores are at least 7, then come back for approval").
+
 ## RESUME HERE (2026-11-23, world2): World 2 Phase A + all 10 tracks drafted in Blender, waiting on owner approval
 - Branch `feature/alex/world2-place` (worktree `../AnimeRun-orch/world2`), pushed. Plan: `~/.claude/plans/scalable-meandering-pearl-of-3527e5c6-6209-4188-9740-d8306567b15b.md`. Rules: design doc 4.47 (4.46 is taken by the Scroll Dojo look), `docs/WORLD2_SPEC.md`.
 - Phase A code: `Shared/WorldConfig` (WorldId IntValue from `world2.project.json`), `Shared/WorldSave` (World 2 progress under `Worlds.W2`, VERSION stays 19), `Server/WorldTravel` (save + release lock, then TeleportAsync; refused in Studio), `/world1` `/world2` admin commands, locked `SpawnArea.WorldGate` at hub-local (194, -176), `Tracks/World2/` (World 1 routes, new biomes), per-world `NpcConfig.World2` and `TrackCards`, stand-in themes so a World 2 place boots.
