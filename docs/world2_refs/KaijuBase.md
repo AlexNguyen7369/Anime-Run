@@ -80,3 +80,17 @@ Round 8 (2026-11-23), coordinator ruling on the hide (sweeper_cleaning1/2):
 - Rail cannon: eight thick coil discs, each with 16 radial fins, and 84 cables. A third of the cables end on the rail bed.
 - Smoke: three columns of faceted puffs that widen, lighten and drift as they rise, dark at the base. They cast no shadow.
 - Van: the light tower stands behind the van, clear of the roof crew.
+
+Round 9 (2026-11-23), final coordinator ruling on the corpse (sweeper_cleaning1/2):
+- Corpse: a few large, smooth, bulging hide masses that overlap heavily into one continuous red-brown wall. The surface
+  detail is thin, dark, angular shadow streaks lying flush on the bulges, like the ink shadows in the refs. A jagged
+  rocky ridge runs along the top silhouette only. One wide pale band runs low on the side, with flush mottling. The
+  loose angled plates are gone. The flank and ridge helpers now measure the merged surface, so details and rope
+  anchors sit on the hide instead of floating.
+- Gantry ropes are tied onto the hide, and a large sweeper hangs on each of three ropes per gantry just off the hide.
+  The ground crew is at human scale next to the vans; the crew on the back is 1.8x.
+- Sweepers: a rounded, loose hood and rim round the face, dark goggles, a white respirator with a round side filter, a
+  loose tapered suit with baggy rounded arms and legs, harness straps, and a taller green pack.
+- Rail cannon: 84 long cable bundles run from the coil rings out and down both sides in sagging loops, along the
+  ground and back up onto the side decks (railgun.jpg). They stay 24+ from the road.
+- Van: a taller windscreen raked back along the nose slope, and bigger side windows.
