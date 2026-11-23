@@ -107,3 +107,22 @@ Round 10 (2026-11-23):
   with their legs over the windscreen, one lies on the rack, and one leans on the van with arms crossed
   (sweeper_members).
 - City tiles now keep clear of each corpse's full length, so the tail no longer runs through blocks.
+
+Round 11 (2026-11-23), new builder, shaped live in Blender against `sweeper_cleaning1/2.jpg` and `railgun.jpg`:
+- Corpse torso: four large smooth hide masses sunk below the ground, so the flank rises as one steep wall with a few
+  gentle bulges. No horizontal tier seam: the separate pale-band shell and the hip bulge are gone.
+- The pale band and the ink shadows are painted onto the hide's own faces, so they lie exactly in the surface. The band
+  is grey-beige over the lower 38% of the flank, with a ragged top edge, mixed face tones and about 300 dark speckle
+  chips lying flat on it. The ink shadows are large maroon runs slanting down with branches, spread over every bulge
+  between the band and the upper flank. They end well above the band, so no dark seam forms along it. The upright ink
+  plates are gone.
+- Ridge: big beige-salmon jagged crags (8-15% of body height) lean along the top silhouette, with broken slabs leaning
+  on them. The back stake line runs among them.
+- Gantry sweepers face the hide with their boots on its surface, 16-36 studs off the gantry legs. Each rope runs from
+  the gantry beam to the sweeper's chest and on down to an anchor on the hide.
+- Van: four sweepers sit in a row along the rack at 0.65 scale, looking out to the side, and one lies in front of them
+  (sweeper_members). The standing ground worker was dropped to stay in the mid-prop tri budget.
+- Rail cannon: 64 thin black cables leave the top of the coil drum, arc up and out over its shoulders on both sides,
+  sag over the side-deck handrails and run onto the ground. The side decks now stand outside the drum (38 out), so the
+  cables clear the drum, the tanks and the rails. The support truck is on the far side.
+- Small and distant sweepers use a coarser hood, box gloves and a lower-segment hood rim (tri budget).
