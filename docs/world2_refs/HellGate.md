@@ -50,5 +50,69 @@ Props now (12): `DoorClosed`, `DoorOpen`, `SkyDoor`, `Hand`, `ArmA`, `ArmB`, `As
   and square to the road, with no scattered field doors. The sun is warm white and lights the finale from the runner's
   side.
 
-INSTANCES 8,769 (cap 8,798). Hero tris: Hand 2,592, DarkGate 516, Abyss 480. Mid tris: ArmA and ArmB 1,252 each,
+INSTANCES 8,769 (cap 8,798). Hero tris (previous round): Hand 2,592, DarkGate 516, Abyss 480. Mid tris: ArmA and ArmB 1,252 each,
 Astronaut 1,100.
+
+### Round note (2026-11-23): model close-ups
+`MODEL_SHOTS` = Astronaut, Hand, ArmA, DarkGate, SkyDoor, DoorClosed (`m_<Name>_front.jpg` / `m_<Name>_34.jpg`).
+- `Astronaut` (rebuilt to match `astronauts_row.jpg`): big round helmet with a thick rim round a glossy dark visor
+  with a white highlight. Two big mitten gloves press palm to palm. The four fingers are held together and point up,
+  with gap lines, a tucked thumb and ribbed gauntlet rings, and they cover the lower visor. Each helmet side has a
+  narrow lamp box with three lenses. The suit is puffy and white, with ribbed knee and elbow bands and blank shoulder
+  pockets (no emblem). It also has a chest box with hoses, a strapped backpack and boots with soles. The white
+  self-light is lowered so the shading reads. 2,988 tris.
+- `Hand`: one tapering forearm with a low muscle swell, and a wrist as wide as the forearm, so no joint bands show.
+  The palm has a soft pad, a knuckle ridge on the back and a thumb muscle pad. The metacarpal ends no longer poke out.
+  The finger curl now grows from index to little finger (0.55 to 1.35). It has a faint self-light so the skin stays
+  pale.
+- Joint balls stay the same size as the limb's tapered end. A wider ball was tried, but at full size it read as a
+  ring on every finger.
+- Doors: the `SkyDoor` lintel now sits on the slab (it had a sky gap), and the knobs on `SkyDoor`, `DoorClosed` and
+  `DoorOpen` are round instead of cubes.
+
+INSTANCES 8,769 (cap 8,798). Tris: Hand 3,500, Astronaut 2,988, ArmA and ArmB 1,252 each, DarkGate 516, Abyss 480,
+DoorOpen 436, DoorClosed 424, Hill 320, SkyDoor 304, Grass 250, Void 92. Clearance: TRACK 10 CLEAR 4194/4194.
+
+### Round note (2026-11-23): review 6.5/10, fixes
+- `Abyss` is now one huge matte-black ellipsoid dome beyond the finish, with no walls or roof. It is a 1,280-tri
+  sphere, 1.4 times wider across the road than along it and 1.25 tall. The build sizes it to the largest radius that
+  still clears every road stretch by 50 studs (2,550 on this loop). From the approach (03, 04) it is an edgeless black
+  field rising over a bright strip of plain. From the aisle (06, 07) it fills the whole view past the gate. The
+  overview (00) shows it as one black oval. No sky door hangs within 700 studs of the dome edge, so none renders in
+  front of the black.
+- `DarkGate`: the posts now sink only 4 studs into the ground, so the slab reaches the sill in the close-up. The knob
+  is a round ball on a backplate.
+- Astronaut rows: they start 650 studs before the finish (the 06 camera no longer crops the nearest figure) and stand
+  34 studs out. Each kneels on a low dark grass mound, which works as its shadow patch and lifts the whole figure above
+  the edge wall. They face the aisle, turned 15 degrees back toward the runner, so the visor and praying hands read from
+  the runner's camera. This is the reviewer's call; the source rows face down the aisle. The self-light is 0.15 (was
+  0.5). The visor rim is thicker, and the side lamp is a small round pod.
+- Plain: each `Grass` patch has 32 clumps (was 7) in an even sunflower fill and is 2.4 to 3.2 times larger. There are
+  rows at 56, 96 and 140 studs each side, every 150 studs, all the way to the finish.
+- Skin: `PALE` is a near-white cool tone (F6F6FA), with a 0.3 self-light on the hands and arms.
+- `Hand`: the wrist oval is widest exactly where the forearm ends, so no ledge or seam ring shows. The metacarpals are
+  sunk inside a taller palm pad, and the back knuckle ridge is narrower, so no bumps stick out at the base of the
+  fingers.
+
+### Round note (2026-11-23): round 3, hero models
+- `Astronaut` (coordinator ruling, vs `astronauts_row.jpg`):
+  - Helmet: a round bubble helmet with a medium white rim, and a glossy black visor that fills about 75% of the face
+    with a highlight at top-left. The boxed side lamps keep their 3 lights.
+  - Pose: kneeling with the weight back. The thighs slant about 40 degrees, and the hips and upper body sit back over
+    the heels.
+  - Gloves: wide mitten gloves pressed palm to palm, with blunt rounded tips and three finger-gap grooves on the back.
+    Each has a flared gauntlet cuff and a dark wrist ring.
+  - Base: the mound is now a flat dark shadow patch.
+  - Colour: suit materials are cool white (F4F7FC) with a 0.35 cool self-light, and the shadowless fill sun is cool
+    white at 2.0. Some orange still shows from the sky's ambient light.
+- Arms: long and straight, or bent only 12 or 42 degrees. Upper arm 17, forearm 15. They hang near vertical, hand
+  down, within plus or minus 14 degrees (`darkness_devil.jpg`), with no random tumbling. Self-light is 0.2. Up to 100
+  more hang over the open plain, 90-200 studs off the road (05).
+- `Hand`: fingers taper by 0.8 per segment and curl more (28). A round root ball and a webbing pad smooth each finger
+  base into the palm. An outer heel pad cups the palm, and the knuckles sit closer together.
+- `DarkGate`: it stands at the road's end at x2 scale (220 studs tall, posts 70 off the line), front toward the runner.
+  A black void slab 52 studs past the road's end fills the opening, and the door swings away from the runner.
+- Darkness base: the ground and hill materials fade to black around the dome (smoothstep, from 1.05R to 1.8R from its
+  centre), so the dark rises out of a darkening plain. It reads clearly from the overview and the aisle (06, 07). From
+  the low approach angle in 04 a thin pale strip still shows under the dome.
+- `SkyDoor`: a sill under the slab.
