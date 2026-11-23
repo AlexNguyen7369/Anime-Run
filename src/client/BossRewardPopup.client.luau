@@ -14,10 +14,10 @@ local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
 local Icons = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
-local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 
 -- R1 "Victory banner" (BOSS_EVENT_SPEC "Rewards", owner 2026-11-10). Proposed: sizes in the Index frame's units, rows
@@ -80,16 +80,15 @@ local g = AnimeSkin.IndexFrame(
 )
 local caption = label("DamageCaption", panel, { Text = "TOTAL DAMAGE" })
 local damage = label("Damage", panel, { Text = "" })
-local shareBar =
-	make("Frame", "ShareBar", panel, { BackgroundColor3 = Color3.fromRGB(20, 24, 44), BorderSizePixel = 0 })
-make("UICorner", "Round", shareBar, { CornerRadius = UDim.new(0.5, 0) })
-make("UIStroke", "Edge", shareBar, { Color = AnimeSkin.Ink, Thickness = 2 })
-local shareFill = make("Frame", "Fill", shareBar, {
-	BackgroundColor3 = AnimeSkin.Tint.Gold,
-	BorderSizePixel = 0,
-	Size = UDim2.fromScale(0, 1),
-})
-make("UICorner", "Round", shareFill, { CornerRadius = UDim.new(0.5, 0) })
+-- Design doc 4.46 bossreward frame: a dark lacquer track with a brown rim and a vermilion fill, the paying share's mark
+-- in vermilion.
+local D = AnimeSkin.Dojo
+local shareBar = make("Frame", "ShareBar", panel, { BackgroundColor3 = D.Colors.Lacquer, BorderSizePixel = 0 })
+make("UICorner", "Round", shareBar, { CornerRadius = UDim.new(0, 4) })
+make("UIStroke", "Edge", shareBar, { Color = D.Colors.Rim, Thickness = 2 })
+local shareFill = make("Frame", "Fill", shareBar, { BorderSizePixel = 0, Size = UDim2.fromScale(0, 1) })
+D.Fill(shareFill, D.Colors.VermLight, D.Colors.VermDeep)
+make("UICorner", "Round", shareFill, { CornerRadius = UDim.new(0, 4) })
 make("Frame", "Mark", shareBar, { -- the share that pays (BossEventConfig.MinDamageShare)
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(Cfg.MinDamageShare, 0.5),
@@ -104,6 +103,10 @@ local rewards = make("Frame", "Rewards", panel, { BackgroundTransparency = 1 })
 local function card(order)
 	local frame = make("Frame", "Card" .. order, rewards, { BackgroundTransparency = 1, ZIndex = 1 })
 	AnimeSkin.Card(frame, order % 2 == 1 and AnimeSkin.Tint.Gold or AnimeSkin.Tint.Default)
+	if order % 2 == 1 then -- a chest sits on a cream wood tile (kit.css .tile), an amount on paper
+		D.Fill(frame, D.Colors.TileTop, D.Colors.TileBottom)
+		D.Rim(frame, D.Colors.Rim, 3)
+	end
 	return frame
 end
 local function chestArt(id)
@@ -201,6 +204,7 @@ local function layout()
 	gemIcon.Size = g.at(item, item)
 	g.Role(caption, "Section")
 	g.Role(damage, "Title")
+	damage.TextColor3 = D.Colors.Verm -- the brush count in vermilion
 	g.Role(shareText, "Item")
 	g.Role(money, "Item")
 	g.Role(gems, "Item")
@@ -211,6 +215,7 @@ g.OnLayout(layout)
 
 local message = nil -- what waits to show, or shows
 local seen = false -- it has been on screen: the next event takes it away
+local closing = false -- its roll-up is playing
 
 local function close()
 	message, seen = nil, false
@@ -257,8 +262,10 @@ RunService.Heartbeat:Connect(function()
 	end
 	local show = message ~= nil and not inEvent -- above any panel the return opens, such as Daily
 	seen = seen or show
-	if show and not panel.Visible then
-		UiMotion.Pop(panel)
+	if show and (not panel.Visible or closing) then
+		closing = false
+		panel.Visible = true
+		DojoHandscroll.Open(panel) -- design doc 4.46: unrolls from its centre, the close live as it shows
 		UiFeedback.Play("ToastHigh")
 		countAt = os.clock()
 	end
@@ -267,6 +274,17 @@ RunService.Heartbeat:Connect(function()
 		count(f)
 		countAt = f < 1 and countAt or nil
 	end
-	panel.Visible = show
-	root.Enabled = show -- never above the showcase or loser screens while closed
+	if not show and panel.Visible and not closing then
+		closing = true -- rolls up, then hides (never above the showcase or loser screens once closed)
+		DojoHandscroll.Close(panel, function()
+			closing = false
+			panel.Visible = false
+			root.Enabled = false
+		end)
+	end
+	if show then
+		root.Enabled = true
+	elseif not panel.Visible then
+		root.Enabled = false
+	end
 end)
