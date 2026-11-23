@@ -11,6 +11,7 @@
 - Not covered: 2-player network test, real phone and 4:3 devices, the 9 Manual clicks (Escape and gamepad).
 
 ### Done
+- Studio verification (slot from animerun-cf): synced my 21 files (hash 21/21). World 1 Play: world_layout 11/11, spawn_area 187/187, data 151/151, admin 117/117, no script errors. World 2 mode (temporary WorldId): all 10 World 2 tracks built, gate open to World 1, Track 1 enemy Katanah Man, `/world1` refused cleanly in Studio. Locked gate captured in Studio (assets/world2_draft/gate/04_studio_locked.jpg). Studio restored to e579995 (8/8 hashes, new instances and WorldId removed), nothing saved or published.
 - Audit fixes waves 1A, 1B, 1C, 2 and fixes 2-4 (data safety, performance, UI, economy package A, rebirth phone scroll): commits bb96973, 02c7e4e, 112999f, c80e4de, a21b925, b108da9, 048b55b, ac89b46, afff07c; targeted Studio scenarios green.
 - Full harness run 1: server 64/6, UI 60/16; one game bug fixed (item picker lists every owned character, 81d4c45).
 - Stale tests (15 changes plus 5) after the audit fixes and owner changes: e9835be; reds rerun green (data 151, sidekick_rotation 231, sidekick_pity 203, sidekick_tutorial 54, relics 703; 16 UI scenarios).
@@ -92,7 +93,6 @@
 - Approval: open `assets/world2_draft/index.html` (the gate plus 6 Blender shots for each of the 10 World 2 tracks). Approve each track or say what to change. The game biomes and asset uploads wait on this.
 - World 2 place: create it in universe 10773557968 (Studio: Game Settings > Places > Add), then put its id in `WorldConfig.PLACES[2]`. Until then `/world2` replies "World 2 has no place yet".
 - Blender MCP addon update: `uvx mcp-for-blender install-addon` was denied by auto mode. The MCP works on protocol 15 (one behind), and every render used it.
-- Studio verification of Phase A: I am second in the Studio queue (animerun-cf holds it, scroll-dojo-ui-redesign is running a UiTestRun). Not run yet.
 
 ### Done
 - Phase A: design doc 4.47 and WORLD2_SPEC, WorldConfig, WorldSave (World 2 progress and team under Worlds.W2, VERSION unchanged), WorldTravel, `/world1` and `/world2`, the locked plaza gate, 10 World 2 route files, per-world enemies and cards, stand-in themes. Verified with stylua and selene (0 errors, same 19 warnings as main) and a rules audit (1 fail, fixed). Commits f40c27c..baa5d2c.
