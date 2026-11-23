@@ -20,6 +20,7 @@ render set (design doc 4.47)."""
 import math
 
 MODEL_SHOTS = ["HQ", "Mansion", "Apaato", "Konbini", "Retro"]  # hero close-ups judged at full size (build_track)
+CLEAR_EXEMPT = {"CrossWire"}  # wires spanning the street overhead: lowest point 20+ studs over the road top (14+ rule)
 
 ASPH, PAVE, CURB = "3A3C40", "2C2E33", "9A9C9E"
 MANSION_WALL, SHOP_WALL, APA_WALL = "D6D0C3", "B8B0A3", "A99C83"  # keys for the per-instance colour variation
@@ -285,6 +286,15 @@ def konbini():
 		B(p, (5, 3, 4), (x, H + 2, 4), "D8D8D4")
 		C(p, (2.4, 0.2, 2.4), (x, H + 3.6, 4), "50545A")
 	vending_pair(p, -W / 2 - 4.2, zf + 2, n=2)
+	for xs in (-W / 2, W / 2):  # side elevations: frosted strip windows, staff door, poster panel, AC unit, drainpipe
+		s = 1 if xs > 0 else -1
+		for z in (-4, 2):
+			side_window(p, xs, z, 8.6, 4.4, 2.0, "E8F0F0", frame="9AA2AA")
+		B(p, (0.4, 7, 3.6), (xs + s * 0.2, 3.5, 7), "8A9096")
+		B(p, (0.3, 4, 2.8), (xs + s * 0.3, 4.4, -8), "E8D8B0", emit=0.6)
+		B(p, (1.2, 2.0, 2.8), (xs + s * 0.8, 1.0, 1), "E6E6E2")
+		C(p, (0.6, H, 0.6), (xs + s * 0.4, H / 2, D / 2 - 0.6), "8A8478", seg=6)
+		B(p, (0.3, 1.0, D), (xs + s * 0.25, 10.5, 0), "D89A48", emit=0.4)
 	C(p, (0.8, 18, 0.8), (W / 2 + 3, 9, zf - 1), STEEL, seg=6)
 	B(p, (6, 4, 1.2), (W / 2 + 3, 18, zf - 1), "F0ECE0", emit=1.2)
 	B(p, (6.2, 1.2, 1.3), (W / 2 + 3, 19, zf - 1), "D89A48", emit=1.2)
@@ -380,7 +390,7 @@ def wire(p, x0, y0, z0, x1, y1, z1, r, sag):
 
 
 def street_kit():
-	"""48 studs of narrow-street edge, placed with its road side (-Z) toward the road at 31 studs from the centre line:
+	"""48 studs of narrow-street edge, placed with its road side (-Z) toward the road at 35 studs from the centre line:
 	dark pavement on a raised kerb, white guardrail, a curved-arm sodium lamp with its warm pool, and two concrete utility
 	poles (transformer drum on the second) with 8 sagging wires per span, thick black cable bundles, and 3 wires crossing
 	high over the street to the far side (lowest point 22+ studs up, the road top is at 1)."""
@@ -392,12 +402,12 @@ def street_kit():
 		B(p, (48, 0.35, 0.3), (0, y, -5.2), "EDEDE8")
 	for x in range(-22, 24, 6):
 		C(p, (0.35, 2.4, 0.35), (x, 1.8, -5.2), "EDEDE8", seg=6)
-	# Lamp and its pool
-	C(p, (0.7, 17, 0.7), (0, 8.5, -4), "5E6E66")
-	B(p, (0.5, 3, 0.5), (0, 17.5, -4.9), "5E6E66", rot=(-35, 0, 0))
-	B(p, (0.5, 0.5, 3.6), (0, 18.8, -7.6), "5E6E66")
-	B(p, (1.4, 0.7, 2.6), (0, 18.5, -10), "4A5A52")
-	B(p, (1.1, 0.2, 2.2), (0, 18.1, -10), SODIUM, emit=10)
+	# Lamp and its pool (head ends 28.2 studs from the centre line on a straight, 24+ inside bends: kit at 35, head edge at local z -6.8)
+	C(p, (0.7, 17, 0.7), (0, 8.5, 0.5), "5E6E66")
+	B(p, (0.5, 3, 0.5), (0, 17.5, -0.4), "5E6E66", rot=(-35, 0, 0))
+	B(p, (0.5, 0.5, 3.6), (0, 18.8, -3.1), "5E6E66")
+	B(p, (1.4, 0.7, 2.6), (0, 18.5, -5.5), "4A5A52")
+	B(p, (1.1, 0.2, 2.2), (0, 18.1, -5.5), SODIUM, emit=10)
 	C(p, (16, 0.05, 10), (0, 0.66, -1), SODIUM, seg=16, emit=0.6, alpha=0.35)
 	# Two poles at x = -12 and +12
 	H = 36
@@ -427,13 +437,19 @@ def street_kit():
 		wire(p, -12, y, zz, 12, y, zz, r, sag)
 		wire(p, -24, y - sag, zz, -12, y, zz, r, 0.0)
 		wire(p, 12, y, zz, 24, y - sag, zz, r, 0.0)
-	# Wires crossing over the street from the second pole to the far side (62 studs away toward -Z); lowest 20+ up
-	for y, dz in ((33, -2), (30, 0), (27.5, 2)):
-		wire(p, 12, y, 1 + dz, 12, y, -61 + dz, 0.35, 7.0)
 	# Orange curve mirror on its own post at the kerb
 	C(p, (0.5, 10, 0.5), (-20, 5, -4.4), "E07020", seg=6)
 	C(p, (3.6, 0.5, 3.6), (-20, 10.5, -5.0), "E07020", seg=14, rot=(90, 0, 0))
 	C(p, (3.0, 0.3, 3.0), (-20, 10.5, -5.3), "C8D0D8", seg=14, rot=(90, 0, 0), metal=0.8, rough=0.15)
+	return p
+
+
+def cross_wire():
+	"""Three wires crossing high over the street from a pole on one side (local x 12, z 1) to the far side 70 studs toward
+	-Z; sag 7, so the lowest point is 20.5 studs up (road top at 1). Its own prop so the clearance check can exempt it."""
+	p = []
+	for y, dz in ((33, -2), (30, 0), (27.5, 2)):
+		wire(p, 12, y, 1 + dz, 12, y, -69 + dz, 0.35, 7.0)
 	return p
 
 
@@ -514,19 +530,29 @@ def retro():
 			y = 15 + f * 8
 			window(p, x, y, zf, 3.6, 4.6, (WARM, None, "FFE6C0", None)[lit(f, x) % 4], frame="E8DCC8")
 			C(p, (3.6, 0.6, 1.2), (x, y + 2.4, zf - 0.3), "E8DCC8", seg=10, rot=(90, 0, 0))  # arch head
+	for xs in (-W / 2, W / 2):  # side elevations: arched windows on both floors, lit cafe window, drainpipe
+		s = 1 if xs > 0 else -1
+		for f in range(2):
+			for z in (-4, 4):
+				side_window(p, xs, z, 15 + f * 8, 3.6, 4.6, (WARM, None, "FFE6C0")[lit(f, z, xs) % 3], frame="E8DCC8")
+				C(p, (1.2, 0.6, 3.6), (xs + s * 0.3, 17.4 + f * 8, z), "E8DCC8", seg=10, rot=(0, 0, 90))  # arch head
+		side_window(p, xs, -3, 4.5, 8, 5, "FFD8A0", frame="3A2A22")
+		C(p, (0.6, 28, 0.6), (xs + s * 0.4, 14, D / 2 - 0.6), "6A5A4A", seg=6)
+	corner_signs(p, -W / 2 - 0.4, zf, 26, 5, 2)  # narrow sign stack on the near corner
 	B(p, (W - 4, 7, 0.3), (0, 4.5, zf - 0.1), "FFD8A0", emit=2.4)
 	for x in range(-12, 14, 4):
 		B(p, (0.5, 7.4, 0.5), (x, 4.5, zf - 0.4), "3A2A22")
 	for i in range(6):
 		B(p, (W / 6, 0.5, 4), (-W / 2 + W / 12 + i * W / 6, 8.6, zf - 2), ("2A6A4A", "E8E0D0")[i % 2], rot=(-15, 0, 0))
 	# Phone booth: green frame, glass, lit ceiling, phone box
-	bx = 8  # in front of the facade, so every camera that sees the building sees the booth
+	bx = -8  # in front of the facade (near end for the 0.06 run camera), so every camera that sees the building sees the booth
 	for dx in (-1.6, 1.6):
 		for dz in (-1.6, 1.6):
 			B(p, (0.4, 8, 0.4), (bx + dx, 4, zf - 4 + dz), "2E8A4A")
 	B(p, (3.8, 0.6, 3.8), (bx, 8.2, zf - 4), "2E8A4A")
+	B(p, (3.2, 1.0, 3.2), (bx, 9.0, zf - 4), "7AE0A0", emit=3)  # lit green roof cap, reads over the road wall
 	B(p, (3.4, 0.3, 3.4), (bx, 7.8, zf - 4), "F4FFF4", emit=4)
-	B(p, (3.2, 7, 3.2), (bx, 4, zf - 4), "D8F0E0", alpha=0.35, emit=0.8)
+	B(p, (3.2, 7, 3.2), (bx, 4, zf - 4), "C8F0D8", alpha=0.5, emit=2.2)
 	B(p, (1.2, 1.8, 0.8), (bx, 4.6, zf - 2.7), "3A8A5A")
 	B(p, (3.8, 0.4, 3.8), (bx, 0.2, zf - 4), "2E8A4A")
 	return p
@@ -592,6 +618,7 @@ def build(k):
 		("LowBlock", low_block()),
 		("Retro", retro()),
 		("RoofTile", roof_tile()),
+		("CrossWire", cross_wire()),
 	):
 		k.prop(name, parts)
 	vary(k, MANSION_WALL, ("D6D0C3", "9EA0A0", "8C6A52", "E8E4DA", "8FA08A"))  # off-white, grey concrete, brown tile, green
@@ -602,7 +629,22 @@ def build(k):
 	L = k.length
 	end = L - 70
 	# Street edge both sides: pavement, kerb, guardrail, lamps with pools, poles with wires over the street
-	k.along(48, (-31, 31), ["StreetKit"], start=24, end=end)
+	# As k.along (same rng calls, so the street layout is unchanged), but a kit is skipped on a tight inner bend where its
+	# straight 48-stud length would bring a road-side corner (local x +-24, z -6.4) within 24 studs of the centre line.
+	d = 24
+	while d < end:
+		for off in (-35, 35):
+			k.rng.uniform(0, 0)
+			pos, yaw = k.beside(d + k.rng.uniform(0, 0), off)
+			if not k.clear_of_road(pos[0], pos[2], 24):
+				continue
+			name, _ = k.rng.choice(["StreetKit"]), k.rng.uniform(1.0, 1.0)
+			p, right, t = k.at(d)
+			s = 1 if off > 0 else -1
+			corners = [p + right * (off - s * 6.4) + t * e for e in (-24, 24)]
+			if all(k.clear_of_road(c.x, c.z, 24.6) for c in corners):
+				k.place(name, pos, yaw + s * math.pi / 2)
+		d += 48
 	# Hero landmark: the HQ at the end of the street axis seen by the run cameras (0.06, 0.33, 0.62, 0.9 of the run)
 	hq_plots = []
 	for f in (0.33, 0.62, 0.9, 0.06):
@@ -635,12 +677,12 @@ def build(k):
 				break
 	hq_plots += hero_plot
 	# The Jinbocho corner near the start, on the right
-	pos, yaw = k.beside(L * 0.06 + 40, 38 + 10)
+	pos, yaw = k.beside(L * 0.06 + 75, 40 + 10)
 	k.place("Retro", pos, yaw + math.pi / 2)
 	retro_plot = [(pos[0], pos[2], 30)]
 	# Street fronts, a taller back row, the infield as low blocks, the far skyline kept below the HQ
-	street(k, -1, ["ShopHouse", "ShopHouse", "Konbini", "Apaato", "Mansion"], 37, 20, end, avoid=hq_plots, flip=0.5)
-	street(k, 1, ["ShopHouse", "Apaato", "ShopHouse", "Mansion", "Konbini"], 37, 20, end, avoid=hq_plots + retro_plot, flip=0.5)
+	street(k, -1, ["ShopHouse", "ShopHouse", "Konbini", "Apaato", "Mansion"], 40, 20, end, avoid=hq_plots, flip=0.5)
+	street(k, 1, ["ShopHouse", "Apaato", "ShopHouse", "Mansion", "Konbini"], 40, 20, end, avoid=hq_plots + retro_plot, flip=0.5)
 	street(k, -1, ["Mansion", "Mansion", "ShopHouse"], 76, 0, end, gap=(6, 20), avoid=hq_plots)
 	street(k, 1, ["Mansion", "Apaato", "Mansion"], 76, 0, end, gap=(6, 20), avoid=hq_plots)
 	# Infield back streets: low blocks on an aligned 110-stud grid, each with a sodium light over its parking and park
@@ -658,6 +700,8 @@ def build(k):
 			if math.hypot(i, j) <= 6.6 and k.clear_of_road(x, z, 330) and all(math.hypot(x - a, z - b) > r + 230 for a, b, r in hq_plots):
 				k.place("RoofTile", (x, 0.0, z), 0.0)
 	k.field(40, ["Office"], clearance=230, margin=450, scale=(0.4, 0.55))
+	# Wires over the street: one set per 48 studs from the left kits' second pole (placed last: street layout unchanged)
+	k.along(48, (-35,), ["CrossWire"], start=24, end=end)
 	# Night: teal-blue ambient for cool shadows, warm sodium point lights at the lamps
 	k.sky([(0.0, "3A4A5A"), (0.06, "22344A"), (0.25, "122236"), (1.0, "060C18")], strength=1.0, sun=(0.6, "6FA8C0", 35, 140))
 	d = 24
