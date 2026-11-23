@@ -229,8 +229,9 @@
 225. 2026-11-23 — Alex Nguyen — World 2 rules audit (1 fail fixed): the team is per world (Team and Equipped saved under Worlds.W2 in World 2), and the parody list points to WORLD2_SPEC's enemy list.
 226. 2026-11-23 — Alex Nguyen — World 2 Phase A verified in Studio: world_layout 11/11, spawn_area 187/187, data 151/151, admin 117/117; World 2 mode boots with its 10 tracks; locked gate captured; Studio restored to e579995.
 227. 2026-11-23 — Alex Nguyen — World 2 Blender drafts: Track 10 hand fingers chained to the palm (no floating segments) and the Track 9 barrier dome smooth-shaded; both tracks re-rendered.
+228. 2026-11-23 — Alex Nguyen — Checkpointed the interrupted World 2 likeness round (model close-ups in every biome, road clearance checker, likeness fixes) and restarted the builder loop.
 
 ## What's next
-**Owner reviews assets/world2_draft/index.html and approves or marks changes per track; then the approved drafts become game BiomeThemes and asset uploads.**
+**Builders finish the round for all 10 World 2 tracks; fresh reviewers score scene shots and model close-ups, repeating until every track scores at least 7/10, then the owner approves assets/world2_draft/index.html.**
 
-**Why this is next:** the owner rules that nothing of World 2 goes in the game before its Blender draft is approved; the game biomes, uploads and Studio screenshots all wait on that.
+**Why this is next:** the owner asked to see the tracks only once every reviewer score is 7 or higher, and the game BiomeThemes, prop uploads and Studio screenshots all wait on that approval.
