@@ -378,3 +378,13 @@ Deliverables:
 - t5 | HUD option A (wood plaques, lacquer Money/Gems plates) | ui_hud green
 - t6 | Regression: Summon and Team unchanged; full harness once; audit; PR with fresh review
 Out of scope: Summon page, Team Select page, the Upgrades tree (owner 2026-11-20), server rules, costs, any number.
+
+## world2: World 2, a separate place with 10 new tracks (owner 2026-11-23, design doc 4.47)
+Status: active
+Owner-confirmed: 2026-11-23 (plan approved in session; nightly run "everything is approved")
+Branch: feature/alex/world2-place
+Deliverables:
+- w2-place: separate place config, per-world save, locked plaza gate, /world1 /world2. Done when: code committed, WorldSave keeps World 1 keys, and a Studio Play in World 1 shows the locked gate with no red in the world_layout and spawn_area scenarios.
+- w2-blender: all 10 World 2 tracks and the gate built and rendered in Blender (tools/blender/world2). Done when: 6 shots per track plus the gate shots are in assets/world2_draft and the owner has the approval set.
+- w2-game (after approval): game BiomeThemes from the approved drafts, assets uploaded under the ledger rules, Studio screenshots. Done when: the track tests and environment scenarios are green in the World 2 mode.
+Out of scope until approval: the World 2 roster models, team of 4, Awakening, the speed table.
