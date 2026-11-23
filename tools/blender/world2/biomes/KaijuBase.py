@@ -87,7 +87,7 @@ def supports(k, color):
 def put(k, name, d, off, scale=1.0, clear=None, turn=0.0):
 	"""One prop on the ground at distance d, `off` studs right (negative left) of the centre line, -Z to the road."""
 	pos, yaw = k.beside(d, off)
-	if not k.clear_of_road(pos[0], pos[2], min(abs(off) - 1, 24) if clear is None else clear):
+	if not k.clear_of_road(pos[0], pos[2], abs(off) - 1 if clear is None else clear):  # no other lap of road nearer
 		return None
 	yaw += math.pi / 2 if off > 0 else -math.pi / 2
 	return k.place(name, (pos[0], -1.0, pos[2]), yaw + turn, scale)
@@ -219,57 +219,57 @@ def build(k):
 	k.prop("Rubble", ru)
 
 	# --- Kaiju corpse (hero) with its two gantries: a huge reddish-brown beast lying on its belly, its road flank a
-	# cliff about 165 tall (twice the tallest blocks): 26 layers of two-tone ridge plates over a pale belly band, dark
-	# shadow fissures, a dorsal ridge with the sweepers' stake-and-rope line, a horned head with an open toothed jaw on
-	# the ground, the tail end stripped to bleached ribs inside a pale band. Teal lattice gantries over it hang long
-	# ropes from their tops to its base, with about ten sweepers. Local +X head to tail, -Z (the flank) to the road. ---
+	# bulging cliff about 165 tall: rounded hide masses bulging outward, big irregular rocky crag plates, deep dark
+	# folds between them, a pale band low on the side, a dorsal ridge with a thin stake-and-sagging-rope line, a horned
+	# head with brow ridges, eye sockets and a row of teeth on the ground, the tail end stripped to bleached ribs.
+	# Teal lattice gantries hang long ropes to its base, with about ten large sweepers. Local +X head to tail,
+	# -Z (the flank) to the road. ---
 	kc = []
 	H = 165.0
 	top_y = lambda x: H - abs(x - 5) * 0.12
 	for x, y, z, sx, sy, sz in ((-50, 76, 10, 96, 150, 70), (5, 82, 10, 100, 164, 72), (55, 74, 10, 86, 148, 66)):
 		kc.append(("ball", (sx, sy, sz), (x, y, z), FLESH2, {"subdiv": 2}))
-	bx(kc, (190, 5, 6), (5, 1.5, -37), "C8A88C")  # pale belly band
-	NL = 26
-	for i in range(NL):
-		y = 6.5 + i * 6.1
-		f = i / NL
-		z = -35 + f * f * 38
-		x0, x1 = -92 + f * 20, 98 - f * 24
-		bx(kc, (x1 - x0, 1.4, 6), ((x0 + x1) / 2, y - 3.2, z + 1.2), "2E1612")  # groove
-		x = x0
-		while x < x1 - 2:
-			ln = min(rnd.uniform(18, 34), x1 - x)
-			base = rnd.choice((FLESH, FLESH3, "7E4434"))
-			bx(kc, (ln - 0.8, 5.4, 7), (x + ln / 2, y, z + rnd.uniform(-0.6, 0.6)), base, rot=(rnd.uniform(-5, 5), rnd.uniform(-2, 2), rnd.uniform(-3, 3)))
-			if rnd.random() < 0.55:  # two-tone plates: a lighter or darker face plate on top
-				bx(kc, (ln * 0.6, 3.2, 1.2), (x + ln / 2 + rnd.uniform(-3, 3), y + 0.4, z - 3.9), rnd.choice(("A86A50", "5E3026", "B47A5C")))
-			x += ln
-	for i in range(18):  # dark shadow fissures cutting across the layers
-		x = rnd.uniform(-80, 85)
-		ln = rnd.uniform(24, 60)
-		y = rnd.uniform(ln / 2 + 4, H - ln / 2 - 10)
+	# bulging hide masses: three tiers of overlapping rounded lumps that push out over the road side
+	for tier, (y, zc, size, n) in enumerate(((34, -22, 58, 5), (88, -16, 52, 4), (136, -6, 42, 4))):
+		for i in range(n):
+			x = -78 + i * (170 / (n - 1)) + rnd.uniform(-6, 6)
+			s_ = size * rnd.uniform(0.9, 1.15)
+			kc.append(("ball", (s_ * 1.3, s_, s_ * 0.8), (x, y + rnd.uniform(-5, 5), zc - s_ * 0.18), (FLESH, "7E4434", FLESH3)[(i + tier) % 3], {"subdiv": 2}))
+	# big irregular crag plates over the masses, each with a darker fold under it
+	for i in range(16):
+		x = rnd.uniform(-80, 90)
+		y = rnd.uniform(20, 150)
 		f = y / H
-		bx(kc, (rnd.uniform(1.4, 3), ln, 1.0), (x, y, -35 + f * f * 38 - 4.2), "1E0E0A", rot=(0, 0, rnd.uniform(-25, 25)))
+		z = -48 + f * 34
+		w, h = rnd.uniform(22, 40), rnd.uniform(14, 26)
+		tilt = rnd.uniform(-18, 18)
+		bx(kc, (w + 4, 3, 8), (x, y - h / 2 - 1, z + 2), "2A1410", rot=(rnd.uniform(-10, 10), 0, tilt))  # fold
+		bx(kc, (w, h, 9), (x, y, z), rnd.choice(("8E5040", "6E3A2E", "9C5A44", "7A4232")), rot=(rnd.uniform(-20, 0), rnd.uniform(-12, 12), tilt))
+		bx(kc, (w * 0.55, h * 0.5, 2.5), (x + rnd.uniform(-4, 4), y + h * 0.15, z - 5), rnd.choice(("A86A50", "5E3026")), rot=(-10, 0, tilt + rnd.uniform(-10, 10)))
+	for i in range(8):  # deep shadow folds running down the flank
+		x = -70 + i * 22 + rnd.uniform(-6, 6)
+		bx(kc, (3.5, rnd.uniform(60, 120), 3), (x, 70, -44), "1E0E0A", rot=(-14, 0, rnd.uniform(-12, 12)))
+	bx(kc, (200, 10, 8), (5, 9, -46), "D8C0A0")  # pale band low on the side
+	bx(kc, (200, 2, 9), (5, 3, -47), "B89C80")
 	for i in range(11):  # dorsal ridge plates
 		x = -84 + i * 16
 		h = 30 - abs(i - 5) * 2.2
 		kc.append(("cone", (14, h, 8), (x, top_y(x) + h / 2 - 6, 6), PLATE, {"seg": 4, "rot": (0, 45, -14)}))
-	# head on the ground: skull, tapered snout, open lower jaw with teeth, brow ridges, long swept horns
+	# head on the ground: skull, brow ridges over dark eye sockets, tapered snout, open lower jaw, one clear row of
+	# long teeth along the upper jaw, thick swept horns
 	kc.append(("ball", (70, 56, 64), (-130, 34, -10), FLESH2, {"subdiv": 2}))
 	kc.append(("cyl", (40, 66, 34), (-184, 32, -12), FLESH2, {"rot": (0, 0, -90), "taper": 0.5, "seg": 8}))
-	bx(kc, (62, 7, 32), (-182, 8, -12), "5E2A20", rot=(0, 0, -14))
+	bx(kc, (62, 7, 32), (-182, 6, -12), "5E2A20", rot=(0, 0, -10))
 	for i in range(9):
-		kc.append(("cone", (3.6, 7, 3.6), (-206 + i * 6, 19.5, -27), BONE, {"seg": 5, "rot": (180, 0, 0)}))
-		kc.append(("cone", (3.6, 7, 3.6), (-206 + i * 6, 11 + i * 1.3, -27), BONE, {"seg": 5}))
+		kc.append(("cone", (3.4, 10, 3.4), (-208 + i * 6, 15, -28), BONE, {"seg": 6, "rot": (180, 0, 0)}))
 	for s_ in (-1, 1):
-		bx(kc, (26, 6, 8), (-146, 56, -10 + s_ * 20), PLATE, rot=(0, s_ * 10, -14))
-		kc.append(("cone", (10, 66, 10), (-108, 76, -10 + s_ * 20), BONE2, {"rot": (s_ * 16, 0, 62), "seg": 8}))
-	bx(kc, (9, 2.4, 1), (-150, 44, -43), "2A2020")
+		kc.append(("ball", (14, 10, 10), (-150, 44, -10 + s_ * 22), "1A0C08", {"subdiv": 1}))  # eye socket
+		bx(kc, (30, 7, 12), (-148, 52, -10 + s_ * 22), "5A2A20", rot=(0, s_ * 8, -10))  # brow ridge
+		kc.append(("cone", (14, 66, 14), (-110, 78, -10 + s_ * 22), BONE2, {"rot": (s_ * 16, 0, 62), "seg": 10}))
 	kc.append(("cyl", (24, 70, 24), (-64, 18, -50), FLESH2, {"rot": (60, 0, 0), "seg": 8}))
 	kc.append(("ball", (36, 16, 30), (-64, 6, -78), FLESH2, {"subdiv": 2}))
 	for c in (-11, 0, 11):
 		kc.append(("cone", (6, 16, 6), (-64 + c, 4, -94), BONE2, {"rot": (-80, 0, 0), "seg": 6}))
-	# stripped tail end inside a pale band: spine, tall bleached ribs, tail
 	bx(kc, (8, H * 0.85, 72), (96, H * 0.42, 6), "D8C0A0")
 	for i in range(5):
 		x = 108 + i * 13
@@ -279,15 +279,14 @@ def build(k):
 			bx(kc, (4, sy * 0.9, 4), (x, sy * 0.5, 6 + s_ * sy * 0.22), BONE, rot=(s_ * 24, 0, 0))
 	for i in range(6):
 		kc.append(("ball", (26 - i * 3, 18 - i * 2, 26 - i * 3), (180 + i * 18, 7 - i * 0.6, 30 * math.sin(i * 0.25)), BONE2, {"subdiv": 1}))
-	# stake-and-rope line along the ridge
+	# stake line along the ridge: thin grey stakes and a rope sagging between each pair
 	stakes = [(x, top_y(x)) for x in range(-84, 97, 12)]
 	for x, y in stakes:
-		kc.append(("cyl", (1.6, 14, 1.6), (x, y + 5, -2), "D8DCE0", {"seg": 6, "metal": 0.5}))
-		bx(kc, (3, 1.8, 0.2), (x + 1.6, y + 11, -2), STRIPE)
+		kc.append(("cyl", (0.8, 12, 0.8), (x, y + 4, -2), "7A7E84", {"seg": 5, "metal": 0.5}))
 	for (x0, y0), (x1, y1) in zip(stakes, stakes[1:]):
-		seg(kc, (x0, y0 + 10, -2), (x1, y1 + 10, -2), "F4F4F0", thick=1.0)
-		seg(kc, (x0, y0 + 4, -2), (x1, y1 + 4, -2), "F4F4F0", thick=1.0)
-	# gantries at x = -40 and 80 (legs at z = +-92, tops at 205); long ropes from their tops to the corpse's base
+		mid = ((x0 + x1) / 2, (y0 + y1) / 2 + 6.5, -2)
+		seg(kc, (x0, y0 + 9.5, -2), mid, "B8AC8C", thick=0.5)
+		seg(kc, mid, (x1, y1 + 9.5, -2), "B8AC8C", thick=0.5)
 	GH, GS = 205.0, 92.0
 	for gx in (-40, 80):
 		for z in (-GS, GS):
@@ -304,22 +303,22 @@ def build(k):
 			z = -GS + (i + 0.5) * GS * 2 / 10
 			bx(kc, (1.0, 14, 1.0), (gx + 7, GH - 5, z), "286A66", rot=(45 if i % 2 else -45, 0, 0))
 		bx(kc, (18, 8, 12), (gx, GH - 6, -30), "E8C840")
-		for j, (dx, z) in enumerate(((-6, -66), (-2, -58), (3, -50), (7, -62))):
-			seg(kc, (gx + dx, GH - 11, z), (gx + dx * 1.6, 1, -44 - j * 3), (ROPE_B, ROPE_Y)[j % 2], thick=0.8)
-	# about ten sweepers, varied sizes: five on the long ropes, two on the ridge, three at the base
-	for (x, y, z, sc, lean) in ((-46, 120, -52, 3.4, -10), (-38, 64, -49, 2.9, 8), (78, 140, -56, 3.6, -6), (86, 80, -55, 3.0, 12), (70, 34, -50, 2.7, -14)):
+		for j, (dx, z) in enumerate(((-6, -70), (-2, -62), (3, -56), (7, -66))):
+			seg(kc, (gx + dx, GH - 11, z), (gx + dx * 1.6, 1, -50 - j * 3), (ROPE_B, ROPE_Y)[j % 2], thick=0.9)
+	# about ten large sweepers: three on the near gantry's ropes, two on the far one, two on the ridge, three at the base
+	for (x, y, z, sc, lean) in ((-46, 120, -60, 6.0, -10), (-42, 70, -56, 5.4, 8), (-36, 30, -54, 5.0, -6), (78, 110, -62, 5.6, 6), (86, 52, -58, 5.0, -12)):
 		worker(kc, x, y, z, sc, lean=lean)
-	for x, sc in ((-30, 3.2), (40, 3.6)):
+	for x, sc in ((-30, 4.6), (40, 5.0)):
 		worker(kc, x, top_y(x) - 2, -4, sc)
-	for x, z, sc in ((-20, -82, 3.4), (20, -78, 2.8), (110, -64, 3.8)):
+	for x, z, sc in ((-20, -84, 5.2), (20, -80, 4.4), (110, -66, 5.6)):
 		worker(kc, x, -1, z, sc)
 	for x, z in ((-6, -100), (64, -92)):
 		bx(kc, (14, 6, 8), (x, 2, z), "2F5FA8")
 		bx(kc, (14.4, 0.6, 8.4), (x, 5.2, z), "244A84")
-	kc.append(("cyl", (420, 1, 200), (0, -0.9, -6), "4A4642", {"seg": 18}))
+	kc.append(("cyl", (360, 1, 170), (10, -0.9, 0), "4A4642", {"seg": 18}))
 	for i in range(14):
 		s_ = rnd.uniform(5, 12)
-		bx(kc, (s_, s_ * 0.6, s_), (rnd.uniform(-200, 220), s_ * 0.3 - 1, rnd.choice((-1, 1)) * rnd.uniform(70, 96)), (ROCK, CONC2, CONC)[i % 3], rot=(rnd.uniform(-20, 20), rnd.uniform(0, 90), 0))
+		bx(kc, (s_, s_ * 0.6, s_), (rnd.uniform(-180, 200), s_ * 0.3 - 1, rnd.choice((-1, 1)) * rnd.uniform(70, 90)), (ROCK, CONC2, CONC)[i % 3], rot=(rnd.uniform(-20, 20), rnd.uniform(0, 90), 0))
 	k.prop("KaijuCorpse", kc)
 
 	# --- Sweeper van set (mid): one-box van with a sloped nose and raked windscreen, side windows, wheel arches, a plain
@@ -526,8 +525,9 @@ def build(k):
 		return (ax + ce * t - se_ * up, ay + se_ * t + ce * up, 0.0)
 
 	rg.append(("cyl", (30, 166, 30), along(83), "4A5058", {"rot": (0, 0, el - 90), "seg": 18, "metal": 0.6, "rough": 0.35}))
-	for i in range(14):
-		rg.append(("cyl", (52 - (i % 2) * 6, 3.4, 52 - (i % 2) * 6), along(2 + i * 3.8), ("8A9098", "5E666E")[i % 2], {"rot": (0, 0, el - 90), "seg": 20, "metal": 0.6}))
+	rg.append(("cyl", (44, 56, 44), along(28), "4A5058", {"rot": (0, 0, el - 90), "seg": 20, "metal": 0.6}))  # coil sleeve
+	for i in range(14):  # even coil rings square to the barrel, stacked tight at the breech
+		rg.append(("cyl", (52, 2.4, 52), along(2 + i * 3.9), ("8A9098", "6A727A")[i % 2], {"rot": (0, 0, el - 90), "seg": 20, "metal": 0.6}))
 	for i in range(5):
 		rg.append(("cyl", (34, 2.4, 34), along(66 + i * 20), "5E666E", {"rot": (0, 0, el - 90), "seg": 18, "metal": 0.6}))
 	mx, my, _ = along(168)
@@ -546,31 +546,26 @@ def build(k):
 			mid = (gx_ + 3, gy_ + 14 - abs(zq) * 0.1, zq)
 			seg(rg, (gx_, gy_ + 24, zq), mid, "1E1E1E", thick=1.1)
 			seg(rg, mid, (gx_ + 6, gy_ + 15, zq * 0.6), "1E1E1E", thick=1.1)
-	tanks = []  # ribbed grey capacitor tanks with ring bands
-	for s in (-1, 1):
+	for s in (-1, 1):  # ribbed grey capacitor tanks: dark ring bands and vertical ribs
 		for j, x in enumerate((-86, -68, -50, -32)):
 			tz = s * (35 + (j % 2) * 5)
-			rg.append(("cyl", (11, 48, 11), (x, 23, tz), "7E868E", {"seg": 12, "metal": 0.5, "rough": 0.4}))
-			for q in range(7):
-				rg.append(("cyl", (12, 1.2, 12), (x, 3 + q * 6.5, tz), ("5E666E", STRIPE)[q == 3], {"seg": 12, "metal": 0.5}))
+			rg.append(("cyl", (11, 48, 11), (x, 23, tz), "8E969E", {"seg": 12, "metal": 0.5, "rough": 0.4}))
+			for q in range(8):
+				rg.append(("cyl", (12.4, 1.8, 12.4), (x, 2 + q * 6, tz), ("3E444A", STRIPE)[q == 4], {"seg": 12, "metal": 0.5}))
+			for a_ in range(4):
+				ang = a_ * math.pi / 2 + math.pi / 4
+				bx(rg, (1.0, 46, 1.0), (x + math.cos(ang) * 5.8, 23, tz + math.sin(ang) * 5.8), "5A6268")
 			rg.append(("cyl", (8, 2.4, 8), (x, 48, tz), "5E666E", {"seg": 12}))
-			tanks.append((x, 48, tz))
 	cols = ("1E1E1E", "2A2A2A", "3A2A1A", "202830")
-	for i, (tx, ty, tz) in enumerate(tanks):  # 2 cables per tank, sagging between the tank top and a coil
-		for q in range(2):
-			cx_, cy_, _ = along(4 + ((i * 2 + q) % 14) * 3.8, up=22)
-			cz = math.copysign(14 + q * 3, tz)
-			mid = ((tx + cx_) / 2, min(ty, cy_) - 12 - q * 3, (tz + cz) / 2)
-			seg(rg, (tx, ty, tz + q - 0.5), mid, cols[q], thick=1.6)
-			seg(rg, mid, (cx_, cy_, cz), cols[q], thick=1.6)
-	for i in range(14):  # 42 thick cables drooping off the coil stack to the bed on both sides
-		cx_, cy_, _ = along(2 + i * 3.8)
+	for i in range(14):  # 42 cables hanging off the coil stack in drooping arcs to the ground on both sides
+		cx_, cy_, _ = along(2 + i * 3.9)
 		for q, side in enumerate((-1, 1, -1 if i % 2 else 1)):
-			start = (cx_, cy_ + 8 - q * 6, side * 24)
-			end = (cx_ + rnd.uniform(-6, 6), 1.5, side * rnd.uniform(18, 26))
-			mid = ((start[0] + end[0]) / 2, start[1] * 0.35, side * (30 + q * 2))
-			seg(rg, start, mid, cols[(i + q) % 4], thick=1.8)
-			seg(rg, mid, end, cols[(i + q) % 4], thick=1.8)
+			p0 = (cx_, cy_ - 6 - q * 3, side * 26)
+			p3 = (cx_ + rnd.uniform(-4, 4), 0.8, side * rnd.uniform(34, 42))
+			p1 = (cx_, p0[1] * 0.45, side * 31)
+			p2 = ((cx_ + p3[0]) / 2, 3.0, side * (p3[2] * side - 1.5))
+			for a_, b_ in ((p0, p1), (p1, p2), (p2, p3)):
+				seg(rg, a_, b_, cols[(i + q) % 4], thick=1.8)
 	for x in range(-110, 132, 3):  # rack-tooth centre rail
 		bx(rg, (1.4, 1.0, 2.6), (x, 1.6, 0), "6E7278", metal=0.6)
 	bx(rg, (250, 1.0, 3.0), (10, 0.8, 0), "5A5E64", metal=0.6)
@@ -650,30 +645,39 @@ def build(k):
 	k.ground(DUST, margin=500)
 	supports(k, "3A3E46")
 	city_end, base0 = 3900.0, 4050.0
-	corpses = [(700.0, -160.0, 1.0), (2530.0, 160.0, 1.0)]
+	corpses = [(700.0, -160.0, 1.0), (2400.0, 175.0, 1.0)]  # measured: the second one's tail stays clear of the bend at 2624
 	skip = [(d - 300, d + 300) for d, _, _ in corpses]
 	side = skip + [(3300.0, 3540.0)]  # right side clear under the side review camera (build_track 05_side)
 	gun = skip + [(3300.0, 3660.0)]  # open ground round the rail cannon
-	# rubble 42 out: even turned, its widest reach (about 16) stays 24+ from the centre line
-	row(k, 40, city_end, 30, (-42, 42), ["Rubble"], jitter=3, turn=math.pi, chance=0.6, scale=(0.8, 1.1))
-	row(k, 40, city_end, 46, (-58,), ["Apartment", "Apartment", "Office"], jitter=4, skip=gun, turn=0.25, lean=0.2)
-	row(k, 40, city_end, 46, (58,), ["Apartment", "Apartment", "Office"], jitter=4, skip=side, turn=0.25, lean=0.2)
+	# rubble 50 out (measured): even turned, its widest reach (about 16) stays 24+ from the centre line
+	row(k, 40, city_end, 30, (-50, 50), ["Rubble"], jitter=3, turn=math.pi, chance=0.6, scale=(0.8, 1.1))
+	row(k, 40, city_end, 46, (-64,), ["Apartment", "Apartment", "Office"], jitter=4, skip=gun, turn=0.25, lean=0.2)
+	row(k, 40, city_end, 46, (64,), ["Apartment", "Apartment", "Office"], jitter=4, skip=side, turn=0.25, lean=0.2)
 	row(k, 60, city_end, 62, (-110,), ["Office", "Apartment", "Office"], jitter=10, scale=(1.0, 1.6), skip=gun, turn=0.3, lean=0.25)
 	row(k, 60, city_end, 62, (110,), ["Office", "Apartment", "Office"], jitter=10, scale=(1.0, 1.6), skip=side, turn=0.3, lean=0.25)
 	for d, off, s in corpses:
 		ob = put(k, "KaijuCorpse", d, off, s, clear=60)
 		if ob and off < 0:
 			ob.scale[0] = -ob.scale[0]  # mirrored so the head (not the stripped tail) faces the approaching runner
-	vans = [(520, -40), (565, -40), (615, -40), (760, -40), (2420, 40), (2462, 40), (2505, 40), (2640, 40)]
+	vans = [(520, -40), (565, -40), (615, -40), (760, -40), (2430, 40), (2470, 40), (2510, 40), (2550, 40)]
 	for d, off in vans:  # parked by the corpses, in run shots 1 and 2
 		put(k, "SweeperVan", d, off, 1.15, turn=k.rng.uniform(-0.3, 0.3))
 	put(k, "Railgun", 3480, -80, clear=50)
 	# Base: low perimeter wall, hangars (kept out of the HQ view), a second rail cannon (muzzle to run shot 4)
 	row(k, base0, k.length - 80, 28, (-31, 31), ["BaseWall"])
-	row(k, base0 + 60, k.length - 100, 110, (-75,), ["Hangar"], skip=[(4250, 4950)])
-	row(k, base0 + 60, k.length - 100, 110, (75,), ["Hangar"], skip=[(4250, 4950), (6400, 6960)])  # clear for the cannon
+	row(k, base0 + 60, k.length - 100, 110, (-92,), ["Hangar"], skip=[(4250, 4950), (6400, 6960)])  # clear for the cannon
+	row(k, base0 + 60, k.length - 100, 110, (92,), ["Hangar"], skip=[(4250, 4950), (6400, 6960)])  # clear for the cannon
 	row(k, base0 + 100, k.length - 100, 140, (150, -150), ["Hangar", "Apartment"], jitter=10, skip=[(4250, 4950), (6500, 7000)])
-	put(k, "Railgun", 6800, 110, clear=50, turn=math.pi)
+	# the start straight runs parallel about 150 to the right of the last straight, so the cannon goes on the left
+	for d, off in ((6740, -110), (6780, -120)):  # measured: the left side is 260+ from every other lap
+		ob = put(k, "Railgun", d, off)  # on the left, local +X (the muzzle) points back at run shot 4
+		if ob:
+			gun2 = (d, off)
+			print("KAIJUBASE gun2 at", tuple(round(v) for v in ob.location), "road", tuple(round(v) for v in k.at(d)[0]))
+			break
+	else:
+		gun2 = (6800, -120)
+	print("KAIJUBASE gun2", gun2)
 	# HQ (with its tower) square-on to run shot 3, ahead-left of the camera
 	eye, t, right = shot_eye(k, 0.62)
 	a = math.radians(-16)
@@ -685,7 +689,7 @@ def build(k):
 	behind = hqc + fwd * 420  # nothing tall behind the HQ, so its roofline stays clean in shot 3
 	tall_avoid = [(hqc.x, hqc.z, 260), (behind.x, behind.z, 460)]
 	avoid = [(hqc.x, hqc.z, 260)]
-	for d, off, s in corpses + [(3480, -80, 1.0), (6800, 110, 1.0)]:
+	for d, off, s in corpses + [(3480, -80, 1.0), (gun2[0], gun2[1], 1.0)]:
 		x, z, _ = local(k, d, off, 0, 0)
 		avoid.append((x, z, 210))
 	# Street grid tiles (random quarter turns) over the city and the infield, a few towers on them

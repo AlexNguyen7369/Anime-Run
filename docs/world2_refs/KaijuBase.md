@@ -28,3 +28,20 @@ Round 3 (2026-11-23), judged in the 6 review shots:
   and 32 drooping cables. The second cannon's muzzle faces run shot 4.
 - The HQ has taller end pavilions, strong floor bands and a front row of white cars. Nothing tall stands behind it.
   City tiles have streets on all four edges, random quarter turns and a park corner. The base wall has a grass verge.
+
+Round 4 (2026-11-23): the corpse flank is a cliff about 165 tall, roughly twice the tallest blocks. About ten
+sweepers hang on long gantry ropes. The rail cannon has 42 drooping coil cables, ribbed tanks, a rack-tooth rail and
+side walkways. The blocks have blown-out wall chunks and rubble heaps. The tower has visible ribs and a second
+balcony ring. The hangar chevrons are small and do not glow.
+
+Round 5 (2026-11-23):
+- The flank is three tiers of bulging hide masses with 16 big crag plates, dark folds and a pale band low on the side.
+- The head has brow ridges, eye sockets and one row of teeth. The stars are gone.
+- The sweepers are 4.4x to 6x scale, three of them on the near gantry's ropes.
+- The ridge stake line is thin grey stakes with sagging rope.
+- The cannon's coils are rings square to the barrel on a sleeve, and its cables hang in 3-segment drooping arcs.
+- Clearance was measured against the road centre line. The second cannon had crossed the start straight (0.0) and now
+  stands on the left of the last straight, 110 out, with its muzzle to run shot 4. Other fixes: offices at the start
+  (3.8 to 7.8) are clear because props now need their offset's worth of clearance from every lap; hangars (12 to 14)
+  are now 92 out; rubble (17) is now 50 out; road-side blocks are now 64 out; the second corpse (1.4 at the bend) is
+  now at d 2400, 175 out. Everything now measures 24+.

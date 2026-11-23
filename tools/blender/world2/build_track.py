@@ -105,6 +105,46 @@ def shots(k, cam, folder):
 	shoot(cam, (eye.x, p.y + 75, eye.z), (p.x, p.y, p.z), os.path.join(folder, "05_side.jpg"), 60)
 
 
+def model_shots(k, cam, folder, names):
+	"""Close-ups of hero models (creatures, figures, landmarks), each alone on a grey disc far from the track, front and
+	three-quarter, so reviewers can judge likeness at full size. Files: m_<Name>_front.jpg, m_<Name>_34.jpg."""
+	from mathutils import Vector
+
+	far = Vector((400000.0, 400000.0, 0.0))
+	disc = bpy.data.objects.new("ModelDisc", bpy.data.meshes.new("ModelDisc"))
+	import bmesh
+
+	bm = bmesh.new()
+	bmesh.ops.create_circle(bm, cap_ends=True, segments=48, radius=1.0)
+	bm.to_mesh(disc.data)
+	bm.free()
+	disc.data.materials.append(k.mat("8A8A8A", 0.9))
+	bpy.context.scene.collection.objects.link(disc)
+	for name in names:
+		src = k.props[name]
+		ob = bpy.data.objects.new(src.name + "_shot", src.data)
+		bpy.context.scene.collection.objects.link(ob)
+		lo = Vector([min(v.co[i] for v in src.data.vertices) for i in range(3)])
+		hi = Vector([max(v.co[i] for v in src.data.vertices) for i in range(3)])
+		size = hi - lo
+		ob.location = far - Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
+		centre = far + Vector((0, 0, size.z / 2))
+		disc.location = far
+		disc.scale = (max(size.x, size.y) * 0.8,) * 3
+		r = max(size.x, size.y, size.z)
+		# Roblox front is -Z = Blender +Y, so the camera looks from +Y (front) and from +Y/+X (three-quarter)
+		for tag, d in (("front", Vector((0, 1, 0.18))), ("34", Vector((0.75, 0.75, 0.35)))):
+			e = centre + d.normalized() * r * 1.7
+			cam.location = e
+			cam.rotation_euler = (centre - e).to_track_quat("-Z", "Y").to_euler()
+			cam.data.angle_y = math.radians(40)
+			bpy.context.scene.render.filepath = os.path.join(folder, "m_%s_%s.jpg" % (name, tag))
+			bpy.ops.render.render(write_still=True)
+			print("SHOT", bpy.context.scene.render.filepath)
+		bpy.data.objects.remove(ob)
+	bpy.data.objects.remove(disc)
+
+
 def run(number, fast=False, render=True):
 	tracks = load_chain()
 	track = tracks[number]
@@ -131,6 +171,8 @@ def run(number, fast=False, render=True):
 		# A biome may add review shots of set pieces the fixed cameras miss: EXTRA_SHOTS = [(file, eye, look), ...]
 		for file, eye, look in getattr(module, "EXTRA_SHOTS", ()):
 			shoot(cam, eye, look, os.path.join(OUT, name, file + ".jpg"))
+		# Hero models (creatures, figures, landmarks) the owner judges at full size: MODEL_SHOTS = ["Prop", ...]
+		model_shots(k, cam, os.path.join(OUT, name), getattr(module, "MODEL_SHOTS", ()))
 	return k
 
 

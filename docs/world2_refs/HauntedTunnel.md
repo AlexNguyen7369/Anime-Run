@@ -27,3 +27,18 @@ Round 3 (2026-11-23), judged in the 6 review shots:
 - The portal hill rises back from the parapet under ivy and cedars. The voussoirs are 10 large stones in one grey-green
   tone with a stepped reveal. The ivy hangs as a heavy, uneven mass over the right of the arch. Three large A-frame
   barriers and a tall red-and-white board stand at the mouth. The vault is a black void, under a stronger green wash.
+
+Round 4 (2026-11-23): curve mirrors are turned 50 degrees toward the oncoming runner, so they read as round discs. The
+hospital sign is a dark frame of six blank panels on a stepped crown. The ivy is small, flat leaf clusters, and the
+ring is left bare. Houses have sliding-door bays, balconies, capped block walls, lit vending fronts and linked poles.
+The school has a deep slab canopy and tall brick piers.
+
+Round 5 (2026-11-23):
+- Seiko's set stands on a raised embankment. A dark canal runs at its front edge, with a stone bridge and square-post
+  parapets. The torii is warm-grey speckled granite with round pillars. A brown slatted fence stands on a stone base.
+- The hospital is at 1.3x scale with a regular grid of framed windows and dark unlit sign panels. Its hoarding and
+  hazard posts are 26 from the road.
+- Run shot 3's left half is filled with a ridge, cedars and houses.
+- The no-entry board stands beside the left barriers, and the green wash is dimmer.
+- Clearance was measured against the road centre line (segment distance). Front-row houses were at 18.5 and are now
+  at 52 out (scale capped at 1.1). Guardrails were at 19.8 on bends and are now 34 out. Everything now measures 24+.
