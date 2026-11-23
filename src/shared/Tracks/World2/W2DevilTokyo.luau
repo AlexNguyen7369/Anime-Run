@@ -1,5 +1,5 @@
 --!nonstrict
--- World 2 Track 1 (design doc 4.46, docs/WORLD2_SPEC.md "Tracks"): Devil Hunter Tokyo run.
+-- World 2 Track 1 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Devil Hunter Tokyo run.
 -- Same route as World 1's Track 1 (Oval), so its length, spiral lap and validator results carry over
 -- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
 return {

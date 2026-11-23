@@ -1,6 +1,6 @@
 # World 2: spec
 
-Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.46 (owner 2026-11-23), sections 3, 4.2, 4.8, 4.9, 4.13, 4.15 and 5.
+Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.47 (owner 2026-11-23), sections 3, 4.2, 4.8, 4.9, 4.13, 4.15 and 5.
 Numbers are **proposed** unless the design doc fixes them. Plan of record:
 `~/.claude/plans/scalable-meandering-pearl-of-3527e5c6-6209-4188-9740-d8306567b15b.md`.
 

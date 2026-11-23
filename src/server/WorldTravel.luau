@@ -1,5 +1,5 @@
 --!nonstrict
--- Travel between the World 1 and World 2 places (design doc 4.46, docs/WORLD2_SPEC.md "Travel"). The save is written
+-- Travel between the World 1 and World 2 places (design doc 4.47, docs/WORLD2_SPEC.md "Travel"). The save is written
 -- and its session lock released first, so the other place's load takes the lock at once (PlayerData.LOCK_WAIT covers
 -- a late autosave that re-locks it). Admins only while the gate is locked (Server/AdminService /world1, /world2).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

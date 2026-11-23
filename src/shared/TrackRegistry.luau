@@ -1,6 +1,6 @@
 --!nonstrict
 -- Auto-loads every ModuleScript in Shared/Tracks, so adding a track is just adding a file. World 2's place loads
--- Shared/Tracks/World2 instead (design doc 4.46, Shared/WorldConfig).
+-- Shared/Tracks/World2 instead (design doc 4.47, Shared/WorldConfig).
 
 local WorldConfig = require(script.Parent:WaitForChild("WorldConfig"))
 local Tracks = script.Parent:WaitForChild("Tracks")

@@ -501,7 +501,7 @@ local function teamAltar(startCFrame)
 	return m
 end
 
--- The world gate (design doc 4.46, docs/WORLD2_SPEC.md "Gate"): an original rift ring on the plaza's south-east corner,
+-- The world gate (design doc 4.47, docs/WORLD2_SPEC.md "Gate"): an original rift ring on the plaza's south-east corner,
 -- clear of the ring of stalls, facing the spawn. In World 1 it leads to World 2 and is locked (chains, a padlock plate, a
 -- solid barrier, "COMING SOON") until WorldConfig.GATE_OPEN; admins use /world2. In World 2 it is open and leads back to
 -- World 1: its Portal part (tag WorldGate, attribute TargetWorld) sends a runner on touch (Server/WorldTravel). Sizes and

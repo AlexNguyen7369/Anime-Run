@@ -1,7 +1,7 @@
 """World 2 Track 1: Devil Hunter Tokyo (Saw Man). Night city of the devil hunters: narrow streets of low apartment
 blocks, convenience stores, vending machines, power poles, neon signs with abstract shapes (no text, design doc 5),
 and the hunters' headquarters as a tall stepped office tower on the horizon. Everything in-house, parts only.
-Proposed look; the owner approves the render set (design doc 4.46)."""
+Proposed look; the owner approves the render set (design doc 4.47)."""
 
 import math
 

@@ -1,5 +1,5 @@
 --!nonstrict
--- Per-world progress in the one shared save (design doc 4.46, docs/WORLD2_SPEC.md "Save"). Money, Gems, Rebirth, the
+-- Per-world progress in the one shared save (design doc 4.47, docs/WORLD2_SPEC.md "Save"). Money, Gems, Rebirth, the
 -- Index and everything else stay shared; only WorldConfig.PROGRESS_KEYS are per world. World 1 keeps them at the top
 -- level (unchanged layout); world n keeps them in record.Worlds["W<n>"]. Pure: inputs are never changed.
 local WorldConfig = require(script.Parent.WorldConfig)

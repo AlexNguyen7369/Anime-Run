@@ -222,8 +222,9 @@
 218. 2026-11-22 — Alex Nguyen — ui-scroll t3/t4/t5 merged into feature/alex/ui-scroll-redesign (per-panel Scroll Dojo layouts, popups and toasts as handscrolls, boss event UI, HUD option A wood plaques with the wooden vermilion Turbo bar) with the Studio-run fixes; Studio run 2: ui_shop 72/0, ui_market 101/0, ui_layout 891/0, ui_hitboxes 98/0, ui_rebirth 38/0, ui_daily_boosts 13/0, ui_boss 485/0, ui_team 70/0, ui_shared_frames 263/0, ui_handscroll 18/0, ui_hud 16/0; rules audit PASS.
 219. 2026-11-23 — Alex Nguyen — ui-scroll full UiTestRun on the integration branch in Studio: 74 pass, 3 fail (ui_run_visual throttled window, ui_boss_king_arena known main red, ui_character_icons fixed by moving index_tiles_runner_art to the 4.46 card portrait 0.86 x 0.53); server run stopped early as src/server and src/shared equal the base.
 220. 2026-11-23 — Alex Nguyen — ui-scroll: fixed PR #27 review note (ink-in no longer writes Visible, so a part its panel hides mid-unroll stays hidden; ui_handscroll 21/0 with the new owner-hide check, ui_index 10/0, ui_panel_focus 57/0) and merged main (PR #26) into the integration branch.
+221. 2026-11-23 — Alex Nguyen — World 2 Phase A on feature/alex/world2-place: design doc 4.47 and WORLD2_SPEC, WorldConfig/WorldSave (World 2 progress under Worlds.W2), a locked World 2 gate in the plaza, /world1 and /world2 admin travel, 10 World 2 track routes, and the Blender-first draft pipeline (tools/blender/world2) with the Track 1 Devil Hunter Tokyo renders.
 
 ## What's next
-**Merge PR #27 (Scroll Dojo UI redesign) into main.**
+**Render World 2 Tracks 2-10 in Blender and give the owner the full approval set of all 10 tracks.**
 
-**Why this is next:** the fresh merge review approved it, the one player-visible note it raised is fixed and checked in Studio, and main is merged in; the owner asked to merge once that fix was in.
+**Why this is next:** the owner rules that every World 2 track is approved from Blender renders before it goes in the game; the game biome themes, asset uploads and Studio screenshots all wait on that approval.

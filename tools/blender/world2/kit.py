@@ -1,4 +1,4 @@
-"""Blender helpers for the World 2 track drafts (design doc 4.46, docs/WORLD2_SPEC.md "Blender first").
+"""Blender helpers for the World 2 track drafts (design doc 4.47, docs/WORLD2_SPEC.md "Blender first").
 
 1 Blender unit = 1 stud. rb(x, y, z) maps Roblox world coordinates (Y up) to Blender (Z up), as tools/blender/plaza.
 Every prop mesh is made once (one mesh datablock, named W2_<Biome>_<Prop>) and instanced along the road, so each

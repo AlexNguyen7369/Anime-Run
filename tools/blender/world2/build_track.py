@@ -1,4 +1,4 @@
-"""Blender draft of one World 2 track and its biome (design doc 4.46, docs/WORLD2_SPEC.md "Blender first").
+"""Blender draft of one World 2 track and its biome (design doc 4.47, docs/WORLD2_SPEC.md "Blender first").
 
 Owner 2026-11-23: every World 2 track and its assets are made and rendered in Blender for approval before any of it
 goes in the game. Builds the exact game road (chain.py), the biome module tools/blender/world2/biomes/<Biome>.py, saves

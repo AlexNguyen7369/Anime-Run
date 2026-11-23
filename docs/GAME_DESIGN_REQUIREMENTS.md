@@ -786,7 +786,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   - The kanji and short sub lines under each title stay (decoration only).
 - Display only: the server decides every number, cost and claim, as before.
 
-### 4.46 World 2 (owner 2026-11-23)
+### 4.47 World 2 (owner 2026-11-23)
 - World 2 is a **separate place** in the same universe, built from the same source tree (`world2.project.json` adds
   `ReplicatedStorage.WorldId = 2`; `Shared/WorldConfig`). Spec: `docs/WORLD2_SPEC.md`.
 - Gate: a World 2 gate stands in the World 1 spawn plaza. It is **locked for everyone** for now ("COMING SOON"); admins
@@ -868,7 +868,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
-- 2026-11-23: owner: World 2 (4.46): separate place, locked plaza gate with /world2 for admins, per-world progress, 10 tracks Blender-first, per-world cruise, team of 4 and Awakening in World 2, 6 series.
+- 2026-11-23: owner: World 2 (4.47): separate place, locked plaza gate with /world2 for admins, per-world progress, 10 tracks Blender-first, per-world cruise, team of 4 and Awakening in World 2, 6 series.
 - 2026-11-20: owner: game-wide Scroll Dojo look from the Summon and Team pages, center-out handscroll open about 0.45 s with input live, HUD and boss UI in scope; references first (4.46 draft; 4.20, 4.42 replaced for redesigned GUIs on approval).
 - 2026-11-20: owner approved the Scroll Dojo references: every frame, HUD option A, Money and Gems on lacquer plates (4.40 no-box rule replaced), Shop in three columns, kanji and sub lines kept, game potion art; the Upgrades tree is left as it is (4.46).
 - 2026-11-22: owner, HUD option A details: the team row keeps its circles and arc (lacquer and gold look only); the Turbo bar becomes wood with a vermilion fill (4.40, 4.46).

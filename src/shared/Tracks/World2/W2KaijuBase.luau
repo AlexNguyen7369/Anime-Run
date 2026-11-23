@@ -1,5 +1,5 @@
 --!nonstrict
--- World 2 Track 5 (design doc 4.46, docs/WORLD2_SPEC.md "Tracks"): Wrecked Tachikawa run.
+-- World 2 Track 5 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Wrecked Tachikawa run.
 -- Same route as World 1's Track 5 (Serpentine), so its length, spiral lap and validator results carry over
 -- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
 return {

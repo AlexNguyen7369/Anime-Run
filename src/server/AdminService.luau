@@ -547,7 +547,7 @@ AdminService.Commands = {
 			return true, "save erased"
 		end,
 	},
-	-- World travel (design doc 4.46): the World 2 gate is locked, so admins go by command.
+	-- World travel (design doc 4.47): the World 2 gate is locked, so admins go by command.
 	world1 = {
 		Usage = "/world1 [player]",
 		Help = "send to the World 1 place",

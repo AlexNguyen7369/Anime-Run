@@ -1,5 +1,5 @@
 --!nonstrict
--- World 2 Track 7 (design doc 4.46, docs/WORLD2_SPEC.md "Tracks"): Ant Island run.
+-- World 2 Track 7 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Ant Island run.
 -- Same route as World 1's Track 7 (Desert), so its length, spiral lap and validator results carry over
 -- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
 return {

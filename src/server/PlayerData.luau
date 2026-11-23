@@ -267,7 +267,7 @@ function PlayerData.Load(player, userId)
 		player:SetAttribute("DataReadOnly", true)
 		warn("PlayerData: save version " .. tostring(updated.Version) .. " is newer than " .. VERSION .. ", read-only")
 	end
-	apply(WorldSave.View(updated, WorldConfig.Id)) -- World 2 reads its own track progress (design doc 4.46)
+	apply(WorldSave.View(updated, WorldConfig.Id)) -- World 2 reads its own track progress (design doc 4.47)
 	player:SetAttribute("DataFailed", nil)
 	player:SetAttribute("DataLoaded", true)
 	-- The mailbox was persisted even if the recipient was offline. Claim through the same
@@ -421,7 +421,7 @@ local function save(player, userId, release)
 			end
 			-- Start from the stored record so keys this version does not know are kept, then overlay ours.
 			local merged = table.clone(current)
-			local worldPayload = WorldSave.Fold(payload, current, WorldConfig.Id) -- design doc 4.46
+			local worldPayload = WorldSave.Fold(payload, current, WorldConfig.Id) -- design doc 4.47
 			for key, value in GiftMailbox.Merge(table.clone(worldPayload), current, known) do
 				merged[key] = value
 			end

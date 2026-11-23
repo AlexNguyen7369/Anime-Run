@@ -104,7 +104,7 @@ end
 local track1Start = entries[1].Model:FindFirstChild("Start", true).CFrame
 local spawnArea = SpawnArea.Build(track1Start)
 spawnArea.Parent = Workspace
-require(script.Parent.WorldTravel).Start() -- the open world gate (design doc 4.46)
+require(script.Parent.WorldTravel).Start() -- the open world gate (design doc 4.47)
 local trackModels = {} -- the built models; late tracks join it, so TerrainBuilder's final pass reaches them too
 for _, entry in entries do
 	if entry.Model then

@@ -1,5 +1,5 @@
 --!nonstrict
--- Which world this place is (design doc 4.46, docs/WORLD2_SPEC.md). World 1 and World 2 are separate places in one
+-- Which world this place is (design doc 4.47, docs/WORLD2_SPEC.md). World 1 and World 2 are separate places in one
 -- universe, built from the same source tree: world2.project.json adds ReplicatedStorage.WorldId (IntValue 2); the
 -- World 1 place has none and is world 1.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,10 +15,10 @@ WorldConfig.PLACES = {
 	[2] = nil,
 }
 
--- Per-world progress keys (design doc 4.46): World 1 keeps them at the top of the save, World 2 under Worlds.W2.
+-- Per-world progress keys (design doc 4.47): World 1 keeps them at the top of the save, World 2 under Worlds.W2.
 WorldConfig.PROGRESS_KEYS = { "BestTrack", "Checkpoint", "RaceBestTimes" }
 
--- The World 2 gate in the World 1 plaza (design doc 4.46): locked for everyone until the owner opens it; admins travel
+-- The World 2 gate in the World 1 plaza (design doc 4.47): locked for everyone until the owner opens it; admins travel
 -- with /world2 (Server/AdminService).
 WorldConfig.GATE_OPEN = false
 

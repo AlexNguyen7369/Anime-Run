@@ -1,4 +1,4 @@
-"""World 2 road chain for the Blender drafts (design doc 4.46, docs/WORLD2_SPEC.md "Blender first").
+"""World 2 road chain for the Blender drafts (design doc 4.47, docs/WORLD2_SPEC.md "Blender first").
 
 Plain Python (no bpy): a port of Shared/TrackBuilder.Layout and the Main.server chaining, so every Blender draft sits
 on the exact road the game builds. Reads src/shared/Tracks/World2/*.luau, writes build/world2/chain.json with each
