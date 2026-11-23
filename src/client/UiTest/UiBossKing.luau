@@ -735,10 +735,24 @@ function Module.Build(h)
 			check(res, "left_arena_zone", left, true)
 			if Env and type(want) == "number" then
 				local own = Env.Profile(Env.CurrentZone)
-				local back = own and own.Lighting and own.Lighting.ClockTime
+				local zoneClock = own and own.Lighting and own.Lighting.ClockTime
+				local back = zoneClock
+				-- A weather with a Sky mixes its clock in outside the arena (Client/BiomeEnvironment target, spec 5.2):
+				-- aurora's 19.3 takes the plaza's 16.6 to about 17.95.
+				local function mixedBack()
+					local Weather = optional("WeatherConfig")
+					local spec = Weather and Weather.Events[ReplicatedStorage:GetAttribute("WeatherEvent") or ""]
+					if type(zoneClock) == "number" and spec and spec.Sky and type(spec.ClockTime) == "number" then
+						if not own.Underground then
+							return zoneClock + (spec.ClockTime - zoneClock) * Env.WEATHER_MIX
+						end
+					end
+					return zoneClock
+				end
 				local settled = waitIs(function()
+					back = mixedBack()
 					if type(back) == "number" then
-						return math.abs(Lighting.ClockTime - back) <= 0.6 -- weather may mix the zone's clock
+						return math.abs(Lighting.ClockTime - back) <= 0.6 -- slack for the blend's last frames
 					end
 					return math.abs(Lighting.ClockTime - want) > 0.5
 				end, true, 6)

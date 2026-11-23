@@ -22,7 +22,7 @@ local DRIFT_RATE = 0.5 -- radians a second
 
 local BossWaitCamera = {}
 
-local held = nil -- { Type, Fov, View, SubjectAt, From, Age, Back, RunnerAt, Scream }: what comes back, and where this move started
+local held = nil -- { Fov, View, SubjectAt, From, Age, Back, RunnerAt, Scream }: what comes back, and where this move started
 
 local function subjectPosition(camera)
 	local subject = camera.CameraSubject
@@ -49,7 +49,9 @@ end
 
 local function release(camera)
 	camera.CFrame = homeFrame(camera)
-	camera.CameraType = held.Type
+	-- Custom, not the type found at the start: the Summon page or the top-down view may have held it Scriptable then
+	-- and released it since. Any hold still on sets Scriptable again on its next frame.
+	camera.CameraType = Enum.CameraType.Custom
 	camera.FieldOfView = held.Fov
 	held = nil
 end
@@ -69,7 +71,6 @@ function BossWaitCamera.Step(camera, dt)
 	if inEvent and (type(player:GetAttribute("BossWaitEndsAt")) == "number" or scream) then
 		if not held then
 			held = {
-				Type = camera.CameraType,
 				Fov = camera.FieldOfView,
 				View = camera.CFrame,
 				SubjectAt = subjectPosition(camera),
