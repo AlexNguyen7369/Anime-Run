@@ -115,6 +115,49 @@ local function oddsList(rotation)
 	return out
 end
 
+-- Display shares of `values` (percents summing to 100) in steps of 1/UNITS %, by largest remainder, so the shown numbers
+-- sum to exactly 100% (SIDEKICK_SPEC "Panels", owner 2026-11-20). Returns integer step counts, same keys.
+local UNITS = 10000
+local function exactShares(values)
+	local total, out, order, used = 0, {}, {}, 0
+	for key, value in values do
+		total += value
+		table.insert(order, key)
+	end
+	if total <= 0 then
+		for key in values do
+			out[key] = 0
+		end
+		return out
+	end
+	local frac = {}
+	for _, key in order do
+		local exact = values[key] / total * 100 * UNITS
+		out[key] = math.floor(exact + 1e-7)
+		frac[key] = exact - out[key]
+		used += out[key]
+	end
+	table.sort(order, function(a, b)
+		if frac[a] ~= frac[b] then
+			return frac[a] > frac[b]
+		end
+		return tostring(a) < tostring(b)
+	end)
+	for i = 1, 100 * UNITS - used do
+		local key = order[(i - 1) % #order + 1]
+		out[key] += 1
+	end
+	return out
+end
+
+-- A step count as a percent: up to 4 decimals, at least 2 ("24.4997%", "12.00%", "0.001%").
+local function stepsText(steps)
+	local s = string.format("%.4f", steps / UNITS)
+	s = string.gsub(s, "0+$", "")
+	local decimals = #(string.match(s, "%.(%d*)$") or "")
+	return s .. string.rep("0", math.max(0, 2 - decimals)) .. "%"
+end
+
 -- `canvas`: the summon page's canvas. `deps`: Rotation() -> the published rotation; Toast(text); BuyPack(pack);
 -- Remotes (Folder). Returns the panels object.
 function SummonPanels.new(canvas, deps)
@@ -250,8 +293,8 @@ function SummonPanels.new(canvas, deps)
 	end
 
 	-- A row: a shaded strip in `color` with a marker, a name (and optional second line) and a value at the right.
-	local function row(order, color, rarity, name, second, value, image)
-		local r = make("Frame", "Row" .. order, body, { LayoutOrder = order, Size = UDim2.new(1, 0, 0, ROW) })
+	local function row(order, color, rarity, name, second, value, image, parent)
+		local r = make("Frame", "Row" .. order, parent or body, { LayoutOrder = order, Size = UDim2.new(1, 0, 0, ROW) })
 		plate(r, color:Lerp(D.Ink, 0.45), color:Lerp(D.Ink, 0.75), color)
 		local x = 12
 		if image then
@@ -367,37 +410,120 @@ function SummonPanels.new(canvas, deps)
 		end
 	end
 
-	-- 3. Show Chances: the odds summed per rarity (and the Secret), shown before any summon.
+	-- 3. Show Chances: the odds summed per rarity (and the Secret), shown before any summon; under each total every
+	-- Sidekick of the live banner at its own rate (SIDEKICK_SPEC "Panels", owner 2026-11-20). The rates are the server's
+	-- (Rotation.Odds, the roll weights), rounded so the shown numbers sum to exactly 100%.
 	function self.Chances()
 		-- A due pity guarantee is the odds now (SIDEKICK_SPEC "No luck ... only pity does, and Details shows it"; section 6):
-		-- the tier reads 100%, every other rarity (the Secret too) 0%.
+		-- the tier reads 100%, split evenly over its Sidekicks (the server picks one of them), every other rarity 0%.
 		local tier = nil
 		if (player:GetAttribute("SidekickPity") or 0) >= SidekickConfig.PityCount - 1 then
 			tier = "Mythic"
 		elseif (player:GetAttribute("SidekickLegendaryPity") or 0) >= SidekickConfig.LegendaryPityCount - 1 then
 			tier = "Legendary"
 		end
-		local sums = {}
-		for _, item in oddsList(deps.Rotation()) do
-			local odds = tier and (item.Row.Rarity == tier and 100 or 0) or item.Odds
-			sums[item.Row.Rarity] = tier and odds or (sums[item.Row.Rarity] or 0) + odds
+		local list, byRarity, values = oddsList(deps.Rotation()), {}, {}
+		local inTier = 0
+		for _, item in list do
+			inTier += (tier and item.Row.Rarity == tier) and 1 or 0
 		end
+		for _, item in list do
+			local rarity = item.Row.Rarity
+			byRarity[rarity] = byRarity[rarity] or {}
+			table.insert(byRarity[rarity], item)
+			if tier then
+				values[item.Row.Id] = rarity == tier and 100 / inTier or 0
+			else
+				values[item.Row.Id] = item.Odds
+			end
+		end
+		local steps = exactShares(values)
 		local order = table.clone(RARITIES)
 		table.insert(order, 1, "Secret")
 		local shown = {}
 		for _, rarity in order do
-			if sums[rarity] then
+			if byRarity[rarity] then
 				table.insert(shown, rarity)
 			end
 		end
-		begin("ShowChances", "Details", nil, Icons.Quests.Image, 64 + #shown * (ROW + 8) + (tier and 30 or 0))
+		local UNIT_ROW, GAP, LIST_MAX = 32, 4, 430
+		local listHeight = 0
+		for _, rarity in shown do
+			listHeight += ROW + GAP + #byRarity[rarity] * (UNIT_ROW + GAP)
+		end
+		local viewHeight = math.min(listHeight, LIST_MAX)
+		begin("ShowChances", "Details", nil, Icons.Quests.Image, 34 + viewHeight + 8 + 22 + (tier and 30 or 0))
 		text("Heading", body, {
 			LayoutOrder = 0,
 			Size = UDim2.new(1, 0, 0, 26),
 			Text = "Summon Drop Rates (Sidekick Banner)",
 		})
+		local rates = make("ScrollingFrame", "Rates", body, {
+			LayoutOrder = 1,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Size = UDim2.new(1, 0, 0, viewHeight),
+			CanvasSize = UDim2.fromOffset(0, 0),
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			ScrollBarThickness = listHeight > LIST_MAX and 6 or 0,
+			ScrollBarImageColor3 = D.Gold,
+		})
+		make("UIListLayout", "List", rates, { Padding = UDim.new(0, GAP), SortOrder = Enum.SortOrder.LayoutOrder })
+		local at = 0
 		for i, rarity in shown do
-			row(i, SidekickView.RarityColor(rarity), rarity, rarity, nil, percent(sums[rarity]))
+			local items = byRarity[rarity]
+			table.sort(items, function(a, b)
+				if steps[a.Row.Id] ~= steps[b.Row.Id] then
+					return steps[a.Row.Id] > steps[b.Row.Id]
+				end
+				return a.Row.Name < b.Row.Name
+			end)
+			local sum = 0
+			for _, item in items do
+				sum += steps[item.Row.Id]
+			end
+			at += 1
+			local color = SidekickView.RarityColor(rarity)
+			local total = row(i, color, rarity, rarity, nil, stepsText(sum), nil, rates)
+			total.LayoutOrder = at
+			for _, item in items do
+				at += 1
+				-- The Secret keeps no name column (owner 2026-11-05): its row reads "???"
+				local secret = rarity == "Secret"
+				local u = make("Frame", "Unit" .. at, rates, {
+					LayoutOrder = at,
+					Size = UDim2.new(1, -24, 0, UNIT_ROW),
+					BackgroundTransparency = 1,
+				})
+				u:SetAttribute("Rarity", rarity)
+				u:SetAttribute("SidekickId", item.Row.Id)
+				make("UIPadding", "Indent", u, { PaddingLeft = UDim.new(0, 24) })
+				make("Frame", "Line", u, {
+					Size = UDim2.new(1, 0, 0, 1),
+					Position = UDim2.new(0, 0, 1, -1),
+					BackgroundColor3 = color,
+					BackgroundTransparency = 0.6,
+					BorderSizePixel = 0,
+				})
+				-- No drawn portrait: they appear only in the Sidekick index and Bag equip (design doc 4.36 "Art in UI")
+				local x = 0
+				text("Name", u, {
+					MaxSize = 18,
+					Position = UDim2.fromOffset(x, 0),
+					Size = UDim2.new(0.65, -x, 1, 0),
+					Text = secret and "???" or item.Row.Name,
+					TextXAlignment = Enum.TextXAlignment.Left,
+				})
+				text("Value", u, {
+					MaxSize = 18,
+					AnchorPoint = Vector2.new(1, 0),
+					Position = UDim2.new(1, -8, 0, 0),
+					Size = UDim2.fromScale(0.35, 1),
+					Text = stepsText(steps[item.Row.Id]),
+					TextXAlignment = Enum.TextXAlignment.Right,
+				})
+			end
 		end
 		text("Note", body, {
 			LayoutOrder = 99,
@@ -413,6 +539,13 @@ function SummonPanels.new(canvas, deps)
 				Text = tier .. " guaranteed on the next summon",
 				TextColor3 = D.Gold,
 			})
+		end
+	end
+
+	-- The live banner moved on (a new rotation slot): an open Details is rebuilt from it.
+	function self.Refresh()
+		if overlay.Visible and panel.Name == "ShowChances" then
+			self.Chances()
 		end
 	end
 
@@ -693,14 +826,32 @@ function SummonPanels.new(canvas, deps)
 			return
 		end
 		begin("SummonResult", "You Obtained!", nil, nil, 250)
-		local art = SidekickArt[spec.Id]
-		make("ImageLabel", "Art", body, {
+		-- The actual 3D model, not the drawn portrait (design doc 4.36 "Art in UI": the summon results show the models)
+		local view = make("ViewportFrame", "Model", body, {
 			LayoutOrder = 1,
 			BackgroundTransparency = 1,
 			Size = UDim2.new(1, 0, 0, 170),
-			Image = art and art.Portrait or "",
-			ScaleType = Enum.ScaleType.Fit,
+			Ambient = Color3.fromRGB(235, 235, 240),
+			LightColor = Color3.new(1, 1, 1),
+			LightDirection = Vector3.new(-1, -2, -1),
 		})
+		view.CurrentCamera = make("Camera", "Camera", view, { FieldOfView = 30 })
+		local models = ReplicatedStorage:FindFirstChild("SidekickModels")
+		local source = models and models:FindFirstChild(spec.Id)
+		if source then
+			local model = source:Clone()
+			for _, d in model:GetDescendants() do
+				if d:IsA("LuaSourceContainer") then
+					d:Destroy()
+				end
+			end
+			model.Parent = view
+			-- Framed as Client/SidekickReveal frames its result model
+			local box, extents = model:GetBoundingBox()
+			local dir = Vector3.new(0.45, 0.15, -1).Unit
+			local distance = 0.72 * extents.Magnitude / 2 / math.sin(math.rad(15))
+			view.CurrentCamera.CFrame = CFrame.lookAt(box.Position + dir * distance, box.Position)
+		end
 		text("Name", body, { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 34), Text = spec.Name })
 		text("Rarity", body, {
 			LayoutOrder = 3,
