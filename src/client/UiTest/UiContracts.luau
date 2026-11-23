@@ -623,7 +623,7 @@ function Contracts.Build(h)
 		return false
 	end
 	-- What is wrong with a card's Art for `spec`: its portrait (ImageLabel, the card's top 3/4), or with none its rig.
-	-- size: the portrait's Size, fromScale(1, 0.75) unless given (the Index tile's is 8807c71's fromScale(0.86, 0.67)).
+	-- size: the portrait's Size, fromScale(1, 0.75) unless given (the Index tile's is fromScale(0.86, 0.53), design doc 4.46).
 	local function cardArtProblem(art, spec, size)
 		local image = portraitOf(spec)
 		local want = size or UDim2.fromScale(1, 0.75)
@@ -968,8 +968,9 @@ function Contracts.Build(h)
 			for _, character in Catalog.All() do
 				local tile = h.find(B.IndexGallery .. "/" .. character.Id)
 				local art = tile and tile:FindFirstChild("Art")
-				-- Index tiles: IndexAnimeStyle sets the portrait to fromScale(0.86, 0.67) (8807c71, design doc 4.42)
-				local artProblem = cardArtProblem(art, character, UDim2.fromScale(0.86, 0.67))
+				-- Index tiles: IndexAnimeStyle sets the portrait to fromScale(0.86, 0.53), on the card's pink art field
+				-- (the card's top 55%, design doc 4.46 Index frame; was 8807c71's 0.67 under 4.42)
+				local artProblem = cardArtProblem(art, character, UDim2.fromScale(0.86, 0.53))
 				if artProblem then
 					table.insert(p.index_tiles_runner_art, character.Id .. ": " .. artProblem)
 				end
