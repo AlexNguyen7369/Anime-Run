@@ -19,3 +19,9 @@ over an ember-orange horizon. The tower is placed up to three times (one copy pe
 miss it), because the review cameras are fixed and the source castle must top the skyline in each.
 
 Not matched: characters are not modelled as likenesses; the rider and the hounds are generic shapes.
+
+Round 4 (2026-11-23): `ChainTower` chains now sag in from anchors high in the sky (as `webtoon_castle`, `anime_castle`),
+fire tiers climb about 70% of the slab with ash flecks; the ruins' pink fire is tall tapered flame curtains on the
+high-rise faces (`anime_castle2`); `Hound` heads sit side by side above the shoulders with gaping jaws, the left one in a
+pale pointed-ear helm, the tan mane rising behind them (`cerberus_gate`); `Wyvern` has a long narrow skull with six
+horns swept back and red eyes (`kaisel_flight`).

@@ -19,3 +19,9 @@ Not matched: the source shows the nest mostly underground, with no fixed above-g
 is our own read of an ant colony. The Ant King and Queen are not modelled as likenesses. The real Seongsan sunrise
 peak was skipped to stay within the 12-mesh budget. Round 2 (2026-11-23): war-zone mood (overcast dusk, burning
 mounds with smoke columns, scorched ground) per the owner's 1-1 call.
+
+Nest refs (added round 4, 2026-11-23): `nest_tunnel.ref.jpg` (anime, the ant colony's tunnel inside the nest: dark
+brown-grey rough earth walls, ribbed, dim; https://static.beebom.com/wp-content/uploads/2025/03/Ant-King.jpg) and
+`ant_black.ref.jpg` (anime, an ant's head close up: slate-blue chitin, angular plated head, a big almond red eye, curved
+mandibles; https://static.beebom.com/wp-content/uploads/2025/03/Black-Ant.jpg). No wide shot of the nest exterior was
+found; the `Nest` now uses the tunnel ref's dark earth colours, and the `Ant` the head ref's angular head and chitin.

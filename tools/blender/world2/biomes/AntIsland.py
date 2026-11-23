@@ -2,9 +2,9 @@
 against the ant colony (refs and landmark list: docs/world2_refs/AntIsland.md):
 - Island: our own ground, an elongated oval with a ragged coast, a sand band, dark forest and scorched patches, ringed by
   dark basalt column cliffs (Cliff) and a ring of blockade ships (Ship) on the sea.
-- Hallasan (hero, infield): a broad low shield volcano, dark forested slopes, a pale jagged rocky summit round a rough
+- Hallasan (hero, infield): a broad low shield volcano, dark forested slopes, pale rock spread wide and low round a rough
   crater with its lake, many small parasitic cones and ant tunnels dug into the slopes.
-- Nest (hero, ahead of the runner): the colony, a low wide sandy cratered mound with rings of dark tunnel mouths, bulky
+- Nest (hero, ahead of the runner): the colony, a low wide dark-earth cratered mound with rings of dark tunnel mouths, bulky
   pale ants climbing out and a pack at its foot, on scorched ground.
 - Chamber (hero, beside the road): the queen's chamber opened up, a dark green cave over tightly packed rounded blue eggs
   under webbing, with one big hatched egg.
@@ -27,7 +27,7 @@ HOLE, LIP = "0C0A0C", "54402C"
 GRASS, GRASS2, GRASS3 = "4A6A34", "3A5A2C", "6A7A44"
 PINE, PINE2, CAMEL, BLOOM = "24402A", "2E5232", "1E3A22", "C42A3A"
 THATCH, THATCH2, ROPE = "B49A64", "9A8050", "5A4A32"
-ANT, ANT2, EYE = "E4E4EA", "B8B8C4", "E02030"
+ANT, ANT2, EYE = "868AA0", "4E5266", "FF2A30"  # slate chitin with dark plates, as the refs (not near-white)
 EGG, EGG2, CAVE, CAVE2 = "4AB8FF", "9ADCFF", "1E2E2A", "2C3E36"
 CONC, CONC2, WIN = "8A8679", "6E6A60", "22262C"
 OLIVE, OLIVE2, CRATE, STEEL = "4E5A3A", "3E4A2E", "7A6440", "6A7078"
@@ -142,11 +142,11 @@ def _bank(k, color):
 
 
 def _ant(p, pos, yaw=0.0, s=1.0, tilt=0.0, out=None):
-	"""A generic giant ant as the source draws them: pale plated body, a banded spiky abdomen, spikes down the back, a
-	spiked crown on the head with two big and two small red eyes, sickle mandibles curving in, elbowed antennae, and
-	long thin spidery legs with high knees. Faces -Z at yaw 0; `tilt` pitches it (climbing). `out` collects its centre."""
+	"""A generic giant ant as the source draws them: slate chitin with dark plates, a large banded abdomen with plate
+	ridges and spikes, spikes down the back, an angular shield-like head with a spiked crown, two big almond and two small
+	red eyes, long curved sickle mandibles, elbowed antennae, and long thin spidery legs with high knees. Faces -Z at yaw 0; `tilt` pitches it (climbing). `out` collects its centre."""
 	m = _rotm(tilt, yaw, 0)
-	BAND, JOINT = "8E8C9A", "6E6C7A"
+	BAND, JOINT = "3E4254", "343848"
 
 	def at(x, y, z):
 		q = _turn(m, (x * s, y * s, z * s))
@@ -166,29 +166,37 @@ def _ant(p, pos, yaw=0.0, s=1.0, tilt=0.0, out=None):
 	if out is not None:
 		out.append(at(0, 0, 0))
 	sm = {"subdiv": 2, "smooth": True, "rough": 0.5, "emit": 0.15}
-	p.append(("ball", sz(13, 11, 19), at(0, 10, 13), ANT, o(sm, (-12, 0, 0))))
-	for i, zz in enumerate((6.5, 10, 13.5, 17)):  # dark bands round the abdomen
-		f = math.sqrt(max(0.15, 1 - ((zz - 13) / 9.5) ** 2))
-		p.append(("cyl", sz(13.4 * f, 1.0, 11.4 * f), at(0, 10 + (13 - zz) * 0.21, zz), BAND, o({"seg": 14}, (78, 0, 0))))
-	for zz in (8, 12.5, 17):
-		seg((0, 14.5 + (13 - zz) * 0.2, zz), (0, 19 + (13 - zz) * 0.2, zz + 3), 2.4, ANT, "cone", 0.1)
+	p.append(("ball", sz(18, 15, 26), at(0, 11, 17), ANT, o(sm, (-12, 0, 0))))  # a large banded abdomen
+	for i, zz in enumerate((8, 11.5, 15, 18.5, 22, 25.5)):
+		f = math.sqrt(max(0.12, 1 - ((zz - 17) / 13) ** 2))
+		p.append(("cyl", sz(18.4 * f, 1.2, 15.4 * f), at(0, 11 + (17 - zz) * 0.21, zz), BAND, o({"seg": 14}, (78, 0, 0))))
+	for zz in (9, 13, 17, 21):  # plate ridges and spikes along the top
+		yy = 18 + (17 - zz) * 0.2 - abs(zz - 15) * 0.15
+		p.append(("box", sz(9, 1.4, 3), at(0, yy - 0.6, zz), ANT2, o(None, (-12, 0, 0))))
+		seg((0, yy, zz), (0, yy + 5, zz + 3), 2.6, ANT, "cone", 0.1)
 	p.append(("ball", sz(4, 4, 5), at(0, 9.5, 4.5), JOINT, o({"subdiv": 1})))
 	p.append(("ball", sz(8, 8, 12), at(0, 10.5, -2), ANT, o(sm)))
 	for i, zz in enumerate((-6, -2.5, 1)):
 		seg((0, 13.5, zz), (0, 19 - i, zz + 3), 2.2, ANT, "cone", 0.1)
 		for sx in (-1, 1):
 			seg((sx * 3, 12.5, zz), (sx * 7, 15, zz + 2), 1.4, ANT, "cone", 0.1)
-	p.append(("ball", sz(11, 9, 10), at(0, 11.5, -11), ANT, o(sm)))
-	p.append(("box", sz(7, 1.6, 6), at(0, 15, -11), ANT2, o(None, (-10, 0, 0))))
-	for i, (sx_, up) in enumerate(((-1, 0.6), (-0.5, 1), (0, 1.1), (0.5, 1), (1, 0.6))):  # spiked crown
-		seg((sx_ * 3, 14.5, -10), (sx_ * 6, 14.5 + 6 * up, -6 + abs(sx_) * 2), 1.8, ANT, "cone", 0.1)
+	# an angular, shield-like head: flat top plate, an angled face, cheek plates, a spiked crown
+	p.append(("box", sz(12, 3, 12), at(0, 14, -11), ANT, o(None, (-12, 0, 0))))
+	p.append(("box", sz(11, 9, 2.4), at(0, 10.6, -17.2), ANT, o(None, (24, 0, 0))))
+	p.append(("box", sz(8, 3, 7), at(0, 7.4, -14), ANT2, o(None, (8, 0, 0))))
 	for sx in (-1, 1):
-		p.append(("ball", sz(2.8, 2.2, 2), at(sx * 3, 12.4, -14.8), EYE, o({"emit": 10, "subdiv": 1})))
-		p.append(("ball", sz(1.3, 1.3, 1.1), at(sx * 1.4, 14.4, -14.4), EYE, o({"emit": 10, "subdiv": 1})))
-		seg((sx * 3, 8.6, -14), (sx * 6, 8, -20), 2.2, ANT2, "cyl", 1.6)  # sickle mandible
-		seg((sx * 6, 8, -20), (sx * 1.4, 8, -25), 1.6, ANT2, "cone", 0.1)
-		seg((sx * 1.4, 14.6, -14), (sx * 4, 22, -17), 0.6, ANT2)  # elbowed antenna
-		seg((sx * 4, 22, -17), (sx * 9, 23, -25), 0.5, ANT2)
+		p.append(("box", sz(2.6, 8, 10), at(sx * 5.6, 11, -12.5), ANT2, o(None, (0, sx * 14, sx * -12))))
+	for i, (sx_, up) in enumerate(((-1, 0.7), (-0.5, 1.1), (0, 1.3), (0.5, 1.1), (1, 0.7))):  # spiked crown
+		seg((sx_ * 4, 15, -10), (sx_ * 7.5, 15 + 7 * up, -5 + abs(sx_) * 2), 2.2, ANT, "cone", 0.1)
+	for sx in (-1, 1):
+		p.append(("ball", sz(3.6, 2.2, 1.4), at(sx * 3.2, 11.8, -18.4), EYE, o({"emit": 5, "subdiv": 2}, (24, sx * 12, sx * -24))))  # big almond eyes
+		p.append(("ball", sz(1.4, 1.4, 1), at(sx * 1.5, 14.6, -17.4), EYE, o({"emit": 5, "subdiv": 1}, (24, 0, 0))))
+		seg((sx * 3.6, 7.6, -17), (sx * 8, 7.2, -24), 2.6, ANT2, "cyl", 2.2)  # long curved sickle mandible
+		seg((sx * 8, 7.2, -24), (sx * 8.6, 7, -32), 2.2, ANT2, "cyl", 1.8)
+		seg((sx * 8.6, 7, -32), (sx * 5.6, 7, -38.5), 1.8, ANT2, "cyl", 1.3)
+		seg((sx * 5.6, 7, -38.5), (sx * 1.2, 7, -40.5), 1.3, "D8D0C0", "cone", 0.1)
+		seg((sx * 1.6, 15.4, -16), (sx * 4.4, 23, -19), 0.6, ANT2)  # elbowed antenna
+		seg((sx * 4.4, 23, -19), (sx * 10, 24, -28), 0.5, ANT2)
 		for zz, kz, fz in ((-5, -12, -24), (-2, -3, -4), (1, 8, 20)):  # long legs, knees high
 			hip, knee, ank, foot = (sx * 4, 9, zz), (sx * 12.5, 19, kz * 0.8), (sx * 19, 4.5, fz * 0.8), (sx * 21, 0, fz * 0.85)
 			seg(hip, knee, 2.2, ANT)
@@ -209,7 +217,7 @@ def _hgt(r):
 	return pts[-1][1]
 
 
-HALLA = ((760, 0), (600, 50), (440, 120), (300, 210), (180, 320), (115, 380))
+HALLA = ((760, 0), (600, 34), (440, 80), (300, 128), (190, 172), (140, 190))  # a broad, low shield
 
 
 def _hallasan(k):
@@ -220,18 +228,18 @@ def _hallasan(k):
 		p.append(("cone", (r0 * 2, h1 - h0, r0 * 2), (0, (h0 + h1) / 2, 0), cols[i], {"seg": 24, "taper": r1 / r0}))
 	top = pts[-1][1]
 	# pale jagged summit rocks round a rough crater rim, well above the tree line, the crater lake inside
-	for i in range(18):  # a broken rim of broad pale rock blocks
-		a = i * math.tau / 18 + (i % 3) * 0.06
-		rr = 102 + (i * 13 % 5) * 5
-		h = 26 + (i * 7 % 5) * 9
-		w = 52 + (i * 5 % 4) * 9
-		p.append(("cone", (w, h, w * 0.7), (math.sin(a) * rr, top - 10 + h / 2, -math.cos(a) * rr), ("D8D0C0", "C4BCAA", "B0A894")[i % 3], {"seg": 6, "taper": 0.45 + (i % 3) * 0.08, "rot": ((i * 11 % 17) - 8, -math.degrees(a) + i * 7, (i * 5 % 13) - 6)}))
-	p.append(("ball", (110, 80, 120), (-110, top + 10, 10), "CCC4B2", {"subdiv": 2, "rough": 1.0}))  # the pale lava dome on the west rim
+	for i in range(28):  # pale rock spread wide and low round the crater: an inner broken rim and outer outcrops
+		a = i * math.tau / 28 + (i % 3) * 0.06
+		rr = (120 + (i * 13 % 5) * 6) if i % 2 else (190 + (i * 17 % 5) * 14)
+		h = 12 + (i * 7 % 5) * 5
+		w = 60 + (i * 5 % 4) * 12
+		p.append(("cone", (w, h, w * 0.7), (math.sin(a) * rr, _hgt(rr) - 6 + h / 2, -math.cos(a) * rr), ("D8D0C0", "C4BCAA", "B0A894")[i % 3], {"seg": 6, "taper": 0.45 + (i % 3) * 0.08, "rot": ((i * 11 % 17) - 8, -math.degrees(a) + i * 7, (i * 5 % 13) - 6)}))
+	p.append(("ball", (130, 50, 140), (-120, top, 10), "CCC4B2", {"subdiv": 2, "rough": 1.0}))  # the pale lava dome on the west rim
 	for i in range(6):
 		p.append(("box", (30 + i * 4, 3, 50), (-150 + i * 6, top - 10 - i * 14, 10 + (i - 3) * 14), "B8B09C", {"rot": (0, i * 17, 28 + i * 3)}))
 	for i in range(10):  # pale scree streaks down the upper cone
 		a = i * math.tau / 10 + 0.3
-		p.append(("box", (16, 2, 90), (math.sin(a) * 210, 300, -math.cos(a) * 210), "A8A090", {"rot": (-38, -math.degrees(a), 0)}))
+		p.append(("box", (22, 2, 110), (math.sin(a) * 240, _hgt(240) + 2, -math.cos(a) * 240), "A8A090", {"rot": (-18, -math.degrees(a), 0)}))
 	p.append(("cyl", (190, 6, 190), (0, top - 4, 0), "6E6A5C", {"seg": 14}))
 	p.append(("cyl", (140, 2, 140), (0, top, 0), "3E7A88", {"seg": 14, "rough": 0.2}))
 	for i in range(16):
@@ -264,7 +272,7 @@ def _nest(k):
 	p = []  # the scorched ground round it is painted on the island
 	tiers = ((200, 0), (165, 30), (120, 58), (80, 80), (50, 92))
 	for i, ((r0, h0), (r1, h1)) in enumerate(zip(tiers, tiers[1:])):
-		p.append(("cone", (r0 * 2, h1 - h0, r0 * 2 * 0.9), (0, (h0 + h1) / 2, 0), ("A88A5E", "B49468", "9A7E54", "C0A272")[i], {"seg": 16, "taper": r1 / r0}))
+		p.append(("cone", (r0 * 2, h1 - h0, r0 * 2 * 0.9), (0, (h0 + h1) / 2, 0), ("5E4A38", "6A543E", "554232", "72604A")[i], {"seg": 16, "taper": r1 / r0}))
 
 	def surf(r):
 		for (r0, h0), (r1, h1) in zip(tiers, tiers[1:]):
@@ -276,7 +284,7 @@ def _nest(k):
 		a = i * 2.39 + 0.15
 		rr = 20 + (i * 47) % 175
 		w = 24 + (i * 17) % 30
-		p.append(("ball", (w, w * 0.55, w * 0.85), (math.sin(a) * rr, surf(rr) - 2, -math.cos(a) * rr * 0.9), ("9A7E54", "A88A5E", "8A6E48", "B49468")[i % 4], {"subdiv": 1, "rot": (0, -math.degrees(a), 0)}))
+		p.append(("ball", (w, w * 0.55, w * 0.85), (math.sin(a) * rr, surf(rr) - 2, -math.cos(a) * rr * 0.9), ("554232", "5E4A38", "4A3A2C", "6A543E")[i % 4], {"subdiv": 1, "rot": (0, -math.degrees(a), 0)}))
 	for x, z, r in ((0, 0, 30), (34, -18, 14), (-30, 14, 12), (-12, -34, 10), (60, 30, 12), (-64, -30, 11), (20, 66, 10), (-40, 60, 9)):
 		y = surf(math.hypot(x, z / 0.9)) - 1
 		p.append(("cyl", (r * 2.6, 6, r * 2.6), (x, y + 2, z), "6A5034", {"seg": 12, "taper": 0.8}))
@@ -289,7 +297,7 @@ def _nest(k):
 			_hole(p, hp, hr, a, -30)
 			holes.append((hp, a))
 	for x, z in ((40, 30), (-50, -10)):
-		p.append(("cone", (16, 40, 16), (x, 80, z), "C0A272", {"seg": 8, "taper": 0.25}))
+		p.append(("cone", (16, 40, 16), (x, 80, z), "72604A", {"seg": 8, "taper": 0.25}))
 	NEST_ANTS.clear()  # (local pos, yaw deg, scale, tilt deg): placed as Ant instances by build()
 	for j, (hp, a) in enumerate(holes[::3]):  # climbing out of tunnel mouths, each at its own angle
 		yaw = -math.degrees(a) + 180 + (j % 3 - 1) * 25
@@ -323,8 +331,9 @@ def _chamber(k):
 		x = -54 + i * 8.3
 		h = 10 + (i * 7 % 5) * 5
 		p.append(("cone", (5, h, 5), (x, 74 - h / 2, -30 + (i % 3) * 8), CAVE2, {"seg": 6, "rot": (180, 0, 0)}))
-	for i in range(6):
-		p.append(("box", (4, 30, 1), (-50 + i * 20, 58, -34 + (i % 2) * 2), "3E6A3A", {"rot": (0, 0, (i - 2.5) * 4)}))
+	for i in range(8):  # moss hanging down the side walls
+		sx = (-1, 1)[i % 2]
+		p.append(("box", (1, 26 + i % 3 * 6, 6), (sx * (58 - (i // 2) * 2), 50, -22 + (i // 2) * 14), "3E6A3A", {"rot": (0, 0, sx * 6)}))
 	for gz in range(5):  # terraces rising toward the back so every row shows over the road wall
 		p.append(("box", (118, 4 + gz * 4, 12), (0, 10 + gz * 2, -26 + gz * 11), CAVE2))
 	eggs = []
@@ -332,12 +341,14 @@ def _chamber(k):
 		for gx in range(14):
 			x = -52 + gx * 8 + (gz % 2) * 4 + ((gx * 7 + gz) % 3 - 1)
 			z = -26 + gz * 11 + ((gx * 5) % 3 - 1) * 1.5
-			if math.hypot(x, z - 2) < 15:
+			if math.hypot(x, z - 2) < 24:
 				continue
 			s = 6.6 + ((gx + gz * 2) % 3) * 0.8
 			y = 12 + gz * 4 + s * 0.7
 			o = {"emit": 0.35, "subdiv": 2 if gz < 2 else 1, "smooth": True, "rough": 0.25}
-			p.append(("ball", (s, s * 1.5, s), (x, y, z), ("2E8AB0", "3AA6C0", "2A7AA0")[(gx + gz) % 3], o))
+			col = ("2E8AB0", "3AA6C0", "2A7AA0")[(gx + gz) % 3]
+			p.append(("ball", (s, s * 1.2, s), (x, y, z), col, o))  # a teardrop egg: rounded base, pointed top
+			p.append(("cone", (s * 0.86, s * 0.9, s * 0.86), (x, y + s * 0.82, z), col, {"seg": 8, "emit": 0.35, "smooth": True, "rough": 0.25}))
 			eggs.append((x, y + s * 0.5, z))
 	for i in range(0, len(eggs) - 15, 4):  # pale web strands over the clutch, at varied heights
 		a, b = eggs[i], eggs[i + 15 if i % 8 else i + 1]
@@ -345,13 +356,19 @@ def _chamber(k):
 		ln = math.hypot(b[0] - a[0], b[2] - a[2]) + 3
 		ang = math.degrees(math.atan2(b[0] - a[0], b[2] - a[2]))
 		p.append(("box", (0.35, 0.35, ln), (mx, my, mz), "EEF6FF", {"alpha": 0.6, "emit": 0.3, "rot": (0, ang, 0)}))
-	for i in range(8):  # strands hanging from the cave roof
-		p.append(("box", (0.3, 30 + i % 3 * 8, 0.3), (-40 + i * 11, 58 - i % 3 * 4, -16 + (i % 4) * 8), "EEF6FF", {"alpha": 0.5, "emit": 0.3}))
-	p.append(("cyl", (28, 20, 28), (0, 22, 2), "8ACCD8", {"seg": 12, "taper": 1.2, "emit": 0.4, "smooth": True}))
-	for i in range(7):
-		a = i * math.tau / 7
-		p.append(("cone", (8, 12 + i % 3 * 3, 3), (math.sin(a) * 15, 37, -math.cos(a) * 15 + 2), "8ACCD8", {"seg": 3, "emit": 0.4, "rot": (0, -math.degrees(a), 0)}))
-	p.append(("cyl", (24, 1, 24), (0, 32.5, 2), "0E1A22", {"seg": 12}))
+	for gz in range(4):  # translucent web sheets draped over the rows
+		for part_ in range(3):
+			x0 = -40 + part_ * 40 + (gz % 2) * 8
+			p.append(("box", (34, 0.3, 14), (x0, 24 + gz * 4.4, -20 + gz * 11), "E8F0FF", {"alpha": 0.3, "emit": 0.4, "rot": ((gz % 2) * 8 - 4, (part_ - 1) * 6, (part_ - 1) * 5)}))
+	for i in range(6):  # strands hanging at the back wall
+		p.append(("box", (0.3, 30 + i % 3 * 8, 0.3), (-40 + i * 16, 58 - i % 3 * 4, 32 + (i % 2) * 4), "EEF6FF", {"alpha": 0.5, "emit": 0.3}))
+	# one big glowing egg, its top broken open
+	p.append(("ball", (40, 46, 40), (0, 34, 2), "7AE6FF", {"subdiv": 2, "emit": 2.2, "smooth": True, "rough": 0.2}))
+	p.append(("ball", (24, 26, 24), (0, 38, 2), "D8FAFF", {"subdiv": 2, "emit": 5, "alpha": 0.6}))
+	for i in range(8):
+		a = i * math.tau / 8
+		p.append(("cone", (11, 12 + i % 3 * 4, 3), (math.sin(a) * 16, 58, -math.cos(a) * 16 + 2), "7AE6FF", {"seg": 3, "emit": 2.2, "rot": (0, -math.degrees(a), (i % 2) * 14 - 7)}))
+	p.append(("cyl", (26, 1, 26), (0, 55.5, 2), "0E1A22", {"seg": 12}))
 	_ant(p, (40, 30, 20), -20, 1.3)  # on the back terrace, over the clutch
 	k.prop("Chamber", p)
 
@@ -453,9 +470,7 @@ def _camp(k):
 		("cyl", (32, 0.3, 32), (hx, 0.4, hz), "4A4A44", {"seg": 14}),
 		("cyl", (20, 0.32, 20), (hx, 0.45, hz), "C8B040", {"seg": 14}),
 		("cyl", (17, 0.36, 17), (hx, 0.5, hz), "4A4A44", {"seg": 14}),
-		("box", (2, 0.4, 9), (hx - 3, 0.6, hz), "C8B040"),
-		("box", (2, 0.4, 9), (hx + 3, 0.6, hz), "C8B040"),
-		("box", (6, 0.4, 2), (hx, 0.6, hz), "C8B040"),
+		("cyl", (6, 0.4, 6), (hx, 0.6, hz), "C8B040", {"seg": 10}),  # a plain centre dot, no letter
 		("ball", (8 * H, 7 * H, 17 * H), (hx, 5.6 * H, hz), "3E4636", {"subdiv": 2, "smooth": True}),
 		("ball", (6 * H, 3.6 * H, 6 * H), (hx, 6.6 * H, hz - 6.6 * H), "7A9AA8", {"subdiv": 1, "rough": 0.2}),
 		("cyl", (2 * H, 18 * H, 2 * H), (hx, 6.6 * H, hz + 15 * H), "3E4636", {"seg": 6, "rot": (90, 0, 0)}),
@@ -522,7 +537,6 @@ def _nature(k):
 	for i in range(8):  # smoke column drifting with the wind, thinning as it rises
 		w = 24 + i * 8
 		p.append(("ball", (w, w * 0.9, w * 0.8), (i * i * 0.8 - 4 + (i % 2) * 6, 34 + i * 30, i * 2 - (i % 3) * 5), ("1E1E22", "26262A", "2E2E34", "3A3A40")[min(3, i // 2)], {"subdiv": 2, "smooth": True, "rough": 1.0, "alpha": 0.85 - i * 0.06}))
-	_ant(p, (-18, 0, -30), 30, 1.2)
 	k.prop("Mound", p)
 	# Cliff: dark basalt column shore cliff stepping down to the sea on its -Z side
 	p = [
@@ -747,10 +761,10 @@ def build(k):
 		x, z = _ell(cx, cz, a * f, b * f, th, phi)
 		out = math.atan2(-(x - cx), -(z - cz))
 		k.place("Cliff", (x, -4.0, z), out + k.rng.uniform(-0.4, 0.4), k.rng.uniform(1.0, 1.7))
-	for i in range(22):
-		th = i * math.tau / 22 + k.rng.uniform(-0.05, 0.05)
-		x, z = _ell(cx, cz, a + 700, b + 700, th, phi)
-		k.place("Ship", (x, -4.0, z), -th + k.rng.uniform(-0.3, 0.3), k.rng.uniform(1.4, 2.0))
+	for i in range(48):  # a dense, even blockade ring just off the coast
+		th = i * math.tau / 48
+		x, z = _ell(cx, cz, a + 260, b + 260, th, phi)
+		k.place("Ship", (x, -4.0, z), -th + k.rng.uniform(-0.15, 0.15), k.rng.uniform(3.0, 3.6))
 	# Overcast dusk over a war zone; cool lamps along the road, floodlit camps, blue glow in the chamber
 	k.sky([(0.0, "D8946A"), (0.04, "A07A70"), (0.12, "6E6670"), (0.35, "4A4C5A"), (1.0, "2A2C38")], strength=0.9, sun=(2.4, "FFB070", 12, 230))
 	d = 40
@@ -783,5 +797,5 @@ def build(k):
 		d += 20
 	p, right, t = k.at(pick[1])
 	eye = p + right * 10 - t * 14
-	EXTRA_SHOTS = [("06_hallasan", (eye.x, p.y + 8.5, eye.z), (hx, 170.0, hz))]
+	EXTRA_SHOTS = [("06_hallasan", (eye.x, p.y + 8.5, eye.z), (hx, 110.0, hz))]
 	print("EXTRA 06_hallasan at", round(pick[1] / L, 2), round(pick[0]), "deg off heading")
