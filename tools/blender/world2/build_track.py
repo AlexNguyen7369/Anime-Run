@@ -128,6 +128,9 @@ def run(number, fast=False, render=True):
 	bpy.ops.wm.save_as_mainfile(filepath=os.path.join(BUILD, name + ".blend"), copy=True)
 	if render:
 		shots(k, cam, os.path.join(OUT, name))
+		# A biome may add review shots of set pieces the fixed cameras miss: EXTRA_SHOTS = [(file, eye, look), ...]
+		for file, eye, look in getattr(module, "EXTRA_SHOTS", ()):
+			shoot(cam, eye, look, os.path.join(OUT, name, file + ".jpg"))
 	return k
 
 

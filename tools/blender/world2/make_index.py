@@ -22,7 +22,6 @@ TRACKS = [
 	(9, "GoldenCity", "Golden City", "Frieren", "Machto"),
 	(10, "HellGate", "Hell's Gate", "Saw Man", "Makina"),
 ]
-SHOTS = ("00_overview", "01_run_6", "02_run_33", "03_run_62", "04_run_90", "05_side")
 IMG = (".jpg", ".jpeg", ".png", ".webp", ".gif")
 
 
@@ -50,7 +49,8 @@ def page():
 		refs = sorted(f for f in os.listdir(ref_dir) if f.lower().endswith(IMG)) if os.path.isdir(ref_dir) else []
 		if refs:
 			out.append('<div class="ref">' + "".join('<img src="../../build/world2/refs/%s/%s">' % (key, f) for f in refs) + "</div>")
-		out += ['<img src="%s/%s.jpg">' % (folder, s) for s in SHOTS]
+		shots = sorted(f for f in os.listdir(os.path.join(OUT, folder)) if f.endswith(".jpg"))  # the 6 fixed shots plus any EXTRA_SHOTS
+		out += ['<img src="%s/%s">' % (folder, s) for s in shots]
 	return "\n".join(out) + "\n"
 
 
