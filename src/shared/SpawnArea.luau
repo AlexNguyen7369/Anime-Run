@@ -587,8 +587,8 @@ local function worldGate(startCFrame)
 		block(
 			m,
 			"Shackle",
-			Vector3.new(2.6, 2.4, 0.8),
-			lock.CFrame * CFrame.new(0, 3.2, 0),
+			Vector3.new(3.2, 3, 1),
+			lock.CFrame * CFrame.new(0, 3.8, 0),
 			Color3.fromRGB(150, 150, 150),
 			Enum.Material.Metal,
 			false
