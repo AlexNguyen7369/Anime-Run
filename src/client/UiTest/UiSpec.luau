@@ -432,7 +432,8 @@ UiSpec.Rebirth = {
 		{ Name = "Title", Parent = "Header", Class = "TextLabel", Overhangs = true },
 		{ Name = "Close", Parent = "Header", Class = "Frame" },
 		{ Name = "Warning", Parent = "Panel", Class = "Frame" },
-		{ Name = "WarningTitle", Parent = "Warning", Class = "TextLabel", Text = "WARNING", Colour = "gold" },
+		-- Design doc 4.46 rebirth frame: headings in ink and vermilion on the paper (was the 4.42 gold).
+		{ Name = "WarningTitle", Parent = "Warning", Class = "TextLabel", Text = "WARNING", Colour = "vermilion" },
 		{
 			Name = "WarningText",
 			Parent = "Warning",
@@ -446,7 +447,7 @@ UiSpec.Rebirth = {
 			Parent = "Rewards",
 			Class = "TextLabel",
 			Text = "NEXT REBIRTH", -- UI audit A25: these are the next rebirth's rewards
-			Colour = "gold",
+			Colour = "ink", -- design doc 4.46: ink on paper (was the 4.42 gold)
 		},
 		{ Name = "LuckReward", Parent = "Rewards", Class = "Frame" },
 		{ Name = "SpeedReward", Parent = "Rewards", Class = "Frame" },
@@ -463,7 +464,7 @@ UiSpec.Rebirth = {
 			Parent = "Requirements",
 			Class = "TextLabel",
 			Text = "REQUIREMENTS",
-			Colour = "gold",
+			Colour = "ink", -- design doc 4.46: ink on paper (was the 4.42 gold)
 		},
 		{ Name = "Bar", Parent = "Requirements", Class = "Frame" },
 		{ Name = "Fill", Parent = "Bar", Class = "Frame" },
@@ -514,8 +515,9 @@ UiSpec.Rebirth = {
 		"Data not loaded",
 		"Stats not ready",
 	},
-	-- TextColor3 / BackgroundColor3 families (0..1 channels): gold = the one heading colour (AnimeSkin Section role,
-	-- UI audit G11, c56aaf3; were red, yellow, purple); green = the met bar fill.
+	-- TextColor3 / BackgroundColor3 families (0..1 channels): gold = the 4.42 heading colour (AnimeSkin Section role,
+	-- UI audit G11, c56aaf3; were red, yellow, purple); green = the 4.42 met bar fill; ink and vermilion = the 4.46
+	-- headings and met bar fill.
 	Colours = {
 		gold = function(c)
 			return c.R >= 0.8 and c.G >= 0.6 and c.B <= 0.45 and c.R >= c.G
@@ -531,6 +533,13 @@ UiSpec.Rebirth = {
 		end,
 		green = function(c)
 			return c.G >= 0.5 and c.G >= c.R + 0.15 and c.G >= c.B + 0.15
+		end,
+		-- Design doc 4.46: ink (#2E1E16) and vermilion (#C8302C), both readable on the parchment (#EFE3C8).
+		ink = function(c)
+			return math.max(c.R, c.G, c.B) <= 0.4 and c.R >= c.B
+		end,
+		vermilion = function(c)
+			return c.R >= 0.7 and c.G <= 0.3 and c.B <= 0.3
 		end,
 	},
 }

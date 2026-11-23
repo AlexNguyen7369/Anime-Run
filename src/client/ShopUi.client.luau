@@ -239,6 +239,7 @@ player.AttributeChanged:Connect(function(attribute)
 	end
 end)
 
+local chrome -- PanelFrame's controller (below): its Frame is the Index frame
 -- Greyed, disabled, the pill showing a word instead of Buy and no price: an owned pass, or paid luck for a restricted
 -- player (design doc 6).
 local function setBlocked(button, price, word)
@@ -251,6 +252,9 @@ local function setBlocked(button, price, word)
 		pill(buyPill, OFF_FILL, OFF_TEXT)
 	else
 		pill(buyPill, Dojo.Colors.Cream, Dojo.Colors.Ink)
+	end
+	if chrome then
+		chrome.Frame.Relayout() -- placeBuy sizes the pill by the blocked state
 	end
 end
 
@@ -507,7 +511,6 @@ AnimeSkin.Button(redeem, "Go")
 caption("Label", redeem, "Item", { Size = UDim2.fromScale(1, 1), Text = "Redeem" })
 -- Status keeps the server's reply (its path is the UI tests'); the footer plate shows it.
 local status = caption("Status", codeBox, "Caption", { Text = "", Visible = false })
-local chrome -- PanelFrame's controller (below): its Frame is the Index frame
 redeem.Activated:Connect(function()
 	redeem.Active = false
 	local ok, message = remotes:WaitForChild("RedeemCode"):InvokeServer(input.Text)
@@ -594,7 +597,10 @@ local function placeBuy(g, buy, stacked)
 	local price, mark = buy:FindFirstChild("Price"), buy:FindFirstChild("Robux")
 	local buyPill = buy:FindFirstChild("Pill") or buy:FindFirstChild("Soon")
 	local pillW = buyPill.Name == "Soon" and 84 or 44
-	if stacked then
+	if not mark.Visible then
+		-- Blocked (setBlocked hides the mark and price): the pill fills the button, so the hitbox is what it shows.
+		place(buyPill, UDim2.new(), UDim2.fromScale(1, 1))
+	elseif stacked then
 		place(mark, UDim2.new(), UDim2.new(0, P(14), 0.5, -P(2)))
 		place(price, UDim2.fromOffset(P(16), 0), UDim2.new(1, -P(16), 0.5, -P(2)))
 		place(buyPill, UDim2.fromScale(0, 0.5), UDim2.fromScale(1, 0.5))
@@ -705,7 +711,8 @@ chrome.Frame.OnLayout(function(g)
 	-- Desktop: three columns. Phone: each section full width, stacked in spec order.
 	local col1, col2 = 500, 288
 	local col3 = width - 2 * 16 - col1 - col2
-	local passW, packCols = g.Small and width or col1, g.Small and 4 or 2
+	-- Two pack columns on phones too: four left each pack too narrow for Buy and Details side by side.
+	local passW, packCols = g.Small and width or col1, 2
 	local potW, luckW = g.Small and width or col2, g.Small and width or col3
 	local cellW = (passW - GAP) / 2
 	local passRows = math.ceil(#config.Gamepasses / 2)

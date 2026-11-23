@@ -9328,6 +9328,10 @@ S.ui_daily_boosts = function(res)
 			end
 		end
 		checkList(res, "quest_detail_read_only", interactive)
+		-- Design doc 4.46: the panel unrolls from its centre and the detail card (right of centre) inks in once the
+		-- paper reaches it, so its visibility is read once the open motion rests (4.20's open showed it at once).
+		task.wait(UiSpec.Waits.PanelMotion)
+		frames(1)
 		local phone = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.Y <= cfg.PhoneMaxHeight
 		check(
 			res,

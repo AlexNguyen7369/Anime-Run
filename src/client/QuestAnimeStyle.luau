@@ -147,9 +147,10 @@ function Style.Attach(refs)
 		local claim = row.Claim
 		if row:GetAttribute("AnimeRow") == "Claimed" then
 			-- quests.html .stamp: a round vermilion seal in place of the button
-			claim.Position, claim.Size = UDim2.new(1, -px(140), 0.5, -px(48)), at(96, 96)
+			-- 8 in from the row's right end (as the tint bar on the left): the row's hitbox stays within its padding.
+			claim.Position, claim.Size = UDim2.new(1, -px(104), 0.5, -px(48)), at(96, 96)
 		else
-			claim.Position, claim.Size = UDim2.new(1, -px(158), 0.5, -px(22)), at(126, 44)
+			claim.Position, claim.Size = UDim2.new(1, -px(134), 0.5, -px(22)), at(126, 44)
 		end
 		claim.TextScaled = true
 		local limit = claim:FindFirstChild("AnimeLimit") or make("UITextSizeConstraint", "AnimeLimit", claim, {})

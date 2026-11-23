@@ -52,6 +52,21 @@ local Portraits = require(Shared:WaitForChild("CharacterPortraits"))
 local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local SidekickView = require(script.Parent.Parent:WaitForChild("SidekickView"))
 local Spec = require(script.Parent.UiSpec)
+-- The button's label sits under its icon. Design doc 4.46 HUD option A: the button's own text is hidden and its child
+-- "Label" is the visible label, so that child's top must be at or below the icon's bottom (4.40: own text at the bottom).
+local function labelUnderIcon(b, icon)
+	if not (b and b:IsA("TextButton") and icon) then
+		return false
+	end
+	local label = b:FindFirstChild("Label")
+	if b.TextTransparency < 1 or not (label and label:IsA("TextLabel")) then
+		return b.TextYAlignment == Enum.TextYAlignment.Bottom and icon.Position.Y.Scale == 0
+	end
+	return label.Visible
+		and label.TextTransparency < 1
+		and label.Text == b.Text
+		and label.AbsolutePosition.Y >= icon.AbsolutePosition.Y + icon.AbsoluteSize.Y - 1
+end
 
 local T = Spec.Team
 local BOSS_BUTTON = "RacerSecondColumn/BossButton"
@@ -373,16 +388,7 @@ function Module.Build(h)
 			"HudIcons.Team " .. tostring(want),
 			type(want) == "string" and want ~= "" and icon ~= nil and icon:IsA("ImageLabel") and icon.Image == want
 		)
-		check(
-			res,
-			"team_button_label_under_icon",
-			b ~= nil
-				and b:IsA("TextButton")
-				and b.TextYAlignment == Enum.TextYAlignment.Bottom
-				and icon ~= nil
-				and icon.Position.Y.Scale == 0,
-			true
-		)
+		check(res, "team_button_label_under_icon", labelUnderIcon(b, icon), true)
 		checkColumnSizes(res, b, icon)
 		-- Design doc 4.40: the keybind letter (T, proposed) in the top-right quarter, as the column buttons show theirs
 		local key = b and b:FindFirstChild("Key", true)

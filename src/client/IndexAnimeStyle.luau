@@ -352,13 +352,19 @@ function Dojo.Heading(title)
 		kanji.Text = table.concat(glyphs, "\n")
 		sub.Text = words and words[2] or ""
 		kanji.ZIndex, sub.ZIndex = title.ZIndex, title.ZIndex
-		kanji.Visible, sub.Visible = title.Visible and kanji.Text ~= "", title.Visible and sub.Text ~= ""
 		local x = title.Position.X.Offset + math.min(title.TextBounds.X, title.AbsoluteSize.X) + px(8)
 		local y = title.Position.Y.Offset
-		kanji.Position, kanji.Size = UDim2.fromOffset(x, y + px(2)), UDim2.fromOffset(px(30), px(64))
 		local subX = x + px(42)
+		-- Decoration only: each shows when it ends before the close (92 in from the right edge, 120 with its margin);
+		-- the sub line also needs room for a few words (phones drop it).
+		local kanjiFits, subFits = x + px(30) <= width - px(100), width - subX - px(120) >= px(96)
+		kanji.Visible = title.Visible and kanji.Text ~= "" and kanjiFits
+		sub.Visible = title.Visible and sub.Text ~= "" and kanjiFits and subFits
+		kanji.Position, kanji.Size = UDim2.fromOffset(x, y + px(2)), UDim2.fromOffset(px(30), px(64))
 		sub.Position = UDim2.fromOffset(subX, y + px(34))
-		sub.Size = UDim2.fromOffset(math.max(0, width - subX - px(120)), px(28))
+		-- Held to the parent's right edge by Scale + offset (the parent spans the frame), so a layout read at another
+		-- width stops before the close too.
+		sub.Size = UDim2.new(1, -(subX + px(120)), 0, px(28))
 	end
 	for _, prop in { "TextBounds", "Text", "Visible" } do
 		title:GetPropertyChangedSignal(prop):Connect(function()
@@ -557,7 +563,7 @@ function Style.Apply(gui)
 		close.Position = UDim2.fromOffset(w - 92 - 56, 16 - tabsY)
 		close.Size = UDim2.fromOffset(64, 64)
 		rule.Size = UDim2.fromOffset(w - 56, 3)
-		title.Size = UDim2.fromOffset(w - 108 - 120, 72)
+		title.Size = UDim2.new(1, -(108 + 120), 0, 72) -- Scale + offset: ends 120 in from the right at any width
 		heading(function(x)
 			return x
 		end, w)

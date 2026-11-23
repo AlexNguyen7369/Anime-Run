@@ -291,6 +291,8 @@ local function layout()
 	g.Place(massSell, right - MASS_WIDTH, c.Y, MASS_WIDTH, row)
 	g.Place(sortButton, right - MASS_WIDTH - gap - SORT_WIDTH, c.Y, SORT_WIDTH, row)
 	g.Place(search, c.X, c.Y, characters and c.W - MASS_WIDTH - SORT_WIDTH - 2 * gap or c.W, row)
+	-- The toolbar frame spans the panel's origin to the search line's bottom, so its buttons lie inside their parent.
+	toolbar.Size = UDim2.new(1, 0, 0, g.px(c.Y + row))
 	searchPadding.PaddingLeft, searchPadding.PaddingRight = UDim.new(0, g.px(U.Pad)), UDim.new(0, g.px(U.Pad))
 	if toolbar.Visible then
 		top += row + gap

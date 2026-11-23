@@ -671,8 +671,9 @@ function Skin.IndexFrame(panel, parts)
 		-- not W / H units: the same px here, and a layout read at another viewport (the UI tests' model scales offsets
 		-- by k) stays inside the frame.
 		if header then
-			-- The header band (0 to 98): logo, title and close sit inside it; the tabs row starts below it.
-			header.Size = UDim2.new(1, 0, 0, g.px(98))
+			-- The header band ends where the tabs row starts (98, phone 90): logo (14 to 84), title (12 to 84) and close
+			-- (16 to 80) fit inside both.
+			header.Size = UDim2.new(1, 0, 0, g.px(small and Skin.Units.PhoneTabsY or Skin.Units.TabsY))
 		end
 		if icon then
 			g.Place(icon, 28, 14, 70, 70)
