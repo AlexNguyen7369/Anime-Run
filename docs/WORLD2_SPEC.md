@@ -55,3 +55,11 @@ The "Based on" names stay in docs and never ship (design doc 5).
   live Blender through the MCP (`build_track.run(n)`).
 - After the owner approves the render set: export the approved props, upload them under the asset ledger rules
   (BIOME_ENVIRONMENT_SPEC 4.4), and write the game BiomeThemes from the same data.
+
+### Render set approvals
+- Bar before the owner sees a track: an independent reviewer scores it 7/10 or more against the source refs, scene
+  shots and hero-model close-ups together (owner 2026-11-23).
+- A track whose score stalls is shown to the owner as-is, with its score and the reviewer's open gaps, instead of
+  looping further (owner 2026-11-23).
+- Approved by the owner 2026-11-23: Track 4 HauntedTunnel (round 8, commit 0d4ad6d), Track 8 MonsterDen (round 6,
+  eecf599), Track 10 HellGate (round 6, aa95d45). These are frozen: no edits without the owner's word.
