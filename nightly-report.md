@@ -85,3 +85,22 @@
 ### Skipped
 - A floating header over the Team altar, and a world header rule: not in the brief's acceptance list.
 - Real phone and controller hardware checks: no device available.
+
+## Nightly run 2026-11-23 00:40 → (in progress), World 2 (branch feature/alex/world2-place)
+
+### Blocked (needs you)
+- Approval: open `assets/world2_draft/index.html` (the gate plus 6 Blender shots for each of the 10 World 2 tracks). Approve each track or say what to change. The game biomes and asset uploads wait on this.
+- World 2 place: create it in universe 10773557968 (Studio: Game Settings > Places > Add), then put its id in `WorldConfig.PLACES[2]`. Until then `/world2` replies "World 2 has no place yet".
+- Blender MCP addon update: `uvx mcp-for-blender install-addon` was denied by auto mode. The MCP works on protocol 15 (one behind), and every render used it.
+- Studio verification of Phase A: I am second in the Studio queue (animerun-cf holds it, scroll-dojo-ui-redesign is running a UiTestRun). Not run yet.
+
+### Done
+- Phase A: design doc 4.47 and WORLD2_SPEC, WorldConfig, WorldSave (World 2 progress and team under Worlds.W2, VERSION unchanged), WorldTravel, `/world1` and `/world2`, the locked plaza gate, 10 World 2 route files, per-world enemies and cards, stand-in themes. Verified with stylua and selene (0 errors, same 19 warnings as main) and a rules audit (1 fail, fixed). Commits f40c27c..baa5d2c.
+- Blender pipeline `tools/blender/world2`: a TrackBuilder port that asserts every length within 5%, the kit, the track builder and the gate builder. The 10 biomes were researched and built (3 agents in parallel), plus the gate. Final renders at 1600x900 through the Blender MCP.
+
+### Decisions I made for you
+- The World 2 tracks reuse World 1's routes (same segments), so lengths, the spiral and the validator results carry over. Revert: write new segment lists in `src/shared/Tracks/World2/`.
+- World 2 is design doc 4.47, not 4.46 (4.46 is the Scroll Dojo look on main).
+- The save VERSION stays 19, so live World 1 servers never go read-only on a World 2 save.
+- The gate sits on the plaza's south-east corner (194, -176). The ring of stalls is full.
+- Draft props are part-built in Blender. Nothing was uploaded and no asset generators were used (no credits spent).
