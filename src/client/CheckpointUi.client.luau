@@ -328,7 +328,8 @@ g.OnLayout(function()
 			label.TextColor3 = entry[2]
 		end
 	end
-	g.Place(hint, c.X, c.TabsY + 6, c.W, AnimeSkin.Units.TabH - 12) -- the slip adds 6 above and below
+	-- the slip adds 6 above and below; it starts below the 98-unit header band (phones put the tabs row at 90)
+	g.Place(hint, c.X, math.max(c.TabsY, 98) + 6, c.W, AnimeSkin.Units.TabH - 12)
 	g.Role(hint, "Body")
 	local listH = g.H - c.Y - 28
 	g.Place(list, c.X, c.Y, c.W, listH)

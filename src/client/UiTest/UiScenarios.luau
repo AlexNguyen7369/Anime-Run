@@ -887,8 +887,8 @@ function FX.frameRatio(obj, ctx)
 	if not (UiSpec.BandPanels[path] or UiSpec.Duel.Panels[path]) or sameSize(ctx.vp, viewport()) then
 		return nil
 	end
-	local liveW = UiResponsive.FrameSize(viewport())
-	local simW = UiResponsive.FrameSize(ctx.vp)
+	local liveW = UiResponsive.FrameSize(viewport(), path)
+	local simW = UiResponsive.FrameSize(ctx.vp, path)
 	local liveK = obj.AbsoluteSize.X / liveW
 	if liveK <= 0 then
 		return nil
@@ -933,7 +933,7 @@ function FX.runtimeInput(obj, path, ctx)
 		end
 		input.Scale = scale
 	elseif UiSpec.BandPanels[path] then
-		local w, h = UiResponsive.FrameSize(vp)
+		local w, h = UiResponsive.FrameSize(vp, path)
 		local pw, ph = obj.Size.X.Offset, obj.Size.Y.Offset
 		if ctx then
 			local r = simRect(obj, ctx)
@@ -1546,7 +1546,7 @@ simRect = function(obj, ctx)
 					local aspect = obj:FindFirstChild("AnimeAspect")
 					local ratio = nil
 					if aspect and aspect:IsA("UIAspectRatioConstraint") then
-						local frameW, frameH = UiResponsive.FrameSize(ctx.vp)
+						local frameW, frameH = UiResponsive.FrameSize(ctx.vp, path)
 						ratio = frameW / frameH
 					end
 					fitted = UiShopMarket.BandFit(ctx.vp, dependencies, bandMax, ratio)

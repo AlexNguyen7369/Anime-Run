@@ -902,7 +902,7 @@ UiSpec.BandPanels = {
 	["MarketUi/Backdrop/Panel"] = 1200,
 	["CheckpointUi/Panel"] = 1200,
 	["DailyBoosts/ModalBackdrop/Modal"] = 1200,
-	["RacerBackpack/Panel"] = 1200,
+	["RacerBackpack/Panel"] = 1200, -- its frame is 670 tall, not 620 (4.46 Items; UiResponsive.FrameHeights)
 	-- retired: RacerTeam/Panel, Team Setup is a full-screen page (design doc 4.45, owner 2026-11-17)
 	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }

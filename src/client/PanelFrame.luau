@@ -174,7 +174,8 @@ function Frame.Attach(panel, options)
 		Skin.Body(panel)
 		Skin.Header(panel, { Header = header, Title = title, Icon = icon, Close = close, TitleEnd = options.TitleEnd })
 	else
-		frame = Skin.IndexFrame(panel, { Header = header, Title = title, Icon = icon, Close = close })
+		frame =
+			Skin.IndexFrame(panel, { Header = header, Title = title, Icon = icon, Close = close, H = options.FrameH })
 	end
 	local controller = { Frame = frame }
 	function controller:SetTheme(theme, text, image)

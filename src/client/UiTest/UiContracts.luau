@@ -422,7 +422,9 @@ function Contracts.Build(h)
 	function scenarios.ui_gift_cards(res)
 		local restore = h.setPanels({ "ShopUi/Backdrop" })
 		h.frames(2)
-		local function gift(section, id, enabled, reason)
+		-- heading: the section heading's Subtitle that carries the reason for every card in it (false: missing; nil: the
+		-- card itself shows it)
+		local function gift(section, id, enabled, reason, heading)
 			local path = Spec.Shop.Items .. "/" .. section .. "/**/" .. id .. "/Gift"
 			local button = required(res, path, "GuiButton")
 			if not button then
@@ -436,7 +438,14 @@ function Contracts.Build(h)
 			check(res, prefix .. "_label", containsText(label, "gift"), true)
 			if not enabled then
 				-- A reason must be visible, not only in an internal attribute.
-				check(res, prefix .. "_reason", containsText(text(button.Parent), reason), true)
+				-- Design doc 4.46 (shop frame): a 72-unit pass card has no room; its section heading shows the reason once.
+				local shown = if heading ~= nil
+					then heading and heading:IsA("TextLabel") and h.visible(heading) and containsText(
+						heading.Text,
+						reason
+					)
+					else containsText(text(button.Parent), reason)
+				check(res, prefix .. "_reason", shown, true)
 			end
 			local count = 0
 			for _, child in button.Parent:GetDescendants() do
@@ -446,8 +455,9 @@ function Contracts.Build(h)
 			end
 			check(res, prefix .. "_one_control", count, 1)
 		end
+		local passHeading = h.find(Spec.Shop.Items .. "/Gamepasses/Title/Subtitle") or false
 		for _, pass in Monetization.Gamepasses do
-			gift("Gamepasses", pass.Id, false, Spec.Gifts.Reasons.Account)
+			gift("Gamepasses", pass.Id, false, Spec.Gifts.Reasons.Account, passHeading)
 		end
 		for _, product in Monetization.Products do
 			local eligible = product.Section == "Potions" or product.Section == "Bundle"

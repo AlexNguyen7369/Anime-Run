@@ -999,6 +999,7 @@ g = require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	Icon = Icons.Items.Image,
 	TitleObject = header.Title,
 	Close = close,
+	FrameH = 670, -- design doc 4.46 Items: 50 units taller than the 620 frame, to fit two rows (proposed)
 }).Frame
 require(script.Parent:WaitForChild("PanelFrame")).CloseOnOutsideClick(panel, function()
 	PanelSwitch.Close("Backpack")

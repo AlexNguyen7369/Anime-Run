@@ -1669,11 +1669,15 @@ function Model.ColumnRight(navigation, parts)
 end
 
 -- The panel frame's width and height in design units at a viewport (AnimeSkin.Units: 1200 x 620, phone 650 x 420).
-function Model.FrameSize(viewport)
+-- path (optional): a panel whose IndexFrame asks for a taller desktop frame (AnimeSkin.IndexFrame parts.H).
+Model.FrameHeights = {
+	["RacerBackpack/Panel"] = 670, -- design doc 4.46 Items: 50 taller (Client/BackpackUi PanelFrame.Attach FrameH)
+}
+function Model.FrameSize(viewport, path)
 	if Model.VariantOf(viewport) == "Phone" then
 		return Units.PhoneW, Units.PhoneH
 	end
-	return Units.W, Units.H
+	return Units.W, path and Model.FrameHeights[path] or Units.H
 end
 
 -- band = { left, top, right, bottom } (UiShopMarket.Band). The panel's Size is the frame's (IndexAnimeStyle layout and

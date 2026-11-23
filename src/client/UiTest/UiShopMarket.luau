@@ -13,6 +13,7 @@ local MarketConfig = require(Shared:WaitForChild("MarketConfig"))
 local MonetizationConfig = require(Shared:WaitForChild("MonetizationConfig"))
 local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local Spec = require(script.Parent.UiSpec)
+local Skin = require(script.Parent.Parent:WaitForChild("AnimeSkin")) -- Compact(): the frame's phone layout
 local Seal = require(script.Parent.Parent:WaitForChild("IndexAnimeStyle")).Dojo.Colors -- 4.46 close seal colours
 
 local ShopMarket = {}
@@ -414,12 +415,38 @@ function ShopMarket.Build(h)
 			end
 		end
 		h.checkList(res, "shop_sections_present", bad)
+		-- Design doc 4.46 (shop.html): desktop is three columns, Gamepasses | Potions | ServerLuck with Codes and Thanks
+		-- below it in that column; phones stack every section top to bottom in spec order.
 		local order = {}
-		for i = 2, #SH.Sections do
-			local a, b = sections[SH.Sections[i - 1]], sections[SH.Sections[i]]
+		local function below(upper, lower)
+			local a, b = sections[upper], sections[lower]
 			if a and b and b.AbsolutePosition.Y < a.AbsolutePosition.Y + a.AbsoluteSize.Y - TOL then
-				table.insert(order, SH.Sections[i] .. " not below " .. SH.Sections[i - 1])
+				table.insert(order, lower .. " not below " .. upper)
 			end
+		end
+		if Skin.Compact() then
+			for i = 2, #SH.Sections do
+				below(SH.Sections[i - 1], SH.Sections[i])
+			end
+		else
+			local function rightOf(left, right)
+				local a, b = sections[left], sections[right]
+				if a and b and b.AbsolutePosition.X < a.AbsolutePosition.X + a.AbsoluteSize.X - TOL then
+					table.insert(order, right .. " not right of " .. left)
+				end
+			end
+			local function sameColumn(top, lower)
+				local a, b = sections[top], sections[lower]
+				if a and b and math.abs(b.AbsolutePosition.X - a.AbsolutePosition.X) > TOL then
+					table.insert(order, lower .. " not in " .. top .. "'s column")
+				end
+			end
+			rightOf("Gamepasses", "Potions")
+			rightOf("Potions", "ServerLuck")
+			below("ServerLuck", "Codes")
+			below("Codes", "Thanks")
+			sameColumn("ServerLuck", "Codes")
+			sameColumn("ServerLuck", "Thanks")
 		end
 		h.checkList(res, "shop_sections_in_order", order)
 		local titles = {}
