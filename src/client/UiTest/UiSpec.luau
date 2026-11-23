@@ -562,11 +562,10 @@ UiSpec.Hud = {
 	ColumnSize = 3, -- buttons in the left column: NavButtons 1-3; the rest (4-6) are the right column
 	RightColumnSize = 3,
 	ColumnGap = 8, -- px between stacked buttons (each holder's UIListLayout Padding; a phone's UIScale only shrinks it)
-	Cell = Vector2.new(84, 94), -- one button before its holder's UIScale (4.46 option A: 60 px icon at top 6, 24 px label)
+	Cell = Vector2.new(84, 94), -- one button before its holder's UIScale: a 72 px icon + 12, the icon + a 22 px label
 	-- retired: GridColumns / GridGap (the 2-column block) and GoldTiles (the gold-frame tile art), owner 2026-11-10
 	-- Design doc 4.40 "Icon style": every column button and the Auto / Upgrade pair are a transparent ImageButton
-	-- (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows the HudIcons entry of the button's name; option A's
-	-- wood is a child Frame "Plaque" (design doc 4.46)
+	-- (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows the HudIcons entry of the button's name
 	IconButtons = {
 		"HudChrome/Grid/Index",
 		"HudChrome/Grid/Items",
@@ -603,11 +602,8 @@ UiSpec.Hud = {
 	-- retired: Speed, SpeedIcon, SpeedDial, SpeedValue (the speedometer and cruise read-out, design doc 4.13, owner 2026-11-01)
 	Money = "RacerHud/Money",
 	MoneyValue = "RacerHud/Money/MoneyValue",
-	-- Owner 2026-11-10 (design doc 4.40): no UNBANKED line (the run bank is gone); the Gems row sits directly under
-	-- MoneyValue, inside Money. Retired paths must stay absent. Owner 2026-11-20 (4.40, 4.46 option A): Money and Gems
-	-- sit on these lacquer plates (opaque, gold Border rim); nothing else inside Money draws a box.
-	MoneyPlates = { "RacerHud/Money/MoneyLacquer", "RacerHud/Money/Gems/GemsLacquer" },
-	MoneyPlateRim = Color3.fromRGB(255, 204, 72), -- UiTheme.Scroll.TagGold
+	-- Owner 2026-11-10 (design doc 4.40): no box or border behind Money or Gems, no UNBANKED line (the run bank is
+	-- gone); the Gems row sits directly under MoneyValue, inside Money. Retired paths must stay absent.
 	Gems = "RacerHud/Money/Gems",
 	GemsValue = "RacerHud/Money/Gems/GemsValue",
 	RetiredMoneyParts = { "RacerHud/Money/MoneyPlate", "RacerHud/Money/Unbanked", "RacerHud/Gems" },

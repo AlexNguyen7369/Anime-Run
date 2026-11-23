@@ -5687,46 +5687,19 @@ function S.ui_hud(res)
 			end
 		end
 		checkList(res, "hud_labels_inside_panel", outside)
-		-- Owner 2026-11-20 (design doc 4.40, 4.46 option A): Money and Gems each sit on a lacquer plate
-		-- (UiSpec.Hud.MoneyPlates), opaque with a gold Border rim; nothing else in Money draws a background or a border
-		-- stroke (text outlines stay).
-		local boxed, clickable, plates = {}, {}, {}
-		for _, p in UiSpec.Hud.MoneyPlates do
-			local plate = findPath(p)
-			local rim = plate and plate:FindFirstChildOfClass("UIStroke")
-			plates[plate or p] = true
-			if not (plate and plate:IsA("GuiObject")) then
-				table.insert(boxed, p .. " missing")
-			elseif plate.BackgroundTransparency > 0.001 then
-				table.insert(boxed, p .. " not opaque: BackgroundTransparency " .. plate.BackgroundTransparency)
-			elseif
-				not (
-					rim
-					and rim.Enabled
-					and rim.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
-					and sameColour(rim.Color, UiSpec.Hud.MoneyPlateRim)
-				)
-			then
-				table.insert(boxed, p .. " has no gold Border rim")
-			end
-		end
+		-- No box: Money, Gems and everything in them draw no background and no border stroke (text outlines stay).
+		local boxed, clickable = {}, {}
 		for _, o in { hudPanel, table.unpack(hudPanel:GetDescendants()) } do
-			local plate = plates[o] or (o:IsA("UIStroke") and plates[o.Parent]) -- a plate and its own rim
-			if not plate and o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
+			if o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
 				table.insert(boxed, pathOf(o) .. " BackgroundTransparency " .. o.BackgroundTransparency)
-			elseif
-				not plate
-				and o:IsA("UIStroke")
-				and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
-				and o.Enabled
-			then
+			elseif o:IsA("UIStroke") and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border and o.Enabled then
 				table.insert(boxed, pathOf(o) .. " border stroke")
 			end
 			if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
 				table.insert(clickable, pathOf(o))
 			end
 		end
-		checkList(res, "money_gems_lacquer_plates", boxed)
+		checkList(res, "money_gems_no_box", boxed)
 		checkList(res, "money_gems_non_interactive", clickable)
 	end
 	if not (money and moneyValue) then

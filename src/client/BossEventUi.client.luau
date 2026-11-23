@@ -41,7 +41,6 @@ local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
 local D = AnimeSkin.Dojo
 local WOOD = UiTheme.Scroll.Skins.Parchment -- RodTop / RodBottom: the handscroll rollers' wood
 local Icons = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
-local HudPlaque = require(script.Parent:WaitForChild("HudPlaque"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -58,8 +57,7 @@ local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle,
 -- Design doc 4.40 "Market pill and Bosses button" (owner 2026-11-11): the column buttons' exact cell, icon and label
 -- (Client/HudChrome CELL, ICON, label TextSize and outline), x BOSS_PHONE_SCALE on a phone as HudChrome's UIScale.
 local BOSS_CELL = Vector2.new(84, 94)
-local BOSS_ICON = 60
-local BOSS_ICON_TOP = 6 -- px: HudChrome ICON_TOP (design doc 4.46 option A)
+local BOSS_ICON = 72
 local BOSS_LABEL_SIZE = 19
 local BOSS_OUTLINE = 2.5
 local BOSS_PHONE_SCALE = 0.68
@@ -652,55 +650,35 @@ local leave = button("LeaveButton", root, "LEAVE", "Go", { -- design doc 4.46: a
 	Visible = false,
 })
 
--- Design doc 4.40 (owner 2026-11-12): the second column, Bosses and Team, in the HUD column buttons' look (option A
--- "wood plaques", design doc 4.46): a transparent button over its wood plaque (Client/HudPlaque) with its icon and its
--- brush label under it. The button's own Text stays the label's text and size, drawn by a child Label over the plaque
--- (a child always draws over its parent); `strokeName` is a border stroke on the plaque's rim, the join glow. The phone
--- scale is written into the sizes (placeColumnButton) instead of a UIScale: RacerMotion adds a HoverScale once the
--- button is in the gui and the first UIScale is the one that draws, so the caller parents it after its own.
+-- Design doc 4.40 (owner 2026-11-12): the second column, Bosses and Team, in the HUD column buttons' look: a transparent
+-- button with its Tab tilt icon and its label (the button's own Text, white with the dark outline `strokeName`) under
+-- it. The phone scale is written into the sizes (placeColumnButton) instead of a UIScale: RacerMotion adds a HoverScale
+-- once the button is in the gui and the first UIScale is the one that draws, so the caller parents it after its own.
 local function columnButton(name, text, image, strokeName)
 	local b = make("TextButton", name, nil, {
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Text = text,
-		TextColor3 = HudPlaque.Ink,
-		TextTransparency = 1,
+		Font = UiTheme.Font,
+		TextColor3 = Palette.White,
+		TextYAlignment = Enum.TextYAlignment.Bottom,
 		Visible = false,
 	})
-	HudPlaque.Font(b, HudPlaque.Script)
-	HudPlaque.Plaque(b)
-	-- HudChrome's Label: 24 px band 2 px over the cell's foot, 3 px in from each side; in scale of the cell.
-	local shown = HudPlaque.Font(
-		make("TextLabel", "Label", b, {
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.fromScale(0.5, 1 - 2 / BOSS_CELL.Y),
-			Size = UDim2.fromScale(1 - 6 / BOSS_CELL.X, 24 / BOSS_CELL.Y),
-			BackgroundTransparency = 1,
-			Text = text,
-			TextColor3 = HudPlaque.Ink,
-			ZIndex = 3,
-		}),
-		HudPlaque.Script
-	)
-	b:GetPropertyChangedSignal("TextSize"):Connect(function()
-		shown.TextSize = b.TextSize
-	end)
-	-- In scale of the cell, so it follows the cell's phone size: ICON x ICON near the top, as HudChrome's icon.
+	-- In scale of the cell, so it follows the cell's phone size: ICON x ICON at the top, as HudChrome's icon.
 	make("ImageLabel", "Icon", b, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, BOSS_ICON_TOP / BOSS_CELL.Y),
+		Position = UDim2.fromScale(0.5, 0),
 		Size = UDim2.fromScale(BOSS_ICON / BOSS_CELL.X, BOSS_ICON / BOSS_CELL.Y),
 		BackgroundTransparency = 1,
 		Image = image,
 		ScaleType = Enum.ScaleType.Fit,
-		ZIndex = 2,
 	})
 	local stroke = make("UIStroke", strokeName, b, {
-		Color = UiTheme.Scroll.TileRim, -- on the plaque's own rim at rest
+		Color = UiTheme.Outline,
 		Thickness = BOSS_OUTLINE,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 	})
 	return b, stroke
 end
@@ -710,14 +688,22 @@ make("UIScale", "PulseScale", bossButton, {})
 bossButton.Parent = secondColumn
 -- Below it, Team (owner 2026-11-12): opens the Team panel (Client/TeamUi), as its key letter T does, as the column's.
 local teamButton, teamOutline = columnButton("TeamButton", "Team", Icons.Team.Image, "Outline")
--- HudChrome's key seal: 20 px, 3 px in from the top-right corner.
-local teamLetter = HudPlaque.Seal(make("TextLabel", "Key", teamButton, {
+local teamLetter = make("TextLabel", "Key", teamButton, {
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.fromScale(1 - 3 / BOSS_CELL.X, 3 / BOSS_CELL.Y),
-	Size = UDim2.fromScale(20 / BOSS_CELL.X, 20 / BOSS_CELL.Y),
+	Position = UDim2.fromScale(1 - 2 / BOSS_CELL.X, 2 / BOSS_CELL.Y),
+	Size = UDim2.fromScale(18 / BOSS_CELL.X, 18 / BOSS_CELL.Y),
+	BackgroundTransparency = 1,
+	Font = UiTheme.Font,
+	TextColor3 = Palette.White,
+	TextXAlignment = Enum.TextXAlignment.Right,
 	Text = TEAM_KEY.Name,
-	ZIndex = 4,
-}))
+	ZIndex = 3,
+})
+local teamLetterOutline = make("UIStroke", "Outline", teamLetter, {
+	Color = UiTheme.Outline,
+	Thickness = 2,
+	LineJoinMode = Enum.LineJoinMode.Round,
+})
 teamButton.Parent = secondColumn
 teamButton.Activated:Connect(function()
 	PanelSwitch.Action("Team")
@@ -1084,7 +1070,8 @@ end
 local function placeSecondColumn()
 	placeColumnButton(bossButton, bossGlow, -1)
 	local k = placeColumnButton(teamButton, teamOutline, 1)
-	teamLetter.TextSize = 14 * k -- HudChrome's key letter
+	teamLetter.TextSize = 16 * k -- HudChrome's key letter
+	teamLetterOutline.Thickness = 2 * k
 end
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeSecondColumn)
 placeSecondColumn()
@@ -1666,8 +1653,6 @@ local function drawBossButton(phase, inEvent, joinable)
 			stopPulse()
 			stopPulse = nil
 		end
-		-- The join glow: the rim stroke turns gold and thickens while the event can be joined (option A, design doc 4.46).
-		bossGlow.Color = joinable and HudPlaque.Gold or UiTheme.Scroll.TileRim
 		if joinable then
 			local stopSize = UiMotion.Pulse(bossButton.PulseScale, { Scale = PULSE_SCALE }, PULSE_PERIOD)
 			local stopGlow = UiMotion.Pulse(bossGlow, { Thickness = GLOW_THICK }, PULSE_PERIOD)
