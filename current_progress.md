@@ -222,8 +222,10 @@
 218. 2026-11-22 — Alex Nguyen — ui-scroll t3/t4/t5 merged into feature/alex/ui-scroll-redesign (per-panel Scroll Dojo layouts, popups and toasts as handscrolls, boss event UI, HUD option A wood plaques with the wooden vermilion Turbo bar) with the Studio-run fixes; Studio run 2: ui_shop 72/0, ui_market 101/0, ui_layout 891/0, ui_hitboxes 98/0, ui_rebirth 38/0, ui_daily_boosts 13/0, ui_boss 485/0, ui_team 70/0, ui_shared_frames 263/0, ui_handscroll 18/0, ui_hud 16/0; rules audit PASS.
 219. 2026-11-23 — Alex Nguyen — ui-scroll full UiTestRun on the integration branch in Studio: 74 pass, 3 fail (ui_run_visual throttled window, ui_boss_king_arena known main red, ui_character_icons fixed by moving index_tiles_runner_art to the 4.46 card portrait 0.86 x 0.53); server run stopped early as src/server and src/shared equal the base.
 220. 2026-11-23 — Alex Nguyen — ui-scroll: fixed PR #27 review note (ink-in no longer writes Visible, so a part its panel hides mid-unroll stays hidden; ui_handscroll 21/0 with the new owner-hide check, ui_index 10/0, ui_panel_focus 57/0) and merged main (PR #26) into the integration branch.
+221. 2026-11-23 — Alex Nguyen — Merged the Scroll Dojo UI redesign (goal ui-scroll, PR #27) into main after a fresh merge review approved it and its one player-visible note was fixed.
+222. 2026-11-23 — Alex Nguyen — Full UiTestRun on main 6a36029 in Studio: 75 pass, 2 fail (ui_run_visual needs a focused Studio window; ui_layout's Daily claimed-day seal fixed by dropping its UIAspectRatioConstraint, rerun ui_layout 891/0 and ui_daily_boosts 13/0); ui_boss_king_arena and ui_character_icons green.
 
 ## What's next
-**Merge PR #27 (Scroll Dojo UI redesign) into main.**
+**Rerun ui_run_visual with Studio as the front window once the owner allows focus.**
 
-**Why this is next:** the fresh merge review approved it, the one player-visible note it raised is fixed and checked in Studio, and main is merged in; the owner asked to merge once that fix was in.
+**Why this is next:** it is the only UI red left on main and only fails because the Studio window is throttled in the background; the owner's no-focus rule means it needs the owner's word.
