@@ -38,6 +38,11 @@ local TAB = PALETTE.TabIdle
 local GREEN = PALETTE.MoneyDeep -- white stroked text stays readable on it
 local REPLY_SECONDS = 2 -- placeholder: a reply stays this long, then fades
 local SHINE_EVERY = 3 -- placeholder: seconds between a claimable button's light sweeps
+-- Daily cards on paper (assets/ui/scroll_redesign/drafts/daily.html, kit.css; proposed).
+local BURGUNDY_TOP, BURGUNDY_BOTTOM = Color3.fromRGB(90, 30, 42), Color3.fromRGB(64, 20, 32) -- #5A1E2A, #401420
+local PINK = Color3.fromRGB(244, 145, 171) -- #F491AB, the prize card's rim
+local DONE_TOP, DONE_BOTTOM = Color3.fromRGB(227, 216, 194), Color3.fromRGB(207, 192, 162) -- #E3D8C2, #CFC0A2
+local DONE_RIM = Color3.fromRGB(154, 138, 116) -- #9A8A74
 
 local function make(class, name, parent, props)
 	local instance = Instance.new(class)
@@ -396,9 +401,20 @@ local function dailyCard(parent, day, reward, done, featured)
 	edge.Color = done and PALETTE.MoneyDeep or (featured and PALETTE.Featured or PALETTE.Tile)
 	edge.Thickness = 3
 	edge.Parent = card
-	-- Design doc 4.42: the angular card; only today's card keeps its glowing edge (set in showDaily).
+	-- Design doc 4.46 (daily.html): a cream wood tile; a claimed day greyed with a seal, Day 7 a burgundy card with a pink
+	-- rim and gold text; only today's card glows (set in showDaily).
 	AnimeSkin.Card(card, done and AnimeSkin.Tint.Muted or featured and AnimeSkin.Tint.Gold or AnimeSkin.Tint.Default)
 	edge.Enabled = false
+	local Dojo = AnimeSkin.Dojo
+	if featured then
+		Dojo.Fill(card, BURGUNDY_TOP, BURGUNDY_BOTTOM)
+		Dojo.Rim(card, PINK, 2.5)
+	elseif done then
+		Dojo.Fill(card, DONE_TOP, DONE_BOTTOM)
+		Dojo.Rim(card, DONE_RIM, 2)
+	else
+		Dojo.Fill(card, Dojo.Colors.TileTop, Dojo.Colors.TileBottom)
+	end
 	local align = featured and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left
 	make("TextLabel", "Label", card, {
 		BackgroundTransparency = 1,
@@ -421,15 +437,43 @@ local function dailyCard(parent, day, reward, done, featured)
 		TextTransparency = done and 0.35 or 0,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
+	-- The ✓ stays the claimed mark the UI tests read; the seal (済) is what shows.
 	make("TextLabel", "Completion", card, {
 		BackgroundTransparency = 1,
 		Text = done and "✓" or "",
-		TextColor3 = PALETTE.Money,
-		Font = UiTheme.Font,
+		TextTransparency = 1,
 		TextScaled = true,
-		TextStrokeTransparency = 0,
-		TextStrokeColor3 = PALETTE.PanelDeep,
 	})
+	if done then
+		local seal = make("Frame", "Seal", card, {
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -8, 0, 8),
+			Size = UDim2.fromScale(0.2, 0.2),
+			Rotation = -4,
+			ZIndex = 3,
+			Active = false,
+		})
+		make("UIAspectRatioConstraint", "Square", seal, {})
+		Dojo.Fill(seal, Dojo.Colors.VermLight, Dojo.Colors.VermDeep)
+		Dojo.Rim(seal, Dojo.Colors.VermDeep, 2)
+		Dojo.Corner(seal, 4)
+		local glyph = make("TextLabel", "Glyph", seal, {
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Text = "済", -- decoration only (design doc 4.46)
+			TextColor3 = Dojo.Colors.SealText,
+			Font = Enum.Font.GothamBold, -- CJK through Roblox's font fallback
+			TextScaled = true,
+			ZIndex = 4,
+			Active = false,
+		})
+		glyph:SetAttribute("AnimeRole", "Kanji") -- UiTheme.Apply leaves its font
+	end
+	if featured then
+		for _, name in { "Label", "RewardText" } do
+			card[name]:SetAttribute("DojoTextColor", Dojo.Colors.Gold)
+		end
+	end
 	return card
 end
 
@@ -549,8 +593,11 @@ local function showDaily()
 		-- Today's tile: the same glow, so the prize waiting now is plain to see.
 		local today = area:FindFirstChild("Day" .. math.min(streak + 1, 7))
 		if today then
+			-- Today glows vermilion (design doc 4.46)
+			local verm = AnimeSkin.Dojo.Colors.Verm
 			today.Edge.Enabled = true
-			UiMotion.Mark(today.Edge, { Color = PALETTE.Speed })
+			today.DojoRim.Color, today.DojoRim.Thickness = verm, 3
+			UiMotion.Mark(today.Edge, { Color = verm })
 			stopTodayPulse = UiMotion.Pulse(today.Edge, { Transparency = 0.6 }, 0.7)
 		end
 		shineWhileClaimable(claim)
@@ -700,7 +747,7 @@ local function showQuests()
 		end
 		questRows[quest.Id] = { Button = row, Edge = rowEdge }
 		local state = done and "Claimed" or claim.Active and "Ready" or "Progress"
-		anime:Row(row, state)
+		anime:Row(row, state, current / math.max(1, quest.Target))
 		ready += state == "Ready" and 1 or 0
 		claimedCount += done and 1 or 0
 		if not selectedQuest then

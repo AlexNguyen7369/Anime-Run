@@ -82,6 +82,21 @@ local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local Spec = require(script.Parent.UiSpec)
+-- The button's label sits under its icon. Design doc 4.46 HUD option A: the button's own text is hidden and its child
+-- "Label" is the visible label, so that child's top must be at or below the icon's bottom (4.40: own text at the bottom).
+local function labelUnderIcon(b, icon)
+	if not (b and b:IsA("TextButton") and icon) then
+		return false
+	end
+	local label = b:FindFirstChild("Label")
+	if b.TextTransparency < 1 or not (label and label:IsA("TextLabel")) then
+		return b.TextYAlignment == Enum.TextYAlignment.Bottom and icon.Position.Y.Scale == 0
+	end
+	return label.Visible
+		and label.TextTransparency < 1
+		and label.Text == b.Text
+		and label.AbsolutePosition.Y >= icon.AbsolutePosition.Y + icon.AbsoluteSize.Y - 1
+end
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
@@ -631,16 +646,7 @@ function Module.Build(h)
 			bossIcon and bossIcon:IsA("ImageLabel") and bossIcon.Image,
 			Icons.Boss.Image
 		)
-		check(
-			res,
-			tag .. "_button_label_under_icon",
-			b
-				and b:IsA("TextButton")
-				and b.TextYAlignment == Enum.TextYAlignment.Bottom
-				and bossIcon ~= nil
-				and bossIcon.Position.Y.Scale == 0,
-			true
-		)
+		check(res, tag .. "_button_label_under_icon", labelUnderIcon(b, bossIcon), true)
 		checkColumnSizes(res, tag, b, bossIcon)
 	end
 	local function checkButtonPlace(res)

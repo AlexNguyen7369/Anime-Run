@@ -1,10 +1,11 @@
 --!nonstrict
--- Shared Backpack-style chrome; adopts existing controls so fixtures/remotes keep their paths.
+-- Shared panel chrome; adopts existing controls so fixtures/remotes keep their paths. Design doc 4.46: every panel
+-- through here is a Scroll Dojo handscroll (Client/AnimeSkin, Client/DojoHandscroll), which PanelSwitch unrolls.
 local Band = require(script.Parent.PanelBand)
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
 local Skin = require(script.Parent:WaitForChild("AnimeSkin"))
 local Frame = {}
--- Header gradients (placeholders).
+-- Header gradients (placeholders). The header itself is clear in the 4.46 look, so these no longer show.
 Frame.Themes = {
 	Daily = { Color3.fromRGB(160, 15, 32), Color3.fromRGB(244, 55, 69) },
 	Quests = { Color3.fromRGB(55, 80, 190), Color3.fromRGB(75, 180, 240) },
@@ -28,13 +29,14 @@ local function child(parent, class, name)
 	return value
 end
 
--- The one close button: the Index's art close (design doc 4.42). Geometry stays with the caller.
+-- The one close button: the vermilion seal (design doc 4.46; the Upgrades tree keeps the 4.42 art close, AnimeSkin.Close).
+-- Geometry stays with the caller.
 function Frame.PaintClose(close, labelObject)
 	Frame.PaintFlatClose(close, labelObject)
 	Skin.Close(close, labelObject or close:FindFirstChild("X"))
 end
 
--- The older flat close (Danger, radius M, Outline edge, stroked X), under the art.
+-- The older flat close (Danger, radius M, Outline edge, stroked X), under the seal.
 function Frame.PaintFlatClose(close, labelObject)
 	local gradient = close:FindFirstChildOfClass("UIGradient")
 	if gradient then
@@ -72,6 +74,8 @@ end
 function Frame.PaintGenerated(parts)
 	UiTheme.Body(parts.Panel)
 	parts.Panel.Active = true
+	-- Design doc 4.46: the handscroll on the wrapper PanelSwitch animates (the Face's parent; its fill is the Face's).
+	Skin.Dojo.Scroll(parts.Panel.Parent)
 	local colors = Frame.Themes[parts.Theme] or Frame.Themes.Backpack
 	local header = parts.Header
 	header.BackgroundColor3 = UiTheme.Palette.White
@@ -96,7 +100,7 @@ function Frame.PaintGenerated(parts)
 	if parts.Theme == "Index" then
 		return -- Client/IndexAnimeStyle dresses the Index in its own layout
 	end
-	-- Design doc 4.42: the framed body and the header strip; the generated shadows and lifts go.
+	-- The Face and header fills give way to the paper; the generated shadows and lifts go.
 	Skin.Body(parts.Panel)
 	Skin.Strip(header)
 	for _, face in { parts.Panel, header } do
@@ -110,6 +114,17 @@ function Frame.PaintGenerated(parts)
 	local heading = header:FindFirstChild("Title")
 	if heading and heading:IsA("TextLabel") then
 		Skin.Title(heading, 30)
+		-- The kanji and sub line follow the title RacerUiController lays out (design units: the wrapper's UIScale).
+		local scroll = parts.Panel.Parent
+		local place = Skin.Dojo.Heading(heading)
+		local function follow()
+			place(function(x)
+				return x
+			end, scroll.Size.X.Offset)
+		end
+		heading:GetPropertyChangedSignal("Position"):Connect(follow)
+		scroll:GetPropertyChangedSignal("Size"):Connect(follow)
+		follow()
 	end
 end
 
@@ -151,13 +166,16 @@ function Frame.Attach(panel, options)
 	close.ZIndex = 5
 	Frame.PaintClose(close)
 	-- Design doc 4.42 (owner 2026-11-10): every panel is the Index frame (Client/AnimeSkin.IndexFrame); the caller lays
-	-- its content out in the frame's units through controller.Frame. IndexFrame = false keeps the old flat header.
+	-- its content out in the frame's units through controller.Frame. IndexFrame = false keeps the plain header (Quests
+	-- draws its own frame over it). Either way the panel is a handscroll (design doc 4.46).
 	local frame
 	if options.IndexFrame == false then
+		Skin.Dojo.Scroll(panel)
 		Skin.Body(panel)
 		Skin.Header(panel, { Header = header, Title = title, Icon = icon, Close = close, TitleEnd = options.TitleEnd })
 	else
-		frame = Skin.IndexFrame(panel, { Header = header, Title = title, Icon = icon, Close = close })
+		frame =
+			Skin.IndexFrame(panel, { Header = header, Title = title, Icon = icon, Close = close, H = options.FrameH })
 	end
 	local controller = { Frame = frame }
 	function controller:SetTheme(theme, text, image)

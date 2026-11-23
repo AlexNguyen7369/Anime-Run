@@ -13,7 +13,8 @@ local MarketConfig = require(Shared:WaitForChild("MarketConfig"))
 local MonetizationConfig = require(Shared:WaitForChild("MonetizationConfig"))
 local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local Spec = require(script.Parent.UiSpec)
-local IndexArt = require(script.Parent.Parent:WaitForChild("IndexAnimeStyle")).Art
+local Skin = require(script.Parent.Parent:WaitForChild("AnimeSkin")) -- Compact(): the frame's phone layout
+local Seal = require(script.Parent.Parent:WaitForChild("IndexAnimeStyle")).Dojo.Colors -- 4.46 close seal colours
 
 local ShopMarket = {}
 
@@ -70,12 +71,6 @@ function ShopMarket.Build(h)
 
 	local function attr(name)
 		return h.player:GetAttribute(name)
-	end
-	-- An AnimeSkin art close (cd733fd): the ImageLabel AnimeCloseArt it holds, else nil
-	local ART_CLOSE = IndexArt.Close
-	local function closeArtOf(close)
-		local art = close and close:FindFirstChild("AnimeCloseArt")
-		return art and art:IsA("ImageLabel") and art or nil
 	end
 	local function has(text, piece)
 		return string.find(string.upper(text), string.upper(piece), 1, true) ~= nil
@@ -201,9 +196,6 @@ function ShopMarket.Build(h)
 					do
 						parent = parent.Parent
 					end
-					if closeArtOf(d) then
-						parent = nil -- over the panel corner by design: closeAtCorner judges it
-					end
 					if parent and parent:IsA("GuiObject") and not parent:IsA("ScrollingFrame") then
 						local parentRect = rectOf(parent)
 						if not h.contains(parentRect, rectOf(d)) then
@@ -304,9 +296,11 @@ function ShopMarket.Build(h)
 		h.checkList(res, prefix .. "_buttons_topmost", covered)
 	end
 
-	-- cd733fd "Every panel in the Index frame" (AnimeSkin.Close, 5541c3f): the close is the Index's red X art, an
-	-- ImageLabel AnimeCloseArt over a transparent button whose own text and X caption are hidden. An art close is
-	-- judged by that art: shown, with the Index close image. A plain close keeps the text and red background rule.
+	-- Design doc 4.46 (replaces the 4.42 art close): the close is the vermilion seal, BackgroundColor3 VermLight shown
+	-- under a darkening gradient, with a cream X (its own Text, else its shown X label in SealText).
+	local function near(a, b) -- Color3 has no arithmetic: channel by channel, within 5 of 255
+		return math.abs(a.R - b.R) < 0.02 and math.abs(a.G - b.G) < 0.02 and math.abs(a.B - b.B) < 0.02
+	end
 	local function closeChecks(res, prefix, close, want)
 		local text = shownText(close)
 		h.check(
@@ -316,54 +310,31 @@ function ShopMarket.Build(h)
 			"TextButton",
 			close ~= nil and close:IsA("TextButton")
 		)
-		local art = closeArtOf(close)
-		if art then
-			local shown = h.visible(art) and art.Image ~= ""
-			h.check(
-				res,
-				prefix .. "_close_text",
-				shown and "AnimeCloseArt shown" or "art hidden",
-				"AnimeCloseArt shown",
-				shown
-			)
-		else
-			h.check(res, prefix .. "_close_text", text, want, text == want)
-		end
+		h.check(res, prefix .. "_close_text", text, want, text == want)
 		if close and close:IsA("GuiObject") then
 			local s = close.AbsoluteSize
 			h.check(res, prefix .. "_close_square", ("%dx%d"):format(s.X, s.Y), "w = h", math.abs(s.X - s.Y) <= TOL)
-			if art then
-				h.check(res, prefix .. "_close_red", art.Image, "Index close art " .. ART_CLOSE, art.Image == ART_CLOSE)
-			else
-				local c = close.BackgroundColor3
-				h.check(
-					res,
-					prefix .. "_close_red",
-					tostring(c),
-					"red",
-					close.BackgroundTransparency < 0.5 and redFamily(c)
-				)
-			end
-		end
-	end
-	-- An art close sits over the panel's top-right corner (cd733fd, c56aaf3): its centre in the right half of the panel
-	-- and within one close height of the panel's top edge, and the whole close on screen, at every viewport.
-	local function closeAtCorner(res, name, panel, close)
-		for _, vpSpec in h.viewports do
-			local rectOf, vp = h.provider(vpSpec)
-			local pr, cr = rectOf(panel), rectOf(close)
-			local cx, cy = cr.x + cr.w / 2, cr.y + cr.h / 2
-			local screen = { x = 0, y = 0, w = vp.X, h = vp.Y }
-			local ok = h.contains(screen, cr)
-				and cx >= pr.x + pr.w / 2
-				and cx <= pr.x + pr.w + cr.w
-				and math.abs(cy - pr.y) <= cr.h
+			local c = close.BackgroundColor3
 			h.check(
 				res,
-				name .. "_inside_" .. vpSpec.Name,
-				h.rstr(cr),
-				"on screen at the top-right corner of " .. h.rstr(pr),
-				ok
+				prefix .. "_close_red",
+				tostring(c),
+				"seal " .. tostring(Seal.VermLight),
+				close.BackgroundTransparency < 0.5 and redFamily(c) and near(c, Seal.VermLight)
+			)
+			local glyph = close:IsA("TextButton") and close.Text ~= "" and close.TextTransparency < 1 and close or nil
+			for _, child in glyph and {} or close:GetChildren() do
+				if child:IsA("TextLabel") and h.visible(child) and child.Text ~= "" then
+					glyph = child
+				end
+			end
+			local x = glyph and glyph.TextColor3
+			h.check(
+				res,
+				prefix .. "_close_x_cream",
+				tostring(x),
+				"cream " .. tostring(Seal.SealText),
+				x ~= nil and near(x, Seal.SealText)
 			)
 		end
 	end
@@ -444,12 +415,38 @@ function ShopMarket.Build(h)
 			end
 		end
 		h.checkList(res, "shop_sections_present", bad)
+		-- Design doc 4.46 (shop.html): desktop is three columns, Gamepasses | Potions | ServerLuck with Codes and Thanks
+		-- below it in that column; phones stack every section top to bottom in spec order.
 		local order = {}
-		for i = 2, #SH.Sections do
-			local a, b = sections[SH.Sections[i - 1]], sections[SH.Sections[i]]
+		local function below(upper, lower)
+			local a, b = sections[upper], sections[lower]
 			if a and b and b.AbsolutePosition.Y < a.AbsolutePosition.Y + a.AbsoluteSize.Y - TOL then
-				table.insert(order, SH.Sections[i] .. " not below " .. SH.Sections[i - 1])
+				table.insert(order, lower .. " not below " .. upper)
 			end
+		end
+		if Skin.Compact() then
+			for i = 2, #SH.Sections do
+				below(SH.Sections[i - 1], SH.Sections[i])
+			end
+		else
+			local function rightOf(left, right)
+				local a, b = sections[left], sections[right]
+				if a and b and b.AbsolutePosition.X < a.AbsolutePosition.X + a.AbsoluteSize.X - TOL then
+					table.insert(order, right .. " not right of " .. left)
+				end
+			end
+			local function sameColumn(top, lower)
+				local a, b = sections[top], sections[lower]
+				if a and b and math.abs(b.AbsolutePosition.X - a.AbsolutePosition.X) > TOL then
+					table.insert(order, lower .. " not in " .. top .. "'s column")
+				end
+			end
+			rightOf("Gamepasses", "Potions")
+			rightOf("Potions", "ServerLuck")
+			below("ServerLuck", "Codes")
+			below("Codes", "Thanks")
+			sameColumn("ServerLuck", "Codes")
+			sameColumn("ServerLuck", "Thanks")
 		end
 		h.checkList(res, "shop_sections_in_order", order)
 		local titles = {}
@@ -582,10 +579,7 @@ function ShopMarket.Build(h)
 			end
 		end
 		local close = h.find(SH.Close)
-		if close and closeArtOf(close) then
-			groupGeometry(res, "shop_header", panel, { items })
-			closeAtCorner(res, "shop_header_close", panel, close)
-		elseif close then
+		if close then -- 4.46: the seal close sits in the header, apart from the list (no art close over the corner)
 			groupGeometry(res, "shop_header", panel, { close, items })
 		end
 		topmostChecks(res, "shop", panel, items)
@@ -845,9 +839,7 @@ function ShopMarket.Build(h)
 			return phone(vp) and detail ~= nil and detail:IsAncestorOf(d)
 		end)
 		local close = h.find(MK.Close)
-		if close and closeArtOf(close) then
-			closeAtCorner(res, "market_close_in_header", panel, close)
-		elseif close and header then
+		if close and header then -- 4.46: the seal close sits in the header (no art close over the corner)
 			groupGeometry(res, "market_close_in_header", header, { close })
 		end
 		if #tabList == #MK.TabOrder then

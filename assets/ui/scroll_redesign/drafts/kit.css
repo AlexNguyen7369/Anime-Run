@@ -1,0 +1,158 @@
+/* Scroll Dojo kit for the game-wide redesign references (design doc 4.46 draft, owner 2026-11-20).
+   Style source: the Summon parchment page and Team Select night dojo (4.45). Tokens = UiTheme.Scroll.Skins.Parchment,
+   UiTheme.Scroll and UiTheme.Dojo. Fonts are ones Roblox can load. Every value is proposed.
+   One frame = one 1920x1080 game screen. A panel is a horizontal handscroll (.hs) that unrolls from its centre. */
+@import url("https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Kalam:wght@700&family=Titillium+Web:wght@400;600;700;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Yuji+Syuku&display=swap");
+
+@property --p { syntax: "<number>"; inherits: true; initial-value: 1; }
+
+:root {
+	--paper: #efe3c8; --paper-shade: #e6d6b6; --paper-deep: #d9c49a;
+	--ink: #2e1e16; --ink-soft: #5c4636; --muted: #8a7462;
+	--verm: #c8302c; --verm-deep: #8e1c1a; --brush: #a8262a;
+	--wood-top: #805430; --wood-bot: #52321a; --wood-dark: #2c1a0e; --cap: #1e140c;
+	--leather: #6b3a22; --leather-dark: #44220f;
+	--tile-top: #f1ddb4; --tile-bot: #e2c48f; --tile-rim: #5a3a22; --tile-edge: #2c1a0e; --tile-ink: #2e1e16;
+	--burg-top: #5a1e2a; --burg-bot: #401420; --pink: #f491ab; --gold: #ffcc48; --gold-soft: #edb75d;
+	--cream: #faeccc; --lacquer: #2a2526; --lacquer-dark: #0f0c0d; --cyan: #2ec8d0;
+	--r-common: #9a9a9a; --r-uncommon: #3fae54; --r-rare: #3b7be0; --r-epic: #9a4fd6;
+	--r-legendary: #f0a020; --r-mythic: #e0344f; --r-secret: #1a1a1a;
+	--title: "Permanent Marker", "Kalam", cursive; --btn: "Kalam", cursive; --body: "Titillium Web", system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { background: #120c0b; }
+body { font-family: var(--body); color: var(--ink); }
+
+/* ---------- screen ---------- */
+.screen { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #1b1312 center/cover no-repeat; }
+.screen.plaza { background-image: url("../../loading/SakuraGateBackdrop.png"); }
+.screen .dim { position: absolute; inset: 0; background: rgba(0, 0, 0, .35); }
+
+/* ---------- handscroll ---------- */
+/* .hs is placed by left/top/width/height. --p = unroll progress 0..1 (kit.js animates it). */
+.hs { position: absolute; --roll: 30px; filter: drop-shadow(0 18px 26px rgba(0,0,0,.55)); }
+.hs .paper {
+	position: absolute; inset: 0 var(--roll);
+	clip-path: inset(0 calc((1 - var(--p)) * 50%) 0 calc((1 - var(--p)) * 50%));
+	background:
+		radial-gradient(ellipse at 30% 20%, rgba(255,255,255,.35), transparent 55%),
+		radial-gradient(ellipse at 80% 90%, rgba(150,110,60,.18), transparent 60%),
+		repeating-linear-gradient(90deg, rgba(120,90,50,.035) 0 2px, transparent 2px 7px),
+		linear-gradient(180deg, var(--paper) 0%, var(--paper-shade) 100%);
+}
+.hs .paper::before, .hs .paper::after { /* leather edge strips */
+	content: ""; position: absolute; left: 0; right: 0; height: 12px;
+	background: linear-gradient(180deg, var(--leather), var(--leather-dark));
+	box-shadow: 0 0 0 1px rgba(0,0,0,.25);
+}
+.hs .paper::before { top: 0; } .hs .paper::after { bottom: 0; }
+.hs .paper .rule { position: absolute; left: 0; right: 0; height: 2px; background: var(--wood-bot); opacity: .55; }
+.hs .roller {
+	position: absolute; top: -14px; bottom: -14px; width: calc(var(--roll) * 1.15); border-radius: 14px;
+	background: linear-gradient(90deg, var(--wood-dark) 0%, var(--wood-top) 28%, #a8744a 45%, var(--wood-top) 62%, var(--wood-bot) 100%);
+	box-shadow: inset 0 0 0 1px rgba(0,0,0,.4), 0 6px 12px rgba(0,0,0,.4);
+}
+.hs .roller::before, .hs .roller::after { /* end caps */
+	content: ""; position: absolute; left: -4px; right: -4px; height: 22px; border-radius: 6px;
+	background: linear-gradient(90deg, #0b0705, #3b2a1e 40%, var(--cap));
+}
+.hs .roller::before { top: -6px; } .hs .roller::after { bottom: -6px; }
+/* rollers ride the paper's edges: centre at p=0, ends at p=1 */
+.hs .roller.l { left: calc(var(--roll) + (1 - var(--p)) * (50% - var(--roll)) - var(--roll) * 1.15 / 2 - 2px); }
+.hs .roller.r { right: calc(var(--roll) + (1 - var(--p)) * (50% - var(--roll)) - var(--roll) * 1.15 / 2 - 2px); }
+.hs .content { position: absolute; inset: 12px 0; opacity: clamp(0, calc((var(--p) - .25) * 1.6), 1); }
+
+/* ---------- header ---------- */
+.hdr { position: absolute; left: 40px; top: 16px; right: 40px; height: 92px; display: flex; align-items: center; gap: 16px; }
+.hdr .icon { width: 74px; height: 74px; object-fit: contain; filter: drop-shadow(0 3px 0 rgba(0,0,0,.25)); }
+.wordmark { font-family: var(--title); font-size: 62px; line-height: 1; color: var(--ink); letter-spacing: 1px; text-shadow: 1px 2px 0 rgba(0,0,0,.08); }
+.kanji { font-family: "Yuji Syuku", serif; color: var(--verm); font-size: 30px; line-height: 1.02; writing-mode: vertical-rl; margin-left: -4px; }
+.sub { font-family: var(--btn); font-size: 22px; color: var(--ink-soft); align-self: flex-end; margin-bottom: 14px; }
+.close {
+	position: absolute; right: 52px; top: 24px; width: 58px; height: 58px; border-radius: 6px; transform: rotate(-4deg);
+	background: linear-gradient(180deg, #d53a33, var(--verm-deep)); color: #fff8ee; display: grid; place-items: center;
+	font: 900 34px/1 var(--body); box-shadow: inset 0 0 0 3px #fff8ee55, inset 0 0 0 5px var(--verm-deep), 0 4px 0 #5a0f0d;
+}
+.hdr-rule { position: absolute; left: 40px; right: 40px; top: 112px; height: 3px; background: linear-gradient(90deg, transparent, var(--ink-soft) 8%, var(--ink-soft) 92%, transparent); opacity: .55; }
+
+/* ---------- toolbar: tabs, search, sort ---------- */
+.toolbar { position: absolute; left: 40px; right: 40px; top: 126px; height: 50px; display: flex; gap: 10px; align-items: center; }
+.tab {
+	height: 46px; padding: 0 22px; display: flex; align-items: center; gap: 8px; font: 700 24px/1 var(--btn);
+	color: var(--ink); background: linear-gradient(180deg, #fbf3e0, #ead9b4); border: 2px solid var(--tile-rim); border-radius: 4px 4px 2px 2px;
+}
+.tab.on { color: var(--cream); background: var(--brush); border-color: var(--verm-deep); border-radius: 22px 6px 22px 6px; box-shadow: 0 3px 0 var(--verm-deep); }
+.tab img { width: 26px; height: 26px; }
+.field {
+	height: 44px; padding: 0 16px; display: flex; align-items: center; gap: 10px; border: 2px solid var(--tile-rim); border-radius: 4px;
+	background: #fbf5e6; font: 600 19px var(--body); color: var(--muted);
+}
+.grow { flex: 1; }
+
+/* ---------- content area ---------- */
+.body { position: absolute; left: 40px; right: 40px; top: 190px; bottom: 74px; overflow: hidden; }
+.body.fade { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 18px), transparent); }
+.footer {
+	position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); height: 40px; padding: 0 28px; display: flex; align-items: center; gap: 12px;
+	font: 700 21px var(--btn); color: var(--cream); background: var(--lacquer); border: 2px solid var(--gold-soft); border-radius: 4px;
+}
+.footer b { color: var(--gold); }
+
+/* ---------- cards ---------- */
+.grid { display: grid; gap: 12px; }
+.card {
+	position: relative; background: linear-gradient(180deg, #fffaf0, #f3e6c8); border: 2px solid var(--tile-rim); border-radius: 6px;
+	box-shadow: 0 3px 0 var(--tile-edge); overflow: hidden;
+}
+.card .art { height: 128px; background: linear-gradient(180deg, #f9e6ea, #f2c9d3); display: grid; place-items: end center; overflow: hidden; border-bottom: 2px solid var(--tile-rim); }
+.card .art img { height: 124px; }
+.card .strip { height: 6px; }
+.card .nm { font: 700 20px/1.1 var(--btn); padding: 6px 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .meta { display: flex; justify-content: space-between; padding: 2px 8px 8px; font: 700 15px var(--body); color: var(--ink-soft); }
+.card.locked .art { background: linear-gradient(180deg, #d9cdb4, #c4b493); }
+.card.locked .art img { filter: brightness(0) opacity(.45); }
+.card.locked .nm { color: var(--muted); }
+.r-Common { --rc: var(--r-common); } .r-Uncommon { --rc: var(--r-uncommon); } .r-Rare { --rc: var(--r-rare); }
+.r-Epic { --rc: var(--r-epic); } .r-Legendary { --rc: var(--r-legendary); } .r-Mythic { --rc: var(--r-mythic); } .r-Secret { --rc: var(--r-secret); }
+.strip { background: var(--rc); } .rar { color: var(--rc); font-weight: 900; }
+
+/* ---------- small parts ---------- */
+.seal { /* hanko */
+	display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 4px; background: var(--verm); color: #fff8ee;
+	font: 400 20px/1 "Yuji Syuku", serif; box-shadow: inset 0 0 0 2px #fff8ee66; transform: rotate(-5deg);
+}
+.seal.sm { width: 26px; height: 26px; font-size: 15px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 16px; border-radius: 18px 6px 18px 6px; background: var(--brush); color: #fff; font: 700 19px var(--btn); }
+.tile { /* cream wood action tile */
+	display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 150px; height: 64px; padding: 0 22px;
+	background: linear-gradient(180deg, var(--tile-top), var(--tile-bot)); border: 3px solid var(--tile-rim); border-radius: 6px; box-shadow: 0 4px 0 var(--tile-edge);
+	font: 700 26px/1 var(--btn); color: var(--tile-ink);
+}
+.tile.go { background: linear-gradient(180deg, #e2525c, #9d1f2b); color: #fff3e0; border-color: #ffd58a; box-shadow: 0 4px 0 #5a0f0d; }
+.tile.sm { min-width: 0; height: 44px; font-size: 21px; padding: 0 16px; }
+.pbtn { /* outlined paper button */
+	display: inline-flex; align-items: center; justify-content: center; height: 46px; padding: 0 20px; border: 2.5px solid var(--ink); border-radius: 6px 10px 6px 12px;
+	background: #fbf5e6; font: 700 22px var(--btn); color: var(--ink);
+}
+.pbtn.red { border-color: var(--verm); color: var(--verm); }
+.slip { background: #fbf9f3; border: 1.5px solid #c9b996; border-radius: 4px; padding: 10px 14px; }
+.lacq { background: linear-gradient(180deg, #3a3233, var(--lacquer-dark)); border: 2px solid var(--gold-soft); color: var(--cream); border-radius: 4px; }
+.tag { /* paid offer */
+	background: linear-gradient(180deg, var(--burg-top), var(--burg-bot)); border: 2.5px solid var(--pink); border-radius: 8px; color: var(--cream);
+	box-shadow: 0 5px 0 #26080f;
+}
+.price { color: var(--gold); font: 900 24px var(--body); }
+.buy { display: inline-block; padding: 3px 16px; background: var(--cream); color: var(--ink); border-radius: 12px; font: 700 19px var(--btn); }
+.bar { height: 12px; border-radius: 6px; background: #d8c7a3; border: 1.5px solid var(--tile-rim); overflow: hidden; }
+.bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--verm), #e2525c); }
+.h2 { font: 400 30px/1 var(--title); color: var(--ink); }
+.cap { font: 600 16px var(--body); color: var(--muted); }
+.blossom { position: absolute; width: 90px; height: 90px; pointer-events: none; opacity: .95;
+	background: radial-gradient(circle at 50% 50%, #fff3 0 6px, transparent 7px),
+		conic-gradient(from 0deg, var(--pink) 0 12%, transparent 12% 20%, var(--pink) 20% 32%, transparent 32% 40%, var(--pink) 40% 52%, transparent 52% 60%, var(--pink) 60% 72%, transparent 72% 80%, var(--pink) 80% 92%, transparent 92%);
+	border-radius: 50%; filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)); }
+
+/* ---------- review chrome (hidden in screenshots) ---------- */
+.label { position: absolute; left: 12px; top: 10px; z-index: 50; font: 700 15px var(--body); color: #fff; background: #0009; padding: 4px 10px; border-radius: 4px; }
+.shot .label { display: none; }

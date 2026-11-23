@@ -1,0 +1,90 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Upgrades</title><link rel="stylesheet" href="kit.css">
+<style>
+/* Upgrades frame-local parts: the pannable hex tree (UpgradeTreeView: axial q, r; x = STEP_X * (q + r / 2), y = STEP_Y * r)
+   drawn as cream wood hex tiles, zoom buttons, Money plate and the detail sheet. A hex is one image per state in the build. */
+.toolbar .lacq { height: 46px; padding: 0 18px; display: flex; align-items: center; gap: 10px; font: 700 24px var(--btn); }
+.toolbar .lacq b { color: var(--gold); }
+.zb { width: 46px; padding: 0; font-size: 30px; }
+.body { bottom: 22px; display: flex; gap: 16px; }
+.canvas { position: relative; flex: 1; overflow: hidden; border: 2px solid var(--tile-rim); border-radius: 6px;
+	background: radial-gradient(ellipse at 50% 50%, #f7ecd4, #e6d3ad 75%); box-shadow: inset 0 0 0 4px #fbf5e6; }
+.canvas::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(120,90,50,.05) 0 1px, transparent 1px 22px); }
+.hx { position: absolute; width: 94px; height: 81px; transform: translate(-50%, -50%); }
+.hx::before, .hx > .f { position: absolute; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+.hx::before { content: ""; inset: 0; background: var(--tile-rim); }
+.hx > .f { inset: 3px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: linear-gradient(180deg, var(--tile-top), var(--tile-bot)); }
+.hx .n { font: 700 14px/1.05 var(--btn); letter-spacing: -.3px; color: var(--ink); max-width: 82px; }
+.hx .p { font: 900 13px/1.2 var(--body); margin-top: 2px; }
+.hx.own::before { background: var(--verm-deep); }
+.hx.own > .f { background: linear-gradient(180deg, #e2525c, #a8262a); }
+.hx.own .n { color: #fff3e0; } .hx.own .p { color: var(--gold); }
+.hx.can::before { background: var(--gold); } .hx.can .p { color: #2f7a3e; }
+.hx.poor .p { color: var(--verm); }
+.hx.gate > .f { background: linear-gradient(180deg, #ece2cc, #d8c9a8); } .hx.gate .p { color: var(--ink-soft); font-size: 10.5px; }
+.hx.lock::before { background: #5a4a3a; }
+.hx.lock > .f { background: linear-gradient(180deg, #3a3233, var(--lacquer-dark)); }
+.hx.lock .n { font: 400 30px var(--title); color: var(--gold-soft); }
+.hx.start::before { background: var(--ink); }
+.hx.start > .f { background: linear-gradient(180deg, #3a3233, var(--lacquer-dark)); }
+.hx.start .n { color: var(--gold); font-size: 16px; } .hx.start .p { color: var(--cream); font-size: 10px; letter-spacing: .5px; }
+.hx.sel { filter: drop-shadow(0 0 0 #fff8ee) drop-shadow(0 0 4px var(--verm)); z-index: 2; }
+.hx.sel::before { background: var(--verm); }
+.detail { width: 330px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.detail .k { font: 700 15px var(--btn); color: var(--muted); letter-spacing: 1px; }
+.detail .t { font: 400 40px/1 var(--title); }
+.detail .b { font: 700 24px var(--btn); color: var(--ink-soft); }
+.detail .hx { position: relative; transform: none; width: 150px; height: 130px; align-self: center; margin: 6px 0; }
+.detail .hx .n { font-size: 22px; max-width: 110px; } .detail .hx .p { font-size: 16px; }
+.detail .st { margin-top: auto; width: 100%; }
+.legend { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font: 600 14px var(--body); color: var(--ink-soft); }
+.legend i { display: inline-block; width: 14px; height: 12px; margin-right: 6px; vertical-align: -1px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Upgrades - hex tree, Stamina II picked</span>
+<div class="hs" style="left:300px;top:190px;width:1320px;height:700px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Upgrade.png"><span class="wordmark">Upgrades</span><span class="kanji">強化</span><span class="sub">Explore the hex tree</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="toolbar"><span class="pbtn zb">−</span><span class="pbtn zb">+</span><span class="grow"></span><span class="lacq"><span class="seal sm">金</span>Money <b>$2,000</b></span></div>
+  <div class="body">
+   <div class="canvas" id="c"></div>
+   <div class="slip detail">
+    <span class="t">Stamina II</span>
+    <span class="b">+10% Stamina</span>
+    <div class="hx can"><div class="f"><span class="n">Stamina II</span><span class="p">$600</span></div></div>
+    <span class="lacq st" style="padding:10px 14px;text-align:center;font:700 24px var(--btn)">BUY • <b style="color:var(--gold)">$600</b></span>
+   </div>
+  </div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div></div>
+<script>
+// UpgradeConfig.Branches: id, name, origin, direction, tiers, weight. Placeholder state: what is owned, and prices.
+const B = [
+ ["money","Money",[0,0],[-1,0],5,1],["luck","Luck",[0,0],[0,-1],5,1.2],["rollspeed","Roll Speed",[0,0],[1,-1],5,1.5],
+ ["turbo","Turbo",[1,-1],[1,0],4,2],["speed","Speed",[0,0],[0,1],5,1],["walkspeed","Walkspeed",[0,0],[-1,1],5,.5],
+ ["stamina","Stamina",[0,0],[1,0],5,1],["inventory","Inventory",[-1,1],[-1,0],5,1],
+];
+const OWN = { money:2, luck:2, rollspeed:1, speed:3, walkspeed:1, stamina:1 };
+const ROMAN = ["I","II","III","IV","V"], MONEY = 2000, BEST_TRACK = 1;
+const price = (w, d) => Math.round(150 * w * Math.pow(4, d - 1) / 50) * 50;
+const fmt = (v) => v >= 1000 ? "$" + (v / 1000).toFixed(v >= 10000 ? 0 : 1).replace(".0", "") + "K" : "$" + v;
+const SX = 98, SY = 85, c = document.getElementById("c"), cx = 400, cy = 230;
+let html = `<div class="hx start" style="left:${cx}px;top:${cy}px"><div class="f"><span class="n">START</span><span class="p">UPGRADES</span></div></div>`;
+for (const [id, name, o, d, n, w] of B) {
+ const parentOwned = id === "turbo" ? (OWN.rollspeed || 0) >= 1 : id === "inventory" ? (OWN.walkspeed || 0) >= 1 : true;
+ for (let t = 1; t <= n; t++) {
+  const q = o[0] + t * d[0], r = o[1] + t * d[1];
+  const depth = (id === "turbo" || id === "inventory" ? 1 : 0) + t, cost = price(w, depth);
+  const owned = t <= (OWN[id] || 0), locked = !owned && (t > (OWN[id] || 0) + 1 || !parentOwned);
+  const gated = !owned && !locked && t >= 3 && BEST_TRACK < t - 1;
+  const cls = owned ? "own" : locked ? "lock" : gated ? "gate" : cost <= MONEY ? "can" : "poor";
+  const label = locked ? "?" : name + " " + ROMAN[t - 1];
+  const p = owned ? "OWNED" : locked ? "" : gated ? "Reach Track " + (t - 1) : fmt(cost);
+  const sel = id === "stamina" && t === 2 ? " sel" : "";
+  html += `<div class="hx ${cls}${sel}" style="left:${cx + SX * (q + r / 2)}px;top:${cy + SY * r}px"><div class="f"><span class="n">${label}</span><span class="p">${p}</span></div></div>`;
+ }
+}
+c.innerHTML = html;
+</script>
+<script src="kit.js"></script></body></html>

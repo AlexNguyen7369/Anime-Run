@@ -14,6 +14,7 @@ local RaceConfig = require(Shared.RaceConfig)
 local Monetization = require(Shared.MonetizationConfig)
 local Daily = require(Shared.DailyLoginConfig)
 local Spec = require(script.Parent.UiSpec)
+local Handscroll = require(script.Parent.Parent:WaitForChild("DojoHandscroll"))
 
 local Contracts = {}
 
@@ -42,6 +43,15 @@ function Contracts.Build(h)
 	local function modulePresent(res, name)
 		local object = script.Parent.Parent:FindFirstChild(name)
 		check(res, "shared_client_module_" .. name, object ~= nil and object:IsA("ModuleScript"), true)
+	end
+	-- Design doc 4.46: a panel unrolls over DojoHandscroll.OPEN and its content inks in as the paper reaches it, so it is
+	-- sampled once its handscroll (on the PanelFrame panel, the one PanelSwitch animates) is at rest; at most 1 s more.
+	local function waitHandscroll(panel, openedAt)
+		local scroll = Handscroll.Get(panel)
+		local settle = openedAt + Handscroll.OPEN.Time + 0.1
+		while scroll and (scroll.Progress < 1 or os.clock() < settle) and os.clock() < settle + 1 do
+			task.wait()
+		end
 	end
 	local function sameLine(a, b)
 		return math.abs(a.AbsolutePosition.Y - b.AbsolutePosition.Y) <= Spec.Tolerance
@@ -315,25 +325,46 @@ function Contracts.Build(h)
 			while closing and h.visible(closing) and os.clock() < deadline do
 				task.wait()
 			end
+			local openedAt = os.clock()
 			h.switch.Action(frame.Action)
 			h.frames(2)
 			local panel = required(res, frame.Panel, "Frame")
 			if not panel then
 				continue
 			end
+			waitHandscroll(panel, openedAt) -- 4.46: the unroll hides content near the edges until it is done
 			local prefix = "frame_" .. string.lower(frame.Action)
 			check(res, prefix .. "_shown", h.visible(panel), true)
 			check(res, prefix .. "_shared_marker", panel:GetAttribute("PanelFrame"), true)
 			local header = required(res, frame.Panel .. "/Header", "Frame")
 			local legacyDaily = frame.Action == "Daily" or frame.Action == "Quests"
-			local icon =
-				required(res, frame.Panel .. (legacyDaily and "/Header/CalendarIcon" or "/Header/Icon"), "ImageLabel")
+			-- Pre-existing (QuestAnimeStyle, kept in 4.46): while its AnimeQuests layer shows, the modal's Header, Title
+			-- and Close are hidden and the layer's Banner logo, title and seal close are the ones shown, so judge those.
+			local layer = legacyDaily and h.find(frame.Panel .. "/AnimeQuests")
+			local quests = layer ~= nil and h.visible(layer)
+			local band = quests and required(res, frame.Panel .. "/AnimeQuests/Banner", "Frame") or header
+			local icon = required(
+				res,
+				frame.Panel
+					.. (
+						quests and "/AnimeQuests/Banner/Logo"
+						or legacyDaily and "/Header/CalendarIcon"
+						or "/Header/Icon"
+					),
+				"ImageLabel"
+			)
 			local title = required(
 				res,
-				frame.Panel .. ((legacyDaily or frame.Action == "Shop") and "/Title" or "/Header/Title"),
+				frame.Panel
+					.. (
+						quests and "/AnimeQuests/Banner/Title"
+						or (legacyDaily or frame.Action == "Shop") and "/Title"
+						or "/Header/Title"
+					),
 				"TextLabel"
 			)
-			local close = required(res, frame.Panel .. "/" .. frame.Close, "GuiButton")
+			local close =
+				required(res, frame.Panel .. (quests and "/AnimeQuests/Close" or "/" .. frame.Close), "GuiButton")
 			if title then
 				check(res, prefix .. "_title", containsText(title.Text, frame.Title), true)
 			end
@@ -343,28 +374,26 @@ function Contracts.Build(h)
 			local closes, headers = 0, 0
 			for _, object in panel:GetDescendants() do
 				if object:IsA("GuiButton") and object.Name == "Close" then
-					closes += 1
+					-- one close the player can see (kept in 4.46; the modal's, hidden under the Quests layer, is not a second)
+					closes += h.visible(object) and 1 or 0
 				elseif object:IsA("Frame") and object.Name == "Header" then
 					headers += 1
 				end
 			end
 			check(res, prefix .. "_one_close", closes, 1)
 			check(res, prefix .. "_one_header", headers, 1)
-			check(res, prefix .. "_rounded", panel:FindFirstChildWhichIsA("UICorner") ~= nil, true)
-			check(res, prefix .. "_outline", panel:FindFirstChildWhichIsA("UIStroke") ~= nil, true)
-			if header then
-				local gradient = header:FindFirstChildWhichIsA("UIGradient")
-				check(res, prefix .. "_gradient", gradient ~= nil, true)
-				if gradient then
-					local c = gradient.Color.Keypoints[1].Value
-					local colour = frame.Colour
-					local matches = colour == "red" and c.R > c.G and c.R > c.B
-						or colour == "blue" and c.B > c.R and c.B > c.G
-						or colour == "purple" and c.R > c.G and c.B > c.G
-						or colour == "orange" and c.R > c.G and c.G > c.B
-					check(res, prefix .. "_colour_" .. colour, matches, true)
-				end
-			end
+			-- Design doc 4.46 (owner 2026-11-22): the handscroll is the panel's body (paper between two rollers), in place
+			-- of the 4.42 rounded, outlined fill; the header colour gradient check is retired (the header has no fill).
+			local scroll = panel:FindFirstChild("Handscroll")
+			local paper = scroll and scroll:FindFirstChild("Paper")
+			check(res, prefix .. "_handscroll", scroll ~= nil and paper ~= nil, true)
+			check(
+				res,
+				prefix .. "_handscroll_rollers",
+				scroll ~= nil and scroll:FindFirstChild("RollerL") ~= nil and scroll:FindFirstChild("RollerR") ~= nil,
+				true
+			)
+			check(res, prefix .. "_paper_shown", paper ~= nil and h.visible(paper), true)
 			if close then
 				local c = close.BackgroundColor3
 				check(res, prefix .. "_close_red", c.R > c.G and c.R > c.B and close.BackgroundTransparency < 0.5, true)
@@ -376,11 +405,16 @@ function Contracts.Build(h)
 					math.abs(close.AbsoluteSize.X - close.AbsoluteSize.Y) <= Spec.Tolerance
 				)
 			end
-			if header and icon and title and close then
+			if band and icon and title and close then
 				-- Legacy Close parent is Panel, but it must occupy the header band just like the reused Close.
-				h.geometry.Group(res, prefix .. "_header", header, { icon, title, close })
+				h.geometry.Group(res, prefix .. "_header", band, { icon, title, close })
 			end
-			h.geometry.Panel(res, prefix, panel)
+			-- Pre-existing, kept in 4.46: phones show the Market grid or its detail card and open on the grid
+			-- (market_phone_opens_grid_only), so Detail is left out at phone viewports as in UiShopMarket's market geometry.
+			local detail = frame.Action == "Market" and h.find(Spec.Market.Detail)
+			h.geometry.Panel(res, prefix, panel, function(d, vp)
+				return detail and vp.Y <= Spec.Market.PhoneMaxHeight and detail:IsAncestorOf(d) or false
+			end)
 		end
 		restore()
 	end
@@ -388,7 +422,9 @@ function Contracts.Build(h)
 	function scenarios.ui_gift_cards(res)
 		local restore = h.setPanels({ "ShopUi/Backdrop" })
 		h.frames(2)
-		local function gift(section, id, enabled, reason)
+		-- heading: the section heading's Subtitle that carries the reason for every card in it (false: missing; nil: the
+		-- card itself shows it)
+		local function gift(section, id, enabled, reason, heading)
 			local path = Spec.Shop.Items .. "/" .. section .. "/**/" .. id .. "/Gift"
 			local button = required(res, path, "GuiButton")
 			if not button then
@@ -402,7 +438,14 @@ function Contracts.Build(h)
 			check(res, prefix .. "_label", containsText(label, "gift"), true)
 			if not enabled then
 				-- A reason must be visible, not only in an internal attribute.
-				check(res, prefix .. "_reason", containsText(text(button.Parent), reason), true)
+				-- Design doc 4.46 (shop frame): a 72-unit pass card has no room; its section heading shows the reason once.
+				local shown = if heading ~= nil
+					then heading and heading:IsA("TextLabel") and h.visible(heading) and containsText(
+						heading.Text,
+						reason
+					)
+					else containsText(text(button.Parent), reason)
+				check(res, prefix .. "_reason", shown, true)
 			end
 			local count = 0
 			for _, child in button.Parent:GetDescendants() do
@@ -412,8 +455,9 @@ function Contracts.Build(h)
 			end
 			check(res, prefix .. "_one_control", count, 1)
 		end
+		local passHeading = h.find(Spec.Shop.Items .. "/Gamepasses/Title/Subtitle") or false
 		for _, pass in Monetization.Gamepasses do
-			gift("Gamepasses", pass.Id, false, Spec.Gifts.Reasons.Account)
+			gift("Gamepasses", pass.Id, false, Spec.Gifts.Reasons.Account, passHeading)
 		end
 		for _, product in Monetization.Products do
 			local eligible = product.Section == "Potions" or product.Section == "Bundle"
@@ -579,7 +623,7 @@ function Contracts.Build(h)
 		return false
 	end
 	-- What is wrong with a card's Art for `spec`: its portrait (ImageLabel, the card's top 3/4), or with none its rig.
-	-- size: the portrait's Size, fromScale(1, 0.75) unless given (the Index tile's is 8807c71's fromScale(0.86, 0.67)).
+	-- size: the portrait's Size, fromScale(1, 0.75) unless given (the Index tile's is fromScale(0.86, 0.53), design doc 4.46).
 	local function cardArtProblem(art, spec, size)
 		local image = portraitOf(spec)
 		local want = size or UDim2.fromScale(1, 0.75)
@@ -924,8 +968,9 @@ function Contracts.Build(h)
 			for _, character in Catalog.All() do
 				local tile = h.find(B.IndexGallery .. "/" .. character.Id)
 				local art = tile and tile:FindFirstChild("Art")
-				-- Index tiles: IndexAnimeStyle sets the portrait to fromScale(0.86, 0.67) (8807c71, design doc 4.42)
-				local artProblem = cardArtProblem(art, character, UDim2.fromScale(0.86, 0.67))
+				-- Index tiles: IndexAnimeStyle sets the portrait to fromScale(0.86, 0.53), on the card's pink art field
+				-- (the card's top 55%, design doc 4.46 Index frame; was 8807c71's 0.67 under 4.42)
+				local artProblem = cardArtProblem(art, character, UDim2.fromScale(0.86, 0.53))
 				if artProblem then
 					table.insert(p.index_tiles_runner_art, character.Id .. ": " .. artProblem)
 				end

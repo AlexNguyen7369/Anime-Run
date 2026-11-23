@@ -543,10 +543,11 @@ before any Studio work.
 - Auto state (owner 2026-11-05, replaces the grey icon and pulsing ring): the icon is green in both states; while auto race is on, its arrows spin around the still triangle. No spin during the 1 s press lock. It only asks: the server decides (`Remotes.SetAutoRace`).
 - A roll gets the big popup (emphasized view and server announcement, `GachaConfig.IsEmphasized`) only when the character is undiscovered and at least 100 times rarer (`EMPHASIS_MULTI`) than the player's 3rd-rarest discovered character (`EMPHASIS_RANK`). With fewer than 3 discovered, the bar is 100 times the starter, which counts as 1 in 1: 1 in 100. The first 3 discoveries no longer pop up automatically. This replaces the earlier rule of "rarer than the 5th-rarest; any new character below 5 discovered".
 - Icon style (owner 2026-11-10, third pick of the day; replaces the Gold badge): "Tab tilt", rendition 4 of https://claude.ai/artifact/5QMx5w44ZWhRhMXkNxqJty: each HUD icon is today's object standing on a slanted cyan art tab, the same shape as the Index's tabs and header strip, keeping each object's colour. No tile frame and no badge. Covers Index, Items, Rebirth, Quests, Shop, Auto, Upgrade, Daily, Market, Settings, Stats, Gem and Boss (the Boss icon is the purple horned mask). The label sits under the icon (white, dark outline).
-- Turbo bar and Team minibar (owner 2026-11-10, replaces the gold Turbo and minibar look of the same day): both keep their look from before that change, except the minibar stamina arc, which stays a smooth curved band with both ends cut on a slant, a curved parallelogram (owner 2026-11-10; slant about 30 degrees off the radial, **proposed**). Sizes, positions and behaviour unchanged.
+- Turbo bar and Team minibar (owner 2026-11-10, replaces the gold Turbo and minibar look of the same day; owner 2026-11-22: the Turbo bar takes the 4.46 HUD option A look, a wooden frame with a vermilion fill, size, position and behaviour unchanged; the minibar keeps its circles and arc and only takes the lacquer and gold look): both keep their look from before that change, except the minibar stamina arc, which stays a smooth curved band with both ends cut on a slant, a curved parallelogram (owner 2026-11-10; slant about 30 degrees off the radial, **proposed**). Sizes, positions and behaviour unchanged.
 - HUD layout (owner 2026-11-10, "split L/R"; replaces the gold frame tiles and the L2 block of the same day): one column on the left edge holds Index, Items and Rebirth, top to bottom; one column on the right edge holds Quests, Shop and Market. Daily and Settings stay as the top-right pills, Auto and Upgrade stay as the bottom pair beside the LEVEL / TURBO LUCK bars, all with the Tab tilt icons. The red count badge stays at the icon's top-left. Panels (4.42) centre between the two columns, 8 px clear of each. Phones shrink both columns (4.27). Keybind letters stay (owner 2026-11-10): each column button shows its key letter at its top-right (white heavy text, dark outline), and on keyboard that key opens the panel, the same as a click, only while the button could be clicked: Index X, Items B, Rebirth R, Quests Q, Shop P, Market M (not S and I: S walks backward, I zooms). Letters show only when a keyboard is in use. No NEW tag. Sizes and gaps are **proposed**. Owner approved the Tab tilt icons and this layout from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG). During a boss event (the local player in the event) both columns hide; the Daily and Settings pills, Auto and Upgrade and the event UI stay (owner 2026-11-10).
 - Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**. Owner approved from Studio screenshots 2026-11-10 (https://claude.ai/artifact/BXmkHjXQaPcXy4xod9fPKD). The Bosses button uses the column buttons' exact cell, icon and label sizes, phone scale included (owner 2026-11-11). At that size it no longer fits in Roblox's top bar, so it sits just below the top bar (gap 6 px, **proposed**), left-aligned with the left column when it fits above the column with room for its pulse. Where it would reach the left column (phones, short desktop windows) it starts right of Roblox's buttons instead (TopbarInset.Min.X plus the gap, never over the column) (owner 2026-11-11). It stays clear of the left column, the Money / Gems readout and the roll at the top centre. Owner 2026-11-12, from a screenshot (replaces the 2026-11-11 placement below the top bar and the same day's top-bar idea): the Bosses button moves into a second column directly right of the left column, placed half a row down, level with the gap between Index and Items. Below it in that second column, level with the gap between Items and Rebirth, sits a new Team button (same cell, icon and label sizes; icon and key letter **proposed**). Team opens the team selection and formation panel, which leaves Items. Owner 2026-11-12, from the drafts (https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp): icon 1 "Trio" (three runners, the lead in front) in more neutral colours (variant N3, sand lead with a grey pair, picked and uploaded on the owner's word 2026-11-12: `assets/ui/hud_tabtilt/Team_N3.png`), and panel A "Line-up" (`assets/ui/team_draft/A_desktop.png`, `A_phone.png`): three big slot cards across the top in run order (runs first, tags in 2nd, tags in last) with each member's portrait, category, cruise and stamina, the team bonus box at their right, and below them the owned roster grid with Sort and Search; tap a character, then a slot; members swap places; tapping a member's own slot removes it. Owner 2026-11-12, after seeing the first build: the panel matches draft A closely: each slot card carries its number badge (1, 2, 3) and its own coloured border and tint (gold, purple, green as drawn), a stamina bar under the member, arrows between the slots; roster cards at the draft's size (two rows of eight on desktop); the green TEAM n badge sits clear of the category dot. The rules of choosing a team do not change (`docs/TEAM_AND_STAMINA_SPEC.md` Team: `SetTeam`, at least 1 member, locked during a run). (Owner 2026-11-17: panel A's layout is replaced by Team Setup, 4.45; the Best team button becomes Quick Setup there.) (Owner 2026-11-20: Team Setup is a full-screen page that covers the Team button; the page's own Close or Back closes it, not the Team button.) Not ruled by the owner, so left out or **proposed**: the Best team button (left out: needs a rule), the summed team stamina figure (**proposed**, display only), key letter T (**proposed**), the per-slot aura and trail buttons (stay in Items). Offsets and the phone layout are **proposed**. Picked-slot lighting (only the slot holding the picked character lightens; draft A's caption lights every slot) and the "+" glyph on an empty slot are **proposed** (orchestrator 2026-11-12, owner to confirm from the Studio capture).
-- Money and Gems counters (owner 2026-11-10): no dark box or border behind Money or Gems; the Gems counter sits directly under the Money counter (bottom-left); the UNBANKED line is removed. Each checkpoint payout shows a short "Cashed out +$X" notice by the Money counter as the Money counts up. Sizes and timing **proposed**.
+- Money and Gems counters (owner 2026-11-10): no dark box or border behind Money or Gems (owner 2026-11-20: replaced
+  by HUD option A's lacquer counter plates, 4.46); the Gems counter sits directly under the Money counter (bottom-left); the UNBANKED line is removed. Each checkpoint payout shows a short "Cashed out +$X" notice by the Money counter as the Money counts up. Sizes and timing **proposed**.
 
 ### 4.41 Character bag and auto sell (owner 2026-11-04)
 - The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
@@ -735,6 +736,56 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
     slot 1 in the centre); how a picked altar shows now that the rings are gold-orange (until ruled, the picked slot keeps
     the "Selected" plate and a brighter ring); the plaza Team altar's look.
 
+### 4.46 Scroll Dojo look, game-wide (owner 2026-11-20)
+Owner brief 2026-11-20: a full redesign of every current GUI, taking its look from the Summon and Team Select pages
+(scroll, dojo, sakura), with a scroll that opens from the middle out to the left and right. Reference screenshots go to
+the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing and colour here is **proposed**.
+- Summon (4.45) and Team Select (4.45 "Team Select night dojo") are the style source only: their pages, layouts and
+  motion do not change.
+- Scope: every panel and popup (Index, Items, Shop, Market, Quests and Daily, Rebirth, Stats, Settings, Tracks, Duel, starter choice, item menu and its confirms, gift and slot pickers, Auto Sell and Details, the loser card,
+  toasts and banners), the boss event UI (Bosses panel, rewards popup, event HUD), and the HUD buttons and bars. The
+  HUD is redesigned as option A (below). Not in scope (owner 2026-11-20): the Upgrades tree keeps today's look,
+  full-screen layout and open motion.
+- Look: the Summon parchment kit on a horizontal handscroll (makimono): parchment paper, brown wood rollers at the left
+  and right ends with dark caps, leather edge strips, brush wordmark titles with a vertical vermilion kanji (decoration
+  only, every label stays English), red brush pills for highlights, vermilion hanko seals as badges, cream wood tiles
+  and outlined paper buttons for actions, burgundy cards with pink rims for paid offers, dark lacquer plates with gold
+  for names, sakura blossoms as accents. Fonts Roblox can load: Permanent Marker titles, Kalam Bold buttons, Titillium
+  Web body. Drawn portraits stay in every character and Sidekick card (4.36).
+- Open: the panel unrolls from its centre. Both wooden rollers start together at the middle and travel out to the left
+  and right edges while the paper widens behind them (about 0.45 s, ease out). Content inks in as the paper reaches it;
+  each control is live as soon as it shows, so no input waits on the motion (meets 4.20's input rule). Close rolls the
+  paper back to the middle (about 0.25 s). Reduced effects (UiMotion): a short fade, no roll. Replaces 4.20's panel
+  open and close (scale 0.9 to 1 and 0.95) for every redesigned panel and popup. The 35% world dim (4.42) stays.
+- Kept from 4.42: the 1200 x 620 band and its fit between the HUD columns, the spacing grid, list counts in the footer,
+  the scroll-list fade rule. Replaced from 4.42: the AnimeSkin art, the slanted strip header and the GothamSSm heavy
+  italic type, for every redesigned GUI.
+- Per-GUI layouts (owner approved the references 2026-11-20, https://claude.ai/artifact/QBw9E424FXKxbjNo76eKRe,
+  frames in `assets/ui/scroll_redesign/drafts/`). Each panel keeps the game's own tabs, buttons and content; only the
+  look changes. Numbers in the frames are placeholders.
+  - Index: Characters tab; locked entries as silhouettes; count on the footer plate. Phone: same parts, 5 columns; every
+    panel follows the same phone rules.
+  - Items: team marker, copies, studs/s, Sidekick and Relic names; Sell spares on the footer row; the panel is 50 px
+    taller to fit two rows (**proposed**).
+  - Shop: the one long list laid out in three columns: Gamepasses; Potions and the bundle; Server Luck and Codes. Paid
+    offers are burgundy cards with pink rims. Potions keep the game's own art (the drafts' bottles are stand-ins).
+  - Market: Trails tab, grid left, detail card right, the picked item stamped with a seal.
+  - Quests: ready, in progress and claimed rows; a claimed row gets a seal; a thin progress bar per row.
+  - Daily rewards: 7 days; claimed days get a seal; today glows vermilion.
+  - Rebirth, Stats, Settings (lacquer ON / OFF switches) and the Settings Profile tab.
+  - Tracks: one scrolling list of long track cards with the road shots. Duel pick and invite.
+  - Popups are small handscrolls with the same header: starter choice (no close button, as today), item menu and sell
+    confirm, gift and slot pickers, Auto Sell and roll odds. Toasts and banners use paper slips, lacquer plates and
+    brush pills, no scroll: checkpoint bonus, biome welcome, team toast, VS banner, loser card, roll toast.
+  - Boss event UI: Bosses panel (live boss with rewards, the others dimmed with "Not this time"), rewards popup, boss
+    invite, in-event HUD (boss HP bar, status icons, Leave, dodge bar, team row; side columns hidden as 4.40 says).
+  - HUD option A "wood plaques": cream wood tiles with brush labels, vermilion key-letter seals, lacquer counters for
+    Money and Gems, nameplate team row. Positions, key letters and badges follow 4.40. Replaces the Tab tilt icons.
+    Owner 2026-11-22: the team row keeps today's circles and slanted arc (lacquer and gold look only, not the
+    draft's nameplates); the Turbo bar becomes a wooden bar with a vermilion fill (4.40).
+  - The kanji and short sub lines under each title stay (decoration only).
+- Display only: the server decides every number, cost and claim, as before.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -797,6 +848,9 @@ snapshot walkthrough the owner approved is in `docs/TEAM_AND_STAMINA_SPEC.md` "T
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-20: owner: game-wide Scroll Dojo look from the Summon and Team pages, center-out handscroll open about 0.45 s with input live, HUD and boss UI in scope; references first (4.46 draft; 4.20, 4.42 replaced for redesigned GUIs on approval).
+- 2026-11-20: owner approved the Scroll Dojo references: every frame, HUD option A, Money and Gems on lacquer plates (4.40 no-box rule replaced), Shop in three columns, kanji and sub lines kept, game potion art; the Upgrades tree is left as it is (4.46).
+- 2026-11-22: owner, HUD option A details: the team row keeps its circles and arc (lacquer and gold look only); the Turbo bar becomes wood with a vermilion fill (4.40, 4.46).
 - 2026-11-22: owner: the summon page's Featured Banner rows keep the Sidekicks' drawn portraits; the summon result still shows the 3D model (4.36, SIDEKICK_SPEC).
 - 2026-11-20: owner: Sidekick summon Details list odds per rarity (section 6, SIDEKICK_SPEC); Team Setup stays full screen and the Team button does not close it (4.40, 4.45).
 - 2026-11-17: owner, after the rules audit: Team Setup asks Deploy or Discard before another page opens over an undeployed draft, and an untouched draft follows a saved Team change (4.45, TEAM_AND_STAMINA_SPEC).

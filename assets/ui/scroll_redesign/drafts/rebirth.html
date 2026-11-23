@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Rebirth</title><link rel="stylesheet" href="kit.css">
+<style>
+.tab .badge { display:inline-grid; place-items:center; min-width:28px; height:28px; font-size:18px !important; padding:0 6px; border-radius:12px; background:var(--verm); color:#fff; font-family:var(--body); font-weight:900; box-shadow:0 0 0 2px #fff8ee; }
+.warn { position:absolute; left:0; right:0; top:0; height:84px; display:flex; gap:18px; align-items:center; padding:0 22px; border-left:6px solid var(--verm); }
+.warn .seal { width:52px; height:52px; font-size:30px; flex:none; }
+.warn b { font:400 32px/1 var(--title); color:var(--verm); }
+.warn p { font:600 22px/1.2 var(--body); color:var(--ink-soft); }
+.body { bottom:26px; }
+.nx { position:absolute; left:0; right:0; top:104px; }
+.rewards { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; margin-top:12px; }
+.rw { height:160px; display:flex; align-items:center; justify-content:center; gap:18px; }
+.rw img { width:70px; height:70px; object-fit:contain; }
+.rw .v { font:700 34px/1 var(--btn); }
+.req { position:absolute; left:0; right:0; top:356px; display:flex; align-items:flex-end; gap:24px; }
+.req .col { flex:1; }
+.req .bar { height:48px; border-radius:6px; margin-top:10px; position:relative; border-width:2.5px; }
+.req .bar span { position:absolute; inset:0; display:grid; place-items:center; font:900 24px var(--body); color:var(--ink); text-shadow:0 0 4px #fff, 0 0 2px #fff; }
+.req .tile { min-width:280px; height:70px; font-size:34px; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Rebirth (HUD Rebirth) - Rebirth tab</span>
+<div class="hs" style="left:300px;top:190px;width:1320px;height:700px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Rebirth.png"><span class="wordmark">Rebirth</span><span class="kanji">転生</span><span class="sub">Start again, run stronger</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="toolbar"><span class="tab on">Rebirth</span><span class="tab">Stats <span class="badge">3</span></span></div>
+  <div class="body">
+   <div class="slip warn"><span class="seal">!</span><b>Warning</b><p>Rebirth resets your Money (Robux purchases stay)</p></div>
+   <div class="nx"><span class="pill">Next Rebirth</span>
+    <div class="rewards">
+     <div class="card rw"><img src="../../team_icons/star.png"><span class="v">x1.50 Luck</span></div>
+     <div class="card rw"><img src="../../team_icons/cruise.png"><span class="v">+10% Speed</span></div>
+     <div class="card rw"><img src="../../hud_tabtilt/Stats.png"><span class="v">+1 Stat Point</span></div>
+    </div></div>
+   <div class="req"><div class="col"><span class="h2">Requirements</span>
+     <div class="bar"><i style="width:62%"></i><span>$1.55M / $2.5M</span></div></div>
+    <span class="tile go">Rebirth</span></div>
+  </div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div></div>
+<script src="kit.js"></script></body></html>

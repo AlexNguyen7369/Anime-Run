@@ -226,8 +226,26 @@ UiTheme.Stroke(ribbon, 3, nil, true)
 ribbon.Parent = card
 local banner = label("Banner", ribbon)
 banner.Text = "YOU LOST"
--- The ribbon is the frame's header anchor (it still slides in); the banner is the frame's slanted title.
-local frame = AnimeSkin.IndexFrame(card, { Header = ribbon, Title = banner })
+-- The ribbon is the frame's header anchor (it still slides in); the banner is the frame's title. Design doc 4.46: the
+-- loser card is a paper slip, no handscroll.
+local frame = AnimeSkin.IndexFrame(card, { Header = ribbon, Title = banner, Scroll = false })
+-- Design doc 4.46 (toasts frame): a vermilion band across the slip's top with the words centred in cream; the brushed
+-- rule under a title gives way to the band's edge.
+local D = AnimeSkin.Dojo
+local band = Instance.new("Frame")
+band.Name = "Band"
+band.Size = UDim2.fromScale(1, 1)
+band.ZIndex = ribbon.ZIndex
+D.Fill(band, D.Colors.VermLight, D.Colors.VermDeep)
+D.Rim(band, D.Colors.Rim, 2)
+D.Corner(band, 6)
+band.Parent = ribbon
+banner:SetAttribute("DojoTextColor", D.Colors.Cream)
+banner.TextXAlignment = Enum.TextXAlignment.Center
+local rule = card:FindFirstChild("HeaderRule")
+if rule then
+	rule.Visible = false
+end
 
 -- Rows: 8 apart inside a group and 12 between groups (who, times, gap, what next), centred in the content area.
 local ROWS = {
@@ -247,10 +265,10 @@ local npcName, trackTitle, yourTime, npcTime, gap, pb, backTo = table.unpack(row
 
 local countdown = Instance.new("Frame")
 countdown.Name = "Countdown"
-countdown.BackgroundColor3 = Palette.PanelDeep
+countdown.BackgroundColor3 = D.Colors.Track -- kit.css .bar: paper track, brown rim, vermilion fill
 countdown.BorderSizePixel = 0
 UiTheme.Corner(countdown, "S")
-UiTheme.Stroke(countdown, 2, nil, true)
+UiTheme.Stroke(countdown, 1.5, D.Colors.Rim, true)
 countdown.Parent = card
 local fill = Instance.new("Frame")
 fill.Name = "Fill"
@@ -258,7 +276,7 @@ fill.Size = UDim2.fromScale(1, 1)
 fill.BackgroundColor3 = Palette.White
 fill.BorderSizePixel = 0
 UiTheme.Corner(fill, "S")
-UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep)
+UiTheme.Gradient(fill, D.Colors.VermLight, D.Colors.Verm)
 fill.Parent = countdown
 
 -- The countdown bar 12 above the content's bottom; the rows centred above it (a phone's short area shrinks them all).
@@ -281,6 +299,7 @@ local function placeRows()
 	end
 	frame.Place(countdown, c.X, c.Y + c.H - U.Gap - BAR, c.W, BAR)
 	ribbon.Position = UDim2.new()
+	banner.Position, banner.Size = frame.at(0, 12), UDim2.new(1, 0, 0, frame.px(72))
 end
 frame.OnLayout(placeRows)
 

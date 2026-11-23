@@ -1669,11 +1669,15 @@ function Model.ColumnRight(navigation, parts)
 end
 
 -- The panel frame's width and height in design units at a viewport (AnimeSkin.Units: 1200 x 620, phone 650 x 420).
-function Model.FrameSize(viewport)
+-- path (optional): a panel whose IndexFrame asks for a taller desktop frame (AnimeSkin.IndexFrame parts.H).
+Model.FrameHeights = {
+	["RacerBackpack/Panel"] = 670, -- design doc 4.46 Items: 50 taller (Client/BackpackUi PanelFrame.Attach FrameH)
+}
+function Model.FrameSize(viewport, path)
 	if Model.VariantOf(viewport) == "Phone" then
 		return Units.PhoneW, Units.PhoneH
 	end
-	return Units.W, Units.H
+	return Units.W, path and Model.FrameHeights[path] or Units.H
 end
 
 -- band = { left, top, right, bottom } (UiShopMarket.Band). The panel's Size is the frame's (IndexAnimeStyle layout and
@@ -1726,10 +1730,24 @@ local function racerChrome(out, frame, small, units)
 		return node
 	end
 	g.put = put
-	put("Face/Header", placeProps(0, 0, W, 64))
-	put("Face/Header/Face/Title", placeProps(168, -23, W - 266, 76))
-	put("Face/Header/Face/AnimeLogo", placeProps(-19, -72, 188, 186))
-	put("Face/Header/Face/Close", placeProps(W - 74, 4, 58, 54))
+	-- 4.46 header (RacerUiController indexFrame, as AnimeSkin.IndexFrame): band 0 to 98, logo, title, seal close, rule
+	put("Face/Header", placeProps(0, 0, W, 98))
+	put("Face/Header/Face/Title", {
+		AnchorPoint = Vector2.zero,
+		Position = UDim2.fromOffset(108, 12),
+		Size = UDim2.new(1, -228, 0, 72),
+	})
+	put("Face/Header/Face/AnimeLogo", placeProps(28, 14, 70, 70))
+	put("Face/Header/Face/Close", {
+		AnchorPoint = Vector2.zero,
+		Position = UDim2.new(1, -92, 0, 16),
+		Size = UDim2.fromOffset(64, 64),
+	})
+	put("Face/HeaderRule", {
+		AnchorPoint = Vector2.zero,
+		Position = UDim2.fromOffset(28, 90),
+		Size = UDim2.new(1, -56, 0, 3),
+	})
 	function g.tabsRow(rel)
 		local strip = put(rel, placeProps(56, g.Tabs, W - 112, 40))
 		local width = math.min(300, math.floor((W - 120) / 2))
@@ -1743,8 +1761,14 @@ local function racerChrome(out, frame, small, units)
 			end
 		end
 	end
+	-- The count line and its lacquer FooterPlate sibling, centred on it (its width follows the text: place only)
 	function g.footer(rel)
-		put(rel, placeProps(math.floor(W * 303 / 920), H - 60, math.floor(W * 312 / 920), 28))
+		local x, w = math.floor(W * 303 / 920), math.floor(W * 312 / 920)
+		local line = put(rel, placeProps(x, H - 60, w, 28))
+		local plate = line and line.Parent:FindFirstChild("FooterPlate")
+		if plate then
+			out[plate] = { Position = UDim2.fromOffset(x + w / 2, H - 60 + 14) }
+		end
 	end
 	return g
 end
@@ -1768,12 +1792,17 @@ RUNTIME["RacerIndex/Panel"] = function(out, frame, input)
 	for i, name in { "CharactersTab", "EnemiesTab", "SidekicksTab", "RelicsTab" } do
 		put("Face/Header/Face/" .. name, UDim2.fromOffset((i - 1) * (width + 8), 0), UDim2.fromOffset(width, 40))
 	end
-	put("Face/Header/Face/Close", UDim2.fromOffset(w - 130, -94), UDim2.fromOffset(58, 54))
+	-- 4.46: the seal close, 64 x 64 at the frame's (w - 92, 16), in the tab band's coordinates (IndexAnimeStyle.Apply)
+	put("Face/Header/Face/Close", UDim2.fromOffset(w - 148, 16 - (small and 90 or 98)), UDim2.fromOffset(64, 64))
 	local top = small and 144 or 164
 	put("Face/GridHost", UDim2.fromOffset(56, top), UDim2.fromOffset(w - 112, h - top - 82))
-	put("Face/GridPlate", UDim2.fromOffset(48, top - 6), UDim2.fromOffset(w - 96, h - top - 74))
 	put("Face/IndexProgress", UDim2.fromOffset(w * 303 / 920, h - 60), UDim2.fromOffset(w * 312 / 920, 28))
-	put("Face/ProgressPlate", UDim2.fromOffset(18, h - 48), UDim2.fromOffset(w - 36, 42))
+	-- 4.46: GridPlate and ProgressPlate are gone; the lacquer FooterPlate centres on the count line (its width follows
+	-- the text, so only its place is modelled)
+	local plate = find(frame, "Face/FooterPlate")
+	if plate then
+		out[plate] = { Position = UDim2.fromOffset(w * 303 / 920 + w * 156 / 920, h - 60 + 14) }
+	end
 end
 RUNTIME["RacerStats/Panel"] = function(out, frame, input)
 	local u = racerUnits(input.Small, input.Scale)
@@ -1781,7 +1810,7 @@ RUNTIME["RacerStats/Panel"] = function(out, frame, input)
 	g.tabsRow("Face/Header/Face/RebirthTabs")
 	local width = g.W - 112
 	g.put("Face/StatsHost", placeProps(56, g.Top, width, g.Height))
-	g.put("Face/Header/Face/Points", placeProps(math.floor(g.W * 303 / 920), g.H - 60, math.floor(g.W * 312 / 920), 28))
+	g.footer("Face/Header/Face/Points")
 	local list = find(frame, "Face/StatsHost/Rows")
 	local rows = {}
 	for _, row in list and list:GetChildren() or {} do
@@ -1862,23 +1891,22 @@ RUNTIME["RacerSettings/Panel"] = function(out, frame, input)
 	if #plates == 0 then
 		return
 	end
-	local rowGap = u(SPACE.Gap)
-	local hostLayout = host:FindFirstChildOfClass("UIListLayout")
-	if hostLayout then
-		out[hostLayout] = { Padding = UDim.new(0, rowGap) }
-	end
-	local plateH = math.floor((g.Height - (#plates - 1) * rowGap) / #plates)
-	local plateSlant = math.floor(plateH / 2) + u(SPACE.Inner)
-	local textW = width - 2 * plateSlant
-	local nameW = math.floor(textW * 0.55)
+	-- 4.46 settings_profile: cards in two columns of three, the name over the value
+	local pad = u(SPACE.Pad) -- gap: the rows' 12 above
+	local cardW = math.floor((width - gap) / 2)
+	local cardH = math.floor((g.Height - 2 * gap) / 3)
+	local textX = pad + u(SPACE.Inner)
+	local textW = cardW - textX - pad
+	local nameH = math.floor((cardH - 2 * pad) * 0.4)
 	for _, row in plates do
-		out[row] = { Size = UDim2.new(1, 0, 0, plateH) }
+		local i = row.LayoutOrder - 1
+		out[row] = placeProps(i % 2 * (cardW + gap), math.floor(i / 2) * (cardH + gap), cardW, cardH)
 		local name, value = row:FindFirstChild("Name"), row:FindFirstChild("Value")
 		if name then
-			out[name] = placeProps(plateSlant, 0, nameW, plateH)
+			out[name] = placeProps(textX, pad, textW, nameH)
 		end
 		if value then
-			out[value] = placeProps(plateSlant + nameW, 0, textW - nameW, plateH)
+			out[value] = placeProps(textX, pad + nameH, textW, cardH - 2 * pad - nameH)
 		end
 	end
 end
@@ -1970,10 +1998,11 @@ RUNTIME["DailyBoosts/ModalBackdrop/Modal"] = function(out, modal, input)
 		end
 	end
 	local banner = layer:FindFirstChild("Banner")
-	put(banner, at(-34, -18), UDim2.new(1, px(68), 0, px(86)))
-	put(banner and banner:FindFirstChild("Logo"), at(15, -54), at(188, 186))
-	put(banner and banner:FindFirstChild("Title"), at(202, -5), at(W - 312, 76))
-	put(layer:FindFirstChild("Close"), at(W - 82, -6), at(74, 74))
+	-- 4.46 header (QuestAnimeStyle layout, as AnimeSkin.IndexFrame's): band 0 to 98, logo, title, seal close inside it
+	put(banner, UDim2.new(), UDim2.new(1, 0, 0, px(98)))
+	put(banner and banner:FindFirstChild("Logo"), at(28, 14), at(70, 70))
+	put(banner and banner:FindFirstChild("Title"), at(108, 12), at(W - 228, 72))
+	put(layer:FindFirstChild("Close"), at(W - 92, 16), at(64, 64))
 	put(layer:FindFirstChild("Footer"), at(W * 303 / 920, H - 60), at(W * 312 / 920, 28))
 	local top = small and 144 or 164
 	local gridW, gridH = W - 112, H - top - 82
@@ -2145,7 +2174,7 @@ Model.HudChrome = {
 	Bar = "HudChrome/TopRight",
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the bottom pair shrinks about its anchor until its cell
 	-- (Cell x k, anchored at (1 | 0, IconMid)) clears every visible Blocker; steps of Step x base, floor Floor x base.
-	Cell = Vector2.new(84, 94), -- HudChrome CELL = (ICON + 12, ICON + LABEL), ICON 72, LABEL 22 (design doc 4.40)
+	Cell = Vector2.new(84, 94), -- HudChrome CELL (design doc 4.40; 4.46 option A: ICON 60 at ICON_TOP 6, LABEL 24)
 	IconMid = 36 / 94, -- ICON_MID = ICON / 2 / CELL.Y
 	Step = 0.02,
 	Floor = 0.3,

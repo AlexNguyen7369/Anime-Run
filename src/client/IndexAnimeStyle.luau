@@ -1,5 +1,11 @@
 --!nonstrict
--- Index-only presentation. Artwork is reproducible with assets/build-index-art.ps1.
+-- Index presentation and the shared Scroll Dojo parts (design doc 4.46, docs/UI_SCROLL_SPEC.md Kit): the Index on a
+-- horizontal handscroll (Client/DojoHandscroll) with the brush wordmark, vermilion kanji, seal close, paper tabs and
+-- paper cards. Style.Dojo holds the parts Client/AnimeSkin and Client/QuestAnimeStyle share. The 4.42 art (ART, Text)
+-- stays only for the Upgrades tree, which keeps today's look (owner 2026-11-20).
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
+local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
 local Style = {}
 local ART = {
 	Body = "rbxassetid://105894082013432",
@@ -41,56 +47,349 @@ local function image(parent, name, id, pos, size, z)
 		ScaleType = Enum.ScaleType.Stretch,
 	})
 end
--- The frame art (ART.Chrome) in clipped pieces, so a frame wider than the art's own shape (design doc 4.42: 1200 x 620
--- units, owner 2026-11-10) stretches only plain runs: the top bar right of the header plate and the middle of the
--- footer plate. The corners, the header plate, the stripes and the plate's slanted ends keep their drawn width.
--- Image fractions, not pixels (SliceCenter needs the source size, which is not in the repo): each piece is a
--- clipping Frame over the whole image, scaled so its fraction fills the piece.
-local CHROME_NATURAL = 1000 / 720 -- art box width / height at the Index's old 920 x 620: the art drawn unstretched
-local CHROME_ROWS = {
-	{ 0, 0.8, 0.53, 0.92 }, -- top and body: image y0, y1, then the stretched run x0, x1
-	{ 0.8, 1, 0.36, 0.52 }, -- bottom: the run inside the footer plate
+
+-- Scroll Dojo colours and fonts (assets/ui/scroll_redesign/drafts/kit.css), from UiTheme.Scroll and UiTheme.Dojo
+-- where those have them. Proposed values.
+local K, J = UiTheme.Scroll, UiTheme.Dojo
+local C = {
+	Ink = Color3.fromRGB(46, 30, 22), -- #2E1E16
+	InkSoft = Color3.fromRGB(92, 70, 54), -- #5C4636
+	Muted = Color3.fromRGB(138, 116, 98), -- #8A7462
+	Verm = K.Accent,
+	VermLight = Color3.fromRGB(213, 58, 51), -- #D53A33, the close seal's top
+	VermDeep = Color3.fromRGB(142, 28, 26), -- #8E1C1A
+	Brush = J.BrushRed, -- the active tab's red brush pill
+	Cream = K.Cream,
+	SealText = K.SealText,
+	Rim = K.TileRim,
+	Edge = K.TileEdge,
+	TileTop = K.TileTop,
+	TileBottom = K.TileBottom,
+	CardTop = J.Card,
+	CardBottom = Color3.fromRGB(243, 230, 200), -- #F3E6C8
+	ArtTop = J.ArtTop,
+	ArtBottom = J.ArtBottom,
+	TabTop = Color3.fromRGB(251, 243, 224), -- #FBF3E0
+	TabBottom = Color3.fromRGB(234, 217, 180), -- #EAD9B4
+	Field = Color3.fromRGB(251, 245, 230), -- #FBF5E6, paper buttons
+	Slip = K.Slip,
+	SlipRim = Color3.fromRGB(201, 185, 150), -- #C9B996
+	Lacquer = Color3.fromRGB(58, 50, 51), -- #3A3233
+	LacquerDark = K.LacquerDark,
+	GoldSoft = J.Gold,
+	Gold = K.TagGold,
+	GoTop = J.DeployTop,
+	GoBottom = J.DeployBottom,
+	GoRim = J.DeployRim,
+	Track = Color3.fromRGB(216, 199, 163), -- #D8C7A3, a progress bar's track
 }
--- Builds the art as `name` under `parent` at ZIndex z; returns the Frame and place(x, y, w, h), the art box in px.
+local F = {
+	Title = K.Heading, -- Permanent Marker
+	Button = K.Script, -- Kalam Bold
+	Body = K.BodyBold, -- Titillium Web Bold
+	Caption = Font.new("rbxasset://fonts/families/TitilliumWeb.json", Enum.FontWeight.SemiBold),
+}
+-- Text roles on paper: font and default colour. Footer text sits on a lacquer plate.
+local ROLES = {
+	Title = { F.Title, C.Ink },
+	Section = { F.Title, C.Ink },
+	Item = { F.Button, C.Ink },
+	Tab = { F.Button, C.Ink },
+	Footer = { F.Button, C.Cream },
+	Body = { F.Body, C.Ink },
+	Caption = { F.Caption, C.Muted },
+}
+-- The vertical kanji and the short sub line beside each title (4.46; decoration only, labels stay English), by the
+-- title in capitals; a title not listed gets none.
+local HEADINGS = {
+	INDEX = { "図鑑", "Every character you can roll" },
+	BACKPACK = { "道具", "Your characters, potions and gear" },
+	ITEMS = { "道具", "Your characters, potions and gear" },
+	SHOP = { "商店", "Passes, potions and codes" },
+	MARKET = { "市場", "Trails, auras and potions for Money" },
+	QUESTS = { "任務", "Daily and weekly goals" },
+	["DAILY REWARDS"] = { "日課", "7 days" },
+	REBIRTH = { "転生", "Start again, run stronger" },
+	STATS = { "能力", "Spend points from rebirths and the index" },
+	SETTINGS = { "設定", "Sound, camera and selling" },
+	TRACKS = { "道場", "Pick where your runs start" },
+	BOSSES = { "討伐", "" },
+	["CHOOSE YOUR STARTER"] = { "選択", "" },
+	["PICK A TRACK"] = { "決闘", "" },
+	["DUEL REQUEST"] = { "挑戦", "" },
+	["SEND A GIFT"] = { "贈物", "" },
+	SLOTS = { "装備", "" },
+	SELL = { "売却", "" },
+	["AUTO SELL"] = { "自動", "" },
+	["ROLL ODDS"] = { "確率", "" },
+}
+
+local Dojo = { Colors = C, Fonts = F, Roles = ROLES }
+Style.Dojo = Dojo
+
+-- The object's own gradients and border strokes give way to `name`'s (created once, enabled again on every call).
+local function own(gui, class, name)
+	for _, d in gui:GetChildren() do
+		if
+			d:IsA(class)
+			and d.Name ~= name
+			and (class ~= "UIStroke" or d.ApplyStrokeMode == Enum.ApplyStrokeMode.Border)
+		then
+			d.Enabled = false
+		end
+	end
+	local found = gui:FindFirstChild(name) or make(class, name, gui, {})
+	found.Enabled = true
+	return found
+end
+
+-- A vertical fill from `top` to `bottom` on `gui` (its own fill shows again). A text object gets a solid fill (the
+-- blend of the two): a UIGradient tints its text too, which put cream text on a vermilion tile in vermilion.
+function Dojo.Fill(gui, top, bottom)
+	bottom = bottom or top
+	local isText = gui:IsA("TextLabel") or gui:IsA("TextButton") or gui:IsA("TextBox")
+	gui.BackgroundColor3 = isText and top:Lerp(bottom, 0.5) or Color3.new(1, 1, 1)
+	gui.BackgroundTransparency = 0
+	gui.BorderSizePixel = 0
+	local g = own(gui, "UIGradient", "DojoFill")
+	g.Color, g.Rotation, g.Transparency = ColorSequence.new(top, bottom), 90, NumberSequence.new(0)
+	g.Enabled = not isText
+	return g
+end
+
+-- A border rim on `gui` (the object's other border strokes are disabled).
+function Dojo.Rim(gui, color, thickness)
+	local s = own(gui, "UIStroke", "DojoRim")
+	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	s.Color, s.Thickness, s.Transparency = color, thickness or 2, 0
+	return s
+end
+
+-- Corner radius in px, again next frame (UiTheme.Apply snaps new corners to 8).
+function Dojo.Corner(gui, px)
+	local c = gui:FindFirstChildOfClass("UICorner") or make("UICorner", "Corner", gui, {})
+	c.CornerRadius = UDim.new(0, px)
+	task.defer(function()
+		c.CornerRadius = UDim.new(0, px)
+	end)
+	return c
+end
+
+-- A text role on paper: its font and colour (the DojoTextColor attribute, set by a lit tab, wins), no outline. Marks
+-- the label with AnimeRole, so UiTheme.Apply never puts it back on Fredoka.
+function Dojo.Text(label, role, color)
+	local spec = ROLES[role] or ROLES.Body
+	if not label:GetAttribute("AnimeRole") then
+		label:SetAttribute("AnimeRole", role)
+	end
+	label.FontFace = spec[1]
+	label.TextColor3 = label:GetAttribute("DojoTextColor") or color or spec[2]
+	label.TextStrokeTransparency = 1
+	for _, d in label:GetChildren() do
+		if d:IsA("UIStroke") and d.ApplyStrokeMode == Enum.ApplyStrokeMode.Contextual then
+			d.Enabled = false
+		end
+	end
+	return label
+end
+
+-- The close: a vermilion seal (the button itself, so it stays red for the close rules) with a cream X. `caption` is
+-- the button's own X label if it has one; else the button's text hides and a SealX label shows the X.
+function Dojo.Seal(button, caption)
+	-- The red lives in BackgroundColor3 (the close rules read it); the gradient only darkens it towards the bottom.
+	Dojo.Fill(button, Color3.new(1, 1, 1), Color3.new(0.66, 0.66, 0.66))
+	button.BackgroundColor3 = C.VermLight
+	Dojo.Rim(button, C.VermDeep, 2)
+	Dojo.Corner(button, 6)
+	if button:IsA("GuiButton") then
+		button.AutoButtonColor = false
+	end
+	button.Rotation = -4
+	local old = button:FindFirstChild("AnimeCloseArt")
+	if old then
+		old.Visible = false
+	end
+	local inner = button:FindFirstChild("SealRim")
+		or make("Frame", "SealRim", button, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, -6, 1, -6),
+			BackgroundTransparency = 1,
+			Active = false,
+		})
+	inner.ZIndex = button.ZIndex
+	if not inner:FindFirstChild("Corner") then
+		make("UICorner", "Corner", inner, { CornerRadius = UDim.new(0, 4) })
+	end
+	local ring = inner:FindFirstChildOfClass("UIStroke") or make("UIStroke", "Ring", inner, {})
+	ring.Color, ring.Thickness, ring.Transparency = C.SealText, 2, 0.6
+	local x = caption
+	if not x and not (button:IsA("TextButton") and button.Text == "X") then -- else the button's own X shows
+		x = button:FindFirstChild("SealX")
+			or make("TextLabel", "SealX", button, {
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+				Text = "X",
+				TextScaled = true,
+				Active = false,
+			})
+		if button:IsA("TextButton") then
+			button.TextTransparency = 1
+		end
+	end
+	local glyph = x or button
+	glyph:SetAttribute("AnimeRole", glyph:GetAttribute("AnimeRole") or "Item")
+	glyph:SetAttribute("DojoTextColor", C.SealText) -- a later button tone or text role keeps the cream X
+	glyph.Visible = true
+	if x then
+		x.ZIndex = button.ZIndex + 1
+	end
+	glyph.FontFace = F.Body
+	glyph.TextColor3 = C.SealText
+	glyph.TextTransparency = 0
+	glyph.TextStrokeTransparency = 1
+	for _, d in glyph:GetChildren() do
+		if d:IsA("UIStroke") then
+			d.Enabled = false
+		end
+	end
+	if x then
+		x.AnchorPoint = Vector2.new(0.5, 0.5)
+		x.Position, x.Size = UDim2.fromScale(0.5, 0.5), UDim2.fromScale(0.62, 0.62)
+		x.TextScaled = true
+	end
+	return glyph
+end
+
+-- A paper tab under `face`'s caption: a child DojoTab frame carries the fill (the face's own colour stays for whoever
+-- tweens it). Returns lit(on): the active tab is a red brush pill with cream text.
+function Dojo.Tab(face, captions)
+	local plate = face:FindFirstChild("DojoTab")
+		or make("Frame", "DojoTab", face, { Size = UDim2.fromScale(1, 1), ZIndex = 1, Active = false })
+	local corner = plate:FindFirstChild("Corner") or make("UICorner", "Corner", plate, {})
+	local rim = Dojo.Rim(plate, C.Rim, 2)
+	return function(on)
+		if on then
+			Dojo.Fill(plate, C.Brush)
+			rim.Color = C.VermDeep
+			corner.CornerRadius = UDim.new(0, 14)
+		else
+			Dojo.Fill(plate, C.TabTop, C.TabBottom)
+			rim.Color = C.Rim
+			corner.CornerRadius = UDim.new(0, 4)
+		end
+		for _, label in captions do
+			label:SetAttribute("DojoTextColor", on and C.Cream or C.Ink)
+			label.TextColor3 = on and C.Cream or C.Ink
+		end
+	end
+end
+
+-- A dark lacquer plate with a gold rim (footer counts, reward boxes).
+function Dojo.Lacquer(frame)
+	Dojo.Fill(frame, C.Lacquer, C.LacquerDark)
+	Dojo.Rim(frame, C.GoldSoft, 2)
+	Dojo.Corner(frame, 4)
+	return frame
+end
+
+-- The footer's lacquer plate behind `line` (a TextLabel): a FooterPlate sibling sized to the text, shown only while
+-- the line has text. `pad` is the room round the text in px.
+function Dojo.FooterPlate(line, pad)
+	local parent = line.Parent
+	local plate = parent:FindFirstChild("FooterPlate")
+		or Dojo.Lacquer(make("Frame", "FooterPlate", parent, { AnchorPoint = Vector2.new(0.5, 0.5), Active = false }))
+	local function fit()
+		local p = pad or 14
+		plate.ZIndex = math.max(line.ZIndex - 1, 1)
+		plate.Visible = line.Visible and line.Text ~= ""
+		local center = line.Position + UDim2.new(line.Size.X.Scale / 2, line.Size.X.Offset / 2, 0, 0)
+		plate.Position = center + UDim2.new(0, 0, line.Size.Y.Scale / 2, line.Size.Y.Offset / 2)
+		plate.Size = UDim2.new(
+			0,
+			math.min(line.TextBounds.X, line.AbsoluteSize.X) + 4 * p,
+			line.Size.Y.Scale,
+			line.Size.Y.Offset + p
+		)
+	end
+	for _, prop in { "TextBounds", "Position", "Size", "Visible", "Text" } do
+		line:GetPropertyChangedSignal(prop):Connect(fit)
+	end
+	fit()
+	return plate
+end
+
+-- The kanji and sub line after `title` (its parent's coordinates, Offset positions): Kanji and Sub labels beside it.
+-- Returns place(px, width): px turns design units into px, width is the frame's width in px. Follows the title.
+function Dojo.Heading(title)
+	local parent = title.Parent
+	local kanji = parent:FindFirstChild("Kanji")
+		or make("TextLabel", "Kanji", parent, {
+			BackgroundTransparency = 1,
+			TextColor3 = C.Verm,
+			TextScaled = true,
+			Active = false,
+		})
+	kanji:SetAttribute("AnimeRole", "Kanji") -- UiTheme.Apply leaves it (it reset the font when it was parented)
+	kanji.Font = Enum.Font.GothamBold -- CJK through Roblox's font fallback; decoration only
+	local sub = parent:FindFirstChild("Sub")
+		or make("TextLabel", "Sub", parent, {
+			BackgroundTransparency = 1,
+			TextScaled = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Active = false,
+		})
+	Dojo.Text(sub, "Item", C.InkSoft)
+	local last = nil
+	local function place(px, width)
+		last = { px, width }
+		local upper = string.upper(title.Text)
+		local words = HEADINGS[upper] or (string.find(upper, "DEFEATED", 1, true) and { "勝利", "" }) or nil
+		local glyphs = {}
+		for _, code in utf8.codes(words and words[1] or "") do
+			table.insert(glyphs, utf8.char(code))
+		end
+		kanji.Text = table.concat(glyphs, "\n")
+		sub.Text = words and words[2] or ""
+		kanji.ZIndex, sub.ZIndex = title.ZIndex, title.ZIndex
+		local x = title.Position.X.Offset + math.min(title.TextBounds.X, title.AbsoluteSize.X) + px(8)
+		local y = title.Position.Y.Offset
+		local subX = x + px(42)
+		-- Decoration only: each shows when it ends before the close (92 in from the right edge, 120 with its margin);
+		-- the sub line also needs room for a few words (phones drop it).
+		local kanjiFits, subFits = x + px(30) <= width - px(100), width - subX - px(120) >= px(96)
+		kanji.Visible = title.Visible and kanji.Text ~= "" and kanjiFits
+		sub.Visible = title.Visible and sub.Text ~= "" and kanjiFits and subFits
+		kanji.Position, kanji.Size = UDim2.fromOffset(x, y + px(2)), UDim2.fromOffset(px(30), px(64))
+		sub.Position = UDim2.fromOffset(subX, y + px(34))
+		-- Held to the parent's right edge by Scale + offset (the parent spans the frame), so a layout read at another
+		-- width stops before the close too.
+		sub.Size = UDim2.new(1, -(subX + px(120)), 0, px(28))
+	end
+	for _, prop in { "TextBounds", "Text", "Visible" } do
+		title:GetPropertyChangedSignal(prop):Connect(function()
+			if last then
+				place(last[1], last[2])
+			end
+		end)
+	end
+	return place
+end
+
+-- The handscroll behind a panel (design doc 4.46): DojoHandscroll on `target`, the object PanelSwitch animates.
+function Dojo.Scroll(target)
+	return DojoHandscroll.Build(target)
+end
+
+-- Retired 4.42 chrome art: an empty frame now (the handscroll is the frame; design doc 4.46). Same returns: the Frame
+-- and place(x, y, w, h), which does nothing.
 function Style.Chrome(parent, name, z)
 	local old = parent:FindFirstChild(name)
 	if old then
 		old:Destroy()
 	end
-	local root = make("Frame", name, parent, { BackgroundTransparency = 1, ZIndex = z })
-	local pieces = {}
-	for r, row in CHROME_ROWS do
-		for c = 1, 3 do
-			local clip = make(
-				"Frame",
-				"Piece" .. r .. c,
-				root,
-				{ BackgroundTransparency = 1, ClipsDescendants = true, ZIndex = z }
-			)
-			table.insert(
-				pieces,
-				{ Art = image(clip, "Art", ART.Chrome, UDim2.new(), UDim2.new(), z), Row = row, C = c }
-			)
-		end
-	end
-	return root,
-		function(x, y, w, h)
-			root.Position, root.Size = UDim2.fromOffset(x, y), UDim2.fromOffset(w, h)
-			local natural = h * CHROME_NATURAL
-			for _, piece in pieces do
-				local y0, y1, s0, s1 = table.unpack(piece.Row)
-				local fx = { 0, s0, s1, 1 }
-				local edges = { 0, s0 * natural, s1 * natural + w - natural, w } -- the run takes all the extra width
-				local a, b = fx[piece.C], fx[piece.C + 1]
-				local left, right = math.floor(edges[piece.C] + 0.5), math.floor(edges[piece.C + 1] + 0.5)
-				local top, bottom = math.floor(y0 * h + 0.5), math.floor(y1 * h + 0.5)
-				local clip = piece.Art.Parent
-				clip.Position, clip.Size = UDim2.fromOffset(left, top), UDim2.fromOffset(right - left, bottom - top)
-				local scale = (edges[piece.C + 1] - edges[piece.C]) / (b - a) -- px per image width
-				piece.Art.Position = UDim2.fromOffset(edges[piece.C] - a * scale - left, -top)
-				piece.Art.Size = UDim2.fromOffset(scale, h)
-			end
-		end
+	local root = make("Frame", name, parent, { BackgroundTransparency = 1, ZIndex = z, Active = false })
+	return root, function() end
 end
 local function transparent(o)
 	o.BackgroundTransparency = 1
@@ -147,34 +446,36 @@ function Style.Apply(gui)
 	panel.Shadow.Visible = false
 	header.Shadow.Visible = false
 	header.ZIndex = 8
-	local chrome =
-		make("Frame", "AnimeChrome", face, { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 1 })
-	local _, placeChrome = Style.Chrome(chrome, "Body", 1)
+	-- Design doc 4.46: the handscroll on the panel PanelSwitch unrolls (the wrapper, not its Face).
+	Dojo.Scroll(panel)
 	local banner = make("Frame", "AnimeBanner", face, {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(-34, -18),
-		Size = UDim2.new(1, 68, 0, 86),
+		Size = UDim2.new(1, 0, 0, 98),
 		ZIndex = 6,
 	})
-	-- Header artwork is part of the imported skin.
-	image(banner, "Logo", ART.Logo, UDim2.fromOffset(15, -54), UDim2.fromOffset(188, 186), 9).ScaleType =
-		Enum.ScaleType.Fit
-	-- Raised title plate is part of the imported skin.
-	banner.Logo.Position = UDim2.fromOffset(15, -54)
-	banner.Logo.ZIndex = 11
+	local logo = image(banner, "Logo", ART.Logo, UDim2.fromOffset(28, 14), UDim2.fromOffset(70, 70), 11)
+	logo.ScaleType = Enum.ScaleType.Fit
 	local title = make("TextLabel", "Title", banner, {
 		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(202, -5),
-		Size = UDim2.fromOffset(250, 76),
-		Rotation = -2,
+		Position = UDim2.fromOffset(108, 12),
+		Size = UDim2.fromOffset(420, 72),
 		Text = "INDEX",
-		TextSize = 58,
+		TextScaled = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 10,
 	})
+	local heading = Dojo.Heading(title)
+	local rule = make("Frame", "HeaderRule", banner, {
+		BackgroundColor3 = C.InkSoft,
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(28, 90),
+		ZIndex = 6,
+		Active = false,
+	})
 	local tabs = { "CharactersTab", "EnemiesTab", "SidekicksTab", "RelicsTab" }
 	local captions = {}
-	for i, name in tabs do
+	for _, name in tabs do
 		local tab = band:FindFirstChild(name)
 		if tab then
 			tab.Rotation = 0
@@ -183,32 +484,33 @@ function Style.Apply(gui)
 			if tab:FindFirstChild("Shadow") then
 				tab.Shadow.Visible = false
 			end
-			for _, name in { "AnimeTab", "TabColor", "Shine", "AnimeTabArt" } do
-				for _, old in tab.Face:GetChildren() do
-					if old.Name == name then
-						old:Destroy()
-					end
+			for _, old in tab.Face:GetChildren() do
+				if
+					old.Name == "AnimeTab"
+					or old.Name == "TabColor"
+					or old.Name == "Shine"
+					or old.Name == "AnimeTabArt"
+				then
+					old:Destroy()
 				end
 			end
-			local art =
-				image(tab.Face, "AnimeTabArt", ART.Tabs[i], UDim2.fromOffset(-7, -5), UDim2.new(1, 14, 1, 10), 2)
+			local labels = {}
 			for _, d in tab.Face:GetChildren() do
 				if d:IsA("TextLabel") then
 					d.ZIndex = 4
 					d.Position = UDim2.fromOffset(8, 0)
 					d.Size = UDim2.new(1, -16, 1, 0)
 					table.insert(captions, d)
+					table.insert(labels, d)
 				end
 			end
+			local lit = Dojo.Tab(tab.Face, labels)
 			local function mark()
 				tab.Face.BackgroundTransparency = 1
-				art.ImageColor3 = tab.Face:GetAttribute("TabLit") and Color3.new(1, 1, 1)
-					or Color3.fromRGB(225, 225, 235)
-				for _, d in tab.Face:GetChildren() do
-					if d:IsA("TextLabel") then
-						text(d, 22)
-					end
+				for _, d in labels do
+					Dojo.Text(d, "Tab")
 				end
+				lit(tab.Face:GetAttribute("TabLit") == true)
 			end
 			tab.Face:GetAttributeChangedSignal("TabLit"):Connect(function()
 				task.defer(mark)
@@ -219,36 +521,14 @@ function Style.Apply(gui)
 	local close = band.Close
 	close.Rotation = 0
 	close.ZIndex = 10
-	for _, d in close:GetDescendants() do
-		if d:IsA("UICorner") then
-			d.CornerRadius = UDim.new(0, 8)
-		end
-	end
 	local closeCaption = close.Face:FindFirstChildWhichIsA("TextLabel")
-	transparent(close.Face)
 	if close:FindFirstChild("Shadow") then
 		close.Shadow.Visible = false
 	end
 	close.Face.Text = ""
-	if closeCaption then
-		closeCaption.Visible = false
-	end
-	local oldClose = close.Face:FindFirstChild("AnimeCloseArt")
-	if oldClose then
-		oldClose:Destroy()
-	end
-	image(close.Face, "AnimeCloseArt", ART.Close, UDim2.fromOffset(-8, -10), UDim2.new(1, 16, 1, 20), 5).ScaleType =
-		Enum.ScaleType.Fit
+	transparent(close.Face)
+	Dojo.Seal(close.Face, closeCaption)
 	local progress = face.IndexProgress
-	local track =
-		make("Frame", "ProgressPlate", face, { BackgroundTransparency = 1, Size = UDim2.fromOffset(1, 1), ZIndex = 2 })
-	local gridPlate = make(
-		"Frame",
-		"GridPlate",
-		face,
-		{ BackgroundColor3 = Color3.fromRGB(6, 9, 22), BackgroundTransparency = 1, BorderSizePixel = 0, ZIndex = 2 }
-	)
-	make("UICorner", "Corner", gridPlate, { CornerRadius = UDim.new(0, 10) })
 	local function layout()
 		local viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1366, 768)
 		local phone = viewport.Y <= 500
@@ -263,7 +543,8 @@ function Style.Apply(gui)
 		if h < 1 then
 			h = 524
 		end
-		header.Position = UDim2.fromOffset(56, phone and 90 or 98)
+		local tabsY = phone and 90 or 98
+		header.Position = UDim2.fromOffset(56, tabsY)
 		header.Size = UDim2.fromOffset(w - 112, 44)
 		transparent(band)
 		header.Shadow.Visible = false
@@ -278,21 +559,22 @@ function Style.Apply(gui)
 				tab.Face.Size = UDim2.fromScale(1, 1)
 			end
 		end
-		close.Position = UDim2.fromOffset(w - 130, -94)
-		close.Size = UDim2.fromOffset(58, 54)
+		-- The seal close at the frame's top-right (64 x 64 at x w - 92, y 16), in the band's coordinates.
+		close.Position = UDim2.fromOffset(w - 92 - 56, 16 - tabsY)
+		close.Size = UDim2.fromOffset(64, 64)
+		rule.Size = UDim2.fromOffset(w - 56, 3)
+		title.Size = UDim2.new(1, -(108 + 120), 0, 72) -- Scale + offset: ends 120 in from the right at any width
+		heading(function(x)
+			return x
+		end, w)
 		local top = phone and 144 or 164
 		host.Position = UDim2.fromOffset(56, top)
 		host.Size = UDim2.fromOffset(w - 112, h - top - 82)
 		host.ZIndex = 3
-		gridPlate.Position = UDim2.fromOffset(48, top - 6)
-		gridPlate.Size = UDim2.fromOffset(w - 96, h - top - 74)
-		placeChrome(-40, -70, w + 80, h + 100)
 		progress.Position = UDim2.fromOffset(w * 303 / 920, h - 60)
 		progress.Size = UDim2.fromOffset(w * 312 / 920, 28)
 		progress.Rotation = 0
 		progress.ZIndex = 4
-		track.Position = UDim2.fromOffset(18, h - 48)
-		track.Size = UDim2.fromOffset(w - 36, 42)
 	end
 	local queued = false
 	local function queue()
@@ -326,6 +608,9 @@ function Style.Apply(gui)
 		end)
 	end
 	layout()
+	Dojo.FooterPlate(progress, 8)
+	-- Design doc 4.46 Index frame: paper cards with a brown rim, the drawn portrait on a pink art field, the rarity as
+	-- a coloured strip under it; name in the brush face, odds and multi in the body face.
 	local styled = {}
 	local function restyleTile(tile)
 		if
@@ -337,52 +622,41 @@ function Style.Apply(gui)
 			return
 		end
 		styled[tile] = true
-		tile.BackgroundTransparency = 1
 		local rim = tile:FindFirstChild("Rim")
 		local rarity = rim and rim:FindFirstChildOfClass("UIStroke")
 		if rim then
 			rim.Visible = false
 		end
-		local border = tile:FindFirstChild("Stroke")
-		if border then
-			border.Enabled = false
-		end
-		local oldGlow = tile:FindFirstChild("IndexOutlineGlow")
-		if oldGlow then
-			oldGlow:Destroy()
+		for _, name in { "IndexOutlineGlow", "AngularOutlineGlow", "AngularCard", "AngularName" } do
+			local old = tile:FindFirstChild(name)
+			if old then
+				old:Destroy()
+			end
 		end
 		local shade = tile:FindFirstChild("Shade")
 		if shade then
 			shade.Visible = false
 		end
-		local halo = image(
-			tile,
-			"AngularOutlineGlow",
-			"rbxassetid://84593396974140",
-			UDim2.fromScale(0.5, 0.5),
-			UDim2.new(1.2, 7.2, 1.190476, 7.142856),
-			5
-		)
-		halo.AnchorPoint = Vector2.new(0.5, 0.5)
-		halo.ImageTransparency = 0
-		local frame = image(tile, "AngularCard", ART.Card, UDim2.fromOffset(-3, -3), UDim2.new(1, 6, 1, 6), 3)
-		local plate = image(tile, "AngularName", ART.Plate, UDim2.new(0, 3, 1, -52), UDim2.new(1, -6, 0, 25), 6)
+		Dojo.Fill(tile, C.CardTop, C.CardBottom)
+		Dojo.Rim(tile, C.Rim, 2)
+		Dojo.Corner(tile, 6)
+		local field = make("Frame", "ArtField", tile, {
+			BorderSizePixel = 0,
+			Size = UDim2.fromScale(1, 0.55),
+			ZIndex = 1,
+			Active = false,
+		})
+		Dojo.Fill(field, C.ArtTop, C.ArtBottom)
+		Dojo.Corner(field, 6)
+		local strip = make("Frame", "RarityStrip", tile, {
+			BorderSizePixel = 0,
+			Position = UDim2.fromScale(0, 0.55),
+			Size = UDim2.new(1, 0, 0, 6),
+			ZIndex = 2,
+			Active = false,
+		})
 		local function tint()
-			local color = rarity and rarity.Color or Color3.fromRGB(70, 205, 255)
-			local hue, saturation, value = color:ToHSV()
-			local vivid = if saturation > 0.05
-				then Color3.fromHSV(hue, math.max(0.95, saturation), 1)
-				else Color3.fromHSV(hue, saturation, math.min(1, value + 0.12))
-			-- Green gets a softer saturation and halo; other rarity colors stay vivid.
-			if saturation > 0.05 and hue >= 0.22 and hue <= 0.43 then
-				vivid = Color3.fromHSV(hue, 0.72, 0.88)
-				halo.ImageTransparency = 0.3
-			else
-				halo.ImageTransparency = 0
-			end
-			frame.ImageColor3 = vivid
-			halo.ImageColor3 = vivid
-			plate.ImageColor3 = vivid:Lerp(Color3.new(1, 1, 1), 0.12)
+			strip.BackgroundColor3 = rarity and rarity.Color or C.Muted
 		end
 		tint()
 		if rarity then
@@ -390,25 +664,26 @@ function Style.Apply(gui)
 		end
 		local art = tile.Art
 		art.AnchorPoint = Vector2.new(0.5, 0)
-		art.Position = UDim2.fromScale(0.5, 0.04)
-		art.Size = UDim2.fromScale(0.86, 0.67)
+		art.Position = UDim2.fromScale(0.5, 0.02)
+		art.Size = UDim2.fromScale(0.86, 0.53)
+		art.ZIndex = math.max(art.ZIndex, 3)
 		local name = tile.CharacterName
-		name.Position = UDim2.new(0, 9, 1, -50)
-		name.Size = UDim2.new(1, -18, 0, 20)
-		name.TextXAlignment = Enum.TextXAlignment.Center
-		text(name, 16)
-		-- Owner 2026-11-10: the odds and multi read at the caption size in the card's own heavy font, the letter circle is gone.
+		name.Position = UDim2.new(0, 8, 0.55, 8)
+		name.Size = UDim2.new(1, -16, 0, 20)
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		name.TextScaled = true
+		Dojo.Text(name, "Item")
 		local info = tile:FindFirstChild("Info")
 		if info then
-			info.Position = UDim2.new(0, 7, 1, -72)
-			info.Size = UDim2.new(1, -14, 0, 18)
-			text(info, 14)
+			info.Position = UDim2.new(0, 8, 0.55, 30)
+			info.Size = UDim2.new(1, -16, 0, 14)
+			Dojo.Text(info, "Caption")
 		end
 		local odds = tile:FindFirstChild("Odds")
 		if odds then
 			odds.Position = UDim2.fromOffset(8, 6)
 			odds.Size = UDim2.new(1, -16, 0, 18)
-			text(odds, 14)
+			Dojo.Text(odds, "Body")
 		end
 		local category = tile:FindFirstChild("Category")
 		if category then
@@ -416,14 +691,14 @@ function Style.Apply(gui)
 		end
 		local equip = tile:FindFirstChild("Equip")
 		if equip then
-			equip.Position = UDim2.new(0, 8, 1, -28)
-			equip.Size = UDim2.new(1, -16, 0, 22)
+			equip.Position = UDim2.new(0, 8, 1, -24)
+			equip.Size = UDim2.new(1, -16, 0, 20)
 			for _, c in equip:GetChildren() do
 				if c:IsA("UICorner") then
-					c.CornerRadius = UDim.new(0, 3)
+					c.CornerRadius = UDim.new(0, 4)
 				end
 				if c:IsA("TextLabel") then
-					text(c, 11)
+					Dojo.Text(c, "Item")
 				end
 			end
 		end
@@ -463,7 +738,7 @@ function Style.Apply(gui)
 			d.CornerRadius = UDim.new(0, 6)
 		end
 		if d:IsA("TextLabel") and d.Name == "CharacterName" then
-			text(d)
+			Dojo.Text(d, "Item")
 		end
 	end
 	for _, d in host:GetDescendants() do
@@ -472,24 +747,18 @@ function Style.Apply(gui)
 	host.DescendantAdded:Connect(function(d)
 		task.defer(styleCard, d)
 	end)
+	-- Again after UiTheme.Apply's deferred pass, which puts new text back on its own font.
 	task.defer(function()
-		text(title, 72)
-		title.FontFace =
-			Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
-		text(progress, 20)
+		Dojo.Text(title, "Title")
+		Dojo.Text(progress, "Footer")
+		progress.TextScaled = true
 		progress.TextXAlignment = Enum.TextXAlignment.Center
-		local footerOutline = progress:FindFirstChildOfClass("UIStroke")
-		if footerOutline then
-			footerOutline.Thickness = 1.5
-		end
 		for _, label in captions do
-			text(label, 22)
+			Dojo.Text(label, "Tab")
 		end
-		if closeCaption then
-			text(closeCaption, 34)
-		end
+		layout()
 	end)
 end
--- Shared with Client/QuestAnimeStyle (design doc 4.42): one set of art and one text treatment.
+-- The 4.42 art and text treatment, kept for the Upgrades tree (Client/AnimeSkin's legacy path; design doc 4.46 scope).
 Style.Art, Style.Ink, Style.Image, Style.Text = ART, INK, image, text
 return Style

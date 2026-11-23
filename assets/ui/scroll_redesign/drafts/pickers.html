@@ -1,0 +1,50 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pickers</title><link rel="stylesheet" href="kit.css">
+<style>
+.pop { --roll:24px; }
+.pop .hdr { left:30px; right:30px; top:10px; height:70px; gap:12px; }
+.pop .hdr .icon { width:56px; height:56px; }
+.pop .hdr .seal.big { width:52px; height:52px; font-size:30px; flex:none; }
+.pop .wordmark { font-size:44px; }
+.pop .kanji { font-size:22px; }
+.pop .sub { font-size:18px; margin-bottom:10px; }
+.pop .close { width:46px; height:46px; top:18px; right:40px; font-size:26px; }
+.pop .hdr-rule { left:30px; right:30px; top:86px; }
+.pop .pb { position:absolute; left:30px; right:30px; top:100px; bottom:22px; }
+
+.back { position:absolute; right:40px; top:22px; height:42px; font-size:20px; }
+.sum { display:flex; align-items:center; justify-content:space-between; padding:10px 18px; }
+.sum b { font:700 24px var(--btn); }
+.who { margin-top:14px; display:flex; flex-direction:column; gap:10px; }
+.who .r { height:52px; display:flex; align-items:center; gap:12px; padding:0 16px; font:700 22px var(--btn); }
+.who .r span { font:600 18px var(--body); color:var(--muted); }
+.who .r.sel { background:linear-gradient(180deg,#e2525c,#9d1f2b); color:#fff3e0; border-color:#ffd58a; box-shadow:0 4px 0 #5a0f0d; }
+.who .r.sel span { color:#ffd9c9; }
+.gf { position:absolute; left:0; right:0; bottom:0; display:flex; align-items:center; justify-content:space-between; }
+.gf .cap { font-size:20px; color:var(--ink-soft); }
+.gf .tile { height:58px; font-size:26px; }
+.sp { display:flex; flex-direction:column; gap:14px; }
+.sp .cap2 { font:700 20px var(--btn); color:var(--ink-soft); }
+.sl { height:76px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; padding:0 20px; gap:4px; }
+.sl b { font:700 26px/1 var(--btn); }
+.sl span { font:600 18px var(--body); color:var(--ink-soft); }
+.sl.here { background:linear-gradient(180deg,#e2525c,#9d1f2b); border-color:#ffd58a; box-shadow:0 4px 0 #5a0f0d; }
+.sl.here b, .sl.here span { color:#fff3e0; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Gift picker (Market gift) and Slot picker (Market / Bag aura and trail slots)</span>
+<div class="hs pop" style="left:180px;top:270px;width:800px;height:540px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Market.png"><span class="wordmark">Send a gift</span><span class="kanji">贈物</span></div>
+  <span class="pbtn back">Back</span><div class="hdr-rule"></div>
+  <div class="pb"><div class="tag sum"><b>Galaxy Aura</b><span class="price">149 R$</span></div><div class="who"><div class="card r sel">Hana <span>(@hana_runs)</span></div><div class="card r">Kenji <span>(@kenji_dash)</span></div><div class="card r">Mio <span>(@mio_mio)</span></div><div class="card r">Ren <span>(@ren_sprint)</span></div></div><div class="gf"><span class="cap">Send to @hana_runs?</span><span class="tile go">Confirm gift</span></div></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div><div class="hs pop" style="left:1060px;top:310px;width:640px;height:450px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><span class="seal big">枠</span><span class="wordmark">Slots</span><span class="kanji">装備</span></div>
+  <div class="hdr-rule"></div>
+  <div class="pb"><div class="sp"><span class="cap2">Galaxy Aura: tap a slot to wear it</span><div class="card sl"><b>Slot 1</b><span>Azure + Solar</span></div><div class="card sl here"><b>Remove 2</b><span>Galaxy</span></div><div class="card sl"><b>Slot 3</b><span>Empty</span></div></div></div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div>
+</div>
+<script src="kit.js"></script></body></html>

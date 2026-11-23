@@ -1,0 +1,106 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shop</title><link rel="stylesheet" href="kit.css">
+<style>
+/* Shop frame-local parts: section heads, paid offer cards (.tag), potion bottle stand-in, code box.
+   The game's one scrolling list (Gamepasses, Potions + bundle, Server Luck, Codes, Thanks) is laid in three columns. */
+.body { top: 128px; bottom: 74px; display: flex; gap: 16px; }
+.col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sh { display: flex; align-items: baseline; gap: 10px; height: 32px; flex: none; }
+.sh .h2 { font-size: 28px; }
+.sh .cap { margin-left: auto; font-size: 13.5px; }
+.tag { position: relative; }
+.price { font-size: 19px; line-height: 1.2; }
+.buy, .gift { padding: 2px 12px; font-size: 16px; border-radius: 10px; }
+.gift { display: inline-block; background: var(--gold); color: var(--ink); font-family: var(--btn); font-weight: 700; }
+.buy.off, .gift.off { background: #7d6a66; color: #e9dcd8; }
+.det { position: absolute; right: 8px; top: 7px; padding: 0 9px; border: 1.5px solid var(--pink); border-radius: 10px; font: 700 13.5px/20px var(--btn); color: var(--pink); }
+.d { font: 600 13.5px/1.2 var(--body); color: #f5d9df; }
+/* gamepass card */
+.passes { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(5, minmax(0, 1fr)); gap: 8px; flex: 1; min-height: 0; }
+.pc { overflow: hidden; display: grid; grid-template-columns: 46px 1fr; grid-template-rows: auto auto 1fr; column-gap: 8px; padding: 6px 8px 7px; }
+.pc img { grid-row: 1 / 4; width: 46px; height: 46px; object-fit: contain; align-self: center; }
+.pc .n { font: 700 19px/1.3 var(--btn); white-space: nowrap; display: flex; align-items: center; justify-content: space-between; min-height: 25px; }
+.pc .d { white-space: nowrap; min-height: 17px; }
+.pc .row { display: flex; align-items: center; gap: 7px; align-self: end; }
+/* potion packs and bundle */
+.packs { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0,1fr) minmax(0,1fr); gap: 8px; flex: 1; min-height: 0; }
+.pk { padding: 7px 9px; display: flex; flex-direction: column; gap: 1px; }
+.pk .n { font: 700 17px/1.1 var(--btn); padding-right: 30px; }
+.pk .bt { position: absolute; right: 6px; top: 8px; }
+.pk .p { margin-top: auto; display: flex; align-items: center; gap: 6px; }
+.pk .row { display: flex; gap: 6px; margin-top: 4px; }
+.bottle { position: relative; display: inline-block; width: 30px; height: 40px; flex: none; }
+.bottle::before { content: ""; position: absolute; left: 10px; top: 0; width: 10px; height: 10px; border-radius: 2px; background: #b07a46; border: 2px solid var(--ink); }
+.bottle::after { content: ""; position: absolute; left: 2px; top: 9px; width: 22px; height: 27px; border-radius: 11px 11px 9px 9px; background: radial-gradient(circle at 35% 35%, #fff8 0 3px, transparent 4px), var(--bc); border: 2px solid var(--ink); }
+.b-Luck { --bc: #b46bf0; } .b-Money { --bc: #f2c53d; } .b-Speed { --bc: #46b6f0; } .b-Stamina { --bc: #5cc98a; }
+.bundle { padding: 8px 10px; height: 150px; flex: none; display: flex; flex-direction: column; gap: 3px; }
+.bundle .bts { display: flex; gap: 6px; }
+.bundle .bts div { display: flex; flex-direction: column; align-items: center; font: 900 12.5px/1 var(--body); color: var(--gold); }
+.bundle .n { font: 400 23px/1 var(--title); color: var(--gold); }
+.bundle .row { display: flex; align-items: center; gap: 7px; margin-top: auto; }
+/* server luck plate, codes */
+.luck { padding: 9px 10px; display: flex; flex-direction: column; gap: 6px; }
+.luck .t { font: 400 22px/1.05 var(--title); color: var(--gold); }
+.tier { padding: 5px 8px; background: #2a0b14aa; border: 1.5px solid #f491ab66; border-radius: 6px; }
+.tier .n { font: 700 17px/1.1 var(--btn); }
+.tier .r { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.thanks { text-align: center; white-space: nowrap; font: 700 17px var(--btn); color: var(--verm); margin-top: auto; }
+</style></head><body>
+<div class="screen plaza"><div class="dim"></div><span class="label">Shop - the one scroll list laid in three columns</span>
+<div class="hs" style="left:300px;top:165px;width:1320px;height:750px">
+ <div class="paper"><div class="content">
+  <div class="hdr"><img class="icon" src="../../hud_tabtilt/Shop.png"><span class="wordmark">Shop</span><span class="kanji">商店</span><span class="sub">Passes, potions and codes</span></div>
+  <div class="close">✕</div>
+  <div class="hdr-rule"></div>
+  <div class="body">
+   <div class="col" style="width:600px">
+    <div class="sh"><span class="h2">Gamepasses</span><span class="cap">Account-bound • no gifting</span></div>
+    <div class="passes" id="passes"></div>
+   </div>
+   <div class="col" style="width:318px">
+    <div class="sh"><span class="h2">Potions</span><span class="cap">(LAST 60 SECONDS EACH)</span></div>
+    <div class="packs" id="packs"></div>
+    <div class="tag bundle">
+     <span class="det">Details</span>
+     <span class="n">POTION BUNDLE!</span>
+     <span class="d">x10 of EVERY potion · <b style="color:var(--cream)">x120 Potions!</b></span>
+     <div class="bts"><div><span class="bottle b-Luck"></span>x30</div><div><span class="bottle b-Money"></span>x30</div><div><span class="bottle b-Speed"></span>x30</div><div><span class="bottle b-Stamina"></span>x30</div></div>
+     <div class="row"><span class="price">R$999</span><span class="buy">Buy</span><span class="gift">Gift</span></div>
+    </div>
+   </div>
+   <div class="col" style="flex:1">
+    <div class="tag luck">
+     <div style="display:flex;gap:8px;align-items:center"><span class="bottle b-Luck"></span><div><div class="t">DOUBLE Server Luck!</div><div class="d">Server-wide • no gifting</div></div></div>
+     <div class="tier"><div class="n">2x Server Luck</div><div class="r"><span class="price" style="color:#cdb3b8;font-size:17px">R$199</span><span class="buy off">Coming soon</span></div></div>
+     <div class="tier"><div class="n">4x Server Luck</div><div class="r"><span class="price" style="color:#cdb3b8;font-size:17px">R$399</span><span class="buy off">Coming soon</span></div></div>
+     <div class="tier"><div class="n">8x Server Luck</div><div class="r"><span class="price" style="color:#cdb3b8;font-size:17px">R$799</span><span class="buy off">Coming soon</span></div></div>
+    </div>
+    <div class="sh" style="margin-top:2px"><span class="h2">Codes</span></div>
+    <span class="field" style="flex:none">Enter code here..</span><span class="tile go sm" style="flex:none">Redeem</span>
+    <div class="thanks">♥ Thanks for your support! ♥</div>
+   </div>
+  </div>
+  <div class="footer"><span class="seal sm">桜</span>Follow the socials on the game page for codes!</div>
+ </div></div>
+ <div class="roller l"></div><div class="roller r"></div>
+</div></div>
+<script>
+// MonetizationConfig.Gamepasses: [name, R$, description, HudIcons key, Details button?, owned?]
+const P = [
+ ["VIP",499,"VIP title, +10% Money and Luck!","Rebirth",1],
+ ["2x Auto-Roll",199,"Roll twice as fast!","Index",0,1],
+ ["Extra Roll I",299,"+1 auto-roll at once (2 total)!","Index"],
+ ["Extra Roll II",599,"+1 more auto-roll (3 total)!","Index"],
+ ["2x Money",249,"Doubles race payouts!","Shop"],
+ ["Lucky",149,"Permanent +1 Luck!","Stats",1],
+ ["ULTRA Lucky",299,"Permanent +2 Luck!","Stats",1],
+ ["Deep Stamina",199,"+25% stamina for your team!","Stats"],
+ ["+ Inventory",199,"+100 bag spaces!","Items"],
+ ["Saitamo",999,"Exclusive runner: 350 studs/s!","Index"],
+];
+document.getElementById("passes").innerHTML = P.map(([n,p,d,i,det,own]) => `<div class="tag pc"><img src="../../hud_tabtilt/${i}.png"><span class="n">${n}${det?'<span class="det" style="position:static">Details</span>':""}</span><span class="d">${d}</span>
+ <div class="row">${own?'<span class="buy off">OWNED</span>':`<span class="price">R$${p}</span><span class="buy">Buy</span>`}<span class="gift off">Gift</span></div></div>`).join("");
+const K = [["Luck","x2 Luck",1],["Money","x2 Money"],["Speed","x2 cruise speed"],["Stamina","x2 stamina"]];
+document.getElementById("packs").innerHTML = K.map(([c,d,det]) => `<div class="tag pk"><span class="bottle b-${c} bt"></span><span class="n">x5 ${c} Potion III</span><span class="d">${d}</span>
+ <div class="p"><span class="price">R$49</span>${det?'<span class="det" style="position:static;margin-left:auto">Details</span>':""}</div><div class="row"><span class="buy">Buy</span><span class="gift">Gift</span></div></div>`).join("");
+</script>
+<script src="kit.js"></script></body></html>

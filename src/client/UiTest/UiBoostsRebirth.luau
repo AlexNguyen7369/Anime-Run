@@ -144,13 +144,26 @@ function Extras.Build(h)
 			shown ~= nil and ratio ~= nil and math.abs(shown - ratio) <= RB.FillTolerance
 		)
 		local met = type(level) == "number" and level >= need
-		local fillColour = fill and fill.BackgroundColor3
+		-- Design doc 4.46: the met fill is vermilion, drawn by the DojoFill gradient (AnimeSkin.Dojo.Fill) over a white
+		-- BackgroundColor3; every keypoint times the background is the colour shown (was the 4.42 green fill).
+		local fillColour, fillOk = nil, fill ~= nil
+		if fill then
+			local gradient = fill:FindFirstChild("DojoFill")
+			local keys = gradient and gradient:IsA("UIGradient") and gradient.Enabled and gradient.Color.Keypoints
+				or { { Value = Color3.new(1, 1, 1) } }
+			for _, key in keys do
+				local c = fill.BackgroundColor3
+				local shownColour = Color3.new(c.R * key.Value.R, c.G * key.Value.G, c.B * key.Value.B)
+				fillColour = fillColour or shownColour
+				fillOk = fillOk and colourOk("vermilion", shownColour)
+			end
+		end
 		h.check(
 			res,
 			"rebirth_bar_fill_green_when_met",
 			fillColour and rgb(fillColour) or "missing",
-			met and "green" or "any (requirement not met)",
-			fillColour ~= nil and (not met or colourOk("green", fillColour))
+			met and "vermilion" or "any (requirement not met)",
+			fillColour ~= nil and (not met or fillOk)
 		)
 
 		-- RebirthButton: a TextButton, shown, label REBIRTH or a server reply, Active only when the server would accept

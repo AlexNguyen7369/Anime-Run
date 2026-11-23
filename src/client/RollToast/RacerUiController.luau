@@ -42,6 +42,7 @@ local UiFeedback = require(client.UiFeedback)
 local PanelBand = require(client.PanelBand)
 local PanelFrame = require(client.PanelFrame)
 local AnimeSkin = require(client:WaitForChild("AnimeSkin"))
+local HudPlaque = require(client:WaitForChild("HudPlaque"))
 local NpcConfig = require(Shared.NpcConfig)
 local BossWaitCamera = require(client.BossWaitCamera)
 local RunnerVisual = require(client.RunnerVisual)
@@ -64,9 +65,11 @@ hud.MoneyPlate:Destroy()
 hud.Unbanked:Destroy()
 UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
+HudPlaque.Font(hud.MoneyValue, HudPlaque.Heading) -- option A (design doc 4.46): Permanent Marker on the lacquer plate
 -- Gems read-out (design doc 4.35, 4.40): a row directly under the Money number, inside Money so it follows its layout
 -- and scale; RacerHud is generated, so it is built here.
-local GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255)
+-- Option A (design doc 4.46, drafts/hud_a.html): gold Kalam numbers on the lacquer plate.
+local GEM, GEM_DEEP = HudPlaque.Gold, Color3.fromRGB(214, 150, 40)
 local gemsPlate = Instance.new("Frame")
 gemsPlate.Name = "Gems"
 gemsPlate.BackgroundTransparency = 1
@@ -86,7 +89,7 @@ gemsValue.Name = "GemsValue"
 gemsValue.Position = UDim2.fromScale(0.2, 0)
 gemsValue.Size = UDim2.fromScale(0.8, 1)
 gemsValue.BackgroundTransparency = 1
-gemsValue.Font = UiTheme.Font
+HudPlaque.Font(gemsValue, HudPlaque.Script)
 gemsValue.TextSize = 26
 gemsValue.TextColor3 = Color3.new(1, 1, 1)
 gemsValue.TextXAlignment = Enum.TextXAlignment.Left
@@ -95,12 +98,39 @@ gemsValue.ZIndex = 3
 UiTheme.Gradient(gemsValue, GEM, GEM_DEEP)
 UiTheme.Stroke(gemsValue, 2, Color3.fromRGB(18, 22, 43))
 gemsValue.Parent = gemsPlate
+-- Owner 2026-11-20 (design doc 4.40, 4.46 option A): Money and Gems each sit on a lacquer counter plate (dark, gold
+-- rim) fitted to the shown number; the Money coin overlaps the plate's left end. Behind the text (ZIndex 2), never input.
+local PLATE_PAD = 12 -- px past the number's end (proposed)
+local moneyLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
+moneyLacquer.Name = "MoneyLacquer" -- not MoneyPlate: that generated part stays retired (UiSpec.Hud.RetiredMoneyParts)
+moneyLacquer.ZIndex = 2
+moneyLacquer.Active = false
+moneyLacquer.Parent = hud.Money
+local gemsLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
+gemsLacquer.Name = "GemsLacquer"
+gemsLacquer.ZIndex = 2
+gemsLacquer.Active = false
+gemsLacquer.Parent = gemsPlate
 -- Follows MoneyValue's desktop and phone layouts, so it needs no phone branch of its own.
 local function placeGems()
 	local value = hud.MoneyValue
 	local x, y, height = value.Position.X.Offset, value.Position.Y.Offset, value.Size.Y.Offset
 	gemsPlate.Size = UDim2.fromOffset(value.Size.X.Offset, height * 0.7)
 	gemsPlate.Position = UDim2.fromOffset(x, y + height + 4)
+	local icon = hud.MoneyIcon
+	local left = icon.Position.X.Offset + icon.Size.X.Offset / 2
+	local right = math.min(x + value.TextBounds.X + PLATE_PAD, hud.Money.Size.X.Offset)
+	moneyLacquer.Position = UDim2.fromOffset(left, y - 6)
+	moneyLacquer.Size = UDim2.fromOffset(math.max(right - left, 0), height + 12)
+	local gemsHeight = height * 0.7
+	gemsLacquer.Position = UDim2.fromOffset(-6, -3)
+	gemsLacquer.Size = UDim2.fromOffset(
+		math.min(
+			gemsValue.Position.X.Scale * gemsPlate.Size.X.Offset + gemsValue.TextBounds.X + PLATE_PAD + 6,
+			value.Size.X.Offset + 6
+		),
+		gemsHeight + 6
+	)
 end
 -- Owner 2026-11-01: the speedometer and the cruise read-out are removed from the HUD.
 hud.Speed:Destroy()
@@ -270,7 +300,7 @@ local function switch(toggle, on)
 		if lift then
 			lift.Visible = false
 		end
-		Components.Tint(toggle, Color3.fromRGB(16, 16, 20))
+		AnimeSkin.Dojo.Lacquer(toggle) -- design doc 4.46: a lacquer ON / OFF switch
 	end
 	UiMotion.Mark(knob, { Position = on and UDim2.fromScale(0.4, 0) or UDim2.fromScale(0, 0) })
 	AnimeSkin.Button(knob, on and "Go" or "Idle")
@@ -339,11 +369,7 @@ profileHost.ScrollingDirection = Enum.ScrollingDirection.Y
 profileHost.ClipsDescendants = true
 profileHost.Visible = false
 profileHost.ZIndex = 3
-profileHost.Parent = settings.Panel
-local profileLayout = Instance.new("UIListLayout")
-profileLayout.SortOrder = Enum.SortOrder.LayoutOrder
-profileLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-profileLayout.Parent = profileHost
+profileHost.Parent = settings.Panel -- indexFrame places the cards (two columns, settings_profile frame)
 
 local profileRows = {
 	{ "TotalRolls", "TOTAL ROLLS", "0" },
@@ -362,7 +388,7 @@ for order, spec in profileRows do
 	row.BorderSizePixel = 0
 	row.LayoutOrder = order
 	row.ZIndex = 3
-	AnimeSkin.Plate(row) -- design doc 4.42: a slanted plate like the Settings rows; indexFrame sizes it
+	AnimeSkin.Plate(row, AnimeSkin.Tint.Danger) -- design doc 4.46: a paper card with a vermilion bar; indexFrame places it
 	local name = Instance.new("TextLabel")
 	name.Name = "Name"
 	name.BackgroundTransparency = 1
@@ -374,7 +400,7 @@ for order, spec in profileRows do
 	value.Name = "Value"
 	value.BackgroundTransparency = 1
 	value.Text = spec[3]
-	value.TextXAlignment = Enum.TextXAlignment.Right
+	value.TextXAlignment = Enum.TextXAlignment.Left
 	value.ZIndex = 4
 	value.Parent = row
 	row.Parent = profileHost
@@ -822,11 +848,7 @@ local function refreshStats()
 		)
 		row.Plus.Active = available
 		row.Plus.Selectable = available
-		AnimeSkin.Button(row.Plus, available and "Go" or "Idle")
-		local accent = row.Frame:GetAttribute("AccentColor")
-		if available and accent then
-			row.Plus.BackgroundColor3 = accent -- the stat's own colour, as before
-		end
+		AnimeSkin.Button(row.Plus, available and "Go" or "Idle") -- 4.46 stats frame: the vermilion tile for every stat
 	end
 	label(hud.Stats, "STATS")
 	local badge = hud.Stats:FindFirstChild("PointsBadge")
@@ -851,7 +873,7 @@ for _, row in pairs(rows) do
 	local frame = row.Frame
 	AnimeSkin.Plate(frame, frame:GetAttribute("AccentColor"))
 	frame.Lift.Visible = false
-	frame.Accent.BackgroundColor3 = Color3.fromRGB(20, 24, 40)
+	frame.Accent.BackgroundColor3 = AnimeSkin.Dojo.Colors.Track -- a progress track on paper (4.46)
 end
 for _, row in settings.Panel:GetDescendants() do
 	local face = row:IsA("Frame") and row.Name:match("Row$") and row:FindFirstChild("Face")
@@ -967,7 +989,15 @@ local function indexFrame(refs, icon, content)
 	refs.Title.ZIndex = 10
 	refs.Title.TextXAlignment = Enum.TextXAlignment.Left
 	close.ZIndex = 10
-	local closeArt = refs.Close:FindFirstChild("AnimeCloseArt")
+	-- Design doc 4.46 header (AnimeSkin.IndexFrame's): the brushed rule under the header band, on the paper.
+	local rule = face:FindFirstChild("HeaderRule") or Instance.new("Frame")
+	rule.Name = "HeaderRule"
+	rule.BackgroundColor3 = AnimeSkin.Dojo.Colors.InkSoft
+	rule.BackgroundTransparency = 0.45
+	rule.BorderSizePixel = 0
+	rule.Active = false
+	rule.ZIndex = 2
+	rule.Parent = face
 	local g = {
 		Frame = frame,
 		u = function(px)
@@ -985,17 +1015,19 @@ local function indexFrame(refs, icon, content)
 		if frame.Size ~= UDim2.fromOffset(W, H) then
 			frame.Size = UDim2.fromOffset(W, H)
 		end
-		-- The header band spans the panel's top at its origin, so its parts sit in panel coordinates.
-		place(band, 0, 0, W, 64)
-		place(refs.Title, 168, -23, W - 266, 76)
-		refs.Title.Rotation = -2
+		-- The header band (0 to 98) spans the panel's top at its origin, so its parts sit in panel coordinates. Design
+		-- doc 4.46, as AnimeSkin.IndexFrame: logo 70 at (28, 14), the brush title after it, the seal close 64 at 92 in
+		-- from the right (Scale + offset: it stays in the frame at any width), the rule at y 90.
+		place(band, 0, 0, W, 98)
+		refs.Title.AnchorPoint = Vector2.zero
+		refs.Title.Position, refs.Title.Size = UDim2.fromOffset(108, 12), UDim2.new(1, -228, 0, 72)
+		refs.Title.Rotation = 0
 		AnimeSkin.Text(refs.Title, 72)
-		place(logo, -19, -72, 188, 186)
-		place(close, W - 74, 4, 58, 54)
-		if closeArt then
-			closeArt.AnchorPoint = Vector2.zero
-			closeArt.Position, closeArt.Size = UDim2.fromOffset(-8, -10), UDim2.new(1, 16, 1, 20)
-		end
+		place(logo, 28, 14, 70, 70)
+		close.AnchorPoint = Vector2.zero
+		close.Position, close.Size = UDim2.new(1, -92, 0, 16), UDim2.fromOffset(64, 64)
+		rule.AnchorPoint = Vector2.zero
+		rule.Position, rule.Size = UDim2.fromOffset(28, 90), UDim2.new(1, -56, 0, 3)
 		g.W, g.H, g.Tabs, g.Phone = W, H, small and 90 or 98, small
 		g.Top = small and 144 or 164
 		g.Height = H - g.Top - 82
@@ -1034,6 +1066,8 @@ local function footerLine(refs, g, value)
 		line.BackgroundTransparency = 1
 		line.ZIndex = 4
 		line.Parent = face
+		line:SetAttribute("DojoTextColor", AnimeSkin.Dojo.Colors.Cream) -- on its lacquer plate (4.46)
+		AnimeSkin.Dojo.FooterPlate(line, 10)
 	end
 	line.Text = value
 	place(line, math.floor(g.W * 303 / 920), g.H - 60, math.floor(g.W * 312 / 920), 28)
@@ -1065,6 +1099,14 @@ local function rebirthMiddle(phone)
 	end
 	return phone and middle or nil
 end
+-- 4.46 rebirth frame: the warning on a slip with a vermilion bar and title, the requirement bar a vermilion fill on
+-- a paper track; the free points line cream on the footer's lacquer plate.
+AnimeSkin.Plate(rebirth.Warning, AnimeSkin.Tint.Danger)
+rebirth.WarningTitle:SetAttribute("DojoTextColor", AnimeSkin.Dojo.Colors.Verm)
+AnimeSkin.Dojo.Fill(rebirth.Bar, AnimeSkin.Dojo.Colors.Track)
+AnimeSkin.Dojo.Fill(rebirth.Fill, AnimeSkin.Dojo.Colors.VermLight, AnimeSkin.Dojo.Colors.Verm)
+stats.Points:SetAttribute("DojoTextColor", AnimeSkin.Dojo.Colors.Cream)
+AnimeSkin.Dojo.FooterPlate(stats.Points, 10)
 indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
 	tabsRow(rebirth.Header.RebirthTabs, g)
 	footerLine(rebirth, g, string.format("REBIRTH LEVEL %d", player:GetAttribute("RebirthLevel") or 0))
@@ -1153,7 +1195,6 @@ indexFrame(stats, HudIcons.Rebirth.Image, function(g)
 	place(stats.Points, math.floor(g.W * 303 / 920), g.H - 60, math.floor(g.W * 312 / 920), 28)
 	stats.Points.TextXAlignment = Enum.TextXAlignment.Center
 	AnimeSkin.Text(stats.Points, u(TOKEN.Body))
-	stats.Points:FindFirstChildOfClass("UIStroke").Thickness = 1.5
 	-- The four stat rows fill the content area exactly: whole rows, 12 px apart, nothing to scroll.
 	local list = stats.StatsHost:FindFirstChild("Rows")
 	list:FindFirstChildOfClass("UIListLayout").Padding = UDim.new(0, gap)
@@ -1236,19 +1277,22 @@ indexFrame(settings, HudIcons.Settings.Image, function(g)
 		end
 	end
 	footerLine(settings, g, showSettings and (#keys .. " SETTINGS") or (#profileRows .. " PROFILE LINES"))
-	-- PLAYER PROFILE: six plates in the same area, 12 px apart.
+	-- PLAYER PROFILE (4.46 settings_profile frame): six cards in two columns of three, 12 px apart; each the name
+	-- over its value.
 	place(profileHost, left, g.Top, width, g.Height)
-	local rowGap = u(SPACE.Gap)
-	profileLayout.Padding = UDim.new(0, rowGap)
-	local plateH = math.floor((g.Height - (#profileRows - 1) * rowGap) / #profileRows)
-	local plateSlant = math.floor(plateH / 2) + u(SPACE.Inner)
-	local textW = width - 2 * plateSlant
+	local gap2, pad = u(SPACE.Gap), u(SPACE.Pad)
+	local cardW = math.floor((width - gap2) / 2)
+	local cardH = math.floor((g.Height - 2 * gap2) / 3)
+	local textX = pad + u(SPACE.Inner) -- clear of the card's vermilion bar
+	local textW = cardW - textX - pad
+	local nameH = math.floor((cardH - 2 * pad) * 0.4)
 	for row, labels in profileLabels do
-		row.Size = UDim2.new(1, 0, 0, plateH)
-		place(labels[1], plateSlant, 0, math.floor(textW * 0.55), plateH)
-		place(labels[2], plateSlant + math.floor(textW * 0.55), 0, textW - math.floor(textW * 0.55), plateH)
+		local i = row.LayoutOrder - 1
+		place(row, i % 2 * (cardW + gap2), math.floor(i / 2) * (cardH + gap2), cardW, cardH)
+		place(labels[1], textX, pad, textW, nameH)
+		place(labels[2], textX, pad + nameH, textW, cardH - 2 * pad - nameH)
 		g.Role(labels[1], "Item")
-		g.Role(labels[2], "Body", true)
+		g.Role(labels[2], "Section")
 	end
 end)
 
@@ -1420,6 +1464,10 @@ end
 placeGems()
 hud.MoneyValue:GetPropertyChangedSignal("Position"):Connect(placeGems)
 hud.MoneyValue:GetPropertyChangedSignal("Size"):Connect(placeGems)
+-- The plates fit the number as it counts.
+hud.MoneyValue:GetPropertyChangedSignal("TextBounds"):Connect(placeGems)
+gemsValue:GetPropertyChangedSignal("TextBounds"):Connect(placeGems)
+hud.MoneyIcon:GetPropertyChangedSignal("Size"):Connect(placeGems)
 -- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
 local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
 local moneyBigOwed = false -- a big gain that landed during a roll: its coins wait for the roll to end
@@ -1569,6 +1617,43 @@ end
 hud.Turbo.ClipsDescendants = true
 hud.TurboFill.ZIndex = 2
 hud.TurboLabel.ZIndex = 5
+-- Owner 2026-11-22 (design doc 4.40, 4.46 HUD option A, drafts/hud_a.html): a wooden bar with a vermilion fill. Only
+-- colours change: the Face is the dark well the fill runs in (so the fill's share of the bar is unchanged), its rim
+-- the wood frame, the Shadow the dark wood edge under it. Size, position, names and behaviour stay.
+do
+	local wood = UiTheme.Scroll.Skins.Parchment
+	local face, shadow = hud.Turbo, hud.Turbo.Parent:FindFirstChild("Shadow")
+	local well = face:FindFirstChildOfClass("UIGradient")
+	if well then
+		well.Color = ColorSequence.new(Color3.fromRGB(44, 26, 14), Color3.fromRGB(30, 18, 10))
+	end
+	local rim = face:FindFirstChildOfClass("UIStroke")
+	if rim then
+		rim.Color, rim.Thickness = wood.RodTop, 4
+		local grain = Instance.new("UIGradient")
+		grain.Name = "Wood"
+		grain.Rotation = 90
+		grain.Color = ColorSequence.new(Color3.fromRGB(154, 106, 64), wood.RodBottom)
+		grain.Parent = rim
+	end
+	if shadow then
+		shadow.BackgroundColor3, shadow.BackgroundTransparency = UiTheme.Scroll.TileEdge, 0
+		local edge = shadow:FindFirstChildOfClass("UIStroke")
+		if edge then
+			edge.Color, edge.Transparency = UiTheme.Scroll.TileEdge, 0
+		end
+	end
+	local lift = face:FindFirstChild("Lift")
+	if lift then
+		lift.Visible = false -- the well is sunk, not lit
+	end
+	hud.TurboFill.BackgroundColor3 = Color3.new(1, 1, 1)
+	local verm = Instance.new("UIGradient")
+	verm.Name = "Vermilion"
+	verm.Rotation = 90
+	verm.Color = ColorSequence.new(UiTheme.Dojo.DeployTop, UiTheme.Dojo.DeployBottom)
+	verm.Parent = hud.TurboFill
+end
 
 playerGui:SetAttribute("RacerUiReady", true)
 

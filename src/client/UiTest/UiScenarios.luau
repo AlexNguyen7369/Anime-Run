@@ -125,6 +125,8 @@ UiScenarios.Names = {
 	"ui_reduced_motion",
 	-- docs/HUD_LAYOUT_SPEC.md section 10 (owner 2026-10-27): UiMotion presets land at once while reduced
 	"ui_motion_reduced",
+	-- design doc 4.46: the Scroll Dojo handscroll unrolls from its centre; reduced it fades
+	"ui_handscroll",
 	-- design doc 4.20 (commit c80e4de): REDUCED EFFECTS starts on for low graphics levels and small touch-only screens
 	"ui_reduce_effects_default",
 	-- design doc 4.33, docs/UI_FEEDBACK_SPEC.md: cue sounds, the sound ledger, Slam / Impact / Burst / Fly / Fill, UiFx
@@ -885,8 +887,8 @@ function FX.frameRatio(obj, ctx)
 	if not (UiSpec.BandPanels[path] or UiSpec.Duel.Panels[path]) or sameSize(ctx.vp, viewport()) then
 		return nil
 	end
-	local liveW = UiResponsive.FrameSize(viewport())
-	local simW = UiResponsive.FrameSize(ctx.vp)
+	local liveW = UiResponsive.FrameSize(viewport(), path)
+	local simW = UiResponsive.FrameSize(ctx.vp, path)
 	local liveK = obj.AbsoluteSize.X / liveW
 	if liveK <= 0 then
 		return nil
@@ -931,7 +933,7 @@ function FX.runtimeInput(obj, path, ctx)
 		end
 		input.Scale = scale
 	elseif UiSpec.BandPanels[path] then
-		local w, h = UiResponsive.FrameSize(vp)
+		local w, h = UiResponsive.FrameSize(vp, path)
 		local pw, ph = obj.Size.X.Offset, obj.Size.Y.Offset
 		if ctx then
 			local r = simRect(obj, ctx)
@@ -1544,7 +1546,7 @@ simRect = function(obj, ctx)
 					local aspect = obj:FindFirstChild("AnimeAspect")
 					local ratio = nil
 					if aspect and aspect:IsA("UIAspectRatioConstraint") then
-						local frameW, frameH = UiResponsive.FrameSize(ctx.vp)
+						local frameW, frameH = UiResponsive.FrameSize(ctx.vp, path)
 						ratio = frameW / frameH
 					end
 					fitted = UiShopMarket.BandFit(ctx.vp, dependencies, bandMax, ratio)
@@ -5685,19 +5687,46 @@ function S.ui_hud(res)
 			end
 		end
 		checkList(res, "hud_labels_inside_panel", outside)
-		-- No box: Money, Gems and everything in them draw no background and no border stroke (text outlines stay).
-		local boxed, clickable = {}, {}
+		-- Owner 2026-11-20 (design doc 4.40, 4.46 option A): Money and Gems each sit on a lacquer plate
+		-- (UiSpec.Hud.MoneyPlates), opaque with a gold Border rim; nothing else in Money draws a background or a border
+		-- stroke (text outlines stay).
+		local boxed, clickable, plates = {}, {}, {}
+		for _, p in UiSpec.Hud.MoneyPlates do
+			local plate = findPath(p)
+			local rim = plate and plate:FindFirstChildOfClass("UIStroke")
+			plates[plate or p] = true
+			if not (plate and plate:IsA("GuiObject")) then
+				table.insert(boxed, p .. " missing")
+			elseif plate.BackgroundTransparency > 0.001 then
+				table.insert(boxed, p .. " not opaque: BackgroundTransparency " .. plate.BackgroundTransparency)
+			elseif
+				not (
+					rim
+					and rim.Enabled
+					and rim.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
+					and sameColour(rim.Color, UiSpec.Hud.MoneyPlateRim)
+				)
+			then
+				table.insert(boxed, p .. " has no gold Border rim")
+			end
+		end
 		for _, o in { hudPanel, table.unpack(hudPanel:GetDescendants()) } do
-			if o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
+			local plate = plates[o] or (o:IsA("UIStroke") and plates[o.Parent]) -- a plate and its own rim
+			if not plate and o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
 				table.insert(boxed, pathOf(o) .. " BackgroundTransparency " .. o.BackgroundTransparency)
-			elseif o:IsA("UIStroke") and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border and o.Enabled then
+			elseif
+				not plate
+				and o:IsA("UIStroke")
+				and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
+				and o.Enabled
+			then
 				table.insert(boxed, pathOf(o) .. " border stroke")
 			end
 			if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
 				table.insert(clickable, pathOf(o))
 			end
 		end
-		checkList(res, "money_gems_no_box", boxed)
+		checkList(res, "money_gems_lacquer_plates", boxed)
 		checkList(res, "money_gems_non_interactive", clickable)
 	end
 	if not (money and moneyValue) then
@@ -9299,6 +9328,10 @@ S.ui_daily_boosts = function(res)
 			end
 		end
 		checkList(res, "quest_detail_read_only", interactive)
+		-- Design doc 4.46: the panel unrolls from its centre and the detail card (right of centre) inks in once the
+		-- paper reaches it, so its visibility is read once the open motion rests (4.20's open showed it at once).
+		task.wait(UiSpec.Waits.PanelMotion)
+		frames(1)
 		local phone = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.Y <= cfg.PhoneMaxHeight
 		check(
 			res,

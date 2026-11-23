@@ -37,7 +37,11 @@ local HEAVY = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWei
 local PanelBand = require(script.Parent:WaitForChild("PanelBand"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
+local D = AnimeSkin.Dojo
+local WOOD = UiTheme.Scroll.Skins.Parchment -- RodTop / RodBottom: the handscroll rollers' wood
 local Icons = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+local HudPlaque = require(script.Parent:WaitForChild("HudPlaque"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -54,7 +58,8 @@ local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle,
 -- Design doc 4.40 "Market pill and Bosses button" (owner 2026-11-11): the column buttons' exact cell, icon and label
 -- (Client/HudChrome CELL, ICON, label TextSize and outline), x BOSS_PHONE_SCALE on a phone as HudChrome's UIScale.
 local BOSS_CELL = Vector2.new(84, 94)
-local BOSS_ICON = 72
+local BOSS_ICON = 60
+local BOSS_ICON_TOP = 6 -- px: HudChrome ICON_TOP (design doc 4.46 option A)
 local BOSS_LABEL_SIZE = 19
 local BOSS_OUTLINE = 2.5
 local BOSS_PHONE_SCALE = 0.68
@@ -157,10 +162,11 @@ end
 -- The Index frame (design doc 4.42, Client/AnimeSkin.IndexFrame): chrome, overhanging logo, ALL CAPS title, art close,
 -- content in the frame's units. The Boss icon is the logo (design doc 4.40). The countdown (Section,
 -- gold) sits on a plate at the right of the tabs row. withClose adds Header/CloseButton; the Invite has none (Decline is
--- its way out). Returns the frame's g too: each popup lays its content out in g.OnLayout.
+-- its way out). scroll = false: a paper slip, no handscroll (design doc 4.46). Returns the frame's g too: each popup lays
+-- its content out in g.OnLayout.
 local LOGO = Icons.Boss.Image
 local COUNTDOWN_WIDTH = 160 -- units, "m:ss" at the Section size with the plate's 24 clear at each end
-local function panel(name, title, withClose)
+local function panel(name, title, withClose, scroll)
 	local frame = make("Frame", name, nil, { Visible = false, Active = true, AnchorPoint = Vector2.new(0.5, 0.5) })
 	UiTheme.Body(frame)
 	local header = make("Frame", "Header", frame, { BackgroundTransparency = 1, BorderSizePixel = 0 })
@@ -178,8 +184,10 @@ local function panel(name, title, withClose)
 	end)
 	local logo = make("ImageLabel", "Logo", header, { Image = LOGO })
 	local close = withClose and button("CloseButton", header, "X", "Danger", {}) or nil
-	local g =
-		AnimeSkin.IndexFrame(frame, { Header = header, Title = titleLabel, Icon = logo, Logo = LOGO, Close = close })
+	local g = AnimeSkin.IndexFrame(
+		frame,
+		{ Header = header, Title = titleLabel, Icon = logo, Logo = LOGO, Close = close, Scroll = scroll }
+	)
 	g.OnLayout(function()
 		local x, y = g.W - 56 - COUNTDOWN_WIDTH, g.Content.TabsY
 		g.Place(plate, x, y, COUNTDOWN_WIDTH, AnimeSkin.Units.TabH)
@@ -216,8 +224,24 @@ local secondColumn = make("ScreenGui", "RacerSecondColumn", playerGui, {
 })
 
 -- Invite ------------------------------------------------------------------------------------------------------------------
-local invite, _, inviteCountdown, _, inviteFrame = panel("Invite", BossCatalog.Current().InviteTitle)
+local invite, inviteHeader, inviteCountdown, _, inviteFrame =
+	panel("Invite", BossCatalog.Current().InviteTitle, nil, false)
 invite.Parent = root
+-- Design doc 4.46 bossinvite frame: a lacquer plate with a gold rim (no handscroll), the title in cream on a red brush band
+-- at its top left, the countdown in gold on a dark plate, the hint in cream.
+D.Lacquer(invite)
+D.Rim(invite, D.Colors.GoldSoft, 3)
+local inviteTitle = inviteHeader:FindFirstChild("Title")
+local inviteBand = make("Frame", "Band", inviteHeader, { ZIndex = 9, Active = false })
+D.Fill(inviteBand, D.Colors.Brush)
+D.Corner(inviteBand, 14)
+inviteTitle:SetAttribute("DojoTextColor", D.Colors.Cream)
+inviteCountdown:SetAttribute("DojoTextColor", D.Colors.Gold)
+D.Lacquer(inviteHeader:FindFirstChild("CountdownPlate"))
+local inviteRule = invite:FindFirstChild("HeaderRule")
+if inviteRule then
+	inviteRule.Visible = false
+end
 local inviteHint = label("Hint", invite, {
 	Text = "",
 	TextWrapped = true,
@@ -226,6 +250,7 @@ local inviteHint = label("Hint", invite, {
 }, 22)
 local teleport = button("TeleportButton", invite, "Teleport", "Go", {})
 local decline = button("DeclineButton", invite, "Decline", "Idle", {})
+inviteTitle:GetPropertyChangedSignal("TextBounds"):Connect(inviteFrame.Relayout)
 -- The hint (Body) on top, Teleport and Decline side by side on the content's last row, 12 apart.
 inviteFrame.OnLayout(function(g)
 	local c, U = g.Content, AnimeSkin.Units
@@ -234,13 +259,22 @@ inviteFrame.OnLayout(function(g)
 	g.Place(inviteHint, c.X, c.Y, c.W, c.H - U.Gap - U.Button)
 	g.Place(teleport, c.X, y, half, U.Button)
 	g.Place(decline, c.X + half + U.Gap, y, half, U.Button)
-	g.Role(inviteHint, "Body")
+	g.Role(inviteHint, "Item")
+	inviteHint.TextColor3 = D.Colors.Cream
+	-- The band runs from just past the plate's left edge to the title's words.
+	local titleX = inviteTitle.Position.X.Offset
+	inviteBand.Position = UDim2.fromOffset(-g.px(22), inviteTitle.Position.Y.Offset - g.px(4))
+	inviteBand.Size = UDim2.fromOffset(
+		titleX + math.min(inviteTitle.TextBounds.X, inviteTitle.AbsoluteSize.X) + g.px(62),
+		inviteTitle.Size.Y.Offset + g.px(8)
+	)
 	g.Role(teleport, "Item")
 	g.Role(decline, "Item")
 end)
 
 -- Team HUD ----------------------------------------------------------------------------------------------------------------
-local hud, _, hudCountdown, hudClose, hudFrame = panel("TeamHud", "CHOOSE YOUR TEAM", true)
+-- Design doc 4.46: the in-event HUD is no scroll (a paper slip, AnimeSkin.IndexFrame Scroll = false).
+local hud, _, hudCountdown, hudClose, hudFrame = panel("TeamHud", "CHOOSE YOUR TEAM", true, false)
 hud.Parent = root
 local slots = {}
 for i = 1, StaminaConfig.TEAM_SIZE do
@@ -417,27 +451,32 @@ local bossTimer = label("BossTimer", bar, {
 }, TITLE_HEIGHT)
 local barTitle = label("Title", bar, {
 	Text = BossCatalog.Current().Name,
-	FontFace = HEAVY,
+	FontFace = D.Fonts.Title, -- design doc 4.46 bosshud frame: the brush wordmark
 }, TITLE_HEIGHT)
 -- An HP track and its fill: two bands with a hard edge, bright over deep.
 local function hpTrack(parent)
+	-- Design doc 4.46 bosshud frame: a dark well in a wooden frame (the stroke, rod wood top to bottom).
 	local frame = make("Frame", "Track", parent, {
-		BackgroundColor3 = Palette.TeamTired,
+		BackgroundColor3 = Color3.fromRGB(29, 16, 18), -- #1D1012
 		BorderSizePixel = 0,
 	})
 	UiTheme.Corner(frame, "S")
-	UiTheme.Stroke(frame, 2, Palette.Gold, true)
+	make("UIGradient", "Wood", UiTheme.Stroke(frame, 5, Color3.new(1, 1, 1), true), {
+		Color = ColorSequence.new(WOOD.RodTop, WOOD.RodBottom),
+		Rotation = 90,
+	})
 	local bandFill = make("Frame", "Fill", frame, {
 		Size = UDim2.fromScale(0, 1),
 		BackgroundColor3 = Palette.White,
 		BorderSizePixel = 0,
 	})
 	UiTheme.Corner(bandFill, "S")
-	UiTheme.Gradient(bandFill, Palette.Danger, Palette.DangerDeep).Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Palette.Danger),
-		ColorSequenceKeypoint.new(0.5, Palette.Danger),
-		ColorSequenceKeypoint.new(0.501, Palette.DangerDeep),
-		ColorSequenceKeypoint.new(1, Palette.DangerDeep),
+	local bright, deep = Color3.fromRGB(226, 65, 74), Color3.fromRGB(157, 31, 43) -- #E2414A over #9D1F2B
+	UiTheme.Gradient(bandFill, bright, deep).Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, bright),
+		ColorSequenceKeypoint.new(0.5, bright),
+		ColorSequenceKeypoint.new(0.501, deep),
+		ColorSequenceKeypoint.new(1, deep),
 	})
 	return frame, bandFill
 end
@@ -459,7 +498,7 @@ local minionBar = make("Frame", "MinionBar", bar, {
 	BackgroundTransparency = 1,
 	Visible = false,
 })
-local minionTitle = label("Title", minionBar, { Text = "", FontFace = HEAVY }, TITLE_HEIGHT)
+local minionTitle = label("Title", minionBar, { Text = "", FontFace = D.Fonts.Title }, TITLE_HEIGHT)
 local minionTrack, minionFill = hpTrack(minionBar)
 local minionValue = label("Value", minionBar, { Text = "", ZIndex = 2 }, 36)
 
@@ -605,7 +644,7 @@ local editTeam = button("EditTeamButton", root, "Edit Team", "Go", {
 	TextSize = 18,
 	Visible = false,
 })
-local leave = button("LeaveButton", root, "LEAVE", "Danger", {
+local leave = button("LeaveButton", root, "LEAVE", "Go", { -- design doc 4.46: a vermilion tile
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -8, 0, 56),
 	Size = UDim2.fromOffset(62, 44),
@@ -613,35 +652,55 @@ local leave = button("LeaveButton", root, "LEAVE", "Danger", {
 	Visible = false,
 })
 
--- Design doc 4.40 (owner 2026-11-12): the second column, Bosses and Team, in the HUD column buttons' look: a transparent
--- button with its Tab tilt icon and its label (the button's own Text, white with the dark outline `strokeName`) under
--- it. The phone scale is written into the sizes (placeColumnButton) instead of a UIScale: RacerMotion adds a HoverScale
--- once the button is in the gui and the first UIScale is the one that draws, so the caller parents it after its own.
+-- Design doc 4.40 (owner 2026-11-12): the second column, Bosses and Team, in the HUD column buttons' look (option A
+-- "wood plaques", design doc 4.46): a transparent button over its wood plaque (Client/HudPlaque) with its icon and its
+-- brush label under it. The button's own Text stays the label's text and size, drawn by a child Label over the plaque
+-- (a child always draws over its parent); `strokeName` is a border stroke on the plaque's rim, the join glow. The phone
+-- scale is written into the sizes (placeColumnButton) instead of a UIScale: RacerMotion adds a HoverScale once the
+-- button is in the gui and the first UIScale is the one that draws, so the caller parents it after its own.
 local function columnButton(name, text, image, strokeName)
 	local b = make("TextButton", name, nil, {
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
 		Text = text,
-		Font = UiTheme.Font,
-		TextColor3 = Palette.White,
-		TextYAlignment = Enum.TextYAlignment.Bottom,
+		TextColor3 = HudPlaque.Ink,
+		TextTransparency = 1,
 		Visible = false,
 	})
-	-- In scale of the cell, so it follows the cell's phone size: ICON x ICON at the top, as HudChrome's icon.
+	HudPlaque.Font(b, HudPlaque.Script)
+	HudPlaque.Plaque(b)
+	-- HudChrome's Label: 24 px band 2 px over the cell's foot, 3 px in from each side; in scale of the cell.
+	local shown = HudPlaque.Font(
+		make("TextLabel", "Label", b, {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.fromScale(0.5, 1 - 2 / BOSS_CELL.Y),
+			Size = UDim2.fromScale(1 - 6 / BOSS_CELL.X, 24 / BOSS_CELL.Y),
+			BackgroundTransparency = 1,
+			Text = text,
+			TextColor3 = HudPlaque.Ink,
+			ZIndex = 3,
+		}),
+		HudPlaque.Script
+	)
+	b:GetPropertyChangedSignal("TextSize"):Connect(function()
+		shown.TextSize = b.TextSize
+	end)
+	-- In scale of the cell, so it follows the cell's phone size: ICON x ICON near the top, as HudChrome's icon.
 	make("ImageLabel", "Icon", b, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0),
+		Position = UDim2.fromScale(0.5, BOSS_ICON_TOP / BOSS_CELL.Y),
 		Size = UDim2.fromScale(BOSS_ICON / BOSS_CELL.X, BOSS_ICON / BOSS_CELL.Y),
 		BackgroundTransparency = 1,
 		Image = image,
 		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 2,
 	})
 	local stroke = make("UIStroke", strokeName, b, {
-		Color = UiTheme.Outline,
+		Color = UiTheme.Scroll.TileRim, -- on the plaque's own rim at rest
 		Thickness = BOSS_OUTLINE,
 		LineJoinMode = Enum.LineJoinMode.Round,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
 	return b, stroke
 end
@@ -651,22 +710,14 @@ make("UIScale", "PulseScale", bossButton, {})
 bossButton.Parent = secondColumn
 -- Below it, Team (owner 2026-11-12): opens the Team panel (Client/TeamUi), as its key letter T does, as the column's.
 local teamButton, teamOutline = columnButton("TeamButton", "Team", Icons.Team.Image, "Outline")
-local teamLetter = make("TextLabel", "Key", teamButton, {
+-- HudChrome's key seal: 20 px, 3 px in from the top-right corner.
+local teamLetter = HudPlaque.Seal(make("TextLabel", "Key", teamButton, {
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.fromScale(1 - 2 / BOSS_CELL.X, 2 / BOSS_CELL.Y),
-	Size = UDim2.fromScale(18 / BOSS_CELL.X, 18 / BOSS_CELL.Y),
-	BackgroundTransparency = 1,
-	Font = UiTheme.Font,
-	TextColor3 = Palette.White,
-	TextXAlignment = Enum.TextXAlignment.Right,
+	Position = UDim2.fromScale(1 - 3 / BOSS_CELL.X, 3 / BOSS_CELL.Y),
+	Size = UDim2.fromScale(20 / BOSS_CELL.X, 20 / BOSS_CELL.Y),
 	Text = TEAM_KEY.Name,
-	ZIndex = 3,
-})
-local teamLetterOutline = make("UIStroke", "Outline", teamLetter, {
-	Color = UiTheme.Outline,
-	Thickness = 2,
-	LineJoinMode = Enum.LineJoinMode.Round,
-})
+	ZIndex = 4,
+}))
 teamButton.Parent = secondColumn
 teamButton.Activated:Connect(function()
 	PanelSwitch.Action("Team")
@@ -703,18 +754,24 @@ bossesPanel.Parent = root
 PanelSwitch.DimWith(bossesPanel) -- design doc 4.42: it dims the world like every panel
 local CARDS_H = 440 -- units: the cards' area, tabs row to content bottom, at desktop size; a phone scales every size in it
 local OTHER_TEXT = "Not this time"
-local LIVE_TAG, NEXT_TAG = Color3.fromRGB(255, 80, 160), Color3.fromRGB(150, 110, 60)
-local PILL_DARK = Color3.fromRGB(20, 24, 44)
-local PHASES_COLOR = Color3.fromRGB(110, 205, 240)
+-- Design doc 4.46 bosses frame: LIVE a red brush pill, NEXT a lacquer one; the timer and "Not this time" lacquer pills,
+-- the timer's fill vermilion; phases in soft ink; the other bosses under a brown veil.
+local LIVE_TAG, NEXT_TAG = D.Colors.Brush, D.Colors.Lacquer
+local PILL_DARK = D.Colors.Lacquer
+local PHASES_COLOR = D.Colors.InkSoft
 local cardsFrame = make("Frame", "Cards", bossesPanel, { BackgroundTransparency = 1 })
 local cards = {} -- boss id -> its card's parts
 local largeId = BossCatalog.Default -- the large card's boss, as drawBossButton last found it
 local detailsFor = nil -- the boss whose chest tables show, nil while the cards show
+local bossesClosing = false -- its roll-up is playing
 
 -- A reward square: art (an image, or the "$" glyph) with its count at the bottom right.
 local function rewardTile(parent, name, image, count)
 	local tile = make("Frame", name, parent, { BackgroundTransparency = 1 })
-	AnimeSkin.Card(tile)
+	-- Design doc 4.46 bosses frame: a cream wood tile (kit.css .rt).
+	D.Fill(tile, D.Colors.TileTop, D.Colors.TileBottom)
+	D.Rim(tile, D.Colors.Rim, 3)
+	D.Corner(tile, 6)
 	local art = image
 			and make("ImageLabel", "Art", tile, {
 				BackgroundTransparency = 1,
@@ -749,7 +806,8 @@ for _, id in BossCatalog.Order do
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
 	e.Tag = text("Tag", { BackgroundTransparency = 0, BackgroundColor3 = LIVE_TAG, BorderSizePixel = 0, Text = "" })
-	make("UICorner", "Round", e.Tag, { CornerRadius = UDim.new(1, 0) })
+	make("UICorner", "Round", e.Tag, { CornerRadius = UDim.new(0, 14) })
+	e.Tag:SetAttribute("DojoTextColor", D.Colors.Cream)
 	-- The pill's own Text holds its words; a child label draws them above the Fill, which a parent's text can not be.
 	e.Pill = text("Pill", {
 		BackgroundTransparency = 0,
@@ -759,24 +817,28 @@ for _, id in BossCatalog.Order do
 		TextTransparency = 1,
 		ZIndex = 5,
 	})
-	make("UICorner", "Round", e.Pill, { CornerRadius = UDim.new(1, 0) })
-	UiTheme.Stroke(e.Pill, 2, Palette.Gold, true)
+	make("UICorner", "Round", e.Pill, { CornerRadius = UDim.new(0, 4) })
+	UiTheme.Stroke(e.Pill, 1.5, D.Colors.GoldSoft, true)
 	e.PillFill = make("Frame", "Fill", e.Pill, {
 		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = AnimeSkin.Tint.Default,
 		BorderSizePixel = 0,
 		Visible = false,
 	})
-	make("UICorner", "Round", e.PillFill, { CornerRadius = UDim.new(1, 0) })
+	D.Fill(e.PillFill, D.Colors.VermDeep, D.Colors.Verm).Rotation = 0
+	make("UICorner", "Round", e.PillFill, { CornerRadius = UDim.new(0, 4) })
 	e.PillText =
 		make("TextLabel", "Text", e.Pill, { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Text = "" })
+	e.PillText:SetAttribute("DojoTextColor", D.Colors.Cream)
+	-- The drawn portrait sits on the card's art well (kit.css .card .art): a plain fill, a gradient would tint the art.
+	e.Portrait.BackgroundTransparency = 0
+	e.Portrait.BackgroundColor3 = D.Colors.ArtTop
+	D.Rim(e.Portrait, D.Colors.Rim, 2)
+	D.Corner(e.Portrait, 6)
 	e.Go = button("Go", card, "Go", "Go", { ZIndex = 5, Visible = false })
 	e.Details = button("Details", card, "Details", "Idle", { ZIndex = 5 })
 	e.Rewards = make("Frame", "Rewards", card, { BackgroundTransparency = 1, ZIndex = 2 })
 	e.RewardsHeading = make("TextLabel", "Heading", e.Rewards, {
-		BackgroundColor3 = PILL_DARK,
-		BackgroundTransparency = 0.2,
-		BorderSizePixel = 0,
+		BackgroundTransparency = 1, -- a brush heading on the paper
 		Text = "Rewards",
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
@@ -794,8 +856,8 @@ for _, id in BossCatalog.Order do
 		table.insert(e.Tiles, rewardTile(e.Rewards, reward[1], reward[2], reward[3]))
 	end
 	e.Dim = make("Frame", "Dim", card, {
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.45,
+		BackgroundColor3 = D.Colors.Ink, -- kit veil: rgba(46, 30, 22, 0.38)
+		BackgroundTransparency = 0.62,
 		BorderSizePixel = 0,
 		ZIndex = 4, -- over the art and texts, under the pill and Details
 		Visible = false,
@@ -891,7 +953,7 @@ local function placeCard(g, e, x, y, w, h, s, large)
 			g.Role(tile.Count, "Item")
 		end
 		g.Role(e.Title, "Title")
-		g.Role(e.RewardsHeading, "Item")
+		g.Role(e.RewardsHeading, "Section")
 	else
 		-- Portrait left; name, phases, pill and Details right.
 		local side = math.min(h - 2 * pad, w * 0.45)
@@ -1022,8 +1084,7 @@ end
 local function placeSecondColumn()
 	placeColumnButton(bossButton, bossGlow, -1)
 	local k = placeColumnButton(teamButton, teamOutline, 1)
-	teamLetter.TextSize = 16 * k -- HudChrome's key letter
-	teamLetterOutline.Thickness = 2 * k
+	teamLetter.TextSize = 14 * k -- HudChrome's key letter
 end
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeSecondColumn)
 placeSecondColumn()
@@ -1447,7 +1508,9 @@ bossButton.Activated:Connect(function()
 	bossesOpen = not bossesOpen
 	if bossesOpen then
 		detailsFor = nil -- opens on the cards
-		UiMotion.Pop(bossesPanel)
+		bossesClosing = false
+		bossesPanel.Visible = not PanelSwitch.AnyOpen()
+		DojoHandscroll.Open(bossesPanel) -- design doc 4.46: unrolls from its centre, input live
 	end
 end)
 bossesClose.Activated:Connect(function()
@@ -1603,6 +1666,8 @@ local function drawBossButton(phase, inEvent, joinable)
 			stopPulse()
 			stopPulse = nil
 		end
+		-- The join glow: the rim stroke turns gold and thickens while the event can be joined (option A, design doc 4.46).
+		bossGlow.Color = joinable and HudPlaque.Gold or UiTheme.Scroll.TileRim
 		if joinable then
 			local stopSize = UiMotion.Pulse(bossButton.PulseScale, { Scale = PULSE_SCALE }, PULSE_PERIOD)
 			local stopGlow = UiMotion.Pulse(bossGlow, { Thickness = GLOW_THICK }, PULSE_PERIOD)
@@ -1616,8 +1681,20 @@ local function drawBossButton(phase, inEvent, joinable)
 	bossButton.Visible = shown and (player:GetAttribute("RebirthLevel") or 0) >= SidekickConfig.HudFromRebirth
 	teamButton.Visible = shown -- the second column shows and hides as one (design doc 4.40)
 	bossesOpen = bossesOpen and shown
-	bossesPanel.Visible = bossesOpen and not PanelSwitch.AnyOpen()
-	if not bossesPanel.Visible then
+	if bossesOpen and not PanelSwitch.AnyOpen() then
+		bossesClosing = false
+		bossesPanel.Visible = true
+	elseif not bossesOpen and bossesPanel.Visible and not bossesClosing then
+		-- Design doc 4.46: closed by its X, an outside click or the button, it rolls up first; a panel opening hides it at once.
+		bossesClosing = true
+		DojoHandscroll.Close(bossesPanel, function()
+			bossesClosing = false
+			bossesPanel.Visible = false
+		end)
+	elseif bossesOpen then
+		bossesPanel.Visible = false
+	end
+	if not bossesPanel.Visible or bossesClosing then
 		return
 	end
 	local active = phase ~= nil

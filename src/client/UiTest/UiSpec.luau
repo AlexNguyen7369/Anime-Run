@@ -432,7 +432,8 @@ UiSpec.Rebirth = {
 		{ Name = "Title", Parent = "Header", Class = "TextLabel", Overhangs = true },
 		{ Name = "Close", Parent = "Header", Class = "Frame" },
 		{ Name = "Warning", Parent = "Panel", Class = "Frame" },
-		{ Name = "WarningTitle", Parent = "Warning", Class = "TextLabel", Text = "WARNING", Colour = "gold" },
+		-- Design doc 4.46 rebirth frame: headings in ink and vermilion on the paper (was the 4.42 gold).
+		{ Name = "WarningTitle", Parent = "Warning", Class = "TextLabel", Text = "WARNING", Colour = "vermilion" },
 		{
 			Name = "WarningText",
 			Parent = "Warning",
@@ -446,7 +447,7 @@ UiSpec.Rebirth = {
 			Parent = "Rewards",
 			Class = "TextLabel",
 			Text = "NEXT REBIRTH", -- UI audit A25: these are the next rebirth's rewards
-			Colour = "gold",
+			Colour = "ink", -- design doc 4.46: ink on paper (was the 4.42 gold)
 		},
 		{ Name = "LuckReward", Parent = "Rewards", Class = "Frame" },
 		{ Name = "SpeedReward", Parent = "Rewards", Class = "Frame" },
@@ -463,7 +464,7 @@ UiSpec.Rebirth = {
 			Parent = "Requirements",
 			Class = "TextLabel",
 			Text = "REQUIREMENTS",
-			Colour = "gold",
+			Colour = "ink", -- design doc 4.46: ink on paper (was the 4.42 gold)
 		},
 		{ Name = "Bar", Parent = "Requirements", Class = "Frame" },
 		{ Name = "Fill", Parent = "Bar", Class = "Frame" },
@@ -514,8 +515,9 @@ UiSpec.Rebirth = {
 		"Data not loaded",
 		"Stats not ready",
 	},
-	-- TextColor3 / BackgroundColor3 families (0..1 channels): gold = the one heading colour (AnimeSkin Section role,
-	-- UI audit G11, c56aaf3; were red, yellow, purple); green = the met bar fill.
+	-- TextColor3 / BackgroundColor3 families (0..1 channels): gold = the 4.42 heading colour (AnimeSkin Section role,
+	-- UI audit G11, c56aaf3; were red, yellow, purple); green = the 4.42 met bar fill; ink and vermilion = the 4.46
+	-- headings and met bar fill.
 	Colours = {
 		gold = function(c)
 			return c.R >= 0.8 and c.G >= 0.6 and c.B <= 0.45 and c.R >= c.G
@@ -531,6 +533,13 @@ UiSpec.Rebirth = {
 		end,
 		green = function(c)
 			return c.G >= 0.5 and c.G >= c.R + 0.15 and c.G >= c.B + 0.15
+		end,
+		-- Design doc 4.46: ink (#2E1E16) and vermilion (#C8302C), both readable on the parchment (#EFE3C8).
+		ink = function(c)
+			return math.max(c.R, c.G, c.B) <= 0.4 and c.R >= c.B
+		end,
+		vermilion = function(c)
+			return c.R >= 0.7 and c.G <= 0.3 and c.B <= 0.3
 		end,
 	},
 }
@@ -553,10 +562,11 @@ UiSpec.Hud = {
 	ColumnSize = 3, -- buttons in the left column: NavButtons 1-3; the rest (4-6) are the right column
 	RightColumnSize = 3,
 	ColumnGap = 8, -- px between stacked buttons (each holder's UIListLayout Padding; a phone's UIScale only shrinks it)
-	Cell = Vector2.new(84, 94), -- one button before its holder's UIScale: a 72 px icon + 12, the icon + a 22 px label
+	Cell = Vector2.new(84, 94), -- one button before its holder's UIScale (4.46 option A: 60 px icon at top 6, 24 px label)
 	-- retired: GridColumns / GridGap (the 2-column block) and GoldTiles (the gold-frame tile art), owner 2026-11-10
 	-- Design doc 4.40 "Icon style": every column button and the Auto / Upgrade pair are a transparent ImageButton
-	-- (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows the HudIcons entry of the button's name
+	-- (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows the HudIcons entry of the button's name; option A's
+	-- wood is a child Frame "Plaque" (design doc 4.46)
 	IconButtons = {
 		"HudChrome/Grid/Index",
 		"HudChrome/Grid/Items",
@@ -593,8 +603,11 @@ UiSpec.Hud = {
 	-- retired: Speed, SpeedIcon, SpeedDial, SpeedValue (the speedometer and cruise read-out, design doc 4.13, owner 2026-11-01)
 	Money = "RacerHud/Money",
 	MoneyValue = "RacerHud/Money/MoneyValue",
-	-- Owner 2026-11-10 (design doc 4.40): no box or border behind Money or Gems, no UNBANKED line (the run bank is
-	-- gone); the Gems row sits directly under MoneyValue, inside Money. Retired paths must stay absent.
+	-- Owner 2026-11-10 (design doc 4.40): no UNBANKED line (the run bank is gone); the Gems row sits directly under
+	-- MoneyValue, inside Money. Retired paths must stay absent. Owner 2026-11-20 (4.40, 4.46 option A): Money and Gems
+	-- sit on these lacquer plates (opaque, gold Border rim); nothing else inside Money draws a box.
+	MoneyPlates = { "RacerHud/Money/MoneyLacquer", "RacerHud/Money/Gems/GemsLacquer" },
+	MoneyPlateRim = Color3.fromRGB(255, 204, 72), -- UiTheme.Scroll.TagGold
 	Gems = "RacerHud/Money/Gems",
 	GemsValue = "RacerHud/Money/Gems/GemsValue",
 	RetiredMoneyParts = { "RacerHud/Money/MoneyPlate", "RacerHud/Money/Unbanked", "RacerHud/Gems" },
@@ -898,7 +911,7 @@ UiSpec.BandPanels = {
 	["MarketUi/Backdrop/Panel"] = 1200,
 	["CheckpointUi/Panel"] = 1200,
 	["DailyBoosts/ModalBackdrop/Modal"] = 1200,
-	["RacerBackpack/Panel"] = 1200,
+	["RacerBackpack/Panel"] = 1200, -- its frame is 670 tall, not 620 (4.46 Items; UiResponsive.FrameHeights)
 	-- retired: RacerTeam/Panel, Team Setup is a full-screen page (design doc 4.45, owner 2026-11-17)
 	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }

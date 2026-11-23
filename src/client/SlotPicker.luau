@@ -14,8 +14,25 @@ local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
-local FREE = UiTheme.Palette.Row -- the slot takes the item; not the money green, so equip and pay look different
-local HERE = UiTheme.Palette.SlotHere -- the item is on this slot: tapping removes it
+-- Design doc 4.46 pickers frame: a free slot is a paper card (ink words), the slot wearing the item a vermilion tile
+-- (cream words, gold rim): tapping it removes the item.
+local D = AnimeSkin.Dojo
+local C = D.Colors
+local GOLD_RIM = Color3.fromRGB(255, 213, 138) -- #FFD58A, kit.css .tile.go border
+
+local function paint(refs, here)
+	if here then
+		D.Fill(refs.Button, C.GoTop, C.GoBottom)
+		D.Rim(refs.Button, GOLD_RIM, 2)
+	else
+		D.Fill(refs.Button, C.CardTop, C.CardBottom)
+		D.Rim(refs.Button, C.Rim, 2)
+	end
+	refs.Title:SetAttribute("DojoTextColor", here and C.Cream or C.Ink)
+	refs.Items:SetAttribute("DojoTextColor", here and C.Cream or C.InkSoft)
+	refs.Title.TextColor3 = here and C.Cream or C.Ink
+	refs.Items.TextColor3 = here and C.Cream or C.InkSoft
+end
 
 local SlotPicker = {}
 
@@ -88,15 +105,14 @@ function SlotPicker.new(name, parent, props, onPick)
 		local b = make("TextButton", "Slot" .. slot, frame, {
 			LayoutOrder = slot,
 			Size = UDim2.fromScale(1 / Market.SLOTS, 1),
-			BackgroundColor3 = FREE,
 			Text = "",
 			AutoButtonColor = false,
 		})
 		UiTheme.Corner(b, "S")
-		AnimeSkin.Button(b, "Idle") -- the anime look (design doc 4.42); Update keeps its own free / here fills
 		local title = caption("Title", b, { Text = "SLOT " .. slot })
 		local items = caption("Items", b, { Text = "" })
 		picker.Buttons[slot] = { Button = b, Title = title, Items = items }
+		paint(picker.Buttons[slot], false)
 		b.Activated:Connect(function()
 			if not (picker.Kind and picker.Id) then
 				onPick(slot, nil, false)
@@ -128,7 +144,7 @@ function SlotPicker.new(name, parent, props, onPick)
 				local spec = CharacterCatalog.Get(SlotPicker.Team()[slot])
 				refs.Items.Text = spec and spec.Name or "-"
 				refs.Title.Text = (here and "REMOVE " or "SLOT ") .. slot
-				refs.Button.BackgroundColor3 = here and HERE or FREE
+				paint(refs, here)
 				continue
 			end
 			local aura = player:GetAttribute(Market.SlotAttribute(slot, "Aura"))
@@ -136,7 +152,7 @@ function SlotPicker.new(name, parent, props, onPick)
 			local here = id ~= nil and player:GetAttribute(Market.SlotAttribute(slot, kind)) == id
 			refs.Items.Text = wearing(short("Aura", aura), short("Trail", trail))
 			refs.Title.Text = (here and "REMOVE " or "SLOT ") .. slot
-			refs.Button.BackgroundColor3 = here and HERE or FREE
+			paint(refs, here)
 		end
 	end
 	return picker
