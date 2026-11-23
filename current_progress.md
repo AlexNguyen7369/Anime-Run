@@ -223,8 +223,9 @@
 219. 2026-11-23 — Alex Nguyen — ui-scroll full UiTestRun on the integration branch in Studio: 74 pass, 3 fail (ui_run_visual throttled window, ui_boss_king_arena known main red, ui_character_icons fixed by moving index_tiles_runner_art to the 4.46 card portrait 0.86 x 0.53); server run stopped early as src/server and src/shared equal the base.
 220. 2026-11-23 — Alex Nguyen — ui-scroll: fixed PR #27 review note (ink-in no longer writes Visible, so a part its panel hides mid-unroll stays hidden; ui_handscroll 21/0 with the new owner-hide check, ui_index 10/0, ui_panel_focus 57/0) and merged main (PR #26) into the integration branch.
 221. 2026-11-23 — Alex Nguyen — Merged the Scroll Dojo UI redesign (goal ui-scroll, PR #27) into main after a fresh merge review approved it and its one player-visible note was fixed.
+222. 2026-11-23 — Alex Nguyen — Full UiTestRun on main 6a36029 in Studio: 75 pass, 2 fail (ui_run_visual needs a focused Studio window; ui_layout's Daily claimed-day seal fixed by dropping its UIAspectRatioConstraint, rerun ui_layout 891/0 and ui_daily_boosts 13/0); ui_boss_king_arena and ui_character_icons green.
 
 ## What's next
-**Rerun the full UiTestRun on main with Studio as the front window (owner present to allow focus), confirming ui_run_visual and ui_boss_king_arena are green after both #26 and #27.**
+**Rerun ui_run_visual with Studio as the front window once the owner allows focus.**
 
-**Why this is next:** both PRs are now in main; ui_run_visual only passes with Studio focused, and ui_boss_king_arena was red in the ui-scroll run while green in #26's, likely from execute_luau polling resetting the camera, so one clean run on main settles both.
+**Why this is next:** it is the only UI red left on main and only fails because the Studio window is throttled in the background; the owner's no-focus rule means it needs the owner's word.

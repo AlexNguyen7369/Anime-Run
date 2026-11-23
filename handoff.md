@@ -1,3 +1,9 @@
+## RESUME HERE (2026-11-23 nightly, ui-scroll): main all green except ui_run_visual (focus)
+- Full UiTestRun on main 6a36029 (Studio synced on e579995, run started from the Server datamodel, no Client execute_luau during it): `[UITEST] END pass=75 fail=2`. ui_boss_king_arena and ui_character_icons now green (the earlier arena red was my Client polling resetting the camera).
+- Reds: ui_run_visual (window throttled; the owner's no-focus rule, peer animerun-cf declined a one-time focus); ui_layout (Daily claimed-day seal's UIAspectRatioConstraint, unsupported by the layout model) fixed in f12e5ef, rerun ui_layout 891/0, ui_daily_boosts 13/0.
+- Studio restored to e579995 and hash-checked, peer told. world-2-build-plan session was waiting for Studio after me.
+- Owner question: may a run bring Studio to the front once, so ui_run_visual can pass?
+
 ## RESUME HERE (2026-11-23, ui-scroll): DONE, merged into main (PR #27, 6a36029)
 - Fresh merge review APPROVE; its note 1 (a part hidden by its panel mid-unroll came back) fixed: DojoHandscroll ink-in hides unreached blocks by transparency + Interactable and never writes Visible (Studio ui_handscroll 21/0, ui_index 10/0, ui_panel_focus 57/0). Main (PR #26) merged in first, both sides kept.
 - Full UiTestRun on the branch (before the fix): 74/3. ui_run_visual: throttled window. ui_boss_king_arena: red here, green in #26's run; likely my Client execute_luau polling during the run (the MCP resets the camera to Scriptable after each call). ui_character_icons: test moved to the 4.46 portrait 0.86 x 0.53, not re-run. Server run stopped early (no server/shared changes).
