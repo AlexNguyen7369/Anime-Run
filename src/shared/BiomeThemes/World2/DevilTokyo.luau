@@ -32,22 +32,22 @@ return Kit.fromDraft("DevilTokyo", require(script.Parent.DevilTokyoDraft), {
 		),
 		W2_DevilTokyo_Mansion = draftMesh(
 			7924,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://119172716877851", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: seven storey tiled apartment block, balconies with sliding doors and air conditioner units on one face, an open corridor with steel doors and railing on the other, no text",
 			"mid prop, 48 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_Mansion.glb"
 		),
 		W2_DevilTokyo_Apaato = draftMesh(
 			2508,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://123016589142707", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: two storey wooden apartment with siding, open steel corridor and railing, outside stair, tin roof and three plain vending machines at its end, no text",
 			"mid prop, 35 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_Apaato.glb"
 		),
 		W2_DevilTokyo_ShopHouse = draftMesh(
 			2232,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://135750318277018", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: narrow four storey shop building with a half open shutter, awning, blank sign band, windows with air conditioner units, narrow stacked blank corner signs, roof tank",
 			"mid prop, 58 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_ShopHouse.glb"
 		),
@@ -60,43 +60,43 @@ return Kit.fromDraft("DevilTokyo", require(script.Parent.DevilTokyoDraft), {
 		),
 		W2_DevilTokyo_Office = draftMesh(
 			1724,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://71344064037058", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: distant office tower with banded floors, vertical mullions, scattered lit windows, roof crown and beacon",
 			"mid prop, 70 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_Office.glb"
 		),
 		W2_DevilTokyo_StreetKit = draftMesh(
 			2208,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://131689529192881", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: 48 stud narrow street edge: dark pavement on a raised kerb, white guardrail, curved arm street lamp and two concrete utility poles with wires",
 			"mid prop, 106 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_StreetKit.glb"
 		),
 		W2_DevilTokyo_LowBlock = draftMesh(
 			1108,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://127760755339403", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: 100 stud back street block: coin parking with stall lines, two parked cars, a small two storey house with a tiled roof, a pocket park with trees and a bench",
 			"mid prop, 26 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_LowBlock.glb"
 		),
 		W2_DevilTokyo_Retro = draftMesh(
 			1840,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://132164987689350", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: three storey retro tiled corner building with arched windows, cornice, lit cafe glazing, striped awning and a lit green phone booth",
 			"hero landmark, 1 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_Retro.glb"
 		),
 		W2_DevilTokyo_RoofTile = draftMesh(
 			2340,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://102048499811022", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: 320 stud tile of low city rooftops: a grid of grey and tan blocks with roof units, tanks and a few lit window strips",
 			"mid prop, 122 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_RoofTile.glb"
 		),
 		W2_DevilTokyo_CrossWire = draftMesh(
 			144,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://81063852702531", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: three sagging cables crossing high over a street between utility poles",
 			"mid prop, 60 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_CrossWire.glb"
 		),

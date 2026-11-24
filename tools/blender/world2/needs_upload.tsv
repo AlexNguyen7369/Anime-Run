@@ -1,8 +1,4 @@
 biome	key	reason
-DemonCastle	W2_DemonCastle_ChainTower_p1	not uploaded yet: the ledger row has no Id (Tris 7772)
-DemonCastle	W2_DemonCastle_ChainTower_p2	not uploaded yet: the ledger row has no Id (Tris 2578)
-DemonCastle	W2_DemonCastle_ChainTower_p3	not uploaded yet: the ledger row has no Id (Tris 7808)
-DemonCastle	W2_DemonCastle_ChainTower_p4	not uploaded yet: the ledger row has no Id (Tris 2704)
 DemonCastle	W2_DemonCastle_Chunk	not uploaded yet: the ledger row has no Id (Tris 276)
 DemonCastle	W2_DemonCastle_Crag	not uploaded yet: the ledger row has no Id (Tris 256)
 DemonCastle	W2_DemonCastle_Edge	not uploaded yet: the ledger row has no Id (Tris 336)
@@ -17,7 +13,6 @@ DevilTokyo	W2_DevilTokyo_Konbini	not uploaded yet: the ledger row has no Id (Tri
 ElvenPlains	W2_ElvenPlains_Mountain_p1	new: piece of Mountain over 2048 studs
 ElvenPlains	W2_ElvenPlains_Mountain_p2	new: piece of Mountain over 2048 studs
 ElvenPlains	W2_ElvenPlains_Mountain_p3	new: piece of Mountain over 2048 studs
-GoldenCity	W2_GoldenCity_Barrier	new: first export
 GoldenCity	W2_GoldenCity_Church	new: first export
 GoldenCity	W2_GoldenCity_CityBlock	new: first export
 GoldenCity	W2_GoldenCity_CityWall	new: first export
