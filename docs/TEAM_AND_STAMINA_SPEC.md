@@ -56,6 +56,7 @@ Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
 | Legendary | 24 |
 | Mythic | 27 |
 | Secret | 30 (owner 2026-11-02) |
+| Eternal (World 2) | 32 (owner 2026-11-24) |
 
 - Effective stamina, fixed for the whole run when it starts (all multipliers placeholders, in `Shared/StaminaConfig`):
 
@@ -149,7 +150,7 @@ Stamina = Base(rarity or override)
 ## Speed (owner 2026-11-01, design doc 4.13)
 
 - Cruise of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, capped at `MAX_CRUISE` (800).
-  RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
+  RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700; Eternal 780 (World 2, owner 2026-11-24).
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
   trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
 - Fixed for the whole run at run start (like stamina); no Speed stat, no gain. Exception: a Speed power-up's 1 s

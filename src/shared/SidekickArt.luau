@@ -21,9 +21,9 @@ return {
 		BossModel = 130269423973743,
 	},
 	side_acrobat = {
-		Model = 115217387982002,
-		Portrait = "rbxassetid://140070519626038",
-		Head = "rbxassetid://131303156763676",
+		Model = 140320727830650,
+		Portrait = "rbxassetid://132698612255801",
+		Head = "rbxassetid://123401526162525",
 	},
 	side_ant = {
 		Model = 133573733933407,
@@ -111,9 +111,9 @@ return {
 		Head = "rbxassetid://98545701958767",
 	},
 	side_lucky = {
-		Model = 138714069198845,
-		Portrait = "rbxassetid://111168826035122",
-		Head = "rbxassetid://87750269571869",
+		Model = 108587572943236,
+		Portrait = "rbxassetid://80141670864393",
+		Head = "rbxassetid://74539072927819",
 	},
 	side_mage = {
 		Model = 108346344179735,

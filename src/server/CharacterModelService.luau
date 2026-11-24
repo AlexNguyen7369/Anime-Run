@@ -4,7 +4,7 @@
 -- background: rigs built before it finishes (runners, Best Roll) are placeholders and get re-skinned at
 -- the end. A failed load only leaves that character on the placeholder rig. The root's Ready attribute turns true
 -- when done; its Loaded_<id> attribute turns true as each character finishes (loaded or failed), for the loading screen.
--- Only this world's cast loads at start (proposed, no owner rule yet: docs/OWNER_QUESTIONS.md). Another world's character or Sidekick loads once, when a player in
+-- Only this world's cast loads at start (design doc 4.47, owner 2026-11-24). Another world's character or Sidekick loads once, when a player in
 -- this server owns it or a rig wears it.
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")

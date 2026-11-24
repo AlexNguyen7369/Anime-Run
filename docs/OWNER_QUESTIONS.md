@@ -206,6 +206,7 @@ Answered by the owner 2026-11-23 ("approved", from the contact sheets): items 1,
 5. `Model.block` in `tools/blender/build_boss_event.py` can turn a block inside out (false mauve shading in portraits). Fix it in the shared file? That would change already approved Sidekicks. New Sidekicks use `tools/blender/sidekick_solid.py` or their own box instead.
 
 ## 2026-11-24 w2-cast in game: rules audit of 7c12537 (FAIL), merge blocked on these
+Answered by the owner in session 2026-11-24: 1 approved; 2 exactly 9e18 allowed ("at most"); 3 and 4 approved; 5 names and ids final; 6 uploads were meant; 7 use the fixed versions (uploaded, 2 models and 4 images); 8 poses approved. Open: 9 (measure odds resolution).
 1. Draft rule, not in the design doc: "A server loads only its own world's character and Sidekick models at start, plus those every world shows; another world's model loads when a player in the server owns it or a rig wears it." Approve as a 4.47 rule?
 2. Conflict: 4.47 says "Eternal odds stay under 9e18"; WORLD2_SPEC, CHARACTER_GACHA_SPEC and the code give `punch_void` exactly 9e18. Which holds?
 3. Eternal is missing from BAG_AND_AUTOSELL_SPEC Prices (25,000 proposed), the TEAM_AND_STAMINA_SPEC rarity tables (32 s proposed) and the CHARACTER_GACHA_SPEC Rarity row. Approve the numbers?

@@ -73,7 +73,7 @@ The "Based on" names stay in docs and never ship (design doc 5).
   (BiomeDressing.CLEARANCE) does not prune them.
 - Approved by the owner 2026-11-23 after rework: Track 5 KaijuBase (round 16, c96b876). Frozen.
 
-## Cast in game (owner 2026-11-24 asked for it in game; rules and numbers **proposed**)
+## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's
   world; `Everything()` is every world's. `GachaConfig.Roll`, `Odds` and `OddsPercents` take an optional `world`.
 - `RaceConfig.Cruise(spec, multi, world)`: `CARRY_CRUISE` 0.1 for a spec with `World = 1` in World 2. No `World` (starter, starter
@@ -132,6 +132,6 @@ The "Based on" names stay in docs and never ship (design doc 5).
 
 ### Release checklist (cast)
 - Publish World 1 from this build before or with World 2, then shut down old servers: an older World 1 server trims StatAlloc earned from World 2 ids and drops World 2 characters from the team.
-- Ids settled by the owner before any non-admin plays.
+- Ids are final (owner 2026-11-24).
 - Random:NextNumber resolution measured in Studio against the rarest odds (OWNER_QUESTIONS item 9).
 - Studio run of the cast scenarios.

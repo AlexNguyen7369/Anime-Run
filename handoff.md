@@ -1,9 +1,7 @@
-## RESUME HERE (2026-11-24, w2-cast in game): code and art in, Studio run and merge left
-- Branch `orch/world2/cast-ingame` (worktree `../AnimeRun-orch/w2-ingame`), pushed. 43 World 2 characters, per-world roll pool, World 2's own 12-Sidekick summon rotation, enemies, Eternal, attacks, 127 uploads (43 models, 84 images, all Approved). Log: `../AnimeRun-orch/w2-cast/build/uploaded.tsv`; ids in the ledgers.
-- Verified without Studio: world2_cast 97/0 in both worlds (lune, mocked DataModel), World 1 catalog/gacha/bag/odds/data/pity green, stylua, selene 0 errors, both rojo builds. One model (side_box) loaded in Studio with its texture.
-- NOT run in Studio: script writes to the cloud place were denied to the session; place restored. Run world2_cast, catalog, gacha, bag, sidekick_rotation, sidekicks, sidekick_attacks, sidekick_pity, data, team_bonus, and look at summon stage, auras, effects, runners.
-- Publish the World 1 place from this build before or with World 2 (an older World 1 server trims stat allocations earned from World 2 ids).
-- Merge into feature/alex/world2-place is animerun-cf's. Gate stays locked.
+## RESUME HERE (2026-11-24, w2-cast in game): owner answered, branch pushed for merge
+- Branch `orch/world2/cast-ingame`. Owner answers: design doc change log 2026-11-24 and docs/OWNER_QUESTIONS.md. Open: item 9, Random:NextNumber resolution (proposal on local branch orch/world2/rare-odds-proposal).
+- 133 uploads (45 models, 88 images); the first side_lucky and side_acrobat assets (2 models, 4 images) are superseded and unused.
+- Not run in Studio: everything, incl. ui_late_models, LoadingScreen's late wait. Merge into feature/alex/world2-place is animerun-cf's. Gate locked. Publish World 1 first or together, shut down old servers.
 
 ## RESUME HERE (2026-11-23 23:30, w2-cast): 42 World 2 drafts built, looks OWNER-APPROVED (frozen)
 - Branch `orch/world2/cast` pushed (worktree `../AnimeRun-orch/w2-cast`, based on world2-place 27310ac; not merged). State, scores and gaps: `docs/WORLD2_CAST.md` "Draft state". Questions: `docs/OWNER_QUESTIONS.md` 2026-11-23 w2-cast.
