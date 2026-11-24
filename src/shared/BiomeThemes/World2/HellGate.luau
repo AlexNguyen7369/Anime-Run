@@ -25,70 +25,70 @@ return Kit.fromDraft("HellGate", require(script.Parent.HellGateDraft), {
 	Assets = {
 		W2_HellGate_DoorClosed = draftMesh(
 			424,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://103360673639051", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: free standing white panel door in its frame on a sill step, closed",
 			"mid prop, 606 placed; build/world2/export/HellGate/W2_HellGate_DoorClosed.glb"
 		),
 		W2_HellGate_DoorOpen = draftMesh(
 			436,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://92924059243755", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: free standing white panel door in its frame on a sill step, standing ajar",
 			"mid prop, 300 placed; build/world2/export/HellGate/W2_HellGate_DoorOpen.glb"
 		),
 		W2_HellGate_SkyDoor = draftMesh(
 			316,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://139840216058271", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: upright white panel door in its frame, hung in the sky",
 			"mid prop, 1721 placed; build/world2/export/HellGate/W2_HellGate_SkyDoor.glb"
 		),
 		W2_HellGate_Hand = draftMesh(
 			3404,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://89224357208985", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: giant pale open hand rising from a rocky mound, palm forward",
 			"mid prop, 78 placed; build/world2/export/HellGate/W2_HellGate_Hand.glb"
 		),
 		W2_HellGate_ArmA = draftMesh(
 			2216,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://132262295967212", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: long pale straight arm hanging in darkness, hand open",
 			"mid prop, 79 placed; build/world2/export/HellGate/W2_HellGate_ArmA.glb"
 		),
 		W2_HellGate_ArmB = draftMesh(
 			2332,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://117086880501132", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: long pale arm bent at the elbow, hand open",
 			"mid prop, 64 placed; build/world2/export/HellGate/W2_HellGate_ArmB.glb"
 		),
 		W2_HellGate_Astronaut = draftMesh(
 			2976,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://136258130792853", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: kneeling generic retro astronaut in a puffy white suit with a round bubble helmet, praying",
 			"mid prop, 44 placed; build/world2/export/HellGate/W2_HellGate_Astronaut.glb"
 		),
 		W2_HellGate_DarkGate = draftMesh(
 			664,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://88775043666232", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: giant panel door standing open on plinths with a moulded lintel",
 			"hero landmark, 1 placed; build/world2/export/HellGate/W2_HellGate_DarkGate.glb"
 		),
 		W2_HellGate_Abyss = draftMesh(
 			1280,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://75961224574540", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: vast matte black dome",
 			"mid prop, 1 placed; build/world2/export/HellGate/W2_HellGate_Abyss.glb"
 		),
 		W2_HellGate_Grass = draftMesh(
 			808,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://102364896212019", -- Id: tools/blender/world2/upload_props.py
 			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: patch of dark grass clumps with two pale flowers",
 			"mid prop, 882 placed; build/world2/export/HellGate/W2_HellGate_Grass.glb"
