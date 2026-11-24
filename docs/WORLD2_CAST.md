@@ -65,3 +65,13 @@ rarity when they are added to the game (**proposed**).
 | `side_general` | Belleon | Bellion, Grand Marshal | Solo Levelup | Mythic | Walk |
 | `side_dragon` | Solara Dragon | Solar Dragon | Frieren | Secret | Fly |
 | `side_dark` | Darkness Devill | Darkness Devil | Saw Man | Secret | Fly |
+
+## Draft state (2026-11-23), waiting on the owner
+All 42 new ids have a model, 4 review views, portrait, head and evidence file. Sheets: `assets/characters_avatar/review/world2_{heroes_1,heroes_2,villains,sidekicks,reused}.png`.
+Independent review (bar 7/10): 37 pass. Five stalled at 6 and are shown as-is:
+- `punch_psychic`: hair curls read as fins, plain dress.
+- `punch_serpent`: flat bone jaw covers part of an eye in the portrait, bare lower limbs.
+- `saw_katana`: boxy head, head blade thin from the front.
+- `kaiju_nine`: blank back of the head, plain limbs (the two discs match the source).
+- `side_dark`: repeated skull shape, stick arms.
+Faults seen on several: black outline blobs in portraits (a portrait tool behaviour), dark back views.

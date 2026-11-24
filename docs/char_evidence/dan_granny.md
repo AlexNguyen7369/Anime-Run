@@ -44,6 +44,6 @@ Source quality: AniList character images and text, read through its public API, 
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |
 
-## Skin tone change (2026-11-24)
+## Skin tone change (2026-11-23)
 
 An independent reviewer found the first draft's dark brown skin and large dark lips could read as a racial caricature and did not match the source. The skin is now ash-pale, the mouth one thin line and the nose long and thin.

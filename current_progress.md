@@ -234,8 +234,9 @@
 230. 2026-11-23 — Alex Nguyen — World 2 Tracks 4 and 5 round 8: tunnel portal and hill rebuilt to the refs, dark lamp-lit tunnel vault, faceted kaiju corpse cliff, hooded sweeper crew, puff smoke; both tracks clear the 24-stud road rule.
 231. 2026-11-23 — Alex Nguyen — World 2: Track 4 HauntedTunnel passed independent likeness review at 7/10 (frozen); Tracks 2 and 7 round 3 committed; model close-ups now render under a neutral studio sky instead of the biome's tinted sky.
 232. 2026-11-23 — Alex Nguyen — World 2 cast: wrote the list of 21 heroes, 9 villains and 12 new Sidekicks (docs/WORLD2_CAST.md, design doc 4.47 pointer, goal w2-cast), pre-approved by the owner for drafting.
+233. 2026-11-23 — Alex Nguyen — World 2 cast: built 42 drafts (21 heroes, 9 villains, 12 Sidekicks) with models, portraits, heads and evidence on orch/world2/cast; independent review after three rounds has 37 at 7/10 or more and 5 at 6.
 
 ## What's next
-**Build the 42 World 2 cast models and drawn portraits, have them reviewed independently at 7/10, and give the owner the contact sheet.**
+**The owner reviews the World 2 cast sheets (assets/characters_avatar/review/world2_*.png) and answers the w2-cast questions.**
 
-**Why this is next:** the owner asked for them, and the World 2 roll pool, Sidekick rows and uploads all wait on approved looks.
+**Why this is next:** uploads, catalog rows, the World 2 roll pool and Sidekick attack key frames all wait on approved looks.
