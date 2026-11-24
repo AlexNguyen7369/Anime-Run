@@ -95,7 +95,7 @@ return Kit.fromDraft("HellGate", require(script.Parent.HellGateDraft), {
 		),
 		W2_HellGate_Hill = draftMesh(
 			320,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://118583274718723", -- Id: tools/blender/world2/upload_props.py
 			nil, -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low rolling pale hill",
 			"mid prop, 121 placed; build/world2/export/HellGate/W2_HellGate_Hill.glb"

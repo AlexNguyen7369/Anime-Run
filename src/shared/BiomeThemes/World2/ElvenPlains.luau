@@ -25,14 +25,14 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 	Assets = {
 		W2_ElvenPlains_Flowers = draftMesh(
 			746,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://87953167963009", -- Id: tools/blender/world2/upload_props.py
 			nil, -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: patch of low clusters of small pale blue five petal flowers in short grass",
 			"mid prop, 286 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Flowers.glb"
 		),
 		W2_ElvenPlains_Pine = draftMesh(
 			68,
-			nil, -- Id: tools/blender/world2/upload_props.py
+			"rbxassetid://86341868807167", -- Id: tools/blender/world2/upload_props.py
 			nil, -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: conifer tree with a short trunk and four stacked narrowing cone tiers",
 			"mid prop, 290 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Pine.glb"
