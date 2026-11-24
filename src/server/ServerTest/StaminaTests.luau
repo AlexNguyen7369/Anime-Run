@@ -41,6 +41,7 @@ local SLOW_NPC = 0.001 -- studs/s: the NPC never wins
 local FAST_NPC = 1e7 -- studs/s: the NPC always wins
 local OLD_VERSION = 12 -- the save VERSION before Team (PlayerData)
 local TEAM_SIZE = require(Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47, World2TeamTests)
+local UNOWNED = TEAM_SIZE + 2 -- ids[UNOWNED] is never granted; ids 1..TEAM_SIZE + 1 are owned (one past the size)
 local UID = 991400000
 
 local Tests = {}
@@ -69,7 +70,7 @@ local function rollableIds(catalog, count)
 	return ids
 end
 
--- Quick Setup checks (team_quick_pick_*), run inside Tests.team. `ids[5]` is never granted (unowned).
+-- Quick Setup checks (team_quick_pick_*), run inside Tests.team. `ids[UNOWNED]` is never granted (unowned).
 local function quickPick(flag, mods, cleanup, ids, store)
 	local gacha, catalog = mods.gacha, mods.catalog
 	local RaceConfig = H.module(Shared, "RaceConfig")
@@ -83,7 +84,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 		return
 	end
 	local p, uid = fakePlayer(cleanup, mods, "Quick")
-	for i = 1, 4 do
+	for i = 1, TEAM_SIZE + 1 do
 		gacha.Grant(p, ids[i])
 	end
 	gacha.SetTeam(p, { ids[1] })
@@ -174,9 +175,9 @@ local function quickPick(flag, mods, cleanup, ids, store)
 	end
 	local rejects = {
 		not_table = ids[1],
-		four_ids = table.move(ids, 1, TEAM_SIZE + 1, 1, {}), -- one past the size (World 2: ids[5] unowned too)
+		four_ids = table.move(ids, 1, TEAM_SIZE + 1, 1, {}), -- one past the size, all owned
 		not_string = { ids[1], 7 },
-		unowned = { ids[5] },
+		unowned = { ids[UNOWNED] },
 		duplicate = { ids[1], ids[1] },
 	}
 	for name, value in rejects do
@@ -224,14 +225,14 @@ function Tests.team()
 	flag("team_remote_exists", remote ~= nil and (remote:IsA("RemoteFunction") or remote:IsA("RemoteEvent")))
 
 	local gacha, data, STARTER = mods.gacha, mods.data, mods.catalog.STARTER_ID
-	local ids = rollableIds(mods.catalog, 5) -- ids[5] is never granted: unowned
+	local ids = rollableIds(mods.catalog, UNOWNED) -- ids[UNOWNED] is never granted: unowned
 	local WorldSave, WORLD = require(Shared.WorldSave), require(Shared.WorldConfig).Id
 	local cleanup = {}
 	local ok, err = pcall(function()
 		-- 1. SetTeam validation
 		local p = fakePlayer(cleanup, mods, "Validate")
 		flag("team_new_player_is_starter", p:GetAttribute("Team") == STARTER, tostring(p:GetAttribute("Team")), STARTER)
-		for i = 1, 4 do
+		for i = 1, TEAM_SIZE + 1 do
 			gacha.Grant(p, ids[i])
 		end
 		flag("team_set_one_ok", gacha.SetTeam(p, { ids[1] }) == true and p:GetAttribute("Team") == ids[1])
@@ -244,9 +245,9 @@ function Tests.team()
 		)
 		local rejects = {
 			empty = {},
-			four_ids = table.move(ids, 1, TEAM_SIZE + 1, 1, {}), -- one past the size (World 2: ids[5] unowned too)
+			four_ids = table.move(ids, 1, TEAM_SIZE + 1, 1, {}), -- one past the size, all owned
 			duplicate = { ids[1], ids[1] },
-			unowned = { ids[1], ids[5] },
+			unowned = { ids[1], ids[UNOWNED] },
 			unknown_id = { "cartest_no_such_character" },
 			not_table = ids[1],
 			not_string = { ids[1], 7 },
@@ -273,12 +274,16 @@ function Tests.team()
 			{ Name = "fresh", Record = nil, Want = STARTER },
 			{
 				Name = "unowned_removed",
-				Record = { Version = OLD_VERSION + 1, Cars = { ids[1], ids[2] }, Team = { ids[1], ids[5], ids[2] } },
+				Record = {
+					Version = OLD_VERSION + 1,
+					Cars = { ids[1], ids[2] },
+					Team = { ids[1], ids[UNOWNED], ids[2] },
+				},
 				Want = ids[1] .. "," .. ids[2],
 			},
 			{
 				Name = "all_unowned_starter",
-				Record = { Version = OLD_VERSION + 1, Cars = { ids[1] }, Team = { ids[5] } },
+				Record = { Version = OLD_VERSION + 1, Cars = { ids[1] }, Team = { ids[UNOWNED] } },
 				Want = STARTER,
 			},
 			{
@@ -288,7 +293,7 @@ function Tests.team()
 			},
 			{
 				Name = "old_equipped_unowned",
-				Record = { Version = OLD_VERSION, Cars = { ids[1] }, Equipped = ids[5] },
+				Record = { Version = OLD_VERSION, Cars = { ids[1] }, Equipped = ids[UNOWNED] },
 				Want = STARTER,
 			},
 			{ Name = "round_trip", Record = nil, Want = STARTER },

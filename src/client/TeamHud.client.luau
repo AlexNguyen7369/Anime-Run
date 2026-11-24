@@ -1,6 +1,6 @@
 --!nonstrict
 -- Team row (owner 2026-11-02 / 2026-11-03, docs/TEAM_AND_STAMINA_SPEC.md "HUD"): 3 circle portraits in the retired
--- Level bar's place, slot 1-3 left to right. Each portrait is only the avatar head, breaking out of a dark circle;
+-- Level bar's place, slot 1-3 (World 2: 1-4) left to right. Each portrait is only the avatar head, breaking out of a dark circle;
 -- rarity is never shown. A thick arc on the lower right shows Stamina<n> and a slanted number its seconds left, both
 -- eased per frame; the active slot (RunSlot) is enlarged with a pulsing gold glow and a bobbing marker, pops on a
 -- tag-in; a slot at 0 fades grey and shrinks. Slots sit at fixed positions, so scaling one never moves the others. A badge above
@@ -30,8 +30,10 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local HudPlaque = require(script.Parent:WaitForChild("HudPlaque"))
 
 local SLOTS = StaminaConfig.TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
-local CIRCLE = 52 -- px (placeholder)
-local SPACING = 78 -- px between slot centres (placeholder)
+-- World 2's row of 4 (4.47) keeps the row of 3's width (2 x 78 + 52 x ACTIVE_SCALE), so the Auto / Upgrade pair that
+-- HudChrome puts beside the Level bar stays clear: smaller circles closer together.
+local CIRCLE = SLOTS > 3 and 46 or 52 -- px (placeholder)
+local SPACING = SLOTS > 3 and 54 or 78 -- px between slot centres (placeholder)
 local ARC_THICK = 8 -- px (placeholder)
 local ARC_START, ARC_SWEEP = 125, 155 -- degrees clockwise from east: empty end at lower left, full end at the right
 local ARC_DOTS = 24 -- straight band segments per Track and per Fill; shortcut: no ring image asset, upload one if the edge ever looks faceted

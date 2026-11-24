@@ -63,6 +63,19 @@ function Tests.world2_team()
 		flag("five_refused", GachaService.SetTeam(p, ids) == false)
 		local okPick, picked = GachaService.QuickPick(p, {})
 		flag("quick_pick_fills_size", okPick == true and #picked == SIZE, okPick and #picked or -1, SIZE)
+		-- Quick Setup keeps the draft in front and fills the rest up to the world's size, each id once
+		local okDraft, filled = GachaService.QuickPick(p, { ids[2], ids[1] })
+		local distinct = okDraft == true
+		for i, id in okDraft and filled or {} do
+			distinct = distinct and table.find(filled, id) == i and GachaService.Owns(p, id)
+		end
+		flag(
+			"quick_pick_draft_fills_size",
+			distinct and #filled == SIZE and filled[1] == ids[2] and filled[2] == ids[1],
+			okDraft and #filled or -1,
+			SIZE
+		)
+		flag("quick_pick_over_size_refused", GachaService.QuickPick(p, ids) == false)
 		-- the team row's numbers for every slot, none past the world's size
 		GachaService.SetTeam(p, table.move(ids, 1, SIZE, 1, {}))
 		GachaService.RefreshTeam(p)
@@ -108,37 +121,42 @@ function Tests.world2_team()
 		flag("pairs_none", kind({ m[1], m[2] }) == "none")
 	end)
 
-	section("slot4_save", function()
+	section("slot4", function()
 		local ids = rollable(4)
-		-- an old save: World 1 Team of 3 at the top level, no Worlds, no TeamSlots
+		-- an old save: World 1 Team of 3 at the top level, no Worlds
 		local old = { Cars = ids, Team = { ids[1], ids[2], ids[3] }, Equipped = ids[1] }
 		local p = newPlayer(3)
 		GachaService.Apply(p, WorldSave.View(old, WORLD))
 		local snap = GachaService.Snapshot(p)
+		-- slot 4 is implied by World 2: nothing about it is saved (design doc 4.47)
+		local known = { Cars = true, Copies = true, Team = true, Equipped = true, Awakening = true }
+		local extra = {}
+		for key in snap do
+			if string.find(string.lower(key), "slot", 1, true) and not known[key] then
+				table.insert(extra, key)
+			end
+		end
+		flag("no_slot_field_saved", #extra == 0, table.concat(extra, ","), "")
 		if W2 then
-			flag("w2_first_entry_unlocks_slot4", p:GetAttribute("TeamSlots") == 4 and snap.TeamSlots == 4)
-			GachaService.SetTeam(p, ids)
+			flag(
+				"w2_first_entry_takes_4",
+				GachaService.SetTeam(p, ids) == true and p:GetAttribute("Team") == table.concat(ids, ",")
+			)
 			local folded = WorldSave.Fold(GachaService.Snapshot(p), old, 2)
-			flag("w2_slot4_saved_under_w2", folded.Worlds.W2.TeamSlots == 4 and #folded.Worlds.W2.Team == 4)
-			flag("w2_no_top_level_slot4", folded.TeamSlots == nil and folded.Team == nil)
-			-- the stored record, as PlayerData.Save overlays the payload on it; World 1 reads its Team of 3, no slot 4
+			flag("w2_team_of_4_under_w2", #folded.Worlds.W2.Team == 4 and folded.Team == nil)
+			-- the stored record, as PlayerData.Save overlays the payload on it; World 1 reads its Team of 3
 			local stored = table.clone(old)
 			for key, value in folded do
 				stored[key] = value
 			end
-			flag("w1_top_team_still_3", H.same(stored.Team, old.Team) and stored.TeamSlots == nil)
+			flag("w1_top_team_still_3", H.same(stored.Team, old.Team))
 			local p1 = newPlayer(4)
 			GachaService.Apply(p1, WorldSave.View(stored, 1))
 			flag("w1_team_kept", p1:GetAttribute("Team") == table.concat(old.Team, ","), p1:GetAttribute("Team"))
-			-- a saved unlock is kept on a later entry
 			local p2 = newPlayer(5)
 			GachaService.Apply(p2, WorldSave.View(stored, 2))
-			flag(
-				"w2_reentry_keeps_4",
-				p2:GetAttribute("TeamSlots") == 4 and p2:GetAttribute("Team") == table.concat(ids, ",")
-			)
+			flag("w2_reentry_keeps_4", p2:GetAttribute("Team") == table.concat(ids, ","), p2:GetAttribute("Team"))
 		else
-			flag("w1_no_slot4", p:GetAttribute("TeamSlots") == nil and snap.TeamSlots == nil)
 			flag("w1_old_team_same", p:GetAttribute("Team") == table.concat(old.Team, ","))
 			-- a (malformed) 4-long top-level Team loads as 3 in World 1
 			local p1 = newPlayer(6)

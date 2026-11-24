@@ -70,12 +70,26 @@ local GEO = {
 	{ X = 0, Z = -35.1, rb = 5.9, rt = 4.9, hb = 0.62, ht = 0.80, scale = 1.0, delay = 0 },
 	{ X = -9.37, Z = -47.5, rb = 3.5, rt = 3.1, hb = 0.30, ht = 0.30, scale = 0.905, delay = 1.12 },
 	{ X = 10.26, Z = -47.5, rb = 3.5, rt = 3.1, hb = 0.30, ht = 0.30, scale = 0.905, delay = 2.24 },
-	-- World 2's slot 4 (4.47): a smaller altar further back, right of slot 3 (placeholder until checked in Studio)
-	{ X = 19.5, Z = -60, rb = 3.1, rt = 2.75, hb = 0.27, ht = 0.27, scale = 0.8, delay = 3.36 },
 }
 -- Stage px: each altar's tap area (member and altar top, apart from each other) and its nameplate (the approved draft).
-local HIT = { { 870, 110, 440, 550 }, { 582, 205, 280, 330 }, { 1350, 205, 284, 330 }, { 1636, 230, 180, 250 } }
-local PLATES = { { 940, 123, 328, 80 }, { 598, 219, 256, 64 }, { 1362, 219, 262, 64 }, { 1636, 244, 200, 56 } }
+local HIT = { { 870, 110, 440, 550 }, { 582, 205, 280, 330 }, { 1350, 205, 284, 330 } }
+local PLATES = { { 940, 123, 328, 80 }, { 598, 219, 256, 64 }, { 1362, 219, 262, 64 } }
+-- The stage px the altars centre on (layout): the plate's vanishing point for 3 altars.
+local STAGE_MID = CAM.cx
+if SLOTS == 4 then
+	-- World 2's team of 4 (4.47): the same altars set further back on the floor, slot 4 behind slot 3 on the right, so
+	-- all four fit and stay tappable from 4:3 to phone (placeholder until the owner sees it). HIT / PLATES are the
+	-- 3D boxes projected with CAM, as the approved draft's are.
+	GEO = {
+		{ X = 0, Z = -41, rb = 5.19, rt = 4.31, hb = 0.55, ht = 0.70, scale = 0.88, delay = 0 },
+		{ X = -8.4, Z = -55, rb = 3.02, rt = 2.67, hb = 0.26, ht = 0.26, scale = 0.78, delay = 1.12 },
+		{ X = 8.0, Z = -55, rb = 3.02, rt = 2.67, hb = 0.26, ht = 0.26, scale = 0.78, delay = 2.24 },
+		{ X = 15.6, Z = -59, rb = 2.79, rt = 2.47, hb = 0.24, ht = 0.24, scale = 0.72, delay = 3.36 },
+	}
+	HIT = { { 932, 177, 313, 412 }, { 700, 244, 207, 257 }, { 1258, 244, 207, 257 }, { 1494, 260, 178, 224 } }
+	PLATES = { { 932, 191, 313, 80 }, { 690, 258, 227, 64 }, { 1248, 258, 227, 64 }, { 1484, 274, 198, 64 } }
+	STAGE_MID = 1186 -- the four tap areas' middle
+end
 
 -- Drawn icons (owner 2026-11-20: "draw the icons"; assets/ui/team_icons/asset.json).
 local ICON = {
@@ -1262,7 +1276,7 @@ local function layout()
 	W = size.X / k
 	panel.Size = UDim2.fromOffset(W, DESIGN_H)
 	local spare = W - STAGE_W
-	local ox = math.clamp(math.floor((SCROLL_R + W) / 2 - CAM.cx + 0.5), math.min(0, spare), math.max(0, spare))
+	local ox = math.clamp(math.floor((SCROLL_R + W) / 2 - STAGE_MID + 0.5), math.min(0, spare), math.max(0, spare))
 	for _, f in { stage, altarsFrame, petals } do
 		f.Position = UDim2.fromOffset(ox, 0)
 	end
