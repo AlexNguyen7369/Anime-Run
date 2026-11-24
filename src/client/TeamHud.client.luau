@@ -54,7 +54,7 @@ local TIRED_SCALE = 0.88
 local GOLD = Palette.Gold
 local DIM = Palette.TeamDim
 -- Option A (design doc 4.46 "nameplate team row"): lacquer faces with a gold rim; the arc, sizes and places stay 4.40's.
--- World 2 (HudPlaque.Old, design doc 4.47) keeps the 4.40 look: dark circles with the team ring, dark plates.
+-- HudPlaque.Old (both worlds, design doc 4.46 "HUD look") keeps the 4.40 look: dark circles with the team ring, dark plates.
 local OLD = HudPlaque.Old
 local FACE = OLD and DIM or HudPlaque.LacquerColor
 local RING = OLD and Palette.TeamRing or UiTheme.Dojo.Gold
