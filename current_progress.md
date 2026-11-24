@@ -237,8 +237,9 @@
 233. 2026-11-23 — Alex Nguyen — World 2 cast: built 42 drafts (21 heroes, 9 villains, 12 Sidekicks) with models, portraits, heads and evidence on orch/world2/cast; independent review after three rounds has 37 at 7/10 or more and 5 at 6.
 234. 2026-11-23 — Alex Nguyen — World 2 cast: the owner approved the looks of all 42 drafts from the contact sheets (frozen); recorded in WORLD2_CAST and design doc 4.47.
 235. 2026-11-24 — Alex Nguyen — World 2 cast in game on orch/world2/cast-ingame: 43 characters, per-world roll pool, World 2's own 12-Sidekick rotation with baked attacks, 127 uploads (all Approved), audit fixes; world2_cast 97/0 in both worlds under lune.
+236. 2026-11-24 — Alex Nguyen — World 2 cast: per-world model loading with on-demand loads, audit attribution fixes, World 2 test suites made real in both worlds (gacha 408/396, catalog 21, data 158, rotation 421, sidekicks 361, character_models 36, all 0 fail under lune); local only, merge on hold.
 
 ## What's next
-**Run the World 2 cast scenarios in Studio and merge orch/world2/cast-ingame into feature/alex/world2-place.**
+**The owner answers the w2-cast in-game questions (docs/OWNER_QUESTIONS.md), and a fresh rules audit passes on the final sha.**
 
-**Why this is next:** the code is only checked under a mocked DataModel, and the World 2 place cannot be published without this branch.
+**Why this is next:** the merge into feature/alex/world2-place and any Studio run wait on both.
