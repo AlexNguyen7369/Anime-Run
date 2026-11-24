@@ -253,8 +253,9 @@
 249. 2026-11-24 — Alex Nguyen — Server tests in World 2 drive a same-speed World 2 character instead of a World 1 one at a tenth of its cruise; the safety baseplate hides its textures with its tiles (the template grid showed in World 2).
 250. 2026-11-24 — Alex Nguyen — World 2 UI is World 1's again except the fourth team slot (owner ruling); boss events checked in World 2 with the boss tests following the team of 4; runner 88/88 and world_layout 12/12 confirmed in the World 2 Studio.
 251. 2026-11-24 — Alex Nguyen — Ran the full server suite in the World 2 Studio (69 pass, 2 fail, 12 skipped as World 1 only) and fixed the tests that assumed World 1; after the fixes money 43/43 and awakening 71/71 pass, boss_king_arena stays red pending an asset upload, and the skipped World 2 coverage is listed as open work in docs/OWNER_QUESTIONS.md; World 1 not rerun.
+252. 2026-11-24 — Alex Nguyen — Added server scenarios world2_summon (Summon gives only the place's Sidekick set, pity counts shared across worlds; 21/21 offline in both worlds, goes red when the list is swapped) and boss_models_placed (the four boss models are in the place's BakedModels; not yet run, needs Studio).
 
 ## What's next
-**Write server scenarios that prove Summon (World 2 Sidekick set only, shared pity) and the boss models in the World 2 place, then rerun the full World 1 server suite.**
+**Run world2_summon, boss_models_placed, the Sidekick and boss suites in the World 2 Studio, then the full server suite in World 1.**
 
-**Why this is next:** boss events and Summon already work in World 2 in code but nothing proves it, and the harness changes in this commit have not been run in World 1 yet.
+**Why this is next:** the two new scenarios have never run in Studio, and the harness changes of 4ccbf209 have not been run in World 1, so neither world's suite is confirmed on the current code.
