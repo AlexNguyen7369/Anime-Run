@@ -3049,6 +3049,14 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
+	-- Records in the stores as this place reads and writes them: World 2 keeps its progress keys in Worlds.W2 (design doc 4.47)
+	local WorldSave, WORLD = sharedModule("WorldSave"), sharedModule("WorldConfig").Id
+	local function seeded(record)
+		return WorldSave.Fold(record, nil, WORLD)
+	end
+	local function viewed(record)
+		return WorldSave.View(record, WORLD)
+	end
 	local DATA_VERSION = 19 -- docs/SAVE_SPEC.md: VERSION 19 refunds and drops WorkshopLevel, WorkshopStat, Showcase (design doc 4.43); 18 adds BossCredit; 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
@@ -3388,7 +3396,7 @@ function Scenarios.data()
 	-- docs/SAVE_SPEC.md 2b (VERSION 11): RaceBestTimes, keyed by string track number, each a positive finite time in
 	-- seconds; invalid entries are discarded and older saves load (and save) an empty table
 	local bestStore = makeStore({
-		Player_9450 = {
+		Player_9450 = seeded({
 			Version = 11,
 			Money = 5,
 			Speed = 1,
@@ -3401,7 +3409,7 @@ function Scenarios.data()
 				abc = 5,
 				["6"] = 7.25,
 			},
-		},
+		}),
 		Player_9451 = { Version = 10, Money = 5, Speed = 1 },
 	})
 	PlayerData.SetStore(bestStore)
@@ -3410,7 +3418,7 @@ function Scenarios.data()
 		PlayerData.Load(pb, case[1])
 		local okb = PlayerData.Save(pb, case[1])
 		local times = type(bestStore.data["Player_" .. case[1]]) == "table"
-			and bestStore.data["Player_" .. case[1]].RaceBestTimes
+			and viewed(bestStore.data["Player_" .. case[1]]).RaceBestTimes
 		local same = okb == true and type(times) == "table"
 		if same then
 			for k, v in times do
@@ -3425,6 +3433,81 @@ function Scenarios.data()
 			end
 		end
 		check(checks, "race_best_times_" .. case[3], same and 1 or 0, 1, same)
+	end
+
+	-- The stored shape written out, so the checks above are not only WorldSave against itself (docs/WORLD2_SPEC.md "Save"):
+	-- World 1 at the top level, World 2 in Worlds.W2; each place loads and rewrites its own half only.
+	local function shape(extra)
+		local record = {
+			Version = DATA_VERSION,
+			Money = 5,
+			Cars = { "leaf_medic", "punch_rider" },
+			Equipped = "leaf_medic",
+			Team = { "leaf_medic" },
+			BestTrack = 3,
+			RaceBestTimes = { ["1"] = 42.5 },
+			Worlds = {
+				W2 = {
+					Equipped = "punch_rider",
+					Team = { "punch_rider" },
+					BestTrack = 2,
+					RaceBestTimes = { ["2"] = 9.5 },
+				},
+			},
+		}
+		for key, value in extra or {} do
+			record[key] = value
+		end
+		return record
+	end
+	local shapeStore = makeStore({ Player_9452 = shape() })
+	PlayerData.SetStore(shapeStore)
+	local pw = newPlayer("ServerTestDataWorlds")
+	PlayerData.Load(pw, 9452)
+	local ownTeam, ownTrack = WORLD == 2 and "punch_rider" or "leaf_medic", WORLD == 2 and 2 or 3
+	local teamOk = pw:GetAttribute("Team") == ownTeam
+	check(checks, "worlds_shape_team", teamOk and 1 or 0, 1, teamOk)
+	check(
+		checks,
+		"worlds_shape_best_track",
+		pw:GetAttribute("BestTrack"),
+		ownTrack,
+		pw:GetAttribute("BestTrack") == ownTrack
+	)
+	serverModule("GachaService").SetTeam(pw, { "leaf_medic", "punch_rider" })
+	pw:SetAttribute("BestTrack", 7)
+	local okw = PlayerData.Save(pw, 9452)
+	local saved = shapeStore.data.Player_9452
+	local want = WORLD == 2
+			and {
+				Equipped = "leaf_medic",
+				Team = { "leaf_medic" },
+				BestTrack = 3,
+				RaceBestTimes = { ["1"] = 42.5 },
+				Worlds = {
+					W2 = {
+						Equipped = "leaf_medic",
+						Team = { "leaf_medic", "punch_rider" },
+						BestTrack = 7,
+						RaceBestTimes = { ["2"] = 9.5 },
+					},
+				},
+			}
+		or {
+			Equipped = "leaf_medic",
+			Team = { "leaf_medic", "punch_rider" },
+			BestTrack = 7,
+			RaceBestTimes = { ["1"] = 42.5 },
+			Worlds = shape().Worlds,
+		}
+	for key, value in want do
+		local got = saved[key]
+		if key == "Worlds" then -- Checkpoint has no value here that this check names
+			got = deepCopy(got)
+			got.W2.Checkpoint = nil
+		end
+		local same = okw == true and require(script.Parent.AcceptanceSupport).same(got, value)
+		check(checks, "worlds_shape_saved_" .. key, same and 1 or 0, 1, same)
 	end
 	PlayerData.SetStore(store)
 
@@ -3594,7 +3677,7 @@ function Scenarios.data()
 				and not hasId(snap1.Cars, "starter")
 			check(checks, "gacha_snapshot_shape", snapOk and 1 or 0, 1, snapOk)
 			local savedG = PlayerData.Save(g1, 9501)
-			local recG = gStore.data["Player_9501"]
+			local recG = viewed(gStore.data["Player_9501"])
 			local recOk = savedG == true
 				and type(recG) == "table"
 				and recG.Version == DATA_VERSION
@@ -3646,7 +3729,7 @@ function Scenarios.data()
 			-- cleaning on load (via PlayerData) and via Apply directly
 			local function loadV3(id, name, record)
 				record.Version = 3
-				PlayerData.SetStore(makeStore({ ["Player_" .. id] = record }))
+				PlayerData.SetStore(makeStore({ ["Player_" .. id] = seeded(record) }))
 				local pv3 = newPlayer(name)
 				local okl = PlayerData.Load(pv3, id)
 				return pv3, okl, GachaService.Snapshot(pv3)
@@ -3910,7 +3993,7 @@ function Scenarios.data()
 				TurboCount = 7,
 			})
 			local saved4 = PlayerData.Save(u1, 9601)
-			local rec4 = st.data["Player_9601"]
+			local rec4 = viewed(st.data["Player_9601"])
 			local recOk = saved4 == true
 				and type(rec4) == "table"
 				and rec4.Version == DATA_VERSION
@@ -3971,7 +4054,7 @@ function Scenarios.data()
 					and s3.BestTrack == 0
 					and s3.TurboCount == c.turbo
 				local saved3 = PlayerData.Save(u3, id)
-				local r3 = st3.data["Player_" .. id]
+				local r3 = viewed(st3.data["Player_" .. id])
 				local upOk = saved3 == true
 					and type(r3) == "table"
 					and r3.Version == DATA_VERSION
@@ -5030,7 +5113,7 @@ local GACHA_CATALOG = {}
 for _, row in require(script.Parent.CatalogTests).CAST do
 	table.insert(GACHA_CATALOG, table.clone(row))
 end
-local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" } -- Eternal: design doc 4.47
 local GACHA_STATS = { "Speed", "Money", "Luck", "Stamina" } -- design doc 4.19: the Workshop point is retired
 local GACHA_PER_POINT = { Speed = 0.02, Money = 0.1, Luck = 0.05, Stamina = 0.05 } -- design doc 4.13 / 4.6 (placeholders)
 local GACHA_ROLLS = 100000
@@ -5048,11 +5131,11 @@ local INDEX_SETTLE_CAP = 10
 
 -- Expected "1 in N" result per character at a given luck: rarest first, a character hits with min(1, luck/N), the first hit
 -- wins and the catch-all gets whatever is left.
-local function gachaExpected(luck, event)
+local function gachaExpected(luck, cast)
 	local rollable = {}
 	local catchAll
 	local expected = {}
-	for _, c in GACHA_CATALOG do
+	for _, c in cast or GACHA_CATALOG do
 		expected[c.Id] = 0
 		if c.Event then -- owner 2026-11-03: never rolled, whatever the weather
 			continue
@@ -5190,8 +5273,8 @@ function Scenarios.gacha()
 		1,
 		CharacterCatalog.Get("no_such_car") == nil
 	)
-	local okAll, all = pcall(CharacterCatalog.All)
-	local okRoll, rollable = pcall(CharacterCatalog.Rollable)
+	local okAll, all = pcall(CharacterCatalog.All, 1)
+	local okRoll, rollable = pcall(CharacterCatalog.Rollable, 1)
 	all = okAll and type(all) == "table" and all or {}
 	rollable = okRoll and type(rollable) == "table" and rollable or {}
 	local baseCount, eventCount, baseRollCount, eventRollCount = 0, 0, 0, 0
@@ -5352,7 +5435,7 @@ function Scenarios.gacha()
 	end
 	check(checks, "catalog_spec_chances", #oddsBad, table.concat(oddsBad, ", "), #oddsBad == 0)
 	local tierOk = true
-	for i = 3, #GACHA_RARITY_ORDER do -- Uncommon < Rare < ... < Secret (Common is the catch-all)
+	for i = 3, table.find(GACHA_RARITY_ORDER, "Secret") do -- Uncommon < Rare < ... < Secret (Common is the catch-all); Eternal is World 2 only: World2CastTests
 		local lower, higher = GACHA_RARITY_ORDER[i - 1], GACHA_RARITY_ORDER[i]
 		tierOk = tierOk
 			and rarityMax[lower] ~= nil
@@ -5403,18 +5486,28 @@ function Scenarios.gacha()
 	end
 	check(checks, "rollable_matches_base_cast_once", membershipOk and 1 or 0, 1, membershipOk)
 
-	-- Seeded roll odds at luck 1 and luck 10
-	local validIds = {}
-	for _, c in GACHA_CATALOG do
+	-- Seeded roll odds at luck 1 and luck 10, on each world's own spec table; a weather event rolls the place's pool
+	local placeWorld = sharedModule("WorldConfig").Id
+	local casts = { GACHA_CATALOG, {} }
+	for id, spec in require(script.Parent.World2CastTests).SPEC do
+		table.insert(casts[2], { Id = id, Chance = spec[3] })
+	end
+	local placeCast = casts[placeWorld]
+	local validIds = {} -- the place's, for the service rolls below
+	for _, c in placeCast do
 		validIds[c.Id] = true
 	end
-	local function rollMany(seed, luck, event)
+	local function rollMany(seed, luck, pool, cast)
+		local castIds = {}
+		for _, c in cast do
+			castIds[c.Id] = true
+		end
 		local counts, invalid = {}, 0
 		local ok = pcall(function()
 			local rng = Random.new(seed)
 			for _ = 1, GACHA_ROLLS do
-				local id = GachaConfig.Roll(rng, luck, event)
-				if validIds[id] then
+				local id = GachaConfig.Roll(rng, luck, pool)
+				if castIds[id] then
 					counts[id] = (counts[id] or 0) + 1
 				else
 					invalid += 1
@@ -5425,18 +5518,22 @@ function Scenarios.gacha()
 	end
 	for _, case in
 		{
-			{ luck = 1, seed = GACHA_SEED_LUCK1, tag = "luck1" },
-			{ luck = 10, seed = GACHA_SEED_LUCK10, tag = "luck10" },
+			{ luck = 1, seed = GACHA_SEED_LUCK1, world = 1, tag = "luck1" },
+			{ luck = 10, seed = GACHA_SEED_LUCK10, world = 1, tag = "luck10" },
+			{ luck = 1, seed = GACHA_SEED_LUCK1, world = 2, tag = "w2_luck1" },
+			{ luck = 10, seed = GACHA_SEED_LUCK10, world = 2, tag = "w2_luck10" },
 			{ luck = 1, seed = GACHA_SEED_LUCK1, event = "rain", tag = "rain_luck1" },
 			{ luck = 1, seed = GACHA_SEED_LUCK1, event = "night", tag = "night_luck1" },
 			{ luck = 1, seed = GACHA_SEED_LUCK1, event = "gold", tag = "gold_luck1" },
 		}
 	do
-		local ok, counts, invalid = rollMany(case.seed, case.luck, case.event)
+		local ok, counts, invalid =
+			rollMany(case.seed, case.luck, case.world or case.event, casts[case.world or placeWorld])
 		check(checks, "roll_no_error_" .. case.tag, ok and 1 or 0, 1, ok)
 		check(checks, "roll_always_valid_id_" .. case.tag, invalid, 0, ok and invalid == 0)
-		local expected = gachaExpected(case.luck, case.event)
-		for _, c in GACHA_CATALOG do
+		local cast = casts[case.world or placeWorld]
+		local expected = gachaExpected(case.luck, cast)
+		for _, c in cast do
 			local mean = GACHA_ROLLS * expected[c.Id]
 			local sigma = math.sqrt(GACHA_ROLLS * expected[c.Id] * (1 - expected[c.Id]))
 			local tol = GACHA_SIGMAS * sigma + GACHA_FLOOR
@@ -5450,10 +5547,10 @@ function Scenarios.gacha()
 				ok and (expected[c.Id] == 0 and got == 0 or expected[c.Id] > 0 and math.abs(got - mean) <= tol)
 			)
 		end
-		if case.luck == 10 then
+		if case.tag == "luck10" then
 			-- 10/10: the Uncommon always hits, so the catch-all is never reached
 			local common = counts.sea_navigator or 0
-			check(checks, "luck10_catch_all_never", common, 0, ok and common == 0)
+			check(checks, "luck10_catch_all_never", common, 0, ok and common == 0 and (counts.leaf_medic or 0) > 0)
 		end
 	end
 	-- Bad luck (nil, NaN, below 1) is treated as luck 1: the same seed gives the same sequence
@@ -5561,10 +5658,10 @@ function Scenarios.gacha()
 		check(checks, "service_roll_grants_character", owns(q, id1) and 1 or 0, 1, owns(q, id1))
 		check(checks, "service_roll_increments_rolls", q:GetAttribute("Rolls") or -1, 1, q:GetAttribute("Rolls") == 1)
 		local rng = Random.new(100)
-		local rolledOwned, newMatches = owns(q, id1), true
+		local rolledOwned, newMatches, newJudged = owns(q, id1), true, 0
 		for _ = 1, 20 do
 			local ownedBefore = {}
-			for _, c in GACHA_CATALOG do
+			for _, c in placeCast do
 				ownedBefore[c.Id] = owns(q, c.Id)
 			end
 			local id, isNew = GachaService.Roll(q, rng)
@@ -5572,8 +5669,9 @@ function Scenarios.gacha()
 				rolledOwned = false
 			end
 			-- a duplicate roll returns (id, false); a first discovery (id, true)
-			if validIds[id] and isNew ~= not ownedBefore[id] then
-				newMatches = false
+			if validIds[id] then
+				newJudged += 1
+				newMatches = newMatches and isNew == not ownedBefore[id]
 			end
 		end
 		check(checks, "service_rolls_counted", q:GetAttribute("Rolls") or -1, 21, q:GetAttribute("Rolls") == 21)
@@ -5585,7 +5683,13 @@ function Scenarios.gacha()
 			"1..min(Rolls, base catalog)",
 			rolledOwned and uq >= 1 and uq <= math.min(21, expectedBase) and GachaService.UniqueCount(q) == uq
 		)
-		check(checks, "service_roll_is_new_matches_ownership", newMatches and 1 or 0, 1, newMatches)
+		check(
+			checks,
+			"service_roll_is_new_matches_ownership",
+			newMatches and newJudged or 0,
+			20,
+			newMatches and newJudged == 20
+		)
 		check(checks, "service_roll_no_count_attribute", anyCountAttribute(q) and 1 or 0, 0, not anyCountAttribute(q))
 		local okDefault, idD = pcall(GachaService.Roll, q)
 		check(
@@ -9662,6 +9766,7 @@ local ROLL_ANIM_HOLD = {
 	Legendary = 1.5,
 	Mythic = 2.5,
 	Secret = 4,
+	Eternal = 5, -- design doc 4.47
 }
 local ROLL_ANIM_LAYOUT = {
 	REEL_CARS = 16,
@@ -12012,6 +12117,10 @@ Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_prog
 Scenarios.track_loading = require(script.Parent.TrackLoadTests).track_loading
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
+-- design doc 4.47: per-world roll pools, Sidekick sets and cruise; World 1 unchanged
+Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
+-- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): another world's models load on demand (Server/CharacterModelService)
+Scenarios.character_models = require(script.Parent.CharacterModelTests).character_models
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
 Scenarios.speed_probe = require(script.Parent.SpeedProbeTests).speed_probe
 -- docs/PANEL_ART_GIFTING_SPEC.md: cosmetic effects on the runner, no mass/controls change, equip preserved

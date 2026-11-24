@@ -818,6 +818,30 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   4; no World 2 bosses yet.
 - Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,
   Kaiju No. 8 and Frieren (owner 2026-11-23). World 2 rolls only World 2 characters.
+- Cast and Sidekicks (owner 2026-11-23): the full World 2 cast and a new 12-Sidekick set are drafted as models and digital art
+  for owner approval; list, names and rarities **proposed** in `docs/WORLD2_CAST.md`.
+  Looks of all 42 approved by the owner 2026-11-23; names and rarities stay **proposed**.
+- Cast in game (owner 2026-11-24: "complete full run until everything is ingame, world2 should have this as their set
+  sidekick gacha rotation. I preapprive all decisions". Then, answering in session the same day, the owner approved:
+  the names and ids as final, the uploads, the model-loading rule, full cruise in World 1, the starters' exemption, no Secrets,
+  shared pity, the per-world Index, the Day 7 cap, the Eternal numbers, the Sidekick attack poses. Other numbers **proposed**):
+  - World 2 rolls only its 43 characters (12 Saw Man / Solo Levelup, Void Saitamo, 21 heroes, 9 rollable villains; Makina
+    is one of the 12). Its Common catch-all is Mumon Rider. World 1's pool and odds do not change. Details lists the odds of
+    the place the player is in, summing to 100% (section 6).
+  - Rarity Eternal, above Secret, World 2 only: cruise 780, stamina 32 s, roll hold 5 s, sells for 25,000. World 2 has no Secret
+    characters. Eternal odds are at most 1 in 9e18 (owner 2026-11-24), the
+    RarestCharacter board's cap; each Eternal has its own odds.
+  - A World 1 character (Saitamo included) runs at x0.1 of its final cruise in World 2. The starter and the starter picks
+    run the same in both worlds, so an empty World 2 team is never stuck. World 2 characters run in World 1 at full cruise.
+  - The Index lists its own world's characters and summon Sidekicks. Discoveries, stat points, Copies, the bag and
+    worn gear stay shared, and every owned character or Sidekick of the other world still shows in the Bag and the Team.
+  - Series names: Dandadun, Kaijo No. 8 and Frierin replace the real titles Dandadan, Kaiju No. 8 and Frieren (section 5).
+  - World 2's enemies are the rollable villains (Track 10: Makina).
+  - Daily login Day 7 in World 2 gives its rarest unowned character up to Legendary (owner 2026-11-24). World 1's Day 7 is unchanged.
+  - Models (owner 2026-11-24): a server loads only its own world's character and Sidekick models at start, plus those every world
+    shows; another world's model loads when a player in the server owns it or a rig wears it.
+  - World 2's Sidekicks are its own set of 12 with its own rotation, World 1's never mix in; featured Mythic Belleon.
+    Numbers are World 1's row of the same rarity. Pity counts stay shared.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -882,6 +906,9 @@ None open here; 4.25 marks its own open question.
 
 ## Change log
 - 2026-11-24: owner: World 2 (4.47): opening rule confirmed (gate stays closed until the owner opens it); Awakening +3% cruise and +3% stamina per star; World 2 pays first-clear Gems again and more Money; World 1 boss events run in World 2 with the team of 4; plaza Rift Shrine; all 10 track drafts approved.
+- 2026-11-24: World 2 names that held a real name are retweaked (4.47, section 5; proposed names): `fr_gold` Makto, `side_shaman` Toskar, `side_dark` Darknez Devill.
+- 2026-11-24: owner (answered in session): World 2 cast names and ids final, uploads confirmed, model-loading rule, Eternal odds at most 9e18, fixed side_lucky and side_acrobat art, the listed cast rules and the Sidekick attack poses approved (4.47).
+- 2026-11-24: World 2 cast in game (4.47; only the in-game goal and the set Sidekick rotation are the owner's words, the rest proposed): its own roll pool (43, catch-all Mumon Rider), Eternal 780, World 1 carry x0.1, its own 12-Sidekick set rotation (featured Belleon), series names Dandadun, Kaijo No. 8 and Frierin; numbers proposed.
 - 2026-11-23: owner: World 2 (4.47): separate place, locked plaza gate with /world2 for admins, per-world progress, 10 tracks Blender-first, per-world cruise, team of 4 and Awakening in World 2, 6 series.
 - 2026-11-23: owner: World 2 (4.47): scenery placed from the approved Blender drafts keeps the drafts' clearance (24+ studs from the road centre line, overhead 14+), not World 1's 8-stud road-edge clearance; track names 'Devil Hunter City' and 'Wrecked Kaiju Base' (no real place names); the 8 approved tracks' meshes are uploaded under the owner's account.
 - 2026-11-20: owner: game-wide Scroll Dojo look from the Summon and Team pages, center-out handscroll open about 0.45 s with input live, HUD and boss UI in scope; references first (4.46 draft; 4.20, 4.42 replaced for redesigned GUIs on approval).

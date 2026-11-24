@@ -39,7 +39,7 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 | 6 | W2ElvenPlains | ElvenPlains | Frieren | Elven Ruin Plains | Ora (Aura the Guillotine) |
 | 7 | W2AntIsland | AntIsland | Solo Levelup | Ant Island | Berru (Beru) |
 | 8 | W2MonsterDen | MonsterDen | One Punch | Monster Den | Orochy (Orochi) |
-| 9 | W2GoldenCity | GoldenCity | Frieren | Golden City | Machto (Macht) |
+| 9 | W2GoldenCity | GoldenCity | Frieren | Golden City | Makto (Macht) |
 | 10 | W2HellGate | HellGate | Saw Man | Hell's Gate | Makina (Makima) |
 
 The "Based on" names stay in docs and never ship (design doc 5).
@@ -81,3 +81,66 @@ The "Based on" names stay in docs and never ship (design doc 5).
 - A mesh larger than 2048 studs on an axis at its placed scale is exported as several pieces under that size (same
   shape, same look), each its own asset.
 - Approved by the owner 2026-11-23 after rework: Track 5 KaijuBase (round 16, c96b876). Frozen.
+
+## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
+- Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's
+  world; `Everything()` is every world's. `GachaConfig.Roll`, `Odds` and `OddsPercents` take an optional `world`.
+- `RaceConfig.Cruise(spec, multi, world)`: `CARRY_CRUISE` 0.1 for a spec with `World = 1` in World 2. No `World` (starter, starter
+  picks): no carry. Kami's `AdminCruise` is never reduced.
+- `NpcConfig.World2[n].Model` is the villain's own id. Until its model is uploaded the enemy is the plain rig and its
+  portrait the live rig; a character with no upload is the same.
+- Saves: nothing new. `Cars`, `Copies`, `Sidekicks` and `CharacterGear` are shared and keep every id; `Worlds.W2` as before.
+- Sidekicks: `docs/SIDEKICK_SPEC.md` "World 2 set". Tests: `world2_cast`.
+- Daily Day 7: `DailyLoginConfig.MAX_GUARANTEED_RARITY[2]` = Legendary; World 1 has no cap.
+
+| Id | Name | Series | Rarity | Cat. | Chance (1 in N) |
+|---|---|---|---|---|---|
+| `punch_rider` | Mumon Rider | One Punch | Common | Marathoner | 1 |
+| `dan_hex` | Jijo | Dandadun | Uncommon | Balanced | 12 |
+| `kaiju_ice` | Rino | Kaijo No. 8 | Uncommon | Balanced | 25 |
+| `fr_axe` | Stork | Frierin | Uncommon | Marathoner | 50 |
+| `solo_vice` | Jinhu | Solo Levelup | Uncommon | Marathoner | 160 |
+| `saw_nervous` | Kobene | Saw Man | Uncommon | Marathoner | 180 |
+| `punch_cyborg` | Genus | One Punch | Rare | Sprinter | 550 |
+| `dan_idol` | Airah | Dandadun | Rare | Balanced | 650 |
+| `kaiju_axe` | Kikuru | Kaijo No. 8 | Rare | Sprinter | 1,600 |
+| `fr_staff` | Ferne | Frierin | Rare | Balanced | 2,500 |
+| `solo_mage` | Jongen | Solo Levelup | Rare | Balanced | 5,000 |
+| `saw_fox` | Akki | Saw Man | Rare | Balanced | 6,000 |
+| `punch_speed` | Speedo Sonik | One Punch | Epic | Sprinter | 60,000 |
+| `dan_medium` | Seika | Dandadun | Epic | Balanced | 140,000 |
+| `kaiju_blade` | Hoshena | Kaijo No. 8 | Epic | Sprinter | 350,000 |
+| `fr_hero` | Himmal | Frierin | Epic | Balanced | 600,000 |
+| `saw_blood` | Powah | Saw Man | Epic | Sprinter | 800,000 |
+| `saw_katana` | Katanah Man | Saw Man | Epic | Sprinter | 1,100,000 |
+| `dan_granny` | Turbo Grammy | Dandadun | Epic | Sprinter | 1,400,000 |
+| `solo_blade` | Sha Hain | Solo Levelup | Epic | Sprinter | 1,800,000 |
+| `punch_psychic` | Tatsumako | One Punch | Legendary | Balanced | 1.2e7 |
+| `dan_psychic` | Momu | Dandadun | Legendary | Balanced | 3.5e7 |
+| `kaiju_captain` | Mena Ashiru | Kaijo No. 8 | Legendary | Balanced | 6e7 |
+| `fr_cut` | Ubbel | Frierin | Legendary | Sprinter | 1.2e8 |
+| `fr_scales` | Ora | Frierin | Legendary | Marathoner | 1.8e8 |
+| `kaiju_nine` | Kaijo No. 9 | Kaijo No. 8 | Legendary | Balanced | 2.5e8 |
+| `saw_bomb` | Rezi | Saw Man | Legendary | Sprinter | 4e8 |
+| `solo_beast` | Yunho | Solo Levelup | Legendary | Marathoner | 6e8 |
+| `solo_flame` | Barran | Solo Levelup | Legendary | Balanced | 7e8 |
+| `punch_fist` | Bange | One Punch | Mythic | Marathoner | 6e9 |
+| `dan_turbo` | Okaron | Dandadun | Mythic | Sprinter | 2e10 |
+| `kaiju_hero` | Kafko | Kaijo No. 8 | Mythic | Balanced | 8e10 |
+| `fr_mage` | Frierin | Frierin | Mythic | Balanced | 2e11 |
+| `solo_ant` | Berru | Solo Levelup | Mythic | Sprinter | 2e12 |
+| `punch_serpent` | Orochy | One Punch | Mythic | Marathoner | 8e12 |
+| `fr_gold` | Makto | Frierin | Mythic | Balanced | 2e13 |
+| `saw_hero` | Denjy | Saw Man | Mythic | Balanced | 5e13 |
+| `punch_monster` | Garoo | One Punch | Mythic | Sprinter | 2e14 |
+| `solo_goliath` | Golioth | Solo Levelup | Mythic | Marathoner | 7e14 |
+| `solo_monarch` | Jinwu | Solo Levelup | Eternal | Balanced | 6e18 |
+| `saw_control` | Makina | Saw Man | Eternal | Marathoner | 7e18 |
+| `fr_great` | Serye | Frierin | Eternal | Balanced | 8e18 |
+| `punch_void` | Void Saitamo | One Punch | Eternal | Balanced | 9e18 |
+
+### Release checklist (cast)
+- Publish World 1 from this build before or with World 2, then shut down old servers: an older World 1 server trims StatAlloc earned from World 2 ids and drops World 2 characters from the team.
+- Ids are final (owner 2026-11-24).
+- Random:NextNumber resolution measured in Studio against the rarest odds (OWNER_QUESTIONS item 9).
+- Studio run of the cast scenarios.

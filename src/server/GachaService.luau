@@ -475,7 +475,7 @@ function GachaService.SellSparesMany(player, ids)
 	if player:GetAttribute("DataLoaded") ~= true or player:GetAttribute("DataFailed") then
 		return false, "Data not loaded"
 	end
-	if type(ids) ~= "table" or #ids > #CharacterCatalog.All() then
+	if type(ids) ~= "table" or #ids > #CharacterCatalog.Everything() then
 		return false, "Invalid list"
 	end
 	local data = player:FindFirstChild("GachaData")

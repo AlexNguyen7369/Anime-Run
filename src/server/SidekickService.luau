@@ -115,9 +115,8 @@ local function summon(player, current, count, cost)
 	local mythicPity, legendaryPity = current.SidekickPity, current.SidekickLegendaryPity -- stored only once nothing can refuse
 	for i = 1, count do
 		-- A Mythic wins a tie; the Legendary count then stays over its threshold and pays on the next summon.
-		local paid = mythicPity + 1 >= Config.PityCount and guaranteed(rows, "Mythic")
-			or legendaryPity + 1 >= Config.LegendaryPityCount and guaranteed(rows, "Legendary")
-			or nil
+		local due = Config.DueTier(mythicPity, legendaryPity, rows)
+		local paid = due and guaranteed(rows, due)
 		local row = paid or Config.Roll(rng, rows)
 		mythicPity = row.Rarity == "Mythic" and 0 or mythicPity + 1
 		legendaryPity = row.Rarity == "Legendary" and 0 or legendaryPity + 1

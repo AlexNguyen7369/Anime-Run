@@ -1,4 +1,26 @@
 {
+ "side_acrobat": {
+  "Fit": "Torso",
+  "FitCenter": [
+   0.0,
+   -0.01,
+   3.7048
+  ],
+  "FitHeight": 2.0304,
+  "Parents": {
+   "Hair": "Head",
+   "HairWhipLeft": "Head",
+   "HairWhipRight": "Head",
+   "Hat": "Head",
+   "Head": "Torso",
+   "LeftArm": "Torso",
+   "LeftLeg": "Torso",
+   "RightArm": "Torso",
+   "RightLeg": "Torso",
+   "Skirt": "Torso",
+   "Torso": null
+  }
+ },
  "side_ant": {
   "Fit": "Torso",
   "FitCenter": [
@@ -21,6 +43,74 @@
    "RightLegNeon": "RightLeg",
    "Torso": null,
    "TorsoNeon": "Torso"
+  }
+ },
+ "side_bird": {
+  "Fit": "Body",
+  "FitCenter": [
+   -0.0074,
+   -0.1837,
+   2.5169
+  ],
+  "FitHeight": 2.4152,
+  "Parents": {
+   "Body": null,
+   "Head": "Body",
+   "LegLeft": "Body",
+   "LegRight": "Body",
+   "Tail": "Body",
+   "WingLeft": "Body",
+   "WingRight": "Body"
+  }
+ },
+ "side_box": {
+  "Fit": "Base",
+  "FitCenter": [
+   0.0,
+   -0.05,
+   1.2763
+  ],
+  "FitHeight": 2.5926,
+  "Parents": {
+   "Base": null,
+   "Lid": "Base",
+   "Tongue": "Base"
+  }
+ },
+ "side_brawler": {
+  "Fit": "Torso",
+  "FitCenter": [
+   -0.0009,
+   0.14,
+   3.08
+  ],
+  "FitHeight": 2.56,
+  "Parents": {
+   "Head": "Torso",
+   "LeftArm": "Torso",
+   "LeftLeg": "Torso",
+   "RightArm": "Torso",
+   "RightLeg": "Torso",
+   "Tail": "Torso",
+   "Torso": null
+  }
+ },
+ "side_cat": {
+  "Fit": "Body",
+  "FitCenter": [
+   -0.0086,
+   0.4327,
+   1.6408
+  ],
+  "FitHeight": 1.4984,
+  "Parents": {
+   "Body": null,
+   "Head": "Body",
+   "LegBackLeft": "Body",
+   "LegBackRight": "Body",
+   "LegFrontLeft": "Body",
+   "LegFrontRight": "Body",
+   "Tail": "Body"
   }
  },
  "side_chain": {
@@ -77,6 +167,24 @@
    "Tail": "Body"
   }
  },
+ "side_dark": {
+  "Fit": "Torso",
+  "FitCenter": [
+   -0.0084,
+   0.315,
+   2.5101
+  ],
+  "FitHeight": 5.047,
+  "Parents": {
+   "HandsLeft": "Torso",
+   "HandsRight": "Torso",
+   "Head": "Torso",
+   "LeftArm": "Torso",
+   "RightArm": "Torso",
+   "Sword": "RightArm",
+   "Torso": null
+  }
+ },
  "side_dogs": {
   "Fit": "BlackBody",
   "FitCenter": [
@@ -102,6 +210,28 @@
    "WhiteLegFrontLeft": "WhiteBody",
    "WhiteLegFrontRight": "WhiteBody",
    "WhiteTail": "WhiteBody"
+  }
+ },
+ "side_dragon": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0,
+   0.0515,
+   3.1138
+  ],
+  "FitHeight": 2.9768,
+  "Parents": {
+   "Body": null,
+   "Head": "Neck",
+   "HeadJaw": "Head",
+   "LegBackLeft": "Body",
+   "LegBackRight": "Body",
+   "LegFrontLeft": "Body",
+   "LegFrontRight": "Body",
+   "Neck": "Body",
+   "Tail": "Body",
+   "WingLeft": "Body",
+   "WingRight": "Body"
   }
  },
  "side_fist": {
@@ -152,6 +282,48 @@
    "Tail9": "Body"
   }
  },
+ "side_general": {
+  "Fit": "Torso",
+  "FitCenter": [
+   -0.0071,
+   0.1875,
+   2.2714
+  ],
+  "FitHeight": 3.9372,
+  "Parents": {
+   "Head": "Torso",
+   "HeadNeon": "Head",
+   "LeftArm": "Torso",
+   "LeftLeg": "Torso",
+   "RightArm": "Torso",
+   "RightLeg": "Torso",
+   "Sword": "RightArm",
+   "Torso": null,
+   "TorsoNeon": "Torso",
+   "WingLeft": "Torso",
+   "WingRight": "Torso"
+  }
+ },
+ "side_hound": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0,
+   0.385,
+   3.3728
+  ],
+  "FitHeight": 3.2501,
+  "Parents": {
+   "Body": null,
+   "Head": "Body",
+   "HeadJaw": "Head",
+   "HeadNeon": "Head",
+   "LegBackLeft": "Body",
+   "LegBackRight": "Body",
+   "LegFrontLeft": "Body",
+   "LegFrontRight": "Body",
+   "Tail": "Body"
+  }
+ },
  "side_king": {
   "Fit": "Torso_merged",
   "FitCenter": [
@@ -188,6 +360,24 @@
    "RightLeg": "Torso",
    "Sword": "RightArm",
    "Torso": null
+  }
+ },
+ "side_lucky": {
+  "Fit": "Body",
+  "FitCenter": [
+   -0.0035,
+   -0.09,
+   1.3154
+  ],
+  "FitHeight": 1.6891,
+  "Parents": {
+   "Body": null,
+   "Head": "Body",
+   "LeftArm": "Body",
+   "LeftLeg": "Body",
+   "RightArm": "Body",
+   "RightLeg": "Body",
+   "Tail": "Body"
   }
  },
  "side_mage": {
@@ -267,6 +457,44 @@
    "HeadHat": "Head",
    "LegLeft": "Body",
    "LegRight": "Body"
+  }
+ },
+ "side_shaman": {
+  "Fit": "Torso",
+  "FitCenter": [
+   0.0009,
+   0.2162,
+   3.0416
+  ],
+  "FitHeight": 2.7227,
+  "Parents": {
+   "Head": "Torso",
+   "HeadNeon": "Head",
+   "LeftArm": "Torso",
+   "LeftLeg": "Torso",
+   "RightArm": "Torso",
+   "RightLeg": "Torso",
+   "Staff": "RightArm",
+   "StaffNeon": "Staff",
+   "Torso": null
+  }
+ },
+ "side_tiger": {
+  "Fit": "Body",
+  "FitCenter": [
+   -0.0003,
+   0.2179,
+   1.7944
+  ],
+  "FitHeight": 1.8693,
+  "Parents": {
+   "Body": null,
+   "Head": "Body",
+   "LegBackLeft": "Body",
+   "LegBackRight": "Body",
+   "LegFrontLeft": "Body",
+   "LegFrontRight": "Body",
+   "Tail": "Body"
   }
  },
  "side_wyvern": {

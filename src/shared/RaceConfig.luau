@@ -3,6 +3,7 @@
 -- category, times the speed multi, capped at MAX_CRUISE (owner 2026-11-01, design doc 4.13; there is no Speed stat).
 
 local GachaConfig = require(script.Parent.GachaConfig)
+local WorldConfig = require(script.Parent.WorldConfig)
 
 local RaceConfig = {}
 
@@ -17,7 +18,9 @@ RaceConfig.RARITY_BASE = {
 	Legendary = 200,
 	Mythic = 450,
 	Secret = 700,
+	Eternal = 780, -- World 2 (design doc 4.47), proposed
 }
+RaceConfig.CARRY_CRUISE = 0.1 -- a World 1 character's final cruise in World 2 is x this (design doc 4.47, proposed)
 -- Category x cruise (design doc 4.5; placeholders)
 RaceConfig.CATEGORY_SPEED = { Sprinter = 1.25, Balanced = 1, Marathoner = 0.8 }
 RaceConfig.SPEED_PER_POINT = GachaConfig.PER_POINT.Speed -- +2 % cruise per Speed stat point (design doc 4.13)
@@ -49,7 +52,8 @@ end
 
 -- Cruise (studs/s) of a character spec at a speed multi: RARITY_BASE x CATEGORY_SPEED x multi, capped at MAX_CRUISE.
 -- An unknown rarity runs as Common, an unknown category as Balanced. An admin test spec's AdminCruise wins, uncapped.
-function RaceConfig.Cruise(spec, speedMulti)
+-- `world` defaults to this place's: in World 2 a World 1 character runs at CARRY_CRUISE of that.
+function RaceConfig.Cruise(spec, speedMulti, world)
 	if spec and positive(spec.AdminCruise) then
 		return spec.AdminCruise
 	end
@@ -59,7 +63,8 @@ function RaceConfig.Cruise(spec, speedMulti)
 		or RaceConfig.RARITY_BASE.Common
 	local category = RaceConfig.CATEGORY_SPEED[spec and spec.Category] or 1
 	local multi = positive(speedMulti) and speedMulti or 1
-	return math.min(base * category * multi, RaceConfig.MAX_CRUISE)
+	local carry = (world or WorldConfig.Id) == 2 and spec and spec.World == 1 and RaceConfig.CARRY_CRUISE or 1
+	return math.min(base * category * multi, RaceConfig.MAX_CRUISE) * carry
 end
 
 return RaceConfig

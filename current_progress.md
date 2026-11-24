@@ -233,8 +233,15 @@
 229. 2026-11-23 — Alex Nguyen — World 2 model close-ups now fit each model to the frame and render at the origin with the track hidden, which removed the speckled shadows.
 230. 2026-11-23 — Alex Nguyen — World 2 Tracks 4 and 5 round 8: tunnel portal and hill rebuilt to the refs, dark lamp-lit tunnel vault, faceted kaiju corpse cliff, hooded sweeper crew, puff smoke; both tracks clear the 24-stud road rule.
 231. 2026-11-23 — Alex Nguyen — World 2: Track 4 HauntedTunnel passed independent likeness review at 7/10 (frozen); Tracks 2 and 7 round 3 committed; model close-ups now render under a neutral studio sky instead of the biome's tinted sky.
+232. 2026-11-23 — Alex Nguyen — World 2 cast: wrote the list of 21 heroes, 9 villains and 12 new Sidekicks (docs/WORLD2_CAST.md, design doc 4.47 pointer, goal w2-cast), pre-approved by the owner for drafting.
+233. 2026-11-23 — Alex Nguyen — World 2 cast: built 42 drafts (21 heroes, 9 villains, 12 Sidekicks) with models, portraits, heads and evidence on orch/world2/cast; independent review after three rounds has 37 at 7/10 or more and 5 at 6.
+234. 2026-11-23 — Alex Nguyen — World 2 cast: the owner approved the looks of all 42 drafts from the contact sheets (frozen); recorded in WORLD2_CAST and design doc 4.47.
+235. 2026-11-24 — Alex Nguyen — World 2 cast in game on orch/world2/cast-ingame: 43 characters, per-world roll pool, World 2's own 12-Sidekick rotation with baked attacks, 127 uploads (all Approved), audit fixes; world2_cast 97/0 in both worlds under lune.
+236. 2026-11-24 — Alex Nguyen — World 2 cast: per-world model loading with on-demand loads, audit attribution fixes, World 2 test suites made real in both worlds (gacha 408/396, catalog 21, data 158, rotation 421, sidekicks 361, character_models 36, all 0 fail under lune); local only, merge on hold.
+237. 2026-11-24 — Alex Nguyen — World 2 cast tests: on-demand loading cites the proposed owner question, exact JSON compare restored with the lune mock fixed (421/0 in both worlds).
+238. 2026-11-24 — Alex Nguyen — World 2 cast: recorded the owner's answers (names, ids, uploads, loading rule, Eternal cap, poses) and shipped the fixed Turbo Nyan and Acro Silka art (2 models, 4 images, all Approved).
 
 ## What's next
-**Builders finish the round for all 10 World 2 tracks; fresh reviewers score scene shots and model close-ups, repeating until every track scores at least 7/10, then the owner approves assets/world2_draft/index.html.**
+**Merge orch/world2/cast-ingame into feature/alex/world2-place and run the cast scenarios in Studio.**
 
-**Why this is next:** the owner asked to see the tracks only once every reviewer score is 7 or higher, and the game BiomeThemes, prop uploads and Studio screenshots all wait on that approval.
+**Why this is next:** nothing of the cast has run in Studio yet, and publishing waits on it.

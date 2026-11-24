@@ -23,7 +23,7 @@ GachaConfig.PER_POINT = { -- each point adds this to its multi (additive, easier
 	Stamina = 0.05, -- +5 % stamina per point (placeholder, design doc 4.6; StaminaConfig.Multi)
 }
 
-GachaConfig.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+GachaConfig.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" }
 GachaConfig.RARITY_COLORS = {
 	Common = Color3.fromRGB(180, 180, 180),
 	Uncommon = Color3.fromRGB(90, 200, 90),
@@ -32,6 +32,7 @@ GachaConfig.RARITY_COLORS = {
 	Legendary = Color3.fromRGB(255, 170, 40),
 	Mythic = Color3.fromRGB(255, 70, 110),
 	Secret = Color3.fromRGB(20, 20, 20),
+	Eternal = Color3.fromRGB(60, 235, 225), -- World 2 (design doc 4.47), proposed
 }
 
 -- Duplicates are never sold, they add a copy (the bag, design doc 4.41). The workshop Showcase that once used them is
@@ -46,11 +47,12 @@ local function count(n)
 end
 
 -- One roll: checks characters rarest first, each hits with min(1, luck / N), the first hit wins, else the catch-all.
-function GachaConfig.Roll(rng, luck)
+-- `world` (default: this place's) picks the roll pool (design doc 4.47).
+function GachaConfig.Roll(rng, luck, world)
 	if type(luck) ~= "number" or luck ~= luck or luck < 1 then
 		luck = 1
 	end
-	local rollable = CharacterCatalog.Rollable()
+	local rollable = CharacterCatalog.Rollable(world)
 	for i, spec in rollable do
 		-- The last one is the catch-all (Chance = 1): it takes every roll the others miss, no draw needed.
 		if i == #rollable or rng:NextNumber() < math.min(1, luck / spec.Chance) then
@@ -62,11 +64,11 @@ end
 
 -- The exact chance of every outcome at `luck`, walking the same order as GachaConfig.Roll: { { Spec, Chance (0-1) } }.
 -- A check only runs if every rarer check missed, so a chance is not simply luck / N (design doc 6).
-function GachaConfig.Odds(luck)
+function GachaConfig.Odds(luck, world)
 	if type(luck) ~= "number" or luck ~= luck or luck < 1 then
 		luck = 1
 	end
-	local rollable = CharacterCatalog.Rollable()
+	local rollable = CharacterCatalog.Rollable(world)
 	local odds, left = {}, 1
 	for i, spec in rollable do
 		local hit = i == #rollable and 1 or math.min(1, luck / spec.Chance)
@@ -78,9 +80,9 @@ end
 
 -- GachaConfig.Odds as display percentages: 3 significant digits, the most likely outcome takes the rounding so the
 -- list sums to exactly 100. { { Spec, Percent } }, most likely first.
-function GachaConfig.OddsPercents(luck)
+function GachaConfig.OddsPercents(luck, world)
 	local rows = {}
-	for _, row in GachaConfig.Odds(luck) do
+	for _, row in GachaConfig.Odds(luck, world) do
 		if row.Chance > 0 then
 			table.insert(rows, { Spec = row.Spec, Percent = tonumber(string.format("%.3g", row.Chance * 100)) })
 		end

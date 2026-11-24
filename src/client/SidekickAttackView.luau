@@ -56,7 +56,7 @@ local DUST, DARK = Color3.fromRGB(216, 196, 164), Color3.fromRGB(34, 28, 40)
 local WIND, PINK = Color3.fromRGB(198, 232, 255), Color3.fromRGB(255, 150, 190)
 local BLUE, VIOLET = Color3.fromRGB(70, 110, 255), Color3.fromRGB(170, 70, 255)
 local PAGE, CURSE = Color3.fromRGB(244, 240, 226), Color3.fromRGB(120, 30, 170)
-local GOLD = Color3.fromRGB(255, 196, 64)
+local GOLD, BROWN = Color3.fromRGB(255, 196, 64), Color3.fromRGB(168, 96, 52)
 
 -- Layers ---------------------------------------------------------------------------------------------------------------------------
 
@@ -376,6 +376,186 @@ local EFFECTS = {
 		},
 		Rings = { { 70, 480, 0.35, VIOLET, 0 } },
 		Streaks = { { 100, 520, 22, WIND, 0 }, { 80, 420, 14, VIOLET, 0.05 } }, -- the bolt down into the boss
+	},
+	-- World 2's set (design doc 4.47). Proposed.
+	side_box = {
+		Effect = "SnapBite",
+		Color = BROWN,
+		Core = 5,
+		Grow = 7,
+		Sprites = { { Art.Flare, BROWN, 14, 300 } },
+		Muzzle = { puff(DUST, BROWN, 10, 8, 0.4, 20), flying(chips(BROWN, 0, 8, 0.4, 40, 60), 20) },
+		Impact = {
+			flare(HOT, BROWN, 2, 85, 0.25),
+			chips(BROWN, 24, 22, 0.9, 340, 480),
+			puff(DUST, DARK, 12, 75, 0.9, 200),
+		},
+		Streaks = { { 0, 300, 40, BROWN, 0, 90 }, { 180, 300, 40, BROWN, 0, 90 } }, -- the lid and the box closing
+	},
+	side_cat = {
+		Effect = "DoubleSwipe",
+		Color = HOT,
+		Core = 5,
+		Blade = 4,
+		Tilt = 40,
+		Grow = 7,
+		Sprites = {},
+		Muzzle = { sparks(HOT, PINK, 12, 5, 0.3, 80), flying(sparks(HOT, PINK, 0, 9, 0.3, 90), 25) },
+		Impact = { flare(HOT, PINK, 2, 80, 0.2), sparks(HOT, PINK, 26, 26, 0.45, 520) },
+		Streaks = { { 50, 340, 24, HOT, 0 }, { -50, 340, 24, PINK, 0.09 } },
+	},
+	side_lucky = {
+		Effect = "CoinDash",
+		Color = GOLD,
+		Core = 5,
+		Grow = 7,
+		Sprites = { { Art.Ring, GOLD, 13, 700 } },
+		Muzzle = { sparks(HOT, GOLD, 14, 5, 0.35, 90), flying(chips(GOLD, 0, 8, 0.4, 40, 60), 25) },
+		Impact = {
+			flare(HOT, GOLD, 3, 90, 0.25),
+			chips(GOLD, 26, 20, 0.9, 340, 480),
+			sparks(HOT, GOLD, 18, 26, 0.5, 560),
+		},
+		Rings = { { 80, 520, 0.4, GOLD, 0 } },
+	},
+	side_tiger = {
+		Effect = "TigerRoar",
+		Color = WIND,
+		Core = 5,
+		Grow = 7,
+		Sprites = { { Art.Ring, WIND, 15, 0 } },
+		Muzzle = { puff(WIND, DUST, 10, 8, 0.4, 26), flying(sparks(WIND, WIND, 0, 10, 0.25, 90), 25) },
+		Impact = {
+			flare(HOT, WIND, 3, 95, 0.25),
+			puff(DUST, WIND, 22, 80, 0.9, 260),
+			chips(DUST, 10, 18, 0.9, 340, 500),
+		},
+		Rings = { { 90, 720, 0.45, WIND, 0 }, { 90, 540, 0.45, HOT, 0.1 } },
+	},
+	side_bird = {
+		Effect = "StreakDive",
+		Color = ORANGE,
+		Core = 5,
+		Blade = 5,
+		Tilt = -8,
+		Grow = 8,
+		Sprites = { { Art.Flare, HOT, 13, 400 } },
+		Muzzle = { chips(ORANGE, 10, 2.5, 0.6, 26, 30), flying(sparks(HOT, ORANGE, 0, 12, 0.3, 100), 30) },
+		Impact = {
+			flare(HOT, ORANGE, 2, 85, 0.25),
+			sparks(HOT, ORANGE, 22, 32, 0.5, 660),
+			chips(ORANGE, 14, 16, 1.0, 300, 220),
+		},
+		Rings = { { 70, 520, 0.4, ORANGE, 0 } },
+		Streaks = { { -20, 460, 22, HOT, 0 } },
+	},
+	side_hound = {
+		Effect = "EnergyBlast",
+		Color = RED,
+		Core = 7,
+		Grow = 8,
+		Sprites = { { Art.Flare, RED, 18, 300 } },
+		Muzzle = { flare(HOT, RED, 6, 12, 0.25), flying(flare(HOT, RED, 0, 16, 0.25), 20) },
+		Impact = {
+			flare(HOT, RED, 4, 95, 0.25),
+			sparks(HOT, RED, 28, 30, 0.55, 600),
+			puff(DARK, RED, 12, 80, 0.8, 180),
+		},
+		Rings = { { 90, 640, 0.45, RED, 0 }, { 90, 480, 0.4, HOT, 0.1 } },
+	},
+	side_shaman = {
+		Effect = "HymnOfFire",
+		Color = VIOLET,
+		Core = 6,
+		Grow = 8,
+		Arc = 160, -- lobbed from the raised staff
+		Sprites = { { Art.Flare, VIOLET, 18, 260 }, { Art.Ring, ORANGE, 16, 0 } },
+		Muzzle = { puff(HOT, VIOLET, 12, 9, 0.4, 36, 1), flying(puff(ORANGE, VIOLET, 0, 20, 0.35, 30, 1), 35) },
+		Impact = {
+			flare(HOT, VIOLET, 3, 95, 0.3),
+			puff(ORANGE, VIOLET, 24, 95, 0.8, 280, 1),
+			sparks(ORANGE, VIOLET, 22, 22, 0.9, 460),
+		},
+		Rings = { { 80, 480, 0.4, VIOLET, 0 } },
+	},
+	side_acrobat = {
+		Effect = "HairWhip",
+		Color = PINK,
+		Core = 6,
+		Blade = 6,
+		Tilt = 20,
+		Grow = 9,
+		Sprites = {},
+		Muzzle = { sparks(HOT, PINK, 14, 6, 0.3, 90), flying(sparks(PINK, RED, 0, 14, 0.3, 90), 40) },
+		Impact = { flare(HOT, PINK, 3, 90, 0.2), sparks(HOT, PINK, 34, 32, 0.55, 640) },
+		Rings = { { 70, 460, 0.35, PINK, 0 } },
+		Streaks = { { 20, 560, 30, PINK, 0 }, { -30, 520, 26, HOT, 0.08 }, { 70, 560, 30, RED, 0.16 } },
+	},
+	side_brawler = {
+		Effect = "HammerFists",
+		Color = RED,
+		Core = 7,
+		Grow = 8,
+		Sprites = { { Art.Flare, RED, 18, 500 } },
+		Muzzle = { flare(HOT, RED, 6, 11, 0.2), flying(flare(HOT, RED, 0, 16, 0.25), 24) },
+		Impact = {
+			flare(HOT, RED, 4, 95, 0.2),
+			flare(HOT, RED, 4, 95, 0.2, 0.12),
+			chips(DUST, 16, 22, 0.9, 360, 500),
+			sparks(HOT, RED, 28, 30, 0.5, 620),
+		},
+		Rings = { { 90, 700, 0.45, RED, 0 }, { 90, 560, 0.4, HOT, 0.12 } },
+	},
+	side_general = {
+		Effect = "WhipSword",
+		Color = VIOLET,
+		Core = 7,
+		Blade = 7,
+		Tilt = -24,
+		Grow = 9,
+		Sprites = {},
+		Muzzle = { sparks(WIND, VIOLET, 12, 6, 0.3, 90), flying(sparks(VIOLET, VIOLET, 0, 14, 0.3, 90), 40) },
+		Impact = {
+			flare(WIND, VIOLET, 3, 90, 0.2),
+			sparks(WIND, VIOLET, 34, 34, 0.55, 640),
+			puff(DARK, VIOLET, 10, 70, 0.8, 130),
+		},
+		Streaks = { { -24, 640, 36, VIOLET, 0 }, { 24, 520, 28, WIND, 0.08 }, { 0, 560, 24, VIOLET, 0.16 } },
+	},
+	side_dragon = {
+		Effect = "SolarBreath",
+		Color = GOLD,
+		Core = 8,
+		Grow = 9,
+		Sprites = { { Art.Flare, GOLD, 24, 300 }, { Art.Ring, ORANGE, 24, 0 } },
+		Muzzle = {
+			flare(HOT, GOLD, 6, 16, 0.3),
+			puff(HOT, ORANGE, 12, 10, 0.4, 40, 1),
+			flying(puff(GOLD, ORANGE, 0, 24, 0.35, 30, 1), 40),
+		},
+		Impact = {
+			flare(HOT, GOLD, 4, 100, 0.35),
+			puff(GOLD, ORANGE, 26, 100, 1.0, 320, 1),
+			sparks(HOT, ORANGE, 36, 32, 0.7, 700),
+		},
+		Rings = { { 110, 860, 0.55, GOLD, 0 }, { 110, 660, 0.5, ORANGE, 0.08 } },
+	},
+	side_dark = {
+		Effect = "SilentCut",
+		Color = DARK,
+		Core = 7,
+		Blade = 8,
+		Tilt = 90,
+		Grow = 9,
+		Sprites = {},
+		Muzzle = { puff(DARK, CURSE, 12, 10, 0.4, 20), flying(puff(DARK, CURSE, 0, 20, 0.4, 20), 25) },
+		Impact = {
+			flare(CURSE, DARK, 3, 95, 0.25),
+			puff(DARK, CURSE, 26, 100, 1.0, 260),
+			sparks(CURSE, DARK, 22, 30, 0.6, 600),
+		},
+		Rings = { { 90, 800, 0.55, CURSE, 0 } },
+		Streaks = { { 90, 760, 30, DARK, 0 }, { 90, 700, 12, RED, 0.05 } }, -- one clean cut
 	},
 }
 
@@ -790,7 +970,7 @@ end
 
 local function startPose(follower, id)
 	local attack = Attacks.Attacks[id]
-	if follower.Id ~= id or follower.Attack or not attack.Rig then
+	if follower.Id ~= id or follower.Attack or not (attack and attack.Rig) then
 		return
 	end
 	if follower.AttackBind == nil then
@@ -869,7 +1049,8 @@ local function onHits(entries)
 			local recipe = simple and row.Simple or row
 			local mine = hit.UserId == player.UserId
 			startPose(follower, id)
-			local release = Attacks.Attacks[id].Release
+			local attack = Attacks.Attacks[id] -- nil until its keys are baked: the shot without a pose
+			local release = attack and attack.Release or { 0 }
 			for i, at in release do
 				if i == 1 or not simple then
 					task.delay(LEAD + at - release[1], launch, hit, follower, recipe, mine, i == 1)

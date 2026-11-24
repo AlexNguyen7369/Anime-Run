@@ -12,7 +12,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 |---|---|
 | `Id` | permanent key (`"kaze_ninja"`) |
 | `Name` | display name, tweaked from the source character (design doc section 5) |
-| `Rarity` | Common, Uncommon, Rare, Epic, Legendary, Mythic, Secret |
+| `Rarity` | Common, Uncommon, Rare, Epic, Legendary, Mythic, Secret, Eternal (World 2, owner 2026-11-24) |
 | `Chance` | 1 in N; every rollable character has a number (owner 2026-11-03); the catch-all Common is 1 |
 | `SpeedMulti` | raw cruise multi, damped by `RaceConfig.CruiseStatMulti` |
 | `Stamina` | optional override of the rarity base, seconds (`TEAM_AND_STAMINA_SPEC.md`) |
@@ -176,6 +176,65 @@ Preset trios (the anime's famous team):
 | My Hero Akademia | Class 1-A | Deko, Bakugoo, Todoroky |
 
 - Art follows design doc section 5 safeguards: in-house models only, no ripped assets, no official logos or audio.
+
+World 2 cast (owner 2026-11-24 asked for it in game; rules, `Chance`, `SpeedMulti`, Cat., series and preset names **proposed**; every file has
+`World = 2`; Chance and Cat. per id: `docs/WORLD2_SPEC.md` "Cast in game"). Rarity `Eternal`: Chance band 6e18 - 9e18, SpeedMulti 4,000 -
+6,000. World 2 rolls only these. Villain rarities keep World 1's counts (2 Epic, 3 Legendary, 4 Mythic); villains wear their own model.
+
+| Id | Name | Based on | Rarity | SpeedMulti |
+|---|---|---|---|---|
+| `punch_rider` | Mumon Rider | Mumen Rider | Common | 1.1 |
+| `dan_hex` | Jijo | Jiji | Uncommon | 1.31 |
+| `kaiju_ice` | Rino | Reno | Uncommon | 1.54 |
+| `fr_axe` | Stork | Stark | Uncommon | 1.76 |
+| `solo_vice` | Jinhu | Yoo Jinho | Uncommon | 2.1 |
+| `saw_nervous` | Kobene | Kobeni | Uncommon | 2.15 |
+| `punch_cyborg` | Genus | Genos | Rare | 2.1 |
+| `dan_idol` | Airah | Aira | Rare | 2.26 |
+| `kaiju_axe` | Kikuru | Kikoru | Rare | 3.16 |
+| `fr_staff` | Ferne | Fern | Rare | 3.61 |
+| `solo_mage` | Jongen | Choi Jong-In | Rare | 4.1 |
+| `saw_fox` | Akki | Aki | Rare | 4.3 |
+| `punch_speed` | Speedo Sonik | Speed-o'-Sound Sonic | Epic | 6.49 |
+| `dan_medium` | Seika | Seiko | Epic | 8.76 |
+| `kaiju_blade` | Hoshena | Hoshina | Epic | 11.2 |
+| `fr_hero` | Himmal | Himmel | Epic | 12.7 |
+| `saw_blood` | Powah | Power | Epic | 12.5 |
+| `saw_katana` | Katanah Man | Katana Man, hybrid form | Epic | 14.3 |
+| `dan_granny` | Turbo Grammy | Turbo Granny | Epic | 14.9 |
+| `solo_blade` | Sha Hain | Cha Hae-In | Epic | 15 |
+| `punch_psychic` | Tatsumako | Tatsumaki | Legendary | 28.1 |
+| `dan_psychic` | Momu | Momo | Legendary | 46.6 |
+| `kaiju_captain` | Mena Ashiru | Mina Ashiro | Legendary | 55.8 |
+| `fr_cut` | Ubbel | Übel | Legendary | 67.8 |
+| `fr_scales` | Ora | Aura the Guillotine | Legendary | 74.8 |
+| `kaiju_nine` | Kaijo No. 9 | Kaiju No. 9 | Legendary | 80.4 |
+| `saw_bomb` | Rezi | Reze | Legendary | 85 |
+| `solo_beast` | Yunho | Baek Yoonho | Legendary | 95 |
+| `solo_flame` | Barran | Baran, Demon King | Legendary | 98.1 |
+| `punch_fist` | Bange | Bang | Mythic | 154 |
+| `dan_turbo` | Okaron | Okarun, transformed | Mythic | 181 |
+| `kaiju_hero` | Kafko | Kafka, kaiju form | Mythic | 212 |
+| `fr_mage` | Frierin | Frieren | Mythic | 233 |
+| `solo_ant` | Berru | Beru, Ant King | Mythic | 285 |
+| `punch_serpent` | Orochy | Orochi | Mythic | 316 |
+| `fr_gold` | Makto | Macht of El Dorado | Mythic | 337 |
+| `saw_hero` | Denjy | Denji | Mythic | 370 |
+| `punch_monster` | Garoo | Garou, half-monster | Mythic | 389 |
+| `solo_goliath` | Golioth | Thomas Andre | Mythic | 415 |
+| `solo_monarch` | Jinwu | Sung Jinwoo | Eternal | 4000 |
+| `saw_control` | Makina | Makima | Eternal | 5000 |
+| `fr_great` | Serye | Serie | Eternal | 5420 |
+| `punch_void` | Void Saitamo | Saitama, One-Punch Man | Eternal | 6000 |
+
+| Series (based on) | Preset | Members |
+|---|---|---|
+| Saw Man (Chainsaw Man) | Division Four | Denjy, Powah, Akki |
+| Solo Levelup (Solo Leveling) | Ajin Guild | Jinwu, Sha Hain, Jinhu |
+| One Punch (One-Punch Man) | S-Class | Tatsumako, Bange, Genus |
+| Dandadun (Dandadan) | Occult Club | Okaron, Momu, Airah |
+| Kaijo No. 8 (Kaiju No. 8) | Third Division | Kafko, Rino, Kikuru |
+| Frierin (Frieren) | Frierin Party | Frierin, Ferne, Stork |
 
 Named in text but not in the cast (design doc section 5, one list): Mahoraka (Mahoraga, Jujutsu Kaisen), Track 5's card definition only (`TRACKS_AND_BIOMES_SPEC`).
 World 2 enemies (design doc 4.47; models later): the 10 tweaked names and their sources are listed in `docs/WORLD2_SPEC.md` "Tracks", part of this one list.

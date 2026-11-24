@@ -31,6 +31,13 @@ local TROT = { Bob = 0.16, Lean = math.rad(7), Cadence = 1 }
 local TROTS = {
 	side_chain = { Bob = 0.2, Lean = math.rad(5), Cadence = 1.25, Tail = math.rad(28) },
 	side_knight = { Bob = 0.1, Lean = math.rad(16), Cadence = 1 },
+	-- World 2 (proposed): the small ones patter, the big ones stride
+	side_box = { Bob = 0.3, Lean = math.rad(4), Cadence = 1.2 },
+	side_cat = { Bob = 0.2, Lean = math.rad(5), Cadence = 1.25, Tail = math.rad(28) },
+	side_lucky = { Bob = 0.26, Lean = math.rad(10), Cadence = 1.4 },
+	side_tiger = { Bob = 0.16, Lean = math.rad(7), Cadence = 1, Tail = math.rad(14) },
+	side_hound = { Bob = 0.14, Lean = math.rad(7), Cadence = 0.9, Tail = math.rad(14) },
+	side_general = { Bob = 0.1, Lean = math.rad(16), Cadence = 1 },
 }
 
 function SidekickFollow.Size(id)

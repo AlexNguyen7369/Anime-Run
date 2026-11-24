@@ -196,3 +196,23 @@ Blocks: d3 (rules and build). Summon is preserved (owner 2026-11-19).
 6. Team Bonus: only 4.8's series/preset stamina and cruise. The brief's damage, HP, drop-rate, pity bonuses would be new economy rules.
 7. Carousel (picked member rotates to the centre) or fixed order as in the reference?
 Answered by the owner 2026-11-20 (approved the Studio captures https://claude.ai/artifact/16AdtJyLjWfV8AUwD2mo4D): item 1, the reference layout (draft A, Makimono) with the Summon parchment scroll look; item 2, the reference's dark lacquer two-tier altars with gold trim and gold-orange rings; item 3, square relic and Sidekick icons as drawn; item 7, the approved captures show the reference's fixed order (slot 1 centre); what the ‹ › arrows do stays open. Items 4, 5 and 6 stay open (design doc 4.45 "Team Select night dojo"); the plaza Team altar's look is a new open question.
+
+## 2026-11-23 w2-cast: World 2 cast drafts
+Answered by the owner 2026-11-23 ("approved", from the contact sheets): items 1, 3 and 4 as shown. Still open: names and rarities, 2 (publishing) and 5.
+1. Approve, change or drop each of the 42 drafts (sheets `assets/characters_avatar/review/world2_*.png`, list `docs/WORLD2_CAST.md`).
+2. Licensing: every draft is an unlicensed reference. Two subagents declined to draw recognisable characters (One Punch; Saw Man and Solo); the orchestrator drew those 14 as private drafts. Publishing waits on your decision; section 5 records that you accept the takedown risk.
+3. `dan_hex` Jijo: human form (built) or the Evil Eye form?
+4. Are Sidekicks exempt from the block-body rule (`side_acrobat` has slim limbs), and are foot claws allowed on `solo_ant`?
+5. `Model.block` in `tools/blender/build_boss_event.py` can turn a block inside out (false mauve shading in portraits). Fix it in the shared file? That would change already approved Sidekicks. New Sidekicks use `tools/blender/sidekick_solid.py` or their own box instead.
+
+## 2026-11-24 w2-cast in game: rules audit of 7c12537 (FAIL), merge blocked on these
+Answered by the owner in session 2026-11-24: 1 approved; 2 exactly 9e18 allowed ("at most"); 3 and 4 approved; 5 names and ids final; 6 uploads were meant; 7 use the fixed versions (uploaded, 2 models and 4 images); 8 poses approved. Open: 9 (measure odds resolution).
+1. Draft rule, not in the design doc: "A server loads only its own world's character and Sidekick models at start, plus those every world shows; another world's model loads when a player in the server owns it or a rig wears it." Approve as a 4.47 rule?
+2. Conflict: 4.47 says "Eternal odds stay under 9e18"; WORLD2_SPEC, CHARACTER_GACHA_SPEC and the code give `punch_void` exactly 9e18. Which holds?
+3. Eternal is missing from BAG_AND_AUTOSELL_SPEC Prices (25,000 proposed), the TEAM_AND_STAMINA_SPEC rarity tables (32 s proposed) and the CHARACTER_GACHA_SPEC Rarity row. Approve the numbers?
+4. Structural rules not in your words: full cruise for World 2 characters in World 1; starters exempt from x0.1; no Secrets in World 2; shared pity; per-world Index; Daily Day 7 cap at Legendary in World 2 (nothing once all are owned). Approve or change?
+5. Names: Yunho, Bange, Ferne, Airah, Solara, Katanah, One Punch, S-Class, Ajin Guild, presets. Ids: `kaiju_`, `punch_`, `solo_`, `saw_katana`, `solo_goliath` are title or character words; ids are permanent after the first real save.
+6. Were the 127 uploads what you meant? Their only basis is "until everything is ingame ... I preapprive all decisions".
+7. `side_lucky` and `side_acrobat`: use the fixed normals (f822beb)? Needs 2 models and 4 images uploaded.
+8. Sidekick attack slices: approve?
+9. SUSPECTED, not measured: odds near 1 in 9e18 (and World 1's 5e18) may be finer than Random:NextNumber resolves. A chained-draw fix is on local branch orch/world2/rare-odds-proposal (e64e6b2), not on the merge branch. Measure in Studio first, then decide, World 1 included.

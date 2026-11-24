@@ -224,6 +224,7 @@ function Tests.team()
 
 	local gacha, data, STARTER = mods.gacha, mods.data, mods.catalog.STARTER_ID
 	local ids = rollableIds(mods.catalog, 5) -- ids[5] is never granted: unowned
+	local WorldSave, WORLD = require(Shared.WorldSave), require(Shared.WorldConfig).Id
 	local cleanup = {}
 	local ok, err = pcall(function()
 		-- 1. SetTeam validation
@@ -296,7 +297,7 @@ function Tests.team()
 			case.Uid = base + i
 			if case.Record then
 				case.Record.Money, case.Record.Speed = 10, 1000
-				records[data.KeyFor(case.Uid)] = case.Record
+				records[data.KeyFor(case.Uid)] = WorldSave.Fold(case.Record, nil, WORLD) -- this place's own Team (4.47)
 			end
 		end
 		local store = H.store(records)
@@ -322,7 +323,7 @@ function Tests.team()
 		end
 		gacha.SetTeam(rp, { ids[2], ids[3], ids[1] })
 		flag("team_save_ok", data.Save(rp, rid, true) == true)
-		local rec = store.data[data.KeyFor(rid)]
+		local rec = WorldSave.View(store.data[data.KeyFor(rid)], WORLD)
 		flag("team_saved_in_order", type(rec) == "table" and H.same(rec.Team, { ids[2], ids[3], ids[1] }))
 		flag(
 			"team_save_version_bumped",
@@ -344,7 +345,7 @@ function Tests.team()
 		)
 		local old = players.old_equipped
 		data.Save(old, cases[4].Uid, true)
-		local oldRec = store.data[data.KeyFor(cases[4].Uid)]
+		local oldRec = WorldSave.View(store.data[data.KeyFor(cases[4].Uid)], WORLD)
 		flag("team_old_save_migrates_on_save", type(oldRec) == "table" and H.same(oldRec.Team, { ids[2] }))
 
 		-- 4. Quick Setup (design doc 4.45, docs/team_setup_contract.md): GachaService.QuickPick(player, draft) -> true, ids:
@@ -442,7 +443,7 @@ function Tests.team_bonus()
 	-- 2. A same-series trio that is not the preset: Series; a mixed trio: none
 	local first = series.List[1]
 	local others = {}
-	for _, spec in catalog.All() do
+	for _, spec in catalog.All(1) do
 		if spec.Series == first.Id and not table.find(first.Preset.Members, spec.Id) then
 			table.insert(others, spec.Id)
 		end
@@ -552,8 +553,8 @@ function Tests.team_bonus()
 	end
 	flag(
 		"team_bonus_secret_preset_capped",
-		secret ~= nil and rc.Cruise(secret, rc.SpeedMulti(0, 2, true)) == rc.MAX_CRUISE,
-		secret and rc.Cruise(secret, rc.SpeedMulti(0, 2, true)) or -1,
+		secret ~= nil and rc.Cruise(secret, rc.SpeedMulti(0, 2, true), 1) == rc.MAX_CRUISE,
+		secret and rc.Cruise(secret, rc.SpeedMulti(0, 2, true), 1) or -1,
 		rc.MAX_CRUISE
 	)
 	return r

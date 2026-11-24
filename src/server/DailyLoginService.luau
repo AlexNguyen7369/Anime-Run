@@ -7,6 +7,8 @@ local Config = require(ReplicatedStorage.Shared.DailyLoginConfig)
 local GachaService = require(script.Parent.GachaService)
 local BoostService = require(script.Parent.BoostService)
 local CharacterCatalog = require(ReplicatedStorage.Shared.CharacterCatalog)
+local GachaConfig = require(ReplicatedStorage.Shared.GachaConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.WorldConfig)
 
 local Daily = { REMOTE_COOLDOWN = 0.5 }
 local lastRequest = setmetatable({}, { __mode = "k" })
@@ -53,6 +55,18 @@ function Daily.Snapshot(player)
 	}
 end
 
+-- The Day 7 character: the rarest one of `world`'s pool not in `owned`, under that world's rarity cap; nil with none left.
+function Daily.GuaranteedPick(owned, world)
+	local order = GachaConfig.RARITY_ORDER
+	local top = table.find(order, Config.MAX_GUARANTEED_RARITY[world]) or #order
+	for _, spec in CharacterCatalog.Rollable(world) do
+		if spec.Chance and not owned[spec.Id] and table.find(order, spec.Rarity) <= top then
+			return spec
+		end
+	end
+	return nil
+end
+
 local function grantRare(player)
 	local data = player:FindFirstChild("GachaData")
 	local owned = {}
@@ -61,12 +75,8 @@ local function grantRare(player)
 			owned[entry.Name] = true
 		end
 	end
-	for _, spec in CharacterCatalog.Rollable() do
-		if spec.Chance and not owned[spec.Id] then
-			return GachaService.Grant(player, spec.Id) == true and spec.Name or nil
-		end
-	end
-	return nil
+	local spec = Daily.GuaranteedPick(owned, WorldConfig.Id)
+	return spec and GachaService.Grant(player, spec.Id) == true and spec.Name or nil
 end
 
 function Daily.Claim(player)

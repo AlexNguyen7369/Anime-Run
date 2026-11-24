@@ -180,19 +180,19 @@ local function nameHash(s)
 	return x
 end
 
--- The { length, hash } of the first real name in `id`, as text, or nil.
-local function realNameIn(id)
+-- The { length, hash } of the first real name in `id`, as text, or nil. `hashes`: another list to check against; a third field true matches a whole segment only.
+local function realNameIn(id, hashes)
 	local segments = {}
 	for _, seg in string.split(id, "_") do
 		segments[nameHash(seg) .. ":" .. #seg] = true
 	end
-	for _, entry in REAL_NAME_HASHES do
+	for _, entry in hashes or REAL_NAME_HASHES do
 		local len, hash = entry[1], entry[2]
 		local key = hash .. ":" .. len
 		if segments[key] then
 			return key
 		end
-		if len >= 5 then
+		if len >= 5 and not entry[3] then
 			for i = 1, #id - len + 1 do
 				if nameHash(string.sub(id, i, i + len - 1)) == hash then
 					return key
@@ -237,7 +237,7 @@ function Tests.catalog()
 	local passes = catalog.Passes()
 	flag("no_pass_characters", type(passes) == "table" and #passes == 0, type(passes) == "table" and #passes or -1, 0)
 
-	local all, rollable = catalog.All(), catalog.Rollable()
+	local all, rollable = catalog.All(1), catalog.Rollable(1)
 	flag("all_47_characters", #all == #CAST, #all, #CAST)
 	flag("rollable_44_characters", #rollable == #CAST - 3, #rollable, #CAST - 3) -- owner 2026-11-03: 3 event-only out
 
@@ -366,6 +366,9 @@ function Tests.catalog()
 		end
 	end
 	for _, s in series.List do
+		if s.World == 2 then
+			continue -- World 2's 6 series: World2CastTests
+		end
 		local members = type(s.Preset) == "table" and s.Preset.Members or nil
 		local ok = type(s.Id) == "string"
 			and realNameIn(string.lower(s.Id)) == nil
@@ -385,7 +388,7 @@ function Tests.catalog()
 			table.insert(presetBad, tostring(s.Id))
 		end
 	end
-	flag("series_count_7", #series.List == 7, #series.List, 7)
+	flag("series_count_13", #series.List == 13, #series.List, 13) -- 7 World 1, 6 World 2 (design doc 4.47)
 	flag("presets_three_own_members", #presetBad == 0, table.concat(presetBad, ","), "")
 
 	-- Bleech (design doc 4.30, spec "Bleech series"): the 6 ids in their rarities, the shared enemy model, the preset
@@ -419,7 +422,7 @@ function Tests.catalog()
 
 	-- Villains (design doc 4.32): every track enemy's model is worn by a rollable character
 	local npc = H.module(Shared, "NpcConfig")
-	local tracks = npc and npc.Tracks or {}
+	local tracks = npc and npc.World1 or {}
 	local wearer, villainBad, foeTracks = {}, {}, 0
 	for _, c in rollable do
 		if c.Model ~= nil then

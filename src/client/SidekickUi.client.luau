@@ -130,13 +130,38 @@ local function toast(text)
 		end
 	end)
 end
+-- World 2's stage Sidekicks reuse a World 1 aura template, tinted (design doc 4.47; colours proposed). Two units on one
+-- stage never share a template.
+local AURAS = {
+	side_hound = { Template = "side_ant", Color = Color3.fromRGB(255, 60, 60) },
+	side_shaman = { Template = "side_reaper", Color = Color3.fromRGB(150, 90, 255) },
+	side_acrobat = { Template = "side_fist", Color = Color3.fromRGB(255, 90, 170) },
+	side_brawler = { Template = "side_fox", Color = Color3.fromRGB(225, 40, 50) },
+	side_general = { Template = "side_knight", Color = Color3.fromRGB(125, 75, 255) },
+}
+local function applyAura(unit, id)
+	local aura = AURAS[id]
+	if not LegendaryAuraStyle.Apply(unit, aura and aura.Template or id) then
+		return false
+	end
+	for _, d in aura and unit.ImportedAura:GetDescendants() or {} do
+		if d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail") then
+			d.Color = ColorSequence.new(aura.Color)
+		elseif d:IsA("PointLight") then
+			d.Color = aura.Color
+		elseif d:IsA("Highlight") then
+			d.FillColor, d.OutlineColor = aura.Color, aura.Color
+		end
+	end
+	return true
+end
 -- Pose the independent mesh groups together, including blade and emissive armor pieces.
 local function poseFeatured(model, id)
 	local torso = model:FindFirstChild("Torso", true)
 	if not torso then
 		return
 	end
-	local knight = id == "side_knight"
+	local knight = id == "side_knight" or id == "side_general"
 	local ant = id == "side_ant"
 	local rotations = knight
 			and {
@@ -175,7 +200,10 @@ local function poseFeatured(model, id)
 		if part:IsA("BasePart") then
 			local delta = CFrame.identity
 			for group, change in changes do
-				if part.Name:sub(1, #group) == group or (part.Name == "Sword" and group == "RightArm") then
+				if
+					part.Name:sub(1, #group) == group
+					or ((part.Name == "Sword" or part.Name:sub(1, 5) == "Staff") and group == "RightArm")
+				then
 					delta = change
 					break
 				end
@@ -209,7 +237,7 @@ local function dressStage()
 	for _, unit in stage.Units:GetChildren() do
 		local index = unit:GetAttribute("Index")
 		local row = featuredRows[index]
-		if row and LegendaryAuraStyle.Apply(unit, row.Id) then
+		if row and applyAura(unit, row.Id) then
 			for _, record in motion do
 				if record.model == unit then
 					refreshAuraMotion(record)
