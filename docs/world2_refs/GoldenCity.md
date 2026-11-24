@@ -19,3 +19,17 @@ old brief, so the clock tower is replaced by the city's large church.
 Not matched: only one of Weise's two wall rings (12-mesh budget). No exterior picture of Weise's church was found, so
 the church is a generic large European church in the city's ashlar style. The source city is stone under its gold; the
 draft reads as polished metal.
+
+Round 4 (2026-11-23, review 5.5/10): People rebuilt live in Blender against `06_gold_statues.jpg`: legs (thigh and
+shin) and boots below a calf-length cloak, the cloak wrapped over the shoulders, a deep hood with the face sunk in its
+shadow and a hood peak, sleeves joined at the shoulder with a hand at the end; the traveller's hand grips the staff.
+Palace (refs 01, 02): taller six-storey manor under a steep hipped roof, a projecting centre bay under its own steep
+gable, four-storey wings; every turret cone halved and kept below the manor's ridge. Walls (ref 01): one tower per
+520-stud wall run, four times further apart. Horse: tapered forearm/gaskin and cannon with knee and hock joints, one
+front hoof lifted, neck arched in three segments, croup-set tail. Shop arches and doors are shaded gold, not near-black.
+The round gable window on street front B is now a square window. Building backs show a grid of separate windows.
+Townhouse walls are a satin, slightly deeper gold (E2B242, rough 0.7, metal 0.85), window frames rough 0.65 and the
+sun 2.3 (was 2.8), to stop the sun glare. The near-black slabs at the kerb were the merchant block's shop arches (dark
+panes against the blown-out wall): now shaded gold (B88426, satin) set into the wall. The people are satin gold (rough
+0.5) so a cloak seen from behind no longer reflects the dark ground. Planters
+keep two shrubs (tri budget). The Palace sits dead ahead at 33 % at scale 2.3 so the manor reads over the street fronts.

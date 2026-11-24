@@ -797,6 +797,11 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - 10 tracks, one per new series first, then classic arcs: Saw Man, Solo Levelup, One Punch, Dandadan, Kaiju No. 8,
   Frieren, then Solo Levelup, One Punch, Frieren, Saw Man (names and enemies **proposed**, `WORLD2_SPEC`). Routes reuse
   World 1's validated track routes; biomes are new.
+- World 2 spawn plaza (owner pre-approved, picked 2026-11-24): "Moonlit Dojo": World 1's plaza layout, footprint,
+  spawn and services unchanged; night sky with stars and a large pale moon framed by the torii; the Great Sakura's
+  blossoms crimson-violet with a soft glow; lanterns lit; cyber accents and the plaza sky loop violet/magenta instead of
+  World 1's colour; the return gate to World 1 at hub-local (194, -176). Concepts: `assets/world2_draft/plaza/`
+  (A chosen over B Rift Shrine and C Ember Dojo). Colours and light levels are **placeholders**.
 - Blender first (owner 2026-11-23): every World 2 track and asset is made and rendered in Blender
   (`tools/blender/world2`) and approved by the owner before it goes in the game.
 - Speed: a per-world cruise table; the studs/s band stays World 1's (48-800). World 1 characters run at x0.1 there

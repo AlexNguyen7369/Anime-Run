@@ -67,8 +67,8 @@ return Kit.fromDraft("MonsterDen", require(script.Parent.MonsterDenDraft), {
 		),
 		W2_MonsterDen_Graveyard = draftMesh(
 			6548,
-			"rbxassetid://102359601460729", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			nil, -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (re-audit after the IP fix)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: three heaps of ivory round dome helmets with dark ring bands among broken flagstones",
 			"mid prop, 23 placed; build/world2/export/MonsterDen/W2_MonsterDen_Graveyard.glb"
 		),

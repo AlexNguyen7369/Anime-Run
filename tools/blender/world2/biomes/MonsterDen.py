@@ -518,12 +518,6 @@ def _graveyard(k, rng):
 			for dy, rad in ((1.1, 6.6), (-0.9, 6.7)):  # the two ring bands, turned with the helmet
 				bx, by, bz = _turn((0, dy, 0), rot)
 				p.append(("cyl", (rad, 0.6, rad), (x + bx, y + by, z + bz), "2A2622", {"seg": 12, "rot": rot}))
-			for ex in (-1.2, 1.2):  # two round eye holes
-				fx, fy, fz = _turn((ex, 0.2, -3.0), rot)
-				p.append(("ball", (1.4, 1.4, 1.0), (x + fx, y + fy, z + fz), "0E0A0A", {"subdiv": 1, "rot": rot}))
-			for gx in (-0.9, 0, 0.9):  # mouth grille bars
-				fx, fy, fz = _turn((gx, -1.7, -2.8), rot)
-				p.append(("box", (0.45, 1.4, 0.6), (x + fx, y + fy, z + fz), "0E0A0A", {"rot": rot}))
 	for i in range(8):
 		p.append(("cyl", (0.8, rng.uniform(4, 7), 0.8), (rng.uniform(-22, 22), 0.8, rng.uniform(-10, 10)), BONE, {"seg": 6, "rot": (rng.uniform(80, 100), rng.uniform(0, 180), 0)}))
 	return k.prop("Graveyard", p)

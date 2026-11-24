@@ -53,8 +53,8 @@ return Kit.fromDraft("DevilTokyo", require(script.Parent.DevilTokyoDraft), {
 		),
 		W2_DevilTokyo_Konbini = draftMesh(
 			1560,
-			"rbxassetid://128301421990968", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			nil, -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (re-audit after the IP fix)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small white convenience store box with two plain colour bands, glazed lit front with shelf rows, roof condensers, bins and a blank lit pole sign",
 			"mid prop, 16 placed; build/world2/export/DevilTokyo/W2_DevilTokyo_Konbini.glb"
 		),
