@@ -51,6 +51,8 @@ return {
 		"world2_cast",
 		"world2_welcome", -- WORLD2_SPEC "Welcome": Worlds.W2.Welcomed, once, old saves and World 1 keep it
 		"world2_team",
+		"awakening", -- design doc 4.47: World 2 stars from Copies, World 1 unchanged
+		"world2_rewards", -- WORLD2_SPEC "Rewards": World 2 pad Cash, first-clear Gems per world
 		"character_models",
 		"sidekick_follow",
 		"sidekick_pity",

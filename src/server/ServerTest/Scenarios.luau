@@ -1111,7 +1111,7 @@ function Scenarios.money()
 			if pc("Ratio", n) ~= PAYOUT.RATIO[n] then
 				ratioBad += 1
 			end
-			if pc("Cash", n) ~= PAYOUT.CASH[n] or TrackBuilder.CashFor(n) ~= PAYOUT.CASH[n] then
+			if pc("Cash", n) ~= PAYOUT.CASH[n] or TrackBuilder.CashFor(n, 1) ~= PAYOUT.CASH[n] then -- World 1 curve
 				cashBad += 1
 			end
 		end
@@ -12121,6 +12121,8 @@ Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
 Scenarios.world2_welcome = require(script.Parent.World2WelcomeTests).world2_welcome -- WORLD2_SPEC "Welcome"
 Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 team of 4
+Scenarios.awakening = require(script.Parent.AwakeningTests).awakening -- design doc 4.47 Awakening, WORLD2_SPEC "Awakening"
+Scenarios.world2_rewards = require(script.Parent.World2RewardsTests).world2_rewards -- design doc 4.47 World 2 rewards
 -- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): another world's models load on demand (Server/CharacterModelService)
 Scenarios.character_models = require(script.Parent.CharacterModelTests).character_models
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)

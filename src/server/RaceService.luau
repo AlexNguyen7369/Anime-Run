@@ -317,7 +317,9 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 					staminaMulti
 						* (
 							typeof(player) == "Instance"
-								and SidekickService.StaminaMulti(player, id) * RelicService.Multi(player, id, "Stamina")
+								and SidekickService.StaminaMulti(player, id)
+									* RelicService.Multi(player, id, "Stamina")
+									* GachaService.AwakenStamina(player, id) -- World 2 stars (1 in World 1)
 							or 1
 						)
 				)
@@ -482,6 +484,8 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 			bonus = CheckpointConfig.Bonus(race.Index - startIndex) -- tracks past the checkpoint (design doc 4.15)
 			amount = payOut(track.Pad and math.floor(MoneyService.Quote(player, track.Pad) * bonus) or 0, track.Number)
 			-- Gems are paid here, not in rewardTrackWin: payPads shares it and beats no NPC (design doc 4.35).
+			-- BestTrack is this world's (WorldSave), so World 2 tracks pay first-clear Gems again and neither world's
+			-- clear touches the other's (design doc 4.47 "World 2 rewards", owner 2026-11-24).
 			local firstClear = track.Number > (player:GetAttribute("BestTrack") or 0)
 			reachTrack(player, track.Number)
 			rewardTrackWin(track.Number)

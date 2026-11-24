@@ -80,6 +80,30 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 
 The "Based on" names stay in docs and never ship (design doc 5).
 
+### Rewards (design doc 4.47, owner 2026-11-24; written 2026-11-24)
+- Money: every Money amount a track pays (the finish, the exhaustion share by distance, the checkpoint bonus) is a
+  multiple of its winnings pad's `Cash`, as in World 1. In World 2 the pad's `Cash` is
+  `World 1 Track 10's Cash x WORLD2_STEP^N` = `31,640,625,000 x 2^N` for Track N (`PayoutCurve.TrackCash(n, 2)`,
+  `TrackBuilder.CashFor`). `WORLD2_STEP = 2` is a **placeholder**. World 1's `Cash` is unchanged (`PayoutCurve.Cash`).
+  The Money multi, checkpoint bonus and exhaustion share apply on top exactly as in World 1.
+- Reading chosen: Track 1 is x2 (so it already pays more than World 1 Track 10), each step x2 more. The other reading,
+  continuing World 1's own curve (x10 / x7.5 per track, Track N = World 1 "Track 10 + N"), is not the owner's x2 and
+  is not used.
+
+| Track | 1 | 2 | 3 | 4 | 5 |
+|---|---|---|---|---|---|
+| Cash | 63,281,250,000 | 126,562,500,000 | 253,125,000,000 | 506,250,000,000 | 1,012,500,000,000 |
+| Track | 6 | 7 | 8 | 9 | 10 |
+| Cash | 2,025,000,000,000 | 4,050,000,000,000 | 8,100,000,000,000 | 16,200,000,000,000 | 32,400,000,000,000 |
+
+- Limits: all are whole numbers below 2^53 (exact in a double) and far under the Money cap (1e30, `MoneyService`,
+  `PlayerData`); the HUD shows them as "$63.3b" to "$32.4t" (`HudFormat`).
+- First-clear Gems: `GemConfig.FirstClear(n)` is paid when a win raises `BestTrack`, and `BestTrack` is per world
+  (`WorldSave`), so each World 2 track pays it once again. A World 2 first clear never changes World 1's `BestTrack`
+  or Gems rule, and the reverse. Track-win Gems (`GemConfig.TrackWin(n)`) are unchanged.
+- Nothing is paid while `Travelling` (`MoneyService`).
+- Tests: ServerTest `world2_rewards` (both worlds).
+
 ## Blender first
 - `tools/blender/world2/chain.py`: a port of `TrackBuilder.Layout` and the chain; writes `build/world2/chain.json` and
   asserts each length within 5% of target.
@@ -180,3 +204,37 @@ The "Based on" names stay in docs and never ship (design doc 5).
 - Ids are final (owner 2026-11-24).
 - Random:NextNumber resolution measured in Studio against the rarest odds (OWNER_QUESTIONS item 9).
 - Studio run of the cast scenarios.
+
+### Awakening
+Design doc 4.47 (owner 2026-11-24): World 2 only; duplicate Copies buy up to 5 stars per character; each star gives
++3% cruise and +3% stamina (+15% of each at 5 stars); star costs 1, 2, 4, 8, 16 Copies are **placeholders**
+(`Shared/AwakeningConfig`). The points below are **proposed** (2026-11-24, coordinator's choice pending the owner):
+- World 1 has no Awakening: no stars are applied, shown or bought there. A World 1 server keeps `Worlds.W2` whole, so
+  stars bought in World 2 are never lost.
+- Any owned character with Copies can awaken in World 2, World 1 characters carried there too (its stars scale its
+  World 2 cruise, after which the x0.1 carry still applies). The starter, Kami and the exclusive runner have no Copies
+  and so cannot awaken.
+- A star spends that character's own Copies (the duplicates; the owned copy always stays). Spent Copies are gone, free
+  their bag spaces and are never refunded; stars never go down.
+- Effect: the stars' multi `1 + 0.03 x stars` joins the character's speed multi (with its Sidekick and Relic) before
+  the `MAX_CRUISE` cap, and multiplies its stamina seconds (with its Sidekick and Relic). Boss events in World 2 use the
+  same numbers.
+- Server: `Remotes.Awaken(id)` (RemoteFunction, `GachaService.Awaken`): refused before the save loaded, while
+  `Travelling`, in World 1, for a character not owned, at 5 stars and without enough Copies; otherwise Copies minus the
+  cost and stars plus 1 in one step. Rate limited like `SellSpares`. The stars are the `Stars` attribute of the
+  character's `GachaData` entry (display only on the client).
+- Save: `Worlds.W2.Awakening = { [characterId] = stars }` (`WorldSave` per-world key; VERSION unchanged at 19). A save
+  without it loads as 0 stars.
+- Client: the Backpack's Characters tab (World 2 only) shows an Awaken bar for the chosen character above the footer:
+  its stars, the next star's cost, the Copies owned and the +% it gives; it is greyed with the reason (5 stars, not
+  enough Copies) when it cannot be bought; a tap asks to confirm. Hidden in World 1.
+- Tests: ServerTest `awakening` (both worlds).
+
+### Release notes
+- Awakening (2026-11-24): shut down every older World 2 server when Awakening ships. An older World 2 build rebuilds
+  `Worlds.W2` without `Awakening`, so the stars would be lost while the Copies spent on them stay spent (Copies are
+  shared). From this build `WorldSave.Fold` keeps every `Worlds.W2` key it does not know, in World 2 as in World 1
+  (test `awakening`, `unknown_keys`).
+- Team of 4 (2026-11-24): an older World 2 build caps the Team at 3 and rebuilds `Worlds.W2`, so it would drop slot 4
+  and the `Welcomed` flag. Shut down every older World 2 server when this ships, and publish World 1 first or together
+  with World 2 (test `world2_team`).

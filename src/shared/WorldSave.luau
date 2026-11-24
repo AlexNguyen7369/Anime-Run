@@ -6,9 +6,10 @@ local WorldConfig = require(script.Parent.WorldConfig)
 
 local WorldSave = {}
 
--- The per-world keys: WorldConfig's, plus TeamSlots (World 2's slot 4 unlock, design doc 4.47; never at the top level).
+-- The per-world keys: WorldConfig's, plus Awakening (World 2's stars, docs/WORLD2_SPEC.md "Awakening"), design doc
+-- 4.47; never at the top level.
 local KEYS = table.clone(WorldConfig.PROGRESS_KEYS)
-table.insert(KEYS, "TeamSlots")
+table.insert(KEYS, "Awakening")
 
 -- One-way flags of world n, kept in Worlds["W<n>"] next to its progress: once true they stay true (a payload without
 -- the flag never clears it). Welcomed: the first-arrival welcome was given (Server/WorldWelcome, docs/WORLD2_SPEC.md).

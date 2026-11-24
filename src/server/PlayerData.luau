@@ -381,7 +381,7 @@ local function save(player, userId, release, frozen)
 		Copies = gacha.Copies,
 		Team = gacha.Team,
 		Equipped = gacha.Equipped,
-		TeamSlots = gacha.TeamSlots, -- World 2 only; WorldSave.Fold moves it under Worlds.W2
+		Awakening = gacha.Awakening, -- World 2 only; WorldSave.Fold moves it under Worlds.W2
 		Rolls = gacha.Rolls,
 		StatAlloc = gacha.StatAlloc,
 		AutoSell = gacha.AutoSell,
