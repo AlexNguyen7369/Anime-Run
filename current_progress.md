@@ -240,8 +240,9 @@
 236. 2026-11-24 — Alex Nguyen — World 2 cast: per-world model loading with on-demand loads, audit attribution fixes, World 2 test suites made real in both worlds (gacha 408/396, catalog 21, data 158, rotation 421, sidekicks 361, character_models 36, all 0 fail under lune); local only, merge on hold.
 237. 2026-11-24 — Alex Nguyen — World 2 cast tests: on-demand loading cites the proposed owner question, exact JSON compare restored with the lune mock fixed (421/0 in both worlds).
 238. 2026-11-24 — Alex Nguyen — World 2 cast: recorded the owner's answers (names, ids, uploads, loading rule, Eternal cap, poses) and shipped the fixed Turbo Nyan and Acro Silka art (2 models, 4 images, all Approved).
+239. 2026-11-24 — Alex Nguyen — Wrote the World 2 cast handoff for the move to another computer and saved the upload log in docs.
 
 ## What's next
-**Merge orch/world2/cast-ingame into feature/alex/world2-place and run the cast scenarios in Studio.**
+**Resolve the World 2 save problem with the owner, then run the merged cast in Studio without touching the live save.**
 
-**Why this is next:** nothing of the cast has run in Studio yet, and publishing waits on it.
+**Why this is next:** nothing of the cast has run in Studio, and a test run in the World 2 place can change the owner's real save.
