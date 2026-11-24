@@ -1,0 +1,397 @@
+--!nonstrict
+-- BRIEF: design doc 4.47 "Cast in game" (2026-11-24), docs/WORLD2_SPEC.md "Cast in game". World 2 rolls only its 43 characters
+-- and summons only its 12 Sidekicks; World 1's pool, odds and rotation stay exactly what they were; saves keep every world's ids.
+-- On demand: ReplicatedStorage attributes ServerTestOnly = "world2_cast", then ServerTestRun = true.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local H = require(script.Parent.AcceptanceSupport)
+local CatalogTests = require(script.Parent.CatalogTests)
+local Shared = ReplicatedStorage.Shared
+local Server = script.Parent.Parent
+local Tests = {}
+
+local UID = 990247000
+-- docs/WORLD2_CAST.md, rarest last
+local CAST = {
+	Common = { "punch_rider" },
+	Uncommon = { "dan_hex", "kaiju_ice", "fr_axe", "solo_vice", "saw_nervous" },
+	Rare = { "punch_cyborg", "dan_idol", "kaiju_axe", "fr_staff", "solo_mage", "saw_fox" },
+	Epic = {
+		"punch_speed",
+		"dan_medium",
+		"kaiju_blade",
+		"fr_hero",
+		"saw_blood",
+		"solo_blade",
+		"saw_katana",
+		"dan_granny",
+	},
+	Legendary = {
+		"punch_psychic",
+		"dan_psychic",
+		"kaiju_captain",
+		"fr_cut",
+		"saw_bomb",
+		"solo_beast",
+		"fr_scales",
+		"kaiju_nine",
+		"solo_flame",
+	},
+	Mythic = {
+		"punch_fist",
+		"dan_turbo",
+		"kaiju_hero",
+		"fr_mage",
+		"saw_hero",
+		"solo_goliath",
+		"solo_ant",
+		"punch_serpent",
+		"fr_gold",
+		"punch_monster",
+	},
+	Eternal = { "solo_monarch", "saw_control", "fr_great", "punch_void" },
+}
+local CAST_SIZE = 43
+local ENEMIES = {
+	"saw_katana",
+	"solo_flame",
+	"punch_monster",
+	"dan_granny",
+	"kaiju_nine",
+	"fr_scales",
+	"solo_ant",
+	"punch_serpent",
+	"fr_gold",
+	"saw_control",
+}
+local SIDEKICKS = {
+	side_box = "Common",
+	side_cat = "Common",
+	side_lucky = "Common",
+	side_tiger = "Rare",
+	side_bird = "Rare",
+	side_hound = "Legendary",
+	side_shaman = "Legendary",
+	side_acrobat = "Mythic",
+	side_brawler = "Mythic",
+	side_general = "Mythic",
+	side_dragon = "Secret",
+	side_dark = "Secret",
+}
+-- World 1's set in list order: the order decides the seeded draws
+local WORLD1_SIDEKICKS = {
+	"side_chain",
+	"side_pig",
+	"side_crow",
+	"side_dogs",
+	"side_reindeer",
+	"side_ant",
+	"side_reaper",
+	"side_fist",
+	"side_knight",
+	"side_wyvern",
+	"side_curse",
+	"side_fox",
+}
+local SLOT0, SLOTS = 1000000, 100
+
+local function near(a, b)
+	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= 1e-9
+end
+
+function Tests.world2_cast()
+	local r, flag = H.report("world2_cast")
+	local catalog, gacha = require(Shared.CharacterCatalog), require(Shared.GachaConfig)
+	local race, series, npc = require(Shared.RaceConfig), require(Shared.SeriesCatalog), require(Shared.NpcConfig)
+	local cleanup = {}
+	local function section(name, fn)
+		local ok, err = xpcall(fn, debug.traceback)
+		flag(name .. "_completed", ok, ok and 1 or tostring(err))
+	end
+
+	section("cast", function()
+		local want, missing = {}, {}
+		for rarity, ids in CAST do
+			for _, id in ids do
+				want[id] = true
+				local spec = catalog.Get(id)
+				if
+					not (
+						spec
+						and spec.World == 2
+						and spec.Rarity == rarity
+						and spec.Rollable
+						and series.Get(spec.Series)
+					)
+				then
+					table.insert(missing, id)
+				end
+			end
+		end
+		flag("cast_in_rarities", #missing == 0, table.concat(missing, ","), "")
+		flag("cast_43", #catalog.All(2) == CAST_SIZE, #catalog.All(2), CAST_SIZE)
+		flag("pool_43", #catalog.Rollable(2) == CAST_SIZE, #catalog.Rollable(2), CAST_SIZE)
+		local extra = {}
+		for _, spec in catalog.Rollable(2) do
+			if not want[spec.Id] then
+				table.insert(extra, spec.Id)
+			end
+		end
+		flag("pool_only_world2", #extra == 0, table.concat(extra, ","), "")
+		local pool = catalog.Rollable(2)
+		flag("catch_all_mumon_rider", pool[#pool].Id == "punch_rider" and pool[#pool].Chance == 1, pool[#pool].Id)
+		-- rarer rarity, rarer odds; every Chance (the RarestCharacter board's key) and Order unique over both worlds but the two catch-alls
+		local rank, ordered, chances, orders, unique = {}, true, {}, {}, true
+		for i, rarity in gacha.RARITY_ORDER do
+			rank[rarity] = i
+		end
+		for i, spec in pool do
+			ordered = ordered
+				and (i == 1 or (spec.Chance < pool[i - 1].Chance and rank[spec.Rarity] <= rank[pool[i - 1].Rarity]))
+		end
+		for _, spec in catalog.Everything() do
+			unique = unique and (spec.Chance == 1 or not chances[spec.Chance]) and not orders[spec.Order]
+			chances[spec.Chance], orders[spec.Order] = true, true
+			unique = unique and spec.Chance <= 9e18 -- LeaderboardService's cap
+		end
+		flag("odds_follow_rarity", ordered)
+		flag("chance_and_order_unique", unique)
+		local presets = 0
+		for _, s in series.List do
+			if s.World == 2 then
+				presets += 1
+				local kind, got = series.TeamBonus(s.Preset.Members, function(id)
+					return catalog.Get(id).Series
+				end)
+				local own = kind == "Preset" and got == s
+				for _, id in s.Preset.Members do
+					own = own and catalog.Get(id).Series == s.Id
+				end
+				flag("preset_" .. s.Id, own)
+			end
+		end
+		flag("series_6", presets == 6, presets, 6)
+		for number, id in ENEMIES do
+			flag(
+				"enemy_" .. number,
+				npc.World2[number].Model == id and npc.World2[number].Label == catalog.Get(id).Name
+			)
+		end
+	end)
+
+	section("world1_unchanged", function()
+		-- The committed World 1 cast, walked as GachaConfig.Roll always did: rarest first, the catch-all last.
+		local regular = {}
+		for _, row in CatalogTests.CAST do
+			if not row.Event then
+				table.insert(regular, row)
+			end
+		end
+		table.sort(regular, function(a, b)
+			return a.Chance > b.Chance
+		end)
+		flag("world1_index_47", #catalog.All(1) == #CatalogTests.CAST, #catalog.All(1), #CatalogTests.CAST)
+		for _, luck in { 1, 30, 1e4 } do
+			local odds, left, same = gacha.Odds(luck, 1), 1, true
+			same = #odds == #regular
+			for i, row in regular do
+				local hit = i == #regular and 1 or math.min(1, luck / row.Chance)
+				same = same and odds[i] ~= nil and odds[i].Spec.Id == row.Id and near(odds[i].Chance, left * hit)
+				left *= 1 - hit
+			end
+			flag("world1_odds_luck_" .. luck, same)
+		end
+		-- same seed, same characters: the per-world argument changes no draw
+		local a, b, same = Random.new(5), Random.new(5), true
+		for _ = 1, 2000 do
+			same = same and gacha.Roll(a, 50, 1) == gacha.Roll(b, 50, "rain") -- anything but a world: this place's pool
+		end
+		flag("world1_default_pool", same or require(Shared.WorldConfig).Id ~= 1)
+	end)
+
+	section("odds", function()
+		for world = 1, 2 do
+			for _, luck in { 1, 7.35, 30, 1e6, 1e20 } do
+				local sum, only = 0, true
+				for _, row in gacha.OddsPercents(luck, world) do
+					sum += row.Percent
+					only = only and row.Spec.World == world
+				end
+				flag(("odds_w%d_%g"):format(world, luck), math.abs(sum - 100) < 1e-9 and only, sum, 100)
+			end
+			local rng, only = Random.new(world), true
+			for _ = 1, 5000 do
+				only = only and catalog.Get(gacha.Roll(rng, 1e7, world)).World == world
+			end
+			flag("rolls_only_world_" .. world, only)
+		end
+	end)
+
+	section("cruise", function()
+		local w1, w2, starter = catalog.Get("leaf_hero"), catalog.Get("punch_psychic"), catalog.Get("starter")
+		flag("cruise_eternal_780", race.Cruise(catalog.Get("punch_void"), 1, 2) == 780)
+		for _, multi in { 1, 2.5, 100 } do
+			flag("cruise_carry_" .. multi, near(race.Cruise(w1, multi, 2), race.Cruise(w1, multi, 1) * 0.1))
+			flag("cruise_world2_full_" .. multi, race.Cruise(w2, multi, 2) == race.Cruise(w2, multi, 1))
+		end
+		flag("cruise_maxed_carry_80", near(race.Cruise(w1, 100, 2), 80), race.Cruise(w1, 100, 2), 80)
+		flag("cruise_starter_full", race.Cruise(starter, 1, 2) == 24, race.Cruise(starter, 1, 2), 24)
+		flag("cruise_saitamo_carry", near(race.Cruise(catalog.Get(catalog.EXCLUSIVE_ID), 1, 2), 35))
+		flag("cruise_kami_same", race.Cruise(catalog.Get(catalog.KAMI_ID), 1, 2) == 800)
+		local same = true
+		for _, spec in catalog.All(1) do
+			local category = race.CATEGORY_SPEED[spec.Category]
+			same = same and race.Cruise(spec, 1, 1) == math.min(race.RARITY_BASE[spec.Rarity] * category, 800)
+		end
+		flag("cruise_world1_unchanged", same)
+	end)
+
+	section("sidekicks", function()
+		local Cfg, Art = require(Shared.SidekickConfig), require(Shared.SidekickArt)
+		local Rotation = require(Server.SidekickRotation)
+		local list, total, rowsOk = Cfg.Lists[2], 0, #Cfg.Lists[2] == 12
+		local like = {}
+		for i, row in Cfg.Lists[1] do
+			like[row.Rarity] = row
+			rowsOk = rowsOk and row.World == 1 and row.Id == WORLD1_SIDEKICKS[i]
+		end
+		rowsOk = rowsOk and #Cfg.Lists[1] == #WORLD1_SIDEKICKS
+		for _, row in list do
+			total += row.Odds
+			local same = like[row.Rarity]
+			rowsOk = rowsOk and row.World == 2 and SIDEKICKS[row.Id] == row.Rarity and Cfg.Get(row.Id) == row
+			for _, key in { "Odds", "Cruise", "Stamina", "Damage", "SellGems" } do
+				rowsOk = rowsOk and row[key] == same[key]
+			end
+		end
+		flag("sidekick_rows", rowsOk)
+		flag("sidekick_odds_100", math.abs(total - 100) < 1e-9, total, 100)
+
+		local saved, fake = {}, {}
+		for id in SIDEKICKS do
+			saved[id] = Art[id]
+		end
+		local function check(name, withArt)
+			local only, hundred, featured, models, secrets = true, true, true, true, {}
+			for slot = SLOT0, SLOT0 + SLOTS do
+				local rotation, public = Rotation.For(slot, 2), Rotation.Public(slot, 2)
+				local sum = 0
+				for id, odds in Rotation.Odds(slot, 2) do
+					sum += odds
+					only = only and SIDEKICKS[id] ~= nil
+				end
+				hundred = hundred and math.abs(sum - 100) < 1e-9
+				for _, id in public.Ids do
+					only = only and SIDEKICKS[id] ~= nil
+				end
+				for _, choice in public.SecretChoices do
+					only = only and (choice.Name == "Solara Dragon" or choice.Name == "Darkness Devill")
+				end
+				secrets[public.SecretId] = true
+				featured = featured and rotation.Mythic[1] == (withArt and "side_general" or nil)
+				models = models
+					and #rotation.Legendary == (withArt and 2 or 0)
+					and #rotation.Rare == (withArt and 2 or 0)
+					and #rotation.Common == 3
+			end
+			flag(name .. "_only_its_12", only)
+			flag(name .. "_odds_100", hundred)
+			flag(name .. "_featured_belleon", featured)
+			flag(name .. "_tiers", models)
+			flag(name .. "_both_secrets", secrets.side_dragon and secrets.side_dark)
+		end
+		local ok, err = pcall(function()
+			for id in SIDEKICKS do
+				Art[id] = nil
+			end
+			check("rotation_no_art", false)
+			for id in SIDEKICKS do
+				fake[id] = { Model = 1 }
+				Art[id] = fake[id]
+			end
+			check("rotation", true)
+		end)
+		for id in SIDEKICKS do
+			Art[id] = saved[id]
+		end
+		flag("rotation_checked", ok, ok and 1 or tostring(err))
+
+		-- World 1's rotation against the algorithm as it was, on the committed 12
+		local same, old = true, true
+		local function pool(rarity)
+			local ids = {}
+			for _, id in WORLD1_SIDEKICKS do
+				if Cfg.Get(id).Rarity == rarity then
+					table.insert(ids, id)
+				end
+			end
+			return ids
+		end
+		for slot = SLOT0, SLOT0 + SLOTS do
+			local rng, got = Random.new(slot * 1000003), Rotation.For(slot, 1)
+			rng:NextInteger(1, 3) -- the Mythic draw, replaced by the featured one
+			for _, tier in { "Legendary", "Rare" } do
+				local ids, drawn = pool(tier), {}
+				for _ = 1, 2 do
+					table.insert(drawn, table.remove(ids, rng:NextInteger(1, #ids)))
+				end
+				same = same and H.same(got[tier], drawn)
+			end
+			same = same and H.same(got.Mythic, { "side_knight" }) and H.same(got.Common, pool("Common"))
+			same = same and (got.Secret == "side_curse" or got.Secret == "side_fox")
+			for id in Rotation.Odds(slot, 1) do
+				old = old and table.find(WORLD1_SIDEKICKS, id) ~= nil
+			end
+		end
+		flag("rotation_world1_unchanged", same)
+		flag("rotation_world1_only_its_12", old)
+	end)
+
+	section("saves", function()
+		local GachaService, SidekickService = require(Server.GachaService), require(Server.SidekickService)
+		local WorldSave = require(Shared.WorldSave)
+		local p = H.player(cleanup, UID)
+		GachaService.Setup(p)
+		local ids = { "future_hero", "leaf_hero", "punch_rider", "saw_hero", "sea_navigator" } -- sorted, as Snapshot writes
+		GachaService.Apply(p, {
+			Cars = ids,
+			Copies = { punch_rider = 3, leaf_hero = 2, future_hero = 1 },
+			Team = { "saw_hero", "leaf_hero", "future_hero" },
+			Rolls = 9,
+		})
+		local out = GachaService.Snapshot(p)
+		flag("save_keeps_every_id", H.same(out.Cars, ids))
+		flag(
+			"save_keeps_copies",
+			out.Copies.punch_rider == 3 and out.Copies.leaf_hero == 2 and out.Copies.future_hero == 1
+		)
+		flag("team_mixes_worlds", H.same(out.Team, { "saw_hero", "leaf_hero" }), table.concat(out.Team, ","))
+		flag("index_shared", GachaService.UniqueCount(p) == 4, GachaService.UniqueCount(p), 4)
+		local bag = {}
+		for i, id in { "side_chain", "side_general", "side_future", "side_raga" } do
+			bag[i] = { Id = id, Entry = "e" .. i }
+		end
+		SidekickService.Apply(p, { Sidekicks = bag, CharacterGear = { leaf_hero = "e2", saw_hero = "e1" } })
+		local side = SidekickService.Snapshot(p)
+		local kept = #side.Sidekicks == 4
+		for i, row in side.Sidekicks do
+			kept = kept and row.Id == bag[i].Id and row.Entry == bag[i].Entry
+		end
+		flag("save_keeps_sidekicks", kept)
+		flag("sidekick_gain_any_world", near(SidekickService.CruiseMulti(p, "leaf_hero"), 1.15))
+		-- World 2 play never touches World 1's team; a first entry has no team, which Apply turns into the starter
+		local record = { Cars = ids, Team = { "leaf_hero" }, Equipped = "leaf_hero", BestTrack = 10 }
+		local folded = WorldSave.Fold({ Cars = ids, Team = { "punch_rider" }, BestTrack = 2 }, record, 2)
+		flag("fold_keeps_cast", H.same(folded.Cars, ids) and H.same(folded.Worlds.W2.Team, { "punch_rider" }))
+		local fresh = H.player(cleanup, UID + 1)
+		GachaService.Setup(fresh)
+		GachaService.Apply(fresh, WorldSave.View(record, 2))
+		flag("fresh_world2_team_starter", fresh:GetAttribute("Team") == "starter", fresh:GetAttribute("Team"))
+	end)
+
+	for _, instance in cleanup do
+		instance:Destroy()
+	end
+	return r
+end
+
+return Tests

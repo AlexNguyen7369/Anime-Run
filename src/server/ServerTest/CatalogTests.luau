@@ -366,6 +366,9 @@ function Tests.catalog()
 		end
 	end
 	for _, s in series.List do
+		if s.World == 2 then
+			continue -- World 2's 6 series: World2CastTests
+		end
 		local members = type(s.Preset) == "table" and s.Preset.Members or nil
 		local ok = type(s.Id) == "string"
 			and realNameIn(string.lower(s.Id)) == nil
@@ -385,7 +388,7 @@ function Tests.catalog()
 			table.insert(presetBad, tostring(s.Id))
 		end
 	end
-	flag("series_count_7", #series.List == 7, #series.List, 7)
+	flag("series_count_13", #series.List == 13, #series.List, 13) -- 7 World 1, 6 World 2 (design doc 4.47)
 	flag("presets_three_own_members", #presetBad == 0, table.concat(presetBad, ","), "")
 
 	-- Bleech (design doc 4.30, spec "Bleech series"): the 6 ids in their rarities, the shared enemy model, the preset

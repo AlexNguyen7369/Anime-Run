@@ -99,6 +99,7 @@ local RAR_CREAM = { -- rarity text on parchment
 	Legendary = hex("c88a00"),
 	Mythic = hex("d8204a"),
 	Secret = hex("1a1a1a"),
+	Eternal = hex("0a8f88"),
 }
 local RAR_DARK = { -- rarity text on dark lacquer
 	Common = hex("cfcfcf"),
@@ -108,6 +109,7 @@ local RAR_DARK = { -- rarity text on dark lacquer
 	Legendary = hex("ffcf3a"),
 	Mythic = hex("ff86c8"),
 	Secret = hex("f4f4f4"),
+	Eternal = hex("6af0e6"),
 }
 local RAR_BG = { -- behind a portrait
 	Common = hex("9a9a9a"),
@@ -117,6 +119,7 @@ local RAR_BG = { -- behind a portrait
 	Legendary = hex("e79a2a"),
 	Mythic = hex("e23a3a"),
 	Secret = hex("2a2a34"),
+	Eternal = hex("1fa8a0"),
 }
 local NUN = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Heavy, Enum.FontStyle.Normal)
 local NUNI = Font.new("rbxasset://fonts/families/Nunito.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)

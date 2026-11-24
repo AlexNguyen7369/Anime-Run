@@ -431,7 +431,7 @@ function Tests.bag()
 		flag("bag_many_needs_load", GachaService.SellSparesMany(many, { id }) == false and unsold())
 		many:SetAttribute("DataLoaded", true)
 		local tooLong = {}
-		for i = 1, #CharacterCatalog.All() + 1 do
+		for i = 1, #CharacterCatalog.Everything() + 1 do -- every world's (design doc 4.47)
 			tooLong[i] = id
 		end
 		for name, bad in { number = 5, none = false, string = id, row = { id, 5 }, long = tooLong } do

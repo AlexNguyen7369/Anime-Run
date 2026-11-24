@@ -53,7 +53,7 @@ end
 function RosterCard.Owned(player, sortMode, everyOwned)
 	local data = player:FindFirstChild("GachaData")
 	local list = {}
-	for _, spec in CharacterCatalog.All() do
+	for _, spec in CharacterCatalog.Everything() do
 		if data and data:FindFirstChild(spec.Id) then
 			table.insert(list, spec)
 		end

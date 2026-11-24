@@ -1247,6 +1247,7 @@ UiSpec.RollAnim = {
 			Legendary = 1.5,
 			Mythic = 2.5,
 			Secret = 4,
+			Eternal = 5, -- design doc 4.47
 		},
 		REEL_CARS = 16,
 		LAND_POP = 1.15,
@@ -3540,7 +3541,7 @@ UiSpec.Backpack = {
 	},
 	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
-	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
+	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" },
 	PhoneMaxHeight = 500,
 	MaxDecimals = 6, -- digits after the point in a tile's cruise "<n> studs/s" (no float noise)
 	ModelWait = 5, -- s for a tile's ViewportFrame to receive its runner rig

@@ -39,6 +39,43 @@ SeriesCatalog.List = {
 		Name = "Bleech",
 		Preset = { Name = "Substitute Squad", Members = { "soul_substitute", "soul_ice", "soul_fang" } },
 	},
+	-- World 2 (design doc 4.47): preset names proposed
+	{
+		Id = "saw",
+		Name = "Saw Man",
+		World = 2,
+		Preset = { Name = "Division Four", Members = { "saw_hero", "saw_blood", "saw_fox" } },
+	},
+	{
+		Id = "solo",
+		Name = "Solo Levelup",
+		World = 2,
+		Preset = { Name = "Ajin Guild", Members = { "solo_monarch", "solo_blade", "solo_vice" } },
+	},
+	{
+		Id = "punch",
+		Name = "One Punch",
+		World = 2,
+		Preset = { Name = "S-Class", Members = { "punch_psychic", "punch_fist", "punch_cyborg" } },
+	},
+	{
+		Id = "dan",
+		Name = "Dandadun",
+		World = 2,
+		Preset = { Name = "Occult Club", Members = { "dan_turbo", "dan_psychic", "dan_idol" } },
+	},
+	{
+		Id = "kaiju",
+		Name = "Kaijo No. 8",
+		World = 2,
+		Preset = { Name = "Third Division", Members = { "kaiju_hero", "kaiju_ice", "kaiju_axe" } },
+	},
+	{
+		Id = "fr",
+		Name = "Frierin",
+		World = 2,
+		Preset = { Name = "Frierin Party", Members = { "fr_mage", "fr_staff", "fr_axe" } },
+	},
 }
 
 local byId = {}

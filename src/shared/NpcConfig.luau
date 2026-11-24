@@ -43,18 +43,18 @@ NpcConfig.Tracks = {
 }
 
 -- World 2 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): same speeds as World 1's table (the per-world cruise table
--- keeps the studs/s band), new enemies with tweaked names. Models come with the World 2 roster; until then the plain rig.
+-- keeps the studs/s band), new enemies with tweaked names. Model: the rollable villain's own id (Makina: the hero's); the plain rig until its model is uploaded.
 NpcConfig.World2 = {
-	[1] = { Label = "Katanah Man", Color = Color3.fromRGB(230, 45, 45) },
-	[2] = { Label = "Barran", Speed = 56 },
-	[3] = { Label = "Garoo", Speed = 66 },
-	[4] = { Label = "Turbo Grammy", Speed = 88 },
-	[5] = { Label = "Kaijo No. 9", Speed = 130 },
-	[6] = { Label = "Ora", Speed = 190 },
-	[7] = { Label = "Berru", Speed = 280 },
-	[8] = { Label = "Orochy", Speed = 410 },
-	[9] = { Label = "Machto" },
-	[10] = { Label = "Makina" },
+	[1] = { Label = "Katanah Man", Color = Color3.fromRGB(230, 45, 45), Model = "saw_katana" },
+	[2] = { Label = "Barran", Speed = 56, Model = "solo_flame" },
+	[3] = { Label = "Garoo", Speed = 66, Model = "punch_monster" },
+	[4] = { Label = "Turbo Grammy", Speed = 88, Model = "dan_granny" },
+	[5] = { Label = "Kaijo No. 9", Speed = 130, Model = "kaiju_nine" },
+	[6] = { Label = "Ora", Speed = 190, Model = "fr_scales" },
+	[7] = { Label = "Berru", Speed = 280, Model = "solo_ant" },
+	[8] = { Label = "Orochy", Speed = 410, Model = "punch_serpent" },
+	[9] = { Label = "Machto", Model = "fr_gold" },
+	[10] = { Label = "Makina", Model = "saw_control" },
 }
 if require(script.Parent.WorldConfig).Id == 2 then
 	NpcConfig.Tracks = NpcConfig.World2

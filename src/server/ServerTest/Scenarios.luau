@@ -5030,7 +5030,7 @@ local GACHA_CATALOG = {}
 for _, row in require(script.Parent.CatalogTests).CAST do
 	table.insert(GACHA_CATALOG, table.clone(row))
 end
-local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" } -- Eternal: design doc 4.47
 local GACHA_STATS = { "Speed", "Money", "Luck", "Stamina" } -- design doc 4.19: the Workshop point is retired
 local GACHA_PER_POINT = { Speed = 0.02, Money = 0.1, Luck = 0.05, Stamina = 0.05 } -- design doc 4.13 / 4.6 (placeholders)
 local GACHA_ROLLS = 100000
@@ -5352,7 +5352,7 @@ function Scenarios.gacha()
 	end
 	check(checks, "catalog_spec_chances", #oddsBad, table.concat(oddsBad, ", "), #oddsBad == 0)
 	local tierOk = true
-	for i = 3, #GACHA_RARITY_ORDER do -- Uncommon < Rare < ... < Secret (Common is the catch-all)
+	for i = 3, table.find(GACHA_RARITY_ORDER, "Secret") do -- Uncommon < Rare < ... < Secret (Common is the catch-all); Eternal is World 2 only: World2CastTests
 		local lower, higher = GACHA_RARITY_ORDER[i - 1], GACHA_RARITY_ORDER[i]
 		tierOk = tierOk
 			and rarityMax[lower] ~= nil
@@ -9662,6 +9662,7 @@ local ROLL_ANIM_HOLD = {
 	Legendary = 1.5,
 	Mythic = 2.5,
 	Secret = 4,
+	Eternal = 5, -- design doc 4.47
 }
 local ROLL_ANIM_LAYOUT = {
 	REEL_CARS = 16,
@@ -12012,6 +12013,8 @@ Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_prog
 Scenarios.track_loading = require(script.Parent.TrackLoadTests).track_loading
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
+-- design doc 4.47: per-world roll pools, Sidekick sets and cruise; World 1 unchanged
+Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
 Scenarios.speed_probe = require(script.Parent.SpeedProbeTests).speed_probe
 -- docs/PANEL_ART_GIFTING_SPEC.md: cosmetic effects on the runner, no mass/controls change, equip preserved

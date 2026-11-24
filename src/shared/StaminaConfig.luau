@@ -14,6 +14,7 @@ StaminaConfig.BASE = {
 	Legendary = 24,
 	Mythic = 27,
 	Secret = 30,
+	Eternal = 32, -- World 2 (design doc 4.47), proposed
 }
 
 StaminaConfig.CATEGORY = { Sprinter = 0.9, Balanced = 1, Marathoner = 1.1 }

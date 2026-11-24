@@ -149,7 +149,7 @@ end
 
 -- The catalog character a RarestCharacter score stands for, or nil.
 local function carByChance(score)
-	for _, spec in CharacterCatalog.All() do
+	for _, spec in CharacterCatalog.Everything() do
 		if spec.Chance == score then
 			return spec
 		end

@@ -16,6 +16,7 @@ BagConfig.SELL_PRICE = {
 	Legendary = 500,
 	Mythic = 2500,
 	Secret = 10000,
+	Eternal = 25000, -- World 2 (design doc 4.47), proposed
 }
 
 function BagConfig.Cap(hasPass, treeBonus)
