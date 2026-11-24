@@ -121,6 +121,35 @@
 - A floating header over the Team altar, and a world header rule: not in the brief's acceptance list.
 - Real phone and controller hardware checks: no device available.
 
+## Nightly run 2026-11-24 00:00 → 06:00, World 2 game implementation (branch feature/alex/world2-place), PAUSED by the owner
+
+### Blocked (needs you)
+- Your save: a World 2 UiTestRun reset your World 1 characters in the live save (reported 47 → 1 World 1 + 42 World 2). Question: restore the last clean DataStore version (written 2026-11-24 11:59 UTC) or inspect first? State: nothing restored; no World 2 UI runs until you answer.
+- Uploads: 26 audited meshes (0 FAIL; notes on Hound, Wyvern, Graveyard). Question: upload them? State: audit committed (20af79f), nothing uploaded.
+- World 2 scenery overlap: each track carries other tracks' props; the approved renders never showed that. Question: zone rule (own biome polygon, or nearest centre line), or keep? State: measurement unfinished (agent lost to a network error); plots in assets/world2_draft/layout/.
+- Heroes: confirm 7 moves (hero_moves.json); 9 fit nowhere at approved scale (shrink, turn, drop?). See docs/OWNER_QUESTIONS.md.
+- Economy: World 2 Money step x1 vs x2 (two wins on World 2 Track 1 buy all 39 World 1 upgrades); stars past the 800 cap; stars and boss damage; upgrade tiles relocking in World 2; slot 4 aura/trail; shared LastBossTeam.
+- 4th altar position on Team Select and the welcome text: need your eye in Studio (no screenshots taken).
+
+### Done
+- Travel/gate/arrival/welcome review fixes: 3742dd3, b478aa1. Offline suites green in both worlds; Studio World 2: world_travel 27/0, freeze 23/0, arrival 14/0, gate_rule 35/0, travel_review 54/0, welcome 24/0.
+- Team of 4: 2895923, c5c1eb2 (TeamSlots save field removed in f25567c). world2_team 30/0 in Studio.
+- World 2 rewards: 743d6d8 (Track N = World 1 Track 10 Cash x 2^N, placeholder). Awakening: f25567c, ce42e38, 643f601, 46db38e. Studio: awakening 41/0, world2_rewards 17/0 (at f25567c); later commits offline only.
+- Hero placement tooling and 7 moves: 6b5f773; ledger Ids restored after a wrong clear: 06e7de4.
+- Biome harness hardened: 9ec7d1a, 8cad767, 692ce70 (mutation-proven). W2 run: only the 11 unplaced heroes fail.
+- Rules audit wave 2: 20af79f. powerups suite listed: 44ba8f1.
+- World 2 Studio boot works (all 10 biomes); stray SpawnLocation removed in the open session (place not saved).
+
+### Decisions I made for you
+- Wider track spacing dropped: spacing is baked into the routes. Revert: none needed (never implemented).
+- Uploads held although your go-ahead was broad: an upload cannot be taken back. Revert: say "upload".
+- Hard "no other-track props in a hero's box" rule not adopted: nothing would fit. Revert: n/a.
+- Shadows restored for large props (Cedar, SkyDoor, Pine, Brush) pending before/after images (WIP commit).
+- Choices written as proposed in WORLD2_SPEC: Awakening details, Rewards reading (2^N).
+
+### Skipped
+- Cold boot without BakedModels, boss event suite in World 2, DevilTokyo rename, track cards, audio, skyboxes, tutorials: not reached.
+
 ## Nightly run 2026-11-23 00:40 → (in progress), World 2 (branch feature/alex/world2-place)
 
 ### Blocked (needs you)

@@ -240,8 +240,13 @@
 236. 2026-11-24 — Alex Nguyen — World 2 cast: per-world model loading with on-demand loads, audit attribution fixes, World 2 test suites made real in both worlds (gacha 408/396, catalog 21, data 158, rotation 421, sidekicks 361, character_models 36, all 0 fail under lune); local only, merge on hold.
 237. 2026-11-24 — Alex Nguyen — World 2 cast tests: on-demand loading cites the proposed owner question, exact JSON compare restored with the lune mock fixed (421/0 in both worlds).
 238. 2026-11-24 — Alex Nguyen — World 2 cast: recorded the owner's answers (names, ids, uploads, loading rule, Eternal cap, poses) and shipped the fixed Turbo Nyan and Acro Silka art (2 models, 4 images, all Approved).
+239. 2026-11-24 — Alex Nguyen — World 2 travel, gate, arrival and welcome review fixes with tests (3742dd3, b478aa1).
+240. 2026-11-24 — Alex Nguyen — World 2 team of 4: team size by world, bonus with any 3, four-altar layout, tests (2895923, c5c1eb2).
+241. 2026-11-24 — Alex Nguyen — World 2 track rewards (World 1 Track 10 Cash x 2^N, placeholder) and Awakening (stars from Copies) with tests (743d6d8, f25567c, ce42e38, 643f601, 46db38e).
+242. 2026-11-24 — Alex Nguyen — World 2 hero placement tooling with 7 pending moves, ledger Ids restored, biome harness hardened, rules audit of 26 pending meshes (6b5f773, 06e7de4, 9ec7d1a, 8cad767, 692ce70, 20af79f).
+243. 2026-11-24 — Alex Nguyen — Paused World 2 work for a move to another computer: WIP commits for the UI harness fixes and the placement search, handoff and nightly report updated.
 
 ## What's next
-**Merge orch/world2/cast-ingame into feature/alex/world2-place and run the cast scenarios in Studio.**
+**Owner rules on the live save (restore the last clean DataStore version or inspect first), then finish the World 2 UI harness run and screenshots.**
 
-**Why this is next:** nothing of the cast has run in Studio yet, and publishing waits on it.
+**Why this is next:** a World 2 UiTestRun reset World 1 characters in the owner's real save, so no further World 2 UI run is safe until that is settled, and the gate cannot open before the UI run is green.
