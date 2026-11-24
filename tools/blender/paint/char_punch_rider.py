@@ -13,8 +13,10 @@ def model(parts, kit):
 	h = "Head"
 	crown(k, [(1.22, 5.2), (1.28, 5.5), (1.04, 5.86), (0.7, 6.12), (0.2, 6.2)], "helm")
 	block(k, h, "Brim", 0, -0.02, 5.36, 5.16, 1.16, 1.08, "helm", ch=0.04, corner=0.3, a=0.42)
-	for x in (-0.46, 0, 0.46):
-		block(k, h, f"Vent{x}", x, -0.5, 6.12 - abs(x) * 0.3, 5.56, 0.1, 0.5, "vent", ch=0.04, a=0.5)
+	# vents raised clear of the shell, front to back
+	for x in (-0.56, 0, 0.56):
+		for n, pts in (("F", ((x * 1.25, -1.04, 5.66), (x, -0.5, 6.12 - abs(x) * 0.3))), ("B", ((x, 0.5, 6.12 - abs(x) * 0.3), (x * 1.25, 1.06, 5.66)))):
+			rod(k, h, f"Vent{n}{x}", pts[0], pts[1], 0.13, "vent", n=6)
 	for s in (1, -1):
 		block(k, h, f"Strap{s}", s * 0.94, -0.16, 5.2, 4.16, 0.05, 0.08, "strap", ch=0.02)
 		[block(k, h, f"Gog{s}{n}", s * x, -0.9, z1, z0, w, 0.05, "rim", ch=0.015) for n, x, z1, z0, w in (("L", 0.43, 4.5, 4.42, 0.4), ("I", 0.06, 5.06, 4.42, 0.04), ("O", 0.82, 5.06, 4.42, 0.04))]
@@ -37,8 +39,8 @@ def model(parts, kit):
 	block(k, T, "ChestStrap", 0, -0.7, 3.46, 3.34, 1.04, 0.04, "strap", ch=0.01)
 	collar(k, "suit", 4.12, 4.3, z0=3.86, rx=0.7, ry=0.66)
 	block(k, T, "Belt", 0, 0, 2.4, 2.16, 1.11, 0.64, "strap", ch=0.03)
-	arms(k, [("Sleeve", 3.94, 2.4, 0.5, "suit"), ("Pad", 4.06, 3.5, 0.58, "pad"), ("Elbow", 3.1, 2.8, 0.55, "pad"), ("Glove", 2.5, 1.78, 0.53, "strap")])
-	legs(k, [("Thigh", 2.0, 0.8, 0.5, "suit")], shoe=(0.8, "strap", "sole"))
+	arms(k, [("Sleeve", 3.94, 2.4, 0.5, "suit"), ("Pad", 4.06, 3.5, 0.58, "pad"), ("Elbow", 3.1, 2.8, 0.55, "pad"), ("Glove", 2.5, 1.78, 0.53, "strap")], puff=True)
+	legs(k, [("Thigh", 2.0, 0.8, 0.5, "suit")], shoe=(0.8, "strap", "sole"), puff=True)
 	for s, side in ((1, "Left"), (-1, "Right")):
 		block(k, f"{side}UpperLeg", "Knee", s * 0.535, -0.54, 1.36, 0.9, 0.34, 0.1, "pad", ch=0.05, corner=0.3)
 	finish()

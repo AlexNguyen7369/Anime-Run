@@ -19,23 +19,32 @@ def start(kit, parts, R, ear=True):
 	return k
 
 
-def arms(k, segs, sides=((1, "Left"), (-1, "Right"))):
+def arms(k, segs, sides=((1, "Left"), (-1, "Right")), puff=False):
 	"""segs = (name, z1, z0, half size, ramp)."""
 	for s, side in sides:
 		arm, x = f"{side}UpperArm", s * 1.5
 		k.reshape(arm, f"{side}Arm", [(x, 0, 3.9, 0.42, 0.42), (x, 0, 2.05, 0.42, 0.42)], corner=0.1, nc=1)
 		for n, z1, z0, h, r in segs:
 			block(k, arm, n, x, 0, z1, z0, h, h, r, ch=0.05, corner=0.16, a=0.5, b=0.48)
+		n, z1, z0, h, r = segs[0]
+		if puff:  # bunched cloth folds, real 3D garments rather than a painted limb
+			for i, z in enumerate((3.3, 2.94, 2.66)):
+				block(k, arm, f"Fold{i}", x, 0.02 * (-1) ** i, z, z - 0.3, h + 0.07 - 0.015 * i, h + 0.07 - 0.015 * i, r, ch=0.1, corner=0.2, jit=0.03, a=0.54 - 0.04 * (i % 2))
 
 
-def legs(k, segs, shoe=None):
+def legs(k, segs, shoe=None, puff=False):
 	for s, side in ((1, "Left"), (-1, "Right")):
 		leg, x = f"{side}UpperLeg", s * 0.535
 		k.reshape(leg, f"{side}Leg", [(s * 0.5, 0, 2.0, 0.42, 0.42), (s * 0.5, 0, 0.1, 0.42, 0.42)], corner=0.1, nc=1)
 		for n, z1, z0, h, r in segs:
 			block(k, leg, n, x, 0, z1, z0, min(h, 0.5), h + 0.04, r, ch=0.04, corner=0.16, a=0.48, b=0.54)
+		n, z1, z0, h, r = segs[0]
+		if puff:
+			for i, z in enumerate((1.5, 1.14, 0.84)):
+				block(k, leg, f"Fold{i}", s * 0.55, 0, z, z - 0.32, 0.53, h + 0.1 - 0.02 * i, r, ch=0.1, corner=0.2, jit=0.03, a=0.54 - 0.04 * (i % 2))
 		if shoe:
 			top, r, sole = shoe
+			top = max(top, 0.64)  # boot() has a ring at 0.5: a lower top turns the shaft inside out
 			boot(k, leg, x, r, sole, top=top)
 
 

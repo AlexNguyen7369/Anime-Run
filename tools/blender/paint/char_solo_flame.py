@@ -33,7 +33,7 @@ def model(parts, kit):
 		block(k, T, f"Ab{z}", 0, -0.02, z, z - 0.22, 0.9, 0.68, "plate", ch=0.05, a=0.44)
 	block(k, T, "Belt", 0, 0, 2.34, 2.08, 1.14, 0.68, "gold", ch=0.05)
 	prism(k, T, "Buckle", [(0, 2.44), (0.26, 2.2), (0, 1.86), (-0.26, 2.2)], -0.78, -0.66, "cape")
-	collar(k, "fur", 3.98, 4.6, z0=3.6, rx=1.24, ry=0.9, name="Fur", a=0.6)
+	collar(k, "fur", 3.84, 4.6, z0=3.6, rx=1.24, ry=0.9, name="Fur", a=0.6)
 	block(k, T, "Cape", 0, 0.78, 4.1, 0.5, 1.3, 0.09, "cape", ch=0.03, flare=0.34, mids=(3.2, 2.2, 1.2), jit=0.04)
 	for i, x in enumerate((-0.9, -0.45, 0, 0.45, 0.9)):
 		gem(k, T, f"CapeFold{i}", (x, 0.86, 4.0), (x * 1.5, 1.04, 0.4 + 0.2 * (i % 2)), 0.26, "cape", flat=0.4, across=(1, 0, 0), a=0.62)

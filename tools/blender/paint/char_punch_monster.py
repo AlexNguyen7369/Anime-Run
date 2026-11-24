@@ -42,11 +42,12 @@ def model(parts, kit):
 	la = "LeftUpperArm"
 	for i, (b, t) in enumerate((((1.7, 0, 4.0), (2.3, 0.1, 4.7)), ((1.95, 0, 3.6), (2.6, 0.1, 3.86)), ((1.9, 0.1, 2.8), (2.5, 0.3, 3.1)))):
 		gem(k, la, f"Spike{i}", b, t, 0.2, "spike")
-	for i in range(3):
-		gem(k, la, f"Claw{i}", (1.2 + 0.3 * i, -0.4, 1.9), (1.2 + 0.3 * i, -0.62, 1.4), 0.12, "spike")
+	for i, z in enumerate((1.8, 1.4, 1.0)):
+		block(k, "LeftUpperLeg", f"LegP{i}", 0.56, -0.04, z, z - 0.3, 0.56, 0.62, "shell", ch=0.08, jit=0.02, a=0.6)
+	gem(k, "LeftUpperLeg", "KneeS", (0.6, -0.5, 1.2), (0.7, -1.0, 1.5), 0.18, "spike")
 	for i, z in enumerate((3.9, 3.5, 3.1, 2.7)):
 		block(k, la, f"Plate{i}", 1.56, 0, z, z - 0.2, 0.66 - 0.02 * i, 0.64, "spike" if i == 0 else "shell", ch=0.06, a=0.64)
-	legs(k, [("Thigh", 2.02, 0.6, 0.52, "black"), ("Tear", 0.8, 0.5, 0.5, "black")], shoe=(0.5, "black", "sole"))
+	legs(k, [("Thigh", 2.02, 0.6, 0.52, "black"), ("Tear", 0.8, 0.5, 0.5, "black")], shoe=(0.5, "black", "sole"), puff=True)
 	finish()
 
 
@@ -55,6 +56,6 @@ def paint(a):
 	f = a["Head_F"]
 	face(f, SKIN, ("#6a4a08", "#d8a418", "#fff08a"), "#b8b8c4", up=10, dn=7, inner=6, outer=-7, lid=0.2, tilt=7, thick=4, mouth="grin", ir=(7, 8), pu=(2, 3))
 	eye(f, 93, 67, 1, ("#5a0808", "#e02018", "#ff8a6a"), w=32, up=10, dn=7, inner=6, outer=-7, lid=0.2, white="#2a0608", ir=(7, 8), pu=(2, 3))
-	f.path("M93 80L90 100L95 124", stroke="#c42a2c", sw=2.2)
-	f.path("M104 78L110 98", stroke="#c42a2c", sw=1.8)
+	f.path("M93 80L90 100L95 124", stroke="#6e4a86", sw=2.2)
+	f.path("M104 78L110 98", stroke="#6e4a86", sw=1.8)
 	base(a, SKIN, "#2a2a34", SKIN, "#2a2a34", hair="#bcbcc8")

@@ -11,7 +11,7 @@ PROPS = []
 def _snake(k, name, pts, r):
 	"""A coil segment by segment, ending in a wedge head with lit eyes."""
 	for i, (p, q) in enumerate(zip(pts, pts[1:])):
-		rod(k, "Head", f"{name}{i}", p, q, r * (1 - 0.1 * i), "scale", r1=r * (0.94 - 0.1 * i))
+		rod(k, "Head", f"{name}{i}", p, q, r * (1 - 0.08 * i), "scale", r1=r * (0.92 - 0.08 * i), n=8)
 	x, y, z = pts[-1]
 	gem(k, "Head", name + "Skull", (x, y + 0.2, z + 0.06), (x, y - 0.74, z - 0.02), 0.28, "scale", flat=0.6, across=(1, 0, 0), a=0.62)
 	gem(k, "Head", name + "Jaw", (x, y + 0.16, z - 0.12), (x, y - 0.56, z - 0.34), 0.2, "horn", flat=0.5, across=(1, 0, 0))
@@ -28,12 +28,23 @@ def model(parts, kit):
 		for i, (b, t, r) in enumerate((((0.6, -0.2, 5.7), (1.26, -0.2, 6.3), 0.3), ((1.2, -0.2, 6.24), (1.6, -0.4, 6.7), 0.24))):
 			rod(k, "Head", f"Horn{i}{s}", (s * b[0], b[1], b[2]), (s * t[0], t[1], t[2]), r, "horn", r1=r * 0.78, n=7)
 		gem(k, "Head", f"HornTip{s}", (s * 1.58, -0.38, 6.66), (s * 1.46, -0.9, 7.3), 0.2, "horn", a=0.6)
-		_snake(k, f"SnakeA{s}", [(s * 0.8, 0.4, 5.5), (s * 1.5, 0.5, 5.6), (s * 1.8, 0.2, 5.1), (s * 2.0, -0.4, 5.3)], 0.24)
-		_snake(k, f"SnakeB{s}", [(s * 0.8, 0.6, 5.0), (s * 1.3, 0.7, 4.5), (s * 1.5, -0.1, 4.2), (s * 1.36, -0.8, 4.36)], 0.24)
-		_snake(k, f"SnakeC{s}", [(s * 0.3, 0.5, 5.8), (s * 0.4, 0.8, 6.5), (s * 0.6, 0.4, 6.9), (s * 0.56, -0.2, 6.8)], 0.22)
+		_snake(k, f"SnakeA{s}", [(s * 0.8, 0.4, 5.5), (s * 1.5, 0.5, 5.6), (s * 1.8, 0.2, 5.1), (s * 2.0, -0.4, 5.3)], 0.32)
+		_snake(k, f"SnakeB{s}", [(s * 0.8, 0.6, 5.0), (s * 1.3, 0.7, 4.5), (s * 1.5, -0.1, 4.2), (s * 1.36, -0.8, 4.36)], 0.32)
+		_snake(k, f"SnakeC{s}", [(s * 0.3, 0.5, 5.8), (s * 0.4, 0.8, 6.5), (s * 0.6, 0.4, 6.9), (s * 0.56, -0.2, 6.8)], 0.3)
 		gem(k, "Head", f"Brow{s}", (s * 0.1, -0.88, 5.02), (s * 0.94, -0.96, 5.3), 0.17, "horn", flat=0.5)
 		gem(k, "Head", f"Cheek{s}", (s * 0.8, -0.76, 4.5), (s * 1.1, -0.96, 4.1), 0.18, "horn")
 	locks(k, "Back", [((0.5, 0.7, 5.6), (0.7, 1.1, 4.0), 0.4), ((-0.5, 0.7, 5.6), (-0.7, 1.1, 4.0), 0.4), ((0, 0.8, 5.6), (0, 1.2, 3.8), 0.46)])
+	for s in (1, -1):
+		prism(k, "Head", f"MaskC{s}", [(s * 0.5, 4.8), (s * 0.94, 4.96), (s * 0.94, 4.2), (s * 0.6, 4.0), (s * 0.34, 4.3)], -1.0, -0.84, "horn", a=0.5)
+		for i in range(3):
+			gem(k, "Head", f"MaskT{i}{s}", (s * (0.14 + 0.22 * i), -0.92, 4.46), (s * (0.14 + 0.22 * i), -1.04, 4.1), 0.12, "horn", a=0.6)
+		arm = "LeftUpperArm" if s > 0 else "RightUpperArm"
+		for r, z in enumerate((3.5, 3.24, 2.98)):
+			for c in (-1, 0, 1):
+				gem(k, arm, f"AScale{r}{c}", (s * 1.5 + c * 0.32, -0.5, z), (s * 1.5 + c * 0.34, -0.66, z - 0.4), 0.22, "scale", flat=0.4, across=(1, 0, 0))
+			gem(k, arm, f"AFin{r}", (s * 2.0, 0, z), (s * 2.4, 0.2, z + 0.3), 0.2, "horn", flat=0.5, across=(0, 1, 0))
+		for c in range(4):
+			gem(k, T, f"ChestS{s}{c}", (s * (0.2 + 0.24 * c), -0.62, 3.86), (s * (0.24 + 0.24 * c), -0.76, 3.46), 0.2, "scale", flat=0.4, across=(1, 0, 0))
 	locks(k, "Crest", [((0, -0.5, 5.7), (0, -0.8, 6.3), 0.26)], "horn")
 	art_jacket(k)
 	block(k, T, "Body", 0, 0, 4.0, 2.1, 1.1, 0.6, "skin", ch=0.06, corner=0.14, sub=1)

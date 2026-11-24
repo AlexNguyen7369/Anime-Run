@@ -42,7 +42,7 @@ def model(parts, kit):
 			block(k, arm, f"Rail{dx}", x + dx, -0.56, 2.9, 2.26, 0.09, 0.08, "plate", ch=0.02)
 		block(k, arm, "Band", x, 0, 2.34, 2.2, 0.61, 0.61, "plate", ch=0.03)
 		block(k, arm, "Palm", x, -0.54, 2.06, 1.9, 0.12, 0.03, "core", ch=0.02, a=0.7)
-	legs(k, [("Thigh", 2.02, 0.5, 0.5, "pant"), ("Hem", 0.6, 0.4, 0.5, "pant")], shoe=(0.44, "sole", "metal"))
+	legs(k, [("Thigh", 2.02, 0.5, 0.5, "pant"), ("Hem", 0.6, 0.4, 0.5, "pant")], shoe=(0.44, "sole", "metal"), puff=True)
 	finish()
 
 

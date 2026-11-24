@@ -36,7 +36,15 @@ def model(parts, kit):
 	from mathutils import Vector
 	b, t = Vector((0, -0.9, 5.62)), Vector((0, -2.1, 7.5))
 	n = Vector((0, t.z - b.z, -(t.y - b.y))).normalized() * 0.2
-	slab(k, "Brow", [(b.y + n.y, b.z + n.z), (b.y - n.y, b.z - n.z), (t.y * 0.9 + b.y * 0.1 - n.y, t.z * 0.9 + b.z * 0.1 - n.z), (t.y, t.z), (t.y * 0.8 + b.y * 0.2 + n.y, t.z * 0.8 + b.z * 0.2 + n.z)], -0.07, 0.07, "steel", a=0.64, b=0.3)
+	pts, edge = [], []
+	for u in range(7):
+		f = u / 6
+		c = Vector((0, b.y + (t.y - b.y) * f - 0.34 * f * f, b.z + (t.z - b.z) * f))
+		w = 0.3 * (1 - f) ** 0.6 + 0.02
+		pts.append((c + n * (w / 0.2), c - n * (w / 0.2)))
+	slab(k, "Brow", [(p.y, p.z) for p, _ in pts] + [(q.y, q.z) for _, q in reversed(pts)], -0.13, 0.13, "steel", a=0.6, b=0.36)
+	slab(k, "BrowEdge", [(q.y, q.z) for _, q in pts] + [(q.y - 0.1, q.z - 0.02) for _, q in reversed(pts)], -0.05, 0.05, "edge", a=0.7, b=0.2)
+	block(k, h, "BrowGuard", 0, -1.06, 5.86, 5.7, 0.42, 0.34, "red", ch=0.05, corner=0.3)
 	for s in (1, -1):
 		gem(k, h, f"Fin{s}", (s * 0.8, 0.1, 5.4), (s * 1.34, 0.9, 6.0), 0.32, "shell", flat=0.5, across=(0, 1, 0))
 		gem(k, h, f"Cheek{s}", (s * 0.9, 0.1, 4.8), (s * 1.16, -0.72, 4.2), 0.24, "shell", across=(0, 1, 0))
@@ -56,12 +64,13 @@ def model(parts, kit):
 		block(k, T, f"Pocket{s}", s * 0.66, -0.64, 2.74, 2.64, 0.26, 0.03, "suit", ch=0.01, a=0.7)
 		for i in range(3):
 			gem(k, f"{'Left' if s > 0 else 'Right'}UpperArm", f"Tatter{i}", (s * 1.5 + (i - 1) * 0.34, -0.48, 2.86), (s * 1.5 + (i - 1) * 0.36, -0.58, 2.4), 0.16, "suit", flat=0.4)
-	arms(k, [("Sleeve", 3.98, 2.9, 0.53, "suit"), ("Roll", 3.0, 2.76, 0.56, "suit"), ("Fore", 2.8, 2.1, 0.5, "shell"), ("Hand", 2.2, 1.76, 0.53, "shell")])
+	arms(k, [("Sleeve", 3.98, 2.9, 0.53, "suit"), ("Roll", 3.0, 2.76, 0.56, "suit"), ("Fore", 2.8, 2.1, 0.5, "shell"), ("Hand", 2.2, 1.76, 0.53, "shell")], puff=True)
 	for s, side in ((1, "Left"), (-1, "Right")):
 		arm = f"{side}UpperArm"
-		block(k, arm, "Tsuba", s * 1.5, -0.1, 2.02, 1.88, 0.6, 0.4, "steel", ch=0.04, corner=0.3)
-		_blade(k, arm, "Sword", (s * 1.56, -0.3, 1.96), (s * 2.6, -0.3, -0.5))
-	legs(k, [("Leg", 2.02, 0.3, 0.5, "suit")], shoe=(0.4, "suit", "sole"))
+		block(k, arm, "Mount", s * 1.62, -0.36, 2.9, 2.0, 0.36, 0.3, "shell", ch=0.1, a=0.6)
+		block(k, arm, "Tsuba", s * 1.66, -0.36, 2.1, 1.96, 0.46, 0.4, "red", ch=0.04, corner=0.3)
+		_blade(k, arm, "Sword", (s * 1.66, -0.4, 2.1), (s * 2.5, -0.4, -0.4), w=0.24)
+	legs(k, [("Leg", 2.02, 0.3, 0.5, "suit")], shoe=(0.4, "suit", "sole"), puff=True)
 	finish()
 
 

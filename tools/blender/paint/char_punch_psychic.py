@@ -18,14 +18,14 @@ def model(parts, kit):
 	for s in (1, -1):
 		for i, (y, z0, x1, z1, r) in enumerate(((-0.56, 5.3, 1.24, 4.3, 0.32), (-0.1, 5.3, 1.44, 4.36, 0.38), (0.4, 5.2, 1.4, 4.2, 0.38), (0.8, 5.1, 0.9, 4.1, 0.38))):
 			gem(k, "Head", f"Sweep{i}{s}", (s * 0.94, y * 0.8, z0), (s * x1, y, z1), r, "hair", flat=0.5, across=(0, 1, 0))
-			gem(k, "Head", f"Curl{i}{s}", (s * (x1 - 0.2), y, z1 + 0.16), (s * (x1 + 0.6), y * 1.2, z1 + 0.5 - 0.1 * i), r * 0.86, "hair", flat=0.6, bend=-0.22, across=(0, 1, 0))
+			gem(k, "Head", f"Curl{i}{s}", (s * (x1 - 0.24), y, z1 + 0.1), (s * (x1 + 0.34), y * 1.2, z1 + 0.86 - 0.12 * i), r * 0.86, "hair", flat=0.6, bend=-0.22, across=(0, 1, 0))
 	for x in (-0.3, 0.3):
 		gem(k, "Head", f"BackCurl{x}", (x, 0.86, 4.6), (x * 2, 1.6, 4.56), 0.36, "hair", flat=0.6, bend=-0.2, across=(1, 0, 0))
 	locks(k, "Top", [((0, 0.1, 5.96), (0.3, 0.3, 6.4), 0.3), ((-0.4, 0, 5.9), (-0.8, 0, 6.12), 0.32), ((0.44, 0, 5.9), (0.9, 0, 6.14), 0.32)])
 	art_jacket(k)
 	block(k, T, "Dress", 0, 0, 3.98, 1.94, 1.06, 0.58, "dress", ch=0.06, corner=0.14, sub=1, mids=(2.9,))
 	collar(k, "dress", 4.36, 4.44, z0=3.8, rx=0.78, ry=0.72, a=0.6)
-	arms(k, [("Sleeve", 3.98, 2.5, 0.51, "dress"), ("Cuff", 2.62, 2.34, 0.56, "dress"), ("Hand", 2.4, 1.78, 0.49, "skin")])
+	arms(k, [("Sleeve", 3.98, 2.5, 0.51, "dress"), ("Cuff", 2.62, 2.34, 0.56, "dress"), ("Hand", 2.4, 1.78, 0.49, "skin")], puff=True)
 	for s, side in ((1, "Left"), (-1, "Right")):
 		leg = f"{side}UpperLeg"
 		# long skirt in front and back panels, open at the thigh sides

@@ -24,18 +24,24 @@ def model(parts, kit):
 		gem(k, h, f"Crest{s}", (s * 0.6, 0.2, 5.8), (s * 1.0, 1.1, 6.3), 0.34, "shell", flat=0.6)
 		for i in range(2):
 			gem(k, h, f"Teeth{i}{s}", (s * (0.14 + 0.2 * i), -0.92, 4.4), (s * (0.14 + 0.2 * i), -0.98, 4.12), 0.08, "bone")
+	for s in (1, -1):
+		prism(k, h, f"CheekP{s}", [(s * 0.5, 4.8), (s * 1.02, 4.96), (s * 1.06, 4.4), (s * 0.7, 4.16), (s * 0.44, 4.4)], -1.0, -0.7, "plate", a=0.56)
+		gem(k, h, f"JawS{s}", (s * 0.9, -0.2, 4.7), (s * 1.3, -0.5, 4.1), 0.24, "plate", flat=0.6, across=(0, 1, 0))
+		gem(k, h, f"Swept{s}", (s * 0.3, 0.4, 5.9), (s * 0.5, 1.8, 6.0), 0.4, "shell", flat=0.6, across=(1, 0, 0))
+		gem(k, h, f"SweptL{s}", (s * 0.6, 0.5, 5.3), (s * 0.9, 1.5, 5.0), 0.4, "plate", flat=0.6, across=(1, 0, 0))
+	block(k, h, "FaceP", 0, -0.9, 4.66, 4.46, 0.3, 0.1, "bone", ch=0.04)
 	gem(k, h, "CrestC", (0, 0.1, 6.0), (0, 1.2, 6.7), 0.4, "shell", flat=0.6)
 	art_jacket(k)
 	block(k, T, "Thorax", 0, 0, 4.0, 2.8, 1.12, 0.64, "shell", ch=0.1, corner=0.18, sub=1)
 	for s in (1, -1):
 		prism(k, T, f"Chest{s}", [(s * 0.04, 3.84), (s * 1.0, 3.92), (s * 1.06, 3.4), (s * 0.5, 3.04), (s * 0.04, 3.2)], -0.76, -0.62, "plate", a=0.6)
-	for i, z in enumerate((3.04, 2.74, 2.44)):
-		block(k, T, f"Seg{i}", 0, -0.02, z, z - 0.26, 0.74 - 0.04 * i, 0.64, "bone", ch=0.06, corner=0.2, a=0.5)
+	for i, z in enumerate((3.1, 2.9, 2.7, 2.5, 2.3)):
+		block(k, T, f"Seg{i}", 0, -0.02, z, z - 0.18, 0.8 - 0.06 * i, 0.66 - 0.02 * i, "bone", ch=0.06, corner=0.2, a=0.5)
 	block(k, T, "Waist", 0, 0, 2.4, 1.94, 1.06, 0.58, "shell", ch=0.06)
 	for i, (y, z, r) in enumerate(((0.86, 2.3, 0.5), (1.3, 2.0, 0.62), (1.76, 1.6, 0.5))):
 		block(k, T, f"Gaster{i}", 0, y, z + r * 0.8, z - r * 0.8, r, 0.34, "plate" if i % 2 else "shell", ch=0.14, corner=0.3)
 	for s in (1, -1):
-		for i, (tx, tz, r) in enumerate(((2.7, 4.9, 0.44), (2.5, 2.6, 0.38))):
+		for i, (tx, tz, r) in enumerate(((3.3, 5.6, 0.7), (3.1, 2.2, 0.6), (3.5, 4.0, 0.5))):
 			gem(k, T, f"Wing{i}{s}", (s * 0.4, 0.66, 3.6 - 0.3 * i), (s * tx, 1.3, tz), r, "wing", flat=0.12, across=(0, 0, 1), a=0.6)
 	arms(k, [("Arm", 3.94, 2.9, 0.46, "shell"), ("Pad", 4.26, 3.5, 0.64, "plate"), ("Fore", 3.06, 2.2, 0.56, "shell"), ("Hand", 2.3, 1.72, 0.53, "plate")])
 	for s, side in ((1, "Left"), (-1, "Right")):
@@ -43,7 +49,8 @@ def model(parts, kit):
 		gem(k, arm, "PadSpike", (x + s * 0.3, 0, 4.0), (x + s * 1.0, 0.1, 4.7), 0.26, "plate")
 		gem(k, arm, "Elbow", (x + s * 0.3, 0.3, 3.0), (x + s * 0.8, 0.8, 3.4), 0.2, "shell")
 		for i in range(3):
-			gem(k, arm, f"Claw{i}", (x + (i - 1) * 0.32, -0.3, 1.84), (x + (i - 1) * 0.36, -0.6, 0.9), 0.15, "claw")
+			gem(k, arm, f"Blade{i}", (x + s * 0.5, -0.1 + 0.2 * i, 2.9 - 0.2 * i), (x + s * 1.0, 0.1 + 0.2 * i, 2.1 - 0.3 * i), 0.18, "claw", flat=0.5, across=(0, 1, 0))
+			block(k, arm, f"Ring{i}", x, 0, 3.4 - 0.2 * i, 3.26 - 0.2 * i, 0.5, 0.5, "plate", ch=0.05, jit=0.02)
 		block(k, leg, "Knee", s * 0.54, -0.54, 1.3, 0.86, 0.36, 0.16, "plate", ch=0.06, corner=0.3)
 		gem(k, leg, "Calf", (s * 0.8, 0.3, 0.9), (s * 1.2, 0.7, 1.4), 0.2, "shell")
 		for i in (-1, 1):
