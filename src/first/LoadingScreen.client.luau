@@ -152,6 +152,18 @@ local function collect(found, seen, source)
 	end
 end
 
+local LATE_MODEL_WAIT = 10 -- seconds a team member from another world may hold the screen: its model loads after Ready
+
+-- True if a character belongs to another world, so its model loads on demand (Server/CharacterModelService).
+local function otherWorld(id)
+	local ok, other = pcall(function()
+		local Shared = ReplicatedStorage.Shared
+		local spec = require(Shared.CharacterCatalog).Get(id)
+		return spec ~= nil and spec.World ~= nil and spec.World ~= require(Shared.WorldConfig).Id
+	end)
+	return ok and other
+end
+
 local function serverReady()
 	local models = ReplicatedStorage:FindFirstChild("CharacterModels")
 	return ReplicatedStorage:GetAttribute("TerrainNearReady") == true
@@ -186,8 +198,13 @@ task.spawn(function()
 	-- Wait only for these models, not all of them (a failed one still turns Loaded_<id> true)
 	local models = ReplicatedStorage:WaitForChild("CharacterModels")
 	local Assets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CharacterModelAssets"))
+	local lateDeadline = os.clock() + LATE_MODEL_WAIT
 	for id in wanted do
-		while Assets[id] and models:GetAttribute("Loaded_" .. id) ~= true and models:GetAttribute("Ready") ~= true do
+		while
+			Assets[id]
+			and models:GetAttribute("Loaded_" .. id) ~= true
+			and (models:GetAttribute("Ready") ~= true or (otherWorld(id) and os.clock() < lateDeadline))
+		do
 			task.wait(0.1)
 		end
 		local character = models:FindFirstChild(id)
@@ -314,16 +331,8 @@ while models:GetAttribute("Ready") ~= true do
 end
 -- Another world's character loads here for its owners only (another player's reaches this client when their rig does)
 local function mine(id)
-	local ok, needed = pcall(function()
-		local Shared = ReplicatedStorage.Shared
-		local spec = require(Shared.CharacterCatalog).Get(id)
-		if spec == nil or spec.World == nil or spec.World == require(Shared.WorldConfig).Id then
-			return true
-		end
-		local data = Players.LocalPlayer:FindFirstChild("GachaData")
-		return data ~= nil and data:FindFirstChild(id) ~= nil
-	end)
-	return not ok or needed
+	local data = Players.LocalPlayer:FindFirstChild("GachaData")
+	return not otherWorld(id) or (data ~= nil and data:FindFirstChild(id) ~= nil)
 end
 local later = {}
 for _, character in models:GetChildren() do

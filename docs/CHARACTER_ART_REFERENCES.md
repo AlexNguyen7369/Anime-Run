@@ -93,3 +93,12 @@ Evidence per character: `docs/char_evidence/`. Marks follow design doc 5 "Marks"
 - `soul_substitute` Ichigu [Ichigo]: badge is an upright diamond plate with a crescent, not a plaque with a skull.
 - `soul_hollow` Ulquiorro: shares `foe_soul` (see Track enemies).
 - `soul_ice` Rukiya [Rukia], `soul_lord` Aizon [Aizen]: no marks.
+
+## World 2 marks (2026-11-24, from the evidence files; not compared with official emblems)
+- `kaiju_ice`, `kaiju_axe`, `kaiju_blade`, `kaiju_captain`: source has a corps emblem on the shoulder plate; ours is a plain notched chevron, no text.
+- `solo_goliath`: tattoos, same place and colour, hooked-blade shapes; exact source design not seen.
+- `fr_staff`: butterfly hair ornament, own four-lobed outline. `fr_mage`: staff crescent and clasp, in-house shapes shared with `boss_mage`. `fr_cut`: in-house split-fork staff head.
+- `fr_great`: plain diamond-drop pendant. `fr_scales`: in-house balance, no glyphs, plain gem clasp. `fr_hero`: plain clasps, no crest. `fr_axe`, `fr_gold`: no emblem or crest.
+- `side_lucky`: the source coin carries writing; ours has a diamond over three bars, no text.
+- `saw_hero`: the pull cord is a prop. `saw_control`: eye rings are an eye design. `solo_blade`: plain gold lines, no emblem.
+- The evidence lists no mark for: `punch_*` (8), `dan_*` (6), `kaiju_hero`, `kaiju_nine`, `saw_blood`, `saw_bomb`, `saw_fox`, `saw_nervous`, `saw_katana`, `solo_monarch`, `solo_beast`, `solo_mage`, `solo_vice`, `solo_flame`, `solo_ant` and the other 11 Sidekicks. For `punch_*`, `saw_katana`, `solo_flame`, `solo_ant`, `side_cat`, `side_dark`, `side_shaman` and `side_general` that evidence is mostly model knowledge.

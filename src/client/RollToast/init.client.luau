@@ -804,7 +804,7 @@ local function setShown(id)
 	drawShown()
 end
 
--- Portraits load before the first roll, as the rigs below do. Starters wear rollable models, so this covers their images.
+-- Portraits load before the first roll, as the rigs below do. This world's only: the starters wear World 1 models.
 task.spawn(function()
 	local images = {}
 	for _, spec in CharacterCatalog.All() do

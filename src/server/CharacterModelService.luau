@@ -4,7 +4,7 @@
 -- background: rigs built before it finishes (runners, Best Roll) are placeholders and get re-skinned at
 -- the end. A failed load only leaves that character on the placeholder rig. The root's Ready attribute turns true
 -- when done; its Loaded_<id> attribute turns true as each character finishes (loaded or failed), for the loading screen.
--- Only this world's cast loads at start (design doc 4.47). Another world's character or Sidekick loads once, when a player in
+-- Only this world's cast loads at start (proposed, no owner rule yet: docs/OWNER_QUESTIONS.md). Another world's character or Sidekick loads once, when a player in
 -- this server owns it or a rig wears it.
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -69,6 +69,7 @@ local function load(id, row, root)
 		end
 	end
 	asset:Destroy()
+	folder:SetAttribute("Parts", #folder:GetChildren()) -- a client may see the folder before its parts
 	folder.Parent = root
 end
 
@@ -272,7 +273,11 @@ local function watchOwned(root, sidekickRoot, requested)
 			sidekicks(player)
 		end)
 		sidekicks(player)
-		local data = player:WaitForChild("GachaData", 60)
+		local data = player:FindFirstChild("GachaData")
+		while not data and player.Parent do
+			task.wait(0.5)
+			data = player:FindFirstChild("GachaData")
+		end
 		if data then
 			data.ChildAdded:Connect(function(entry)
 				character(entry.Name)

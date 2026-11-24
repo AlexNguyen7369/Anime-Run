@@ -204,3 +204,14 @@ Answered by the owner 2026-11-23 ("approved", from the contact sheets): items 1,
 3. `dan_hex` Jijo: human form (built) or the Evil Eye form?
 4. Are Sidekicks exempt from the block-body rule (`side_acrobat` has slim limbs), and are foot claws allowed on `solo_ant`?
 5. `Model.block` in `tools/blender/build_boss_event.py` can turn a block inside out (false mauve shading in portraits). Fix it in the shared file? That would change already approved Sidekicks. New Sidekicks use `tools/blender/sidekick_solid.py` or their own box instead.
+
+## 2026-11-24 w2-cast in game: rules audit of 7c12537 (FAIL), merge blocked on these
+1. Draft rule, not in the design doc: "A server loads only its own world's character and Sidekick models at start, plus those every world shows; another world's model loads when a player in the server owns it or a rig wears it." Approve as a 4.47 rule?
+2. Conflict: 4.47 says "Eternal odds stay under 9e18"; WORLD2_SPEC, CHARACTER_GACHA_SPEC and the code give `punch_void` exactly 9e18. Which holds?
+3. Eternal is missing from BAG_AND_AUTOSELL_SPEC Prices (25,000 proposed), the TEAM_AND_STAMINA_SPEC rarity tables (32 s proposed) and the CHARACTER_GACHA_SPEC Rarity row. Approve the numbers?
+4. Structural rules not in your words: full cruise for World 2 characters in World 1; starters exempt from x0.1; no Secrets in World 2; shared pity; per-world Index; Daily Day 7 cap at Legendary in World 2 (nothing once all are owned). Approve or change?
+5. Names: Yunho, Bange, Ferne, Airah, Solara, Katanah, One Punch, S-Class, Ajin Guild, presets. Ids: `kaiju_`, `punch_`, `solo_`, `saw_katana`, `solo_goliath` are title or character words; ids are permanent after the first real save.
+6. Were the 127 uploads what you meant? Their only basis is "until everything is ingame ... I preapprive all decisions".
+7. `side_lucky` and `side_acrobat`: use the fixed normals (f822beb)? Needs 2 models and 4 images uploaded.
+8. Sidekick attack slices: approve?
+9. `GachaConfig.Roll` now chains draws for chances under 1e-12, in both worlds, so the rarest odds match what is shown. It also corrects World 1's 1.6e16 and 5e18 rows (not verified in Studio). Keep?

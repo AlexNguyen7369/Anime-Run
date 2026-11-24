@@ -46,6 +46,19 @@ local function count(n)
 	return math.floor(n)
 end
 
+-- True with probability `p`. A draw holds about 64 bits, so a chance below TINY is checked as a chain of draws: at 1 in 9e18
+-- a single draw would miss the shown odds by tens of percent (section 6: odds shown are odds rolled).
+local TINY, STEP = 1e-12, 1e-8
+local function hits(rng, p)
+	while p < TINY do
+		if rng:NextNumber() >= STEP then
+			return false
+		end
+		p /= STEP
+	end
+	return rng:NextNumber() < p
+end
+
 -- One roll: checks characters rarest first, each hits with min(1, luck / N), the first hit wins, else the catch-all.
 -- `world` (default: this place's) picks the roll pool (design doc 4.47).
 function GachaConfig.Roll(rng, luck, world)
@@ -55,7 +68,7 @@ function GachaConfig.Roll(rng, luck, world)
 	local rollable = CharacterCatalog.Rollable(world)
 	for i, spec in rollable do
 		-- The last one is the catch-all (Chance = 1): it takes every roll the others miss, no draw needed.
-		if i == #rollable or rng:NextNumber() < math.min(1, luck / spec.Chance) then
+		if i == #rollable or hits(rng, math.min(1, luck / spec.Chance)) then
 			return spec.Id
 		end
 	end
