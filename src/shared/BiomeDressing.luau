@@ -156,6 +156,8 @@ end
 
 -- One prop as a Model whose base centre is `base` and whose -Z faces the road. `inTunnel`: it stands inside a
 -- Tunnel (spec 3.5), so SnapToTerrain leaves it where it is.
+BiomeDressing.YIELD_EVERY = 200 -- placeholder: props placed between yields of a build
+local placedSinceYield = 0
 local function place(folder, biome, def, base, name, glow, particles, inTunnel)
 	-- Heroes clone a template whose LevelOfDetail was set ahead of time (owner 2026-11-01): runtime scripts can not write it.
 	local template = def.Hero and game:GetService("ReplicatedStorage"):FindFirstChild("HeroLodTemplate")
@@ -164,7 +166,9 @@ local function place(folder, biome, def, base, name, glow, particles, inTunnel)
 	if inTunnel then
 		model:SetAttribute("Tunnel", true)
 	end
-	local mesh = def.Mesh and BiomeDressing.Assets and BiomeDressing.Assets.Clone(biome, def.Mesh, def.Size)
+	local mesh = def.Mesh
+		and BiomeDressing.Assets
+		and BiomeDressing.Assets.Clone(biome, def.Mesh, def.Size, def.CastShadow)
 	if mesh then
 		meshOk[biome .. "/" .. def.Mesh] = true
 	end
@@ -221,8 +225,13 @@ local function place(folder, biome, def, base, name, glow, particles, inTunnel)
 		model:SetAttribute("Mesh", biome .. "_" .. def.Name)
 		CollectionService:AddTag(model, "BiomeMesh")
 	end
+	-- small props cast no shadow; a def's CastShadow overrides it (BIOME_ENVIRONMENT_SPEC 8)
+	local shadow = def.CastShadow
+	if shadow == nil then
+		shadow = def.Size.Magnitude > 30
+	end
 	for _, part in model:GetChildren() do
-		part.CastShadow = def.Size.Magnitude > 30 -- small props cast no shadow
+		part.CastShadow = shadow
 	end
 	if glow and def.Glow then
 		local light = Instance.new("PointLight")
@@ -239,6 +248,11 @@ local function place(folder, biome, def, base, name, glow, particles, inTunnel)
 		CollectionService:AddTag(model, def.Tag)
 	end
 	model.Parent = folder
+	placedSinceYield += 1
+	if placedSinceYield >= BiomeDressing.YIELD_EVERY then
+		placedSinceYield = 0
+		task.wait() -- one track's burst of props does not freeze the server
+	end
 	return #model:GetChildren()
 end
 
@@ -720,34 +734,59 @@ BiomeDressing.PLACED_LIGHTS = 48 -- placeholder: lamps per track from a draft's 
 -- track's start frame (`origin`), biggest first; theme.Props[Prop] is the def. Each keeps the draft's height
 -- (SnapToTerrain leaves it, as a tunnel prop), must have its base centre on this track's ground (a draft reaches over its
 -- neighbours' zones) and stops at the budget. theme.Lights { X, Y, Z, Color, Energy } become PointLights in an invisible
--- part (1 budget part each). Prune skips their own track's Road and Walls: the draft has its own road clearance.
+-- part (1 budget part each) inside the smallest placed prop whose box (grown by LAMP_REACH) holds it, so a lamp is
+-- built and pruned with its prop; a lamp of no placed prop is skipped. Each light is tagged EFFECT_TAG (off under
+-- REDUCED EFFECTS, spec 8). Prune skips every track's Road and Walls for them: the draft has its own road clearance.
+BiomeDressing.LAMP_REACH = 4 -- placeholder: studs a draft lamp may stand outside its prop's box
 local function placed(folder, biome, theme, origin, count, budget, onGround)
+	local props = {} -- { Model, CFrame (box centre), Half } of each placed prop
 	for i, e in theme.Placed or {} do
 		local def = scaled(theme.Props[e[1]], e[9] or e[6])
 		local base = origin * CFrame.new(e[2], e[3], e[4]) * CFrame.fromEulerAnglesYXZ(e[7] or 0, e[5], e[8] or 0)
 		if count + cost(biome, def, 0) <= budget and onGround(base, 0) then
 			count += place(folder, biome, def, base, "Placed_" .. i, def.Hero, nil, true)
+			local model = folder:FindFirstChild("Placed_" .. i)
+			if model then
+				table.insert(props, { model, base * CFrame.new(0, def.Size.Y / 2, 0), def.Size / 2 })
+			end
 		end
 	end
+	local reach = Vector3.one * BiomeDressing.LAMP_REACH
+	local lamps = 0
 	for i, l in theme.Lights or {} do
-		if i > BiomeDressing.PLACED_LIGHTS or count + 1 > budget then
+		if lamps >= BiomeDressing.PLACED_LIGHTS or count + 1 > budget then
 			break
+		end
+		local at = origin * CFrame.new(l[1], l[2], l[3])
+		local owner, volume = nil, math.huge
+		for _, p in props do
+			local d = p[2]:PointToObjectSpace(at.Position):Abs()
+			local h = p[3] + reach
+			if d.X <= h.X and d.Y <= h.Y and d.Z <= h.Z and p[3].X * p[3].Y * p[3].Z < volume then
+				owner, volume = p[1], p[3].X * p[3].Y * p[3].Z
+			end
+		end
+		if not owner then
+			continue
 		end
 		local holder = Instance.new("Part")
 		holder.Name = "Lamp_" .. i
 		holder.Size = Vector3.one
 		holder.Transparency = 1
 		holder.CastShadow = false
-		holder.CFrame = origin * CFrame.new(l[1], l[2], l[3])
+		holder.CFrame = at
 		visual(holder)
 		local light = Instance.new("PointLight")
 		light.Color = l[4]
 		light.Range = math.clamp(math.sqrt(l[5]) / 8, 8, 60) -- placeholder: Blender watts to a Roblox range
 		light.Brightness = 1.5 -- placeholder
 		light.Shadows = false
+		light:SetAttribute("Brightness", light.Brightness) -- Client/BiomeEnvironment: off under REDUCED EFFECTS
+		CollectionService:AddTag(light, BiomeDressing.EFFECT_TAG)
 		light.Parent = holder
-		holder.Parent = folder
+		holder.Parent = owner
 		count += 1
+		lamps += 1
 	end
 	return count
 end
@@ -1068,8 +1107,8 @@ local function clearance(trackModels, extra)
 		end)
 	end
 	local grow = Vector3.one * BiomeDressing.CLEARANCE
-	-- skipOwn (an approved draft's placement): its own track's Road and Walls do not block it (owner 2026-11-23)
-	return function(prop, skipOwn)
+	-- skipRoads (an approved draft's placement): no track's Road and Walls block it (WORLD2_SPEC 2026-11-24)
+	return function(prop, skipRoads)
 		local hit = false
 		-- Each part on its own: a gate's posts and beam are clear even though their joint box spans the road.
 		for _, part in prop:IsA("BasePart") and { prop } or prop:GetDescendants() do
@@ -1083,7 +1122,7 @@ local function clearance(trackModels, extra)
 							or part.CFrame
 						hit = hit
 							or (
-								(skipOwn == nil or box[6] ~= skipOwn)
+								not (skipRoads and box[6])
 								and lo.X < box[2].X
 								and hi.X > box[1].X
 								and (box[5] or lo.Y < box[2].Y and hi.Y > box[1].Y)
@@ -1101,8 +1140,9 @@ end
 
 -- Removes every Environment prop whose box, grown by CLEARANCE, touches a blocker. Returns how many.
 -- A draft placement (Placed_<i>) keeps the approved draft's own road clearance (24+ studs from the centre line, checked
--- by tools/blender/world2/clearance.py; owner 2026-11-23): its own track's Road and Walls do not block it; other
--- tracks' roads, every checkpoint and win pad, and the spawn area still do.
+-- by tools/blender/world2/clearance.py; owner 2026-11-23) and is tested offline against every track's road with real
+-- triangles (WORLD2_SPEC 2026-11-24): no track's Road and Walls block it; every checkpoint and win pad, and the spawn
+-- area still do.
 -- The spawn area (`extra`) is an area on the ground, so a prop also may not hang over it at any height (a giant
 -- tree's canopy above the floor): its parts block as vertical columns.
 -- `targets` (default trackModels): only their props are tested, against the roads of trackModels (a late-built track,
@@ -1113,7 +1153,7 @@ function BiomeDressing.Prune(trackModels, extra, targets)
 	for _, model in targets or trackModels do
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
-			if touches(prop, string.match(prop.Name, "^Placed_") and model or nil) then
+			if touches(prop, string.match(prop.Name, "^Placed_") ~= nil) then
 				if prop:GetAttribute("FightScene") then
 					warn("[BiomeDressing] fight scene of " .. model.Name .. " is within CLEARANCE of a road: removed")
 				end

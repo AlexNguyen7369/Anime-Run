@@ -332,6 +332,9 @@ end
 -- `bagLimited` (auto roll): at a full bag only a roll auto sell takes happens (design doc 4.41); any other returns nil, with
 -- Rolls and Turbo unmoved.
 local function rollOnce(player, roller, bagLimited)
+	if player:GetAttribute("Travelling") == true then
+		return nil -- Server/WorldTravel's freeze: a roll now would be left out of the release save
+	end
 	GachaService.Setup(player)
 	local full = bagLimited and GachaService.BagFull(player)
 	if full and player:GetAttribute("AutoSell") ~= true then
@@ -986,6 +989,7 @@ function GachaService.StartAutoRoll(player, roller)
 				and player:GetAttribute("AutoRoll") ~= false
 				and player:GetAttribute("NeedsStarter") ~= true
 				and player:GetAttribute("BossEvent") ~= true
+				and player:GetAttribute("Travelling") ~= true
 				and os.clock() >= (rollHoldUntil[player] or 0)
 			then
 				local roll = GachaService.RollTick(player, roller)

@@ -34,7 +34,10 @@ local function routes()
 	return store
 end
 local function loaded(player)
-	return player and player:GetAttribute("DataLoaded") == true and not player:GetAttribute("DataFailed")
+	return player
+		and player:GetAttribute("DataLoaded") == true
+		and not player:GetAttribute("DataFailed")
+		and player:GetAttribute("Travelling") ~= true -- Server/WorldTravel: a gift waits for the next session
 end
 local function validId(id)
 	return type(id) == "number" and id > 0 and id < 2 ^ 53 and id % 1 == 0

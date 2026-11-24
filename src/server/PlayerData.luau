@@ -334,11 +334,15 @@ end
 
 -- Returns true if the stats were written. Never writes for a player whose load failed or has not finished, or
 -- when another server took the session lock. `release` (leave, shutdown) writes the record without a lock.
-local function save(player, userId, release)
+-- `frozen` (Server/WorldTravel's release save): the caller turned DataLoaded off to freeze a loaded player first.
+local function save(player, userId, release, frozen)
 	userId = userId or player.UserId
 	-- Never write before the load finished: a leaving player whose GetAsync is still pending would
 	-- otherwise overwrite their real save with defaults.
-	if player:GetAttribute("DataFailed") or not player:GetAttribute("DataLoaded") then
+	if
+		player:GetAttribute("DataFailed")
+		or not (player:GetAttribute("DataLoaded") or frozen and player:GetAttribute("Travelling"))
+	then
 		return false
 	end
 	local dataStore = getStore()
@@ -453,12 +457,12 @@ local function save(player, userId, release)
 	return false
 end
 
-function PlayerData.Save(player, userId, release)
+function PlayerData.Save(player, userId, release, frozen)
 	while saving[player] do
 		task.wait()
 	end
 	saving[player] = true
-	local ok, result, readOnly = pcall(save, player, userId, release)
+	local ok, result, readOnly = pcall(save, player, userId, release, frozen)
 	saving[player] = nil
 	if not ok then
 		warn("PlayerData save failed: " .. tostring(result))

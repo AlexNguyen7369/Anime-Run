@@ -234,7 +234,19 @@ function Tests.make(helpers)
 		end
 		local target = WorldConfig.Id == 1 and 2 or 1
 		local command = admin.Commands["world" .. target]
-		local saved = { travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT }
+		local saved = {
+			travel.Save,
+			travel.Teleport,
+			travel.Notify,
+			travel.AllowStudio,
+			travel.TIMEOUT,
+			travel.Depart,
+			travel.Retake,
+		}
+		travel.Depart = function() end
+		travel.Retake = function()
+			return true
+		end
 		local cleanup = {}
 		local saves, teleports, notes = 0, 0, 0
 		local saveResult = { true, false }
@@ -348,12 +360,265 @@ function Tests.make(helpers)
 			local wroteG, readOnlyG = data.Save(g, id + 1, true)
 			flag("travel_normal_save_flag", wroteG == true and readOnlyG == false)
 		end)
-		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT = table.unpack(saved)
+		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT, travel.Depart, travel.Retake =
+			table.unpack(saved)
 		for _, p in cleanup do
 			pcall(travel.Failed, p, "ServerTest cleanup")
 			p:Destroy()
 		end
 		flag("travel_no_error", ok, ok and 1 or tostring(err))
+		return r
+	end
+
+	-- `world_travel_freeze` (review of 8557dcf, design doc 4.47: nothing earned is lost, nothing granted twice):
+	-- WorldTravel.Go runs Depart (stop the run, leave the boss event) BEFORE the release save and freezes the player
+	-- before it too, so the save yield pays and grants nothing (no roll, no StartPad run, no receipt); a player who
+	-- leaves during the save is not teleported; a failure after the release save retakes the lock (Retake) once; the
+	-- TIMEOUT runs while TeleportAsync hangs; a stale failure of an older trip never cancels a newer one.
+	function W.world_travel_freeze()
+		local r, flag = H.report("world_travel_freeze")
+		local Server = script.Parent.Parent
+		local travel = H.module(Server, "WorldTravel")
+		local money = H.module(Server, "MoneyService")
+		local gacha = H.module(Server, "GachaService")
+		local runner = H.module(Server, "RunnerService")
+		local shop = H.module(Server, "ShopService")
+		local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
+		local Monetization = require(Shared:WaitForChild("MonetizationConfig"))
+		local api = travel ~= nil
+			and money ~= nil
+			and gacha ~= nil
+			and runner ~= nil
+			and shop ~= nil
+			and type(travel.Depart) == "function"
+			and type(travel.Retake) == "function"
+		flag("freeze_api_exists", api == true)
+		if not api then
+			return r
+		end
+		local target = WorldConfig.Id == 1 and 2 or 1
+		local saved = {
+			travel.Save,
+			travel.Teleport,
+			travel.Notify,
+			travel.AllowStudio,
+			travel.TIMEOUT,
+			travel.Depart,
+			travel.Retake,
+		}
+		local cleanup, log = {}, {}
+		local duringSave = nil -- runs inside the release save's yield
+		local hang = nil -- seconds the next Teleport hangs, then errors
+		local retakes = 0
+		travel.AllowStudio = true
+		travel.Notify = function() end
+		travel.Depart = function(p)
+			table.insert(log, "depart:" .. tostring(p:GetAttribute("DataLoaded")))
+		end
+		travel.Save = function(p)
+			table.insert(log, "save:" .. tostring(p:GetAttribute("Travelling")))
+			if duringSave then
+				duringSave(p)
+			end
+			return true, false
+		end
+		travel.Retake = function()
+			retakes += 1
+			return true
+		end
+		travel.Teleport = function()
+			table.insert(log, "teleport")
+			if hang then
+				local seconds = hang
+				hang = nil
+				task.wait(seconds)
+				error("ServerTest late teleport error")
+			end
+		end
+		local function player(name)
+			local p = H.player(cleanup, 971000 + #cleanup)
+			p.Name = "ServerTestFreeze_" .. name
+			money.Setup(p)
+			p:SetAttribute("DataLoaded", true)
+			return p
+		end
+		local ok, err = pcall(function()
+			-- 1. Depart before the freeze and the save; the save sees a frozen player; nothing pays in its yield
+			local a = player("Order")
+			local rolls, receipt, pad = "unset", "unset", "unset"
+			duringSave = function(p)
+				local before = p:GetAttribute("Rolls")
+				rolls = gacha.RollTick(p) == nil and p:GetAttribute("Rolls") == before
+				pad = runner.PadTouched(p, workspace) == false and runner.SetAutoRace(p, true) == false
+				local pack = Monetization.GemPacks[1]
+				shop.SetSave(function()
+					return true
+				end)
+				shop.SetPlayers({
+					GetPlayerByUserId = function()
+						return p
+					end,
+				})
+				local gems = p:GetAttribute("Gems")
+				local decision = shop.ProcessReceipt({
+					PlayerId = p:GetAttribute("UserId"),
+					ProductId = pack.ProductId,
+					PurchaseId = "ServerTestFreeze_" .. p.Name,
+					CurrencySpent = pack.RobuxPrice,
+				})
+				shop.SetPlayers(nil)
+				shop.SetSave(nil)
+				receipt = decision == Enum.ProductPurchaseDecision.NotProcessedYet and p:GetAttribute("Gems") == gems
+			end
+			local okGo = travel.Go(a, target)
+			duringSave = nil
+			flag("freeze_go_ok", okGo == true)
+			flag(
+				"freeze_depart_before_save",
+				log[1] == "depart:true" and log[2] == "save:true" and log[3] == "teleport",
+				table.concat(log, ","),
+				"depart:true,save:true,teleport"
+			)
+			flag("freeze_no_roll_during_save", rolls == true, tostring(rolls))
+			flag("freeze_no_pad_run_during_save", pad == true, tostring(pad))
+			flag("freeze_receipt_waits_during_save", receipt == true, tostring(receipt))
+			flag("freeze_no_income_during_save", money.Award(a, 10) == nil)
+
+			-- 2. A failure after the release save retakes the lock once
+			travel.Failed(a, "ServerTest failure")
+			task.wait(0.1)
+			flag("freeze_failure_retakes_lock", retakes == 1, retakes, 1)
+			flag(
+				"freeze_failure_restores",
+				a:GetAttribute("DataLoaded") == true and a:GetAttribute("Travelling") == nil
+			)
+
+			-- 3. Left during the release save: not teleported, not busy
+			table.clear(log)
+			local b = player("Leaves")
+			duringSave = function(p)
+				p.Parent = nil
+			end
+			local okLeft = travel.Go(b, target)
+			duringSave = nil
+			flag("freeze_left_mid_save_not_teleported", okLeft == false and table.find(log, "teleport") == nil)
+			flag("freeze_left_mid_save_not_busy", travel.Busy(b) == false)
+
+			-- 4. A hung TeleportAsync: the TIMEOUT still restores; its late error leaves a newer trip alone
+			travel.TIMEOUT = 0.2
+			retakes = 0
+			local c = player("Hung")
+			hang = 0.8
+			local first = nil
+			task.spawn(function()
+				first = table.pack(travel.Go(c, target))
+			end)
+			task.wait(0.5)
+			flag("freeze_hung_teleport_times_out", travel.Busy(c) == false and c:GetAttribute("DataLoaded") == true)
+			flag("freeze_hung_teleport_retakes_lock", retakes == 1, retakes, 1)
+			travel.TIMEOUT = 60
+			local okSecond = travel.Go(c, target) -- a new trip while the first TeleportAsync still hangs
+			task.wait(0.6) -- the hung call errors now
+			flag("freeze_second_trip_ok", okSecond == true)
+			flag("freeze_stale_failure_ignored", travel.Busy(c) == true and c:GetAttribute("Travelling") == true)
+			flag("freeze_hung_go_returns_false", first ~= nil and first[1] == false)
+		end)
+		duringSave, hang = nil, nil
+		shop.SetPlayers(nil)
+		shop.SetSave(nil)
+		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT, travel.Depart, travel.Retake =
+			table.unpack(saved)
+		for _, p in cleanup do
+			pcall(travel.Failed, p, "ServerTest cleanup")
+			p:Destroy()
+		end
+		flag("freeze_no_error", ok, ok and 1 or tostring(err))
+		return r
+	end
+
+	-- `world_arrival` (design doc 4.47: the gate is locked for everyone, admins travel with /world2; audit 2026-11-24):
+	-- in World 2 with WorldConfig.GATE_OPEN false, WorldTravel.Arrived sends a non-admin back to World 1 through
+	-- WorldTravel.Go; never an admin (AdminService.IsAdmin, wired by Main.server), never with the gate open, never in
+	-- World 1, never in Studio (AllowStudio off). WorldConfig.Id / GATE_OPEN are set on the shared module and restored.
+	function W.world_arrival()
+		local r, flag = H.report("world_arrival")
+		local Server = script.Parent.Parent
+		local travel = H.module(Server, "WorldTravel")
+		local admin = H.module(Server, "AdminService")
+		local config = H.module(Server, "AdminConfig")
+		local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
+		local api = travel ~= nil and admin ~= nil and config ~= nil and type(travel.Arrived) == "function"
+		flag("arrival_api_exists", api == true)
+		if not api then
+			return r
+		end
+		local saved = {
+			travel.Save,
+			travel.Teleport,
+			travel.AllowStudio,
+			travel.IsAdmin,
+			admin.AllowStudio,
+			WorldConfig.Id,
+			WorldConfig.GATE_OPEN,
+			travel.Depart,
+			travel.Retake,
+		}
+		local cleanup, sent = {}, {}
+		local ADMIN_ID = 978002
+		local ok, err = pcall(function()
+			flag("arrival_wired_to_admin_check", travel.IsAdmin == admin.IsAdmin)
+			travel.IsAdmin = admin.IsAdmin
+			travel.Depart = function() end
+			travel.Retake = function()
+				return true
+			end
+			admin.AllowStudio = false -- only AdminConfig.UserIds makes an admin here
+			table.insert(config.UserIds, ADMIN_ID)
+			travel.Save = function()
+				return true, false
+			end
+			travel.Teleport = function(placeId, p)
+				table.insert(sent, { placeId, p })
+			end
+			local function player(id)
+				local p = H.player(cleanup, id)
+				p:SetAttribute("DataLoaded", true)
+				return p
+			end
+			local guest, owner = player(978001), player(ADMIN_ID)
+			WorldConfig.Id, WorldConfig.GATE_OPEN = 2, false
+
+			travel.AllowStudio = false
+			flag("arrival_never_in_studio", travel.Arrived(guest) == false and #sent == 0, #sent, 0)
+			travel.AllowStudio = true -- as on a live server
+			flag("arrival_admin_stays", travel.Arrived(owner) == false and #sent == 0, #sent, 0)
+			local okGuest = travel.Arrived(guest)
+			flag(
+				"arrival_non_admin_sent_to_world1",
+				okGuest == true and #sent == 1 and sent[1][1] == WorldConfig.PLACES[1] and sent[1][2] == guest,
+				#sent,
+				1
+			)
+			flag("arrival_uses_travel_go", travel.Busy(guest) == true) -- Go's one-trip guard holds the guest
+			travel.Failed(guest, "ServerTest cleanup")
+
+			WorldConfig.GATE_OPEN = true
+			flag("arrival_open_gate_stays", travel.Arrived(player(978003)) == false and #sent == 1, #sent, 1)
+			WorldConfig.Id, WorldConfig.GATE_OPEN = 1, false
+			flag("arrival_world1_stays", travel.Arrived(player(978004)) == false and #sent == 1, #sent, 1)
+		end)
+		travel.Save, travel.Teleport, travel.AllowStudio, travel.IsAdmin = saved[1], saved[2], saved[3], saved[4]
+		admin.AllowStudio, WorldConfig.Id, WorldConfig.GATE_OPEN = saved[5], saved[6], saved[7]
+		travel.Depart, travel.Retake = saved[8], saved[9]
+		local at = table.find(config.UserIds, ADMIN_ID)
+		if at then
+			table.remove(config.UserIds, at)
+		end
+		for _, p in cleanup do
+			pcall(travel.Failed, p, "ServerTest cleanup")
+			p:Destroy()
+		end
+		flag("arrival_no_error", ok, ok and 1 or tostring(err))
 		return r
 	end
 

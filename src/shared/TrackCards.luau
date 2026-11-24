@@ -55,7 +55,7 @@ local WORLD2 = {
 	[6] = { Blurb = "Flowered plains and old elven ruins, where Ora's puppet army once marched." },
 	[7] = { Blurb = "A black volcanic island hollowed by the ant nest, ruled by Berru." },
 	[8] = { Blurb = "The monsters' underground den of caverns and bone bridges, deep in Orochy's lair." },
-	[9] = { Blurb = "A city turned to gold by Machto's curse, frozen in one golden instant." },
+	[9] = { Blurb = "A city turned to gold by Makto's curse, frozen in one golden instant." },
 	[10] = { Blurb = "The red sky of Hell, a field of doors, and Makina waiting at the last gate." },
 }
 
