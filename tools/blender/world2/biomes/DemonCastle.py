@@ -190,39 +190,46 @@ def _hound(k):
 	y = 13 + PH
 	sm = {"subdiv": 2, "smooth": True, "rough": 0.7}
 	MANE, HORN, TOOTH, MOUTH = "B8A060", "A8783A", "EEE8D8", "8A1418"
-	# haunches, belly and the upright chest
+	# haunches, belly and a broad upright chest (cerberus_gate: a massive brute)
 	for sx in (-1, 1):
-		p.append(("ball", (14, 14, 18), (sx * 9, y + 7, 6), HOUND, sm))
-		_seg(p, (sx * 10, y + 4, 10), (sx * 11, y + 1, -2), 6, HOUND2, shape="cyl")
-		p.append(("ball", (8, 4, 9), (sx * 11, y + 2, -5), HOUND2, {"subdiv": 1}))
-	p.append(("ball", (22, 20, 20), (0, y + 14, 4), HOUND, sm))
-	p.append(("ball", (26, 22, 18), (0, y + 28, -2), HOUND, sm))
-	p.append(("ball", (16, 12, 6), (0, y + 24, -10), "4A5A48", sm))  # pale belly plate
-	for i in range(4):
-		p.append(("box", (12 - i, 1, 1), (0, y + 19 + i * 3, -12.4 + i * 0.4), HOUND2))
-	# arms reaching forward, clawed hands
+		p.append(("ball", (16, 15, 20), (sx * 10, y + 7, 6), HOUND, sm))
+		_seg(p, (sx * 11, y + 4, 10), (sx * 12, y + 1, -3), 7, HOUND2, shape="cyl")
+		p.append(("ball", (9, 4, 10), (sx * 12, y + 2, -6), HOUND2, {"subdiv": 1}))
+	p.append(("ball", (28, 22, 22), (0, y + 15, 4), HOUND, sm))
+	p.append(("ball", (42, 30, 24), (0, y + 32, -1), HOUND, sm))
+	for sx in (-1, 1):  # pectorals
+		p.append(("ball", (17, 13, 8), (sx * 9, y + 36, -11), "3C4A40", sm))
+	p.append(("ball", (18, 14, 6), (0, y + 23, -11), "4A5A48", sm))  # pale belly plate
+	for i in range(3):
+		p.append(("box", (14 - i * 2, 1.2, 1), (0, y + 19 + i * 3.6, -13.6 + i * 0.4), HOUND2))
+	# huge arms flung wide toward the viewer, open clawed hands
 	for sx in (-1, 1):
-		sh, el, wr = (sx * 14, y + 34, -2), (sx * 22, y + 24, -12), (sx * 20, y + 26, -26)
-		p.append(("ball", (12, 12, 12), sh, HOUND, sm))
-		_seg(p, sh, el, 8, HOUND, shape="cyl")
-		p.append(("ball", (8, 8, 8), el, HOUND, {"subdiv": 1}))
-		_seg(p, el, wr, 6.5, HOUND, shape="cyl")
-		p.append(("ball", (9, 6, 8), wr, HOUND2, {"subdiv": 1}))
-		for i in (-1, 0, 1):
-			_seg(p, (wr[0] + i * 2.6, wr[1] + 1, wr[2] - 3), (wr[0] + i * 3.2, wr[1] - 3, wr[2] - 8), 1.4, TOOTH, shape="cone", t2=0.1)
+		sh, el, wr = (sx * 20, y + 40, -3), (sx * 34, y + 34, -14), (sx * 44, y + 42, -26)
+		p.append(("ball", (20, 18, 18), sh, HOUND, sm))
+		_seg(p, sh, el, 14, HOUND, shape="cyl")
+		p.append(("ball", (14, 14, 14), el, HOUND, sm))
+		_seg(p, el, wr, 11, HOUND, shape="cyl", t2=12)
+		p.append(("ball", (13, 14, 9), wr, HOUND2, {"subdiv": 1}))
+		for i in (-1.5, -0.5, 0.5, 1.5):  # fingers spread, claws curled at the viewer
+			b0 = (wr[0] + i * 3, wr[1] + 5, wr[2] - 3)
+			b1 = (wr[0] + i * 4.4, wr[1] + 9, wr[2] - 8)
+			_seg(p, b0, b1, 2.6, HOUND2, shape="cyl")
+			_seg(p, b1, (b1[0] + i * 0.6, b1[1] - 1, b1[2] - 5), 1.8, TOOTH, shape="cone", t2=0.1)
+		_seg(p, (wr[0] - sx * 5, wr[1], wr[2] - 2), (wr[0] - sx * 9, wr[1] + 2, wr[2] - 7), 1.8, TOOTH, shape="cone", t2=0.1)  # thumb claw
 	# tan mane rising behind the heads (seen from the front between and above them), spikes down the back
 	for i in range(11):
 		x = (i - 5) * 3.8
-		_seg(p, (x, y + 38, 6), (x * 1.5, y + 72 - abs(i - 5) * 2.4, 12), 7, MANE, shape="cone", t2=0.3)
+		_seg(p, (x, y + 40, 8), (x * 1.5, y + 74 - abs(i - 5) * 2.4, 14), 7, MANE, shape="cone", t2=0.3)
 	for i in range(5):
-		_seg(p, (0, y + 32 - i * 5, 10 + i * 1.5), (0, y + 38 - i * 5, 18 + i * 1.5), 3, HOUND2, shape="cone", t2=0.1)
-	# three big heads side by side above the shoulders (cerberus_gate): jaws thrown wide open toward the viewer, rows
-	# of fangs on both jaws, a red maw and tongue, red eyes; curled tan horns on the middle and right heads, a pale
-	# pointed-ear helm over the left one
-	for hx, turn, hy in ((-17, 18, 54), (0, 0, 60), (17, -18, 54)):
-		hc = Vector((hx, y + hy, -8))
-		_seg(p, (hx * 0.5, y + 38, -2), hc + Vector((0, -2, 4)), 11, HOUND, shape="cyl")
-		m = _rotm(0, turn, 0)
+		_seg(p, (0, y + 34 - i * 5, 12 + i * 1.5), (0, y + 40 - i * 5, 20 + i * 1.5), 3, HOUND2, shape="cone", t2=0.1)
+	# three big heads side by side above the shoulders, each facing the viewer and tipped a little down at the road:
+	# a short muzzle, the upper jaw tipped back about 40 degrees and the lower jaw dropped round a round red maw ringed
+	# with fangs, a red tongue, red eyes; thick curled ram horns on the middle and right heads, a pale pointed-ear helm
+	# on the left one (cerberus_gate)
+	for hx, turn, hy in ((-19, 16, 56), (0, 0, 62), (19, -16, 56)):
+		hc = Vector((hx, y + hy, -10))
+		_seg(p, (hx * 0.5, y + 40, -2), hc + Vector((0, -3, 5)), 13, HOUND, shape="cyl")
+		m = _rotm(-14, turn, 0)  # negative pitch tips the muzzle down toward the road
 
 		def at(off, s=1.35):
 			q = _turn(m, (off[0] * s, off[1] * s, off[2] * s))
@@ -237,42 +244,41 @@ def _hound(k):
 			c = (A + B) / 2
 			p.append(("box", (w * 1.35, (B - A).length, th * 1.35), (c.x, c.y, c.z), col, dict(o or {}, rot=_frame(ux, uy, ux.cross(uy)))))
 
-		p.append(("ball", (13 * 1.35, 11 * 1.35, 12 * 1.35), at((0, 3, 3)), HOUND, sm))  # cranium
-		U, Lw = (0, 11, -14), (0, -10, -12)  # upper jaw thrown up, lower jaw dropped: a tall open mouth facing forward
-		bar((0, 2, -2), U, 10, 3.4, "D0CCC4" if hx > 0 else HOUND, {"rough": 0.7})  # the helm head's upper jaw is armoured
-		bar((0, 1.2, -2.6), (0, 9.4, -13.4), 8.6, 1, MOUTH, {"emit": 0.4})  # palate
-		bar((0, -2, -2), Lw, 9, 3, HOUND2)
-		bar((0, -1.2, -2.8), (0, -8.6, -11.6), 7.6, 1, MOUTH, {"emit": 0.4})
-		p.append(("box", (9 * 1.35, 12 * 1.35, 2), at((0, 0, -2.4)), "4A0A10", {"emit": 0.3, "rot": (0, turn, 0)}))  # throat
-		bar((0, -2, -4), (0, -5.6, -11), 4.6, 1.2, "D0303A", {"emit": 0.7})  # tongue lolling out
-		bar((0, -5.6, -11), (0, -4.2, -13.6), 4, 1.2, "D0303A", {"emit": 0.7})
-		nu, nl = Vector((0, -14, -11)).normalized(), Vector((0, 12, -10)).normalized()  # into the mouth from each jaw
-		for jaw, base, n, lens in (((0, 1.6, -2.4), U, nu, (2.4, 3.2)), ((0, -1.6, -2.4), Lw, nl, (2.0, 2.8))):
-			for i in range(6):
-				t = 0.2 + i * 0.16
-				c0 = Vector(jaw).lerp(Vector(base), t)
-				for sx in (-1, 1):
-					q = c0 + Vector((sx * 4, 0, 0))
-					ln = lens[1] if i in (4,) else lens[0]
-					_seg(p, at(q), at(q + n * ln), 1.5, TOOTH, shape="cone", t2=0.1)
-			for sx in (-1.6, 0, 1.6):  # front teeth across the jaw tip
-				q = Vector(base) + Vector((sx, 0, 0.6))
-				_seg(p, at(q), at(q + n * lens[0] * 0.8), 1.3, TOOTH, shape="cone", t2=0.1)
+		helm = hx > 0  # the viewer's left head
+		p.append(("ball", (14 * 1.35, 12 * 1.35, 13 * 1.35), at((0, 3, 3)), HOUND, sm))  # cranium
+		ca, sa = math.cos(math.radians(40)), math.sin(math.radians(40))
+		bar((0, 4, -1), (0, 4 + 8 * sa, -1 - 8 * ca), 12, 3.6, "D0CCC4" if helm else HOUND, {"rough": 0.7})  # upper jaw, tipped back 40
+		bar((0, -4, -1), (0, -4 - 7 * 0.45, -1 - 7 * 0.9), 11, 3.2, HOUND2)  # lower jaw dropped
+		for sx in (-1, 1):  # cheeks closing the mouth's sides
+			bar((sx * 5.4, 4, -1.4), (sx * 5.4, -4, -1.4), 2, 4, HOUND2)
+		p.append(("ball", (10.5 * 1.35, 12 * 1.35, 3 * 1.35), at((0, 0, -3)), MOUTH, {"emit": 0.6, "subdiv": 2}))  # round red maw
+		p.append(("ball", (5 * 1.35, 5 * 1.35, 2), at((0, 0.4, -3.8)), "3A0408", {"subdiv": 1}))  # throat
+		bar((0, -3, -3.4), (0, -5, -9), 4.6, 1.2, "D0303A", {"emit": 0.7})  # tongue lolling out
+		ring = Vector((0, 0.3, -5.4))
+		for i in range(16):  # fangs ringing the maw, pointing in
+			a = i * math.tau / 16
+			edge = ring + Vector((math.cos(a) * 4.8, math.sin(a) * 6.0, 0))
+			ln = 3.4 if i in (3, 5, 11, 13) else 2.2
+			tip = edge + (ring - edge).normalized() * ln + Vector((0, 0, -0.6))
+			_seg(p, at(edge), at(tip), 1.4 if ln > 3 else 1.1, TOOTH, shape="cone", t2=0.1)
 		for sx in (-1, 1):
-			p.append(("ball", (2.4 * 1.35, 1.6 * 1.35, 1.6 * 1.35), at((sx * 4.4, 6.4, -3.4)), "FF2030", {"emit": 10, "subdiv": 1}))
-			bar((sx * 4.4, 8.6, -1), (sx * 4, 7.6, -6), 4, 1.6, HOUND2)  # brow
-			if hx <= 0:  # curled horns
-				q0, q1, q2 = at((sx * 5, 8, 3)), at((sx * 12, 15, 6)), at((sx * 14, 9, 13))
-				_seg(p, q0, q1, 4.4, HORN, shape="cyl", t2=3.4)
-				_seg(p, q1, q2, 3.4, HORN, shape="cone", t2=0.2)
-		if hx > 0:  # (the viewer's left) pale helm over the skull and snout, two tall flat pointed ears flared out
+			p.append(("ball", (2.6 * 1.35, 1.8 * 1.35, 1.6 * 1.35), at((sx * 4.4, 8, -2.6)), "FF2030", {"emit": 10, "subdiv": 1}))
+			bar((sx * 4.6, 10, 0), (sx * 4, 9, -4.4), 4, 1.6, HOUND2)  # brow
+			if not helm:  # thick curled ram horns
+				curl = [(5, 8, 3), (9, 13, 5), (13, 13, 10), (14.4, 8, 12), (13, 4, 9), (10.6, 4.4, 5.6)]
+				for j in range(len(curl) - 1):
+					q0 = at((sx * curl[j][0], curl[j][1], curl[j][2]))
+					q1 = at((sx * curl[j + 1][0], curl[j + 1][1], curl[j + 1][2]))
+					t0 = 6.4 - j * 1.0
+					_seg(p, q0, q1, t0, HORN if j % 2 == 0 else "B88A48", shape="cone" if j == len(curl) - 2 else "cyl", t2=t0 - 1.0 if j < len(curl) - 2 else 0.6)
+		if helm:  # pale helm over the skull and snout, two tall flat pointed ears flared out
 			HELM = "D0CCC4"
-			p.append(("ball", (14 * 1.35, 9 * 1.35, 13 * 1.35), at((0, 6, 2)), HELM, {"subdiv": 2, "smooth": True}))
-			bar((0, 7, -3), (0, 12.6, -12), 9, 1.4, HELM)  # snout guard on the upper jaw
+			p.append(("ball", (15 * 1.35, 9 * 1.35, 13 * 1.35), at((0, 7, 2)), HELM, {"subdiv": 2, "smooth": True}))
+			bar((0, 8, -1), (0, 4 + 8 * sa + 2.2, -1 - 8 * ca), 10, 1.4, HELM)  # snout guard on the upper jaw
 			for sx in (-1, 1):
-				_tri(p, at((sx * 4, 9, 3)), at((sx * 9, 4, -1)), at((sx * 20, 20, 0)), HELM, 1.6)
-				_tri(p, at((sx * 5.4, 8.4, 0.4)), at((sx * 8.8, 5.6, -1.6)), at((sx * 17, 17.6, -1.2)), "7A5A58", 0.6)
-				bar((sx * 4.2, 8, 0), (sx * 4.6, 9, -7), 3, 2, HELM)  # cheek guard
+				_tri(p, at((sx * 4, 10, 3)), at((sx * 9, 5, -1)), at((sx * 18, 21, 0)), HELM, 1.6)
+				_tri(p, at((sx * 5.4, 9.4, 0.4)), at((sx * 8.8, 6.6, -1.6)), at((sx * 15.4, 18.6, -1.2)), "7A5A58", 0.6)
+				bar((sx * 4.2, 9, 0), (sx * 4.6, 10, -6), 3, 2, HELM)  # cheek guard
 	k.prop("Hound", p)
 
 
@@ -358,7 +364,7 @@ def _chain_tower(k):
 	p.append(("box", (360, 10, 360), (0, 19, 0), STONE))
 	# The slab: plain, set back once, a dense window grid (floor bands crossed by mullions)
 	for w, y0, y1 in ((W, H0, 820), (W - 30, 820, HT)):
-		p.append(("box", (w, y1 - y0, w), (0, (y0 + y1) / 2, 0), SLAB))
+		p.append(("box", (w, y1 - y0, w), (0, (y0 + y1) / 2, 0), "625A6C"))
 		p.append(("box", (w + 10, 8, w + 10), (0, y1, 0), SLAB2))
 		for face in range(4):
 			m = _rotm(0, face * 90, 0)
@@ -368,8 +374,8 @@ def _chain_tower(k):
 				q = _turn(m, (0, y0 + f * fh + fh * 0.55, -w / 2 - 0.4))
 				p.append(("box", (w - 12, fh * 0.5, 1), q, WIN, o))
 				q = _turn(m, (0, y0 + f * fh + 1.5, -w / 2 - 2))  # floor ledge, so every window row reads
-				p.append(("box", (w + 4, 3, 4), q, "5E5668", o))
-				if (f * 3 + face) % 5 == 0 and y0 + f * fh > 700:
+				p.append(("box", (w + 4, 3.4, 4), q, "8C8296", dict(o, emit=0.25)))
+				if (f * 3 + face) % 4 == 0:  # lit windows over the full height
 					cx = -w * 0.35 + ((f * 37 + face * 11) % 7) * w * 0.1
 					q = _turn(m, (cx, y0 + f * fh + fh * 0.55, -w / 2 - 1.0))
 					p.append(("box", (w * 0.09, fh * 0.42, 1), q, FIRE, dict(o, emit=2.5)))
@@ -384,36 +390,34 @@ def _chain_tower(k):
 		for band, (y0, hh) in enumerate(((H0, 260), (170, 260), (330, 250), (490, 230), (640, 200), (780, 170))):
 			ww = W + 30 - band * 12
 			q = _turn(m, (((band * 37 + face * 11) % 9 - 4) * 4, y0 + hh / 2, -W / 2 - 9 - band % 2 * 2))
-			p.append(("cone", (ww, hh, 6), q, ("FF4A0C", "FF6A10")[band % 2], {"seg": 4, "taper": 0.72, "emit": 3, "alpha": 0.35, "rot": (0, face * 90, 0)}))
-			n = 5 - band // 3
-			for i in range(n):  # tongues off the top of the band
-				x = -ww / 2 + ww * (i + 0.5) / n + ((i * 31 + band * 17 + face * 7) % 9 - 4) * 5
+			p.append(("cone", (ww, hh, 6), q, ("FF4A0C", "FF6A10")[band % 2], {"seg": 4, "taper": 0.72, "emit": 2, "alpha": 0.15, "rot": (0, face * 90, 0)}))
+			n = 2
+			for i in range(n):  # tongues licking up the face edges, the window grid between them left clear
+				x = (i * 2 - 1) * ww * 0.36 + ((i * 31 + band * 17 + face * 7) % 9 - 4) * 4
 				h = hh * (0.7 + 0.5 * ((i * 53 + face * 29 + band * 7) % 7) / 6)
 				lean = ((i * 13 + face * 7 + band) % 5 - 2) * 7
 				q = _turn(m, (x, y0 + hh * 0.75 + h / 2, -W / 2 - 12))
-				p.append(("cone", (ww / n * 1.25, h, 5), q, ("FF7A14", "FF9A20")[(i + band) % 2], {"seg": 4, "emit": 4, "alpha": 0.6, "rot": (0, face * 90, lean)}))
-		for i in range(4):  # hot core low on the face
-			x = -W * 0.36 + i * W * 0.24
+				p.append(("cone", (ww * 0.3, h, 5), q, ("FF7A14", "FF9A20")[(i + band) % 2], {"seg": 4, "emit": 3, "alpha": 0.32, "rot": (0, face * 90, lean)}))
+		for i in range(2):  # hot core low on the face
+			x = -W * 0.2 + i * W * 0.4
 			q = _turn(m, (x, H0 + 110 + (i % 2) * 40, -W / 2 - 15))
-			p.append(("cone", (W * 0.3, 240 + (i % 2) * 80, 4), q, "FFC848", {"seg": 4, "emit": 7, "alpha": 0.75, "rot": (0, face * 90, (i - 1.5) * 6)}))
-		for i in range(14):  # black ash streaks: long ragged strips twisting up across the fire
+			p.append(("cone", (W * 0.3, 240 + (i % 2) * 80, 4), q, "FFC848", {"seg": 4, "emit": 5, "alpha": 0.4, "rot": (0, face * 90, (i - 1.5) * 6)}))
+		for i in range(8):  # black ash streaks: long ragged strips twisting up across the fire
 			x = -W * 0.46 + ((i * 47 + face * 13) % 92) / 92 * W * 0.92
 			y = 90 + ((i * 71 + face * 31) % 100) / 100 * 760
 			ln = 70 + (i * 37 % 5) * 26
 			tilt = ((i * 23 + face * 5) % 70) - 35
 			q = _turn(m, (x, y, -W / 2 - 18))
 			p.append(("box", (12 + i % 3 * 7, ln, 1), q, "0A0606", {"rot": (0, face * 90, tilt)}))
-			q = _turn(m, (x + math.sin(math.radians(tilt)) * ln * 0.55, y + ln * 0.5, -W / 2 - 18.5))
-			p.append(("box", (8 + i % 2 * 5, ln * 0.5, 1), q, "140A08", {"rot": (0, face * 90, tilt + 28)}))
-		for i in range(18):  # ash flecks
+		for i in range(8):  # ash flecks
 			x = -W * 0.45 + ((i * 53 + face * 17) % 90) / 90 * W * 0.9
 			y = 140 + ((i * 61 + face * 37) % 100) / 100 * 900
 			sz = 5 + (i * 7 % 4) * 3
 			q = _turn(m, (x, y, -W / 2 - 16))
 			p.append(("box", (sz, sz * 1.8, 1), q, "0A0808", {"rot": (0, face * 90, (i * 23) % 60 - 30)}))
-	for a in range(18):  # fire round the foot
-		ang = a * math.tau / 18
-		_flame(p, (math.cos(ang) * 175, 24, math.sin(ang) * 175), 9 + a % 3 * 3, kind=("sheet", "tongue")[a % 2])
+	for a in range(12):  # fire round the foot
+		ang = a * math.tau / 12
+		_flame(p, (math.cos(ang) * 175, 24, math.sin(ang) * 175), 8 + a % 3 * 2, kind="sheet")
 	# Summit (floor 100): a ring of big curved pale horns round an enthroned purple-and-gold figure, a beam of light
 	top = HT + 8
 	p.append(("cyl", (W - 20, 10, W - 20), (0, top, 0), SLATE, {"seg": 16}))
@@ -540,20 +544,25 @@ def _wyvern(k):
 	fan with a scalloped trailing edge, spines down the back, a long tail with a spade. Rider (baran_anime, a changed
 	design): purple armour, gold pauldrons, belt plates and knee plates, antler horns, a white flame mane, a purple tail
 	and a blue blade raised forward. Faces -Z."""
-	PALE, PALE2, MEM, MEM2 = "D4D8E2", "A8ACBA", "1A1424", "261E32"
-	g = {"subdiv": 2, "smooth": True, "emit": 0.3}
+	PALE, PALE2, MEM, MEM2 = "D4D8E2", "A8ACBA", "0C0A10", "151019"
 	e3 = {"emit": 0.3}
-	p = [
-		("ball", (16, 14, 34), (0, 0, 0), PALE, g),
-		("ball", (15, 14, 16), (0, 2, -13), PALE, g),
-		("ball", (10, 7, 24), (0, -3.4, 2), PALE2, g),  # belly plates
-	]
-	neck = [(0, 4, -19), (0, 9, -26), (0, 13, -32), (0, 15.5, -38)]
-	for i, q in enumerate(neck):
-		w = 9.5 - i * 1.2
-		p.append(("ball", (w, w, w * 1.2), q, PALE, g))
-		if i:
-			_seg(p, neck[i - 1], q, w * 0.85, PALE, {"emit": 0.3, "smooth": True}, "cyl")
+	g = {"subdiv": 2, "smooth": True, "emit": 0.3}
+	sl = {"emit": 0.3, "seg": 8}
+	p = []
+	# a sleek body of tapered eight-sided segments (chest, belly, hips) with ridged plates across the back and belly
+	body = [((0, 2, -22), 10), ((0, 2.4, -12), 15), ((0, 1.4, 0), 15.5), ((0, 0.4, 10), 12), ((0, 0, 15), 8)]
+	for (a_, ta), (b_, tb) in zip(body, body[1:]):
+		_seg(p, a_, b_, ta, PALE, dict(sl, taper=tb / ta), "cyl")
+	for i in range(8):
+		z = -18 + i * 4.4
+		w = 14 - abs(i - 3) * 1.4
+		p.append(("box", (w * 0.8, 1.2, 3), (0, 9 - abs(i - 3) * 0.5, z), PALE2, dict(e3, rot=(8, 0, 0))))  # dorsal plates
+		p.append(("box", (w * 0.7, 1.2, 3.4), (0, -6.4 + abs(i - 3) * 0.4, z), PALE2, dict(e3, rot=(-8, 0, 0))))  # belly plates
+	neck = [((0, 2, -20), 9), ((0, 6, -27), 8), ((0, 11, -33), 7), ((0, 15.5, -39), 6)]
+	for (a_, ta), (b_, tb) in zip(neck, neck[1:]):
+		_seg(p, a_, b_, ta, PALE, dict(sl, taper=tb / ta), "cyl")
+		mid = Vector(a_).lerp(Vector(b_), 0.5)
+		_seg(p, mid, mid + Vector((0, 4, 1)), 2.2, PALE2, None, "cone", 0.1)  # neck spines
 	# the long narrow ridged skull
 	p.append(("ball", (7.4, 6.4, 12), (0, 16.4, -43), PALE, g))
 	_seg(p, (0, 16, -46), (0, 13.6, -62), 6.4, PALE, dict(e3, seg=4), "cone", 2.0)  # diamond-section snout
@@ -604,7 +613,7 @@ def _wyvern(k):
 	RD, RD2, GL = RIDER, "4E1E78", {"metal": 0.8, "rough": 0.3}
 	y0, z0 = 8, -6
 	for sx in (-1, 1):
-		hip, knee, foot = (sx * 3, y0 + 3, z0), (sx * 8.4, y0 + 1, z0 - 5), (sx * 8.6, y0 - 6, z0 - 2)
+		hip, knee, foot = (sx * 3, y0 + 3, z0), (sx * 9.6, y0 + 2, z0 - 5), (sx * 11, y0 - 4, z0 - 3)  # legs astride, clear of the flanks
 		_seg(p, hip, knee, 3.4, RD, None, "cyl")
 		_seg(p, knee, foot, 3, RD, None, "cyl")
 		p.append(("box", (3.6, 3.6, 2.2), (knee[0], knee[1], knee[2] - 1.4), GOLD, GL))  # knee plate
@@ -639,10 +648,17 @@ def _wyvern(k):
 	tip = hand + Vector((4, 26, -14))
 	_tri(p, hand + Vector((-1.2, 0, 0)), hand + Vector((1.6, 1.2, 0.4)), tip, BLUE, 0.6, {"emit": 9})  # blade
 	_tri(p, hand + Vector((-2.4, -0.6, 0.6)), hand + Vector((3, 1.4, 1.2)), hand + Vector((5, 24, -10)), "2A7CFF", 0.3, {"emit": 4, "alpha": 0.5})
-	# white flame mane streaming back from the head
-	for i, (dx, up, back, w) in enumerate(((0, 9, 12, 5), (-4, 6, 10, 4), (4, 7, 11, 4), (-6, 2, 8, 3.4), (6, 3, 9, 3.4), (0, 12, 6, 3.6))):
-		b0 = Vector((dx * 0.3, y0 + 20.6, z0 + 2))
-		_tri(p, b0 + Vector((-w / 2, 0, 0)), b0 + Vector((w / 2, 0, 0)), b0 + Vector((dx, up, back)), "F2F4FF", 0.5, {"emit": 3})
+	# a big white flame mane streaming back and off to the rider's left behind the antlers: layered ragged flame plates
+	hb = Vector((0, y0 + 21, z0 + 2))
+	for i, (dx, up, back, w, ln) in enumerate((
+		(-6, 8, 10, 7, 1.0), (-12, 10, 14, 7, 1.0), (-18, 6, 18, 6, 1.0), (-22, 0, 20, 5, 0.9), (-9, 14, 18, 6, 0.9),
+		(-15, 13, 24, 5, 0.8), (-4, 4, 16, 6, 1.0), (3, 9, 8, 4, 0.8), (-24, 8, 26, 4, 0.7))):
+		tip = hb + Vector((dx, up, back)) * ln
+		root = hb + Vector((dx * 0.15, 0, 0))
+		wv = Vector((0.55 + (i % 3) * 0.2, 0.8, 0.2 * (i % 2))).normalized() * w * 0.8  # plates set at varied angles
+		mid = root.lerp(tip, 0.55) + wv * 0.4
+		_tri(p, root - wv, root + wv, mid, "F2F4FF", 0.5, {"emit": 3})
+		_tri(p, mid - wv * 0.7, mid + wv * 0.5, tip, ("E6EAFF", "F8F8FF")[i % 2], 0.5, {"emit": 3})
 	# purple tail curling down the wyvern's flank
 	tl = [(0, y0 + 2, z0 + 3), (1.6, y0 - 1, z0 + 8), (3.4, y0 - 2, z0 + 14), (6.6, y0 - 4, z0 + 18), (9, y0 - 7, z0 + 19)]
 	for i in range(1, len(tl)):
@@ -658,26 +674,36 @@ def _window_face(p, w, floors, fh, y0, cols, z, rot, x0=0.0, seed=0):
 			n = (f * 7 + c * 3 + seed) % 11
 			if n == 0:
 				continue
-			col, o = (FIRE, {"emit": 2.2}) if n % 4 == 0 else ("FFC2E6", {"emit": 1.8}) if n % 3 == 0 else (WIN, {})
+			col, o = (FIRE, {"emit": 2.2}) if n % 7 == 0 else ("FFC2E6", {"emit": 1.8}) if (f + seed) % 3 != 0 else (WIN, {})  # whole rows lit pale pink
 			q = _turn(m, (x0 - w / 2 + w / cols * (c + 0.5), y0 + f * fh + fh * 0.55, z))
 			p.append(("box", (w / cols * 0.55, fh * 0.55, 0.6), q, col, dict(o, rot=(0, rot, 0))))
 
 
-def _billow(p, x, z, w, h, rot=0, seed=0, y0=0.0):
-	"""Pink-lilac fire as soft, wide, translucent flame sheets hugging a facade (anime_castle2): a few broad overlapping
-	planes with soft tapered tops, a lilac outer sheet, a pink body and a pale core low down, and wisps above."""
+def _rows(p, w, floors, fh, y0, z, rot, x0=0.0, seed=0):
+	"""Lit window rows on a facade: one pale pink strip per floor (two of three lit), cheap for the back and sides."""
 	m = _rotm(0, rot, 0)
-	n = max(2, int(w / 10))
+	for f in range(floors):
+		if (f + seed) % 3 == 0:
+			continue
+		q = _turn(m, (x0, y0 + f * fh + fh * 0.55, z))
+		p.append(("box", (w * 0.86, fh * 0.42, 0.6), q, "FFC2E6", {"emit": 1.6, "rot": (0, rot, 0)}))
+
+
+def _billow(p, x, z, w, h, rot=0, seed=0, y0=0.0):
+	"""Pink-lilac fire as soft vertical wisps rising off a facade (anime_castle2): narrow translucent streak strips of
+	ragged height, each with a fainter, taller wisp behind it; flat tops, no peaks."""
+	m = _rotm(0, rot, 0)
+	n = max(3, int(w / 4))
 	for i in range(n):
-		hh = h * (0.7 + 0.3 * (((i + seed) * 37) % 10) / 9)
+		r = (((i + seed) * 37) % 10) / 9
+		hh = h * (0.45 + 0.55 * r)
 		dx = -w / 2 + w * (i + 0.5) / n
-		wd = w / n * 1.7
-		for col, wf, hf, dz, emit, alpha, tp in (("C87CF0", 1.0, 1.0, 0, 1.3, 0.28, 0.7), ("FF8AD8", 0.85, 0.7, -0.6, 1.7, 0.32, 0.75), ("FFB8EC", 0.6, 0.35, -1.2, 1.6, 0.3, 0.8)):
-			q = _turn(m, (x + dx, y0 + hh * hf / 2, z + dz))
-			p.append(("cone", (wd * wf, hh * hf, 0.4), q, col, {"seg": 4, "taper": tp, "emit": emit, "alpha": alpha, "rot": (0, rot, 0)}))
-		lean = (((i + seed) * 13) % 5 - 2) * 5
-		q = _turn(m, (x + dx + lean * 0.3, y0 + hh + hh * 0.15, z - 0.3))
-		p.append(("cone", (wd * 0.6, hh * 0.3, 0.4), q, "E08AF0", {"seg": 4, "emit": 1.3, "alpha": 0.25, "rot": (0, rot, lean)}))
+		sw = w / n * (0.7 + 0.5 * (((i + seed) * 13) % 3) / 2)
+		q = _turn(m, (x + dx, y0 + hh / 2, z))
+		p.append(("box", (sw, hh, 0.3), q, "FF8AD8", {"emit": 1.5, "alpha": 0.16, "rot": (0, rot, 0)}))
+		h2 = hh * 1.3
+		q = _turn(m, (x + dx + sw * 0.3, y0 + h2 / 2, z + 0.5))
+		p.append(("box", (sw * 0.45, h2, 0.3), q, "D69AF6", {"emit": 1.2, "alpha": 0.1, "rot": (0, rot, 0)}))
 
 
 def _ruins(k):
@@ -689,6 +715,9 @@ def _ruins(k):
 			p.append(("box", (w + 1, 1, 25), (x, f * 10, 0), CONC2))
 		p.append(("box", (w * 0.6, 10, 24), (x - w * 0.2, h + 5, 0), CONC, {"rot": (0, 0, 8)}))
 		_window_face(p, w, int(h // 10), 10, 0, 4, -12.1, 0, x0=x, seed=seed)
+		_rows(p, w, int(h // 10), 10, 0, 12.1, 0, x0=x, seed=seed + 1)  # back
+		for sd in (-1, 1):  # both sides (rot 90 maps local (a, y, c) to (c, y, -a))
+			_rows(p, 24, int(h // 10), 10, 0, x + sd * (w / 2 + 0.1), 90, seed=seed + 2)
 		_billow(p, x - w * 0.1, 0, w * 0.9, 20, seed=seed, y0=h + 2)  # a low soft fire on the broken top
 		_billow(p, x, -13, w * 1.05, h * 0.85, seed=seed + 2, y0=2)  # flame sheets climbing the window face
 		side = -1 if x < 0 else 1  # the outer side face too (rot 90 maps local (a, y, c) to (c, y, -a))
@@ -707,6 +736,7 @@ def _ruins(k):
 		a = i * 2.4
 		p.append(("box", (4 + i % 3 * 2, 2.5 + i % 2 * 2, 3 + i % 4), (math.cos(a) * (14 + i % 5 * 3), 1.2, -18 + math.sin(a) * 6), (CONC3, CONC, "4A4256")[i % 3], {"rot": (i * 9, i * 37, i * 13)}))
 	_window_face(p, 46, 2, 10, 4, 6, -11.1, 0, seed=2)
+	_rows(p, 46, 2, 10, 4, 19.1, 0, seed=1)
 	_billow(p, 2, -12, 30, 40, seed=3)
 	_billow(p, -10, -2, 18, 20, seed=6, y0=38)
 	k.prop("RuinB", p)
@@ -834,7 +864,7 @@ def build(k):
 		pos, yaw = k.beside(g, 0, 1.0)
 		k.place("Gate", pos, yaw)
 		for side in (-1, 1):  # the hound statues on the approach, facing the runner
-			(x, _, z), hyaw = k.beside(g - 62, side * 72)  # 72: the flared helm ears stay 24+ off the road
+			(x, _, z), hyaw = k.beside(g - 62, side * 84)  # 84: the flung arms and flared ears stay 24+ off the road
 			k.place("Hound", (x, -1.0, z), hyaw + math.pi, 1.0)
 	d = 20.0
 	while d < L - 40:
@@ -913,8 +943,8 @@ def build(k):
 		a = i * math.tau / 4 + 0.4
 		r = 420 + i * 70
 		k.place("Wyvern", (tx + math.cos(a) * r, HT * (0.72 + 0.08 * i), tz + math.sin(a) * r), -a + math.pi, 5.0)
-	# Purple-black sky down to an ember-orange horizon
-	k.sky([(0.0, "FF7A2A"), (0.04, "C0442A"), (0.12, "6A2038"), (0.3, "2A0E2E"), (1.0, "08040C")], strength=0.9, sun=(2.2, "FFD0B0", 22, 210))
+	# Purple-black sky down to an ember-orange horizon; below it the ground colour, so the ground plane's far edge melts in
+	k.sky([(-0.012, "1A1520"), (0.0, "FF7A2A"), (0.04, "C0442A"), (0.12, "6A2038"), (0.3, "2A0E2E"), (1.0, "08040C")], strength=0.9, sun=(2.2, "FFD0B0", 22, 210))
 	k.light((tx, 300, tz), "FF7A2A", energy=9000000, radius=160)
 	k.light((tx, HT + 120, tz), "FFE0C0", energy=2500000, radius=40)
 	for g in gates:

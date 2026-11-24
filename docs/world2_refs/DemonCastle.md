@@ -37,3 +37,14 @@ the front, and a rider at about 1.3 times the body height: purple armour, gold p
 horns, a white flame mane, a tail and a blue blade (a changed design after `baran_anime`, no logos). `Gate` gains
 tall dark-red square pillars wrapped in fire on both sides (`cerberus_gate`). The 33% shot's dark slab is the road deck
 on the stair climb (shared road, not a biome prop); a lamp now lights it.
+
+Round 6 (2026-11-23): `Hound` heads face the viewer, tipped a little down at the road: a short muzzle with the upper jaw
+tipped back 40 degrees and the lower jaw dropped round a round red maw ringed with fangs; the chest and arms are about
+twice the mass, the arms flung wide with open clawed hands, and the middle and right heads carry thick curled ram horns
+(`cerberus_gate`); the statues stand 84 from the road centre. `ChainTower` fire is translucent bands with tongues only up
+the face edges, so the floor ledges and a lit window grid read over the full height (`webtoon_castle`). The ruins' fire
+is soft vertical wisp strips with ragged flat tops, and every facade has lit pale pink window rows (`anime_castle2`).
+`Wyvern` has a sleek body of tapered eight-sided segments with dorsal and belly plates and near-black membranes
+(`kaisel_flight`); the rider's legs sit astride outside the flanks and a large white flame mane streams back and to one
+side behind the antlers (`baran_anime`). The sky below the horizon takes the ground colour, so the ground's far edge no
+longer shows against the orange band.
