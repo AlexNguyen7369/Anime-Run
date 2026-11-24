@@ -44,11 +44,13 @@ end)
 local RED = UiTheme.Palette.Danger
 -- Design doc 4.46 HUD option A "wood plaques" (replaces 4.40's Tab tilt look; positions and cells stay 4.40's): each
 -- button is a cream wood plaque (Client/HudPlaque) with its icon art, a brush label under it and a vermilion key-letter
--- seal. Sizes are proposed.
+-- seal. Sizes are proposed. World 2 (HudPlaque.Old, design doc 4.47) keeps 4.40's look: no tile frame, the Tab tilt
+-- icon (72 px at the cell's top) with its white outlined label under it.
+local OLD = HudPlaque.Old
 local CELL = Vector2.new(84, 94) -- one button (4.40's cell, unchanged)
-local ICON = 60 -- px, square (drafts/hud_a.html)
-local ICON_TOP = 6 -- px: the icon's centre stays 36 px down, where 4.40's 72 px icon had it (the bottom pair's anchor)
-local LABEL = 24 -- px, the label band under the icon
+local ICON = OLD and 72 or 60 -- px, square (drafts/hud_a.html)
+local ICON_TOP = OLD and 0 or 6 -- px: the icon's centre stays 36 px down, where 4.40's 72 px icon had it (the bottom pair's anchor)
+local LABEL = OLD and 22 or 24 -- px, the label band under the icon
 local GAP = 8 -- px between buttons in a column
 
 local function make(class, name, parent, props)
@@ -59,6 +61,16 @@ local function make(class, name, parent, props)
 	end
 	object.Parent = parent
 	return object
+end
+
+local function outlined(label, thickness)
+	make(
+		"UIStroke",
+		"Outline",
+		label,
+		{ Color = UiTheme.Outline, Thickness = thickness, LineJoinMode = Enum.LineJoinMode.Round }
+	)
+	return label
 end
 
 local function icon(name, parent, props)
@@ -86,12 +98,11 @@ local function badge(parent)
 		ZIndex = 4,
 	})
 	make("UICorner", "Corner", b, { CornerRadius = UDim.new(1, 0) })
-	make(
-		"UIStroke",
-		"Ring",
-		b,
-		{ Color = UiTheme.Scroll.SealText, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
-	)
+	make("UIStroke", "Ring", b, {
+		Color = OLD and Color3.new(1, 1, 1) or UiTheme.Scroll.SealText,
+		Thickness = 2,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
 	return b
 end
 
@@ -187,32 +198,67 @@ for order, slot in SLOTS do
 		AutoButtonColor = false,
 	})
 	tile:SetAttribute("Panel", PANEL[name])
-	HudPlaque.Plaque(tile)
+	if not OLD then
+		HudPlaque.Plaque(tile)
+	end
 	icon(name, tile, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, ICON_TOP),
 		Size = UDim2.fromOffset(ICON, ICON),
 		ZIndex = 2,
 	})
-	HudPlaque.Font(
-		make("TextLabel", "Label", tile, {
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -2),
-			Size = UDim2.new(1, -6, 0, LABEL),
-			BackgroundTransparency = 1,
-			TextSize = 19,
-			TextColor3 = HudPlaque.Ink,
-			Text = name,
-			ZIndex = 3,
-		}),
-		HudPlaque.Script
-	)
+	if OLD then
+		outlined(
+			make("TextLabel", "Label", tile, {
+				AnchorPoint = Vector2.new(0.5, 1),
+				Position = UDim2.new(0.5, 0, 1, 2),
+				Size = UDim2.new(1, 8, 0, LABEL + 4),
+				BackgroundTransparency = 1,
+				Font = UiTheme.Font,
+				TextSize = 19,
+				TextColor3 = Color3.new(1, 1, 1),
+				Text = name,
+				ZIndex = 3,
+			}),
+			2.5
+		)
+	else
+		HudPlaque.Font(
+			make("TextLabel", "Label", tile, {
+				AnchorPoint = Vector2.new(0.5, 1),
+				Position = UDim2.new(0.5, 0, 1, -2),
+				Size = UDim2.new(1, -6, 0, LABEL),
+				BackgroundTransparency = 1,
+				TextSize = 19,
+				TextColor3 = HudPlaque.Ink,
+				Text = name,
+				ZIndex = 3,
+			}),
+			HudPlaque.Script
+		)
+	end
 	if PANEL[name] then
 		tile.Activated:Connect(function()
 			PanelSwitch.Action(PANEL[name])
 		end)
 	end
-	if KEYS[name] then
+	if KEYS[name] and OLD then
+		outlined(
+			make("TextLabel", "Key", tile, {
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -2, 0, 2),
+				Size = UDim2.fromOffset(18, 18),
+				BackgroundTransparency = 1,
+				Font = UiTheme.Font,
+				TextSize = 16,
+				TextColor3 = Color3.new(1, 1, 1),
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Text = KEYS[name].Name,
+				ZIndex = 3,
+			}),
+			2
+		)
+	elseif KEYS[name] then
 		-- The vermilion seal on the plaque's top-right corner, inside the cell (4.40: the tile's top-right).
 		HudPlaque.Seal(make("TextLabel", "Key", tile, {
 			AnchorPoint = Vector2.new(1, 0),
@@ -282,6 +328,8 @@ make("UIListLayout", "Layout", bar, {
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	Padding = UDim.new(0, 8),
 })
+local PILL_COLOR = Color3.fromRGB(18, 18, 21) -- World 2's 4.40 pills
+local PILL_TRANSPARENCY = 0.12 -- placeholder: nearly solid, so the see-through world signs do not read as HUD
 local DAILY_WIDTH = 146 -- px, placeholder: fits "23:59:59", so the countdown never resizes the row
 local function pill(name, order, caption)
 	-- Option A (design doc 4.46): a small wood plaque, the icon art and a brush caption (drafts/hud_a.html).
@@ -289,11 +337,16 @@ local function pill(name, order, caption)
 		LayoutOrder = order,
 		Size = UDim2.fromOffset(caption and 0 or 44, 44),
 		AutomaticSize = caption and Enum.AutomaticSize.X or Enum.AutomaticSize.None,
-		BackgroundTransparency = 1,
+		BackgroundColor3 = OLD and PILL_COLOR or nil,
+		BackgroundTransparency = OLD and PILL_TRANSPARENCY or 1,
 		Text = "",
 		AutoButtonColor = false,
 	})
-	HudPlaque.Plaque(b, 1, 6)
+	if OLD then
+		make("UICorner", "Corner", b, { CornerRadius = UDim.new(1, 0) })
+	else
+		HudPlaque.Plaque(b, 1, 6)
+	end
 	icon(name, b, {
 		ZIndex = 2,
 		AnchorPoint = Vector2.new(0, 0.5),
@@ -301,7 +354,20 @@ local function pill(name, order, caption)
 		Size = UDim2.fromOffset(26, 26),
 	})
 	local text
-	if caption then
+	if caption and OLD then
+		make("UIPadding", "Padding", b, { PaddingRight = UDim.new(0, 16) })
+		text = make("TextLabel", "Caption", b, {
+			Position = UDim2.fromOffset(46, 0),
+			Size = UDim2.fromScale(0, 1),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundTransparency = 1,
+			Font = UiTheme.Font,
+			TextSize = 19,
+			TextColor3 = Color3.new(1, 1, 1),
+			Text = caption,
+		})
+		outlined(text, 1.5)
+	elseif caption then
 		text = HudPlaque.Font(
 			make("TextLabel", "Caption", b, {
 				Position = UDim2.fromOffset(46, 0),
@@ -380,7 +446,7 @@ local autoRing = make("Frame", "OnRing", autoTile, {
 	Size = autoIcon.Size,
 	BackgroundTransparency = 1,
 	Visible = false,
-	ZIndex = autoIcon.ZIndex, -- over the plaque (ZIndex 1)
+	ZIndex = OLD and autoIcon.ZIndex - 1 or autoIcon.ZIndex, -- over the plaque (ZIndex 1)
 })
 make("UICorner", "Corner", autoRing, { CornerRadius = UDim.new(1, 0) })
 make("UIStroke", "Ring", autoRing, { Color = UiTheme.Palette.Money, Thickness = 2 })

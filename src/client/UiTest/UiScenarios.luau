@@ -230,6 +230,7 @@ UiScenarios.Names = {
 	-- World label, travel toast and the World 2 welcome (UiWorld2; docs/WORLD2_SPEC.md "World HUD", "Welcome")
 	"ui_world_label",
 	"ui_world2_welcome",
+	"ui_hud_look_by_world", -- World 2: 4.40 HUD, no option A dressing; panels keep the handscroll in both (design doc 4.47)
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
 	"ui_remote_guards",
 	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened

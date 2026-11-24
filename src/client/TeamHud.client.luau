@@ -54,8 +54,10 @@ local TIRED_SCALE = 0.88
 local GOLD = Palette.Gold
 local DIM = Palette.TeamDim
 -- Option A (design doc 4.46 "nameplate team row"): lacquer faces with a gold rim; the arc, sizes and places stay 4.40's.
-local FACE = HudPlaque.LacquerColor
-local RING = UiTheme.Dojo.Gold
+-- World 2 (HudPlaque.Old, design doc 4.47) keeps the 4.40 look: dark circles with the team ring, dark plates.
+local OLD = HudPlaque.Old
+local FACE = OLD and DIM or HudPlaque.LacquerColor
+local RING = OLD and Palette.TeamRing or UiTheme.Dojo.Gold
 local GREY = Palette.TeamGrey
 local CATEGORY_COLORS = {
 	Sprinter = Palette.Sprinter,
@@ -130,8 +132,14 @@ local badge = text(overlay, "Bonus", {
 	Visible = false,
 	ZIndex = 8,
 })
-HudPlaque.Lacquer(badge, 6) -- a lacquer plate with a gold rim, solid: stays readable over every biome
-HudPlaque.Font(badge, HudPlaque.BodyBold)
+if OLD then
+	badge.BackgroundTransparency = 0.3
+	badge.BackgroundColor3 = Palette.TeamPlate -- stays readable over every biome
+	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, badge)
+else
+	HudPlaque.Lacquer(badge, 6) -- a lacquer plate with a gold rim, solid: stays readable over every biome
+	HudPlaque.Font(badge, HudPlaque.BodyBold)
+end
 make("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }, badge)
 
 local marker = text(overlay, "Marker", {
@@ -183,8 +191,8 @@ local card = make("Frame", {
 	Name = "InfoCard",
 	AnchorPoint = Vector2.new(0.5, 1),
 	Size = UDim2.fromOffset(CARD_WIDTH, 96),
-	BackgroundColor3 = FACE,
-	BackgroundTransparency = 0.04,
+	BackgroundColor3 = OLD and Palette.TeamPlate or FACE,
+	BackgroundTransparency = OLD and 0.08 or 0.04,
 	Visible = false,
 	ZIndex = 30,
 }, overlay)
@@ -195,15 +203,21 @@ make("UIPadding", {
 	PaddingRight = UDim.new(0, 10),
 	PaddingTop = UDim.new(0, 6),
 }, card)
-local cardName = HudPlaque.Font(
-	text(card, "Name", {
-		Size = UDim2.new(1, 0, 0, 22),
-		TextSize = 19,
-		TextColor3 = UiTheme.Scroll.Cream,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}),
-	HudPlaque.Script
-)
+local cardName = OLD
+		and text(card, "Name", {
+			Size = UDim2.new(1, 0, 0, 22),
+			TextSize = 19,
+			TextXAlignment = Enum.TextXAlignment.Left,
+		})
+	or HudPlaque.Font(
+		text(card, "Name", {
+			Size = UDim2.new(1, 0, 0, 22),
+			TextSize = 19,
+			TextColor3 = UiTheme.Scroll.Cream,
+			TextXAlignment = Enum.TextXAlignment.Left,
+		}),
+		HudPlaque.Script
+	)
 local chip = make("Frame", {
 	Name = "Category",
 	Position = UDim2.fromOffset(0, 26),

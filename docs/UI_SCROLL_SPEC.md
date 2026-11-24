@@ -25,6 +25,11 @@ Design doc 4.46 lists each layout. Reference frame per GUI (`assets/ui/scroll_re
 tracks, duel, starter, itemmenu, pickers, rolloptions, toasts, bosses, bossreward, bossinvite, bosshud, hud_a.
 Not built: hud_b (option B rejected), upgrades (the Upgrades tree stays as it is).
 
+## World 2 exception (owner 2026-11-24, design doc 4.47)
+- HUD only: in the World 2 place the always-on HUD skips option A (`Client/HudPlaque.Old`; no Plaque, Seal or Lacquer
+  dressing, no wooden Turbo bar) and keeps its look from before this redesign. Panels, popups, toasts and the boss event UI
+  are unchanged: they keep the handscroll and the kit in both worlds.
+
 ## Hookup
 - Panels opt in with the `Handscroll` attribute; `PanelSwitch` then runs the unroll in place of `openMotion` /
   `closeMotion`. Summon, Team Select and Upgrades do not carry it.

@@ -65,11 +65,18 @@ hud.MoneyPlate:Destroy()
 hud.Unbanked:Destroy()
 UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
-HudPlaque.Font(hud.MoneyValue, HudPlaque.Heading) -- option A (design doc 4.46): Permanent Marker on the lacquer plate
+-- World 2 (HudPlaque.Old, design doc 4.47): the 4.40 read-outs, Fredoka gradient numbers with no plate, blue Gems.
+local OLD_HUD = HudPlaque.Old
+if not OLD_HUD then
+	HudPlaque.Font(hud.MoneyValue, HudPlaque.Heading) -- option A (design doc 4.46): Permanent Marker on the lacquer plate
+end
 -- Gems read-out (design doc 4.35, 4.40): a row directly under the Money number, inside Money so it follows its layout
 -- and scale; RacerHud is generated, so it is built here.
 -- Option A (design doc 4.46, drafts/hud_a.html): gold Kalam numbers on the lacquer plate.
 local GEM, GEM_DEEP = HudPlaque.Gold, Color3.fromRGB(214, 150, 40)
+if OLD_HUD then
+	GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255)
+end
 local gemsPlate = Instance.new("Frame")
 gemsPlate.Name = "Gems"
 gemsPlate.BackgroundTransparency = 1
@@ -89,7 +96,11 @@ gemsValue.Name = "GemsValue"
 gemsValue.Position = UDim2.fromScale(0.2, 0)
 gemsValue.Size = UDim2.fromScale(0.8, 1)
 gemsValue.BackgroundTransparency = 1
-HudPlaque.Font(gemsValue, HudPlaque.Script)
+if OLD_HUD then
+	gemsValue.Font = UiTheme.Font
+else
+	HudPlaque.Font(gemsValue, HudPlaque.Script)
+end
 gemsValue.TextSize = 26
 gemsValue.TextColor3 = Color3.new(1, 1, 1)
 gemsValue.TextXAlignment = Enum.TextXAlignment.Left
@@ -101,22 +112,28 @@ gemsValue.Parent = gemsPlate
 -- Owner 2026-11-20 (design doc 4.40, 4.46 option A): Money and Gems each sit on a lacquer counter plate (dark, gold
 -- rim) fitted to the shown number; the Money coin overlaps the plate's left end. Behind the text (ZIndex 2), never input.
 local PLATE_PAD = 12 -- px past the number's end (proposed)
-local moneyLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
-moneyLacquer.Name = "MoneyLacquer" -- not MoneyPlate: that generated part stays retired (UiSpec.Hud.RetiredMoneyParts)
-moneyLacquer.ZIndex = 2
-moneyLacquer.Active = false
-moneyLacquer.Parent = hud.Money
-local gemsLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
-gemsLacquer.Name = "GemsLacquer"
-gemsLacquer.ZIndex = 2
-gemsLacquer.Active = false
-gemsLacquer.Parent = gemsPlate
+local moneyLacquer, gemsLacquer -- nil in World 2 (no plates there)
+if not OLD_HUD then
+	moneyLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
+	moneyLacquer.Name = "MoneyLacquer" -- not MoneyPlate: that generated part stays retired (UiSpec.Hud.RetiredMoneyParts)
+	moneyLacquer.ZIndex = 2
+	moneyLacquer.Active = false
+	moneyLacquer.Parent = hud.Money
+	gemsLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
+	gemsLacquer.Name = "GemsLacquer"
+	gemsLacquer.ZIndex = 2
+	gemsLacquer.Active = false
+	gemsLacquer.Parent = gemsPlate
+end
 -- Follows MoneyValue's desktop and phone layouts, so it needs no phone branch of its own.
 local function placeGems()
 	local value = hud.MoneyValue
 	local x, y, height = value.Position.X.Offset, value.Position.Y.Offset, value.Size.Y.Offset
 	gemsPlate.Size = UDim2.fromOffset(value.Size.X.Offset, height * 0.7)
 	gemsPlate.Position = UDim2.fromOffset(x, y + height + 4)
+	if not moneyLacquer then
+		return
+	end
 	local icon = hud.MoneyIcon
 	local left = icon.Position.X.Offset + icon.Size.X.Offset / 2
 	local right = math.min(x + value.TextBounds.X + PLATE_PAD, hud.Money.Size.X.Offset)
@@ -1624,7 +1641,7 @@ hud.TurboLabel.ZIndex = 5
 -- Owner 2026-11-22 (design doc 4.40, 4.46 HUD option A, drafts/hud_a.html): a wooden bar with a vermilion fill. Only
 -- colours change: the Face is the dark well the fill runs in (so the fill's share of the bar is unchanged), its rim
 -- the wood frame, the Shadow the dark wood edge under it. Size, position, names and behaviour stay.
-do
+if not OLD_HUD then -- World 2 keeps the generated bar (design doc 4.47)
 	local wood = UiTheme.Scroll.Skins.Parchment
 	local face, shadow = hud.Turbo, hud.Turbo.Parent:FindFirstChild("Shadow")
 	local well = face:FindFirstChildOfClass("UIGradient")

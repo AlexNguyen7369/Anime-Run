@@ -606,8 +606,10 @@ UiSpec.Hud = {
 	MoneyValue = "RacerHud/Money/MoneyValue",
 	-- Owner 2026-11-10 (design doc 4.40): no UNBANKED line (the run bank is gone); the Gems row sits directly under
 	-- MoneyValue, inside Money. Retired paths must stay absent. Owner 2026-11-20 (4.40, 4.46 option A): Money and Gems
-	-- sit on these lacquer plates (opaque, gold Border rim); nothing else inside Money draws a box.
-	MoneyPlates = { "RacerHud/Money/MoneyLacquer", "RacerHud/Money/Gems/GemsLacquer" },
+	-- sit on these lacquer plates (opaque, gold Border rim); nothing else inside Money draws a box. World 2 keeps the 4.40
+	-- HUD look (design doc 4.47, owner 2026-11-24): no plates there, so nothing inside Money draws a box at all.
+	MoneyPlates = require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id == 2 and {}
+		or { "RacerHud/Money/MoneyLacquer", "RacerHud/Money/Gems/GemsLacquer" },
 	MoneyPlateRim = Color3.fromRGB(255, 204, 72), -- UiTheme.Scroll.TagGold
 	Gems = "RacerHud/Money/Gems",
 	GemsValue = "RacerHud/Money/Gems/GemsValue",

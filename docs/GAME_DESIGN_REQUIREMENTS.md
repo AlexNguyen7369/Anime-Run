@@ -817,6 +817,17 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - World awareness (**proposed**, `WORLD2_SPEC` "World HUD and welcome"): a small "World N" label on the HUD, a
   "Travelling to World N..." toast while a trip runs, and a one-time World 2 welcome popup (team of 4, new summon pool,
   the return gate), given once per save (`Worlds.W2.Welcomed`).
+- World 2 HUD look (owner 2026-11-24: "edit world2 ui to be old hud instead of scroll hud, gui can stay"; the reading
+  below is the coordinator's): in the World 2 place only (`WorldConfig.Id == 2`) the always-on HUD keeps its look from
+  before the Scroll Dojo redesign (main at `6a36029^1`, before 4.46 HUD option A): the 4.40 Tab tilt icons with white
+  outlined labels and key letters and no tile frame, dark round top-right pills, Money and Gems as gradient numbers with
+  no plate (4.40 no-box rule, blue Gems), the Turbo bar's generated look (not the 2026-11-22 wooden bar), dark team
+  circles with the team ring and dark plates for the team bonus badge and info card. It covers the left and right
+  columns, the Auto / Upgrade pair, Daily, Market and Settings, the Bosses and Team second column, Money and Gems, the
+  Turbo bar, the team minibar and the World label (added after the redesign, so it takes the old pills' dark round
+  pill). Every panel, page, popup, toast and banner and the boss event UI (its in-event HUD included) keep the 4.46
+  Scroll Dojo look in World 2. Positions, sizes, key letters, badges and behaviour do not change (4.40,
+  `HUD_LAYOUT_SPEC`). World 1 is unchanged. One switch: `Client/HudPlaque.Old`.
 - Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with the World 2 team of
   4; no World 2 bosses yet.
 - Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,
@@ -908,6 +919,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-24: owner: "edit world2 ui to be old hud instead of scroll hud, gui can stay": World 2's always-on HUD keeps its look from before 4.46 option A; panels, popups and boss UI keep the Scroll Dojo look; World 1 unchanged (4.47).
 - 2026-11-24: owner: World 2 (4.47): opening rule confirmed (gate stays closed until the owner opens it); Awakening +3% cruise and +3% stamina per star; World 2 pays first-clear Gems again and more Money; World 1 boss events run in World 2 with the team of 4; plaza Rift Shrine; all 10 track drafts approved.
 - 2026-11-24: World 2 names that held a real name are retweaked (4.47, section 5; proposed names): `fr_gold` Makto, `side_shaman` Toskar, `side_dark` Darknez Devill.
 - 2026-11-24: owner (answered in session): World 2 cast names and ids final, uploads confirmed, model-loading rule, Eternal odds at most 9e18, fixed side_lucky and side_acrobat art, the listed cast rules and the Sidekick attack poses approved (4.47).

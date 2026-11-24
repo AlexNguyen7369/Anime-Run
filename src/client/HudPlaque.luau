@@ -3,10 +3,16 @@
 -- vermilion key-letter seal and the dark lacquer plate with a gold rim. Each dresses an existing GuiObject; the button
 -- keeps its own transparent background, so its hover / press UIScale (RacerMotion) and click stay as they are.
 -- Colours and fonts are UiTheme.Scroll's (the Summon kit). Sizes are proposed.
-local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local UiTheme = require(Shared:WaitForChild("UiTheme"))
+local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
 
 local K = UiTheme.Scroll
 local HudPlaque = {}
+-- The one switch (design doc 4.47 "World 2 HUD look", owner 2026-11-24): the World 2 place keeps the always-on HUD in
+-- its look from before option A (4.40 Tab tilt icons, white outlined labels, dark pills, blue Gems, the generated
+-- Turbo bar, dark team circles). Every HUD site reads it and skips its dressing; panels and popups never read it.
+HudPlaque.Old = WorldConfig.Id == 2
 HudPlaque.Ink = K.TileInk
 HudPlaque.Script = K.Script -- Kalam Bold brush labels
 HudPlaque.Heading = K.Heading -- Permanent Marker

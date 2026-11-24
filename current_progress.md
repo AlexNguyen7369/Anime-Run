@@ -246,8 +246,8 @@
 242. 2026-11-24 — Alex Nguyen — World 2 hero placement tooling with 7 pending moves, ledger Ids restored, biome harness hardened, rules audit of 26 pending meshes (6b5f773, 06e7de4, 9ec7d1a, 8cad767, 692ce70, 20af79f).
 243. 2026-11-24 — Alex Nguyen — Paused World 2 work for a move to another computer: WIP commits for the UI harness fixes and the placement search, handoff and nightly report updated.
 244. 2026-11-24 — Alex Nguyen — Uploaded the 26 audited World 2 scenery meshes, recorded their MeshIds in the ledgers and baked them into the World 2 place (saved as version 50).
-
 245. 2026-11-24 — Alex Nguyen — Wrote the World 2 cast handoff for the move to another computer and saved the upload log in docs; merged orch/world2/cast-ingame into feature/alex/world2-place.
+246. 2026-11-24 — Alex Nguyen — World 2 HUD uses the pre-scroll look (owner 2026-11-24), panels keep the scroll look; rule in design doc 4.47; not yet seen in Studio.
 
 ## What's next
 **Owner rules on the live save (restore the last clean DataStore version or inspect first), then finish the World 2 UI harness run and screenshots.**

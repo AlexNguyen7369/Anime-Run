@@ -48,9 +48,14 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 
 ## World HUD and welcome (proposed, design doc 4.47)
 ### World HUD
-- World label: `Client/WorldHud` shows "World N" (`WorldConfig.Id`) on a small lacquer plate under the top-right pills,
-  as wide as and right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales). Display
-  only; shown in both worlds.
+- HUD look (owner 2026-11-24, design doc 4.47 "World 2 HUD look"): World 2's always-on HUD keeps its look from before
+  the Scroll Dojo redesign (4.40, main at `6a36029^1`); every panel, popup and the boss event UI keep the 4.46 look.
+  One switch, `Client/HudPlaque.Old` (`WorldConfig.Id == 2`), read by HudChrome, BossEventUi (Bosses and Team column),
+  RacerUiController (Money, Gems, Turbo bar), TeamHud and WorldHud. Positions and behaviour are unchanged.
+- World label: `Client/WorldHud` shows "World N" (`WorldConfig.Id`) under the top-right pills, as wide as and
+  right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales): a small lacquer plate in
+  World 1, the old top-right pills' dark round pill with white outlined text in World 2. Display only; shown in both
+  worlds.
 - Travel: while the server holds a trip (player attribute `Travelling`, `WorldTravel.Go`, gate or admin command alike),
   TeamToast shows "Travelling to World N..."; a failed trip shows TeamToast's "TRAVEL FAILED, TRY AGAIN". The locked
   gate looks unchanged.
@@ -60,7 +65,8 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   (World 2 only) shows one small handscroll popup (4.46): "WORLD 2", "Welcome to the Rift Shrine", "Team of 4 unlocked",
   "New summon pool", "The World 1 gate in the plaza takes you back"; Close, OK or a click outside closes it; reduced
   effects fade. Words **proposed**.
-- Tests: ServerTest `world2_welcome`; UiTest `ui_world_label`, `ui_world2_welcome` (`Client/UiTest/UiWorld2`).
+- Tests: ServerTest `world2_welcome`; UiTest `ui_world_label`, `ui_world2_welcome`, `ui_hud_look_by_world`
+  (`Client/UiTest/UiWorld2`).
 
 ## Tracks
 Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tracks/World2/W2*.luau`.

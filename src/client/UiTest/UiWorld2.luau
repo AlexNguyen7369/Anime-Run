@@ -8,6 +8,9 @@
 --   world name, "Team of 4 unlocked", "New summon pool" and the gate hint, all inside the screen; clearing the attribute (what Close and OK do) closes it;
 --   setting it again the same session does not reopen it. The attribute is set locally; the once-per-save rule is the
 --   server's (ServerTest world2_welcome).
+-- ui_hud_look_by_world (design doc 4.47 "World 2 HUD look", owner 2026-11-24): World 2's always-on HUD has no option A
+--   dressing (no HudPlaque "Plaque" frame, no tilted Key seal, no Money / Gems lacquer plate); World 1's has them. In both
+--   worlds the panels keep the Scroll Dojo frame (a DojoHandscroll "Handscroll" inside each).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local WorldConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("WorldConfig"))
@@ -131,6 +134,33 @@ function Module.Build(h)
 		task.wait(CLOSE_WAIT)
 		gui:SetAttribute("Done", done)
 		player:SetAttribute("World2WelcomeShow", before)
+	end
+
+	function scenarios.ui_hud_look_by_world(res)
+		local old = WorldConfig.Id == 2
+		local plaques, seals = 0, 0
+		for _, name in { "HudChrome", "RacerSecondColumn" } do
+			local gui = playerGui:WaitForChild(name, 10)
+			h.check(res, "gui_" .. name, gui ~= nil, true, gui ~= nil)
+			for _, d in gui and gui:GetDescendants() or {} do
+				if d.Name == "Plaque" and d:IsA("Frame") then
+					plaques += 1
+				elseif d.Name == "Key" and d:IsA("TextLabel") and d.Rotation ~= 0 then
+					seals += 1 -- HudPlaque.Seal tilts the letter; the 4.40 letter stands straight
+				end
+			end
+		end
+		h.check(res, "hud_plaques", plaques, old and "none" or "some", (plaques == 0) == old)
+		h.check(res, "hud_key_seals", seals, old and "none" or "some", (seals == 0) == old)
+		local money = playerGui:WaitForChild("RacerHud", 10)
+		money = money and money:FindFirstChild("Money")
+		local lacquer = money and money:FindFirstChild("MoneyLacquer", true) ~= nil
+		h.check(res, "money_lacquer", lacquer, not old, money ~= nil and lacquer == not old)
+		for _, name in { "RacerIndex", "RacerSettings", "RacerRebirth" } do
+			local gui = playerGui:FindFirstChild(name)
+			local scroll = gui and gui:FindFirstChild("Handscroll", true) ~= nil
+			h.check(res, "panel_handscroll_" .. name, scroll, true, scroll == true)
+		end
 	end
 
 	-- After the real press of Panel/CloseButton or Panel/OK (UiSpec.Clicks world2_welcome_close / world2_welcome_ok).
