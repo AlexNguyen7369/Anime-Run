@@ -20,10 +20,35 @@ return {
 	boss_raga = {
 		BossModel = 130269423973743,
 	},
+	side_acrobat = {
+		Model = 115217387982002,
+		Portrait = "rbxassetid://140070519626038",
+		Head = "rbxassetid://131303156763676",
+	},
 	side_ant = {
 		Model = 133573733933407,
 		Portrait = "rbxassetid://87188552266607",
 		Head = "rbxassetid://129297026179030",
+	},
+	side_bird = {
+		Model = 85497370304201,
+		Portrait = "rbxassetid://121142938013946",
+		Head = "rbxassetid://139918095962055",
+	},
+	side_box = {
+		Model = 134005528599280,
+		Portrait = "rbxassetid://75370306404505",
+		Head = "rbxassetid://82357994478437",
+	},
+	side_brawler = {
+		Model = 120312293364890,
+		Portrait = "rbxassetid://134083826687137",
+		Head = "rbxassetid://134220149168386",
+	},
+	side_cat = {
+		Model = 121782519036344,
+		Portrait = "rbxassetid://117970428900002",
+		Head = "rbxassetid://83058406157966",
 	},
 	side_chain = {
 		Model = 112229379137002,
@@ -40,10 +65,20 @@ return {
 		Portrait = "rbxassetid://119448828185312",
 		Head = "rbxassetid://128276356237669",
 	},
+	side_dark = {
+		Model = 133476256749609,
+		Portrait = "rbxassetid://113577032458460",
+		Head = "rbxassetid://83197562937390",
+	},
 	side_dogs = {
 		Model = 73542226925997,
 		Portrait = "rbxassetid://79265029206445",
 		Head = "rbxassetid://78978754411546",
+	},
+	side_dragon = {
+		Model = 118672093182200,
+		Portrait = "rbxassetid://127704348062148",
+		Head = "rbxassetid://106638668351121",
 	},
 	side_fist = {
 		Model = 78050884886654,
@@ -55,6 +90,16 @@ return {
 		Portrait = "rbxassetid://123904858057635",
 		Head = "rbxassetid://137910633630283",
 	},
+	side_general = {
+		Model = 75949152774779,
+		Portrait = "rbxassetid://87167502379186",
+		Head = "rbxassetid://107025125741305",
+	},
+	side_hound = {
+		Model = 71119866911251,
+		Portrait = "rbxassetid://110551688719783",
+		Head = "rbxassetid://139182099801575",
+	},
 	side_king = {
 		Model = 94339477730899,
 		Portrait = "rbxassetid://70951540135357",
@@ -64,6 +109,11 @@ return {
 		Model = 125460333842793,
 		Portrait = "rbxassetid://130776132014249",
 		Head = "rbxassetid://98545701958767",
+	},
+	side_lucky = {
+		Model = 138714069198845,
+		Portrait = "rbxassetid://111168826035122",
+		Head = "rbxassetid://87750269571869",
 	},
 	side_mage = {
 		Model = 108346344179735,
@@ -89,6 +139,16 @@ return {
 		Model = 137436861669985,
 		Portrait = "rbxassetid://138487188877516",
 		Head = "rbxassetid://76284391914798",
+	},
+	side_shaman = {
+		Model = 91866701782318,
+		Portrait = "rbxassetid://100523436949269",
+		Head = "rbxassetid://86439536441019",
+	},
+	side_tiger = {
+		Model = 110392101738967,
+		Portrait = "rbxassetid://118647515657500",
+		Head = "rbxassetid://75949653913999",
 	},
 	side_wyvern = {
 		Model = 82529303318475,
