@@ -1,0 +1,213 @@
+{
+	"movement": "Walk",
+	"title": "Kaijo No. 10: double hammer fists (proposed)",
+	"end": 1.3,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.3,
+			"desc": "Arms flung wide, chest out, head back",
+			"root": {
+				"Torso": [
+					0,
+					0.35,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					-16,
+					0,
+					0
+				],
+				"Head": [
+					-10,
+					0,
+					0
+				],
+				"LeftArm": [
+					20,
+					-70,
+					0
+				],
+				"RightArm": [
+					20,
+					70,
+					0
+				],
+				"LeftLeg": [
+					-10,
+					-6,
+					0
+				],
+				"RightLeg": [
+					-10,
+					6,
+					0
+				],
+				"Tail": [
+					34,
+					0,
+					20
+				]
+			}
+		},
+		{
+			"name": "Raise",
+			"t": 0.55,
+			"desc": "Both fists joined overhead, on its toes",
+			"root": {
+				"Torso": [
+					0,
+					0.4,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					-24,
+					0,
+					0
+				],
+				"Head": [
+					-6,
+					0,
+					0
+				],
+				"LeftArm": [
+					-165,
+					-14,
+					0
+				],
+				"RightArm": [
+					-165,
+					14,
+					0
+				],
+				"LeftLeg": [
+					18,
+					0,
+					0
+				],
+				"RightLeg": [
+					18,
+					0,
+					0
+				],
+				"Tail": [
+					46,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.75,
+			"desc": "Slams both fists down, knees bent",
+			"root": {
+				"Torso": [
+					0,
+					-0.3,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					40,
+					0,
+					0
+				],
+				"Head": [
+					-26,
+					0,
+					0
+				],
+				"LeftArm": [
+					-64,
+					12,
+					0
+				],
+				"RightArm": [
+					-64,
+					-12,
+					0
+				],
+				"LeftLeg": [
+					-44,
+					-6,
+					0
+				],
+				"RightLeg": [
+					-44,
+					6,
+					0
+				],
+				"Tail": [
+					-10,
+					0,
+					0
+				]
+			},
+			"markers": [
+				{
+					"label": "ground slam",
+					"shape": "burst",
+					"at": [
+						0,
+						-4.6,
+						0.6
+					],
+					"r": 1.6,
+					"rgb": [
+						1,
+						0.3,
+						0.25
+					]
+				}
+			]
+		},
+		{
+			"name": "Recovery",
+			"t": 1.0,
+			"desc": "Rears up laughing, arms loose",
+			"parts": {
+				"Torso": [
+					-8,
+					0,
+					0
+				],
+				"Head": [
+					-16,
+					0,
+					0
+				],
+				"LeftArm": [
+					-10,
+					-16,
+					0
+				],
+				"RightArm": [
+					-10,
+					16,
+					0
+				],
+				"LeftLeg": [
+					4,
+					0,
+					0
+				],
+				"RightLeg": [
+					-4,
+					0,
+					0
+				],
+				"Tail": [
+					22,
+					0,
+					-16
+				]
+			}
+		}
+	]
+}

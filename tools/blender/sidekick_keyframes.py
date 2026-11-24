@@ -26,7 +26,7 @@ import boss_keyframes as bk  # noqa: E402
 import build_avatar  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(HERE))
-IDS = "side_chain side_wyvern side_knight side_pig side_crow side_reindeer side_dogs side_ant side_reaper side_fist side_curse side_fox side_king side_mage".split()
+IDS = "side_chain side_wyvern side_knight side_pig side_crow side_reindeer side_dogs side_ant side_reaper side_fist side_curse side_fox side_king side_mage side_box side_cat side_lucky side_tiger side_bird side_hound side_shaman side_acrobat side_brawler side_general side_dragon side_dark".split()
 bk.TMP = os.path.join(REPO, "build", "sidekick_keyframes", str(os.getpid()))
 
 MAIN, SIDE, COLS, STRIP_H, HEAD_H = (620, 680), (280, 250), 3, 104, 96
@@ -87,7 +87,7 @@ def apply_pose(objs, rest, rest_loc, trees, key, grounded):
 	if grounded and not key.get("air"):
 		for root, members in trees.items():
 			# a flat rig (side_king: every part its own root) grounds its legless roots on the whole figure's legs
-			legs = [n for n in members if "Leg" in n and "Neon" not in n] or [n for n in objs if "Leg" in n and "Neon" not in n]
+			legs = [n for n in members if "Leg" in n and "Neon" not in n] or [n for n in objs if "Leg" in n and "Neon" not in n] or members  # side_box hops, no legs
 			offsets[root][2] -= min(float(bk.verts(objs[n])[:, 2].min()) for n in legs)
 			objs[root].location = rest_loc[root] + Vector(offsets[root])
 		bpy.context.view_layer.update()

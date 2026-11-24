@@ -1,0 +1,214 @@
+{
+	"movement": "Walk",
+	"title": "Meowee: double swipe (proposed)",
+	"end": 1.0,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.25,
+			"desc": "Crouches low, head down, tail straight up",
+			"root": {
+				"Body": [
+					0,
+					0.3,
+					0
+				]
+			},
+			"parts": {
+				"Body": [
+					12,
+					0,
+					0
+				],
+				"Head": [
+					-8,
+					0,
+					12
+				],
+				"Tail": [
+					26,
+					0,
+					0
+				],
+				"LegFrontLeft": [
+					-34,
+					0,
+					0
+				],
+				"LegFrontRight": [
+					-34,
+					0,
+					0
+				],
+				"LegBackLeft": [
+					-18,
+					0,
+					0
+				],
+				"LegBackRight": [
+					-18,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.42,
+			"desc": "Springs up on hind legs, right paw slashes across",
+			"root": {
+				"Body": [
+					0,
+					-0.35,
+					0
+				]
+			},
+			"parts": {
+				"Body": [
+					-30,
+					0,
+					-14
+				],
+				"Head": [
+					22,
+					0,
+					-10
+				],
+				"Tail": [
+					30,
+					0,
+					20
+				],
+				"LegFrontLeft": [
+					-30,
+					-16,
+					0
+				],
+				"LegFrontRight": [
+					-92,
+					22,
+					0
+				],
+				"LegBackLeft": [
+					30,
+					0,
+					0
+				],
+				"LegBackRight": [
+					30,
+					0,
+					0
+				]
+			},
+			"markers": [
+				{
+					"label": "claw swipe",
+					"shape": "crescent",
+					"at": [
+						-0.4,
+						-3.0,
+						2.4
+					],
+					"r": 1.0,
+					"rgb": [
+						1,
+						0.95,
+						0.7
+					],
+					"spin": 200
+				}
+			]
+		},
+		{
+			"name": "Second swipe",
+			"t": 0.58,
+			"desc": "Left paw follows the other way, body twisted opposite",
+			"root": {
+				"Body": [
+					0,
+					-0.4,
+					0
+				]
+			},
+			"parts": {
+				"Body": [
+					-26,
+					0,
+					16
+				],
+				"Head": [
+					18,
+					0,
+					10
+				],
+				"Tail": [
+					24,
+					0,
+					-26
+				],
+				"LegFrontLeft": [
+					-96,
+					-22,
+					0
+				],
+				"LegFrontRight": [
+					-24,
+					14,
+					0
+				],
+				"LegBackLeft": [
+					26,
+					0,
+					0
+				],
+				"LegBackRight": [
+					26,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 0.8,
+			"desc": "Back on four paws, head turned away, unbothered",
+			"parts": {
+				"Body": [
+					2,
+					0,
+					0
+				],
+				"Head": [
+					-6,
+					0,
+					30
+				],
+				"Tail": [
+					-12,
+					0,
+					0
+				],
+				"LegFrontLeft": [
+					4,
+					0,
+					0
+				],
+				"LegFrontRight": [
+					-4,
+					0,
+					0
+				],
+				"LegBackLeft": [
+					2,
+					0,
+					0
+				],
+				"LegBackRight": [
+					-2,
+					0,
+					0
+				]
+			}
+		}
+	]
+}

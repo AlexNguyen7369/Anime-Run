@@ -1,0 +1,252 @@
+{
+	"movement": "Walk",
+	"title": "Acro Silka: spinning hair whip (proposed)",
+	"end": 1.3,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.3,
+			"desc": "Coils away on one leg, arms crossed over the body",
+			"parts": {
+				"Torso": [
+					6,
+					0,
+					60
+				],
+				"Head": [
+					0,
+					0,
+					-30
+				],
+				"LeftArm": [
+					-50,
+					0,
+					30
+				],
+				"RightArm": [
+					-50,
+					0,
+					-30
+				],
+				"LeftLeg": [
+					-50,
+					0,
+					0
+				],
+				"RightLeg": [
+					0,
+					0,
+					0
+				],
+				"HairWhipLeft": [
+					0,
+					0,
+					40
+				],
+				"HairWhipRight": [
+					0,
+					0,
+					40
+				],
+				"Skirt": [
+					0,
+					0,
+					14
+				]
+			}
+		},
+		{
+			"name": "Arabesque",
+			"t": 0.5,
+			"desc": "Tips forward, rear leg high behind, arms spread",
+			"root": {
+				"Torso": [
+					0,
+					0.2,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					34,
+					0,
+					0
+				],
+				"Head": [
+					-30,
+					0,
+					0
+				],
+				"LeftArm": [
+					0,
+					-70,
+					0
+				],
+				"RightArm": [
+					0,
+					70,
+					0
+				],
+				"LeftLeg": [
+					84,
+					0,
+					0
+				],
+				"RightLeg": [
+					-34,
+					0,
+					0
+				],
+				"HairWhipLeft": [
+					30,
+					0,
+					0
+				],
+				"HairWhipRight": [
+					30,
+					0,
+					0
+				],
+				"Skirt": [
+					-14,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.72,
+			"desc": "Unwinds in a spin, both hair whips crack forward",
+			"root": {
+				"Torso": [
+					0,
+					-0.4,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					10,
+					0,
+					-28
+				],
+				"Head": [
+					4,
+					0,
+					10
+				],
+				"LeftArm": [
+					-16,
+					-64,
+					0
+				],
+				"RightArm": [
+					-16,
+					64,
+					0
+				],
+				"LeftLeg": [
+					-64,
+					0,
+					0
+				],
+				"RightLeg": [
+					4,
+					0,
+					0
+				],
+				"HairWhipLeft": [
+					-70,
+					-70,
+					0
+				],
+				"HairWhipRight": [
+					-70,
+					70,
+					0
+				],
+				"Hair": [
+					-14,
+					0,
+					0
+				],
+				"Skirt": [
+					0,
+					0,
+					-18
+				]
+			},
+			"markers": [
+				{
+					"label": "hair whip",
+					"shape": "crescent",
+					"at": [
+						0,
+						-4.8,
+						3.6
+					],
+					"r": 2.0,
+					"rgb": [
+						0.9,
+						0.15,
+						0.25
+					],
+					"sx": 0.8
+				}
+			]
+		},
+		{
+			"name": "Recovery",
+			"t": 1.0,
+			"desc": "Curtsy, one leg behind, arms out low",
+			"parts": {
+				"Torso": [
+					16,
+					0,
+					0
+				],
+				"Head": [
+					8,
+					0,
+					0
+				],
+				"LeftArm": [
+					0,
+					-34,
+					0
+				],
+				"RightArm": [
+					0,
+					34,
+					0
+				],
+				"LeftLeg": [
+					26,
+					0,
+					0
+				],
+				"RightLeg": [
+					-18,
+					0,
+					0
+				],
+				"HairWhipLeft": [
+					-8,
+					0,
+					0
+				],
+				"HairWhipRight": [
+					-8,
+					0,
+					0
+				],
+				"Skirt": [
+					0,
+					0,
+					0
+				]
+			}
+		}
+	]
+}

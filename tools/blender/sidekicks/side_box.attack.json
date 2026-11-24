@@ -1,0 +1,133 @@
+{
+	"movement": "Walk",
+	"title": "Mimik: snapping bite (proposed)",
+	"end": 1.1,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.3,
+			"desc": "Rocks back on its rear edge, lid thrown wide, tongue curled in",
+			"root": {
+				"Base": [
+					0,
+					0.25,
+					0
+				]
+			},
+			"parts": {
+				"Base": [
+					-18,
+					0,
+					0
+				],
+				"Lid": [
+					-34,
+					0,
+					0
+				],
+				"Tongue": [
+					-40,
+					0,
+					10
+				]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.48,
+			"desc": "Lunges forward, lid slams shut on the target",
+			"root": {
+				"Base": [
+					0,
+					-0.4,
+					0
+				]
+			},
+			"parts": {
+				"Base": [
+					22,
+					0,
+					0
+				],
+				"Lid": [
+					38,
+					0,
+					0
+				],
+				"Tongue": [
+					24,
+					0,
+					0
+				]
+			},
+			"markers": [
+				{
+					"label": "bite",
+					"shape": "burst",
+					"at": [
+						0,
+						-3.2,
+						1.8
+					],
+					"r": 1.1,
+					"rgb": [
+						1,
+						0.35,
+						0.2
+					]
+				}
+			]
+		},
+		{
+			"name": "Chew",
+			"t": 0.66,
+			"desc": "Rocks to one side, lid half up, tongue licks out",
+			"root": {
+				"Base": [
+					0,
+					-0.2,
+					0
+				]
+			},
+			"parts": {
+				"Base": [
+					4,
+					10,
+					8
+				],
+				"Lid": [
+					10,
+					0,
+					0
+				],
+				"Tongue": [
+					10,
+					0,
+					-26
+				]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 0.88,
+			"desc": "Settles level, lid bounces a little open",
+			"parts": {
+				"Base": [
+					-5,
+					-3,
+					0
+				],
+				"Lid": [
+					-10,
+					0,
+					0
+				],
+				"Tongue": [
+					-6,
+					0,
+					6
+				]
+			}
+		}
+	]
+}

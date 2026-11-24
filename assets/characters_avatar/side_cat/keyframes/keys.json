@@ -1,0 +1,284 @@
+{
+ "id": "side_cat",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.4,
+   1.4
+  ],
+  "Head": [
+   0.0,
+   -0.9,
+   2.3
+  ],
+  "LegBackLeft": [
+   0.5,
+   1.1,
+   1.0
+  ],
+  "LegBackRight": [
+   -0.5,
+   1.1,
+   1.0
+  ],
+  "LegFrontLeft": [
+   0.46,
+   -0.5,
+   1.0
+  ],
+  "LegFrontRight": [
+   -0.46,
+   -0.5,
+   1.0
+  ],
+  "Tail": [
+   0.0,
+   1.6,
+   1.8
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Meowee: double swipe (proposed)",
+   "end": 1.0,
+   "Release": 0.42,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.25,
+     "desc": "Crouches low, head down, tail straight up",
+     "root_offset": {
+      "Body": [
+       0,
+       0.3,
+       0.188
+      ]
+     },
+     "rotations": {
+      "Body": [
+       12,
+       0,
+       0
+      ],
+      "Head": [
+       -8,
+       0,
+       12
+      ],
+      "LegBackLeft": [
+       -18,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       -18,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -34,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       -34,
+       0,
+       0
+      ],
+      "Tail": [
+       26,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.42,
+     "desc": "Springs up on hind legs, right paw slashes across",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.35,
+       0.296
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -30,
+       0,
+       -14
+      ],
+      "Head": [
+       22,
+       0,
+       -10
+      ],
+      "LegBackLeft": [
+       30,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       30,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -30,
+       -16,
+       0
+      ],
+      "LegFrontRight": [
+       -92,
+       22,
+       0
+      ],
+      "Tail": [
+       30,
+       0,
+       20
+      ]
+     }
+    },
+    {
+     "name": "Second swipe",
+     "t": 0.58,
+     "desc": "Left paw follows the other way, body twisted opposite",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.4,
+       0.266
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -26,
+       0,
+       16
+      ],
+      "Head": [
+       18,
+       0,
+       10
+      ],
+      "LegBackLeft": [
+       26,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       26,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -96,
+       -22,
+       0
+      ],
+      "LegFrontRight": [
+       -24,
+       14,
+       0
+      ],
+      "Tail": [
+       24,
+       0,
+       -26
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 0.8,
+     "desc": "Back on four paws, head turned away, unbothered",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0.072
+      ]
+     },
+     "rotations": {
+      "Body": [
+       2,
+       0,
+       0
+      ],
+      "Head": [
+       -6,
+       0,
+       30
+      ],
+      "LegBackLeft": [
+       2,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       -2,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       4,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       -4,
+       0,
+       0
+      ],
+      "Tail": [
+       -12,
+       0,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

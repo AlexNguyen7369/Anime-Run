@@ -1,0 +1,404 @@
+{
+ "id": "side_dragon",
+ "movement": "Fly",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.4,
+   2.9
+  ],
+  "Head": [
+   0.0,
+   -2.2,
+   6.3
+  ],
+  "HeadJaw": [
+   0.0,
+   -2.4,
+   5.9
+  ],
+  "LegBackLeft": [
+   0.9,
+   1.6,
+   2.4
+  ],
+  "LegBackRight": [
+   -0.9,
+   1.6,
+   2.4
+  ],
+  "LegFrontLeft": [
+   0.95,
+   -0.7,
+   2.8
+  ],
+  "LegFrontRight": [
+   -0.95,
+   -0.7,
+   2.8
+  ],
+  "Neck": [
+   0.0,
+   -0.8,
+   3.6
+  ],
+  "Tail": [
+   0.0,
+   2.2,
+   2.5
+  ],
+  "WingLeft": [
+   0.9,
+   0.0,
+   3.5
+  ],
+  "WingRight": [
+   -0.9,
+   0.0,
+   3.5
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadJaw": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Neck": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingRight": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Solara Dragon: flame breath (proposed)",
+   "end": 1.45,
+   "Release": 0.9,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.35,
+     "desc": "Wings sweep up, neck drawn back",
+     "root_offset": {
+      "Body": [
+       0,
+       0.5,
+       0.2
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -14,
+       0,
+       0
+      ],
+      "Head": [
+       14,
+       0,
+       0
+      ],
+      "HeadJaw": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegBackLeft": [
+       14,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       14,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -24,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       -24,
+       0,
+       0
+      ],
+      "Neck": [
+       -18,
+       0,
+       0
+      ],
+      "Tail": [
+       16,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       -30,
+       14
+      ],
+      "WingRight": [
+       0,
+       30,
+       -14
+      ]
+     }
+    },
+    {
+     "name": "Inhale",
+     "t": 0.65,
+     "desc": "Neck arched high, head back, jaw opening",
+     "root_offset": {
+      "Body": [
+       0,
+       0.6,
+       0.3
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -20,
+       0,
+       0
+      ],
+      "Head": [
+       -14,
+       0,
+       0
+      ],
+      "HeadJaw": [
+       16,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       20,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       20,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -38,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       -38,
+       0,
+       0
+      ],
+      "Neck": [
+       -30,
+       0,
+       0
+      ],
+      "Tail": [
+       26,
+       0,
+       16
+      ],
+      "WingLeft": [
+       0,
+       -10,
+       34
+      ],
+      "WingRight": [
+       0,
+       10,
+       -34
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.9,
+     "desc": "Neck whips forward, jaw wide, wings beat down",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.5,
+       -0.1
+      ]
+     },
+     "rotations": {
+      "Body": [
+       12,
+       0,
+       0
+      ],
+      "Head": [
+       -34,
+       0,
+       0
+      ],
+      "HeadJaw": [
+       38,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       34,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       34,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       20,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       20,
+       0,
+       0
+      ],
+      "Neck": [
+       34,
+       0,
+       0
+      ],
+      "Tail": [
+       -24,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       34,
+       -26
+      ],
+      "WingRight": [
+       0,
+       -34,
+       26
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.2,
+     "desc": "Head lifts, jaw shut, level hover",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -4,
+       0,
+       0
+      ],
+      "Head": [
+       6,
+       0,
+       -8
+      ],
+      "HeadJaw": [
+       0,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       6,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       6,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -4,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       -4,
+       0,
+       0
+      ],
+      "Neck": [
+       -4,
+       0,
+       8
+      ],
+      "Tail": [
+       4,
+       0,
+       -10
+      ],
+      "WingLeft": [
+       0,
+       -8,
+       4
+      ],
+      "WingRight": [
+       0,
+       8,
+       -4
+      ]
+     }
+    }
+   ]
+  }
+ }
+}
