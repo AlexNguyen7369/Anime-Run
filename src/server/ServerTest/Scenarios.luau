@@ -5128,6 +5128,40 @@ for _, row in require(script.Parent.CatalogTests).CAST do
 	table.insert(GACHA_CATALOG, table.clone(row))
 end
 local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" } -- Eternal: design doc 4.47
+-- The expected cast of a world as GACHA_CATALOG rows: World 1's is GACHA_CATALOG itself, World 2's is
+-- World2CastTests' tables (docs/WORLD2_SPEC.md "Cast in game"), ordered by rarity then list order so seeded loops over
+-- it draw the same in every run.
+local function gachaWorldCast(world)
+	if world ~= 2 then
+		return GACHA_CATALOG
+	end
+	local World2Cast = require(script.Parent.World2CastTests)
+	local cast = {}
+	for _, rarity in GACHA_RARITY_ORDER do
+		for _, id in World2Cast.CAST_BY_RARITY[rarity] or {} do
+			local spec = World2Cast.SPEC[id]
+			table.insert(cast, { Id = id, Rarity = rarity, Chance = spec[3], SpeedMulti = spec[4] })
+		end
+	end
+	return cast
+end
+-- One fixture per rarity of a cast, in rarity order: its least rare character that is always rollable. For World 1 these
+-- are GACHA_SEED's seven ids.
+local function gachaSeedsOf(cast)
+	local byRarity = {}
+	for _, c in cast do
+		if not c.Event and c.Chance and (not byRarity[c.Rarity] or c.Chance < byRarity[c.Rarity].Chance) then
+			byRarity[c.Rarity] = c
+		end
+	end
+	local seeds = {}
+	for _, rarity in GACHA_RARITY_ORDER do
+		if byRarity[rarity] then
+			table.insert(seeds, byRarity[rarity])
+		end
+	end
+	return seeds
+end
 local GACHA_STATS = { "Speed", "Money", "Luck", "Stamina" } -- design doc 4.19: the Workshop point is retired
 local GACHA_PER_POINT = { Speed = 0.02, Money = 0.1, Luck = 0.05, Stamina = 0.05 } -- design doc 4.13 / 4.6 (placeholders)
 local GACHA_ROLLS = 100000
@@ -9850,13 +9884,64 @@ function Scenarios.roll_anim()
 	end
 	local interval = GachaConfig.ROLL_INTERVAL
 	local tiers = { 3, 2.61, 2.27, 2 } -- the player's roll interval at each Roll Speed tier the spec names
-	local validIds, catchAllId = {}, nil
-	for _, c in GACHA_CATALOG do
+	-- Every character below comes from the place's own expected cast (design doc 4.47: a world's rolls give that
+	-- world's rollable characters only), picked by the part it plays in the rule under test, never by a typed id or
+	-- Chance: World 2's Chance values are proposed. World 1: GACHA_CATALOG, and the picks are the ids named beside them.
+	local placeCast = gachaWorldCast(sharedModule("WorldConfig").Id)
+	local seeds = gachaSeedsOf(placeCast) -- World 1: GACHA_SEED's ids, sea_navigator ... db_hero
+	local topSeed, secondSeed = seeds[#seeds], seeds[#seeds - 1] -- World 1: db_hero (Secret), leaf_crow (Mythic)
+	local validIds, catchAllId, rarest, rareFloor = {}, nil, nil, math.huge
+	for _, c in placeCast do
 		validIds[c.Id] = true
 		if c.Chance == 1 then
 			catchAllId = c.Id
 		end
+		if not c.Event and c.Chance and (not rarest or c.Chance > rarest.Chance) then
+			rarest = c -- World 1: a Secret; World 2 has no Secret, its rarest is an Eternal
+		end
+		-- the least rare Rare-or-rarer odds of this cast (World 1: 500, the start of the Rare band)
+		if c.Chance and c.Rarity ~= "Common" and c.Rarity ~= "Uncommon" then
+			rareFloor = math.min(rareFloor, c.Chance)
+		end
 	end
+	-- Design doc 4.40's bar, on the place's cast: `barThird` as the 3rd-rarest discovered and `barTarget` the character
+	-- nearest above 100 times its odds (the least rare such pair). World 1: db_green (1 in 20) and sea_swords (1 in
+	-- 2000), exactly on the bar.
+	local barThird, barTarget = nil, nil
+	for _, third in placeCast do
+		for _, target in placeCast do
+			local fits = not third.Event
+				and not target.Event
+				and third.Chance > 1
+				and target.Chance >= 100 * third.Chance
+				and target.Chance < secondSeed.Chance
+			if fits then
+				local ratio = target.Chance / third.Chance
+				local best = barThird and barTarget.Chance / barThird.Chance
+				if not best or ratio < best or (ratio == best and third.Chance < barThird.Chance) then
+					barThird, barTarget = third, target
+				end
+			end
+		end
+	end
+	local fixturesOk = catchAllId ~= nil
+		and rarest ~= nil
+		and #seeds >= 3
+		and barThird ~= nil
+		and topSeed.Id ~= catchAllId
+		and secondSeed.Id ~= catchAllId
+	if placeCast == GACHA_CATALOG then -- World 1 keeps its fixed fixtures: the picks are GACHA_SEED, db_green, sea_swords
+		fixturesOk = fixturesOk and #seeds == #GACHA_SEED and barThird.Id == "db_green" and barTarget.Id == "sea_swords"
+		fixturesOk = fixturesOk and rareFloor == GACHA_ODDS_BANDS.Rare[1] and rarest.Rarity == "Secret"
+		for i, c in GACHA_SEED do
+			fixturesOk = fixturesOk and seeds[i] ~= nil and seeds[i].Id == c.Id
+		end
+	end
+	check(checks, "roll_anim_world_fixtures", fixturesOk and 1 or 0, 1, fixturesOk)
+	if not fixturesOk then
+		return result("roll_anim", checks, metrics)
+	end
+	local rarestId = rarest.Id
 
 	-- RollAnimConfig: constants and pure functions
 	local cfgOk = RollAnimConfig ~= nil
@@ -10031,7 +10116,7 @@ function Scenarios.roll_anim()
 			return nil
 		end
 		local lenBad, lastBad, idBad, adjacentBad, lastFillerBad = 0, 0, 0, 0, 0
-		for k, c in GACHA_CATALOG do
+		for k, c in placeCast do
 			for s = 1, 20 do
 				local r = reel(Random.new(1000 * k + s), c.Id)
 				if not r or #r ~= n then
@@ -10064,8 +10149,8 @@ function Scenarios.roll_anim()
 		check(checks, "reel_last_filler_differs_from_result", lastFillerBad, 0, lastFillerBad == 0)
 		local detBad, indepBad = 0, 0
 		for s = 1, 200 do
-			local a = reel(Random.new(s), "db_hero")
-			local b = reel(Random.new(s), "db_hero")
+			local a = reel(Random.new(s), topSeed.Id)
+			local b = reel(Random.new(s), topSeed.Id)
 			local c = reel(Random.new(s), catchAllId)
 			if not (a and b and #a == #b) then
 				detBad += 1
@@ -10105,7 +10190,7 @@ function Scenarios.roll_anim()
 		-- then it is redrawn from Common and Uncommon only, without those ids, weighted 1 / Chance (owner 2026-11-04).
 		-- So Rare and rarer only ever come from the plain roll and are never above their plain odds.
 		local lowWeight = {}
-		for _, c in GACHA_CATALOG do
+		for _, c in placeCast do
 			if not c.Event and (c.Rarity == "Common" or c.Rarity == "Uncommon") then
 				lowWeight[c.Id] = 1 / c.Chance
 			end
@@ -10141,7 +10226,7 @@ function Scenarios.roll_anim()
 		local counts, fillers, reelErr = {}, 0, 0
 		local rng = Random.new(ROLL_ANIM_REEL_SEED)
 		for i = 1, ROLL_ANIM_REELS do
-			local resultId = GACHA_SEED[(i - 1) % #GACHA_SEED + 1].Id
+			local resultId = seeds[(i - 1) % #seeds + 1].Id
 			local r = reel(rng, resultId)
 			if not r or #r ~= n then
 				reelErr += 1
@@ -10153,17 +10238,17 @@ function Scenarios.roll_anim()
 			end
 		end
 		check(checks, "reel_odds_sample_ok", reelErr, 0, reelErr == 0 and fillers == ROLL_ANIM_REELS * (n - 1))
-		local expected = gachaExpected(1)
-		local wantCount = {} -- id -> expected fillers over the sampled reels (the results cycle through GACHA_SEED)
-		for k, c in GACHA_SEED do
-			local reelsOf = ROLL_ANIM_REELS // #GACHA_SEED + (k <= ROLL_ANIM_REELS % #GACHA_SEED and 1 or 0)
+		local expected = gachaExpected(1, placeCast)
+		local wantCount = {} -- id -> expected fillers over the sampled reels (the results cycle through the seeds)
+		for k, c in seeds do
+			local reelsOf = ROLL_ANIM_REELS // #seeds + (k <= ROLL_ANIM_REELS % #seeds and 1 or 0)
 			for _, odds in fillerOdds(expected, c.Id) do
 				for id, p in odds do
 					wantCount[id] = (wantCount[id] or 0) + reelsOf * p
 				end
 			end
 		end
-		for _, c in GACHA_SEED do
+		for _, c in seeds do
 			local mean = wantCount[c.Id]
 			local p = fillers > 0 and mean / fillers or 0
 			local tol = GACHA_SIGMAS * math.sqrt(fillers * p * (1 - p)) + GACHA_FLOOR
@@ -10180,14 +10265,14 @@ function Scenarios.roll_anim()
 		-- The slot right before the result, for rare results and for the catch-all: its non-common share is the rule's exact
 		-- one, and its Rare+ share stays within the plain luck-1 odds whatever was rolled (no fake near-miss)
 		local pRarePlain = 0
-		-- every rollable character (seed + expansion manifest + event variants at 0), not only the seven seeds
-		for _, c in GACHA_CATALOG do
-			if c.Chance and c.Chance >= GACHA_ODDS_BANDS.Rare[1] then
+		-- every rollable character (seed + expansion manifest + event variants at 0), not only the seeds
+		for _, c in placeCast do
+			if c.Chance and c.Chance >= rareFloor then
 				pRarePlain += expected[c.Id]
 			end
 		end
 		local nm = Random.new(ROLL_ANIM_NEAR_MISS_SEED)
-		local cases = { "db_hero", "leaf_crow", catchAllId }
+		local cases = { topSeed.Id, secondSeed.Id, catchAllId }
 		local slots, nonCommon, rarePlus = 0, 0, 0
 		local slotsOf, rareOf = {}, {}
 		for i = 1, ROLL_ANIM_REELS do
@@ -10199,7 +10284,7 @@ function Scenarios.roll_anim()
 				local spec = CharacterCatalog.Get(r[n - 1])
 				if spec and spec.Chance ~= 1 then
 					nonCommon += 1
-					if spec.Chance >= GACHA_ODDS_BANDS.Rare[1] then -- Rare or rarer (odds rev. 2026-10-27)
+					if spec.Chance >= rareFloor then -- Rare or rarer (odds rev. 2026-10-27)
 						rarePlus += 1
 						rareOf[resultId] = (rareOf[resultId] or 0) + 1
 					end
@@ -10264,9 +10349,18 @@ function Scenarios.roll_anim()
 			end
 			check(checks, name, #bad, table.concat(bad, ","), #bad == 0)
 		end
-		local allIds = {}
+		-- The cases below name World 1's characters in both places: IsEmphasized reads only odds, the catalog holds
+		-- every world's rows and a save keeps every world's discoveries. The place's own cast joins the two sweeps.
+		local allIds, wantChance = {}, {} -- wantChance: the test-side odds, never the game catalog's
 		for _, c in GACHA_CATALOG do
 			table.insert(allIds, c.Id)
+			wantChance[c.Id] = c.Chance
+		end
+		for _, c in placeCast do
+			if not table.find(allIds, c.Id) then
+				table.insert(allIds, c.Id)
+				wantChance[c.Id] = c.Chance
+			end
 		end
 		-- Odds: db_hero 1.6e16, leaf_crow 5e9, leaf_hero 1e7, db_tyrant 5e4, leaf_copycat 500, leaf_medic 10, sea_navigator 1
 		local top3 = { "db_hero", "leaf_crow", "db_tyrant" } -- 3rd = 5e4, bar 5e6
@@ -10276,7 +10370,7 @@ function Scenarios.roll_anim()
 		local two = { "db_hero", "leaf_crow" } -- fewer than 3: the starter's 1, bar 100
 		local newCases = {}
 		for _, id in allIds do
-			table.insert(newCases, { id, {}, (CharacterCatalog.Get(id).Chance or 0) >= 100 })
+			table.insert(newCases, { id, {}, (wantChance[id] or 0) >= 100 })
 		end
 		expectAll("emph_nothing_owned_needs_100x_starter", newCases)
 		local ownedCases = {}
@@ -10375,17 +10469,7 @@ function Scenarios.roll_anim()
 		GachaService.Announce = function(player, id, rolls)
 			table.insert(calls, { player = player, id = id, rolls = rolls })
 		end
-		local rarestId = nil
-		for _, spec in GACHA_CATALOG do
-			if
-				not spec.Event
-				and spec.Chance
-				and (not rarestId or spec.Chance > CharacterCatalog.Get(rarestId).Chance)
-			then
-				rarestId = spec.Id
-			end
-		end
-		local secret = seqRoller({ 0 }) -- hits the manifest's rarest base character first
+		local secret = seqRoller({ 0 }) -- hits the place's rarest base character first (rarestId: World 2's is an Eternal)
 		local r1 = newTestPlayer(cleanup, "ServerTestRollAnimP1")
 		GachaService.Setup(r1)
 		local packed = table.pack(pcall(GachaService.Roll, r1, secret))
@@ -10406,29 +10490,29 @@ function Scenarios.roll_anim()
 		check(checks, "service_roll_owned_not_emphasized", second and 1 or 0, 1, second)
 		check(checks, "announce_not_on_owned_roll", #calls, 1, #calls == 1)
 
-		-- Design doc 4.40: 3rd-rarest owned is db_green (1 in 20), bar 1 in 2000: sea_swords, exactly on it, is
-		-- emphasized; the catch-all is not. Audit 2026-11-20 (commit c80e4de): db_scholar dropped to 1 in 600, under
-		-- the old leaf_medic bar of 1 in 1000, so the fixture owns db_green and rolls sea_swords instead.
+		-- Design doc 4.40: 3rd-rarest owned is barThird, the bar is 100 times its odds: barTarget, on the bar, is
+		-- emphasized; the catch-all is not. World 1: db_green (1 in 20), bar 1 in 2000, sea_swords exactly on it (audit
+		-- 2026-11-20, commit c80e4de: db_scholar dropped to 1 in 600, under the old leaf_medic bar of 1 in 1000).
 		local r2 = newTestPlayer(cleanup, "ServerTestRollAnimP2")
 		GachaService.Setup(r2)
-		for _, id in { "db_hero", "leaf_crow", "db_green" } do
+		for _, id in { topSeed.Id, secondSeed.Id, barThird.Id } do
 			GachaService.Grant(r2, id)
 		end
 		local before = #calls
 		local barDraws = {}
-		local barChance = CharacterCatalog.Get("sea_swords").Chance
-		for _, spec in GACHA_CATALOG do
+		local barChance = barTarget.Chance
+		for _, spec in placeCast do
 			if not spec.Event and spec.Chance and spec.Chance > barChance then
 				table.insert(barDraws, 0.99)
 			end
 		end
 		table.insert(barDraws, 0)
 		local okB, idB, newB, _, emphB = pcall(GachaService.Roll, r2, seqRoller(barDraws))
-		local atBar = okB and idB == "sea_swords" and newB == true and emphB == true
+		local atBar = okB and idB == barTarget.Id and newB == true and emphB == true
 		check(checks, "service_roll_100x_third_rarest_emphasized", atBar and 1 or 0, 1, atBar)
 		local annB = #calls == before + 1
 			and calls[#calls].player == r2
-			and calls[#calls].id == "sea_swords"
+			and calls[#calls].id == barTarget.Id
 			and calls[#calls].rolls == r2:GetAttribute("Rolls")
 		check(checks, "announce_100x_third_rarest", #calls - before, 1, annB)
 		before = #calls
@@ -10571,7 +10655,7 @@ function Scenarios.roll_anim()
 			check(checks, "wait_after_uses_player_interval", "no GachaService.WaitAfter or RollAnimConfig", 0, false)
 		end
 
-		-- Timed auto-roll (both run at once): A rolls a forced Secret through StartAutoRoll(player, roller) and must
+		-- Timed auto-roll (both run at once): A rolls the place's forced rarest (a Secret in World 1) through StartAutoRoll(player, roller) and must
 		-- wait ROLL_INTERVAL + ExtraPause before the next roll; B starts with AutoRoll = false and must not roll
 		-- until it is turned back on.
 		local pa = newTestPlayer(cleanup, "ServerTestRollAnimPause")
@@ -10605,7 +10689,7 @@ function Scenarios.roll_anim()
 		local onAt = os.clock()
 		-- measured from the switch: only a roll made AFTER AutoRoll is back on counts as resuming
 		local rollsAtOn = pb:GetAttribute("Rolls") or 0
-		local wantGap = interval + math.max(0, rollAnimDuration("Secret", true, interval) - interval)
+		local wantGap = interval + math.max(0, rollAnimDuration(rarest.Rarity, true, interval) - interval)
 		local deadline = math.max(onAt + interval + ROLL_ANIM_LATE, t0 + interval + wantGap + 2 * ROLL_ANIM_LATE)
 		local resumedAt = nil
 		while os.clock() < deadline do

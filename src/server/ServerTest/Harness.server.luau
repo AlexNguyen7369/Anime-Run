@@ -94,7 +94,7 @@ local function runAll()
 		names = string.split((string.gsub(only, "%s", "")), ",")
 		trackTests = nil
 	end
-	-- Written against World 1's tracks, biomes or roll pool (TestConfig.World1Only, and every TrackTests file): in
+	-- Written against World 1's tracks or biomes (TestConfig.World1Only, and every TrackTests file): in
 	-- another world they are reported as SKIP, never as a pass or a fail.
 	local world1 = require(ReplicatedStorage.Shared.WorldConfig).Id == 1
 	local skipped = {}
