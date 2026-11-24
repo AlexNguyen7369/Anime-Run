@@ -1,0 +1,81 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f \"$HOME/.claude/skills/orchestrator/scripts/context_watch.py\" ] || python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/orchestrator/scripts/context_watch.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f \"$HOME/.claude/skills/orchestrator/scripts/context_watch.py\" ] || python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/orchestrator/scripts/context_watch.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f \"$HOME/.claude/skills/orchestrator/scripts/context_watch.py\" ] || python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/orchestrator/scripts/context_watch.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f \"$HOME/.claude/skills/orchestrator/scripts/context_watch.py\" ] || python3 \"$CLAUDE_PROJECT_DIR/.claude/skills/orchestrator/scripts/context_watch.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    },
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    },
+    "brag": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/latent-spaces/brag.git"
+      }
+    },
+    "neon": {
+      "source": {
+        "source": "github",
+        "repo": "neondatabase/agent-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "ponytail@ponytail": true,
+    "caveman@caveman": true,
+    "brag@brag": true,
+    "neon-postgres@neon": true,
+    "vercel@claude-plugins-official": true
+  }
+}
