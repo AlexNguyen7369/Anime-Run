@@ -572,6 +572,74 @@ if process.env.WORLD == "2" then -- first what the other tracks and the spawn ar
 	end
 end
 BD.Prune(models, { spawnArea })
+local w2Hits = {} -- WORLD=2: box road hits, one key per placement (biome, Placed_<k>, prop, track, rounded draft position)
+-- A fresh copy of a biome's generated draft, not the table Kit.fromDraft was handed, so nothing Kit or BiomeDressing does
+-- to the rows or sizes can reach what the built props are compared against.
+local function freshDraft(biome)
+	local node = Shared:FindFirstChild("BiomeThemes"):FindFirstChild("World2"):FindFirstChild(biome .. "Draft")
+	local saved = cache[node._path]
+	cache[node._path] = nil
+	local raw = req(node)
+	cache[node._path] = saved
+	return raw
+end
+-- (c) A placed prop stands where its draft row says (the transform the exporter road-tested): its mesh part has the
+-- row's CFrame (origin * (X, Y, Z) * YXZ(RX, Yaw, RZ), up by half its height) and Size (the draft Size times Scale or
+-- Stretch); without a mesh (NOMESH, PartsOnly, parts fallback) every fallback part <Name><i> has its centre at
+-- base * (Pos * Scale) and the draft part's size, up to the axis swap Kit.fromDraft makes for a cylinder (the only
+-- change Kit may make: part shapes, mesh names and shadows; never a size or a placement). Stretched rows check the
+-- part centres only. Returns ok, why.
+local function placedOk(origin, row, def, prop, name)
+	local s = row[9] or row[6]
+	local base = origin
+		* R.CFrame.new(row[2], row[3], row[4])
+		* R.CFrame.fromEulerAnglesYXZ(row[7] or 0, row[5], row[8] or 0)
+	local mesh = prop:FindFirstChild(name)
+	if mesh then
+		local size = def.Size * s
+		local want, got = base * R.CFrame.new(0, size.Y / 2, 0), mesh.CFrame
+		if
+			(got.Position - want.Position).Magnitude < 0.01
+			and (mesh.Size - size).Magnitude < 0.01
+			and got.RightVector:Dot(want.RightVector) > 0.99999
+			and got.UpVector:Dot(want.UpVector) > 0.99999
+		then
+			return true
+		end
+		return false,
+			string.format(
+				"mesh at %s size %s, draft row says %s size %s",
+				tostring(got.Position),
+				tostring(mesh.Size),
+				tostring(want.Position),
+				tostring(size)
+			)
+	end
+	for j, q in def.Parts do
+		local part = prop:FindFirstChild(name .. j)
+		if not part then
+			return false, "neither its mesh part nor fallback part " .. j .. " is built"
+		end
+		local want, size = base * ((q.Pos or q[2]) * s), (q.Size or q[1]) * s
+		local a, b = { part.Size.X, part.Size.Y, part.Size.Z }, { size.X, size.Y, size.Z }
+		table.sort(a)
+		table.sort(b)
+		local sizeOk = type(s) ~= "number"
+			or math.abs(a[1] - b[1]) + math.abs(a[2] - b[2]) + math.abs(a[3] - b[3]) < 0.03
+		if (part.CFrame.Position - want).Magnitude > 0.01 or not sizeOk then
+			return false,
+				string.format(
+					"fallback part %d at %s size %s, draft row says %s size %s",
+					j,
+					tostring(part.CFrame.Position),
+					tostring(part.Size),
+					tostring(want),
+					tostring(size)
+				)
+		end
+	end
+	return true
+end
 if process.env.WORLD == "2" then -- draft placements kept by the budget and own-ground rule (built), then by Prune (kept)
 	local Themes = req(Shared.BiomeThemes)
 	-- WORLD2_SPEC 2026-11-24: draft props are road-tested at export against every track (export_props.py, real
@@ -579,15 +647,10 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 	-- kept placement, and (b) no kept Placed_ prop intrudes on another track's corridor. (b) approximates the exporter's
 	-- triangle test: each part's box centre (a mesh is one box here) within 24 studs of another track's centre line and
 	-- from its road top to 14 over it. A box is coarser than the triangles and every draft placement already passed the
-	-- exporter's test, so a (b) hit pinned in tools/lune/w2_road_warn_pins.json (biome, prop, track: count) is a
-	-- "W2 ROAD WARN" line; an unpinned hit or a higher count is a FAIL. PIN=write rewrites the pins from this build
-	-- (rerun it after any placement change). (c) That verdict holds for the game only if the game builds each
-	-- placement where the exporter tested it: every mesh placement's part must have the draft row's CFrame and Size
-	-- (origin * (X, Y, Z) * YXZ(RX, Yaw, RZ), up by half its height; Size * Scale), "W2 TRANSFORM FAIL" otherwise.
-	-- Prints "W2 ROAD FAIL <check>" and "W2 ROAD CHECKS pass=<n> fail=<n> warn=<n>".
+	-- exporter's test, so each (b) hit goes to w2Hits, judged against tools/lune/w2_road_warn_pins.json after
+	-- SnapToTerrain (the PIN block, with (c): placedOk). Prints "W2 ROAD FAIL <check>" and "W2 ROAD CHECKS pass fail".
 	do
-		local rpass, rfail, rwarn = 0, 0, 0
-		local tpass, tfail, hits, hitWhere = 0, 0, {}, {}
+		local rpass, rfail = 0, 0
 		local function rcheck(ok, name)
 			if ok then
 				rpass += 1
@@ -675,39 +738,6 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 					if #ps > 0 then -- a hero counts only with something built (a mesh or its fallback parts)
 						kept[designed(name)] = (kept[designed(name)] or 0) + 1
 					end
-					local def = name and Themes[e.Biome].Props[name]
-					local mp = def and def.Mesh and not process.env.NOMESH and prop:FindFirstChild(def.Name) -- (c) the mesh
-					if mp then
-						local m = Themes[e.Biome].Placed[k]
-						local size = def.Size * (m[9] or m[6])
-						local want = e.Origin
-							* R.CFrame.new(m[2], m[3], m[4])
-							* R.CFrame.fromEulerAnglesYXZ(m[7] or 0, m[5], m[8] or 0)
-							* R.CFrame.new(0, size.Y / 2, 0)
-						local got = mp.CFrame
-						if
-							(got.Position - want.Position).Magnitude < 0.01
-							and (mp.Size - size).Magnitude < 0.01
-							and got.RightVector:Dot(want.RightVector) > 0.99999
-							and got.UpVector:Dot(want.UpVector) > 0.99999
-						then
-							tpass += 1
-						else
-							tfail += 1
-							print(
-								string.format(
-									"W2 TRANSFORM FAIL %s %s %s: built at %s size %s, draft row says %s size %s",
-									e.Biome,
-									prop.Name,
-									name,
-									tostring(got.Position),
-									tostring(mp.Size),
-									tostring(want.Position),
-									tostring(size)
-								)
-							)
-						end
-					end
 					for _, part in ps do
 						local half = part.Size / 2
 						local cf = part.CFrame
@@ -727,11 +757,18 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 									if not seen[box] and not (box[1] == i and exempt[designed(name)]) then
 										seen[box] = true
 										if sat(cf, half, box[2], box[3]) then
-											bad[prop.Name .. " " .. name .. " on track " .. box[1]] = e.Biome
-												.. " "
-												.. name
-												.. " track "
-												.. box[1]
+											local row = Themes[e.Biome].Placed[k]
+											bad[string.format(
+												"%s %s %s track %d at %d,%d,%d",
+												e.Biome,
+												prop.Name,
+												name,
+												box[1],
+												math.round(row[2]),
+												math.round(row[3]),
+												math.round(row[4])
+											)] =
+												true
 										end
 									end
 								end
@@ -756,48 +793,12 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 						)
 					)
 				end
-				for what, key in bad do
-					hits[key] = (hits[key] or 0) + 1
-					hitWhere[key] = (hitWhere[key] and hitWhere[key] .. ", " or "") .. string.match(what, "^%S+")
+				for key in bad do
+					w2Hits[key] = true
 				end
 			end
 		end
-		local PINS = ROOT .. "/tools/lune/w2_road_warn_pins.json"
-		local keys = {}
-		for key in hits do
-			table.insert(keys, key)
-		end
-		table.sort(keys)
-		if process.env.PIN == "write" then
-			local out = {}
-			for _, key in keys do
-				table.insert(out, string.format("\t%q: %d", key, hits[key]))
-			end
-			fs.writeFile(PINS, "{\n" .. table.concat(out, ",\n") .. "\n}\n")
-			print("W2 ROAD pins written: " .. PINS)
-		end
-		local okPins, pinText = pcall(fs.readFile, PINS)
-		local pins = okPins and serde.decode("json", pinText) or {}
-		rcheck(okPins, "box-hit pins file exists (tools/lune/w2_road_warn_pins.json; PIN=write makes it)")
-		for _, key in keys do
-			if hits[key] <= (pins[key] or 0) then
-				rwarn += hits[key]
-				print(string.format("W2 ROAD WARN pinned box hit %s x%d: %s", key, hits[key], hitWhere[key]))
-			else
-				rcheck(
-					false,
-					string.format(
-						"box hit %s x%d over its pin %d (%s): the exporter's triangle test did not see this",
-						key,
-						hits[key],
-						pins[key] or 0,
-						hitWhere[key]
-					)
-				)
-			end
-		end
-		print(string.format("W2 TRANSFORM CHECKS pass=%d fail=%d", tpass, tfail))
-		print(string.format("W2 ROAD CHECKS pass=%d fail=%d warn=%d", rpass, rfail, rwarn))
+		print(string.format("W2 ROAD CHECKS pass=%d fail=%d", rpass, rfail))
 	end
 	do -- a cut prop's pieces (Group, Whole) are built, skipped and pruned together: a synthetic two-piece group on Track 1
 		local gpass, gfail = 0, 0
@@ -831,6 +832,11 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 		-- piece 2's own base is far off the ground; the whole prop's base is on it: both build
 		local model, p1, p2 = build(R.Vector3.new(0, -1, -150), R.Vector3.new(99999, 0, 99999))
 		gcheck(p1 ~= nil and p2 ~= nil, "both pieces build when the whole prop's base is on the ground")
+		for n, pc in { p1, p2 } do
+			local row = n == 1 and { "Piece_p1", 0, -1, -150, 0, 1 } or { "Piece_p2", 99999, -1, 99999, 0, 1 }
+			local ok, why = placedOk(entries[1].Origin, row, piece, pc, piece.Name)
+			gcheck(ok, "piece " .. n .. " stands where its row says: " .. (why or ""))
+		end
 		gcheck(
 			p1 and p1:GetAttribute("PlacedGroup") == 1 and p2 and p2:GetAttribute("PlacedGroup") == 1,
 			"pieces carry PlacedGroup"
@@ -984,10 +990,12 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 	-- tools/blender/world2/chain_check.json (each track's waypoint count, every Step-th world waypoint and the last;
 	-- python3 tools/blender/world2/chain.py rewrites it) within 0.05 studs of TrackBuilder's. Missing file: FAIL.
 	local ok, text = pcall(fs.readFile, ROOT .. "/tools/blender/world2/chain_check.json")
-	local chain, worst, same = ok and serde.decode("json", text) or {}, 0, ok and #entries == 10
+	local chain, worst = ok and serde.decode("json", text) or {}, 0
+	local same = ok and #chain == 10
 	for i, e in entries do
 		local wps, c = e.Layout.WorldWaypoints, chain[i] or { Count = -1, Step = 1, Points = {} }
-		same = same and #wps == c.Count
+		local want = math.floor((c.Count - 1) / c.Step) + 1 + ((c.Count - 1) % c.Step ~= 0 and 1 or 0)
+		same = same and #wps == c.Count and #c.Points > 0 and #c.Points == want
 		for n, p in c.Points do
 			local w = wps[math.min((n - 1) * c.Step + 1, #wps)]
 			worst = math.max(worst, math.abs(w.X - p[1]), math.abs(w.Y - p[2]), math.abs(w.Z - p[3]))
@@ -1026,6 +1034,126 @@ end
 local t0 = os.clock()
 local moved, dropped = BD.SnapToTerrain(models)
 print(string.format("snap %.1fs moved %d dropped %d", os.clock() - t0, moved, dropped))
+if process.env.WORLD == "2" then
+	-- After SnapToTerrain, the props as the game ships them: (c) every kept draft placement stands where its raw draft
+	-- row says (placedOk), and the pins (tools/lune/w2_road_warn_pins.json): Hits, one key per box road hit the
+	-- exporter's triangle test cleared (a hit not on it is a FAIL, a pin no longer hit is STALE: a FAIL with
+	-- PINSTRICT=1), and Dropped, per track the draft rows not kept (more is a FAIL, fewer is STALE). PIN=write
+	-- rewrites the pins from this build, only when all 10 tracks ran; rerun it after any placement change.
+	local tpass, tfail, ppass, pfail, pwarn = 0, 0, 0, 0, 0
+	local function pcheck(ok, name)
+		if ok then
+			ppass += 1
+		else
+			pfail += 1
+			print("W2 PIN FAIL " .. name)
+		end
+	end
+	local nDropped, ran = {}, {}
+	for i, e in entries do
+		if table.find(W2_APPROVED, e.Biome) then
+			ran[e.Biome] = true
+			local raw, kept = freshDraft(e.Biome), 0
+			for _, prop in models[i].Environment:GetChildren() do
+				local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+				if k then
+					kept += 1
+					local row = raw.Placed[k]
+					local ok, why = placedOk(e.Origin, row, raw.Props[row[1]], prop, row[1])
+					if ok then
+						tpass += 1
+					else
+						tfail += 1
+						print(string.format("W2 TRANSFORM FAIL %s %s %s: %s", e.Biome, prop.Name, row[1], why))
+					end
+				end
+			end
+			nDropped[tostring(i)] = #raw.Placed - kept
+		end
+	end
+	local PINS = ROOT .. "/tools/lune/w2_road_warn_pins.json"
+	local okPins, pinText = pcall(fs.readFile, PINS)
+	local pins = okPins and serde.decode("json", pinText) or {}
+	pins.Hits, pins.Dropped = pins.Hits or {}, pins.Dropped or {}
+	local keys = {}
+	for key in w2Hits do
+		table.insert(keys, key)
+	end
+	table.sort(keys)
+	if process.env.PIN == "write" then
+		if #entries ~= 10 then
+			pcheck(false, string.format("PIN=write refused: %d of 10 tracks ran", #entries))
+		else
+			local old, now = {}, {}
+			for _, key in pins.Hits do
+				old[key] = true
+			end
+			for _, key in keys do
+				now[key] = true
+				if not old[key] then
+					print("W2 PIN added " .. key)
+				end
+			end
+			for _, key in pins.Hits do
+				if not now[key] then
+					print("W2 PIN removed " .. key)
+				end
+			end
+			local quoted, drops = {}, {}
+			for _, key in keys do
+				table.insert(quoted, string.format("%q", key))
+			end
+			for t = 1, 10 do
+				if nDropped[tostring(t)] then
+					table.insert(drops, string.format('"%d": %d', t, nDropped[tostring(t)]))
+				end
+			end
+			fs.writeFile(
+				PINS,
+				'{\n\t"Dropped": { '
+					.. table.concat(drops, ", ")
+					.. ' },\n\t"Hits": [\n\t\t'
+					.. table.concat(quoted, ",\n\t\t")
+					.. "\n\t]\n}\n"
+			)
+			print("W2 PIN written " .. PINS)
+			okPins, pins = true, { Hits = keys, Dropped = nDropped }
+		end
+	end
+	pcheck(okPins, "pins file exists (tools/lune/w2_road_warn_pins.json; PIN=write makes it)")
+	local pinned = {}
+	for _, key in pins.Hits do
+		pinned[key] = true
+	end
+	for _, key in keys do
+		if pinned[key] then
+			pwarn += 1
+			print("W2 ROAD WARN pinned box hit " .. key)
+		else
+			pcheck(false, "box hit not pinned (the exporter's triangle test did not see it): " .. key)
+		end
+	end
+	for _, key in pins.Hits do
+		local track = tonumber(string.match(key, " track (%d+) at "))
+		if ran[string.match(key, "^%S+")] and track and track <= #entries and not w2Hits[key] then
+			print("W2 PIN STALE " .. key)
+			pcheck(not process.env.PINSTRICT, "stale pin (PINSTRICT=1): " .. key)
+		end
+	end
+	for t, n in nDropped do
+		local pin = pins.Dropped[t]
+		pcheck(
+			pin ~= nil and n <= pin,
+			string.format("track %s drops %d draft placements, pinned %s", t, n, tostring(pin))
+		)
+		if pin and n < pin then
+			print(string.format("W2 PIN STALE track %s drops %d, pinned %d", t, n, pin))
+			pcheck(not process.env.PINSTRICT, "stale Dropped pin (PINSTRICT=1) for track " .. t)
+		end
+	end
+	print(string.format("W2 TRANSFORM CHECKS pass=%d fail=%d", tpass, tfail))
+	print(string.format("W2 PIN CHECKS pass=%d fail=%d warn=%d", ppass, pfail, pwarn))
+end
 local changed = 0
 for k, h in corr do
 	local x, z = k:match("(.-),(.*)")
