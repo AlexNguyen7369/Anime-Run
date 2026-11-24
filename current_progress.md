@@ -245,6 +245,7 @@
 241. 2026-11-24 — Alex Nguyen — World 2 track rewards (World 1 Track 10 Cash x 2^N, placeholder) and Awakening (stars from Copies) with tests (743d6d8, f25567c, ce42e38, 643f601, 46db38e).
 242. 2026-11-24 — Alex Nguyen — World 2 hero placement tooling with 7 pending moves, ledger Ids restored, biome harness hardened, rules audit of 26 pending meshes (6b5f773, 06e7de4, 9ec7d1a, 8cad767, 692ce70, 20af79f).
 243. 2026-11-24 — Alex Nguyen — Paused World 2 work for a move to another computer: WIP commits for the UI harness fixes and the placement search, handoff and nightly report updated.
+244. 2026-11-24 — Alex Nguyen — Uploaded the 26 audited World 2 scenery meshes, recorded their MeshIds in the ledgers and baked them into the World 2 place (saved as version 50).
 
 ## What's next
 **Owner rules on the live save (restore the last clean DataStore version or inspect first), then finish the World 2 UI harness run and screenshots.**

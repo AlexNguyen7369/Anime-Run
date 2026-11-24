@@ -25,50 +25,50 @@ return Kit.fromDraft("GoldenCity", require(script.Parent.GoldenCityDraft), {
 	Assets = {
 		W2_GoldenCity_RowA = draftMesh(
 			2930,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://78005577651563", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: street front of three to five storey gold ashlar townhouses with window grids, quoins, hipped and gable roofs and dormers",
 			"mid prop, 183 placed; build/world2/export/GoldenCity/W2_GoldenCity_RowA.glb"
 		),
 		W2_GoldenCity_RowB = draftMesh(
 			2878,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://79091228891665", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: street front of gold townhouses with a tower house under a pyramid roof",
 			"mid prop, 183 placed; build/world2/export/GoldenCity/W2_GoldenCity_RowB.glb"
 		),
 		W2_GoldenCity_CityBlock = draftMesh(
 			2550,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://126881660859530", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: gold city block of townhouses round a courtyard",
 			"mid prop, 823 placed; build/world2/export/GoldenCity/W2_GoldenCity_CityBlock.glb"
 		),
 		W2_GoldenCity_Square = draftMesh(
 			928,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://139179066978516", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: wide gold paved square with planters and a small gabled shrine",
 			"mid prop, 90 placed; build/world2/export/GoldenCity/W2_GoldenCity_Square.glb"
 		),
 		W2_GoldenCity_CityWall = draftMesh(
 			1446,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://114849920865458", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: towering gold city wall stretch with tall cone roofed towers",
 			"mid prop, 43 placed; build/world2/export/GoldenCity/W2_GoldenCity_CityWall.glb"
 		),
 		W2_GoldenCity_Palace = draftMesh(
 			8040,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://110606034322769", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: tall gold hipped roof manor ringed by spired turrets inside a walled compound",
 			"hero landmark, 1 placed; build/world2/export/GoldenCity/W2_GoldenCity_Palace.glb"
 		),
 		W2_GoldenCity_Church = draftMesh(
 			2458,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://75460377273832", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: large gold church with a tall tower",
 			"hero landmark, 1 placed; build/world2/export/GoldenCity/W2_GoldenCity_Church.glb"
 		),
@@ -81,29 +81,29 @@ return Kit.fromDraft("GoldenCity", require(script.Parent.GoldenCityDraft), {
 		),
 		W2_GoldenCity_People = draftMesh(
 			2160,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://98051555364079", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: group of solid gold townsfolk figures frozen mid step",
 			"mid prop, 274 placed; build/world2/export/GoldenCity/W2_GoldenCity_People.glb"
 		),
 		W2_GoldenCity_Wagon = draftMesh(
 			2816,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://80676931915228", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: solid gold horse wagon frozen mid step",
 			"mid prop, 76 placed; build/world2/export/GoldenCity/W2_GoldenCity_Wagon.glb"
 		),
 		W2_GoldenCity_Tree = draftMesh(
 			288,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://140732085904212", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: solid gold tree",
 			"mid prop, 194 placed; build/world2/export/GoldenCity/W2_GoldenCity_Tree.glb"
 		),
 		W2_GoldenCity_Forest = draftMesh(
 			496,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://104554146717607", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: clump of solid gold forest trees",
 			"mid prop, 144 placed; build/world2/export/GoldenCity/W2_GoldenCity_Forest.glb"
 		),

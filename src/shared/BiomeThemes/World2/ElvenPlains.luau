@@ -95,22 +95,22 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 		),
 		W2_ElvenPlains_Mountain_p1 = draftMesh(
 			704,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://116597367160465", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
 			"piece 1 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p1.glb"
 		),
 		W2_ElvenPlains_Mountain_p2 = draftMesh(
 			820,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://75778727446645", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
 			"piece 2 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p2.glb"
 		),
 		W2_ElvenPlains_Mountain_p3 = draftMesh(
 			772,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://140544040618009", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
 			"piece 3 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p3.glb"
 		),
