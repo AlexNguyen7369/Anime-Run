@@ -9,6 +9,7 @@
 - boss-king k9: rules audit round 2, then PR into main with a fresh reviewer (doing 2026-11-11)
 
 ## Next
+- world2 Studio queue (blocked: Studio MCP not connected 2026-11-24): `roll_anim`, `world2_summon`, `boss_models_placed` in the World 2 window; boss leftovers; full server suite in World 1 (handoff.md top)
 - Sidekick Details lists each Sidekick of the current rotation under its rarity total at its own rate (SIDEKICK_SPEC Panels, design doc 6, owner 2026-11-20). After the audit-fixes merge.
 - boss-anim-rework follow-up: Enuma beam follows Ea's full turn (retire `BEAM_YAW_SLACK` with the older hips check), beam lands on the deck, near-camera Zoltraak circles, barrage room brightness (see handoff.md)
 - boss-king: owner's look at `/boss king` in Studio and rulings on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-king open items)
@@ -20,6 +21,7 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-24 world2 w2-roll-anim (e9d7cfad, feature/alex/world2-place): `roll_anim` follows each world's cast, World 2 skip removed; offline lune World 1 77/77, World 2 77/77; rules audit PASS; Studio run owed in both places
 - 2026-11-17 PR #21 into main: car-vocab rename, power-up boosts, Sakura Dojo pages; runner 88/88 and 12 more scenarios fail=0; audits PASS; fresh review APPROVE
 - 2026-11-17 power-up boosts (62b797d, feature/alex/powerup-boost): Speed x1.2 for 1 s, Stamina holds the drain 2 s, 1 per 500 studs; `powerups` 25/25 fail=0; rules audit PASS
 - boss-vfx-360: Zoltraak lasers, Gates dome (radius 85), Enuma 360 energy beam; PR #18 (done 2026-11-13)

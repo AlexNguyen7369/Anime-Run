@@ -248,7 +248,16 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
    `world_layout` places them.
 2. `environment`: every check names one of World 1's ten biomes. World 2's biomes are checked offline only
    (`tools/lune/biome_harness.luau`, WORLD=2); there is no Studio scenario for them.
-3. `roll_anim`: expects World 1's roll pool and reel odds. World 2's pool is checked by `world2_cast`; its roll
-   animation reel is checked by nothing.
+3. `roll_anim`: no longer skipped (e9d7cfad, 2026-11-24): the scenario follows the place's cast. Offline only so far
+   (World 1 77/77, World 2 77/77); its Studio run in both places is still owed.
 4. Narrowed to World 1 inside scenarios that still run in World 2: `npc` holds enemy names to World 1's cast (World 2's
    enemies are still proposed); `weather` expects event-only characters in World 1 only (World 2 has none specified).
+
+## 2026-11-24 roll_anim in World 2: emphasized roll across worlds (open; the game runs the rule as written)
+1. Design doc 4.40 says a roll gets the big popup when it is undiscovered and at least 100 times rarer than the
+   "3rd-rarest discovered character", with no world named, and 4.47 keeps discoveries shared. So
+   `GachaConfig.IsEmphasized` counts World 1 discoveries in World 2: a player who owns three World 1 Secrets (1 in
+   1.6e16 and rarer) has a bar of at least 1 in 1.6e18 there, and only Eternals can get the big popup in World 2. Keep,
+   or count only the current world's discoveries in each world? Blocks nothing; the tests hold the rule as written.
+2. In the World 2 report the checks `service_roll_new_secret_emphasized` and the auto-roll pause run on the place's
+   rarest character, an Eternal (hold 5 s, 4.47), under their old names. Rename them, or leave?
