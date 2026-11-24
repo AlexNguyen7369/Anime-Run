@@ -202,7 +202,7 @@ function Tests.world2_rewards()
 		flag("this_world_best_saved", hereBest == 2, hereBest)
 		flag("other_world_best_untouched", otherBest == 10, otherBest)
 
-		-- Travelling (Server/WorldTravel): a win pays neither Money nor Gems.
+		-- Travelling (Server/WorldTravel): a finish while frozen is no win: nothing paid, no progress (review 2026-11-24).
 		local q = H.player(cleanup, UID + 2)
 		data.Setup(q)
 		gacha.Setup(q)
@@ -211,12 +211,19 @@ function Tests.world2_rewards()
 		paid, gemsPaid, result = win(q, 1)
 		flag(
 			"travelling_pays_nothing",
-			result and result.Result == "Win" and paid == 0 and gemsPaid == 0,
-			paid,
+			result and result.Result == "Lose" and paid == 0 and gemsPaid == 0,
+			result and result.Result,
 			gemsPaid
 		)
-		-- review 2026-11-24: nor does it raise BestTrack (its first-clear Gems were not paid)
 		flag("travelling_best_track_unchanged", (q:GetAttribute("BestTrack") or 0) == 0, q:GetAttribute("BestTrack"))
+		-- the trip failed: the frozen track's first clear is still paid, then the next one's (no skip by a jump)
+		q:SetAttribute("Travelling", nil)
+		paid, gemsPaid = win(q, 1)
+		want = GemConfig.TrackWin(1) + GemConfig.FirstClear(1)
+		flag("after_trip_first_clear_1", gemsPaid == want, gemsPaid, want)
+		paid, gemsPaid = win(q, 2)
+		want = GemConfig.TrackWin(2) + GemConfig.FirstClear(2)
+		flag("after_trip_first_clear_2", gemsPaid == want, gemsPaid, want)
 	end)
 
 	for _, run in runs do

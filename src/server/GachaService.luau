@@ -1111,15 +1111,19 @@ function GachaService.RequestAwaken(player, id)
 	return GachaService.Awaken(player, id)
 end
 
--- What Remotes.AwakenPreview answers (display only): whether character `id`'s next star still raises its cruise,
--- false when MAX_CRUISE already caps it (or at 5 stars, or in World 1). Its team slot's aura and trail count, else slot 1.
+-- What Remotes.AwakenPreview answers (display only): whether character `id`'s next star still raises its cruise
+-- (false when MAX_CRUISE already caps it, at 5 stars, or in World 1), and whether its stars now give any cruise.
+-- Its team slot's aura and trail count, else slot 1.
 function GachaService.AwakenPreview(player, id)
-	local stars = GachaService.Stars(player, id)
-	if WorldConfig.Id ~= 2 or type(id) ~= "string" or not owns(player, id) or not AwakeningConfig.NextCost(stars) then
-		return false
+	if WorldConfig.Id ~= 2 or type(id) ~= "string" or not owns(player, id) then
+		return false, false
 	end
+	local stars = GachaService.Stars(player, id)
 	local slot = table.find(GachaService.TeamList(player), id) or 1
-	return GachaService.CruiseFor(player, id, slot, nil, stars + 1) > GachaService.CruiseFor(player, id, slot)
+	local cruise = GachaService.CruiseFor(player, id, slot)
+	local nextGains = AwakeningConfig.NextCost(stars) ~= nil
+		and GachaService.CruiseFor(player, id, slot, nil, stars + 1) > cruise
+	return nextGains, stars > 0 and cruise > GachaService.CruiseFor(player, id, slot, nil, 0)
 end
 
 -- What Remotes.SetAutoRoll does: rate-limited like AllocateStat, booleans only. Returns true if applied.
@@ -1179,19 +1183,24 @@ function GachaService.Start()
 	local awakenRemote = remotes:FindFirstChild("Awaken") or Instance.new("RemoteFunction")
 	awakenRemote.Name = "Awaken" -- docs/WORLD2_SPEC.md "Awakening"
 	awakenRemote.Parent = remotes
-	awakenRemote.OnServerInvoke = GachaService.RequestAwaken
 	local previewRemote = remotes:FindFirstChild("AwakenPreview") or Instance.new("RemoteFunction")
 	previewRemote.Name = "AwakenPreview"
 	previewRemote.Parent = remotes
 	local lastPreview = setmetatable({}, { __mode = "k" })
-	previewRemote.OnServerInvoke = function(player, id)
-		local now = os.clock()
-		if lastPreview[player] and now - lastPreview[player] < GachaService.REMOTE_COOLDOWN then
-			return nil -- the Backpack keeps what it shows
-		end
-		lastPreview[player] = now
-		return GachaService.AwakenPreview(player, id)
-	end
+	-- The handlers as wired, kept for ServerTest (a callback cannot be read back from a RemoteFunction in Studio).
+	GachaService.RemoteHandlers = {
+		Awaken = GachaService.RequestAwaken,
+		AwakenPreview = function(player, id)
+			local now = os.clock()
+			if lastPreview[player] and now - lastPreview[player] < GachaService.REMOTE_COOLDOWN then
+				return nil -- the Backpack keeps what it shows
+			end
+			lastPreview[player] = now
+			return GachaService.AwakenPreview(player, id)
+		end,
+	}
+	awakenRemote.OnServerInvoke = GachaService.RemoteHandlers.Awaken
+	previewRemote.OnServerInvoke = GachaService.RemoteHandlers.AwakenPreview
 	-- Read-only: what the Details list shows (design doc 6). The numbers are the same ones a roll uses.
 	local luckRemote = remotes:FindFirstChild("GetRollLuck") or Instance.new("RemoteFunction")
 	luckRemote.Name = "GetRollLuck"

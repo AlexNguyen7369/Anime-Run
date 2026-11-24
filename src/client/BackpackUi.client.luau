@@ -345,30 +345,38 @@ local function layout()
 	end
 end
 
--- Whether a character's next star raises its cruise, as the server answers it per id and stars (nil until it does).
--- shortcut: a later Speed change (potion, upgrade) is not asked again until the stars change; ask on Speed changes if it misleads.
-local cruiseGains = {}
-local function cruiseGain(id, stars)
+-- The server's answer for a character at its stars (Remotes.AwakenPreview): { Next = the next star raises its capped
+-- cruise, Now = its stars give cruise now }; nil until it answers. A refused or failed request is not kept, and the
+-- answers are dropped each time the Backpack opens, so a Speed change since is asked again then.
+local previews = {}
+local function preview(id, stars)
 	local key = id .. ":" .. stars
-	if cruiseGains[key] == nil then
-		cruiseGains[key] = "asking"
+	if previews[key] == nil then
+		previews[key] = "asking"
 		task.spawn(function()
-			local ok, gains = pcall(function()
+			local ok, nextGains, nowGives = pcall(function()
 				return remotes:WaitForChild("AwakenPreview"):InvokeServer(id)
 			end)
-			if ok and type(gains) == "boolean" then
-				cruiseGains[key] = gains
+			if previews[key] ~= "asking" then
+				return -- dropped by a reopen meanwhile
+			end
+			if ok and type(nextGains) == "boolean" and type(nowGives) == "boolean" then
+				previews[key] = { Next = nextGains, Now = nowGives }
 				refreshBag()
 			else
-				cruiseGains[key] = nil -- asked again at the next refresh
+				previews[key] = nil -- asked again at the next refresh
 			end
 		end)
 	end
-	local gains = cruiseGains[key]
-	if gains == "asking" then
-		return nil
-	end
-	return gains
+	local answer = previews[key]
+	return type(answer) == "table" and answer or nil
+end
+
+-- The gain words: cruise only when the server said it counts; unknown (no answer yet) promises stamina only.
+local function gainWords(range, cruise)
+	return cruise == true and range .. " CRUISE & STAMINA"
+		or cruise == false and range .. " STAMINA · CRUISE AT MAX"
+		or range .. " STAMINA"
 end
 
 function refreshBag()
@@ -394,7 +402,7 @@ function refreshBag()
 		local cost = AwakeningConfig.NextCost(stars)
 		local now = math.round(AwakeningConfig.CRUISE_PER_STAR * 100 * stars)
 		local ready = cost ~= nil and spares >= cost
-		local gain = cost and cruiseGain(chosenCharacter, stars)
+		local answer = preview(chosenCharacter, stars)
 		local after = math.round(AwakeningConfig.STAMINA_PER_STAR * 100 * (stars + 1))
 		awaken.Text = cost
 				and string.format(
@@ -403,10 +411,14 @@ function refreshBag()
 					AwakeningConfig.MAX_STARS,
 					cost,
 					spares,
-					gain == false and string.format("+%d%% TO +%d%% STAMINA · CRUISE AT MAX", now, after)
-						or string.format("+%d%% TO +%d%% CRUISE & STAMINA", now, after)
+					gainWords(string.format("+%d%% TO +%d%%", now, after), answer and answer.Next)
 				)
-			or string.format("FULLY AWAKENED %d/%d · +%d%% CRUISE & STAMINA", stars, stars, now)
+			or string.format(
+				"FULLY AWAKENED %d/%d · %s",
+				stars,
+				stars,
+				gainWords(string.format("+%d%%", now), answer and answer.Now)
+			)
 		awaken:SetAttribute("Ready", ready)
 		awaken:SetAttribute("Reason", not cost and "Fully awakened" or not ready and "Not enough Copies" or nil)
 		g.Button(awaken, ready and "Go" or "Idle")
@@ -1020,6 +1032,7 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible then
 		hintText = ""
 		entering = true
+		table.clear(previews) -- the Awaken bar asks the server again (a Speed change since may move the cap)
 		leaveSelect()
 		render()
 	else

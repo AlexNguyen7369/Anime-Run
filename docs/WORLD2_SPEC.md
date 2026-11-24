@@ -232,14 +232,16 @@ Design doc 4.47 (owner 2026-11-24): World 2 only; duplicate Copies buy up to 5 s
   same numbers.
 - Server: `Remotes.Awaken(id)` (RemoteFunction, `GachaService.Awaken`): refused before the save loaded, while
   `Travelling`, in World 1, for a character not owned, at 5 stars and without enough Copies; otherwise Copies minus the
-  cost and stars plus 1 in one step. Rate limited like `SellSpares`. `Remotes.AwakenPreview(id)` (read-only, display only) answers whether the next star
-  still raises the character's capped cruise. The stars are the `Stars` attribute of the
+  cost and stars plus 1 in one step. Rate limited like `SellSpares`. `Remotes.AwakenPreview(id)` (read-only, display only, rate limited) answers
+  whether the next star still raises the character's capped cruise and whether its stars give any cruise now (its own
+  team slot's aura and trail count). The stars are the `Stars` attribute of the
   character's `GachaData` entry (display only on the client).
 - Save: `Worlds.W2.Awakening = { [characterId] = stars }` (`WorldSave` per-world key; VERSION unchanged at 19). A save
   without it loads as 0 stars.
 - Client: the Backpack's Characters tab (World 2 only) shows an Awaken bar for the chosen character above the footer:
-  its stars, the next star's cost, the Copies owned and the +% it gives ("cruise at max" in place of the cruise
-  gain when the server says the cap takes it); it is greyed with the reason (5 stars, not
+  its stars, the next star's cost, the Copies owned and the +% it gives (cruise only when the server says it
+  counts, "cruise at max" when the cap takes it, stamina only while there is no answer; answers are asked again each
+  time the Backpack opens, a refused one at the next refresh); it is greyed with the reason (5 stars, not
   enough Copies) when it cannot be bought; a tap asks to confirm. Hidden in World 1.
 - Tests: ServerTest `awakening` (both worlds).
 

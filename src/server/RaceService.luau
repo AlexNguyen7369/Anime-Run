@@ -476,7 +476,10 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 	local function finishRace()
 		local track = raceRoute.Tracks[race.Index]
 		local playerTime = runTime - race.Started
-		local win = playerTime < race.NpcTime
+		-- Server/WorldTravel's freeze: a finish then is no win (nothing paid, no progress), so the track is raced again
+		-- and its first-clear Gems paid on a real win, never skipped by a later BestTrack jump
+		local frozen = typeof(player) == "Instance" and player:GetAttribute("Travelling") == true
+		local win = playerTime < race.NpcTime and not frozen
 		local amount, bonus = 0, 1
 		local bestTime, newBest = RaceTimeService.Best(player, track.Number), false
 		if win then

@@ -261,6 +261,81 @@ function Tests.awakening()
 		flag("w2_preview_false_at_cap", GachaService.AwakenPreview(f, eternal) == false)
 	end)
 
+	-- Review 2026-11-24 (P2): the remotes' own handlers (read back from the RemoteFunction where the engine allows it,
+	-- offline; Studio cannot read a callback, so it uses the table Start wired them from) and the preview's checks
+	section("remote_handlers", function()
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local function handler(name)
+			local remote = remotes and remotes:FindFirstChild(name)
+			local ok, fn = pcall(function()
+				return remote.OnServerInvoke
+			end)
+			if ok and type(fn) == "function" then
+				return fn
+			end
+			return GachaService.RemoteHandlers and GachaService.RemoteHandlers[name]
+		end
+		local awaken, preview = handler("Awaken"), handler("AwakenPreview")
+		flag("handlers_found", type(awaken) == "function" and type(preview) == "function")
+		local p = newPlayer(10)
+		local ok1 = awaken(p, slow)
+		local ok2, why = awaken(p, slow)
+		if W2 then
+			flag(
+				"remote_awakens",
+				ok1 == true and GachaService.Stars(p, slow) == 1 and GachaService.Copies(p, slow) == 9
+			)
+			flag("remote_rate_limited", ok2 == false and why == "Please wait", why)
+		else
+			flag("remote_refused_w1", ok1 == false and GachaService.Copies(p, slow) == 10)
+		end
+		local q = newPlayer(0)
+		local first = preview(q, slow)
+		flag("preview_remote_answers", type(first) == "boolean", first)
+		flag("preview_remote_rate_limited", preview(q, slow) == nil)
+		if not W2 then
+			return
+		end
+		local unowned
+		for _, spec in catalog.Rollable() do
+			unowned = unowned or (spec.Id ~= slow and not GachaService.Owns(q, spec.Id) and spec.Id) or nil
+		end
+		local nextGains, nowGives = GachaService.AwakenPreview(q, unowned)
+		flag("preview_unowned_false", nextGains == false and nowGives == false)
+		nextGains, nowGives = GachaService.AwakenPreview(q, slow)
+		flag("preview_no_stars_gives_nothing_yet", nextGains == true and nowGives == false)
+		local full = newPlayer(31)
+		for _ = 1, 5 do
+			GachaService.Awaken(full, slow)
+		end
+		nextGains, nowGives = GachaService.AwakenPreview(full, slow)
+		flag("preview_max_stars", nextGains == false and nowGives == true)
+		-- the character's own team slot counts: slot 1's Ember Aura caps an Eternal there, its slot 2 has none
+		local eternal
+		for _, spec in catalog.Rollable() do
+			eternal = eternal or (spec.Rarity == "Eternal" and spec.Category == "Balanced" and spec.Id) or nil
+		end
+		local e = newPlayer(0)
+		GachaService.Grant(e, eternal)
+		GachaService.SetTeam(e, { slow, eternal })
+		e:SetAttribute("Slot1Aura", "ember_aura")
+		flag("preview_uses_own_slot", (GachaService.AwakenPreview(e, eternal)) == true)
+		GachaService.SetTeam(e, { eternal, slow })
+		flag("preview_capped_in_slot_1", (GachaService.AwakenPreview(e, eternal)) == false)
+		-- stars that buy no cruise at the cap: the Fully awakened line must not promise cruise
+		local capped = newPlayer(0)
+		for _ = 1, 32 do
+			GachaService.Grant(capped, eternal)
+		end
+		GachaService.SetTeam(capped, { eternal })
+		capped:SetAttribute("Slot1Aura", "ember_aura")
+		for _ = 1, 5 do
+			GachaService.Awaken(capped, eternal)
+		end
+		nextGains, nowGives = GachaService.AwakenPreview(capped, eternal)
+		flag("preview_capped_stars_give_none", nextGains == false and nowGives == false, tostring(nowGives))
+	end)
+
 	-- Review 2026-11-24 (P2): stars reach the run's own stamina (RaceService) through a real NewRun
 	section("run_stamina", function()
 		local RaceService, factory = require(Server.RaceService), require(Shared.RunnerFactory)
