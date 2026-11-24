@@ -226,7 +226,7 @@ UiScenarios.Names = {
 	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
-	"ui_late_models", -- another world's model arriving after Ready (UiLateModels; docs/WORLD2_SPEC.md "Cast in game")
+	"ui_late_models", -- another world's model arriving after Ready (UiLateModels; docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed))
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
 	"ui_remote_guards",
 	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened

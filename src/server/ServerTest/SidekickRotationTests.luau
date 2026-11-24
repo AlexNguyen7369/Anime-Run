@@ -65,24 +65,6 @@ local function near(a, b, slack)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (slack or 1e-6)
 end
 
--- A parsed JSON number may be one ulp off in the lune mock
-local function sameJson(a, b)
-	if type(a) == "table" and type(b) == "table" then
-		for key in b do
-			if a[key] == nil then
-				return false
-			end
-		end
-		for key, value in a do
-			if not sameJson(value, b[key]) then
-				return false
-			end
-		end
-		return true
-	end
-	return near(a, b, 1e-9) or a == b
-end
-
 local function idOf(result)
 	return type(result) == "table" and result.Id or result
 end
@@ -643,7 +625,7 @@ function Tests.sidekick_rotation()
 		for check = SLOT0, SLOT0 + 49 do
 			at(check * 1800 + 5)
 			local raw, decoded = attribute()
-			same = same and sameJson(decoded, Rotation.Public(check))
+			same = same and H.same(decoded, Rotation.Public(check))
 			local rawText = type(raw) == "string" and raw or ""
 			for _, id in secretIds do
 				hidden = hidden and (id == Rotation.For(check).Secret or string.find(rawText, id, 1, true) == nil)

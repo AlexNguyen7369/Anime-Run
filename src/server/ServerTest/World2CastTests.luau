@@ -536,6 +536,7 @@ function Tests.world2_cast()
 		flag("rotation_world1_only_its_12", old)
 	end)
 
+	-- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): which models load at start
 	section("models", function()
 		local Service = require(Server.CharacterModelService)
 		local world1, world2, common = true, true, true

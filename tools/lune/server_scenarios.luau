@@ -304,13 +304,70 @@ local function service(name, methods)
 	end
 	return instance
 end
+-- Numbers round trip exactly, as in Roblox (lune's JSON parser may be one ulp off); serde still does strings and rejects bad text.
+local function encodeJson(value)
+	if type(value) == "number" and math.abs(value) < math.huge then
+		return string.format("%.17g", value)
+	elseif type(value) ~= "table" then
+		return serde.encode("json", value)
+	end
+	local parts = {}
+	if next(value) == nil or #value > 0 then
+		for i, item in ipairs(value) do
+			parts[i] = encodeJson(item)
+		end
+		return "[" .. table.concat(parts, ",") .. "]"
+	end
+	for key, item in value do
+		table.insert(parts, serde.encode("json", tostring(key)) .. ":" .. encodeJson(item))
+	end
+	return "{" .. table.concat(parts, ",") .. "}"
+end
+local function decodeJson(text)
+	serde.decode("json", text)
+	local at = 1
+	local function skip()
+		at = string.find(text, "[^%s,:]", at) or #text + 1
+		return string.sub(text, at, at)
+	end
+	local function read()
+		local first = skip()
+		if first == "{" or first == "[" then
+			local out, index = {}, 0
+			at += 1
+			while skip() ~= "}" and skip() ~= "]" do
+				index += 1
+				local key = first == "{" and read() or index
+				out[key] = read()
+			end
+			at += 1
+			return out
+		end
+		local start = at
+		if first == '"' then
+			at += 1
+			while string.sub(text, at, at) ~= '"' do
+				at += string.sub(text, at, at) == "\\" and 2 or 1
+			end
+			at += 1
+			return serde.decode("json", string.sub(text, start, at - 1))
+		end
+		at = string.find(text, "[%s,%]}]", at) or #text + 1
+		local token = string.sub(text, start, at - 1)
+		if token == "true" or token == "false" then
+			return token == "true"
+		end
+		return tonumber(token) -- null: nil
+	end
+	return read()
+end
 local guids = 0
 service("HttpService", {
 	JSONEncode = function(_, value)
-		return serde.encode("json", value)
+		return encodeJson(value)
 	end,
 	JSONDecode = function(_, text)
-		return serde.decode("json", text)
+		return decodeJson(text)
 	end,
 	GenerateGUID = function()
 		guids += 1

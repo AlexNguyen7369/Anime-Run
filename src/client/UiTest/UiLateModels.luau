@@ -1,5 +1,5 @@
 --!nonstrict
--- Models that arrive after CharacterModels is Ready (Client/LateModels; docs/WORLD2_SPEC.md "Cast in game"). Local fixture only: a
+-- Models that arrive after CharacterModels is Ready (Client/LateModels; docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed)). Local fixture only: a
 -- copy of a loaded character's folder is named after another world's character that nobody here has, empty at first, as
 -- replication can deliver it. Contract: a rig this client built gets that character's meshes once the folder holds
 -- its Parts; a rig without ClientRig is the server's to re-skin.

@@ -12119,7 +12119,7 @@ Scenarios.track_loading = require(script.Parent.TrackLoadTests).track_loading
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 -- design doc 4.47: per-world roll pools, Sidekick sets and cruise; World 1 unchanged
 Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
--- docs/WORLD2_SPEC.md "Cast in game": another world's models load on demand (Server/CharacterModelService)
+-- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): another world's models load on demand (Server/CharacterModelService)
 Scenarios.character_models = require(script.Parent.CharacterModelTests).character_models
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
 Scenarios.speed_probe = require(script.Parent.SpeedProbeTests).speed_probe

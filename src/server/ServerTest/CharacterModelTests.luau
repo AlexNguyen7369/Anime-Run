@@ -1,5 +1,5 @@
 --!nonstrict
--- BRIEF: docs/WORLD2_SPEC.md "Cast in game" (Server/CharacterModelService): a world's server loads its own cast at start; another
+-- BRIEF: docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed) (Server/CharacterModelService): a world's server loads its own cast at start; another
 -- world's character or Sidekick loads once, when a player in the server owns it or a rig wears it.
 -- The load rules run where the service has not started (tools/lune): models come from ServerStorage.BakedModels, InsertService,
 -- Players and RunnerFactory.Restyle are stubbed. In a live server only the state the real Start left is checked.
@@ -53,7 +53,7 @@ local function wrongFolders(root, want)
 	return table.concat(bad, ",")
 end
 
--- The runner models every world shows (docs/WORLD2_SPEC.md "Cast in game"): the starter picks', and the exclusive's.
+-- The runner models every world shows (docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed)): the starter picks', and the exclusive's.
 local EVERY_WORLD = { leaf_hero = true, sea_captain = true, db_hero = true, punch_hero = true }
 
 -- What a server nobody has brought another world's model into holds, from the catalogs alone.
