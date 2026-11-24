@@ -387,4 +387,5 @@ Deliverables:
 - w2-place: separate place config, per-world save, locked plaza gate, /world1 /world2. Done when: code committed, WorldSave keeps World 1 keys, and a Studio Play in World 1 shows the locked gate with no red in the world_layout and spawn_area scenarios.
 - w2-blender: all 10 World 2 tracks and the gate built and rendered in Blender (tools/blender/world2). Done when: 6 shots per track plus the gate shots are in assets/world2_draft and the owner has the approval set.
 - w2-game (after approval): game BiomeThemes from the approved drafts, assets uploaded under the ledger rules, Studio screenshots. Done when: the track tests and environment scenarios are green in the World 2 mode.
-Out of scope until approval: the World 2 roster models, team of 4, Awakening, the speed table.
+- w2-cast (owner 2026-11-23): the World 2 cast and a new 12-Sidekick set (docs/WORLD2_CAST.md) as models and digital art. Done when: model, review views, portrait, head and evidence exist per id, an independent reviewer has scored each, and the owner has the contact sheet. No upload, no catalog row, no game code.
+Out of scope until approval: team of 4, Awakening, the speed table.

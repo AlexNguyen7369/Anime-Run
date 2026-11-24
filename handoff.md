@@ -1,3 +1,8 @@
+## RESUME HERE (2026-11-23 night, w2-cast): World 2 cast drafts running
+- Branch `orch/world2/cast` (worktree `../AnimeRun-orch/w2-cast`, based on world2-place 27310ac). List: `docs/WORLD2_CAST.md` (42 new ids, pre-approved for drafting by the owner). Agent brief: `build/BRIEF.md`; every Blender run goes through `build/bl` (one at a time).
+- 6 agents write disjoint ids (One Punch; Dandadan + side_lucky/acrobat; Kaiju + side_tiger/brawler; Frieren; Saw/Solo villains + side_cat/dark/shaman/general; side_box/bird/hound/dragon).
+- Next: collect, independent review (bar 7/10), fix weak ids, contact sheet, commit, push. No upload, no Studio (peer animerun-cf owns tracks and Studio).
+
 ## RESUME HERE (2026-11-23 18:50, world2): PAUSED by the owner
 - Approved and frozen: T1, T3, T4, T5, T6, T7, T8, T10. Rework: T2 (6/10, round 7 interrupted), T9 (round 4 interrupted).
 - World 2 place created by the owner: 79352569024576 (in WorldConfig.PLACES[2]).
