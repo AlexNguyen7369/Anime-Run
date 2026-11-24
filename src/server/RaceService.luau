@@ -98,7 +98,8 @@ end
 
 -- The upgrade tree's gate: the best track the player has won (NPC mode) or finished (no NPC). Fakes are Instances too.
 local function reachTrack(player, number)
-	if typeof(player) == "Instance" then
+	-- Travelling: Server/WorldTravel's freeze pays no first-clear Gems, so BestTrack waits too (else that clear is lost)
+	if typeof(player) == "Instance" and player:GetAttribute("Travelling") ~= true then
 		UpgradeService.ReachTrack(player, number)
 	end
 end

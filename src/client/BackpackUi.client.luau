@@ -261,6 +261,7 @@ local relicOf = {} -- character id -> the Relic row it wears (filled per render)
 local selecting = false -- select mode: a card marks itself for the mass sale
 local selected = {} -- character id -> true
 local render -- set below
+local refreshBag -- set below
 
 -- Cells fill the width, and the visible height holds whole rows only (no card cut at the frame, design doc 4.42).
 -- w, h: the grid's size in units.
@@ -344,7 +345,33 @@ local function layout()
 	end
 end
 
-local function refreshBag()
+-- Whether a character's next star raises its cruise, as the server answers it per id and stars (nil until it does).
+-- shortcut: a later Speed change (potion, upgrade) is not asked again until the stars change; ask on Speed changes if it misleads.
+local cruiseGains = {}
+local function cruiseGain(id, stars)
+	local key = id .. ":" .. stars
+	if cruiseGains[key] == nil then
+		cruiseGains[key] = "asking"
+		task.spawn(function()
+			local ok, gains = pcall(function()
+				return remotes:WaitForChild("AwakenPreview"):InvokeServer(id)
+			end)
+			if ok and type(gains) == "boolean" then
+				cruiseGains[key] = gains
+				refreshBag()
+			else
+				cruiseGains[key] = nil -- asked again at the next refresh
+			end
+		end)
+	end
+	local gains = cruiseGains[key]
+	if gains == "asking" then
+		return nil
+	end
+	return gains
+end
+
+function refreshBag()
 	local used, cap = player:GetAttribute("BagUsed") or 0, player:GetAttribute("BagCap") or 0
 	local onCharacters = current == "Characters"
 	if onCharacters then
@@ -359,22 +386,25 @@ local function refreshBag()
 	if sellSpares.Visible then
 		sellSpares.Text = "SELL " .. spares .. " SPARE" .. (spares == 1 and "" or "S")
 	end
-	-- The server's numbers: the entry's Stars and Copies; the rule's costs and +% (display only)
+	-- The server's numbers: the entry's Stars and Copies, and whether the next star still raises the capped cruise
+	-- (Remotes.AwakenPreview); the rule's costs and +% (display only)
 	awaken.Visible = AWAKENING and onCharacters and not selecting and entry ~= nil
 	if awaken.Visible then
 		local stars = AwakeningConfig.Clean(entry:GetAttribute("Stars"))
 		local cost = AwakeningConfig.NextCost(stars)
 		local now = math.round(AwakeningConfig.CRUISE_PER_STAR * 100 * stars)
 		local ready = cost ~= nil and spares >= cost
+		local gain = cost and cruiseGain(chosenCharacter, stars)
+		local after = math.round(AwakeningConfig.STAMINA_PER_STAR * 100 * (stars + 1))
 		awaken.Text = cost
 				and string.format(
-					"AWAKEN %d/%d · NEXT STAR %d COPIES (HAVE %d) · +%d%% TO +%d%% CRUISE & STAMINA",
+					"AWAKEN %d/%d · NEXT STAR %d COPIES (HAVE %d) · %s",
 					stars,
 					AwakeningConfig.MAX_STARS,
 					cost,
 					spares,
-					now,
-					math.round(AwakeningConfig.CRUISE_PER_STAR * 100 * (stars + 1))
+					gain == false and string.format("+%d%% TO +%d%% STAMINA · CRUISE AT MAX", now, after)
+						or string.format("+%d%% TO +%d%% CRUISE & STAMINA", now, after)
 				)
 			or string.format("FULLY AWAKENED %d/%d · +%d%% CRUISE & STAMINA", stars, stars, now)
 		awaken:SetAttribute("Ready", ready)

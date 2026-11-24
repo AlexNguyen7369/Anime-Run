@@ -216,3 +216,24 @@ Answered by the owner in session 2026-11-24: 1 approved; 2 exactly 9e18 allowed 
 7. `side_lucky` and `side_acrobat`: use the fixed normals (f822beb)? Needs 2 models and 4 images uploaded.
 8. Sidekick attack slices: approve?
 9. SUSPECTED, not measured: odds near 1 in 9e18 (and World 1's 5e18) may be finer than Random:NextNumber resolves. A chained-draw fix is on local branch orch/world2/rare-odds-proposal (e64e6b2), not on the merge branch. Measure in Studio first, then decide, World 1 included.
+
+## 2026-11-24 world2-awakening-rewards: review of f25567c and 743d6d8 (open, proposed defaults in place)
+Nothing here is decided; the game runs the proposed default named in each item until the owner answers.
+1. World 2 Money step: x2 per track (placeholder in place) or x1? Simulation from zero Money, no boosts, at World 2
+   Track 1: all 39 World 1 upgrades in 2 wins; rebirth 6 in 1 win, 8 in 7, 10 in 102, 12 in 1,619. At World 2 Track
+   10: rebirth 12 in 4 wins, 15 in 203.
+2. Awakening stars give no cruise past the 800 cap (the stars join the speed multi before `MAX_CRUISE`; an Eternal at
+   rebirth 5 is already past 800, so 31 Copies buy it stamina only; the Backpack says "cruise at max"). Keep, or let
+   stars pass the cap?
+3. Stars raise boss damage through cruise (boss damage reads the team's cruise). Keep, or leave boss damage out?
+4. Upgrade gates read World 2's own `BestTrack`, so tier 3+ upgrade tiles relock in World 2 until its tracks are
+   beaten. Keep, or gate on the best of both worlds?
+5. Slot 4 has no aura or trail: `MarketConfig.SLOTS` = 3 in the shared save. Add a fourth slot in World 2, or keep 3?
+6. `LastBossTeam` is shared; a World 2 team of 4 saved there loses its fourth member in World 1. Keep, or save it per
+   world?
+7. 11 World 2 hero landmarks fit nowhere on their own ground at the approved scale (largest fitting scale in
+   brackets): HQ 0.75, ChainTower 0.20, HeroHQ none, Crater 0.40, School 0.60, OldWoodHouse 0.60, GiantCorpse 0.50,
+   DefenseHQ 0.90, Town 0.60, RuinedCastle 0.90, IslandVolcano 0.30. Shrink them, drop them, or widen the junction
+   gaps (5,000-stud gaps clear all but push the farthest road out to 27,144 studs)?
+8. Confirm the 7 hero moves in `tools/blender/world2/hero_moves.json` (Railgun 2,410 and LairTower 5,620 studs are
+   large).

@@ -808,8 +808,8 @@ end
 -- Cruise of character `id` on team slot `slot` (default 1), studs/s (design doc 4.13): fixed by rarity x category,
 -- times the speed multi (Speed points + upgrade tree Speed tiers + rebirth level, active Speed potion, preset team bonus, that slot's
 -- damped aura and trail, that character's Sidekick and Relic), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
--- not own runs as the starter.
-function GachaService.CruiseFor(player, id, slot, team)
+-- not own runs as the starter. `stars` (optional) replaces the character's Awakening stars (GachaService.AwakenPreview).
+function GachaService.CruiseFor(player, id, slot, team, stars)
 	slot = slot or 1
 	local spec = type(id) == "string" and owns(player, id) and CharacterCatalog.Get(id) or CharacterCatalog.Get(STARTER)
 	local multi = RaceConfig.SpeedMulti(
@@ -823,7 +823,7 @@ function GachaService.CruiseFor(player, id, slot, team)
 	-- late: SidekickService, RelicService -> GachaService
 	local gear = require(script.Parent.SidekickService).CruiseMulti(player, spec.Id)
 		* require(script.Parent.RelicService).Multi(player, spec.Id, "Speed")
-		* AwakeningConfig.CruiseMulti(GachaService.Stars(player, spec.Id)) -- World 2 stars (1 in World 1)
+		* AwakeningConfig.CruiseMulti(stars or GachaService.Stars(player, spec.Id)) -- World 2 stars (1 in World 1)
 	return RaceConfig.Cruise(spec, multi * gear)
 end
 
@@ -1103,6 +1103,25 @@ local function loading(player)
 	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
 end
 
+-- What Remotes.Awaken does: rate-limited like SellSpares.
+function GachaService.RequestAwaken(player, id)
+	if not accept(player) then
+		return false, "Please wait"
+	end
+	return GachaService.Awaken(player, id)
+end
+
+-- What Remotes.AwakenPreview answers (display only): whether character `id`'s next star still raises its cruise,
+-- false when MAX_CRUISE already caps it (or at 5 stars, or in World 1). Its team slot's aura and trail count, else slot 1.
+function GachaService.AwakenPreview(player, id)
+	local stars = GachaService.Stars(player, id)
+	if WorldConfig.Id ~= 2 or type(id) ~= "string" or not owns(player, id) or not AwakeningConfig.NextCost(stars) then
+		return false
+	end
+	local slot = table.find(GachaService.TeamList(player), id) or 1
+	return GachaService.CruiseFor(player, id, slot, nil, stars + 1) > GachaService.CruiseFor(player, id, slot)
+end
+
 -- What Remotes.SetAutoRoll does: rate-limited like AllocateStat, booleans only. Returns true if applied.
 function GachaService.RequestSetAutoRoll(player, on)
 	return accept(player) and GachaService.SetAutoRoll(player, on)
@@ -1160,11 +1179,18 @@ function GachaService.Start()
 	local awakenRemote = remotes:FindFirstChild("Awaken") or Instance.new("RemoteFunction")
 	awakenRemote.Name = "Awaken" -- docs/WORLD2_SPEC.md "Awakening"
 	awakenRemote.Parent = remotes
-	awakenRemote.OnServerInvoke = function(player, id)
-		if not accept(player) then
-			return false, "Please wait"
+	awakenRemote.OnServerInvoke = GachaService.RequestAwaken
+	local previewRemote = remotes:FindFirstChild("AwakenPreview") or Instance.new("RemoteFunction")
+	previewRemote.Name = "AwakenPreview"
+	previewRemote.Parent = remotes
+	local lastPreview = setmetatable({}, { __mode = "k" })
+	previewRemote.OnServerInvoke = function(player, id)
+		local now = os.clock()
+		if lastPreview[player] and now - lastPreview[player] < GachaService.REMOTE_COOLDOWN then
+			return nil -- the Backpack keeps what it shows
 		end
-		return GachaService.Awaken(player, id)
+		lastPreview[player] = now
+		return GachaService.AwakenPreview(player, id)
 	end
 	-- Read-only: what the Details list shows (design doc 6). The numbers are the same ones a roll uses.
 	local luckRemote = remotes:FindFirstChild("GetRollLuck") or Instance.new("RemoteFunction")

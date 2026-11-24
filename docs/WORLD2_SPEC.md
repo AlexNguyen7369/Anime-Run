@@ -86,7 +86,7 @@ The "Based on" names stay in docs and never ship (design doc 5).
   `World 1 Track 10's Cash x WORLD2_STEP^N` = `31,640,625,000 x 2^N` for Track N (`PayoutCurve.TrackCash(n, 2)`,
   `TrackBuilder.CashFor`). `WORLD2_STEP = 2` is a **placeholder**. World 1's `Cash` is unchanged (`PayoutCurve.Cash`).
   The Money multi, checkpoint bonus and exhaustion share apply on top exactly as in World 1.
-- Reading chosen: Track 1 is x2 (so it already pays more than World 1 Track 10), each step x2 more. The other reading,
+- Reading chosen (**proposed**, 2026-11-24, coordinator's choice pending the owner): Track 1 is x2 (so it already pays more than World 1 Track 10), each step x2 more. The other reading,
   continuing World 1's own curve (x10 / x7.5 per track, Track N = World 1 "Track 10 + N"), is not the owner's x2 and
   is not used.
 
@@ -232,19 +232,21 @@ Design doc 4.47 (owner 2026-11-24): World 2 only; duplicate Copies buy up to 5 s
   same numbers.
 - Server: `Remotes.Awaken(id)` (RemoteFunction, `GachaService.Awaken`): refused before the save loaded, while
   `Travelling`, in World 1, for a character not owned, at 5 stars and without enough Copies; otherwise Copies minus the
-  cost and stars plus 1 in one step. Rate limited like `SellSpares`. The stars are the `Stars` attribute of the
+  cost and stars plus 1 in one step. Rate limited like `SellSpares`. `Remotes.AwakenPreview(id)` (read-only, display only) answers whether the next star
+  still raises the character's capped cruise. The stars are the `Stars` attribute of the
   character's `GachaData` entry (display only on the client).
 - Save: `Worlds.W2.Awakening = { [characterId] = stars }` (`WorldSave` per-world key; VERSION unchanged at 19). A save
   without it loads as 0 stars.
 - Client: the Backpack's Characters tab (World 2 only) shows an Awaken bar for the chosen character above the footer:
-  its stars, the next star's cost, the Copies owned and the +% it gives; it is greyed with the reason (5 stars, not
+  its stars, the next star's cost, the Copies owned and the +% it gives ("cruise at max" in place of the cruise
+  gain when the server says the cap takes it); it is greyed with the reason (5 stars, not
   enough Copies) when it cannot be bought; a tap asks to confirm. Hidden in World 1.
 - Tests: ServerTest `awakening` (both worlds).
 
 ### Release notes
 - Awakening (2026-11-24): shut down every older World 2 server when Awakening ships. An older World 2 build rebuilds
   `Worlds.W2` without `Awakening`, so the stars would be lost while the Copies spent on them stay spent (Copies are
-  shared). From this build `WorldSave.Fold` keeps every `Worlds.W2` key it does not know, in World 2 as in World 1
+  shared). From 2895923 on, `WorldSave.Fold` keeps every `Worlds.W2` key it does not know, in World 2 as in World 1
   (test `awakening`, `unknown_keys`).
 - Team of 4 (2026-11-24): an older World 2 build caps the Team at 3 and rebuilds `Worlds.W2`, so it would drop slot 4
   and the `Welcomed` flag. Shut down every older World 2 server when this ships, and publish World 1 first or together

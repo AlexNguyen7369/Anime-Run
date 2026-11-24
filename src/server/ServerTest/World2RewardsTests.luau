@@ -61,6 +61,30 @@ function Tests.world2_rewards()
 			chainBad += TrackBuilder.CashFor(spec.Number) == here[spec.Number] and 0 or 1
 		end
 		flag("registry_tracks_pay_this_world", chainBad == 0, chainBad)
+		-- review 2026-11-24: the built winnings pad carries this world's Cash
+		-- Offline the mock stops Build at the ground tiles, after the pad is made: the pad is caught as it is tagged
+		-- (the offline CollectionService is a table; in Studio the hook is refused and Build returns the model).
+		local spec = require(Shared.TrackRegistry).Chain()[1]
+		local pad
+		local realAdd = CollectionService.AddTag
+		local hooked = pcall(function()
+			CollectionService.AddTag = function(self, instance, tag)
+				if tag == "WinPad" then
+					pad = pad or instance
+				end
+				return realAdd(self, instance, tag)
+			end
+		end)
+		local built, model = pcall(TrackBuilder.Build, spec, CFrame.new(0, 5000, 0))
+		if hooked then
+			CollectionService.AddTag = realAdd
+		end
+		if built and model then
+			table.insert(cleanup, model)
+			pad = pad or model:FindFirstChild("WinPad", true)
+		end
+		local cash = pad and pad:GetAttribute("Cash")
+		flag("built_pad_this_world_cash", cash == here[spec.Number], cash, here[spec.Number])
 	end)
 
 	section("race", function()
@@ -191,6 +215,8 @@ function Tests.world2_rewards()
 			paid,
 			gemsPaid
 		)
+		-- review 2026-11-24: nor does it raise BestTrack (its first-clear Gems were not paid)
+		flag("travelling_best_track_unchanged", (q:GetAttribute("BestTrack") or 0) == 0, q:GetAttribute("BestTrack"))
 	end)
 
 	for _, run in runs do

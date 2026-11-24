@@ -9,7 +9,7 @@ local Shared = ReplicatedStorage.Shared
 local Server = script.Parent.Parent
 local Tests = {}
 
-local UID = 990249000
+local UID = 990251000 -- World2RewardsTests uses 990249000
 
 function Tests.awakening()
 	local r, flag = H.report("awakening")
@@ -104,7 +104,25 @@ function Tests.awakening()
 		q:SetAttribute("DataLoaded", nil)
 		flag("w2_not_loaded_refused", GachaService.Awaken(q, slow) == false and GachaService.Stars(q, slow) == 0)
 		q:SetAttribute("DataLoaded", true)
-		flag("w2_unowned_refused", GachaService.Awaken(q, "no_such_id") == false)
+		local unowned
+		for _, spec in catalog.Rollable() do
+			unowned = unowned or (spec.Id ~= slow and not GachaService.Owns(q, spec.Id) and spec.Id) or nil
+		end
+		flag("w2_unowned_catalog_id_refused", unowned ~= nil and GachaService.Awaken(q, unowned) == false, unowned)
+		flag("w2_unknown_id_refused", GachaService.Awaken(q, "no_such_id") == false)
+		-- an entry the catalog no longer knows (Apply keeps unknown ids) never awakens, whatever its Copies
+		local ghost = newPlayer(0)
+		GachaService.Apply(ghost, { Cars = { slow, "ghost_awaken" }, Copies = { ghost_awaken = 5 } })
+		flag("w2_uncatalogued_entry_refused", GachaService.Awaken(ghost, "ghost_awaken") == false)
+		flag("w2_uncatalogued_copies_kept", ghost.GachaData.ghost_awaken:GetAttribute("Copies") == 5)
+		q:SetAttribute("DataFailed", true)
+		flag("w2_data_failed_refused", GachaService.Awaken(q, slow) == false and GachaService.Copies(q, slow) == 5)
+		q:SetAttribute("DataFailed", nil)
+		-- the remote's rate limit: a second request at once is refused and spends nothing
+		local first = GachaService.RequestAwaken(q, slow)
+		local second, why = GachaService.RequestAwaken(q, slow)
+		flag("w2_remote_cooldown", first == true and second == false and why == "Please wait", why)
+		flag("w2_cooldown_spent_once", GachaService.Copies(q, slow) == 4 and GachaService.Stars(q, slow) == 1)
 		flag("w2_bad_arg_refused", GachaService.Awaken(q, { slow }) == false)
 	end)
 
@@ -146,6 +164,17 @@ function Tests.awakening()
 		stored.Worlds.W2.Awakening = { [slow] = 99, ghost = 3 }
 		GachaService.Apply(p2, WorldSave.View(stored, 2))
 		flag("w2_bad_value_clamped", GachaService.Stars(p2, slow) == 5 and GachaService.Stars(p2, "ghost") == 0)
+		flag(
+			"w2_clamped_attribute",
+			p2.GachaData[slow]:GetAttribute("Stars") == 5,
+			p2.GachaData[slow]:GetAttribute("Stars")
+		)
+		stored.Worlds.W2.Awakening = { [slow] = -3 }
+		GachaService.Apply(p2, WorldSave.View(stored, 2))
+		flag(
+			"w2_negative_loads_0",
+			p2.GachaData[slow]:GetAttribute("Stars") == nil and GachaService.Stars(p2, slow) == 0
+		)
 	end)
 
 	-- Review 2026-11-24: an unknown Worlds.W2 key and the stars survive a View / Fold / save round trip in either world
@@ -187,6 +216,167 @@ function Tests.awakening()
 		-- selling spares counts only the Copies left; the last copy is never sold
 		flag("sell_over_left_refused", GachaService.SellSpares(p, slow, 3) == false)
 		flag("copies_never_negative", GachaService.Copies(p, slow) == 2)
+	end)
+
+	-- Review 2026-11-24 (P2): the World 1 gate of Stars, the refresh after a star, the cap before the stars' multi
+	section("gates_and_refresh", function()
+		local p = newPlayer(31)
+		local cruise0 = GachaService.CruiseFor(p, slow)
+		if not W2 then
+			p.GachaData[slow]:SetAttribute("Stars", 5) -- a stray attribute: World 1 still reads 0
+			flag("w1_stars_gate", GachaService.Stars(p, slow) == 0 and GachaService.CruiseFor(p, slow) == cruise0)
+			flag("w1_preview_false", GachaService.AwakenPreview(p, slow) == false)
+			return
+		end
+		GachaService.RefreshBag(p)
+		GachaService.RefreshTeam(p)
+		local bag, teamCruise = p:GetAttribute("BagUsed"), p:GetAttribute("TeamCruise1")
+		GachaService.Awaken(p, slow)
+		flag("w2_bag_refreshed", p:GetAttribute("BagUsed") == bag - 1, p:GetAttribute("BagUsed"), bag - 1)
+		flag("w2_team_refreshed", (p:GetAttribute("TeamCruise1") or 0) > teamCruise, p:GetAttribute("TeamCruise1"))
+		flag("w2_preview_gains_under_cap", GachaService.AwakenPreview(p, slow) == true)
+		-- an Eternal at 780 studs/s: 5 stars reach the 800 cap and never pass it
+		local eternal
+		for _, spec in catalog.Rollable() do
+			eternal = eternal or (spec.Rarity == "Eternal" and spec.Category == "Balanced" and spec.Id) or nil
+		end
+		local e = newPlayer(0)
+		for _ = 1, 32 do
+			GachaService.Grant(e, eternal)
+		end
+		local base = GachaService.CruiseFor(e, eternal)
+		for _ = 1, 5 do
+			GachaService.Awaken(e, eternal)
+		end
+		local max = require(Shared.RaceConfig).MAX_CRUISE
+		flag("w2_eternal_five_stars", GachaService.Stars(e, eternal) == 5, eternal)
+		flag("w2_cap_before_stars", GachaService.CruiseFor(e, eternal) == max, GachaService.CruiseFor(e, eternal), max)
+		flag("w2_eternal_base_under_cap", base < max, base)
+		-- at the cap the next star buys no cruise: the preview says so
+		local f = newPlayer(0)
+		for _ = 1, 32 do
+			GachaService.Grant(f, eternal)
+		end
+		GachaService.Awaken(f, eternal) -- 780 x 1.03 = 803.4: capped at 800 already
+		flag("w2_preview_false_at_cap", GachaService.AwakenPreview(f, eternal) == false)
+	end)
+
+	-- Review 2026-11-24 (P2): stars reach the run's own stamina (RaceService) through a real NewRun
+	section("run_stamina", function()
+		local RaceService, factory = require(Server.RaceService), require(Shared.RunnerFactory)
+		local npc, npcConfig = require(Shared.NpcRacer), require(Shared.NpcConfig)
+		local points = {}
+		for i = 0, 2 do
+			table.insert(points, Vector3.new(0, 3000, -i * 20))
+		end
+		local path = { Waypoints = points, Curvature = { 0, 0, 0 }, Length = 40 }
+		local route = {
+			Path = { WorldWaypoints = points, Curvature = { 0, 0, 0 }, Width = 40, Closed = false },
+			Pads = {},
+			Tracks = {
+				{
+					Number = 1,
+					StartIndex = 1,
+					FinishIndex = 3,
+					Npc = { Config = npcConfig.For(1), Path = path, Profile = npc.Profile(path, 1) },
+				},
+			},
+		}
+		local function runSeconds(p)
+			local runner = factory.build(slow)
+			runner.Name, runner.Parent = "ServerTestAwakenRunner", p
+			local run = RaceService.NewRun(runner, route, p, { Npc = true, StartTrack = 1 })
+			local seconds = p:GetAttribute("RunSeconds1")
+			run:Destroy()
+			return seconds
+		end
+		local plain, starred = newPlayer(31), newPlayer(31)
+		if W2 then
+			for _ = 1, 5 do
+				GachaService.Awaken(starred, slow)
+			end
+		else
+			starred.GachaData[slow]:SetAttribute("Stars", 5) -- World 1 ignores it
+		end
+		local a, b = runSeconds(plain), runSeconds(starred)
+		local want = W2 and 1.15 or 1
+		flag("run_stamina_scaled", type(a) == "number" and close(b / a, want), b and a and b / a, want)
+	end)
+
+	-- Review 2026-11-24 (P2): stars reach a boss event's roster stamina (BossEventService publishTeam, through Join)
+	section("boss_stamina", function()
+		local S = require(Server.BossEventService)
+		local SidekickService = require(Server.SidekickService)
+		local saved = table.clone(S.Hooks)
+		for _, name in { "Arrive", "Depart", "Chat", "MoveChat", "BossHits", "RewardPopup" } do
+			S.Hooks[name] = function() end
+		end
+		S.Hooks.StartRun = function()
+			return { Destroy = function() end, ReviveAt = function() end }
+		end
+		S.Hooks.PayStage = function()
+			return true
+		end
+		local ok, err = pcall(function()
+			S.End("Reset")
+			local row = require(Shared.SidekickConfig).List[1]
+			local function joined(starred)
+				local p = newPlayer(31)
+				SidekickService.Apply(
+					p,
+					{ Sidekicks = { { Id = row.Id, Entry = "e1" } }, CharacterGear = { [slow] = "e1" } }
+				)
+				if starred and W2 then
+					for _ = 1, 5 do
+						GachaService.Awaken(p, slow)
+					end
+				elseif starred then
+					p.GachaData[slow]:SetAttribute("Stars", 5) -- World 1 ignores it
+				end
+				assert(S.Join(p), "join refused")
+				return p:GetAttribute("BossTeamStamina1")
+			end
+			assert(S.Start("Test"), "no event")
+			local a, b = joined(false), joined(true)
+			local want = W2 and 1.15 or 1
+			flag("boss_stamina_scaled", type(a) == "number" and math.abs(b / a - want) < 0.01, b and a and b / a, want)
+		end)
+		pcall(S.End, "Reset")
+		for name, fn in saved do
+			S.Hooks[name] = fn
+		end
+		flag("boss_stamina_ran", ok, tostring(err))
+	end)
+
+	-- Review 2026-11-24 (P2): stars through the real PlayerData.Save and Load (the mock store the data tests use)
+	section("player_data_round_trip", function()
+		local module = Server.PlayerData:Clone()
+		module.Name, module.Parent = "ServerTestAwakeningData", Server
+		table.insert(cleanup, module)
+		local data = require(module)
+		local store = H.store()
+		data.SetStore(store)
+		local id = UID + 500
+		store.data[data.KeyFor(id)] = { Version = 19, Cars = { slow }, Copies = { [slow] = 9 }, Team = { slow } }
+		local p = H.player(cleanup, id)
+		flag("pd_loads", data.Load(p, id) == true)
+		if W2 then
+			GachaService.Awaken(p, slow)
+			GachaService.Awaken(p, slow) -- 2 stars, 9 - 1 - 2 = 6 Copies
+		end
+		flag("pd_saves", data.Save(p, id) == true)
+		local stored = store.data[data.KeyFor(id)]
+		local q = H.player(cleanup, id + 1)
+		store.data[data.KeyFor(id + 1)] = H.copy(stored)
+		flag("pd_reloads", data.Load(q, id + 1) == true)
+		local wantStars, wantCopies = W2 and 2 or 0, W2 and 6 or 9
+		flag("pd_stars_survive", GachaService.Stars(q, slow) == wantStars, GachaService.Stars(q, slow), wantStars)
+		flag("pd_copies_survive", GachaService.Copies(q, slow) == wantCopies, GachaService.Copies(q, slow), wantCopies)
+		flag(
+			"pd_saved_under_w2",
+			W2 and (stored.Worlds and stored.Worlds.W2.Awakening and stored.Worlds.W2.Awakening[slow] == 2)
+				or (not W2 and stored.Awakening == nil)
+		)
 	end)
 
 	for _, instance in cleanup do
