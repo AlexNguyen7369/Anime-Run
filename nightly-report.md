@@ -1,5 +1,22 @@
 # Nightly report
 
+## Nightly run 2026-11-24 00:10 (World 2 cast in game)
+
+### Blocked (needs you)
+- Studio test run and Play check: my script writes to the cloud place were denied. Question: allow execute_luau script writes, or connect Rojo to w2-ingame? State: orch/world2/cast-ingame pushed.
+- Merge to main and publishing places: not done (never pre-approved).
+
+### Done
+- Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
+
+### Decisions I made for you
+- Series names Dandadun, Kaijo No. 8, Frierin; Makto, Toskar, Darknez Devill (the old ones contained real names). Revert: SeriesCatalog / catalog rows.
+- Sidekick key frames baked without your slice approval, on your word that all decisions are pre-approved.
+- World 2 Daily Day 7 capped at Legendary; Eternal chances 6e18 to 9e18; World 1 characters x0.1 cruise in World 2 except the starters.
+
+### Skipped
+- Team of 4, Awakening, opening the gate.
+
 ## Nightly run 2026-11-23 → 23:30 (World 2 cast)
 
 ### Blocked (needs you)
