@@ -48,3 +48,14 @@ is soft vertical wisp strips with ragged flat tops, and every facade has lit pal
 (`kaisel_flight`); the rider's legs sit astride outside the flanks and a large white flame mane streams back and to one
 side behind the antlers (`baran_anime`). The sky below the horizon takes the ground colour, so the ground's far edge no
 longer shows against the orange band.
+
+Round 7 (2026-11-23): `Hound` heads each have a protruding snout, the upper jaw thrust forward and tipped up, the lower
+jaw dropped, a tall wedge-shaped dark red opening between them, one row of long fangs on each jaw edge, a red tongue
+slab hanging out and red eyes on all three heads (`cerberus_gate`). `ChainTower` fire is wide, low-opacity bands with
+ragged, gapped tops over the full height and large black ash tatters; no cones (`webtoon_castle`). The ruins' pink fire
+is tall soft veils climbing every facade from the street to about half height, with no roof crowns; every wisp sits on
+a facade (`anime_castle2`). `Chunk` pieces have ember-lit orange undersides, and a torn building slab with a lit window
+grid joins the cluster. `Gate` has a full see-through wall of fire behind the arch (14+ above the road, from the ground
+beside it, out behind the pillars) and flame wrapped round each pillar base (`cerberus_gate`). The rider's flame mane is
+about twice as big, swept to one side with flame lobes (`baran_anime`); the wyvern's snout is longer, with a centre
+ridge plate and side horns flaring outward (`kaisel_flight`).
