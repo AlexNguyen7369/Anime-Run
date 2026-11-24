@@ -38,9 +38,10 @@ WorldTravel.Save = function(player)
 	return PlayerData.Save(player, nil, true, true)
 end
 
--- Test seam: after a failed trip whose release save ran, a normal save takes the session lock back.
+-- Test seam: after a failed trip whose release save ran, a normal save takes the session lock back (only if the
+-- player is still here once PlayerData's save queue reaches it: never a lock for a player who left).
 WorldTravel.Retake = function(player)
-	return PlayerData.Save(player)
+	return PlayerData.Save(player, nil, nil, nil, true)
 end
 
 -- Test seam: ends what could still pay before the freeze (the leave hooks, without forgetting the avatar). Required
@@ -104,11 +105,13 @@ function WorldTravel.CanEnter(player, id)
 	end
 	return reason == nil, reason, reason ~= nil and adminState == "unknown"
 end
-WorldTravel.ARRIVAL_WAIT = 30 -- placeholder: seconds an arrival waits for its save to load before it is sent back
+-- placeholder: seconds an arrival waits for its load to finish or fail (a load retries a held lock for LOCK_WAIT)
+WorldTravel.ARRIVAL_WAIT = PlayerData.LOCK_WAIT + 30
 WorldTravel.ARRIVAL_TRIES = 3 -- placeholder: return trips tried before the arrival is kicked
 WorldTravel.ARRIVAL_RETRY = 3 -- placeholder: seconds between return trips
 WorldTravel.ADMIN_RECHECK = 10 -- placeholder: seconds before an arrival whose admin check failed is checked again
-WorldTravel.KICK_MESSAGE = "World 2 is not open yet. Please rejoin Anime Run to play World 1."
+WorldTravel.ADMIN_RECHECKS = 6 -- placeholder: such rechecks before the player counts as no admin
+WorldTravel.KICK_MESSAGE = "Could not move you between worlds. Please rejoin Anime Run."
 
 -- Test seam: removes an arrival whose return trips all failed.
 WorldTravel.Kick = function(player, message)
@@ -128,6 +131,9 @@ end
 
 local function retake(player)
 	task.spawn(function()
+		if not player.Parent then
+			return
+		end
 		local ok, saved = pcall(WorldTravel.Retake, player)
 		if not (ok and saved) then
 			warn("WorldTravel: " .. player.Name .. ": the lock retake save failed; the next autosave tries again")
@@ -148,7 +154,7 @@ function WorldTravel.Failed(player, reason, trip)
 		return -- never unfrozen: the arrival keeps trying to leave (Arrived), then is kicked
 	end
 	unfreeze(player, current)
-	if current.Released and player.Parent then
+	if current.Released then
 		retake(player)
 	end
 	warn("WorldTravel: " .. player.Name .. ": " .. tostring(reason))
@@ -203,7 +209,7 @@ function WorldTravel.Go(player, id, arrival)
 			carry.Released = true -- the lock is out even if this trip timed out: later return trips skip the save
 		end
 		if busy[player] ~= trip then -- the trip timed out during the save: it does not go on
-			if (saved or readOnly) and player.Parent and not trip.Arrival then
+			if (saved or readOnly) and not trip.Arrival then
 				retake(player) -- the late release save dropped the lock
 			end
 			return false, "the trip timed out"
@@ -237,15 +243,24 @@ end
 -- Design doc 4.47: a player who arrives in World 2 but may not enter it (CanEnter: not an admin and the gate closed,
 -- or open but the opening rule unmet) is sent back to World 1 (never in Studio, as Go).
 -- The return trip runs in the background: a failed one is tried again (the player stays frozen) up to ARRIVAL_TRIES
--- times, then the player is kicked, after one more frozen release save if none went out (the kick's leave save skips
--- a frozen player). Each Go runs in its own thread, so a hung save or TeleportAsync still ends at TIMEOUT. Returns ok,
--- message (true once the return trips started, or false and why it stays). An admin check that failed ("unknown")
--- neither keeps nor sends: Arrived is asked again after ADMIN_RECHECK.
+-- times, CanEnter asked again before each (a player who now may enter stays: unfrozen, the lock taken back if a
+-- release save went out). Then the player is kicked, after one more frozen release save (bounded by TIMEOUT) if none
+-- went out: the kick's leave save skips a frozen player. If every release save failed, the kick leaves the session lock
+-- until PlayerData.LOCK_TIMEOUT (the next join waits for it). Each Go runs in its own thread, so a hung save or
+-- TeleportAsync still ends at TIMEOUT. An admin check that failed ("unknown") neither keeps nor sends: Arrived is asked
+-- again after ADMIN_RECHECK, up to ADMIN_RECHECKS times, then the player counts as no admin.
 local function sendBack(player)
 	local carry = { Loaded = player:GetAttribute("DataLoaded") == true, Released = false }
 	for try = 1, WorldTravel.ARRIVAL_TRIES do
 		if try > 1 then
 			task.wait(WorldTravel.ARRIVAL_RETRY)
+			if player.Parent and WorldTravel.CanEnter(player, 2) then
+				unfreeze(player, carry)
+				if carry.Released then
+					retake(player)
+				end
+				return
+			end
 		end
 		if not player.Parent then
 			return
@@ -259,16 +274,28 @@ local function sendBack(player)
 		end
 	end
 	if carry.Loaded and not carry.Released then
-		local ok, saved, readOnly = pcall(WorldTravel.Save, player)
-		if not (ok and (saved or readOnly)) then
-			warn("WorldTravel: " .. player.Name .. ": the release save before the kick failed")
+		local done = false
+		task.spawn(function()
+			local ok, saved, readOnly = pcall(WorldTravel.Save, player)
+			done = true
+			if not (ok and (saved or readOnly)) then
+				warn("WorldTravel: " .. player.Name .. ": the release save before the kick failed")
+			end
+		end)
+		local deadline = os.clock() + WorldTravel.TIMEOUT
+		while not done and player.Parent and os.clock() < deadline do
+			task.wait(0.1)
 		end
+	end
+	if not player.Parent then
+		return
 	end
 	warn("WorldTravel: " .. player.Name .. ": every return trip failed, kicked")
 	pcall(WorldTravel.Kick, player, WorldTravel.KICK_MESSAGE)
 end
 
-function WorldTravel.Arrived(player)
+-- `recheck` (internal): how many ADMIN_RECHECKs already ran for this arrival.
+function WorldTravel.Arrived(player, recheck)
 	if WorldConfig.Id ~= 2 then
 		return false, "not World 2"
 	end
@@ -279,10 +306,11 @@ function WorldTravel.Arrived(player)
 	if allowed then
 		return false, "may stay"
 	end
-	if unknown then
+	recheck = recheck or 0
+	if unknown and recheck < WorldTravel.ADMIN_RECHECKS then
 		task.delay(WorldTravel.ADMIN_RECHECK, function()
 			if player.Parent then
-				WorldTravel.Arrived(player)
+				WorldTravel.Arrived(player, recheck + 1)
 			end
 		end)
 		return false, "admin check failed, asked again later"
@@ -294,8 +322,55 @@ function WorldTravel.Arrived(player)
 	return true, "sending back to World 1"
 end
 
--- World gates (tag WorldGate, attribute TargetWorld; Shared/SpawnArea) send a touching player on if CanEnter allows,
--- else tell them why. A Locked gate never sends: admins travel with /world2.
+-- The arrival check once the save loaded or failed (Go then writes it and releases its lock). A load still undecided
+-- after ARRIVAL_WAIT is kicked: acting earlier could freeze a player whose load then finishes mid-trip.
+function WorldTravel.Arrive(player)
+	local deadline = os.clock() + WorldTravel.ARRIVAL_WAIT
+	local function decided()
+		return player:GetAttribute("DataLoaded") == true or player:GetAttribute("DataFailed") == true
+	end
+	while player.Parent and not decided() and os.clock() < deadline do
+		task.wait(0.5)
+	end
+	if not player.Parent then
+		return false, "left"
+	end
+	if not decided() then
+		if WorldConfig.Id == 2 and not (RunService:IsStudio() and not WorldTravel.AllowStudio) then
+			pcall(WorldTravel.Kick, player, WorldTravel.KICK_MESSAGE)
+			return false, "load undecided, kicked"
+		end
+		return false, "load undecided"
+	end
+	local ok, message = WorldTravel.Arrived(player)
+	if ok then
+		print("WorldTravel: " .. player.Name .. " may not stay in World 2: " .. message)
+	end
+	return ok, message
+end
+
+-- A touch of gate `part` by `player`: on through Go if CanEnter allows and the gate is not Locked, else the player is
+-- told why (Notice). A Locked gate never sends: admins travel with /world2. Returns whether a trip started.
+function WorldTravel.Touched(part, player)
+	local target = part:GetAttribute("TargetWorld")
+	if type(target) ~= "number" then
+		return false
+	end
+	local ok, message = WorldTravel.CanEnter(player, target)
+	if not ok then
+		pcall(WorldTravel.Notice, player, message)
+		return false
+	end
+	if part:GetAttribute("Locked") then
+		return false
+	end
+	ok, message = WorldTravel.Go(player, target)
+	if not ok then
+		warn("WorldTravel: " .. player.Name .. ": " .. message)
+	end
+	return ok
+end
+
 -- TeleportService.TeleportInitFailed: fails the pending trip; an older trip's late failure (its TravelTrip id in the
 -- teleport data) leaves the new one alone; no readable id fails the pending trip.
 function WorldTravel.InitFailed(player, result, message, options)
@@ -315,26 +390,15 @@ function WorldTravel.Start()
 		WorldTravel.InitFailed(player, result, message, options)
 	end)
 	local cooldown = setmetatable({}, { __mode = "k" }) -- a refused touch waits 3 s before it is tried again
+	-- World gates (tag WorldGate; Shared/SpawnArea): Touched decides
 	local function hook(part)
 		part.Touched:Connect(function(hit)
 			local player = Players:GetPlayerFromCharacter(hit.Parent)
-			local target = part:GetAttribute("TargetWorld")
-			if not player or cooldown[player] or type(target) ~= "number" then
+			if not player or cooldown[player] then
 				return
 			end
 			cooldown[player] = true
-			local ok, message = WorldTravel.CanEnter(player, target)
-			if not ok then
-				pcall(WorldTravel.Notice, player, message)
-			elseif part:GetAttribute("Locked") then
-				ok = false
-			else
-				ok, message = WorldTravel.Go(player, target)
-				if not ok then
-					warn("WorldTravel: " .. player.Name .. ": " .. message)
-				end
-			end
-			if not ok then
+			if not WorldTravel.Touched(part, player) then
 				task.wait(3)
 			end
 			cooldown[player] = nil
@@ -344,18 +408,8 @@ function WorldTravel.Start()
 	for _, part in CollectionService:GetTagged("WorldGate") do
 		hook(part)
 	end
-	-- the arrival check after the save loads (Go then writes it and releases its lock)
 	local function arrive(player)
-		local deadline = os.clock() + WorldTravel.ARRIVAL_WAIT
-		while player.Parent and not player:GetAttribute("DataLoaded") and os.clock() < deadline do
-			task.wait(0.5)
-		end
-		if player.Parent then
-			local ok, message = WorldTravel.Arrived(player)
-			if ok then
-				print("WorldTravel: " .. player.Name .. " arrived while the gate is locked: " .. message)
-			end
-		end
+		WorldTravel.Arrive(player)
 	end
 	Players.PlayerAdded:Connect(arrive)
 	for _, player in Players:GetPlayers() do

@@ -908,6 +908,9 @@ function Tests.make(helpers)
 			"Kick",
 			"ARRIVAL_RETRY",
 			"ADMIN_RECHECK",
+			"ADMIN_RECHECKS",
+			"ARRIVAL_WAIT",
+			"Notice",
 		}
 		local saved = {}
 		for i, k in keys do
@@ -1178,6 +1181,214 @@ function Tests.make(helpers)
 			if at then
 				table.remove(config.UserIds, at)
 			end
+
+			-- 8. The gate touch (WorldTravel.Touched): a Locked gate only tells, never sends (admins too); an open gate
+			-- tells a refused player why and sends one CanEnter allows; a part with no TargetWorld does nothing
+			local notices = {}
+			travel.Notice = function(p, text)
+				table.insert(notices, { p, text })
+			end
+			local adminNow = false
+			travel.IsAdmin = function()
+				return adminNow
+			end
+			WorldConfig.Id, WorldConfig.GATE_OPEN = 1, false
+			travel.TIMEOUT = 60
+			reset()
+			local gate = Instance.new("Part")
+			table.insert(cleanup, gate)
+			gate:SetAttribute("TargetWorld", 2)
+			gate:SetAttribute("Locked", true)
+			local toucher = player()
+			local sentLocked = travel.Touched(gate, toucher)
+			flag(
+				"review_touch_locked_tells",
+				sentLocked == false and #notices == 1 and notices[1][2] == "COMING SOON" and teleports == 0,
+				notices[1] and notices[1][2]
+			)
+			adminNow = true
+			local sentAdmin = travel.Touched(gate, toucher)
+			flag("review_touch_locked_admin_stays", sentAdmin == false and #notices == 1 and teleports == 0)
+			gate:SetAttribute("Locked", false)
+			WorldConfig.GATE_OPEN = true
+			adminNow = false
+			local sentOpen = travel.Touched(gate, toucher)
+			flag(
+				"review_touch_open_unqualified_told",
+				sentOpen == false and #notices == 2 and notices[2][2] == "Beat Track " .. WorldConfig.GATE_TRACK,
+				notices[2] and notices[2][2]
+			)
+			adminNow = true
+			flag(
+				"review_touch_open_allowed_goes",
+				travel.Touched(gate, toucher) == true and teleports == 1,
+				teleports,
+				1
+			)
+			travel.Failed(toucher, "ServerTest cleanup")
+			gate:SetAttribute("TargetWorld", nil)
+			flag("review_touch_no_target_nothing", travel.Touched(gate, player()) == false and #notices == 2)
+			WorldConfig.GATE_OPEN = false
+
+			-- 9. Lock retake only for a player still here: Failed after the release, and a late release save
+			reset()
+			local gone = player()
+			travel.Go(gone, 2)
+			gone.Parent = nil
+			travel.Failed(gone, "ServerTest")
+			task.wait(0.1)
+			flag("review_retake_not_after_leave", retakes == 0, retakes, 0)
+			local here = player()
+			travel.Go(here, 2)
+			travel.Failed(here, "ServerTest")
+			task.wait(0.1)
+			flag("review_retake_control", retakes == 1, retakes, 1)
+			travel.TIMEOUT = 0.15
+			reset(function(p)
+				task.wait(0.3)
+				p.Parent = nil
+				return true, false
+			end)
+			travel.Go(player(), 2)
+			task.wait(0.1)
+			flag("review_late_save_no_retake_after_leave", retakes == 0, retakes, 0)
+			-- PlayerData.Save(..., present): no write for a player who left
+			do
+				local module = Server.PlayerData:Clone()
+				module.Name, module.Parent = "ServerTestReviewData", Server
+				table.insert(cleanup, module)
+				local data = require(module)
+				local store = H.store()
+				data.SetStore(store)
+				local id = 979290
+				store.data[data.KeyFor(id)] = { Version = 1 }
+				local f = H.player(cleanup, id)
+				data.Load(f, id)
+				local updates = store.updates
+				f.Parent = nil
+				local wrote = data.Save(f, id, nil, nil, true)
+				flag(
+					"review_present_save_skips_left",
+					wrote == false and store.updates == updates,
+					store.updates - updates,
+					0
+				)
+			end
+
+			-- 10. Arrivals in World 2: the retry wait, a read-only save, a player who now qualifies, the bounded final
+			-- save, no kick for a player who left, the capped admin recheck, the load wait
+			WorldConfig.Id, WorldConfig.GATE_OPEN = 2, false
+			adminNow = false
+			travel.TIMEOUT = 0.15
+			travel.ARRIVAL_RETRY = 0.3
+			reset(nil, function()
+				error("ServerTest teleport down")
+			end)
+			local slow = player()
+			local t0 = os.clock()
+			travel.Arrived(slow)
+			waitUntil(function()
+				return #kicks > 0
+			end, 4)
+			local took = os.clock() - t0
+			flag("review_retry_waits", #kicks == 1 and took >= 2 * 0.3 - 0.05, took, 0.55)
+			travel.ARRIVAL_RETRY = 0.05
+			reset(function()
+				return false, true
+			end, function()
+				error("ServerTest teleport down")
+			end)
+			local reader = player()
+			travel.Arrived(reader)
+			waitUntil(function()
+				return #kicks > 0
+			end, 3)
+			flag(
+				"review_readonly_counts_as_released",
+				saves == 1 and teleports == travel.ARRIVAL_TRIES and #kicks == 1,
+				saves * 10 + teleports,
+				10 + travel.ARRIVAL_TRIES
+			)
+			reset(nil, function()
+				error("ServerTest teleport down")
+			end)
+			local lateOk = player()
+			travel.Arrived(lateOk)
+			task.wait(0.02)
+			adminNow = true -- qualifies before the second try
+			waitUntil(function()
+				return lateOk:GetAttribute("Travelling") == nil
+			end, 2)
+			task.wait(0.1)
+			flag(
+				"review_now_allowed_stays",
+				#kicks == 0 and teleports == 1 and lateOk:GetAttribute("DataLoaded") == true and retakes == 1,
+				teleports * 10 + retakes,
+				11
+			)
+			adminNow = false
+			local finals = 0
+			reset(function()
+				finals += 1
+				if finals > travel.ARRIVAL_TRIES then
+					task.wait(5) -- the final release save hangs
+				end
+				return false, false
+			end)
+			local hangs = player()
+			travel.Arrived(hangs)
+			flag("review_final_save_bounded", waitUntil(function()
+				return #kicks > 0
+			end, 3) and kicks[1] == hangs)
+			finals = 0
+			reset(function(p)
+				finals += 1
+				if finals > travel.ARRIVAL_TRIES then
+					p.Parent = nil -- left during the final save
+				end
+				return false, false
+			end)
+			travel.Arrived(player())
+			task.wait(1)
+			flag("review_no_kick_after_leave", #kicks == 0 and finals == travel.ARRIVAL_TRIES + 1, finals)
+			-- an admin check that stays "unknown": asked ADMIN_RECHECKS more times, then sent back
+			local asks = 0
+			travel.IsAdmin = function()
+				asks += 1
+				return false, "unknown"
+			end
+			travel.ADMIN_RECHECK, travel.ADMIN_RECHECKS = 0.02, 3
+			reset()
+			local unsure = player()
+			flag("review_unknown_waits", travel.Arrived(unsure) == false and teleports == 0)
+			waitUntil(function()
+				return teleports > 0
+			end, 2)
+			flag("review_unknown_capped_then_sent", teleports == 1 and asks >= 4, asks, 4)
+			unsure.Parent = nil -- its pending trip would time out and try again
+			travel.TIMEOUT = 60
+			travel.IsAdmin = function()
+				return false
+			end
+			-- Arrive: a load that never decides is kicked; a failed load is checked (sent back), a loaded one too
+			travel.ARRIVAL_WAIT = 0.3
+			reset()
+			local never = player()
+			never:SetAttribute("DataLoaded", nil)
+			local okNever = travel.Arrive(never)
+			flag("review_arrive_undecided_kicked", okNever == false and kicks[1] == never and teleports == 0)
+			reset()
+			local failed = player()
+			failed:SetAttribute("DataLoaded", nil)
+			failed:SetAttribute("DataFailed", true)
+			flag("review_arrive_failed_load_checked", travel.Arrive(failed) == true and teleports == 1)
+			reset()
+			local waits = player()
+			waits:SetAttribute("DataLoaded", nil)
+			task.delay(0.1, function()
+				waits:SetAttribute("DataLoaded", true)
+			end)
+			flag("review_arrive_waits_for_load", travel.Arrive(waits) == true and #kicks == 0 and teleports == 1)
 		end)
 		for i, k in keys do
 			travel[k] = saved[i]

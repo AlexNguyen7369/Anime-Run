@@ -17,7 +17,7 @@ function Tests.world2_welcome()
 	local WorldSave = require(Shared.WorldSave)
 	local WorldConfig = require(Shared.WorldConfig)
 	local W = require(Server.WorldWelcome)
-	local saved = { WorldId = W.WorldId, GateOpen = W.GateOpen, InStudio = W.InStudio, IsAdmin = W.IsAdmin }
+	local saved = { WorldId = W.WorldId, InStudio = W.InStudio, CanEnter = W.CanEnter }
 	local cleanup = {}
 	local ok, err = xpcall(function()
 		-- Pure save shape (World 2's id passed in, so it runs in either place).
@@ -39,25 +39,19 @@ function Tests.world2_welcome()
 		flag("world1_fold_untouched", WorldSave.Fold(payload, old, 1) == payload)
 
 		-- WorldWelcome.Check: once, only in World 2, never a locked-gate arrival that is sent back.
-		W.WorldId, W.InStudio, W.IsAdmin = 2, function()
+		flag("uses_gate_rule", W.CanEnter ~= nil and W.GateOpen == nil and W.IsAdmin == nil)
+		local enter = false -- what Server/WorldTravel.CanEnter answers (world_gate_rule tests the rule itself)
+		W.WorldId, W.InStudio, W.CanEnter = 2, function()
 			return false
 		end, function()
-			return false
-		end
-		W.GateOpen = function()
-			return false
+			return enter
 		end
 		local p = H.player(cleanup, UID + 1)
 		p:SetAttribute("DataLoaded", true)
-		flag("locked_gate_not_welcomed", W.Check(p) == false and p:GetAttribute("World2Welcomed") == nil)
-		W.IsAdmin = function()
-			return true
-		end
-		flag("admin_welcomed", W.Check(p) == true and p:GetAttribute("World2WelcomeShow") == true)
+		flag("refused_not_welcomed", W.Check(p) == false and p:GetAttribute("World2Welcomed") == nil)
+		enter = true
+		flag("allowed_welcomed", W.Check(p) == true and p:GetAttribute("World2WelcomeShow") == true)
 		flag("welcomed_once", W.Check(p) == false)
-		W.GateOpen = function()
-			return true
-		end
 		local q = H.player(cleanup, UID + 2)
 		flag("not_before_load", W.Check(q) == false)
 		q:SetAttribute("DataLoaded", true)

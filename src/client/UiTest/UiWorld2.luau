@@ -4,8 +4,8 @@
 -- ui_world_label: Client/WorldHud's WorldHud/WorldLabel reads "World <WorldConfig.Id>", shows on screen, sits under
 --   HudChrome/TopRight and over HudChrome/ShopColumn without touching either; Travelling (set here, locally) shows
 --   TeamToast's "Travelling to World <other>...".
--- ui_world2_welcome: Client/World2Welcome opens on World2WelcomeShow with the world name, "Team of 4 unlocked", "New
---   summon pool" and the gate hint, all inside the screen; clearing the attribute (what Close and OK do) closes it;
+-- ui_world2_welcome (World 1: no World2Welcome gui at all): Client/World2Welcome opens on World2WelcomeShow with the
+--   world name, "Team of 4 unlocked", "New summon pool" and the gate hint, all inside the screen; clearing the attribute (what Close and OK do) closes it;
 --   setting it again the same session does not reopen it. The attribute is set locally; the once-per-save rule is the
 --   server's (ServerTest world2_welcome).
 local Players = game:GetService("Players")
@@ -75,6 +75,11 @@ function Module.Build(h)
 	end
 
 	function scenarios.ui_world2_welcome(res)
+		if WorldConfig.Id ~= 2 then -- World 1: Client/World2Welcome builds nothing
+			local none = playerGui:WaitForChild("World2Welcome", 2) == nil
+			h.check(res, "welcome_absent_in_world1", none, true, none)
+			return
+		end
 		local gui = playerGui:WaitForChild("World2Welcome", 10)
 		local panel = gui and gui:FindFirstChild("Panel")
 		h.check(res, "welcome_exists", panel ~= nil, true, panel ~= nil)

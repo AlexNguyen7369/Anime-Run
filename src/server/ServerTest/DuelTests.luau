@@ -860,6 +860,8 @@ function Tests.duel()
 
 		-- REQUEST_COOLDOWN since A's last request (the refused ones never count)
 		refused("cooldown_after_1s", A, B, "Cooldown")
+		service.PlayerLeft(A.Player, true) -- Server/WorldTravel's Depart: a trip that fails keeps the cooldown
+		refused("cooldown_kept_after_travel_depart", A, B, "Cooldown")
 		now = t0 + NUMBERS.REQUEST_COOLDOWN - 0.01
 		refused("cooldown_just_before_10s", A, B, "Cooldown")
 		flag("duel_cooldown_refusal_changes_no_state", both(A, B, "None"), tostring(state(A)), "None")

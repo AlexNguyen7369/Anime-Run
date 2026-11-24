@@ -10,18 +10,17 @@ local WorldConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChil
 local WorldWelcome = {}
 
 WorldWelcome.WorldId = WorldConfig.Id -- test seam
-WorldWelcome.GateOpen = function() -- test seam
-	return WorldConfig.GATE_OPEN
-end
 WorldWelcome.InStudio = function() -- test seam
 	return RunService:IsStudio()
 end
-WorldWelcome.IsAdmin = function() -- Main.server sets AdminService.IsAdmin
-	return false
+-- Test seam: may the player stay in World 2? The arrival check's own rule (Server/WorldTravel.CanEnter: admins, or the
+-- gate open and the opening rule met).
+WorldWelcome.CanEnter = function(player)
+	return (require(script.Parent.WorldTravel).CanEnter(player, 2))
 end
 
--- Returns true when it gave the welcome now. A player Server/WorldTravel.Arrived sends back (the gate is locked and
--- they are no admin, outside Studio) never stayed, so they are not welcomed.
+-- Returns true when it gave the welcome now. A player Server/WorldTravel.Arrived sends back (CanEnter refuses them,
+-- outside Studio) never stayed, so they are not welcomed.
 function WorldWelcome.Check(player)
 	if WorldWelcome.WorldId ~= 2 or player:GetAttribute("DataLoaded") ~= true then
 		return false
@@ -29,7 +28,7 @@ function WorldWelcome.Check(player)
 	if player:GetAttribute("World2Welcomed") == true or player:GetAttribute("Travelling") then
 		return false
 	end
-	if not WorldWelcome.GateOpen() and not WorldWelcome.InStudio() and not WorldWelcome.IsAdmin(player) then
+	if not WorldWelcome.InStudio() and not WorldWelcome.CanEnter(player) then
 		return false
 	end
 	player:SetAttribute("World2Welcomed", true)

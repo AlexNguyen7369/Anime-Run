@@ -6,6 +6,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
+if require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("WorldConfig")).Id ~= 2 then
+	return -- World 2 only: in World 1 the server never welcomes, so nothing is built
+end
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local DojoHandscroll = require(script.Parent:WaitForChild("DojoHandscroll"))
