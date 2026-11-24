@@ -911,6 +911,7 @@ function Tests.make(helpers)
 			"ADMIN_RECHECKS",
 			"ARRIVAL_WAIT",
 			"Notice",
+			"Stayed",
 		}
 		local saved = {}
 		for i, k in keys do
@@ -1389,6 +1390,64 @@ function Tests.make(helpers)
 				waits:SetAttribute("DataLoaded", true)
 			end)
 			flag("review_arrive_waits_for_load", travel.Arrive(waits) == true and #kicks == 0 and teleports == 1)
+
+			-- 11. Review of 3742dd3: a late arrival release save retakes the lock once the arrival stays; Go refuses a
+			-- player still loading (and tells them); an admin found only by a recheck gets the welcome
+			travel.TIMEOUT = 0.15
+			adminNow = false
+			travel.IsAdmin = function()
+				return adminNow
+			end
+			reset(function()
+				task.wait(0.35)
+				return true, false
+			end)
+			local stays = player()
+			travel.Arrived(stays)
+			task.wait(0.05)
+			adminNow = true -- allowed by the time sendBack asks again
+			task.wait(0.6)
+			flag(
+				"review_late_arrival_save_retaken_when_staying",
+				stays:GetAttribute("Travelling") == nil and retakes == 1 and teleports == 0,
+				retakes,
+				1
+			)
+			travel.TIMEOUT = 60
+			WorldConfig.Id = 1
+			reset()
+			table.clear(notices)
+			local loading = player()
+			loading:SetAttribute("DataLoaded", nil)
+			local okLoading = travel.Go(loading, 2)
+			flag(
+				"review_go_refuses_loading",
+				okLoading == false and saves == 0 and teleports == 0 and notices[1] and notices[1][1] == loading,
+				saves * 10 + teleports
+			)
+			loading:SetAttribute("DataFailed", true)
+			flag("review_go_failed_load_travels", travel.Go(loading, 2) == true and teleports == 1)
+			travel.Failed(loading, "ServerTest cleanup")
+			WorldConfig.Id = 2
+			local stayed, unknownOnce = {}, true
+			travel.Stayed = function(p)
+				table.insert(stayed, p)
+			end
+			travel.IsAdmin = function()
+				if unknownOnce then
+					unknownOnce = false
+					return false, "unknown"
+				end
+				return true
+			end
+			travel.ADMIN_RECHECK = 0.02
+			reset()
+			local lateAdmin = player()
+			travel.Arrived(lateAdmin)
+			flag("review_recheck_admin_welcomed", waitUntil(function()
+				return #stayed > 0
+			end, 1) and stayed[1] == lateAdmin and teleports == 0)
+			flag("review_first_check_no_welcome_call", travel.Arrived(player()) == false and #stayed == 1, #stayed, 1)
 		end)
 		for i, k in keys do
 			travel[k] = saved[i]

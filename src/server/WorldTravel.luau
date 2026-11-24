@@ -76,9 +76,8 @@ WorldTravel.Notice = function(player, text)
 end
 
 -- Test seam: the player's World 1 BestTrack (the highest World 1 track number beaten, RaceService). In World 2 the
--- BestTrack attribute is World 2's, so it reads World1BestTrack there.
--- shortcut: nothing sets World1BestTrack yet, so in World 2 everyone reads 0 (refused); PlayerData must copy the
--- record's top-level BestTrack into it on load before the owner opens the gate.
+-- BestTrack attribute is World 2's, so it reads World1BestTrack there (PlayerData's read-only mirror of the save's
+-- top-level BestTrack, set on load).
 WorldTravel.World1Best = function(player)
 	return tonumber(player:GetAttribute(WorldConfig.Id == 1 and "BestTrack" or "World1BestTrack")) or 0
 end
@@ -112,6 +111,11 @@ WorldTravel.ARRIVAL_RETRY = 3 -- placeholder: seconds between return trips
 WorldTravel.ADMIN_RECHECK = 10 -- placeholder: seconds before an arrival whose admin check failed is checked again
 WorldTravel.ADMIN_RECHECKS = 6 -- placeholder: such rechecks before the player counts as no admin
 WorldTravel.KICK_MESSAGE = "Could not move you between worlds. Please rejoin Anime Run."
+
+-- Test seam: an arrival allowed to stay only after an admin recheck missed the welcome at load (Server/WorldWelcome).
+WorldTravel.Stayed = function(player)
+	require(script.Parent.WorldWelcome).Check(player)
+end
 
 -- Test seam: removes an arrival whose return trips all failed.
 WorldTravel.Kick = function(player, message)
@@ -171,6 +175,10 @@ function WorldTravel.Go(player, id, arrival)
 	if id == WorldConfig.Id then
 		return false, "already in World " .. id
 	end
+	if not arrival and not (player:GetAttribute("DataLoaded") or player:GetAttribute("DataFailed")) then
+		pcall(WorldTravel.Notice, player, "Still loading, try again")
+		return false, "still loading" -- a trip now would skip the release save of a load still in flight
+	end
 	local allowed, reason = WorldTravel.CanEnter(player, id)
 	if not allowed then
 		return false, reason
@@ -209,8 +217,10 @@ function WorldTravel.Go(player, id, arrival)
 			carry.Released = true -- the lock is out even if this trip timed out: later return trips skip the save
 		end
 		if busy[player] ~= trip then -- the trip timed out during the save: it does not go on
-			if (saved or readOnly) and not trip.Arrival then
-				retake(player) -- the late release save dropped the lock
+			-- the late release save dropped the lock: take it back unless the arrival is still frozen (sendBack then
+			-- retakes it if the player is allowed to stay after all)
+			if (saved or readOnly) and (not trip.Arrival or player:GetAttribute("Travelling") ~= true) then
+				retake(player)
 			end
 			return false, "the trip timed out"
 		end
@@ -302,11 +312,14 @@ function WorldTravel.Arrived(player, recheck)
 	if RunService:IsStudio() and not WorldTravel.AllowStudio then
 		return false, "no arrival check in Studio"
 	end
+	recheck = recheck or 0
 	local allowed, _, unknown = WorldTravel.CanEnter(player, 2)
 	if allowed then
+		if recheck > 0 then
+			pcall(WorldTravel.Stayed, player)
+		end
 		return false, "may stay"
 	end
-	recheck = recheck or 0
 	if unknown and recheck < WorldTravel.ADMIN_RECHECKS then
 		task.delay(WorldTravel.ADMIN_RECHECK, function()
 			if player.Parent then
