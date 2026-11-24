@@ -138,6 +138,52 @@ local SPEC = {
 	fr_great = { "Serye", "Balanced", 8e18, 5420 },
 	punch_void = { "Void Saitamo", "Balanced", 9e18, 6000 },
 }
+-- The World 2 source names, hashed as CatalogTests keeps World 1's: { length, hash }
+local SOURCE_HASHES = {
+	{ 6, 159852035 },
+	{ 3, 193486266 },
+	{ 4, 2090684541 },
+	{ 5, 256497457 },
+	{ 6, 221847675 },
+	{ 6, 114052001 },
+	{ 5, 263756671 },
+	{ 5, 261087564 },
+	{ 6, 708224327 },
+	{ 6, 504244599 },
+	{ 5, 253252497 },
+	{ 7, 35406450 },
+	{ 5, 267744489 },
+	{ 5, 260055395 },
+	{ 9, 1015580300 },
+	{ 5, 259916005 },
+	{ 6, 320416175 },
+	{ 4, 2090400877 },
+	{ 4, 2090077700 },
+	{ 5, 274280866 },
+	{ 4, 2090515327 },
+	{ 6, 311628379 },
+	{ 4, 2090684155 },
+	{ 6, 153070976 },
+	{ 7, 1420976533 },
+	{ 4, 2090508812 },
+	{ 6, 1920945552 },
+	{ 5, 264646469 },
+	{ 5, 274811436 },
+	{ 4, 2090253042 },
+	{ 6, 35734055 },
+	{ 7, 1090972917 },
+	{ 5, 274290591 },
+	{ 5, 253985931 },
+	{ 4, 2090109301 },
+	{ 5, 267172280 },
+	{ 5, 253978639 },
+	{ 6, 479123896 },
+	{ 5, 274427891 },
+	{ 7, 1862591724 },
+	{ 8, 2018587539 },
+	{ 8, 150328071 },
+	{ 8, 554322656 },
+}
 local SLOT0, SLOTS = 1000000, 100
 
 local function near(a, b)
@@ -230,7 +276,7 @@ function Tests.world2_cast()
 			for _, text in { ... } do
 				-- as ids: "Kaijo No. 8" -> kaijo_no_8, so the hash list's "_" segments match
 				local key = string.gsub(string.lower(text), "[^a-z0-9]+", "_")
-				if CatalogTests.realNameIn(key) then
+				if CatalogTests.realNameIn(key) or CatalogTests.realNameIn(key, SOURCE_HASHES) then
 					table.insert(real, text)
 				end
 			end

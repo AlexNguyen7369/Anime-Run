@@ -180,13 +180,13 @@ local function nameHash(s)
 	return x
 end
 
--- The { length, hash } of the first real name in `id`, as text, or nil.
-local function realNameIn(id)
+-- The { length, hash } of the first real name in `id`, as text, or nil. `hashes`: another list to check against.
+local function realNameIn(id, hashes)
 	local segments = {}
 	for _, seg in string.split(id, "_") do
 		segments[nameHash(seg) .. ":" .. #seg] = true
 	end
-	for _, entry in REAL_NAME_HASHES do
+	for _, entry in hashes or REAL_NAME_HASHES do
 		local len, hash = entry[1], entry[2]
 		local key = hash .. ":" .. len
 		if segments[key] then
