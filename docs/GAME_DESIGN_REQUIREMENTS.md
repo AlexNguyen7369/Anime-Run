@@ -821,6 +821,8 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
     worn gear stay shared, and every owned character or Sidekick of the other world still shows in the Bag and the Team.
   - Series names: Dandadun, Kaijo No. 8 and Frierin replace the real titles Dandadan, Kaiju No. 8 and Frieren (section 5).
   - World 2's enemies are the rollable villains (Track 10: Makina).
+  - Daily login Day 7 in World 2 gives its rarest unowned character up to Legendary (the owner's 2026-11-05 cap, applied to
+    World 2 only, **proposed**). World 1's Day 7 is unchanged.
   - World 2's Sidekicks are its own set of 12 with its own rotation, World 1's never mix in; featured Mythic Belleon.
     Numbers are World 1's row of the same rarity. Pity counts stay shared.
 

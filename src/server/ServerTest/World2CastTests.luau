@@ -92,6 +92,52 @@ local WORLD1_SIDEKICKS = {
 	"side_curse",
 	"side_fox",
 }
+-- docs/WORLD2_SPEC.md "Cast in game" and CHARACTER_GACHA_SPEC "World 2 cast": id -> { Name, Category, Chance, SpeedMulti }
+local SPEC = {
+	punch_rider = { "Mumon Rider", "Marathoner", 1, 1.1 },
+	dan_hex = { "Jijo", "Balanced", 12, 1.31 },
+	kaiju_ice = { "Rino", "Balanced", 25, 1.54 },
+	fr_axe = { "Stork", "Marathoner", 50, 1.76 },
+	solo_vice = { "Jinhu", "Marathoner", 160, 2.1 },
+	saw_nervous = { "Kobene", "Marathoner", 180, 2.15 },
+	punch_cyborg = { "Genus", "Sprinter", 550, 2.1 },
+	dan_idol = { "Airah", "Balanced", 650, 2.26 },
+	kaiju_axe = { "Kikuru", "Sprinter", 1600, 3.16 },
+	fr_staff = { "Ferne", "Balanced", 2500, 3.61 },
+	solo_mage = { "Jongen", "Balanced", 5000, 4.1 },
+	saw_fox = { "Akki", "Balanced", 6000, 4.3 },
+	punch_speed = { "Speedo Sonik", "Sprinter", 60000, 6.49 },
+	dan_medium = { "Seika", "Balanced", 140000, 8.76 },
+	kaiju_blade = { "Hoshena", "Sprinter", 350000, 11.2 },
+	fr_hero = { "Himmal", "Balanced", 600000, 12.7 },
+	saw_blood = { "Powah", "Sprinter", 800000, 12.5 },
+	saw_katana = { "Katanah Man", "Sprinter", 1.1e6, 14.3 },
+	dan_granny = { "Turbo Grammy", "Sprinter", 1.4e6, 14.9 },
+	solo_blade = { "Sha Hain", "Sprinter", 1.8e6, 15 },
+	punch_psychic = { "Tatsumako", "Balanced", 1.2e7, 28.1 },
+	dan_psychic = { "Momu", "Balanced", 3.5e7, 46.6 },
+	kaiju_captain = { "Mena Ashiru", "Balanced", 6e7, 55.8 },
+	fr_cut = { "Ubbel", "Sprinter", 1.2e8, 67.8 },
+	fr_scales = { "Ora", "Marathoner", 1.8e8, 74.8 },
+	kaiju_nine = { "Kaijo No. 9", "Balanced", 2.5e8, 80.4 },
+	saw_bomb = { "Rezi", "Sprinter", 4e8, 85 },
+	solo_beast = { "Yunho", "Marathoner", 6e8, 95 },
+	solo_flame = { "Barran", "Balanced", 7e8, 98.1 },
+	punch_fist = { "Bange", "Marathoner", 6e9, 154 },
+	dan_turbo = { "Okaron", "Sprinter", 2e10, 181 },
+	kaiju_hero = { "Kafko", "Balanced", 8e10, 212 },
+	fr_mage = { "Frierin", "Balanced", 2e11, 233 },
+	solo_ant = { "Berru", "Sprinter", 2e12, 285 },
+	punch_serpent = { "Orochy", "Marathoner", 8e12, 316 },
+	fr_gold = { "Machto", "Balanced", 2e13, 337 },
+	saw_hero = { "Denjy", "Balanced", 5e13, 370 },
+	punch_monster = { "Garoo", "Sprinter", 2e14, 389 },
+	solo_goliath = { "Golioth", "Marathoner", 7e14, 415 },
+	solo_monarch = { "Jinwu", "Balanced", 6e18, 4000 },
+	saw_control = { "Makina", "Marathoner", 7e18, 5000 },
+	fr_great = { "Serye", "Balanced", 8e18, 5420 },
+	punch_void = { "Void Saitamo", "Balanced", 9e18, 6000 },
+}
 local SLOT0, SLOTS = 1000000, 100
 
 local function near(a, b)
@@ -176,6 +222,82 @@ function Tests.world2_cast()
 				npc.World2[number].Model == id and npc.World2[number].Label == catalog.Get(id).Name
 			)
 		end
+	end)
+
+	section("names", function()
+		local bad, real, count = {}, {}, 0
+		local function scan(...)
+			for _, text in { ... } do
+				-- as ids: "Kaijo No. 8" -> kaijo_no_8, so the hash list's "_" segments match
+				local key = string.gsub(string.lower(text), "[^a-z0-9]+", "_")
+				if CatalogTests.realNameIn(key) then
+					table.insert(real, text)
+				end
+			end
+		end
+		for id, want in SPEC do
+			count += 1
+			local c = catalog.Get(id)
+			if not (c and H.same({ c.Name, c.Category, c.Chance, c.SpeedMulti }, want)) then
+				table.insert(bad, id)
+			end
+			scan(id, want[1])
+		end
+		for _, s in series.List do
+			if s.World == 2 then
+				scan(s.Id, s.Name, s.Preset.Name)
+			end
+		end
+		for _, row in require(Shared.SidekickConfig).Lists[2] do
+			scan(row.Id, row.Name)
+		end
+		flag("spec_fields_43", #bad == 0 and count == CAST_SIZE, table.concat(bad, ","), "")
+		flag("no_real_names", #real == 0, table.concat(real, ","), "")
+	end)
+
+	section("daily", function()
+		local Daily = require(Server.DailyLoginService)
+		local function rarest(world, allowed)
+			for _, spec in catalog.Rollable(world) do
+				if allowed(spec) then
+					return spec
+				end
+			end
+			return nil
+		end
+		local first = Daily.GuaranteedPick({}, 2)
+		flag("daily_world2_legendary", first ~= nil and first.Id == "solo_flame", first and first.Id)
+		local owned, capped = {}, true
+		for _ = 1, CAST_SIZE do
+			local spec = Daily.GuaranteedPick(owned, 2)
+			if not spec then
+				break
+			end
+			capped = capped and spec.Rarity ~= "Mythic" and spec.Rarity ~= "Eternal" and not owned[spec.Id]
+			owned[spec.Id] = true
+		end
+		flag("daily_world2_never_above_legendary", capped and Daily.GuaranteedPick(owned, 2) == nil)
+		local none = Daily.GuaranteedPick({}, 1)
+		flag("daily_world1_rarest", none ~= nil and none.Id == "jk_strongest", none and none.Id)
+		local second = Daily.GuaranteedPick({ jk_strongest = true }, 1)
+		local want = rarest(1, function(spec)
+			return spec.Id ~= "jk_strongest"
+		end)
+		flag("daily_world1_unchanged", second == want, second and second.Id)
+	end)
+
+	section("pity_tier", function()
+		local Cfg = require(Shared.SidekickConfig)
+		local M, L = Cfg.PityCount - 1, Cfg.LegendaryPityCount - 1
+		local common, rare = { Rarity = "Common" }, { Rarity = "Rare" }
+		local legendary, mythic = { Rarity = "Legendary" }, { Rarity = "Mythic" }
+		local all = { common, rare, legendary, mythic }
+		flag("pity_none", Cfg.DueTier(M - 1, L - 1, all) == nil)
+		flag("pity_mythic_first", Cfg.DueTier(M, L, all) == "Mythic")
+		flag("pity_legendary", Cfg.DueTier(M - 1, L, all) == "Legendary")
+		flag("pity_no_mythic_rows", Cfg.DueTier(M, L, { common, legendary }) == "Legendary")
+		flag("pity_mythic_only_due", Cfg.DueTier(M, 0, { common, legendary }) == nil)
+		flag("pity_no_rows", Cfg.DueTier(M, L, { common, rare }) == nil)
 	end)
 
 	section("world1_unchanged", function()

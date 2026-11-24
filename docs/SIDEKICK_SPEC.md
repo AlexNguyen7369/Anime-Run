@@ -157,6 +157,7 @@ Owner presentation update 2026-11-14: summon controls use warm wood/burgundy gra
 - A Mythic, Legendary or Rare with no uploaded model stays out of the rotation. Commons and Secrets are summonable without one, as in World 1:
   they show their name, no follower and, until their attack is baked, a shot with no pose.
 - Follow trots, boss effects and summon auras (World 1 templates, tinted) are **proposed**.
+- Pity never pays, and Details never shows, a tier the rotation holds no Sidekick of (`SidekickConfig.DueTier`, server and client).
 
 | Id | Based on | Name | Rarity | Listed odds | Movement | Boss effect |
 |---|---|---|---|---|---|---|

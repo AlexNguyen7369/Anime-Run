@@ -82,6 +82,7 @@ The "Based on" names stay in docs and never ship (design doc 5).
   portrait the live rig; a character with no upload is the same.
 - Saves: nothing new. `Cars`, `Copies`, `Sidekicks` and `CharacterGear` are shared and keep every id; `Worlds.W2` as before.
 - Sidekicks: `docs/SIDEKICK_SPEC.md` "World 2 set". Tests: `world2_cast`.
+- Daily Day 7: `DailyLoginConfig.MAX_GUARANTEED_RARITY[2]` = Legendary; World 1 has no cap.
 
 | Id | Name | Series | Rarity | Cat. | Chance (1 in N) |
 |---|---|---|---|---|---|

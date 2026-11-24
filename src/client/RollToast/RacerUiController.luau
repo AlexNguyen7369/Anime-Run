@@ -200,7 +200,7 @@ end
 
 local function bestRolledCharacter()
 	local best
-	for _, spec in catalog.All() do
+	for _, spec in catalog.Everything() do
 		if data and data:FindFirstChild(spec.Id) and (not best or (spec.Chance or 0) > (best.Chance or 0)) then
 			best = spec
 		end

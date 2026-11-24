@@ -4,6 +4,10 @@
 
 local DailyLoginConfig = {}
 
+-- The guaranteed reward's top rarity by world; none in World 1 (design doc 4.47, proposed: the owner's 2026-11-05 ruling
+-- "Daily cap at Legendary", for World 2 only). Players progress past it.
+DailyLoginConfig.MAX_GUARANTEED_RARITY = { [2] = "Legendary" }
+
 DailyLoginConfig.Rewards = {
 	{ Boost = "Luck" },
 	{ Boost = "Money" },

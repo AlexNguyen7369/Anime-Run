@@ -364,6 +364,18 @@ function SidekickConfig.Get(id)
 	return nil
 end
 
+-- The tier the next summon is guaranteed, or nil: the server rolls it and Details shows it (design doc 4.36, section 6).
+-- `rows` = { { Rarity } } on offer; a tier with none cannot be paid, so its count waits.
+function SidekickConfig.DueTier(mythicPity, legendaryPity, rows)
+	local has = {}
+	for _, row in rows do
+		has[row.Rarity] = true
+	end
+	return mythicPity + 1 >= SidekickConfig.PityCount and has.Mythic and "Mythic"
+		or legendaryPity + 1 >= SidekickConfig.LegendaryPityCount and has.Legendary and "Legendary"
+		or nil
+end
+
 -- One independent roll over `list`. Pure: reads only its arguments, so no luck source can reach it (design doc 4.36).
 function SidekickConfig.Roll(rng, list)
 	local total = 0
