@@ -248,8 +248,9 @@
 244. 2026-11-24 — Alex Nguyen — Uploaded the 26 audited World 2 scenery meshes, recorded their MeshIds in the ledgers and baked them into the World 2 place (saved as version 50).
 245. 2026-11-24 — Alex Nguyen — Wrote the World 2 cast handoff for the move to another computer and saved the upload log in docs; merged orch/world2/cast-ingame into feature/alex/world2-place.
 246. 2026-11-24 — Alex Nguyen — World 2 HUD uses the pre-scroll look (owner 2026-11-24), panels keep the scroll look; rule in design doc 4.47; not yet seen in Studio.
+247. 2026-11-24 — Alex Nguyen — Made every test harness move its Studio session to an in-memory copy of the save before changing a player (design doc 4.24 "Harness saves"); server test harness_save 24/24 and a refused client-only trigger checked in the World 2 Studio on a test save.
 
 ## What's next
-**Owner rules on the live save (restore the last clean DataStore version or inspect first), then finish the World 2 UI harness run and screenshots.**
+**Owner rules on the live save (inspect or restore the last clean DataStore version), then run the full World 2 UiTestRun and take the screenshots.**
 
-**Why this is next:** a World 2 UiTestRun reset World 1 characters in the owner's real save, so no further World 2 UI run is safe until that is settled, and the gate cannot open before the UI run is green.
+**Why this is next:** the harness can no longer write a real save, so a World 2 UI run is safe again, but the save a past run reset is still unrestored, and the gate cannot open before the UI run is green.

@@ -30,6 +30,7 @@ local GiftMailbox = require(script.Parent.GiftMailbox)
 local RaceTimeService = require(script.Parent.RaceTimeService)
 local SidekickService = require(script.Parent.SidekickService)
 local RelicService = require(script.Parent.RelicService)
+local ShadowStore = require(script.Parent.ShadowStore)
 
 local PlayerData = {}
 
@@ -92,8 +93,10 @@ local function lockedElsewhere(record, at)
 		and at - lock.At < PlayerData.LOCK_TIMEOUT
 end
 
+local isolated = nil -- the in-memory store, once a test harness has started in this session
+
 function PlayerData.SetStore(newStore)
-	store = newStore
+	store = newStore or isolated -- nil after IsolateForTests goes back to the copy, never to the DataStore
 end
 
 local function getStore()
@@ -106,6 +109,25 @@ local function getStore()
 		end
 	end
 	return store
+end
+
+-- Studio only (design doc 4.24 "Harness saves"): from this call on, this session's saves go to an in-memory copy of
+-- the save (Server/ShadowStore: each key read once from the store in use, nothing written back). There is no way
+-- back in the same session. Called by every test harness before it changes a player. Waits for a save already in
+-- flight, which still carries the state from before the tests. Returns true when the session is isolated. Yields.
+function PlayerData.IsolateForTests()
+	if not RunService:IsStudio() then
+		return false
+	end
+	if not isolated then
+		isolated = ShadowStore.new(getStore())
+		store = isolated
+		PlayerData.Isolated = true
+	end
+	while next(saving) do
+		task.wait()
+	end
+	return true
 end
 
 -- Studio only: ReplicatedStorage attribute TestSaveKey = "<name>", set in Edit, plays this server on a separate test save, so

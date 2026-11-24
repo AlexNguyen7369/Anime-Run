@@ -28,6 +28,21 @@ local function live(name)
 	return require(Server:WaitForChild(name))
 end
 
+-- Design doc 4.24 "Harness saves": the session goes to an in-memory save before any fixture runs, and on every
+-- harness trigger the server can see, so a UI run started from the server datamodel is isolated before the client
+-- begins. A trigger set only on a client never reaches here: the client harness then refuses to run.
+local HarnessSave = require(script.Parent:WaitForChild("HarnessSave"))
+for _, name in { "UiTestSetup", "UiTestRun", "UiTestClick", "UiTestScenario" } do
+	local function onTrigger()
+		local value = ReplicatedStorage:GetAttribute(name)
+		if value ~= nil and value ~= false and value ~= "" then
+			HarnessSave.Isolate()
+		end
+	end
+	ReplicatedStorage:GetAttributeChangedSignal(name):Connect(onTrigger)
+	task.spawn(onTrigger)
+end
+
 local snapshots = {} -- [Player] = { gacha, money, autoRacing, autoRoll, upgrades }
 local spied = {} -- [RemoteEvent] = connection (never connect twice)
 local functionSpies = {} -- original RemoteFunction -> { name, proxy }; original callback is untouched.
@@ -1746,6 +1761,7 @@ local function runSetup(request)
 	local arg = string.match(request, "^[^:]+:(.*):[^:]*$") -- "<id>:<args>:<nonce>"; nil for "<id>:<nonce>"
 	ReplicatedStorage:SetAttribute("UiTestSetupError", nil)
 	local ok, err = pcall(function()
+		HarnessSave.Isolate()
 		if id == "spy" then
 			spy()
 			return
@@ -1937,6 +1953,7 @@ setupRequest.OnServerInvoke = function(player, request)
 	end
 	local restoreId = string.match(request, "^restore:(.+)$")
 	local ok, err = pcall(function()
+		HarnessSave.Isolate()
 		local rigName, rigId, rigAura, rigTrail, rigSpeed =
 			string.match(request, "^run_visual_rig:([^:]+):([^:]+):([^:]+):([^:]+):([%d%.]+)$")
 		local swapId, swapAura, swapTrail = string.match(request, "^run_visual_swap:([^:]+):([^:]+):([^:]+)$")

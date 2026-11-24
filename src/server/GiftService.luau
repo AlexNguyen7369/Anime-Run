@@ -15,8 +15,16 @@ GiftService.RECEIPT_DAYS = 90 -- a routed receipt is kept this long, then pruned
 local store, mailboxFn, playerSource
 local busy, lastRequest = {}, {}
 
+local isolated = nil -- in-memory routes once a test harness has started (design doc 4.24 "Harness saves")
 function GiftService.SetStore(value)
-	store = value
+	store = value or isolated
+end
+-- Studio test harnesses: gift routes of this session stay in `memoryStore`, never in GiftRoutes_v1.
+function GiftService.IsolateForTests(memoryStore)
+	if isolated == nil then
+		isolated = memoryStore
+		store = memoryStore
+	end
 end
 function GiftService.SetPlayers(value)
 	playerSource = value

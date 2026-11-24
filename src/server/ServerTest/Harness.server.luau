@@ -59,6 +59,14 @@ local function runAll()
 		return
 	end
 	running = true
+	-- Design doc 4.24 "Harness saves": scenarios that use the live player never reach the live save.
+	local isolated, refusal = pcall(require(script.Parent.HarnessSave).Isolate)
+	if not isolated then
+		warn("[SERVERTEST] REFUSED " .. tostring(refusal))
+		ReplicatedStorage:SetAttribute("ServerTestRun", false)
+		running = false
+		return
+	end
 	ReplicatedStorage:SetAttribute("ServerTestRunning", true)
 	local weatherModule = script.Parent.Parent:FindFirstChild("WeatherService")
 	local weather = weatherModule and require(weatherModule)

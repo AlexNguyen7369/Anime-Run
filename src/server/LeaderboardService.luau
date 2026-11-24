@@ -104,8 +104,8 @@ end
 
 -- Writes the player's scores. Returns true when at least one board was written.
 function LeaderboardService.Write(player, only)
-	if PlayerData.TestSave then
-		return false -- a test save must not overwrite the tester's real board entries
+	if PlayerData.TestSave or PlayerData.Isolated then
+		return false -- a test save or a harness session must not overwrite the tester's real board entries
 	end
 	if player:GetAttribute("DataLoaded") ~= true or player:GetAttribute("DataFailed") == true then
 		return false -- never from a save that did not load
