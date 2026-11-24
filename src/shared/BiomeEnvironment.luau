@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Themes = require(script.Parent.BiomeThemes)
 local Kit = require(script.Parent.BiomeThemes:WaitForChild("Kit"))
+local PlazaLook = require(script.Parent.PlazaLook)
 local TrackRegistry = require(script.Parent.TrackRegistry)
 
 local BiomeEnvironment = {}
@@ -110,6 +111,10 @@ local PLAZA = Kit.Atmosphere({
 		},
 	},
 })
+-- World 2's plaza is a moonlit night instead (design doc 4.47 "Moonlit Dojo"; placeholders in Shared/PlazaLook)
+if PlazaLook.Atmosphere then
+	PLAZA = Kit.Atmosphere(PlazaLook.Atmosphere)
+end
 -- Reuses Track 1's reviewed forest ambience, quieter (rows in BiomeThemes/Speedway)
 local PLAZA_AUDIO = { Loop = "AmbForest", OneShots = { "SfxWindChime" }, Volume = 0.2 }
 local PLAZA_PETAL = {

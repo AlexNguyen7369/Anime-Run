@@ -14,11 +14,13 @@ local Layout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Pl
 
 local TOP = 1 -- SpawnArea.TOP_Y
 
--- Warm, in the HUD's gold and navy family (4.40); pink only as a small accent (proposed)
-local GOLD = Color3.fromRGB(255, 196, 70)
-local AMBER = Color3.fromRGB(255, 150, 56)
-local PAPER = Color3.fromRGB(255, 212, 150)
-local PINK = Color3.fromRGB(255, 120, 180)
+-- Warm, in the HUD's gold and navy family (4.40); pink only as a small accent (proposed). World 2 swaps them for
+-- violet and magenta (design doc 4.47 "Moonlit Dojo", placeholders in Shared/PlazaLook).
+local ACCENT = require(ReplicatedStorage.Shared.PlazaLook).Accent or {}
+local GOLD = ACCENT.Gold or Color3.fromRGB(255, 196, 70)
+local AMBER = ACCENT.Amber or Color3.fromRGB(255, 150, 56)
+local PAPER = ACCENT.Paper or Color3.fromRGB(255, 212, 150)
+local PINK = ACCENT.Pink or Color3.fromRGB(255, 120, 180)
 local SCREEN = Color3.fromRGB(34, 26, 34)
 local STEEL = Color3.fromRGB(104, 96, 92) -- warm steel
 
