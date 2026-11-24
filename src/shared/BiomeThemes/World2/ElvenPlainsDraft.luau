@@ -5,6 +5,7 @@
 -- PartsOnly: a prop of 1-2 kit boxes is built from them exactly and is no mesh asset.
 -- Placed: { Prop, X, Y, Z, Yaw, Scale } for each prop's base centre (radians, CFrame.fromEulerAnglesYXZ), or
 -- { Prop, X, Y, Z, Yaw, 1, RX, RZ, v(SX, SY, SZ) } for a tilted or stretched one. Biggest props first.
+-- A piece of a cut prop also has Group (its placement) and Whole (the whole prop's base centre).
 -- Lights: { X, Y, Z, Color, Energy (Blender W) }, brightest first.
 -- Heroes: the draft's close-up models (MODEL_SHOTS); a prop cut into pieces is <Prop>_p<i> (2048-stud limit).
 local v, hex = Vector3.new, Color3.fromHex
@@ -427,17 +428,25 @@ return {
 		},
 	},
 	Placed = {
-		{ "Mountain_p2", -1435.156, -353, -4184.536, -2.658, 1.35 },
-		{ "Mountain_p1", -150.631, -317.893, -4884.115, -2.658, 1.35 },
-		{ "Mountain_p3", -2739.847, -326, -3523.383, -2.658, 1.35 },
-		{ "Mountain_p2", 3352.481, -210, 4591.877, 0.483, 0.8 },
-		{ "Mountain_p1", 2591.281, -189.196, 5006.443, 0.483, 0.8 },
-		{ "Mountain_p3", 4125.631, -194, 4200.083, 0.483, 0.8 },
+		{ "Mountain_p2", -1435.156, -353, -4184.536, -2.658, 1.35, Group = 1, Whole = v(-1435.156, -353, -4184.536) },
+		{
+			"Mountain_p1",
+			-150.631,
+			-317.893,
+			-4884.115,
+			-2.658,
+			1.35,
+			Group = 1,
+			Whole = v(-1435.156, -353, -4184.536),
+		},
+		{ "Mountain_p3", -2739.847, -326, -3523.383, -2.658, 1.35, Group = 1, Whole = v(-1435.156, -353, -4184.536) },
+		{ "Mountain_p2", 3352.481, -210, 4591.877, 0.483, 0.8, Group = 2, Whole = v(3352.481, -210, 4591.877) },
+		{ "Mountain_p1", 2591.281, -189.196, 5006.443, 0.483, 0.8, Group = 2, Whole = v(3352.481, -210, 4591.877) },
+		{ "Mountain_p3", 4125.631, -194, 4200.083, 0.483, 0.8, Group = 2, Whole = v(3352.481, -210, 4591.877) },
 		{ "FarWood", 2162.005, -35.76, 1936.253, -0.405, 1.777 },
 		{ "FarWood", 355.308, -34.728, 1871.707, 0.65, 1.723 },
 		{ "FarWood", 1068.01, -33.481, -1817.567, -2.912, 1.657 },
 		{ "FarWood", 2748.08, -33.334, -12.909, -1.532, 1.649 },
-		{ "RuinedCastle", 2620, -18.5, -142.622, 1.571, 1.5 },
 		{ "FarWood", 482.731, -31.978, 2194.053, -0.152, 1.578 },
 		{ "FarWood", 1777.143, -31.295, -2029.779, -2.761, 1.542 },
 		{ "FarWood", 2419.544, -30.989, -1420.598, -2.748, 1.526 },

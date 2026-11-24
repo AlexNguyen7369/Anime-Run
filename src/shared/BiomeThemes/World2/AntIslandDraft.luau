@@ -5,6 +5,7 @@
 -- PartsOnly: a prop of 1-2 kit boxes is built from them exactly and is no mesh asset.
 -- Placed: { Prop, X, Y, Z, Yaw, Scale } for each prop's base centre (radians, CFrame.fromEulerAnglesYXZ), or
 -- { Prop, X, Y, Z, Yaw, 1, RX, RZ, v(SX, SY, SZ) } for a tilted or stretched one. Biggest props first.
+-- A piece of a cut prop also has Group (its placement) and Whole (the whole prop's base centre).
 -- Lights: { X, Y, Z, Color, Energy (Blender W) }, brightest first.
 -- Heroes: the draft's close-up models (MODEL_SHOTS); a prop cut into pieces is <Prop>_p<i> (2048-stud limit).
 local v, hex = Vector3.new, Color3.fromHex
@@ -478,7 +479,7 @@ return {
 		},
 	},
 	Placed = {
-		{ "Nest", -596.27, -9.793, 1808.707, -1.438, 1 },
+		{ "Nest", -486.27, -9.793, 2058.707, -1.438, 1 },
 		{ "Ship", 4464.93, -37.167, -4884.648, 1.571, 3.574 },
 		{ "Ship", 4886.215, -36.979, 252.284, 0.529, 3.553 },
 		{ "Chamber", 540.172, -11, -504.296, -3.09, 1 },

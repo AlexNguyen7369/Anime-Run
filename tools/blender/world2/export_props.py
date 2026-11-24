@@ -20,6 +20,7 @@ import importlib
 import json
 import math
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -38,8 +39,12 @@ THEMES = os.path.join(ROOT, "src", "shared", "BiomeThemes", "World2")
 CAPS = {"hero": 20000, "mid": 3000, "unique": 12}  # BIOME_ENVIRONMENT_SPEC 4.3 / 4.5
 HERO_MAX = 4  # placeholder: spec 4.3 heroes are one model each, 2-4 per biome
 FALLBACK_PARTS = {"hero": 24, "mid": 6}  # placeholder: largest parts kept as the parts fallback silhouette (spec 4.2)
-NUDGE_STEP, NUDGE_MAX = 10, 400  # placeholder: studs; a hero with no kept placement moves at most this far
+SPOT_STEP = 10  # studs between the rings (16 directions each) find_spot tries around a hero's approved spot
+HERO_MOVES = os.path.join(HERE, "hero_moves.json")  # biome -> hero -> {From, To, Studs}: track-local base centres
+PRUNE_CLEAR = 8.0  # BiomeDressing.CLEARANCE: Prune grows a prop's box by this
+SPAWN_HALF = (94.0, 110.0)  # SpawnArea.FLOOR_SIZE / 2 at the world origin (x, z); it blocks at every height
 PART_MAX = 2040  # studs per axis at placed scale: under Roblox's 2048 part limit (WORLD2_SPEC 2026-11-24 "several pieces")
+UPLOADED = os.path.join(HERE, "uploaded_assets.tsv")  # biome, key, Model id, MeshId, uploaded GLB sha256
 NEEDS_UPLOAD = os.path.join(EXPORT, "needs_upload.tsv")  # biome, key, reason: new or changed GLBs (rules audit + upload)
 
 
@@ -56,6 +61,117 @@ def origins():
 		out[spec["Number"]] = (origin, yaw)
 		origin, yaw = chain.to_world(origin, yaw, end), yaw + heading
 	return out
+
+
+def ground_rect(number):
+	"""The track's own Ground (TrackBuilder.Build: its waypoints' box padded by Width * 3 + 200) in its start frame, as
+	((x lo, z lo), (x hi, z hi)): BiomeDressing builds a Placed prop only when its base centre is on it."""
+	import glob
+
+	import chain
+
+	spec = next(s for s in (chain.parse(p) for p in glob.glob(os.path.join(chain.TRACKS, "*.luau"))) if s["Number"] == number)
+	wps, pad = chain.layout(spec)[0], spec["Width"] * 3 + 200
+	xs, zs = [p[0] for p in wps], [p[2] for p in wps]
+	return (min(xs) - pad, min(zs) - pad), (max(xs) + pad, max(zs) + pad)
+
+
+def yaw_rot(yaw):
+	"""CFrame.Angles(0, yaw, 0) as rows (Roblox)."""
+	c, s = math.cos(yaw), math.sin(yaw)
+	return ((c, 0.0, s), (0.0, 1.0, 0.0), (-s, 0.0, c))
+
+
+def blockers():
+	"""What BiomeDressing.Prune still tests a Placed prop against (WORLD2_SPEC 2026-11-24), as world boxes (centre,
+	rows, half size, column): every track's checkpoint area (TrackBuilder: Width + 2 * apron by 60 behind its finish,
+	the win pad's top included) and the spawn-area floor, which blocks at every height."""
+	import glob
+
+	import chain
+
+	specs = sorted((chain.parse(p) for p in glob.glob(os.path.join(chain.TRACKS, "*.luau"))), key=lambda s: s["Number"])
+	out = [((0.0, -1.0, 0.0), yaw_rot(0.0), (SPAWN_HALF[0], 0.5, SPAWN_HALF[1]), True)]
+	for spec, (origin, yaw) in zip(specs, origins().values()):
+		_, end, heading, _ = chain.layout(spec)
+		e, ey = chain.to_world(origin, yaw, end), yaw + heading
+		R = yaw_rot(ey)
+		c = [e[i] + sum(R[i][j] * v for j, v in enumerate((0.0, -0.75, 30.0))) for i in range(3)]
+		out.append((tuple(c), R, (spec["Width"] / 2 + 30.0, 1.2, 30.0), False))
+	return out
+
+
+def obb_overlap(ca, Ra, ha, cb, Rb, hb):
+	"""BiomeDressing's `overlaps`: separating-axis test of two boxes (rows of Ra/Rb are world, columns the box axes)."""
+	import numpy as np
+
+	A, B = np.array(Ra).T, np.array(Rb).T  # rows: each box's axes in world
+	t = np.array(cb) - np.array(ca)
+	axes = list(A) + list(B) + [np.cross(a, b) for a in A for b in B]
+	for ax in axes:
+		n = np.linalg.norm(ax)
+		if n < 1e-6:
+			continue
+		ax = ax / n
+		ra = sum(abs(A[k] @ ax) * ha[k] for k in range(3))
+		rb = sum(abs(B[k] @ ax) * hb[k] for k in range(3))
+		if abs(t @ ax) >= ra + rb:
+			return False
+	return True
+
+
+def rules_ok(local, origin, yaw, pos, e, sc, ground, boxes, corr, number, exempt):
+	"""Every rule the game build applies to one whole Placed prop (before any cut into pieces): base centre on its own
+	Ground (ground_rect), its mesh box grown by PRUNE_CLEAR clear of every checkpoint area and the spawn area
+	(BiomeDressing.Prune), and its triangles clear of every track's road corridor (own track skipped when exempt)."""
+	import numpy as np
+
+	(glo, ghi) = ground
+	if not (glo[0] <= pos[0] <= ghi[0] and glo[1] <= pos[2] <= ghi[1]):
+		return False
+	lo, hi = (local * np.array(sc)).reshape(-1, 3).min(0), (local * np.array(sc)).reshape(-1, 3).max(0)
+	R = np.array(yaw_rot(yaw)) @ np.array(from_euler_yxz(*e))
+	c = np.array(to_world(origin, yaw, pos)) + R @ ((lo + hi) / 2)
+	half = (hi - lo) / 2 + PRUNE_CLEAR
+	ext = np.abs(R) @ half
+	for bc, bR, bh, column in boxes:
+		bext = np.abs(np.array(bR)) @ np.array(bh)
+		if np.any(np.abs(c[[0, 2]] - np.array(bc)[[0, 2]]) >= ext[[0, 2]] + bext[[0, 2]]):
+			continue
+		cc = c.copy()
+		if column:
+			cc[1] = bc[1]
+		elif abs(c[1] - bc[1]) >= ext[1] + bext[1]:
+			continue
+		if obb_overlap(cc, R, half, bc, bR, bh):
+			return False
+	import clearance
+
+	return not clearance.intrudes(game_tris(local, origin, yaw, pos, e, sc), corr, (number,) if exempt else ())
+
+
+def find_spot(local, origin, yaw, pos, e, sc, ground, boxes, corr, number, exempt, limit=None):
+	"""The rules_ok base centre nearest `pos` (rings SPOT_STEP apart, 16 directions each, on the ground plane, the
+	approved spot first), searched out to the farthest corner of the own ground or `limit` studs. None: nowhere."""
+	(glo, ghi) = ground
+	far = max(math.hypot(x - pos[0], z - pos[2]) for x in (glo[0], ghi[0]) for z in (glo[1], ghi[1]))
+	far = min(far, limit) if limit else far
+	if rules_ok(local, origin, yaw, pos, e, sc, ground, boxes, corr, number, exempt):
+		return tuple(pos)
+	r = SPOT_STEP
+	while r <= far:
+		for a in range(16):
+			p2 = (pos[0] + r * math.cos(a * math.pi / 8), pos[1], pos[2] + r * math.sin(a * math.pi / 8))
+			if rules_ok(local, origin, yaw, p2, e, sc, ground, boxes, corr, number, exempt):
+				return p2
+		r += SPOT_STEP
+	return None
+
+
+def to_world(origin, yaw, p):
+	"""chain.to_world: a track-local point in world studs."""
+	c, s = math.cos(yaw), math.sin(yaw)
+	return (origin[0] + p[0] * c + p[2] * s, origin[1] + p[1], origin[2] - p[0] * s + p[2] * c)
 
 
 def to_local(origin, yaw, p):
@@ -252,6 +368,7 @@ def write_luau(biome, number, props, placed, lights, rec, path, heroes=()):
 		"-- PartsOnly: a prop of 1-2 kit boxes is built from them exactly and is no mesh asset.",
 		"-- Placed: { Prop, X, Y, Z, Yaw, Scale } for each prop's base centre (radians, CFrame.fromEulerAnglesYXZ), or",
 		"-- { Prop, X, Y, Z, Yaw, 1, RX, RZ, v(SX, SY, SZ) } for a tilted or stretched one. Biggest props first.",
+		"-- A piece of a cut prop also has Group (its placement) and Whole (the whole prop's base centre).",
 		"-- Lights: { X, Y, Z, Color, Energy (Blender W) }, brightest first.",
 		"-- Heroes: the draft's close-up models (MODEL_SHOTS); a prop cut into pieces is <Prop>_p<i> (2048-stud limit).",
 		"local v, hex = Vector3.new, Color3.fromHex",
@@ -278,13 +395,14 @@ def write_luau(biome, number, props, placed, lights, rec, path, heroes=()):
 		L.append("\t\t},")
 	L.append("\t},")
 	L.append("\tPlaced = {")
-	for name, pos, (rx, ry, rz), sc in placed:
+	for name, pos, (rx, ry, rz), sc, *grp in placed:
 		head = '"%s", %s, %s, %s, %s' % (name, lua_num(pos[0]), lua_num(pos[1]), lua_num(pos[2]), lua_num(ry))
+		tail = ", Group = %d, Whole = %s" % (grp[0][0], lua_vec(grp[0][1])) if grp else ""
 		uniform = max(sc) - min(sc) <= 1e-3 * max(sc)
 		if uniform and abs(rx) < 1e-4 and abs(rz) < 1e-4:
-			L.append("\t\t{ %s, %s }," % (head, lua_num(sc[0])))
+			L.append("\t\t{ %s, %s%s }," % (head, lua_num(sc[0]), tail))
 		else:
-			L.append("\t\t{ %s, 1, %s, %s, %s }," % (head, lua_num(rx), lua_num(rz), lua_vec(sc)))
+			L.append("\t\t{ %s, 1, %s, %s, %s%s }," % (head, lua_num(rx), lua_num(rz), lua_vec(sc), tail))
 	L.append("\t},")
 	L.append("\tHeroes = { %s }," % ", ".join('"%s"' % h for h in heroes))
 	L.append("\tLights = {")
@@ -485,43 +603,58 @@ def export(number, glb=True):
 			props[name]["count"] -= 1
 		else:
 			kept.append((name, pos, e, sc))
-	# A hero left with no kept placement: its smallest nudge (8 directions, NUDGE_STEP steps up to NUDGE_MAX studs on
-	# the ground plane) that clears every corridor is applied and reported; none found: it stays dropped (a decision)
-	nudged = {}
+	# A hero with no placement that passes every game rule (rules_ok: own ground, plaza, checkpoints and win pads, every
+	# corridor) moves, whole, to the clear spot nearest its approved one: the spot recorded in HERO_MOVES, else the
+	# nearest found (find_spot) and recorded there. Its failing placements go. None found: it stays dropped (a decision).
+	ground, boxes = ground_rect(number), blockers()
+	moves = json.load(open(HERO_MOVES)) if os.path.exists(HERO_MOVES) else {}
+	mine = moves.setdefault(biome, {})
+	ok = lambda n, pos, e, sc: rules_ok(local[n], origin, yaw, pos, e, sc, ground, boxes, corr, number, n in exempt)  # noqa: E731
+	moved = {}
 	for h in heroes:
-		if h not in props or props[h]["count"] > 0:
+		if h not in props or any(q[0] == h and ok(*q) for q in kept):
 			continue
-		for name, pos, e, sc in placed:
-			if name != h:
-				continue
-			best = None
-			for d in range(NUDGE_STEP, NUDGE_MAX + 1, NUDGE_STEP):
-				for a in range(8):
-					off = (d * math.cos(a * math.pi / 4), 0, d * math.sin(a * math.pi / 4))
-					p2 = tuple(pos[i] + off[i] for i in range(3))
-					if not clearance.intrudes(game_tris(local[h], origin, yaw, p2, e, sc), corr, (number,) if h in exempt else ()):
-						best = (p2, off)
-						break
-				if best:
-					break
-			if best:
-				kept.append((h, best[0], e, sc))
-				props[h]["count"] += 1
-				# local frame: -Z toward the road at heading 0; reported as track-local x, z studs
-				nudged.setdefault(game[h], []).append([round(best[1][0], 1), round(best[1][2], 1)])
+		cands = [q for q in placed if q[0] == h]
+		rec_ = mine.get(game[h])
+		best = None
+		if rec_:
+			q = min(cands, key=lambda q: math.dist(q[1], rec_["From"]))
+			at = tuple(rec_["To"])
+			if ok(h, at, q[2], q[3]):
+				best = (math.dist(q[1], at), q, at)
+		if best is None:
+			for q in cands:
+				at = find_spot(local[h], origin, yaw, q[1], q[2], q[3], ground, boxes, corr, number, h in exempt, best and best[0])
+				if at and (best is None or math.dist(q[1], at) < best[0]):
+					best = (math.dist(q[1], at), q, at)
+		for q in [q for q in kept if q[0] == h]:
+			kept.remove(q)
+			props[h]["count"] -= 1
+		if best:
+			_, q, at = best
+			kept.append((h, at, q[2], q[3]))
+			props[h]["count"] += 1
+			mine[game[h]] = {"From": [round(v, 3) for v in q[1]], "To": [round(v, 3) for v in at], "Studs": round(best[0], 1)}
+			moved[game[h]] = mine[game[h]]
+		else:
+			mine.pop(game[h], None)
+			warns.append("%s: no spot on its own ground passes every game rule at its approved scale" % game[h])
+	with open(HERO_MOVES, "w") as f:
+		json.dump(moves, f, indent=1, sort_keys=True)
 	road = {
 		"In": len(placed),
 		"Dropped": len(placed) - len(kept),
 		"Kept": len(kept),
 		"By": {"track %d" % t: d for t, d in sorted(dropped.items())},
 		"Heroes": {game[h]: props[h]["count"] if h in props else None for h in heroes},
-		"Nudged": nudged,
+		"Moved": moved,
 	}
 	print("ROADTEST %d %s %s" % (number, biome, json.dumps(road)))
 	# Oversize meshes: cut into pieces under PART_MAX at their largest kept scale; the pieces replace the prop
-	changed, pieces, objs = [], {}, {}
-	for n in [n for n in names if not props[n]["partsOnly"] and props[n]["count"] > 0]:
-		big = [max(sc[i] for _, _, _, sc in (q for q in kept if q[0] == n)) for i in range(3)]
+	changed, pieces, objs, group = [], {}, {}, 0
+	# (an unplaced prop is cut at scale 1, so its pieces keep their defs and ledger rows while it waits for a spot)
+	for n in [n for n in names if not props[n]["partsOnly"]]:
+		big = [max([q[3][i] for q in kept if q[0] == n] or [1.0]) for i in range(3)]
 		cut = cells(props[n]["size"], big)
 		if cut == (1, 1, 1):
 			continue
@@ -549,22 +682,24 @@ def export(number, glb=True):
 		pieces[n] = made
 		print("SPLIT %s %s %s at scale %s: %d pieces %s" % (biome, game[n], "x".join(map(str, cut)), [round(x, 3) for x in big], len(made), [props[pn]["tris"] for pn, _ in made]))
 		out = []
-		for name, pos, e, sc in kept:
+		for q in kept:
+			name, pos, e, sc = q[:4]
 			if name != n:
-				out.append((name, pos, e, sc))
+				out.append(q)
 				continue
 			R = from_euler_yxz(*e)
+			group += 1  # the game builds or skips a placement's pieces together, on the whole prop's base (`pos`)
 			for pn, rel in made:
 				off = [sum(R[i][j] * rel[j] * sc[j] for j in range(3)) for i in range(3)]
-				out.append((pn, tuple(pos[i] + off[i] for i in range(3)), e, sc))
+				out.append((pn, tuple(pos[i] + off[i] for i in range(3)), e, sc, (group, pos)))
 				big_axis = max(props[pn]["size"][i] * sc[i] for i in range(3))
 				assert big_axis < 2048, (pn, big_axis)
 		kept = out
 	names = [n for n in names if n not in pieces] + [pn for made in pieces.values() for pn, _ in made]
-	# biggest first, so the game's part budget trims the small props
+	# biggest first, so the game's part budget trims the small props (BiomeDressing builds the heroes before them)
 	kept.sort(key=lambda p: -(props[p[0]]["size"][0] * props[p[0]]["size"][2] * p[3][0] * p[3][2]))
 	lights = sorted(((to_local(origin, yaw, p), col, e) for p, col, e in rec["lights"]), key=lambda x: -x[2])
-	meshes = [n for n in names if not props[n]["partsOnly"]]
+	meshes = [n for n in names if not props[n]["partsOnly"] and props[n]["count"] > 0]  # a never-placed mesh needs no asset
 	for n in meshes:
 		if glb:
 			key = "W2_%s_%s" % (biome, game[n])
@@ -597,7 +732,7 @@ def export(number, glb=True):
 				**({"PieceOf": p["piece"]} if "piece" in p else {}),
 			)
 			for n, p in ((n, props[n]) for n in names)
-			if not p["partsOnly"]
+			if not p["partsOnly"] and p["count"] > 0
 		},
 		"PartsOnly": {game[n]: props[n]["count"] for n in names if props[n]["partsOnly"]},
 		"RoadTest": road,
@@ -608,10 +743,15 @@ def export(number, glb=True):
 	with open(os.path.join(folder, "manifest.json"), "w") as f:
 		json.dump(manifest, f, indent=1)
 	props = {game[n]: props[n] for n in names}
-	kept = [(game[n], pos, e, sc) for n, pos, e, sc in kept]
+	kept = [(game[q[0]],) + tuple(q[1:]) for q in kept]
 	write_luau(biome, number, props, kept, lights, rec, os.path.join(THEMES, biome + "Draft.luau"), [game[h] for h in heroes])
 	print("EXPORT", json.dumps(manifest))
 	return manifest, changed
+
+
+def id_re(key):
+	"""A ledger row with an Id; groups 1 and 2 surround the Id, group 3 is its Reviewed value."""
+	return re.compile(r"(\t\t%s = draftMesh\(\n\t\t\t\d+,\n\t\t\t)\"rbxassetid://\d+\"(, -- Id[^\n]*\n\t\t\t)(nil|\"[^\"]*\")" % re.escape(key))
 
 
 def write_needs_upload(rows):
@@ -632,12 +772,34 @@ def write_needs_upload(rows):
 	for biome, rs in rows.items():
 		for key, reason in rs:
 			table[(biome, key)] = reason
+	# The uploaded GLB's sha256 per key (UPLOADED, 5th column). A GLB whose bytes differ from the uploaded ones would ship
+	# the old mesh: its ledger Id and Reviewed are cleared and it stays listed until uploaded again. A row with no sha yet
+	# takes the GLB's sha, unless this run changed that GLB (then the upload was of the old bytes).
+	rows_up = [line.rstrip("\n").split("\t") for line in open(UPLOADED) if line.strip()] if os.path.exists(UPLOADED) else []
+	up = {(r[0], r[1]): r for r in rows_up}
+	import subprocess
+
+	# a GLB rewritten after the upload log was committed changed after its upload (write_glb keeps equal bytes untouched)
+	since = float(subprocess.run(["git", "log", "-1", "--format=%ct", "--", UPLOADED], cwd=ROOT, capture_output=True, text=True).stdout.strip() or "inf")
+	changed_now = {(b, key) for b, rs in rows.items() for key, reason in rs if reason.startswith("changed")}
 	for path in glob.glob(os.path.join(EXPORT, "*", "manifest.json")):
 		manifest = json.load(open(path))
 		biome = manifest["Biome"]
 		ledger = os.path.join(THEMES, biome + ".luau")
 		src = open(ledger).read() if os.path.exists(ledger) else ""
 		for key, p in manifest["Props"].items():
+			glb = os.path.join(EXPORT, biome, p["File"] or "")
+			r = up.get((biome, key))
+			if r and os.path.isfile(glb) and not upload_props.row_re(key).search(src) and ("\t\t%s = draftMesh(" % key) in src:
+				sha = upload_props.sha256(glb)
+				if len(r) < 5 and (biome, key) not in changed_now and os.path.getmtime(glb) <= since:
+					r.append(sha)
+				elif (r[4] if len(r) >= 5 else None) != sha:
+					src, n = id_re(key).subn(lambda m: "%snil%snil" % (m.group(1), m.group(2)), src)
+					assert n == 1, (key, n)
+					open(ledger, "w").write(src)
+					table[(biome, key)] = "changed since upload: GLB sha differs, ledger Id and Reviewed cleared"
+					continue
 			if ("\t\t%s = draftMesh(" % key) not in src:
 				table.setdefault((biome, key), "new: no ledger row yet (Tris %d)" % p["Tris"])
 			elif upload_props.row_re(key).search(src):
@@ -646,6 +808,8 @@ def write_needs_upload(rows):
 				table.pop((biome, key), None)  # uploaded: its ledger row has an Id
 		for (b, key) in [bk for bk in table if bk[0] == biome and bk[1] not in manifest["Props"]]:
 			del table[(b, key)]  # no longer exported (a mesh replaced by its pieces)
+	with open(UPLOADED, "w") as f:
+		f.write("".join("\t".join(r) + "\n" for r in rows_up))
 	with open(NEEDS_UPLOAD, "w") as f:
 		f.write("biome\tkey\treason\n" + "".join("%s\t%s\t%s\n" % (b, k, r) for (b, k), r in sorted(table.items())))
 

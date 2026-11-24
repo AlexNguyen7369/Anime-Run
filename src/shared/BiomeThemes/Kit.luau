@@ -438,6 +438,17 @@ end
 -- PartsOnly props (1-2 parts, built exactly). The draft's placements and lamps go to BiomeDressing's Placed layer; the
 -- procedural layers stay empty. Sky and sun map to an Atmosphere profile (spec 5.2; every mapped number is a
 -- placeholder). o = { Assets, Gate, Terrain, Audio, Particles?, Atmosphere? (overrides) }
+-- Small props a draft repeats hundreds of times cast no shadow (BIOME_ENVIRONMENT_SPEC 8: shadow casters); heroes and
+-- buildings keep theirs. Placeholder list, by draft prop name.
+local NO_SHADOW = {
+	HellGate = { SkyDoor = true, Grass = true },
+	AntIsland = { Brush = true },
+	HauntedTunnel = { Cedar = true },
+	ElvenPlains = { Pine = true, Flowers = true },
+	GoldenCity = { People = true, Tree = true, Wagon = true },
+	DemonCastle = { Edge = true },
+}
+
 local function fromDraft(key, draft, o)
 	local props = {}
 	for name, d in draft.Props do
@@ -456,6 +467,7 @@ local function fromDraft(key, draft, o)
 		props[name] = prop(name, d.Size, parts, {
 			Mesh = not d.PartsOnly and ("W2_" .. key .. "_" .. name) or nil,
 			Hero = d.Hero,
+			CastShadow = if NO_SHADOW[key] and NO_SHADOW[key][name] then false else nil,
 		})
 	end
 	-- Night when the draft's sun is a dim moonlight (energy under 2): midnight; else the afternoon sun at its elevation
@@ -502,6 +514,7 @@ local function fromDraft(key, draft, o)
 		Horizon = { Offset = 30, Props = {} },
 		Props = props,
 		Placed = draft.Placed,
+		Heroes = draft.Heroes,
 		Lights = draft.Lights,
 		Particles = o.Particles,
 		Terrain = o.Terrain,

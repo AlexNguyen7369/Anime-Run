@@ -737,17 +737,65 @@ BiomeDressing.PLACED_LIGHTS = 48 -- placeholder: lamps per track from a draft's 
 -- part (1 budget part each) inside the smallest placed prop whose box (grown by LAMP_REACH) holds it, so a lamp is
 -- built and pruned with its prop; a lamp of no placed prop is skipped. Each light is tagged EFFECT_TAG (off under
 -- REDUCED EFFECTS, spec 8). Prune skips every track's Road and Walls for them: the draft has its own road clearance.
+-- The pieces of one cut prop (2048-stud limit: entries with the same Group) are built or skipped together, judged by
+-- the whole prop's base (Whole), and Prune removes them together (attribute PlacedGroup).
 BiomeDressing.LAMP_REACH = 4 -- placeholder: studs a draft lamp may stand outside its prop's box
 local function placed(folder, biome, theme, origin, count, budget, onGround)
 	local props = {} -- { Model, CFrame (box centre), Half } of each placed prop
-	for i, e in theme.Placed or {} do
-		local def = scaled(theme.Props[e[1]], e[9] or e[6])
-		local base = origin * CFrame.new(e[2], e[3], e[4]) * CFrame.fromEulerAnglesYXZ(e[7] or 0, e[5], e[8] or 0)
-		if count + cost(biome, def, 0) <= budget and onGround(base, 0) then
-			count += place(folder, biome, def, base, "Placed_" .. i, def.Hero, nil, true)
-			local model = folder:FindFirstChild("Placed_" .. i)
-			if model then
-				table.insert(props, { model, base * CFrame.new(0, def.Size.Y / 2, 0), def.Size / 2 })
+	local list, groups, done = theme.Placed or {}, {}, {}
+	for i, e in list do
+		if e.Group then
+			groups[e.Group] = groups[e.Group] or {}
+			table.insert(groups[e.Group], i)
+		end
+	end
+	-- the budget never trims a hero: first one placement of each of the draft's Heroes (its close-up models, a cut one
+	-- by its pieces' name), then every Hero landmark, then the rest in the draft's order
+	local order, first, queued = {}, {}, {}
+	for _, name in theme.Heroes or {} do
+		first[name] = true
+	end
+	for i, e in list do
+		local designed = string.match(e[1], "^(.-)_p%d+$") or e[1]
+		if first[designed] then
+			first[designed] = nil
+			queued[i] = true
+			table.insert(order, i)
+		end
+	end
+	for _, hero in { true, false } do
+		for i, e in list do
+			if (theme.Props[e[1]].Hero == true) == hero and not queued[i] then
+				table.insert(order, i)
+			end
+		end
+	end
+	for _, i in order do
+		local e = list[i]
+		if done[i] then
+			continue
+		end
+		local members, need = e.Group and groups[e.Group] or { i }, 0
+		for _, k in members do
+			done[k] = true
+			need += cost(biome, scaled(theme.Props[list[k][1]], list[k][9] or list[k][6]), 0)
+		end
+		local whole = e.Whole and origin * CFrame.new(e.Whole) or origin * CFrame.new(e[2], e[3], e[4])
+		if count + need <= budget and onGround(whole, 0) then
+			for _, k in members do
+				local m = list[k]
+				local def = scaled(theme.Props[m[1]], m[9] or m[6])
+				local base = origin
+					* CFrame.new(m[2], m[3], m[4])
+					* CFrame.fromEulerAnglesYXZ(m[7] or 0, m[5], m[8] or 0)
+				count += place(folder, biome, def, base, "Placed_" .. k, def.Hero, nil, true)
+				local model = folder:FindFirstChild("Placed_" .. k)
+				if model then
+					if m.Group then
+						model:SetAttribute("PlacedGroup", m.Group)
+					end
+					table.insert(props, { model, base * CFrame.new(0, def.Size.Y / 2, 0), def.Size / 2 })
+				end
 			end
 		end
 	end
@@ -1152,11 +1200,21 @@ function BiomeDressing.Prune(trackModels, extra, targets)
 	local removed = 0
 	for _, model in targets or trackModels do
 		local folder = model:FindFirstChild("Environment")
+		local cut = {} -- PlacedGroup of a removed piece: its sibling pieces go too
 		for _, prop in folder and folder:GetChildren() or {} do
 			if touches(prop, string.match(prop.Name, "^Placed_") ~= nil) then
 				if prop:GetAttribute("FightScene") then
 					warn("[BiomeDressing] fight scene of " .. model.Name .. " is within CLEARANCE of a road: removed")
 				end
+				if prop:GetAttribute("PlacedGroup") then
+					cut[prop:GetAttribute("PlacedGroup")] = true
+				end
+				prop:Destroy()
+				removed += 1
+			end
+		end
+		for _, prop in next(cut) and folder:GetChildren() or {} do
+			if cut[prop:GetAttribute("PlacedGroup")] then
 				prop:Destroy()
 				removed += 1
 			end

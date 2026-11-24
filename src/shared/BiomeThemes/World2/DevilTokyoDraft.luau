@@ -5,6 +5,7 @@
 -- PartsOnly: a prop of 1-2 kit boxes is built from them exactly and is no mesh asset.
 -- Placed: { Prop, X, Y, Z, Yaw, Scale } for each prop's base centre (radians, CFrame.fromEulerAnglesYXZ), or
 -- { Prop, X, Y, Z, Yaw, 1, RX, RZ, v(SX, SY, SZ) } for a tilted or stretched one. Biggest props first.
+-- A piece of a cut prop also has Group (its placement) and Whole (the whole prop's base centre).
 -- Lights: { X, Y, Z, Color, Energy (Blender W) }, brightest first.
 -- Heroes: the draft's close-up models (MODEL_SHOTS); a prop cut into pieces is <Prop>_p<i> (2048-stud limit).
 local v, hex = Vector3.new, Color3.fromHex
@@ -250,7 +251,6 @@ return {
 		{ "RoofTile", 2084, -1, -154.24, 0, 1 },
 		{ "RoofTile", 2084, -1, 165.76, 0, 1 },
 		{ "RoofTile", 2084, -1, 485.76, 0, 1 },
-		{ "HQ", 206.37, -1, -84.235, 0, 1 },
 		{ "LowBlock", -276, -1, -154.24, 0, 1 },
 		{ "LowBlock", 164, -1, -154.24, 0, 1 },
 		{ "LowBlock", 164, -1, -44.24, 0, 1 },
@@ -353,7 +353,7 @@ return {
 		{ "Konbini", 316.857, -1, 161.738, 0.576, 1 },
 		{ "Konbini", 56.997, -1, 186.424, -0.27, 1 },
 		{ "Konbini", 381.138, -1, -478.972, 3.003, 1 },
-		{ "Retro", 52.235, -1, -219.482, 0.89, 1 },
+		{ "Retro", 52.235, -1, -229.482, 0.89, 1 },
 		{ "ShopHouse", -32.226, -1, -263.47, -2.147, 1 },
 		{ "ShopHouse", -90.064, -1, -81.118, 1.481, 1 },
 		{ "ShopHouse", 128.958, -1, -401.197, 0.1, 1 },

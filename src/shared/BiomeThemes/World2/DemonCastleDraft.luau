@@ -5,6 +5,7 @@
 -- PartsOnly: a prop of 1-2 kit boxes is built from them exactly and is no mesh asset.
 -- Placed: { Prop, X, Y, Z, Yaw, Scale } for each prop's base centre (radians, CFrame.fromEulerAnglesYXZ), or
 -- { Prop, X, Y, Z, Yaw, 1, RX, RZ, v(SX, SY, SZ) } for a tilted or stretched one. Biggest props first.
+-- A piece of a cut prop also has Group (its placement) and Whole (the whole prop's base centre).
 -- Lights: { X, Y, Z, Color, Energy (Blender W) }, brightest first.
 -- Heroes: the draft's close-up models (MODEL_SHOTS); a prop cut into pieces is <Prop>_p<i> (2048-stud limit).
 local v, hex = Vector3.new, Color3.fromHex
@@ -366,14 +367,10 @@ return {
 		},
 	},
 	Placed = {
-		{ "ChainTower_p4", 72.863, 1102, -1316.608, 3.142, 1 },
-		{ "ChainTower_p2", 1157.011, 1102, -1495.776, 3.142, 1 },
 		{ "Wyvern", 832.568, 973.791, -1993.042, -1.971, 5 },
 		{ "Wyvern", 238.888, 869.791, -1744.765, -0.4, 5 },
 		{ "Wyvern", 340.914, 1181.791, -984.921, 1.171, 5 },
 		{ "Wyvern", 1118.061, 1077.791, -1307.629, 2.742, 5 },
-		{ "ChainTower_p3", 429.435, -2, -1484.59, 3.142, 1 },
-		{ "ChainTower_p1", 829.241, -2, -1623.456, 3.142, 1 },
 		{ "Wyvern", 669.01, 128.371, 515.884, 2.071, 1.7 },
 		{ "Wyvern", 880.596, 67.284, 325.018, 2.071, 1.4 },
 		{ "Smoke", -886.487, 661.429, 246.822, -1.053, 1.38 },

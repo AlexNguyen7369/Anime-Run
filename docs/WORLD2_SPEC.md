@@ -141,6 +141,17 @@ The "Based on" names stay in docs and never ship (design doc 5).
 - A mesh larger than 2048 studs on an axis at its placed scale is exported as several pieces under that size (same
   shape, same look), each its own asset.
 - Approved by the owner 2026-11-23 after rework: Track 5 KaijuBase (round 16, c96b876). Frozen.
+- 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
+  has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
+  track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
+  approved scale and turn) to the nearest spot on its own track's ground that clears its own and every other track's
+  corridor, the spawn area and every checkpoint and win pad; the biome drafts stay as approved and the move lives in
+  tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves: Track 1 Retro (52, -219) to
+  (52, -229), 10 studs; Track 4 Hospital (1377, 609) to (1589, 821), 300; Track 5 Railgun (1865, -307) to
+  (-362, -1230), 2410; Track 7 Nest (-486, 1809) to (-486, 2059), 250; Track 8 Coliseum (2707, 132) to (3167, 132),
+  460; Track 8 LairTower (-680, 1795) to (3294, -2179), 5620; Track 10 DarkGate (3485, 3478) to (3402, 3512), 90.
+  No spot at the approved scale (not built): Track 1 HQ, Track 2 ChainTower, Track 3 HeroHQ and Crater, Track 4
+  School and OldWoodHouse, Track 5 GiantCorpse and DefenseHQ, Track 6 Town and RuinedCastle, Track 7 IslandVolcano.
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's

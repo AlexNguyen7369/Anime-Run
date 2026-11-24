@@ -582,20 +582,65 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 				print("W2 ROAD FAIL " .. name)
 			end
 		end
-		local CELL = 64 -- segment grid (studs), grown by 24 so a centre looks in its own cell only
+		-- Each centre-line segment as clearance.py's corridor box: along it (2 studs past each end), 24 to each side,
+		-- from its road top to 14 over its higher end. A part's oriented box against them (separating axes), every
+		-- track, its own too unless the prop is in its biome's CLEAR_EXEMPT.
+		local CELL = 64
 		local grid = {}
 		for i, e in entries do
 			local wps = e.Layout.WorldWaypoints
 			for j = 1, #wps - 1 do
 				local a, b = wps[j], wps[j + 1]
-				for gx = math.floor((math.min(a.X, b.X) - 24) / CELL), math.floor((math.max(a.X, b.X) + 24) / CELL) do
-					for gz = math.floor((math.min(a.Z, b.Z) - 24) / CELL), math.floor((math.max(a.Z, b.Z) + 24) / CELL) do
-						local k = gx .. "," .. gz
-						grid[k] = grid[k] or {}
-						table.insert(grid[k], { i, a, b })
+				local d = R.Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+				if d.Magnitude > 1e-6 then
+					local u = d.Unit
+					local lo, hi = math.min(a.Y, b.Y) + 0.05, math.max(a.Y, b.Y) + 14
+					local box = {
+						i,
+						R.CFrame.fromMatrix(
+							R.Vector3.new((a.X + b.X) / 2, (lo + hi) / 2, (a.Z + b.Z) / 2),
+							R.Vector3.new(-u.Z, 0, u.X),
+							R.Vector3.yAxis
+						),
+						R.Vector3.new(24, (hi - lo) / 2, d.Magnitude / 2 + 2),
+					}
+					local r = d.Magnitude / 2 + 2 + 24
+					local cx, cz = (a.X + b.X) / 2, (a.Z + b.Z) / 2
+					for gx = math.floor((cx - r) / CELL), math.floor((cx + r) / CELL) do
+						for gz = math.floor((cz - r) / CELL), math.floor((cz + r) / CELL) do
+							local k = gx .. "," .. gz
+							grid[k] = grid[k] or {}
+							table.insert(grid[k], box)
+						end
 					end
 				end
 			end
+		end
+		local function sat(ca, ha, cb, hb)
+			local A = { ca.RightVector, ca.UpVector, ca.LookVector }
+			local B = { cb.RightVector, cb.UpVector, cb.LookVector }
+			local la, lb = { ha.X, ha.Y, ha.Z }, { hb.X, hb.Y, hb.Z }
+			local t = cb.Position - ca.Position
+			local axes = { A[1], A[2], A[3], B[1], B[2], B[3] }
+			for x = 1, 3 do
+				for y = 1, 3 do
+					table.insert(axes, A[x]:Cross(B[y]))
+				end
+			end
+			for _, ax in axes do
+				if ax.Magnitude > 1e-6 then
+					ax = ax.Unit
+					local ra, rb = 0, 0
+					for k = 1, 3 do
+						ra += math.abs(A[k]:Dot(ax)) * la[k]
+						rb += math.abs(B[k]:Dot(ax)) * lb[k]
+					end
+					if math.abs(t:Dot(ax)) >= ra + rb then
+						return false
+					end
+				end
+			end
+			return true
 		end
 		for i, e in entries do
 			if table.find(W2_APPROVED, e.Biome) then
@@ -603,23 +648,40 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 					Shared:FindFirstChild("BiomeThemes"):FindFirstChild("World2"):FindFirstChild(e.Biome .. "Draft")
 				local heroes = draftModule and req(draftModule).Heroes
 				rcheck(heroes ~= nil, e.Biome .. " draft lists its Heroes")
+				local py = fs.readFile(ROOT .. "/tools/blender/world2/biomes/" .. e.Biome .. ".py")
+				local exempt = {}
+				for n in string.gmatch(string.match(py, "\nCLEAR_EXEMPT = {([^}]*)}") or "", '"(%w+)"') do
+					exempt[n] = true
+				end
 				local kept, bad = {}, {}
 				for _, prop in models[i].Environment:GetChildren() do
 					local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
 					local name = k and Themes[e.Biome].Placed[k][1]
-					if name then
+					local ps = name and parts(prop) or {}
+					if #ps > 0 then -- a hero counts only with something built (a mesh or its fallback parts)
 						kept[designed(name)] = (kept[designed(name)] or 0) + 1
-						for _, part in parts(prop) do
-							local c = part.Position
-							for _, seg in grid[math.floor(c.X / CELL) .. "," .. math.floor(c.Z / CELL)] or {} do
-								local a, b = seg[2], seg[3]
-								if seg[1] ~= i then
-									local ab = R.Vector3.new(b.X - a.X, 0, b.Z - a.Z)
-									local ap = R.Vector3.new(c.X - a.X, 0, c.Z - a.Z)
-									local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-9), 0, 1)
-									local top = a.Y + (b.Y - a.Y) * t
-									if (ap - ab * t).Magnitude < 24 and c.Y > top and c.Y < top + 14 then
-										bad[prop.Name .. " " .. name .. " on track " .. seg[1]] = true
+					end
+					for _, part in ps do
+						local half = part.Size / 2
+						local cf = part.CFrame
+						local ext = R.Vector3.new(
+							math.abs(cf.RightVector.X) * half.X
+								+ math.abs(cf.UpVector.X) * half.Y
+								+ math.abs(cf.LookVector.X) * half.Z,
+							0,
+							math.abs(cf.RightVector.Z) * half.X
+								+ math.abs(cf.UpVector.Z) * half.Y
+								+ math.abs(cf.LookVector.Z) * half.Z
+						)
+						local seen = {}
+						for gx = math.floor((cf.X - ext.X) / CELL), math.floor((cf.X + ext.X) / CELL) do
+							for gz = math.floor((cf.Z - ext.Z) / CELL), math.floor((cf.Z + ext.Z) / CELL) do
+								for _, box in grid[gx .. "," .. gz] or {} do
+									if not seen[box] and not (box[1] == i and exempt[designed(name)]) then
+										seen[box] = true
+										if sat(cf, half, box[2], box[3]) then
+											bad[prop.Name .. " " .. name .. " on track " .. box[1]] = true
+										end
 									end
 								end
 							end
@@ -650,11 +712,25 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 				table.sort(list)
 				rcheck(
 					#list == 0,
-					e.Biome .. " Placed props clear of other tracks' corridors: " .. table.concat(list, ", ")
+					e.Biome .. " Placed props clear of every track's corridor (box test): " .. table.concat(list, ", ")
 				)
 			end
 		end
 		print(string.format("W2 ROAD CHECKS pass=%d fail=%d", rpass, rfail))
+	end
+	for i, e in entries do -- shadow casters among the kept draft props (Kit.fromDraft's NO_SHADOW)
+		local casters = 0
+		for _, prop in models[i].Environment:GetChildren() do
+			if string.match(prop.Name, "^Placed_") then
+				for _, part in parts(prop) do
+					if part.CastShadow and part.Transparency < 1 then
+						casters += 1
+						break
+					end
+				end
+			end
+		end
+		print(string.format("W2 SHADOW %s casters %d", e.Biome, casters))
 	end
 	for i, e in entries do
 		local total = Themes[e.Biome].Placed and #Themes[e.Biome].Placed or 0
@@ -773,6 +849,23 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 		end
 	end
 	print(string.format("W2 DRAFT CLEARANCE pass=%d fail=%d", pass, fail))
+	-- tools/blender/world2/chain.py (the drafts' and the exporter's road) against the game's chain: every world
+	-- waypoint of build/world2/chain.json within 0.05 studs of TrackBuilder's (run chain.py first)
+	local ok, text = pcall(fs.readFile, ROOT .. "/build/world2/chain.json")
+	if ok then
+		local chain, worst, same = require("@lune/serde").decode("json", text), 0, #entries == 10
+		for i, e in entries do
+			local wps, py = e.Layout.WorldWaypoints, chain[i] and chain[i].Waypoints or {}
+			same = same and #wps == #py
+			for j = 1, math.min(#wps, #py) do
+				local w, p = wps[j], py[j]
+				worst = math.max(worst, math.abs(w.X - p[1]), math.abs(w.Y - p[2]), math.abs(w.Z - p[3]))
+			end
+		end
+		print(string.format("W2 CHAIN PARITY %s worst %.3f studs", same and worst <= 0.05 and "pass" or "FAIL", worst))
+	else
+		print("W2 CHAIN PARITY skipped: no build/world2/chain.json")
+	end
 end
 local clear = {}
 for _, m in models do
