@@ -768,7 +768,8 @@ function Module.Build(h)
 		local restore = h.setPanels({ T.Panel })
 		checkPanel(res)
 		-- The altars, footer and roster show the Team the server set (A, B; altar 3 empty), unchanged: Ready, Deploy off
-		if setup(res, "team_states") then
+		local applied = setup(res, "team_states")
+		if applied then
 			local ids = fixtureIds()
 			local ab = ids[1] and ids[2] and (ids[1] .. "," .. ids[2]) or "?"
 			check(res, "team_fixture_set", waitIs(team, ab), ab)
@@ -803,9 +804,13 @@ function Module.Build(h)
 				checkGear(res, { ids[1], ids[2] })
 				setup(res, "restore:relic_states")
 			end
-			setup(res, "team_states_clear")
 		end
 		restore()
+		-- After the close: put back while the page is open, the saved Team would differ from its A, B draft, and the
+		-- close would stop on ConfirmClose (the panel stays open for the next scenario)
+		if applied then
+			setup(res, "team_states_clear")
+		end
 	end
 
 	-- Entry points (design doc 4.45). The presses themselves are clicks (open_summon, summon_key_g, open_team_minibar).

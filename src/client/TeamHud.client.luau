@@ -30,9 +30,10 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local HudPlaque = require(script.Parent:WaitForChild("HudPlaque"))
 
 local SLOTS = StaminaConfig.TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
--- World 2's row of 4 (4.47) keeps the row of 3's width (2 x 78 + 52 x ACTIVE_SCALE), so the Auto / Upgrade pair that
+-- World 2's row of 4 (4.47) keeps about the row of 3's width (2 x 78 + 52 x ACTIVE_SCALE), so the Auto / Upgrade pair that
 -- HudChrome puts beside the Level bar stays clear: smaller circles closer together.
-local CIRCLE = SLOTS > 3 and 46 or 52 -- px (placeholder)
+-- 48, not 46: the row's OpenTeam hitbox (the Level bar's width) stays within 8 px of the drawn circles on foot (ui_hitboxes)
+local CIRCLE = SLOTS > 3 and 48 or 52 -- px (placeholder)
 local SPACING = SLOTS > 3 and 54 or 78 -- px between slot centres (placeholder)
 local ARC_THICK = 8 -- px (placeholder)
 local ARC_START, ARC_SWEEP = 125, 155 -- degrees clockwise from east: empty end at lower left, full end at the right

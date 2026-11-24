@@ -50,8 +50,10 @@ local function place()
 	end
 	local uiScale = bar:FindFirstChildOfClass("UIScale")
 	local scale = uiScale and uiScale.Scale or 1
-	local right = hud.AbsoluteSize.X - (column.AbsolutePosition.X + column.AbsoluteSize.X)
-	label.Position = UDim2.new(1, -right, 0, bar.AbsolutePosition.Y + bar.AbsoluteSize.Y + GAP)
+	-- AbsolutePosition is in inset space (y = -58 at the top of an IgnoreGuiInset gui): measure from the gui's origin
+	local origin = hud.AbsolutePosition
+	local right = hud.AbsoluteSize.X - (column.AbsolutePosition.X - origin.X + column.AbsoluteSize.X)
+	label.Position = UDim2.new(1, -right, 0, bar.AbsolutePosition.Y - origin.Y + bar.AbsoluteSize.Y + GAP)
 	label.Size = UDim2.fromOffset(column.AbsoluteSize.X, math.floor(HEIGHT * scale + 0.5))
 	label.Visible = hud.Enabled and bar.Visible
 end

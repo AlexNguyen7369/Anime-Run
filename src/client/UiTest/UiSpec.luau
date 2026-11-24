@@ -15,6 +15,7 @@
 local UiSpec = {}
 
 local MarketConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("MarketConfig"))
+local TEAM_SIZE = require(game:GetService("ReplicatedStorage").Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4
 -- A MarketConfig item's Name (a readable placeholder when the id is gone, so the spec still loads and the click fails)
 local function marketName(kind, id)
 	local item = MarketConfig.Get(kind, id)
@@ -3611,12 +3612,13 @@ UiSpec.Team = {
 	SummonPanel = "RacerSidekicks/Canvas",
 	Gone = { "BestTeam" }, -- no descendant of Panel has this name (Quick Setup replaced it, 4.45)
 	GoneDirect = { "Slots", "Bonus" }, -- layout A's parts: no child of Panel has these names any more
-	SlotLabels = { "SLOT 1", "SLOT 2", "SLOT 3" }, -- owner 2026-11-17 (4.45)
+	-- owner 2026-11-17 (4.45); World 2's team of 4 adds slot 4 (4.47)
+	SlotLabels = TEAM_SIZE == 4 and { "SLOT 1", "SLOT 2", "SLOT 3", "SLOT 4" } or { "SLOT 1", "SLOT 2", "SLOT 3" },
 	FullScreenTol = 2, -- px: Panel AbsoluteSize against its ScreenGui's
 	TeamName = "Team 1",
 	Ready = "Ready",
 	Unsaved = "Unsaved changes",
-	CountText = "%d / 3", -- owner 2026-11-19 (4.45 T2)
+	CountText = "%d / " .. TEAM_SIZE, -- owner 2026-11-19 (4.45 T2); World 2: "/ 4" (4.47)
 	PlusText = "+",
 	AddText = "Add Character",
 	RemoveText = "Remove",
@@ -5165,9 +5167,38 @@ end
 -- World awareness (docs/WORLD2_SPEC.md "World HUD", "Welcome"; UiWorld2 judges both). WorldHud/WorldLabel is display
 -- only and placed from HudChrome's live rects, so it is not AlwaysOn (the viewport solver can not model it).
 UiSpec.Guis.WorldHud = { Source = "Client/WorldHud", Buttons = {}, NonInteractive = true }
-UiSpec.Guis.World2Welcome = {
-	Source = "Client/World2Welcome",
-	Buttons = { { Path = "Panel/CloseButton", Does = "local" }, { Path = "Panel/OK", Does = "local" } },
-}
+-- World2Welcome exists only in World 2 (Client/World2Welcome builds nothing in World 1), so it is declared there only.
+-- Its Panel is an Active face over the IndexFrame chrome (PanelBodies). The harness dismisses the real arrival welcome
+-- before a run (UiScenarios.DismissWelcome), as a player would; these clicks reopen it (Before) and press Close / OK.
+if require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id == 2 then
+	UiSpec.Guis.World2Welcome = {
+		Source = "Client/World2Welcome",
+		Buttons = { { Path = "Panel/CloseButton", Does = "local" }, { Path = "Panel/OK", Does = "local" } },
+	}
+	UiSpec.Hitbox.PanelBodies["World2Welcome/Panel"] = true
+	local function openWelcome()
+		local player = game:GetService("Players").LocalPlayer
+		local gui = player.PlayerGui:FindFirstChild("World2Welcome")
+		local before = player:GetAttribute("World2WelcomeShow")
+		if gui then
+			gui:SetAttribute("Done", nil) -- test seam (UiWorld2): shows again this session
+		end
+		player:SetAttribute("World2WelcomeShow", true)
+		return function()
+			player:SetAttribute("World2WelcomeShow", before)
+		end
+	end
+	for _, c in { { "world2_welcome_close", "Panel/CloseButton" }, { "world2_welcome_ok", "Panel/OK" } } do
+		local prepare = only()
+		prepare.Before, prepare.WaitSeconds = openWelcome, 1 -- the 0.45 s unroll has finished
+		table.insert(UiSpec.Clicks, {
+			Id = c[1],
+			Gui = "World2Welcome",
+			Path = c[2],
+			Prepare = prepare,
+			Expect = { Remote = false, After = { "world2_welcome_closed" } },
+		})
+	end
+end
 
 return UiSpec

@@ -79,6 +79,7 @@ local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
+local TEAM_SIZE = require(Shared:WaitForChild("StaminaConfig")).TEAM_SIZE -- 3; World 2: 4
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local Spec = require(script.Parent.UiSpec)
@@ -1054,10 +1055,12 @@ function Module.Build(h)
 		gear(res, 2)
 		state(res, "Prep", 5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, true, 1234)
 		onlyShown(res, "prep", { TeamHud = true, LeaveButton = true })
-		for i = 1, 3 do
+		for i = 1, TEAM_SIZE do
 			check(res, "hud_slot" .. i .. "_shown", shown(HUD .. "/Slot" .. i), true)
 		end
-		check(res, "hud_no_slot4", h.find(HUD .. "/Slot4"), nil)
+		-- one slot per Team member: 3, World 2's team of 4 (design doc 4.47)
+		local extra = "Slot" .. (TEAM_SIZE + 1)
+		check(res, "hud_no_" .. string.lower(extra), h.find(HUD .. "/" .. extra), nil)
 		local eligible = gearNames()
 		check(res, "hud_fixture_has_two_eligible", select(2, string.gsub(eligible, ",", "")), 1)
 		check(res, "hud_lists_eligible_only", waitIs(listNames, eligible), eligible)

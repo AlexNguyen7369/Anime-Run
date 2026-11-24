@@ -43,11 +43,18 @@ function Module.Build(h)
 			return models:GetAttribute("Ready") == true
 		end, READY_WAIT)
 		h.check(res, "models_ready", ready, true, ready == true)
-		local id
+		-- Another world's character drawn as its own model (no Model field: the id is the model). A save that owns
+		-- every other-world character (a World 2 test save keeps its World 1 roster) has them all loaded: one folder
+		-- is then held out locally for the test, as if it had not arrived yet, and put back after.
+		local id, held
 		for _, spec in Catalog.Rollable(3 - WorldConfig.Id) do
-			if spec.Model == spec.Id and Assets[spec.Id] and not models:FindFirstChild(spec.Id) then
-				id = spec.Id
-				break
+			if (spec.Model or spec.Id) == spec.Id and Assets[spec.Id] and spec.Id ~= SOURCE then
+				local loaded = models:FindFirstChild(spec.Id)
+				if not loaded then
+					id, held = spec.Id, nil
+					break
+				end
+				id, held = id or spec.Id, held or loaded
 			end
 		end
 		local source = models:FindFirstChild(SOURCE)
@@ -55,6 +62,9 @@ function Module.Build(h)
 		h.check(res, "source_model_loaded", source ~= nil, true, source ~= nil)
 		if not (ready and id and source) then
 			return
+		end
+		if held then
+			held.Parent = nil
 		end
 
 		local made = {}
@@ -95,6 +105,9 @@ function Module.Build(h)
 		end)
 		for _, instance in made do
 			instance:Destroy()
+		end
+		if held then
+			held.Parent = models
 		end
 		h.check(res, "no_error", ok and "none" or tostring(err), "none", ok)
 	end

@@ -652,7 +652,8 @@ function Contracts.Build(h)
 	local function ownedInOrder()
 		local data = h.player:FindFirstChild("GachaData")
 		local list = {}
-		for _, character in Catalog.All() do
+		-- every world's owned characters: the Bag lists them all (design doc 4.47, the roster is shared)
+		for _, character in Catalog.Everything() do
 			if data and data:FindFirstChild(character.Id) then
 				table.insert(list, character)
 			end

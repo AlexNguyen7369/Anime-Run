@@ -26,7 +26,11 @@ local function apart(a, b) -- no overlap of the two rects
 	return a1.X <= b0.X or b1.X <= a0.X or a1.Y <= b0.Y or b1.Y <= a0.Y
 end
 local function inside(gui, screen)
+	-- AbsolutePosition is in inset space: an IgnoreGuiInset ScreenGui starts at y = -inset, so judge from its origin
+	local root = gui:FindFirstAncestorWhichIsA("LayerCollector")
+	local origin = root and root.AbsolutePosition or Vector2.zero
 	local p0, p1 = rect(gui)
+	p0, p1 = p0 - origin, p1 - origin
 	return p0.X >= 0 and p0.Y >= 0 and p1.X <= screen.X + 0.5 and p1.Y <= screen.Y + 0.5
 end
 
@@ -129,7 +133,19 @@ function Module.Build(h)
 		player:SetAttribute("World2WelcomeShow", before)
 	end
 
-	return { Scenarios = scenarios }
+	-- After the real press of Panel/CloseButton or Panel/OK (UiSpec.Clicks world2_welcome_close / world2_welcome_ok).
+	local after = {}
+	function after.world2_welcome_closed(res)
+		local gui = playerGui:FindFirstChild("World2Welcome")
+		local panel = gui and gui:FindFirstChild("Panel")
+		task.wait(CLOSE_WAIT)
+		local closed = panel ~= nil and not panel.Visible and not gui.Enabled
+		h.check(res, "welcome_press_closes", closed, true, closed)
+		local cleared = player:GetAttribute("World2WelcomeShow") == nil
+		h.check(res, "welcome_press_clears_show", cleared, true, cleared)
+	end
+
+	return { Scenarios = scenarios, After = after }
 end
 
 return Module

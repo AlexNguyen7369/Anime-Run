@@ -6231,6 +6231,12 @@ function S.ui_stats(res)
 	end
 	local points = attr("StatPoints") or 0
 	local badge = findPath(UiSpec.Hud.PointsBadge)
+	-- A kept roll can add a point just now (a World 2 save discovers often): the badge follows on its changed signal
+	local by = os.clock() + 1
+	while badge and badge.Text ~= tostring(points) and os.clock() < by do
+		task.wait(0.05)
+		points = attr("StatPoints") or 0
+	end
 	if points > 0 then
 		local ok = badge ~= nil and effectivelyVisible(badge) and badge.Text == tostring(points)
 		check(res, "badge_shows_free_points", badge and badge.Text, tostring(points), ok)
@@ -6316,7 +6322,8 @@ end
 
 local function bestOwnedCharacter()
 	local best = nil
-	for _, character in CharacterCatalog.All() do
+	-- every world's characters: the Index and saves are shared, so World 2's profile counts World 1 rolls too
+	for _, character in CharacterCatalog.Everything() do
 		if owned(character.Id) and (best == nil or (character.Chance or 0) > (best.Chance or 0)) then
 			best = character
 		end
@@ -7364,6 +7371,8 @@ function S.ui_showcase(res)
 			and name ~= "RacerItemMenu"
 			-- Closed too: Enabled false until a boss event's return to spawn (Client/BossRewardPopup).
 			and name ~= "RacerBossRewards"
+			-- Closed too: World 2's arrival welcome, Enabled false once dismissed (Client/World2Welcome, DismissWelcome).
+			and name ~= "World2Welcome"
 			and other
 			and other:IsA("ScreenGui")
 			and other.DisplayOrder >= highest
@@ -9127,6 +9136,9 @@ K.world2 = require(script.Parent.UiWorld2).Build({ check = check })
 for name, fn in K.world2.Scenarios do
 	S[name] = fn
 end
+for cond, fn in K.world2.After do
+	access.After[cond] = fn
+end
 
 K.sidekickAttack = require(script.Parent.UiSidekickAttack).Build({
 	check = check,
@@ -9399,6 +9411,13 @@ function UiScenarios.PlayWithoutPasses()
 		warn("[UITEST] no_passes setup failed, the run keeps this player's passes: " .. tostring(err))
 	end
 	table.clear(events.recs)
+end
+
+-- World 2's arrival welcome (Client/World2Welcome) opens on a save's first World 2 session, and a Studio test save is
+-- welcomed every session: dismissed first, as a player does, so "rest" is the HUD. Local only, as its Close and OK.
+-- ui_world2_welcome and the world2_welcome_* clicks open it again on purpose.
+function UiScenarios.DismissWelcome()
+	player:SetAttribute("World2WelcomeShow", nil)
 end
 
 function UiScenarios.Run(name)
