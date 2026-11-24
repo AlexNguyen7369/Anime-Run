@@ -1,4 +1,4 @@
-# Target look for fr_gold "Machto" (design doc section 5): long crimson-magenta hair slicked back off a high forehead, two dark horns, pointed ears, narrow blue eyes, calm; a
+# Target look for fr_gold "Makto" (design doc section 5): long crimson-magenta hair slicked back off a high forehead, two dark horns, pointed ears, narrow blue eyes, calm; a
 # dark military coat with a gold cord from the left shoulder across the chest, red gloves, a great blue coat over the left shoulder, boots, a golden greatsword. +X is the viewer's right. Drawn in-house.
 from fr_style3 import Kit, Ramps, T, big_head, block, boot, collar, elf_ears, face, fill_body, finish, gem, helmet, horns, jacket, mane, pleat, prism, rblock, rod, skirt, sleeve, trouser, turned
 

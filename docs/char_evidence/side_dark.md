@@ -1,6 +1,6 @@
 # side_dark evidence
 
-Id `side_dark`, proposed display name Darkness Devill. Based on: Darkness Devil, Chainsaw Man. Version: full form.
+Id `side_dark`, proposed display name Darknez Devill. Based on: Darkness Devil, Chainsaw Man. Version: full form.
 Usage: private draft for owner review. Rig: Sidekick, tools/blender/sidekicks/side_dark.py. Check date: 2026-11-23.
 
 Licensing: **unlicensed reference**. No Roblox-supported license found or searched for. A tweaked name is not a license; publishing needs the owner's decision.

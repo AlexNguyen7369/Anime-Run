@@ -167,9 +167,9 @@ Owner presentation update 2026-11-14: summon controls use warm wood/burgundy gra
 | `side_tiger` | Bakko | Bakku | Rare | 12% | Walk | TigerRoar |
 | `side_bird` | Stille | Stilla | Rare | 12% | Fly | StreakDive |
 | `side_hound` | Overgrown Rover | Rovar | Legendary | 1% | Walk | EnergyBlast |
-| `side_shaman` | Tusk | Tuskar | Legendary | 1% | Walk | HymnOfFire |
+| `side_shaman` | Tusk | Toskar | Legendary | 1% | Walk | HymnOfFire |
 | `side_acrobat` | Acrobatic Silky | Acro Silka | Mythic | 0.5% | Walk | HairWhip |
 | `side_brawler` | Kaiju No. 10 | Kaijo No. 10 | Mythic | 0.5% | Walk | HammerFists |
 | `side_general` | Bellion | Belleon | Mythic | 0.5% | Walk | WhipSword |
 | `side_dragon` | Solar Dragon | Solara Dragon | Secret | 0.001% | Fly | SolarBreath |
-| `side_dark` | Darkness Devil | Darkness Devill | Secret | 0.001% | Fly | SilentCut |
+| `side_dark` | Darkness Devil | Darknez Devill | Secret | 0.001% | Fly | SilentCut |

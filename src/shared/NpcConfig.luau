@@ -53,7 +53,7 @@ NpcConfig.World2 = {
 	[6] = { Label = "Ora", Speed = 190, Model = "fr_scales" },
 	[7] = { Label = "Berru", Speed = 280, Model = "solo_ant" },
 	[8] = { Label = "Orochy", Speed = 410, Model = "punch_serpent" },
-	[9] = { Label = "Machto", Model = "fr_gold" },
+	[9] = { Label = "Makto", Model = "fr_gold" },
 	[10] = { Label = "Makina", Model = "saw_control" },
 }
 if require(script.Parent.WorldConfig).Id == 2 then

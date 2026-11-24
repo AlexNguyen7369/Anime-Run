@@ -129,7 +129,7 @@ local SPEC = {
 	fr_mage = { "Frierin", "Balanced", 2e11, 233 },
 	solo_ant = { "Berru", "Sprinter", 2e12, 285 },
 	punch_serpent = { "Orochy", "Marathoner", 8e12, 316 },
-	fr_gold = { "Machto", "Balanced", 2e13, 337 },
+	fr_gold = { "Makto", "Balanced", 2e13, 337 },
 	saw_hero = { "Denjy", "Balanced", 5e13, 370 },
 	punch_monster = { "Garoo", "Sprinter", 2e14, 389 },
 	solo_goliath = { "Golioth", "Marathoner", 7e14, 415 },
@@ -183,6 +183,23 @@ local SOURCE_HASHES = {
 	{ 8, 2018587539 },
 	{ 8, 150328071 },
 	{ 8, 554322656 },
+	{ 5, 267014964 },
+	{ 4, 2090773614 },
+	{ 14, 568994612 },
+	{ 8, 1659613731 },
+	{ 13, 700217521 },
+	{ 12, 273609702 },
+	{ 10, 779136316 },
+	{ 9, 1260940076 },
+	{ 12, 1854864974 },
+	{ 4, 2090090768 },
+	{ 4, 2090788399 },
+	{ 6, 121149904 },
+	{ 5, 273468277 },
+	{ 5, 271097524, true }, -- a common word: a whole segment only
+	{ 4, 2090104799, true }, -- a common word: a whole segment only
+	{ 5, 274645603, true }, -- a common word: a whole segment only
+	{ 5, 267313366, true }, -- a common word: a whole segment only
 }
 local SLOT0, SLOTS = 1000000, 100
 
@@ -287,12 +304,15 @@ function Tests.world2_cast()
 			if not (c and H.same({ c.Name, c.Category, c.Chance, c.SpeedMulti }, want)) then
 				table.insert(bad, id)
 			end
-			scan(id, want[1])
+			scan(id, c and c.Name or "") -- the shipped name, not the table's
 		end
 		for _, s in series.List do
 			if s.World == 2 then
 				scan(s.Id, s.Name, s.Preset.Name)
 			end
+		end
+		for _, enemy in npc.World2 do
+			scan(enemy.Label)
 		end
 		for _, row in require(Shared.SidekickConfig).Lists[2] do
 			scan(row.Id, row.Name)
@@ -452,7 +472,7 @@ function Tests.world2_cast()
 					only = only and SIDEKICKS[id] ~= nil
 				end
 				for _, choice in public.SecretChoices do
-					only = only and (choice.Name == "Solara Dragon" or choice.Name == "Darkness Devill")
+					only = only and (choice.Name == "Solara Dragon" or choice.Name == "Darknez Devill")
 				end
 				secrets[public.SecretId] = true
 				featured = featured and rotation.Mythic[1] == (withArt and "side_general" or nil)

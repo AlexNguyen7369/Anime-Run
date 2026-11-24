@@ -19,7 +19,7 @@ TRACKS = [
 	(6, "ElvenPlains", "Elven Ruin Plains", "Frieren", "Ora"),
 	(7, "AntIsland", "Ant Island", "Solo Levelup", "Berru"),
 	(8, "MonsterDen", "Monster Den", "One Punch", "Orochy"),
-	(9, "GoldenCity", "Golden City", "Frieren", "Machto"),
+	(9, "GoldenCity", "Golden City", "Frieren", "Makto"),
 	(10, "HellGate", "Hell's Gate", "Saw Man", "Makina"),
 ]
 IMG = (".jpg", ".jpeg", ".png", ".webp", ".gif")

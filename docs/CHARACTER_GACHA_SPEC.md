@@ -218,7 +218,7 @@ World 2 cast (owner 2026-11-24, design doc 4.47; `Chance`, `SpeedMulti`, Cat., s
 | `fr_mage` | Frierin | Frieren | Mythic | 233 |
 | `solo_ant` | Berru | Beru, Ant King | Mythic | 285 |
 | `punch_serpent` | Orochy | Orochi | Mythic | 316 |
-| `fr_gold` | Machto | Macht of El Dorado | Mythic | 337 |
+| `fr_gold` | Makto | Macht of El Dorado | Mythic | 337 |
 | `saw_hero` | Denjy | Denji | Mythic | 370 |
 | `punch_monster` | Garoo | Garou, half-monster | Mythic | 389 |
 | `solo_goliath` | Golioth | Thomas Andre | Mythic | 415 |

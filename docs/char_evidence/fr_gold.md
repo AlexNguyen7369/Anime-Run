@@ -1,6 +1,6 @@
 # fr_gold evidence
 
-Id `fr_gold`, proposed display name Machto. Based on: Macht of the Golden Land (El Dorado), Frieren: Beyond Journey's End. Version: Golden Land arc, manga.
+Id `fr_gold`, proposed display name Makto. Based on: Macht of the Golden Land (El Dorado), Frieren: Beyond Journey's End. Version: Golden Land arc, manga.
 Usage: public Roblox experience (proposed). Rig: R15 blocks, `tools/blender/paint/char_fr_gold.py`.
 Check date: 2026-11-23.
 

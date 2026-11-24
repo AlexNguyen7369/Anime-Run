@@ -1,6 +1,6 @@
-# Sidekick side_shaman, Tuskar: a hulking hooded orc shaman made of violet shadow, two big tusks, a bone mantle, a skull-topped staff. Walks. Evidence: docs/char_evidence/side_shaman.md.
+# Sidekick side_shaman, Toskar: a hulking hooded orc shaman made of violet shadow, two big tusks, a bone mantle, a skull-topped staff. Walks. Evidence: docs/char_evidence/side_shaman.md.
 ID = "side_shaman"
-NAME = "Tuskar"
+NAME = "Toskar"
 RAMPS = {
 	"dark": ["#08070e", "#14121e", "#241f34", "#42395a"],
 	"robe": ["#160f28", "#281c46", "#412f6c", "#674e9c"],

@@ -1,6 +1,6 @@
-# Sidekick side_dark, Darkness Devill: a tall cloaked shadow crowned with a cluster of pale blank faces, many long hands reaching from the cloak, a black sword. Flies. No gore. Evidence: docs/char_evidence/side_dark.md.
+# Sidekick side_dark, Darknez Devill: a tall cloaked shadow crowned with a cluster of pale blank faces, many long hands reaching from the cloak, a black sword. Flies. No gore. Evidence: docs/char_evidence/side_dark.md.
 ID = "side_dark"
-NAME = "Darkness Devill"
+NAME = "Darknez Devill"
 RAMPS = {
 	"cloak": ["#101020", "#1e1e32", "#34344e", "#5c5c80"],
 	"skin": ["#4e4e5c", "#7c7c8a", "#acacb8", "#dcdce6"],

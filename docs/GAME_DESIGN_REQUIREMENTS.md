@@ -888,6 +888,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-24: World 2 names that held a real name are retweaked (4.47, section 5; proposed names): `fr_gold` Makto, `side_shaman` Toskar, `side_dark` Darknez Devill.
 - 2026-11-24: owner: World 2 cast in game (4.47): its own roll pool (43, catch-all Mumon Rider), Eternal 780, World 1 carry x0.1, its own 12-Sidekick set rotation (featured Belleon), series names Dandadun, Kaijo No. 8 and Frierin; numbers proposed.
 - 2026-11-23: owner: World 2 (4.47): separate place, locked plaza gate with /world2 for admins, per-world progress, 10 tracks Blender-first, per-world cruise, team of 4 and Awakening in World 2, 6 series.
 - 2026-11-23: owner: World 2 (4.47): scenery placed from the approved Blender drafts keeps the drafts' clearance (24+ studs from the road centre line, overhead 14+), not World 1's 8-stud road-edge clearance; track names 'Devil Hunter City' and 'Wrecked Kaiju Base' (no real place names); the 8 approved tracks' meshes are uploaded under the owner's account.

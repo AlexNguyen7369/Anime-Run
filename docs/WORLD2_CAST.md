@@ -46,7 +46,7 @@ One Punch: `punch_void` (Eternal).
 | `fr_scales` | Ora | Aura the Guillotine | 6 |
 | `solo_ant` | Berru | Beru, Ant King | 7 |
 | `punch_serpent` | Orochy | Orochi | 8 |
-| `fr_gold` | Machto | Macht of El Dorado | 9 |
+| `fr_gold` | Makto | Macht of El Dorado | 9 |
 
 ## New Sidekicks (12), pre-approved by the owner's word 2026-11-23, distinct from World 1's set
 Same rarity counts as World 1 (3 Common, 2 Rare, 2 Legendary, 3 Mythic, 2 Secret). Numbers follow World 1's row of the same
@@ -59,12 +59,12 @@ rarity when they are added to the game (**proposed**).
 | `side_tiger` | Bakku | Bakko, Mina's white tiger | Kaiju No. 8 | Rare | Walk |
 | `side_bird` | Stilla | Stille, the fast bird | Frieren | Rare | Fly |
 | `side_hound` | Rovar | Overgrown Rover | One Punch | Legendary | Walk |
-| `side_shaman` | Tuskar | Tusk, orc shaman shadow | Solo Levelup | Legendary | Walk |
+| `side_shaman` | Toskar | Tusk, orc shaman shadow | Solo Levelup | Legendary | Walk |
 | `side_acrobat` | Acro Silka | Acrobatic Silky | Dandadan | Mythic | Walk |
 | `side_brawler` | Kaijo No. 10 | Kaiju No. 10 | Kaiju No. 8 | Mythic | Walk |
 | `side_general` | Belleon | Bellion, Grand Marshal | Solo Levelup | Mythic | Walk |
 | `side_dragon` | Solara Dragon | Solar Dragon | Frieren | Secret | Fly |
-| `side_dark` | Darkness Devill | Darkness Devil | Saw Man | Secret | Fly |
+| `side_dark` | Darknez Devill | Darkness Devil | Saw Man | Secret | Fly |
 
 ## Draft state: looks APPROVED by the owner 2026-11-23
 The owner approved all 42 looks from the contact sheets, the five at 6 included, as shown (so Jijo is the human form, Acro Silka keeps slim limbs and Berru keeps foot claws). Looks are frozen: no edits without the owner's word. Names, rarities, uploads and publishing were not part of this approval.

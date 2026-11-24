@@ -241,7 +241,7 @@ SidekickConfig.Lists = {
 		},
 		{
 			Id = "side_shaman",
-			Name = "Tuskar",
+			Name = "Toskar",
 			World = 2,
 			Rarity = "Legendary",
 			Odds = 1,
@@ -301,7 +301,7 @@ SidekickConfig.Lists = {
 		},
 		{
 			Id = "side_dark",
-			Name = "Darkness Devill",
+			Name = "Darknez Devill",
 			World = 2,
 			Rarity = "Secret",
 			Odds = 0.001,

@@ -2,7 +2,7 @@
 -- Permanent catalog contract (docs/CHARACTER_GACHA_SPEC.md): Id is a save key, never rename or reuse it.
 return {
 	Id = "fr_gold",
-	Name = "Machto",
+	Name = "Makto",
 	World = 2,
 	Rarity = "Mythic",
 	Chance = 2e13,

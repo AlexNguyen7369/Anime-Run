@@ -180,7 +180,7 @@ local function nameHash(s)
 	return x
 end
 
--- The { length, hash } of the first real name in `id`, as text, or nil. `hashes`: another list to check against.
+-- The { length, hash } of the first real name in `id`, as text, or nil. `hashes`: another list to check against; a third field true matches a whole segment only.
 local function realNameIn(id, hashes)
 	local segments = {}
 	for _, seg in string.split(id, "_") do
@@ -192,7 +192,7 @@ local function realNameIn(id, hashes)
 		if segments[key] then
 			return key
 		end
-		if len >= 5 then
+		if len >= 5 and not entry[3] then
 			for i = 1, #id - len + 1 do
 				if nameHash(string.sub(id, i, i + len - 1)) == hash then
 					return key

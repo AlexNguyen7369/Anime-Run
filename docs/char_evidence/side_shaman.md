@@ -1,6 +1,6 @@
 # side_shaman evidence
 
-Id `side_shaman`, proposed display name Tuskar. Based on: Tusk, Solo Leveling. Version: shadow.
+Id `side_shaman`, proposed display name Toskar. Based on: Tusk, Solo Leveling. Version: shadow.
 Usage: private draft for owner review. Rig: Sidekick, tools/blender/sidekicks/side_shaman.py. Check date: 2026-11-23.
 
 Licensing: **unlicensed reference**. No Roblox-supported license found or searched for. A tweaked name is not a license; publishing needs the owner's decision.

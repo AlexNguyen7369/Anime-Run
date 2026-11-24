@@ -39,7 +39,7 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 | 6 | W2ElvenPlains | ElvenPlains | Frieren | Elven Ruin Plains | Ora (Aura the Guillotine) |
 | 7 | W2AntIsland | AntIsland | Solo Levelup | Ant Island | Berru (Beru) |
 | 8 | W2MonsterDen | MonsterDen | One Punch | Monster Den | Orochy (Orochi) |
-| 9 | W2GoldenCity | GoldenCity | Frieren | Golden City | Machto (Macht) |
+| 9 | W2GoldenCity | GoldenCity | Frieren | Golden City | Makto (Macht) |
 | 10 | W2HellGate | HellGate | Saw Man | Hell's Gate | Makina (Makima) |
 
 The "Based on" names stay in docs and never ship (design doc 5).
@@ -121,7 +121,7 @@ The "Based on" names stay in docs and never ship (design doc 5).
 | `fr_mage` | Frierin | Frierin | Mythic | Balanced | 2e11 |
 | `solo_ant` | Berru | Solo Levelup | Mythic | Sprinter | 2e12 |
 | `punch_serpent` | Orochy | One Punch | Mythic | Marathoner | 8e12 |
-| `fr_gold` | Machto | Frierin | Mythic | Balanced | 2e13 |
+| `fr_gold` | Makto | Frierin | Mythic | Balanced | 2e13 |
 | `saw_hero` | Denjy | Saw Man | Mythic | Balanced | 5e13 |
 | `punch_monster` | Garoo | One Punch | Mythic | Sprinter | 2e14 |
 | `solo_goliath` | Golioth | Solo Levelup | Mythic | Marathoner | 7e14 |
