@@ -71,4 +71,12 @@ The "Based on" names stay in docs and never ship (design doc 5).
 - In game (owner 2026-11-23): props placed from an approved draft keep the draft's clearance (24+ studs from the road
   centre line, overhead 14+, checked by tools/blender/world2/clearance.py). World 1's 8-stud road-edge clearance
   (BiomeDressing.CLEARANCE) does not prune them.
+- In game (owner pre-approved 2026-11-24; replaces "still pruned against other tracks" for draft props): a draft
+  prop is tested offline, at export, against EVERY track's road with its real triangles (24+ studs lateral, 14+
+  overhead, final game transform, mirroring and size limit included); a placement that intrudes is dropped from the
+  export. The game then does not box-prune `Placed_*` props against other tracks' roads (one box per mesh removed whole
+  heroes). The plaza, checkpoint and WinPad pruning stay. This is the World 2 exception to BIOME_ENVIRONMENT_SPEC
+  "props are pruned against every built road".
+- A mesh larger than 2048 studs on an axis at its placed scale is exported as several pieces under that size (same
+  shape, same look), each its own asset.
 - Approved by the owner 2026-11-23 after rework: Track 5 KaijuBase (round 16, c96b876). Frozen.
