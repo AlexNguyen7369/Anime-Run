@@ -66,7 +66,7 @@ local function loadAsset(key, row)
 				d.TextureID = ""
 				d.Color = Color3.fromHex(Look.Glow and Look.Glow[d.Name] or spec.Glow)
 				d.CastShadow = false
-				if Look.LampLight and d.Name == "Glow_lamp" then -- lit lanterns at night
+				if Look.LampLight and d.Name == "Glow_lamp" then -- lit lanterns (World 2)
 					local light = Instance.new("PointLight")
 					light.Color = Look.LampLight.Color
 					light.Brightness = Look.LampLight.Brightness
@@ -170,26 +170,7 @@ function PlazaDressing.Start(spawnArea)
 			local folder = Instance.new("Folder")
 			folder.Name = "PlazaDressing"
 			for _, row in Layout.Placed do
-				local model = place(row.Key, frameOf(row.Pos, row.Face), folder)
-				if model and row.Key == "GreatSakura" and Look.Sakura then
-					-- crimson-violet blossoms with a soft glow (the mesh's own colours are baked in)
-					local tint = Instance.new("Highlight")
-					tint.FillColor = Look.Sakura.Fill
-					tint.FillTransparency = Look.Sakura.FillTransparency
-					tint.OutlineTransparency = 1
-					tint.DepthMode = Enum.HighlightDepthMode.Occluded
-					tint.Parent = model
-					local glow = Instance.new("Attachment")
-					glow.Name = "SakuraGlow"
-					glow.Parent = model:FindFirstChildWhichIsA("BasePart")
-					glow.WorldPosition = row.Pos + Vector3.new(0, Look.Sakura.LightHeight, 0) -- after parenting
-					local light = Instance.new("PointLight")
-					light.Color = Look.Sakura.Light
-					light.Brightness = Look.Sakura.Brightness
-					light.Range = Look.Sakura.Range
-					light.Shadows = false
-					light.Parent = glow
-				end
+				place(row.Key, frameOf(row.Pos, row.Face), folder)
 			end
 			-- The trees' meshes do not collide: a solid trunk under each (radius proposed, from build_plaza.py)
 			for _, row in Layout.Placed do

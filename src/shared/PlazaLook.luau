@@ -1,62 +1,73 @@
 --!nonstrict
--- The spawn plaza's per-world look (design doc 4.47 "Moonlit Dojo", WORLD_REDESIGN_SPEC 4 and 4.1). World 1 gets an empty
+-- The spawn plaza's per-world look (design doc 4.47 "Rift Shrine", WORLD_REDESIGN_SPEC 4 and 4.1). World 1 gets an empty
 -- table and every builder keeps its own colours. World 2 keeps World 1's layout, footprint, spawn and services; only
--- these colours and lights change: Shared/BiomeEnvironment (the plaza zone's night profile and petals),
--- Server/PlazaDressing (mesh glow colours, lit lanterns, the Great Sakura's tint) and Server/PlazaAccents (cyber accents).
--- Every World 2 value is a placeholder (design doc 4.47: "Colours and light levels are placeholders"), from variant A
--- of tools/blender/world2/plaza_w2.py.
+-- these colours, lights and set pieces are added: Shared/BiomeEnvironment (the plaza zone's dusk profile),
+-- Server/PlazaDressing (mesh glow colours, lit lanterns) and Server/PlazaAccents (cyber accents, the rift, the floating
+-- islands). Every World 2 value is a placeholder (design doc 4.47: "Colours and light levels are placeholders"), from
+-- variant B of tools/blender/world2/plaza_w2.py (renders in assets/world2_draft/plaza/B).
 local WorldConfig = require(script.Parent.WorldConfig)
 
 local hex = Color3.fromHex
+local v = Vector3.new
+
+-- The torii's view axis from the spawn (PlazaAssets HeroTorii at (-84, 78)), as plaza_w2.py's bp.along
+local AXIS_LEN = math.sqrt(84 * 84 + 78 * 78)
+local AXIS = v(-84, 0, 78) / AXIS_LEN
 
 local WORLD2 = {
-	-- Mesh glow parts by name (PlazaAssets Parts "Glow_*"): the sky loop, the spawn rim and the Market sign turn
-	-- violet / lilac / magenta (plaza_w2.py neonb, neonw, neono). Glow_lamp keeps its warm amber.
-	Glow = { Glow_neonb = "#A64BFF", Glow_neonw = "#E8C8FF", Glow_neono = "#FF3FA4" },
-	-- A PointLight in every Glow_lamp part: the 4 stone lanterns, the stall eaves and the spawn moat ring (placeholder)
-	LampLight = { Color = hex("FFB765"), Brightness = 1.5, Range = 20 },
-	-- Server/PlazaAccents colours (plaza_w2.py acc1 violet, acc2 magenta, neonw lilac)
-	Accent = { Gold = hex("A64BFF"), Amber = hex("FF3FB4"), Paper = hex("E8C8FF"), Pink = hex("E8C8FF") },
-	-- The Great Sakura's mesh has its blossoms baked in: a Highlight tints it crimson-violet (plaza_w2.py bloom
-	-- #C8326E / #9A2E9E) and a light under the canopy gives the soft glow (placeholders)
-	Sakura = {
-		Fill = hex("B4308A"),
-		FillTransparency = 0.55,
-		Light = hex("C8326E"),
-		Brightness = 2,
-		Range = 40,
-		LightHeight = 16, -- studs above the tree's base
+	-- Mesh glow parts by name (PlazaAssets Parts "Glow_*"): the sky loop, the spawn rim and the Market sign turn cyan
+	-- (plaza_w2.py B neonb, neonw, neono). Glow_lamp keeps its warm amber.
+	Glow = { Glow_neonb = "#3CE6FF", Glow_neonw = "#C8F8FF", Glow_neono = "#4A8CFF" },
+	-- A PointLight in every Glow_lamp part: the 4 stone lanterns, the 3 stall eaves and the spawn moat ring (B shows them lit)
+	LampLight = { Color = hex("FFB765"), Brightness = 1, Range = 18 },
+	-- Server/PlazaAccents colours (plaza_w2.py B acc1 cyan, acc2 periwinkle, neonw, neono)
+	Accent = { Gold = hex("3CE6FF"), Amber = hex("7A9CFF"), Paper = hex("C8F8FF"), Pink = hex("4A8CFF") },
+	-- A generic dimensional rift (plaza_w2.py rift(): no show's gate design): a swirling blue-violet disc in a ring of
+	-- floating stones, above and beyond the torii on its view axis, facing the spawn
+	Rift = {
+		Centre = v(AXIS.X * (AXIS_LEN + 95), 88, AXIS.Z * (AXIS_LEN + 95)),
+		Face = -AXIS, -- toward the spawn
+		Radius = 32, -- the stone ring
+		Stones = 22,
+		Rock = hex("868072"),
+		Blue = hex("1E50FF"),
+		Violet = hex("7A2BFF"),
+		Rim = hex("9FE8FF"),
 	},
-	-- The plaza zone's Atmosphere profile (BIOME_ENVIRONMENT_SPEC 5.2, Kit.Atmosphere overrides): a clear night with stars
-	-- and the engine's pale moon, ambients raised so runners and UI stay legible. No Skybox key: the place's own sky,
-	-- drawn dark by the engine at night. Petals crimson-violet (plaza_w2.py bloom3).
+	-- Five floating rock islands outside the plaza floor (x +-94, z +-110), clear of the ring, the sky loop and the
+	-- return gate: { x, z, top y, radius }, a lantern on every second one
+	Islands = {
+		{ -124, -34, 50, 15 },
+		{ 120, 46, 62, 12 },
+		{ 26, 140, 56, 17 },
+		{ -46, -136, 66, 13 },
+		{ -150, 30, 78, 10 },
+	},
+	IslandColors = { Rock = hex("868072"), Slab = hex("94836A"), Grass = hex("6F9A4E"), Bloom = hex("FFB7D4") },
+	-- The plaza zone's Atmosphere profile (BIOME_ENVIRONMENT_SPEC 5.2, Kit.Atmosphere overrides): dusk with a low warm
+	-- sun (plaza_w2.py B sun 10 degrees up, #FFB08A; sky peach to violet), ambients kept up so runners and UI stay
+	-- legible. No Skybox key: the place's own sky, coloured by the engine at dusk. No Particles: World 1's petals stay.
 	Atmosphere = {
 		Lighting = {
-			ClockTime = 0,
-			Brightness = 1.6,
-			Ambient = hex("4E4A6E"),
-			OutdoorAmbient = hex("8A86B8"),
-			ExposureCompensation = 0.3,
+			ClockTime = 17.7,
+			Brightness = 2.2,
+			Ambient = hex("6A5A78"),
+			OutdoorAmbient = hex("A88CB0"),
+			ExposureCompensation = 0.1,
 		},
-		Atmosphere = { Density = 0.25, Offset = 0, Haze = 0.4, Glare = 0, Color = hex("2B2C6E"), Decay = hex("1E1F55") },
-		Grade = { Saturation = 0.1, Contrast = 0.08, Brightness = 0, TintColor = hex("ECE6FF") },
-		SunRays = { Intensity = 0 },
-		Bloom = { Intensity = 0.6, Size = 24, Threshold = 1.2 },
-		Sky = { SunAngularSize = 8, MoonAngularSize = 24, StarCount = 3000, CelestialBodiesShown = true },
-		Clouds = { Cover = 0.15, Density = 0.3, Color = hex("3A3A70") },
-		Particles = {
-			{
-				Texture = "PlazaPetal",
-				Color = hex("E070B8"),
-				Size = 0.7,
-				Rate = 10,
-				Lifetime = 7,
-				Speed = 2,
-				SpreadAngle = 50,
-				LightEmission = 0.4,
-				Area = Vector3.new(90, 35, 90),
-			},
+		Atmosphere = {
+			Density = 0.22,
+			Offset = 0.05,
+			Haze = 1.2,
+			Glare = 0.3,
+			Color = hex("E07A8A"),
+			Decay = hex("7A5AA8"),
 		},
+		Grade = { Saturation = 0.15, Contrast = 0.08, Brightness = 0, TintColor = hex("FFE8E6") },
+		SunRays = { Intensity = 0.1, Spread = 0.6 },
+		Bloom = { Intensity = 0.5, Size = 24, Threshold = 1.4 },
+		Sky = { SunAngularSize = 14, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = true },
+		Clouds = { Cover = 0.25, Density = 0.3, Color = hex("F0A8A0") },
 	},
 }
 

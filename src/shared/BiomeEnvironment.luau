@@ -111,9 +111,11 @@ local PLAZA = Kit.Atmosphere({
 		},
 	},
 })
--- World 2's plaza is a moonlit night instead (design doc 4.47 "Moonlit Dojo"; placeholders in Shared/PlazaLook)
+-- World 2's plaza is dusk instead, with the same petals (design doc 4.47 "Rift Shrine"; placeholders in Shared/PlazaLook)
 if PlazaLook.Atmosphere then
+	local petals = PLAZA.Particles
 	PLAZA = Kit.Atmosphere(PlazaLook.Atmosphere)
+	PLAZA.Particles = PLAZA.Particles or petals
 end
 -- Reuses Track 1's reviewed forest ambience, quieter (rows in BiomeThemes/Speedway)
 local PLAZA_AUDIO = { Loop = "AmbForest", OneShots = { "SfxWindChime" }, Volume = 0.2 }
