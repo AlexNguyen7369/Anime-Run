@@ -40,6 +40,7 @@ local SPEED_TOL = 1e-6 -- swap cruise: fixed per character (design doc 4.13)
 local SLOW_NPC = 0.001 -- studs/s: the NPC never wins
 local FAST_NPC = 1e7 -- studs/s: the NPC always wins
 local OLD_VERSION = 12 -- the save VERSION before Team (PlayerData)
+local TEAM_SIZE = require(Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47, World2TeamTests)
 local UID = 991400000
 
 local Tests = {}
@@ -124,7 +125,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 			return order[a.Id] < order[b.Id]
 		end)
 		for _, spec in pool do
-			if #out < 3 then
+			if #out < TEAM_SIZE then
 				table.insert(out, spec.Id)
 			end
 		end
@@ -135,7 +136,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 		if type(got) ~= "table" then
 			return { "ids not a table" }
 		end
-		if #got > 3 then
+		if #got > TEAM_SIZE then
 			table.insert(wrong, #got .. " ids")
 		end
 		for i, id in got do
@@ -173,7 +174,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 	end
 	local rejects = {
 		not_table = ids[1],
-		four_ids = { ids[1], ids[2], ids[3], ids[4] },
+		four_ids = table.move(ids, 1, TEAM_SIZE + 1, 1, {}), -- one past the size (World 2: ids[5] unowned too)
 		not_string = { ids[1], 7 },
 		unowned = { ids[5] },
 		duplicate = { ids[1], ids[1] },
@@ -243,7 +244,7 @@ function Tests.team()
 		)
 		local rejects = {
 			empty = {},
-			four_ids = { ids[1], ids[2], ids[3], ids[4] },
+			four_ids = table.move(ids, 1, TEAM_SIZE + 1, 1, {}), -- one past the size (World 2: ids[5] unowned too)
 			duplicate = { ids[1], ids[1] },
 			unowned = { ids[1], ids[5] },
 			unknown_id = { "cartest_no_such_character" },
@@ -461,7 +462,7 @@ function Tests.team_bonus()
 		and bonus({ m[1] }) == nil
 		and bonus({}) == nil
 		and bonus({ m[1], m[1], m[2] }) == nil
-		and bonus({ m[1], m[2], m[3], others[1] }) == nil
+		and (TEAM_SIZE > 3 or bonus({ m[1], m[2], m[3], others[1] }) == nil) -- World 2's 4: World2TeamTests
 		and bonus(nil) == nil
 	flag("team_bonus_needs_3_members", small)
 

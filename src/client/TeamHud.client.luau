@@ -29,7 +29,7 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local HudPlaque = require(script.Parent:WaitForChild("HudPlaque"))
 
-local SLOTS = 3
+local SLOTS = StaminaConfig.TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
 local CIRCLE = 52 -- px (placeholder)
 local SPACING = 78 -- px between slot centres (placeholder)
 local ARC_THICK = 8 -- px (placeholder)
@@ -378,7 +378,7 @@ for slot = 1, SLOTS do
 	local c = make("Frame", {
 		Name = "Slot" .. slot,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, (slot - 2) * SPACING, 0.5, 0),
+		Position = UDim2.new(0.5, (slot - (SLOTS + 1) / 2) * SPACING, 0.5, 0),
 		Size = UDim2.fromOffset(CIRCLE, CIRCLE),
 		BackgroundColor3 = FACE,
 		BorderSizePixel = 0,

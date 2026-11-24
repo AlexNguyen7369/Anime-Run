@@ -12119,6 +12119,8 @@ Scenarios.track_loading = require(script.Parent.TrackLoadTests).track_loading
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 -- design doc 4.47: per-world roll pools, Sidekick sets and cruise; World 1 unchanged
 Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
+Scenarios.world2_welcome = require(script.Parent.World2WelcomeTests).world2_welcome -- WORLD2_SPEC "Welcome"
+Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 team of 4
 -- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): another world's models load on demand (Server/CharacterModelService)
 Scenarios.character_models = require(script.Parent.CharacterModelTests).character_models
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
@@ -12153,6 +12155,7 @@ do
 	Scenarios.world_travel_freeze = world.world_travel_freeze -- review of 8557dcf: nothing earned lost mid-trip
 	Scenarios.biome_runtime = world.biome_runtime -- mesh timeout, retry and shadow flag; build yield; draft lamps
 	Scenarios.world_arrival = world.world_arrival -- design doc 4.47: a non-admin in World 2 goes back while locked
+	Scenarios.world_travel_review = world.world_travel_review -- review of 3258513: arrival carry, hung trip, rank
 	Scenarios.world_gate_rule = world.world_gate_rule -- design doc 4.47: CanEnter (admins, GATE_OPEN, Track 10, rebirth 5)
 	-- docs/TRACKS_AND_BIOMES_SPEC.md "Build order and tests" step 1 (a table, so Scenarios.Run never runs it)
 	Scenarios._trackChain = require(script.Parent.TrackChainTests).make({

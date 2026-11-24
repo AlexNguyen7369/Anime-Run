@@ -6,6 +6,14 @@ local WorldConfig = require(script.Parent.WorldConfig)
 
 local WorldSave = {}
 
+-- The per-world keys: WorldConfig's, plus TeamSlots (World 2's slot 4 unlock, design doc 4.47; never at the top level).
+local KEYS = table.clone(WorldConfig.PROGRESS_KEYS)
+table.insert(KEYS, "TeamSlots")
+
+-- One-way flags of world n, kept in Worlds["W<n>"] next to its progress: once true they stay true (a payload without
+-- the flag never clears it). Welcomed: the first-arrival welcome was given (Server/WorldWelcome, docs/WORLD2_SPEC.md).
+WorldSave.FLAG_KEYS = { "Welcomed" }
+
 -- The record as world `id`'s services read it: the progress keys swapped for that world's (absent = a fresh world).
 function WorldSave.View(record, id)
 	local key = WorldConfig.SaveKey(id)
@@ -15,14 +23,18 @@ function WorldSave.View(record, id)
 	local view = table.clone(record)
 	local worlds = type(record.Worlds) == "table" and record.Worlds or {}
 	local mine = type(worlds[key]) == "table" and worlds[key] or {}
-	for _, name in WorldConfig.PROGRESS_KEYS do
+	for _, name in KEYS do
 		view[name] = mine[name]
+	end
+	for _, name in WorldSave.FLAG_KEYS do
+		view[name] = mine[name] == true or nil
 	end
 	return view
 end
 
 -- The payload world `id` writes: its progress keys moved into Worlds[key] next to the stored record's other worlds, so
--- World 1's top-level progress is never overwritten from World 2.
+-- World 1's top-level progress is never overwritten from World 2. Keys of Worlds[key] this version does not know are
+-- kept, as PlayerData keeps unknown top-level keys.
 function WorldSave.Fold(payload, current, id)
 	local key = WorldConfig.SaveKey(id)
 	if not key then
@@ -30,9 +42,13 @@ function WorldSave.Fold(payload, current, id)
 	end
 	local out = table.clone(payload)
 	local worlds = type(current) == "table" and type(current.Worlds) == "table" and table.clone(current.Worlds) or {}
-	local mine = {}
-	for _, name in WorldConfig.PROGRESS_KEYS do
+	local mine = type(worlds[key]) == "table" and table.clone(worlds[key]) or {}
+	for _, name in KEYS do
 		mine[name] = out[name]
+		out[name] = nil
+	end
+	for _, name in WorldSave.FLAG_KEYS do
+		mine[name] = (out[name] == true or mine[name] == true) or nil
 		out[name] = nil
 	end
 	worlds[key] = mine

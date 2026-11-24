@@ -227,6 +227,9 @@ UiScenarios.Names = {
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	"ui_late_models", -- another world's model arriving after Ready (UiLateModels; docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed))
+	-- World label, travel toast and the World 2 welcome (UiWorld2; docs/WORLD2_SPEC.md "World HUD", "Welcome")
+	"ui_world_label",
+	"ui_world2_welcome",
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
 	"ui_remote_guards",
 	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened
@@ -9118,6 +9121,10 @@ end
 
 K.lateModels = require(script.Parent.UiLateModels).Build({ check = check })
 for name, fn in K.lateModels.Scenarios do
+	S[name] = fn
+end
+K.world2 = require(script.Parent.UiWorld2).Build({ check = check })
+for name, fn in K.world2.Scenarios do
 	S[name] = fn
 end
 

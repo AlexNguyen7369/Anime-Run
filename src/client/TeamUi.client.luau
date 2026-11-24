@@ -50,8 +50,8 @@ local UiTooltip = require(script.Parent:WaitForChild("UiTooltip"))
 local D = UiTheme.Dojo
 local K = UiTheme.Scroll
 local PK = K.Skins.Parchment -- the Summon page's parchment skin (owner 2026-11-20: "consistent with the Summon UI")
-local SLOTS = 3
-local SIZE = StaminaConfig.TEAM_SIZE
+local SLOTS = StaminaConfig.TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
+local SIZE = SLOTS
 local DESIGN_H = 1080 -- the page is laid out in px of a 1080-tall screen
 local STAGE_W = 1920 -- the plate's design width
 local SCROLL_R = 392 -- the left scroll's right edge; the stage centres in the room right of it
@@ -70,10 +70,12 @@ local GEO = {
 	{ X = 0, Z = -35.1, rb = 5.9, rt = 4.9, hb = 0.62, ht = 0.80, scale = 1.0, delay = 0 },
 	{ X = -9.37, Z = -47.5, rb = 3.5, rt = 3.1, hb = 0.30, ht = 0.30, scale = 0.905, delay = 1.12 },
 	{ X = 10.26, Z = -47.5, rb = 3.5, rt = 3.1, hb = 0.30, ht = 0.30, scale = 0.905, delay = 2.24 },
+	-- World 2's slot 4 (4.47): a smaller altar further back, right of slot 3 (placeholder until checked in Studio)
+	{ X = 19.5, Z = -60, rb = 3.1, rt = 2.75, hb = 0.27, ht = 0.27, scale = 0.8, delay = 3.36 },
 }
 -- Stage px: each altar's tap area (member and altar top, apart from each other) and its nameplate (the approved draft).
-local HIT = { { 870, 110, 440, 550 }, { 582, 205, 280, 330 }, { 1350, 205, 284, 330 } }
-local PLATES = { { 940, 123, 328, 80 }, { 598, 219, 256, 64 }, { 1362, 219, 262, 64 } }
+local HIT = { { 870, 110, 440, 550 }, { 582, 205, 280, 330 }, { 1350, 205, 284, 330 }, { 1636, 230, 180, 250 } }
+local PLATES = { { 940, 123, 328, 80 }, { 598, 219, 256, 64 }, { 1362, 219, 262, 64 }, { 1636, 244, 200, 56 } }
 
 -- Drawn icons (owner 2026-11-20: "draw the icons"; assets/ui/team_icons/asset.json).
 local ICON = {
@@ -1337,7 +1339,9 @@ local function drawBonus()
 			string.format('Stamina <font color="#2a8a3a">+%d%%</font>', percent(StaminaConfig.TEAM_BONUS[kind]))
 		cruiseLine.Text = string.format('Cruise <font color="#2a6ad0">×%s</font>', tostring(RaceConfig.PRESET_CRUISE))
 	else
-		noneSub.Text = members < SLOTS and "Only full teams of 3" or "Mixed series"
+		noneSub.Text = members < StaminaConfig.BONUS_MEMBERS
+				and (SLOTS == 3 and "Only full teams of 3" or "Needs 3 members") -- World 2: any 3 of 4 (4.47)
+			or "Mixed series"
 		noneHint.Text = string.format("3 of one series: Stamina +%d%%", percent(StaminaConfig.TEAM_BONUS.Series))
 	end
 end

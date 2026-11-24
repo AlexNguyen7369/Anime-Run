@@ -33,7 +33,7 @@ GachaService.TEAM_COOLDOWN = 0.5 -- seconds between accepted SetTeam requests (T
 
 local MAX_COUNT = 1e9
 local STARTER = CharacterCatalog.STARTER_ID
-local TEAM_SIZE = 3
+local TEAM_SIZE = StaminaConfig.TEAM_SIZE -- 3, World 2: 4 (design doc 4.47)
 local EXCLUSIVE_PASS = "exclusive_runner"
 
 local rng = Random.new()
@@ -602,7 +602,7 @@ function GachaService.PickStarter(player, id)
 	return true
 end
 
--- Sets the Team (docs/TEAM_AND_STAMINA_SPEC.md "Team"): 1-3 distinct owned string ids, on foot only. Anything else changes nothing. Returns ok, reason.
+-- Sets the Team (docs/TEAM_AND_STAMINA_SPEC.md "Team"): 1-TEAM_SIZE (3; World 2: 4) distinct owned string ids, on foot only. Anything else changes nothing. Returns ok, reason.
 function GachaService.SetTeam(player, ids)
 	if player:GetAttribute("AutoRacing") == true then
 		return false, "Stop running to change your Team"
@@ -782,7 +782,7 @@ function GachaService.Cruise(player, slot)
 end
 
 -- Replicates what the team row shows (server numbers, display only): TeamBonus ("Preset:<id>", "Series:<id>" or
--- ""), TeamCruise1..3 (studs/s) and TeamStamina1..3 (seconds) per slot, and Cruise while on foot (a run sets its own).
+-- ""), TeamCruise1..TEAM_SIZE (studs/s) and TeamStamina1..TEAM_SIZE (seconds) per slot, and Cruise while on foot (a run sets its own).
 function GachaService.RefreshTeam(player)
 	local team = GachaService.TeamList(player)
 	local kind, series = GachaService.TeamBonus(player)
@@ -871,6 +871,7 @@ function GachaService.Snapshot(player)
 		Copies = copies,
 		Team = team,
 		Equipped = team[1],
+		TeamSlots = player:GetAttribute("TeamSlots"), -- World 2 only (nil in World 1: nothing written)
 		Rolls = cleanCount(player:GetAttribute("Rolls")),
 		StatAlloc = alloc(player),
 		AutoSell = player:GetAttribute("AutoSell") == true,
@@ -926,6 +927,8 @@ function GachaService.Apply(player, saved)
 	if #team == 0 then
 		team[1] = STARTER
 	end
+	-- Slot 4 (design doc 4.47): unlocked on the first World 2 entry and kept in the World 2 save (Worlds.W2.TeamSlots)
+	player:SetAttribute("TeamSlots", TEAM_SIZE > 3 and TEAM_SIZE or nil)
 	player:SetAttribute("Team", table.concat(team, ","))
 	player:SetAttribute("EquippedCharacter", team[1])
 	player:SetAttribute("Rolls", cleanCount(saved.Rolls))

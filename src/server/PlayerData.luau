@@ -193,6 +193,8 @@ function PlayerData.Load(player, userId)
 		player:SetAttribute("MoneyEarned", cleanInt(data.MoneyEarned, 0, MAX_MONEY, 0))
 		player:SetAttribute("DuelWins", cleanInt(data.DuelWins, 0, MAX_DUEL_WINS, 0))
 		player:SetAttribute("Checkpoint", cleanInt(data.Checkpoint, 1, MAX_DUEL_WINS, 1)) -- design doc 4.15
+		-- World 2's first-arrival welcome was given (Worlds.W2.Welcomed via WorldSave.View; older saves have none)
+		player:SetAttribute("World2Welcomed", data.Welcomed == true or nil)
 	end
 
 	-- One UpdateAsync per attempt takes the lock. Nothing in the transform yields. A store error is retried
@@ -268,6 +270,9 @@ function PlayerData.Load(player, userId)
 		warn("PlayerData: save version " .. tostring(updated.Version) .. " is newer than " .. VERSION .. ", read-only")
 	end
 	apply(WorldSave.View(updated, WorldConfig.Id)) -- World 2 reads its own track progress (design doc 4.47)
+	-- Read-only mirror of World 1's BestTrack (top level of the save) for the World 2 gate rule (Server/WorldTravel
+	-- .CanEnter, design doc 4.47); never saved.
+	player:SetAttribute("World1BestTrack", math.max(0, math.floor(tonumber(updated.BestTrack) or 0)))
 	player:SetAttribute("DataFailed", nil)
 	player:SetAttribute("DataLoaded", true)
 	-- The mailbox was persisted even if the recipient was offline. Claim through the same
@@ -376,6 +381,7 @@ local function save(player, userId, release, frozen)
 		Copies = gacha.Copies,
 		Team = gacha.Team,
 		Equipped = gacha.Equipped,
+		TeamSlots = gacha.TeamSlots, -- World 2 only; WorldSave.Fold moves it under Worlds.W2
 		Rolls = gacha.Rolls,
 		StatAlloc = gacha.StatAlloc,
 		AutoSell = gacha.AutoSell,
@@ -403,6 +409,7 @@ local function save(player, userId, release, frozen)
 		Codes = shop.Codes,
 		Checkpoint = cleanInt(player:GetAttribute("Checkpoint"), 1, MAX_DUEL_WINS, 1),
 		RaceBestTimes = RaceTimeService.Snapshot(player),
+		Welcomed = player:GetAttribute("World2Welcomed") == true or nil, -- WorldSave.Fold keeps it in Worlds.W2
 		OfflineAt = clock(),
 		Version = VERSION,
 	}
@@ -457,9 +464,14 @@ local function save(player, userId, release, frozen)
 	return false
 end
 
-function PlayerData.Save(player, userId, release, frozen)
+-- `present`: only if the player is still in the server once the queue reaches this save (Server/WorldTravel's lock
+-- retake: a player who left meanwhile was given the leave save, and a retake now would hold the lock for nobody).
+function PlayerData.Save(player, userId, release, frozen, present)
 	while saving[player] do
 		task.wait()
+	end
+	if present and not player.Parent then
+		return false, false
 	end
 	saving[player] = true
 	local ok, result, readOnly = pcall(save, player, userId, release, frozen)

@@ -814,6 +814,9 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - World 2 rewards (owner 2026-11-24): first-clear Gems pay again on World 2 tracks (they are new tracks); World 2
   tracks pay more Money than World 1: Track N pays World 1 Track 10's Money times a growing multiplier (x2 per track
   step is a **placeholder**).
+- World awareness (**proposed**, `WORLD2_SPEC` "World HUD and welcome"): a small "World N" label on the HUD, a
+  "Travelling to World N..." toast while a trip runs, and a one-time World 2 welcome popup (team of 4, new summon pool,
+  the return gate), given once per save (`Worlds.W2.Welcomed`).
 - Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with the World 2 team of
   4; no World 2 bosses yet.
 - Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,

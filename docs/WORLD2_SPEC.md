@@ -16,15 +16,51 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 - `Shared/WorldSave.View` swaps `BestTrack`, `Checkpoint`, `RaceBestTimes`, `Team` and `Equipped` (`WorldConfig.PROGRESS_KEYS`)
   for the world's own on load (a fresh World 2 team is the starter);
   `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys.
+- `Worlds.W2.Welcomed` (true once World 2's welcome was given; absent = not yet): a one-way flag
+  (`WorldSave.FLAG_KEYS`), never cleared by a save without it. VERSION unchanged: an older save has none and is
+  welcomed once; World 1 servers (old and new) keep `Worlds` whole as they keep every unknown key. `Fold` keeps the
+  keys of `Worlds.W2` it does not know. An older World 2 build would drop the flag (welcome shown again, nothing else lost).
 
 ## Travel and gate
+### Travel
 - `Server/WorldTravel.Go(player, id)`: saves with the lock released, then `TeleportService:TeleportAsync`. Refused in
-  Studio (teleports do not run there) and while the target place id is missing.
+  Studio (teleports do not run there) and while the target place id is missing. One trip at a time; the player is
+  frozen (`DataLoaded` off, `Travelling` on) from the release save until departure; a failure restores and retakes the
+  lock (only while the player is still in the server).
 - Admin: `/world2 [player]`, `/world1 [player]`.
-- Gate: `SpawnArea.WorldGate`, hub-local (194, -176) on the plaza's south-east corner, facing the spawn: a dais, two
+- Who may enter (design doc 4.47): `WorldTravel.CanEnter(player, id)`, used by the gate, `Go` and the arrival check.
+  World 1 and admins always; anyone else needs `WorldConfig.GATE_OPEN` (false until the owner opens it) AND World 1
+  Track `GATE_TRACK` (10) beaten AND rebirth >= `GATE_REBIRTH` (5). No Money cost, nothing resets. In World 2 the
+  World 1 best track is `PlayerData`'s read-only `World1BestTrack` attribute (the save's top-level `BestTrack`).
+- Arrival check (World 2, not in Studio): waits until the save loaded or failed (up to `ARRIVAL_WAIT`, past
+  `PlayerData.LOCK_WAIT`; still undecided: kicked). A player `CanEnter` refuses is sent back to World 1, frozen, up to
+  `ARRIVAL_TRIES` trips with `CanEnter` asked again before each (a player who now qualifies stays); then one bounded
+  release save and a kick. If every release save failed, the kick leaves the session lock until `LOCK_TIMEOUT`
+  (120 s): the next join waits for it. An admin check that fails ("unknown") is asked again up to `ADMIN_RECHECKS`
+  times, then the player counts as no admin.
+### Gate
+- `SpawnArea.WorldGate`, hub-local (194, -176) on the plaza's south-east corner, facing the spawn: a dais, two
   leaning obsidian monoliths, a 16-segment stone ring with a neon lip and a glowing portal disc. In World 1 it is locked:
-  crossed chains, a padlock plate, an invisible barrier, "WORLD 2 / COMING SOON". In World 2 it is open ("WORLD 1 /
-  ENTER") and its Portal (tag `WorldGate`, attribute `TargetWorld`) sends a touching player back.
+  crossed chains, a padlock plate, an invisible barrier, "WORLD 2 / COMING SOON"; touching the barrier shows "COMING
+  SOON". Open but not qualified: "Beat Track 10" / "Reach Rebirth 5" (TeamToast, `RunEvent { Kind = "WorldGate" }`).
+  In World 2 it is open ("WORLD 1 / ENTER") and its Portal (tag `WorldGate`, attribute `TargetWorld`) sends a touching
+  player back.
+
+## World HUD and welcome (proposed, design doc 4.47)
+### World HUD
+- World label: `Client/WorldHud` shows "World N" (`WorldConfig.Id`) on a small lacquer plate under the top-right pills,
+  as wide as and right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales). Display
+  only; shown in both worlds.
+- Travel: while the server holds a trip (player attribute `Travelling`, `WorldTravel.Go`, gate or admin command alike),
+  TeamToast shows "Travelling to World N..."; a failed trip shows TeamToast's "TRAVEL FAILED, TRY AGAIN". The locked
+  gate looks unchanged.
+### Welcome
+- `Server/WorldWelcome` sets `World2Welcomed` (saved, above) and `World2WelcomeShow` (session) the first time a
+  loaded player stays in World 2 (`CanEnter`; not an arrival that is sent back; Studio playtests always). `Client/World2Welcome`
+  (World 2 only) shows one small handscroll popup (4.46): "WORLD 2", "Welcome to the Rift Shrine", "Team of 4 unlocked",
+  "New summon pool", "The World 1 gate in the plaza takes you back"; Close, OK or a click outside closes it; reduced
+  effects fade. Words **proposed**.
+- Tests: ServerTest `world2_welcome`; UiTest `ui_world_label`, `ui_world2_welcome` (`Client/UiTest/UiWorld2`).
 
 ## Tracks
 Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tracks/World2/W2*.luau`.

@@ -4,6 +4,8 @@
 -- category multis proposed). Category multis: design doc 4.5.
 -- Player multis (design doc 4.6-4.8, owner 2026-11-03 tree branch): StaminaConfig.Multi.
 
+local WorldConfig = require(script.Parent.WorldConfig)
+
 local StaminaConfig = {}
 
 StaminaConfig.BASE = {
@@ -20,7 +22,9 @@ StaminaConfig.BASE = {
 StaminaConfig.CATEGORY = { Sprinter = 0.9, Balanced = 1, Marathoner = 1.1 }
 StaminaConfig.EXHAUSTION_SHARE = 1.0 -- placeholder: share of the per-distance pad cash banked on exhaustion (4.3)
 
-StaminaConfig.TEAM_SIZE = 3
+-- Team slots (design doc 4.2): World 2 has a team of 4 (4.47; slot 4 unlocked on first entry, GachaService.Apply).
+StaminaConfig.TEAM_SIZE = WorldConfig.Id == 2 and 4 or 3
+StaminaConfig.BONUS_MEMBERS = 3 -- matching members a team bonus needs (4.8; World 2: any 3 of the 4, 4.47)
 StaminaConfig.PER_POINT = 0.05 -- +5 % per Stamina stat point (placeholder, design doc 4.6; GachaConfig.PER_POINT.Stamina)
 StaminaConfig.TEAM_BONUS = { Preset = 1.4, Series = 1.2 } -- placeholders (design doc 4.8)
 

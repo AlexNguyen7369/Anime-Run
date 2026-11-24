@@ -123,6 +123,8 @@ do -- the open world gate and the World 2 arrival check (design doc 4.47)
 	local WorldTravel = require(script.Parent.WorldTravel)
 	WorldTravel.IsAdmin = AdminService.IsAdmin
 	WorldTravel.Start()
+	local WorldWelcome = require(script.Parent.WorldWelcome) -- World 2's first-arrival welcome
+	WorldWelcome.Start()
 end
 local trackModels = {} -- the built models; late tracks join it, so TerrainBuilder's final pass reaches them too
 for _, entry in entries do

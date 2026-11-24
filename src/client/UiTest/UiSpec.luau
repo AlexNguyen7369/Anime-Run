@@ -5162,4 +5162,12 @@ do
 	})
 end
 
+-- World awareness (docs/WORLD2_SPEC.md "World HUD", "Welcome"; UiWorld2 judges both). WorldHud/WorldLabel is display
+-- only and placed from HudChrome's live rects, so it is not AlwaysOn (the viewport solver can not model it).
+UiSpec.Guis.WorldHud = { Source = "Client/WorldHud", Buttons = {}, NonInteractive = true }
+UiSpec.Guis.World2Welcome = {
+	Source = "Client/World2Welcome",
+	Buttons = { { Path = "Panel/CloseButton", Does = "local" }, { Path = "Panel/OK", Does = "local" } },
+}
+
 return UiSpec
