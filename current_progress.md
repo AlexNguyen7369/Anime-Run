@@ -252,8 +252,9 @@
 248. 2026-11-24 — Alex Nguyen — World 2 keeps the World 1 team on first entry and never opens the starter choice or new-player tutorials; World 2 track lighting got brightness floors so night tracks read; fixed the review findings in the UI fixtures and the export corridor check.
 249. 2026-11-24 — Alex Nguyen — Server tests in World 2 drive a same-speed World 2 character instead of a World 1 one at a tenth of its cruise; the safety baseplate hides its textures with its tiles (the template grid showed in World 2).
 250. 2026-11-24 — Alex Nguyen — World 2 UI is World 1's again except the fourth team slot (owner ruling); boss events checked in World 2 with the boss tests following the team of 4; runner 88/88 and world_layout 12/12 confirmed in the World 2 Studio.
+251. 2026-11-24 — Alex Nguyen — Ran the full server suite in the World 2 Studio (69 pass, 2 fail, 12 skipped as World 1 only) and fixed the tests that assumed World 1; after the fixes money 43/43 and awakening 71/71 pass, boss_king_arena stays red pending an asset upload, and the skipped World 2 coverage is listed as open work in docs/OWNER_QUESTIONS.md; World 1 not rerun.
 
 ## What's next
-**Owner says whether World 2 needs its own new boss or the three World 1 bosses are enough, and rules on the live save; then run the full World 2 server suite and UiTestRun.**
+**Write server scenarios that prove Summon (World 2 Sidekick set only, shared pity) and the boss models in the World 2 place, then rerun the full World 1 server suite.**
 
-**Why this is next:** the existing bosses now pass in World 2, a new boss is a separate build with its own approvals, and the full suites have still never finished in World 2.
+**Why this is next:** boss events and Summon already work in World 2 in code but nothing proves it, and the harness changes in this commit have not been run in World 1 yet.

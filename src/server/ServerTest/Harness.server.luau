@@ -2,7 +2,8 @@
 -- Runs the physics scenarios and prints machine-readable results for the test agents.
 --   [SERVERTEST] START
 --   [SERVERTEST] {"scenario":"accel","pass":true,...}
---   [SERVERTEST] END pass=5 fail=0
+--   [SERVERTEST] SKIP <scenario> reason=<why>   (a World 1 scenario in another world: missing coverage, not a pass)
+--   [SERVERTEST] END pass=5 fail=0 skip=0
 -- Also mirrored into ReplicatedStorage attribute "ServerTestResult" (JSON) for execute_luau readers.
 
 local HttpService = game:GetService("HttpService")
@@ -93,6 +94,30 @@ local function runAll()
 		names = string.split((string.gsub(only, "%s", "")), ",")
 		trackTests = nil
 	end
+	-- Written against World 1's tracks, biomes or roll pool (TestConfig.World1Only, and every TrackTests file): in
+	-- another world they are reported as SKIP, never as a pass or a fail.
+	local world1 = require(ReplicatedStorage.Shared.WorldConfig).Id == 1
+	local skipped = {}
+	if not world1 then
+		local kept = {}
+		for _, name in names do
+			if TestConfig.World1Only[name] then
+				table.insert(skipped, { name, TestConfig.World1Only[name] })
+			else
+				table.insert(kept, name)
+			end
+		end
+		names = kept
+		if trackTests then
+			for _, module in trackTests:GetChildren() do
+				table.insert(skipped, { "track:" .. module.Name, TestConfig.World1TrackTests })
+			end
+			trackTests = nil
+		end
+	end
+	for _, skip in skipped do
+		print("[SERVERTEST] SKIP " .. skip[1] .. " reason=" .. skip[2])
+	end
 	if trackTests then
 		local found = {}
 		for _, module in trackTests:GetChildren() do
@@ -124,9 +149,9 @@ local function runAll()
 	dtConn:Disconnect()
 	ReplicatedStorage:SetAttribute(
 		"ServerTestResult",
-		HttpService:JSONEncode({ pass = pass, fail = fail, results = results })
+		HttpService:JSONEncode({ pass = pass, fail = fail, skip = #skipped, skipped = skipped, results = results })
 	)
-	print(("[SERVERTEST] END pass=%d fail=%d"):format(pass, fail))
+	print(("[SERVERTEST] END pass=%d fail=%d skip=%d"):format(pass, fail, #skipped))
 	ReplicatedStorage:SetAttribute("ServerTestRun", false)
 	ReplicatedStorage:SetAttribute("ServerTestRunning", false)
 	running = false

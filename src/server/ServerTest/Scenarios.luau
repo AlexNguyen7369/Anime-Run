@@ -973,8 +973,16 @@ function Scenarios.money()
 	end
 
 	-- Pad payout
-	local pad1, spec1 = buildPad("Oval", 0)
-	local pad2, spec2 = buildPad("Hill", 400)
+	-- this world's first two tracks (World 1: Oval and Hill)
+	local chainName = {}
+	for _, name in TrackRegistry.Names() do
+		local numbered = TrackRegistry.Get(name)
+		if numbered and numbered.Number then
+			chainName[numbered.Number] = name
+		end
+	end
+	local pad1, spec1 = buildPad(chainName[1], 0)
+	local pad2, spec2 = buildPad(chainName[2], 400)
 	check(checks, "money_pads_exist", (pad1 and pad2) and 1 or 0, 1, pad1 ~= nil and pad2 ~= nil)
 	if pad1 and pad2 and type(TrackBuilder.CashFor) == "function" then
 		local want1 = TrackBuilder.CashFor(spec1.Number)
@@ -991,13 +999,19 @@ function Scenarios.money()
 
 		-- cooldown is per pad: another pad pays immediately
 		local p2 = Money.Collect(player, pad2, t0 + cooldown + 0.02)
-		-- owner 2026-10-27: Track 2 pays x10 Track 1 (PayoutCurve.GROWTH[1])
+		-- owner 2026-10-27: Track 2 pays x10 Track 1 (PayoutCurve.GROWTH[1]). World 2 (design doc 4.47, WORLD2_SPEC
+		-- "Rewards"): Track N pays World 1's Track 10 x WORLD2_STEP^N, so Track 2 pays WORLD2_STEP times Track 1.
+		-- The World 2 step is a placeholder (docs/OWNER_QUESTIONS.md "world2-awakening-rewards" item 1), so it is read
+		-- from the config; World 1's numbers stay the doc's literals.
+		local world2 = require(ReplicatedStorage.Shared.WorldConfig).Id == 2
+		local step = world2 and PAYOUT.module().WORLD2_STEP or 10
+		local first = world2 and PAYOUT.CASH[10] * step or PAYOUT.CASH[1]
 		check(
 			checks,
 			"track2_pays_ten_times_track1",
 			p2 or -1,
-			10 * want1,
-			spec1.Number == 1 and spec2.Number == 2 and want1 == PAYOUT.CASH[1] and want2 == 10 * want1 and p2 == want2
+			step * want1,
+			spec1.Number == 1 and spec2.Number == 2 and want1 == first and want2 == step * want1 and p2 == want2
 		)
 
 		-- cooldown is per player
@@ -2969,7 +2983,8 @@ function Scenarios.economy()
 		return ok and v or nil
 	end
 	local starter = Catalog.Get(Catalog.STARTER_ID)
-	local top = Catalog.Get("db_hero") -- Secret
+	-- Secret (World 2: its stand-in, since a World 1 character runs at a tenth there and never reaches the cap)
+	local top = Catalog.Get(require(script.Parent.AcceptanceSupport).worldChar("db_hero"))
 	local capWorst, cruiseCapOk = 0, starter ~= nil and top ~= nil
 	for _, spec in { starter, top } do
 		for _, m in { 1, 1.5, 10 ^ 0.5, 2800, 1e6, 1e100, 1e300 } do
@@ -3296,15 +3311,13 @@ function Scenarios.data()
 	local pNew = newPlayer("ServerTestDataResetNew")
 	PlayerData.Load(pNew, 9003)
 	check(checks, "reset_money_zero", val(pNew, "Money") or -1, 0, val(pNew, "Money") == 0)
-	local startsNew = pNew:GetAttribute("NeedsStarter") == true and pNew:GetAttribute("Rolls") == 0
+	-- World 1: a new save picks a starter and starts with auto-roll off (design doc 4.21). World 2 never asks for a
+	-- starter or the roll tutorial (design doc 4.47, owner 2026-11-24).
+	local asksStarter = require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id == 1
+	local startsNew = (pNew:GetAttribute("NeedsStarter") == true) == asksStarter and pNew:GetAttribute("Rolls") == 0
 	check(checks, "reset_needs_starter", startsNew and 1 or 0, 1, startsNew)
-	check(
-		checks,
-		"new_save_auto_roll_off",
-		pNew:GetAttribute("AutoRoll") == false and 1 or 0,
-		1,
-		pNew:GetAttribute("AutoRoll") == false
-	)
+	local autoOff = (pNew:GetAttribute("AutoRoll") == false) == asksStarter
+	check(checks, "new_save_auto_roll_off", autoOff and 1 or 0, 1, autoOff)
 	-- a save that has rolled keeps auto-roll on (Setup's default) and gets no popup
 	store.data[PlayerData.KeyFor(9004)] = { Rolls = 2, Version = DATA_VERSION }
 	local pRolled = newPlayer("ServerTestDataRolled")
@@ -6217,7 +6230,9 @@ function Scenarios.index()
 		local paidF = Money.Collect(pf, pad, 5000)
 		check(checks, "collect_fresh_player_pays_cash", paidF or -1, cash, paidF == cash)
 
-		-- Run cruise follows the equipped character: two identical runs, the starter vs a Rare leaf_copycat.
+		-- Run cruise follows the equipped character: two identical runs, the starter vs a Rare leaf_copycat
+		-- (World 2: its stand-in, since leaf_copycat runs at a tenth there, slower than the starter).
+		local INDEX_FAST_ID = require(script.Parent.AcceptanceSupport).worldChar("leaf_copycat")
 		-- retired: race gain ratio checks (no Speed gain, design doc 4.13). Building the tracks causes long frames,
 		-- so wait for the world to settle before the runs start.
 		local settleStart, streak = os.clock(), 0
@@ -6242,8 +6257,8 @@ function Scenarios.index()
 			PlayerData.Setup(player)
 			GachaService.Setup(player)
 			if k == 2 then
-				GachaService.Grant(player, "leaf_copycat")
-				GachaService.Equip(player, "leaf_copycat")
+				GachaService.Grant(player, INDEX_FAST_ID)
+				GachaService.Equip(player, INDEX_FAST_ID)
 			end
 			local run = RaceService.NewRun(runner, route, player, nil)
 			table.insert(runs, run)
@@ -6266,7 +6281,7 @@ function Scenarios.index()
 		metrics.raceMaxDt = round(raceMaxDt)
 		runs = {}
 		-- design doc 4.13: the run cruises at the character's fixed cruise (rarity x category, SpeedMulti ignored)
-		local want1, want2 = RaceConfig.Cruise(starterSpec), RaceConfig.Cruise(CharacterCatalog.Get("leaf_copycat"))
+		local want1, want2 = RaceConfig.Cruise(starterSpec), RaceConfig.Cruise(CharacterCatalog.Get(INDEX_FAST_ID))
 		check(
 			checks,
 			"race_cruise_scales_with_character",
@@ -6726,9 +6741,12 @@ function Scenarios.npc()
 			local cast =
 				{ "Paine", "Selle", "Arlon", "Akazo", "Jogoh", "Shigaraky", "Mahitoh", "Enelu", "Ulquiorro", "Freezo" }
 			local offCast = 0
-			for n, name in cast do
-				if NpcConfig.For(n).Label ~= name then
-					offCast += 1
+			-- World 1's cast; World 2's enemies are still proposed (docs/WORLD2_SPEC.md), so no list to hold them to
+			if require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id == 1 then
+				for n, name in cast do
+					if NpcConfig.For(n).Label ~= name then
+						offCast += 1
+					end
 				end
 			end
 			check(checks, "npc_enemy_cast_matches_spec", offCast, 0, offCast == 0)
@@ -12029,8 +12047,15 @@ end
 
 -- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "track:<Track>"
 -- Scenarios that test stamina itself: they run on the real stamina (docs/TEAM_AND_STAMINA_SPEC.md "Tests").
-local STAMINA_SCENARIOS =
-	{ team = true, stamina = true, team_bonus = true, sidekicks = true, boss_event = true, relics = true }
+local STAMINA_SCENARIOS = {
+	team = true,
+	stamina = true,
+	team_bonus = true,
+	sidekicks = true,
+	boss_event = true,
+	relics = true,
+	awakening = true, -- its run_stamina section measures the stars' share of a run's seconds
+}
 function Scenarios.Run(name)
 	local trackTest = string.match(name, "^track:(.+)$")
 	if trackTest then
