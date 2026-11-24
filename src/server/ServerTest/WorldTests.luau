@@ -159,6 +159,17 @@ function Tests.make(helpers)
 		flag("world_baseplate_exists", plateOk)
 		local floorTop = floor.Position.Y + floor.Size.Y / 2
 		flag("world_baseplate_below_plaza", plateOk and top < floorTop, top, floorTop)
+		-- BIOME_ENVIRONMENT_SPEC 2.4: once the terrain is built nothing of the baseplate draws, a Texture or Decal on
+		-- its tiles included (the World 2 place's template baseplate showed its grid where no terrain covers it)
+		if game:GetService("ReplicatedStorage"):GetAttribute("TerrainReady") == true and plate then
+			local drawn = 0
+			for _, d in plate:GetDescendants() do
+				if (d:IsA("BasePart") or d:IsA("Decal")) and d.Transparency < 1 then
+					drawn += 1
+				end
+			end
+			flag("world_baseplate_hidden_after_terrain", drawn == 0, drawn, 0)
+		end
 		local function covered(x, z)
 			for _, t in tiles do
 				local l = t.CFrame:PointToObjectSpace(Vector3.new(x, t.Position.Y, z))

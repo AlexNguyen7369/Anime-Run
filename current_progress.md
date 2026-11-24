@@ -250,8 +250,9 @@
 246. 2026-11-24 — Alex Nguyen — World 2 HUD uses the pre-scroll look (owner 2026-11-24), panels keep the scroll look; rule in design doc 4.47; not yet seen in Studio.
 247. 2026-11-24 — Alex Nguyen — Made every test harness move its Studio session to an in-memory copy of the save before changing a player (design doc 4.24 "Harness saves"); server test harness_save 24/24 and a refused client-only trigger checked in the World 2 Studio on a test save.
 248. 2026-11-24 — Alex Nguyen — World 2 keeps the World 1 team on first entry and never opens the starter choice or new-player tutorials; World 2 track lighting got brightness floors so night tracks read; fixed the review findings in the UI fixtures and the export corridor check.
+249. 2026-11-24 — Alex Nguyen — Server tests in World 2 drive a same-speed World 2 character instead of a World 1 one at a tenth of its cruise; the safety baseplate hides its textures with its tiles (the template grid showed in World 2).
 
 ## What's next
-**Owner looks at World 2 in Studio (team carried over, lighting on all 10 tracks) and rules on the live save; then run the full World 2 UiTestRun.**
+**Bring the Mac back, stop Play in the World 2 window and clear the test attributes, then rerun `runner` and `world_layout` and the full server suite in World 2.**
 
-**Why this is next:** the lighting numbers are proposed and only Tracks 1 and 4 were seen after the fix, World 2 stays off main until the owner accepts the lighting, and the UI run is the last gate before the World 2 gate can open.
+**Why this is next:** the Mac dropped before the two scenarios reported, so the runner fix and the new baseplate check have no result yet, and the full suite has still never finished in World 2.

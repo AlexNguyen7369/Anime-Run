@@ -515,7 +515,7 @@ function Tests.duel()
 	end
 	local strict = M.Targets.lap.MinUpYStrict
 	local maxDev = M.Targets.race.MaxPathDeviation
-	local FAST_ID = "ds_sister" -- an Epic Balanced, about the old HALF_STAT cruise (design doc 4.13)
+	local FAST_ID = require(script.Parent.AcceptanceSupport).worldChar("ds_sister") -- an Epic Balanced, about the old HALF_STAT cruise (design doc 4.13)
 
 	local fakes = {}
 	local sent = {} -- every message the service sent, in order: { Player, Message }

@@ -125,6 +125,10 @@ local function finish(trackModels, baseplate, keep)
 				Vector3.new(tile.Position.X, TerrainBuilder.BASEPLATE_TOP - tile.Size.Y / 2, tile.Position.Z)
 			tile.Transparency = 1
 			tile.CanCollide = true
+		elseif tile:IsA("Decal") then
+			-- a Texture or Decal on the authored Baseplate still draws on an invisible part (a Studio template
+			-- baseplate carries its grid Texture): it showed wherever no terrain covers the plate (spec 2.4)
+			tile.Transparency = 1
 		end
 	end
 	for _, model in trackModels do

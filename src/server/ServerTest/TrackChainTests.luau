@@ -487,7 +487,7 @@ function M.make(helpers)
 			if apiOk then
 				local cash = TrackBuilder.CashFor(n)
 				-- an Epic Balanced (about the old HALF_STAT cruise) and a Secret Balanced, as the race scenario uses
-				for _, case in { { "normal", "ds_sister" }, { "max", "db_hero" } } do
+				for _, case in { { "normal", H.worldChar("ds_sister") }, { "max", H.worldChar("db_hero") } } do
 					local st = driveTrack(svc, route, entry, case[2])
 					local pre = "runner_" .. case[1] .. "_"
 					check(pre .. "run_started", st.ok and 1 or 0, 1, st.ok)

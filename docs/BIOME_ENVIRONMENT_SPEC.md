@@ -80,7 +80,8 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
 ### 2.4 Safety baseplate
 - It keeps its XZ rule (covers tracks and plaza plus the margin; `world_layout` still passes). Since Tracks 6-10 build after join (design doc 4.25), its XZ box joins `TerrainShape.Box()` (every track's centre line plus margin and skirt) with the built parts, so it covers the late tracks before they have parts.
 - Once the terrain is built it moves down to Y = -60 (placeholder), below the deepest terrain floor, and becomes
-  `Transparency = 1`. It stays `CanCollide`. It is the last-resort floor under water and the cloud drops.
+  `Transparency = 1`, with every Texture and Decal on its tiles (2026-11-24: a template baseplate's grid Texture kept
+  drawing in World 2). It stays `CanCollide`. It is the last-resort floor under water and the cloud drops.
 - If the terrain build fails, the baseplate stays where it is and stays visible.
 - The track `Ground` tiles stay as the dressing placement reference. Once the terrain is built they become
   `Transparency = 1`, `CanCollide = false`, `CanQuery = false`, which stops z-fighting with the terrain.

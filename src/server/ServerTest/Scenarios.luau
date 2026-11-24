@@ -1333,7 +1333,8 @@ function Scenarios.race()
 	end
 
 	-- Runners: an Epic Balanced (~ the old HALF_STAT cruise), a Secret near MAX_CRUISE, and the Common starter
-	local FAST_ID, MAX_ID, SLOW_ID = "ds_sister", "db_hero", Catalog.STARTER_ID
+	local worldChar = require(script.Parent.AcceptanceSupport).worldChar -- World 2: a stand-in at the same cruise
+	local FAST_ID, MAX_ID, SLOW_ID = worldChar("ds_sister"), worldChar("db_hero"), Catalog.STARTER_ID
 	local function cruiseOf(id)
 		return RaceConfig.Cruise(Catalog.Get(id))
 	end
@@ -7220,10 +7221,11 @@ function Scenarios.npc()
 		end
 
 		-- (a) WIN: fast player (an Epic, ~ the old HALF_STAT cruise), slow NPC on both tracks
-		local fastSpeed = cruiseOfChar("ds_sister")
+		local fastId = require(script.Parent.AcceptanceSupport).worldChar("ds_sister")
+		local fastSpeed = cruiseOfChar(fastId)
 		local a = race(
 			"Win",
-			"ds_sister",
+			fastId,
 			{ [1] = NPC_SLOW, [2] = NPC_SLOW },
 			totalLen / (0.5 * fastSpeed) + 30,
 			function(r, now)
@@ -8764,7 +8766,8 @@ function Scenarios.bank()
 			totalLen += (wps[i] - wps[i - 1]).Magnitude
 		end
 		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, Runner.LIFT, 0)
-		local r = newNpcRacer(api, route, startCF, "Bank", "ds_sister", { [n1] = NPC_SLOW, [n2] = NPC_SLOW }, nil)
+		local bankId = require(script.Parent.AcceptanceSupport).worldChar("ds_sister")
+		local r = newNpcRacer(api, route, startCF, "Bank", bankId, { [n1] = NPC_SLOW, [n2] = NPC_SLOW }, nil)
 		racer = r
 		check(checks, "bank_run_started", r.ok and 1 or 0, 1, r.ok)
 		if not r.ok then
@@ -8780,7 +8783,7 @@ function Scenarios.bank()
 		check(checks, "bank_attribute_starts_zero", num(attr()), 0, attr() == nil)
 		local noCashOut = run.CashOut == nil
 		check(checks, "bank_run_has_cash_out", noCashOut and 0 or 1, 0, noCashOut)
-		local cap = totalLen / (0.5 * cruiseOfChar("ds_sister")) + 30
+		local cap = totalLen / (0.5 * cruiseOfChar(bankId)) + 30
 		local function driveUntil(track, seconds)
 			return frames(seconds, function()
 				if npcFind(r, "Result", track) then
