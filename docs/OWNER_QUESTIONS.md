@@ -214,4 +214,4 @@ Answered by the owner 2026-11-23 ("approved", from the contact sheets): items 1,
 6. Were the 127 uploads what you meant? Their only basis is "until everything is ingame ... I preapprive all decisions".
 7. `side_lucky` and `side_acrobat`: use the fixed normals (f822beb)? Needs 2 models and 4 images uploaded.
 8. Sidekick attack slices: approve?
-9. `GachaConfig.Roll` now chains draws for chances under 1e-12, in both worlds, so the rarest odds match what is shown. It also corrects World 1's 1.6e16 and 5e18 rows (not verified in Studio). Keep?
+9. SUSPECTED, not measured: odds near 1 in 9e18 (and World 1's 5e18) may be finer than Random:NextNumber resolves. A chained-draw fix is on local branch orch/world2/rare-odds-proposal (e64e6b2), not on the merge branch. Measure in Studio first, then decide, World 1 included.

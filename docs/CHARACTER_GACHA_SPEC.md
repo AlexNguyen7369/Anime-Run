@@ -177,7 +177,7 @@ Preset trios (the anime's famous team):
 
 - Art follows design doc section 5 safeguards: in-house models only, no ripped assets, no official logos or audio.
 
-World 2 cast (owner 2026-11-24, design doc 4.47; `Chance`, `SpeedMulti`, Cat., series and preset names **proposed**; every file has
+World 2 cast (owner 2026-11-24 asked for it in game; rules, `Chance`, `SpeedMulti`, Cat., series and preset names **proposed**; every file has
 `World = 2`; Chance and Cat. per id: `docs/WORLD2_SPEC.md` "Cast in game"). Rarity `Eternal`: Chance band 6e18 - 9e18, SpeedMulti 4,000 -
 6,000. World 2 rolls only these. Villain rarities keep World 1's counts (2 Epic, 3 Legendary, 4 Mythic); villains wear their own model.
 

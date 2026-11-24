@@ -148,7 +148,7 @@ In the style common to anime tower defense games: all effects original, no copie
 
 Owner presentation update 2026-11-14: summon controls use warm wood/burgundy gradients, cream type, gold outlines and blossom stamps. The clean backdrop and native foreground move with the viewport camera so the painted and physical floor remain screen-locked; character idle poses and subtle parallax remain independent. HybridPresentationVersion=2; HybridFloorScreenLocked=true.
 
-## World 2 set (owner 2026-11-24, design doc 4.47; names, rarities and numbers **proposed**)
+## World 2 set (owner 2026-11-24 asked for a set rotation of its own; everything else **proposed**)
 - World 2 summons only these 12, through the same 30 minute rotation (1 Mythic, 2 Legendaries, 2 Rares, all Commons, 1 Secret); World 1
   draws only from its own 12, as before. Featured Mythic: Belleon. Costs, unlock, pity and its shared counts are unchanged.
 - Listed odds, gains, hits and sell values are World 1's row of the same rarity; the listed odds and every slot's shown odds sum to 100%.

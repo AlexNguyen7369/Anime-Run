@@ -133,5 +133,5 @@ The "Based on" names stay in docs and never ship (design doc 5).
 ### Release checklist (cast)
 - Publish World 1 from this build before or with World 2, then shut down old servers: an older World 1 server trims StatAlloc earned from World 2 ids and drops World 2 characters from the team.
 - Ids settled by the owner before any non-admin plays.
-- Rarest odds verified in Studio (GachaConfig.Roll's chained draw).
+- Random:NextNumber resolution measured in Studio against the rarest odds (OWNER_QUESTIONS item 9).
 - Studio run of the cast scenarios.
