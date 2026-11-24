@@ -66,9 +66,8 @@ The "Based on" names stay in docs and never ship (design doc 5).
 - Approved by the owner 2026-11-23 (second batch, as shown on the page at their last reviewed commit): Track 1
   DevilTokyo (6fbb25e), Track 3 RuinedCityZ (11045e6), Track 6 ElvenPlains (dfe607d), Track 7 AntIsland (24c6008). Frozen.
   Unreviewed partial rounds started after those commits are kept in git stash, not applied.
-- Approved by the owner 2026-11-24 ("track 9 is approved", seen mid-render at round 4): Track 9 GoldenCity. The
-  builder's in-flight corrected render (palace gable, basket hands, shop arches) is the frozen version once it lands;
-  no further review rounds. All 10 tracks are approved.
+- Approved by the owner 2026-11-24: Track 9 GoldenCity, frozen at round 4 (4d994ed; owner: "earlier version is
+  fine"). The unfinished corrected round is kept in git stash, not applied. All 10 tracks are approved.
 - Approved by the owner 2026-11-24 as-is after stalling at 6/10: Track 2 DemonCastle (round 8, 2455c6f). Frozen.
 - In game (owner 2026-11-23): props placed from an approved draft keep the draft's clearance (24+ studs from the road
   centre line, overhead 14+, checked by tools/blender/world2/clearance.py). World 1's 8-stud road-edge clearance
