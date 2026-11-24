@@ -312,9 +312,22 @@ local models = ReplicatedStorage:WaitForChild("CharacterModels")
 while models:GetAttribute("Ready") ~= true do
 	task.wait(1)
 end
+-- Another world's character loads here for its owners only (another player's reaches this client when their rig does)
+local function mine(id)
+	local ok, needed = pcall(function()
+		local Shared = ReplicatedStorage.Shared
+		local spec = require(Shared.CharacterCatalog).Get(id)
+		if spec == nil or spec.World == nil or spec.World == require(Shared.WorldConfig).Id then
+			return true
+		end
+		local data = Players.LocalPlayer:FindFirstChild("GachaData")
+		return data ~= nil and data:FindFirstChild(id) ~= nil
+	end)
+	return not ok or needed
+end
 local later = {}
 for _, character in models:GetChildren() do
-	if not wanted[character.Name] then
+	if not wanted[character.Name] and mine(character.Name) then
 		table.insert(later, character)
 	end
 end

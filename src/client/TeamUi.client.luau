@@ -2071,6 +2071,13 @@ task.spawn(function()
 		a.ShownId, a.FailedId = false, nil
 	end
 	changed()
+	-- Another world's character loads when its owner joins: build its altar's figure once it is here.
+	models.ChildAdded:Connect(function()
+		for _, a in altars do
+			a.ShownId, a.FailedId = false, nil
+		end
+		changed()
+	end)
 end)
 
 -- The member standing on its altar as its 3D model (owner 2026-11-17: an exception to the portrait rule for Team Setup

@@ -534,6 +534,30 @@ function Tests.world2_cast()
 		flag("rotation_world1_only_its_12", old)
 	end)
 
+	section("models", function()
+		local Service = require(Server.CharacterModelService)
+		local world1, world2, common = true, true, true
+		for _, spec in require(Shared.CharacterCatalog).Everything() do
+			local shared = spec.Id == "sea_captain" or spec.Id == "leaf_hero" or spec.Id == "db_hero"
+			world1 = world1 and Service.Eager(spec.Id, 1) == (spec.World == 1)
+			world2 = world2 and Service.Eager(spec.Id, 2) == (spec.World == 2 or shared)
+		end
+		for _, id in { "punch_hero", "leaf_hero", "sea_captain", "db_hero", "foe_sea" } do
+			common = common and Service.Eager(id, 1) and Service.Eager(id, 2)
+		end
+		flag("models_world1_eager", world1)
+		flag("models_world2_eager", world2)
+		flag("models_shared_in_both", common)
+		local sides = true
+		for world, list in require(Shared.SidekickConfig).Lists do
+			for _, row in list do
+				sides = sides and Service.EagerSidekick(row.Id, world) and not Service.EagerSidekick(row.Id, 3 - world)
+			end
+		end
+		flag("sidekick_models_per_world", sides)
+		flag("boss_drops_in_both", Service.EagerSidekick("side_raga", 1) and Service.EagerSidekick("side_raga", 2))
+	end)
+
 	section("saves", function()
 		local GachaService, SidekickService = require(Server.GachaService), require(Server.SidekickService)
 		local WorldSave = require(Shared.WorldSave)

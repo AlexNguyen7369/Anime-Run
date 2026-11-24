@@ -1,5 +1,7 @@
 # Sidekick attacks' in-betweens (design doc 4.37, SIDEKICK_SPEC, BOSS_EVENT_SPEC "Boss and attacks"; owner approved the 12 attacks'
 # keys, and side_king's and side_mage's on 2026-11-11 with their bosses' key frames).
+# The 12 World 2 rows (side_box .. side_dark) were baked 2026-11-24 from keys the owner has NOT approved as slices: the owner said only
+# "I preapprive all decisions" for the run that put the cast in game.
 #   python3 tools/blender/bake_sidekick_attacks.py     writes src/late/SidekickAttacks.luau, then self-checks against the limits of
 #                                                      src/server/ServerTest/SidekickAttackTests.luau. Run stylua on it after.
 #   Blender -b --factory-startup --python tools/blender/bake_sidekick_attacks.py -- rig <folder holding <id>/<id>.blend> [<id> ...]

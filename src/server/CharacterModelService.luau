@@ -4,8 +4,12 @@
 -- background: rigs built before it finishes (runners, Best Roll) are placeholders and get re-skinned at
 -- the end. A failed load only leaves that character on the placeholder rig. The root's Ready attribute turns true
 -- when done; its Loaded_<id> attribute turns true as each character finishes (loaded or failed), for the loading screen.
+-- Only this world's cast loads at start (design doc 4.47). Another world's character or Sidekick loads once, when a player in
+-- this server owns it or a rig wears it.
 local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
 local InsertService = game:GetService("InsertService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -14,8 +18,11 @@ local Assets = require(Shared.CharacterModelAssets)
 local BossKingPoses = require(Shared.LateData).Get("BossKingPoses")
 local BossMagePoses = require(Shared.LateData).Get("BossMagePoses")
 local BossRagaPoses = require(Shared.LateData).Get("BossRagaPoses")
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local RunnerFactory = require(Shared.RunnerFactory)
 local SidekickArt = require(Shared.SidekickArt)
+local SidekickConfig = require(Shared.SidekickConfig)
+local WorldConfig = require(Shared.WorldConfig)
 
 local CharacterModelService = {}
 
@@ -99,6 +106,34 @@ local function loadSidekick(id, assetId, root)
 	end
 end
 
+-- The models every world shows: the exclusive runner's, and those worn by a runner with no world of its own.
+local shared = { [CharacterCatalog.EXCLUSIVE_ID] = true }
+for _, id in { CharacterCatalog.KAMI_ID, table.unpack(CharacterCatalog.STARTER_PICKS) } do
+	shared[CharacterCatalog.Get(id).Model] = true
+end
+
+-- True if character model `id` loads when a world's server (default: this one's) starts. Enemy-only models have no spec.
+function CharacterModelService.Eager(id, world)
+	local spec = CharacterCatalog.Get(id)
+	return shared[id] == true or spec == nil or spec.World == nil or spec.World == (world or WorldConfig.Id)
+end
+
+-- The same for a Sidekick: a world's own set, and the boss drops, which every world has.
+function CharacterModelService.EagerSidekick(id, world)
+	for other, list in SidekickConfig.Lists do
+		if other ~= (world or WorldConfig.Id) then
+			for _, row in list do
+				if row.Id == id then
+					return false
+				end
+			end
+		end
+	end
+	return true
+end
+
+local requestedSidekicks = {} -- id -> true once its load started
+
 local function startSidekicks()
 	local root = Instance.new("Folder")
 	root.Name = "SidekickModels"
@@ -106,7 +141,8 @@ local function startSidekicks()
 	task.spawn(function()
 		local pending = 0
 		for id, art in SidekickArt do
-			if art.Model then
+			if art.Model and CharacterModelService.EagerSidekick(id) then
+				requestedSidekicks[id] = true
 				pending += 1
 				task.spawn(function()
 					pcall(loadSidekick, id, art.Model, root)
@@ -119,6 +155,7 @@ local function startSidekicks()
 		end
 		root:SetAttribute("Ready", true)
 	end)
+	return root
 end
 
 -- A boss's loose parts, in ReplicatedStorage.BossModels/<name>, at their game size (docs/BOSS_EVENT_SPEC.md "Boss and attacks",
@@ -195,8 +232,75 @@ local function startBoss()
 	end)
 end
 
+local function restyle(only)
+	for _, rig in CollectionService:GetTagged(RunnerFactory.RIG_TAG) do
+		local id = rig:GetAttribute("CharacterId")
+		if id and (only == nil or id == only) and RunnerFactory.HasModel(id) then -- the others keep their look (an NPC's own colour)
+			RunnerFactory.Restyle(rig, id)
+		end
+	end
+end
+
+-- Another world's models, for the players and rigs in this server that need them.
+local function watchOwned(root, sidekickRoot, requested)
+	local function character(id)
+		local spec = CharacterCatalog.Get(id)
+		local model = spec and spec.Model or id
+		if not Assets[model] or requested[model] then
+			return
+		end
+		requested[model] = true
+		task.spawn(function()
+			pcall(load, model, Assets[model], root)
+			root:SetAttribute("Loaded_" .. model, true)
+			restyle(id)
+		end)
+	end
+	local function sidekicks(player)
+		local ok, bag = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("SidekickBag") or "{}")
+		for _, row in ok and type(bag) == "table" and bag or {} do
+			local id = row.Id
+			local art = SidekickArt[id]
+			if art and art.Model and not requestedSidekicks[id] then
+				requestedSidekicks[id] = true
+				task.spawn(pcall, loadSidekick, id, art.Model, sidekickRoot)
+			end
+		end
+	end
+	local function join(player)
+		player:GetAttributeChangedSignal("SidekickBag"):Connect(function()
+			sidekicks(player)
+		end)
+		sidekicks(player)
+		local data = player:WaitForChild("GachaData", 60)
+		if data then
+			data.ChildAdded:Connect(function(entry)
+				character(entry.Name)
+			end)
+			for _, entry in data:GetChildren() do
+				character(entry.Name)
+			end
+		end
+	end
+	local function rig(model)
+		local id = model:GetAttribute("CharacterId")
+		if id then
+			character(id)
+		end
+	end
+	Players.PlayerAdded:Connect(join)
+	for _, player in Players:GetPlayers() do
+		task.spawn(join, player)
+	end
+	CollectionService:GetInstanceAddedSignal(RunnerFactory.RIG_TAG):Connect(rig)
+	for _, model in CollectionService:GetTagged(RunnerFactory.RIG_TAG) do
+		rig(model)
+	end
+end
+
 function CharacterModelService.Start()
-	startSidekicks()
+	local sidekickRoot = startSidekicks()
+	local requested = {} -- model id -> true once its load started
 	startBoss()
 	local root = Instance.new("Folder")
 	root.Name = "CharacterModels"
@@ -205,22 +309,21 @@ function CharacterModelService.Start()
 		-- All at once: 30 one after another held a fresh server's loading screen for seconds (design doc 4.24)
 		local pending = 0
 		for id, row in Assets do
-			pending += 1
-			task.spawn(function()
-				pcall(load, id, row, root)
-				root:SetAttribute("Loaded_" .. id, true)
-				pending -= 1
-			end)
+			if CharacterModelService.Eager(id) then
+				requested[id] = true
+				pending += 1
+				task.spawn(function()
+					pcall(load, id, row, root)
+					root:SetAttribute("Loaded_" .. id, true)
+					pending -= 1
+				end)
+			end
 		end
+		watchOwned(root, sidekickRoot, requested)
 		while pending > 0 do
 			task.wait()
 		end
-		for _, rig in CollectionService:GetTagged(RunnerFactory.RIG_TAG) do
-			local id = rig:GetAttribute("CharacterId")
-			if id and RunnerFactory.HasModel(id) then -- the others keep their look (an NPC's own colour)
-				RunnerFactory.Restyle(rig, id)
-			end
-		end
+		restyle()
 		root:SetAttribute("Ready", true)
 	end)
 end
