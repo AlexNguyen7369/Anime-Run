@@ -349,6 +349,8 @@ end
 -- cruise, Now = its stars give cruise now }; nil until it answers. A refused or failed request is not kept, and the
 -- answers are dropped each time the Backpack opens, so a Speed change since is asked again then.
 local previews = {}
+local retried = {} -- key -> true once a refused answer was asked again (one delayed re-ask per opening, no polling)
+local PREVIEW_RETRY = 0.3 -- s, past the server's 0.15 s rate limit (GachaService.REMOTE_COOLDOWN)
 local function preview(id, stars)
 	local key = id .. ":" .. stars
 	if previews[key] == nil then
@@ -365,6 +367,14 @@ local function preview(id, stars)
 				refreshBag()
 			else
 				previews[key] = nil -- asked again at the next refresh
+				if not retried[key] then
+					retried[key] = true
+					task.delay(PREVIEW_RETRY, function()
+						if panel.Visible then
+							refreshBag()
+						end
+					end)
+				end
 			end
 		end)
 	end
@@ -1032,6 +1042,7 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible then
 		hintText = ""
 		entering = true
+		table.clear(retried)
 		table.clear(previews) -- the Awaken bar asks the server again (a Speed change since may move the cap)
 		leaveSelect()
 		render()

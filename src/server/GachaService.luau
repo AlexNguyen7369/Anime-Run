@@ -1187,20 +1187,15 @@ function GachaService.Start()
 	previewRemote.Name = "AwakenPreview"
 	previewRemote.Parent = remotes
 	local lastPreview = setmetatable({}, { __mode = "k" })
-	-- The handlers as wired, kept for ServerTest (a callback cannot be read back from a RemoteFunction in Studio).
-	GachaService.RemoteHandlers = {
-		Awaken = GachaService.RequestAwaken,
-		AwakenPreview = function(player, id)
-			local now = os.clock()
-			if lastPreview[player] and now - lastPreview[player] < GachaService.REMOTE_COOLDOWN then
-				return nil -- the Backpack keeps what it shows
-			end
-			lastPreview[player] = now
-			return GachaService.AwakenPreview(player, id)
-		end,
-	}
-	awakenRemote.OnServerInvoke = GachaService.RemoteHandlers.Awaken
-	previewRemote.OnServerInvoke = GachaService.RemoteHandlers.AwakenPreview
+	awakenRemote.OnServerInvoke = GachaService.RequestAwaken
+	previewRemote.OnServerInvoke = function(player, id)
+		local now = os.clock()
+		if lastPreview[player] and now - lastPreview[player] < GachaService.REMOTE_COOLDOWN then
+			return nil -- rate limited: the Backpack asks once more after REMOTE_COOLDOWN
+		end
+		lastPreview[player] = now
+		return GachaService.AwakenPreview(player, id)
+	end
 	-- Read-only: what the Details list shows (design doc 6). The numbers are the same ones a roll uses.
 	local luckRemote = remotes:FindFirstChild("GetRollLuck") or Instance.new("RemoteFunction")
 	luckRemote.Name = "GetRollLuck"

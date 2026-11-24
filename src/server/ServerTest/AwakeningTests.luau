@@ -267,16 +267,20 @@ function Tests.awakening()
 		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 		local function handler(name)
 			local remote = remotes and remotes:FindFirstChild(name)
-			local ok, fn = pcall(function()
+			return remote, pcall(function()
 				return remote.OnServerInvoke
 			end)
-			if ok and type(fn) == "function" then
-				return fn
-			end
-			return GachaService.RemoteHandlers and GachaService.RemoteHandlers[name]
 		end
-		local awaken, preview = handler("Awaken"), handler("AwakenPreview")
-		flag("handlers_found", type(awaken) == "function" and type(preview) == "function")
+		local awakenRemote, readable, awaken = handler("Awaken")
+		local previewRemote, readable2, preview = handler("AwakenPreview")
+		flag("remotes_exist", awakenRemote ~= nil and previewRemote ~= nil)
+		if not (readable and readable2) then
+			-- Studio cannot read a callback back: the wiring needs a client's InvokeServer (UiTest), not run here
+			r.metrics.remote_wiring = "not run: needs client"
+			return
+		end
+		flag("awaken_wired", type(awaken) == "function")
+		flag("preview_wired", type(preview) == "function")
 		local p = newPlayer(10)
 		local ok1 = awaken(p, slow)
 		local ok2, why = awaken(p, slow)
