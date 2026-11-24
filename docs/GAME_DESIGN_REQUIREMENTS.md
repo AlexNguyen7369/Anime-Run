@@ -790,7 +790,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - World 2 is a **separate place** in the same universe, built from the same source tree (`world2.project.json` adds
   `ReplicatedStorage.WorldId = 2`; `Shared/WorldConfig`). Spec: `docs/WORLD2_SPEC.md`.
 - Gate: a World 2 gate stands in the World 1 spawn plaza. It is **locked for everyone** for now ("COMING SOON"); admins
-  travel with `/world2` and back with `/world1`. Opening rule (**proposed**): World 1 Track 10 beaten and rebirth >= 5,
+  travel with `/world2` and back with `/world1`. Opening rule (owner 2026-11-24, confirmed): World 1 Track 10 beaten and rebirth >= 5,
   no Money cost, nothing resets.
 - Shared across worlds: Money, Gems, Rebirth, stat points, Index, Copies, Sidekicks, Relics, passes. Per world: `BestTrack`,
   `Checkpoint`, `RaceBestTimes` (World 2 saves them under `Worlds.W2`; World 1's layout is unchanged) and the team.
@@ -809,7 +809,13 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - Speed: a per-world cruise table; the studs/s band stays World 1's (48-800). World 1 characters run at x0.1 there
   (**proposed**), World 2 adds the Eternal rarity (780, **proposed**).
 - World 2 only: a **team of 4** (slot 4 unlocked on first entry; this amends 4.2 and 4.8 for World 2: bonuses need any 3
-  matching members) and **Awakening** (duplicate Copies buy up to 5 stars per character; costs and gains **proposed**).
+  matching members) and **Awakening** (duplicate Copies buy up to 5 stars per character; owner 2026-11-24: each star gives +3% cruise and
+  +3% stamina, so +15% of each at 5 stars; star costs 1, 2, 4, 8, 16 Copies are **placeholders**).
+- World 2 rewards (owner 2026-11-24): first-clear Gems pay again on World 2 tracks (they are new tracks); World 2
+  tracks pay more Money than World 1: Track N pays World 1 Track 10's Money times a growing multiplier (x2 per track
+  step is a **placeholder**).
+- Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with the World 2 team of
+  4; no World 2 bosses yet.
 - Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,
   Kaiju No. 8 and Frieren (owner 2026-11-23). World 2 rolls only World 2 characters.
 
@@ -875,6 +881,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-24: owner: World 2 (4.47): opening rule confirmed (gate stays closed until the owner opens it); Awakening +3% cruise and +3% stamina per star; World 2 pays first-clear Gems again and more Money; World 1 boss events run in World 2 with the team of 4; plaza Rift Shrine; all 10 track drafts approved.
 - 2026-11-23: owner: World 2 (4.47): separate place, locked plaza gate with /world2 for admins, per-world progress, 10 tracks Blender-first, per-world cruise, team of 4 and Awakening in World 2, 6 series.
 - 2026-11-23: owner: World 2 (4.47): scenery placed from the approved Blender drafts keeps the drafts' clearance (24+ studs from the road centre line, overhead 14+), not World 1's 8-stud road-edge clearance; track names 'Devil Hunter City' and 'Wrecked Kaiju Base' (no real place names); the 8 approved tracks' meshes are uploaded under the owner's account.
 - 2026-11-20: owner: game-wide Scroll Dojo look from the Summon and Team pages, center-out handscroll open about 0.45 s with input live, HUD and boss UI in scope; references first (4.46 draft; 4.20, 4.42 replaced for redesigned GUIs on approval).
