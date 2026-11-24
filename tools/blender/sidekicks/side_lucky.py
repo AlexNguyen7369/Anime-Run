@@ -80,6 +80,8 @@ def body(m):
 
 
 def build(k):
+	from sidekick_solid import solid_blocks
+
 	parts = {
 		"Body": ((0, 0, 1.2), None),
 		"Head": ((0, 0, 2.1), "Body"),
@@ -90,6 +92,7 @@ def build(k):
 		"Tail": ((0, 0.66, 0.94), "Body"),
 	}
 	m = k.Model(ID, RAMPS, parts, {"RightArm": (0, 8, 0)})
+	solid_blocks(m)
 	head(m)
 	body(m)
 	# the beckoning paw up at the cheek, holding a gold ball; the other hangs
