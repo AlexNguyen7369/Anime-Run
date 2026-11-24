@@ -93,11 +93,11 @@ def building(w, d, floors, roof, cols, sides=("front", "left", "right"), fh=9.0,
 	H = floors * fh + 2
 	p = [("box", (w, H, d), (0, H / 2, 0), "E2B242", g(0.7, metal=0.85)), ("box", (w + 1.2, 2, d + 1.2), (0, 1, 0), GOLD2, g())]  # satin, slightly deeper gold walls: no sun glare
 	for f in range(1, floors):
-		p.append(("box", (w + 0.6, 0.6, d + 0.6), (0, 2 + f * fh, 0), GOLD3, g()))
-	p.append(("box", (w + 1.4, 1.2, d + 1.4), (0, H + 0.2, 0), GOLD3, g()))
+		p.append(("box", (w + 0.6, 0.6, d + 0.6), (0, 2 + f * fh, 0), GOLD3, g(0.65)))
+	p.append(("box", (w + 1.4, 1.2, d + 1.4), (0, H + 0.2, 0), GOLD3, g(0.65)))
 	for x in (-w / 2, w / 2):
 		for z in (-d / 2, d / 2):
-			p.append(("box", (1.4, H - 2, 1.4), (x, H / 2 + 1, z), GOLD3, g()))
+			p.append(("box", (1.4, H - 2, 1.4), (x, H / 2 + 1, z), GOLD3, g(0.65)))
 	if "back" not in sides:  # the back face (seen across the blocks) gets a plain grid of separate windows (ref 01)
 		nb = max(2, int(w // 10))
 		for f in range(floors):
@@ -157,8 +157,8 @@ def row_b():
 	b, _ = building(16, 16, 5, "pyramid", 2, ("front",), arch=True)
 	c, _ = building(24, 20, 3, "gable", 3, ("left", "right", "front"))
 	p = move(a, -19, 0, 0) + move(b, 11, 0, 2) + move(rotate(c, 90), 31, 0, 0)
-	p += move(gable(14, 4, 7, H + 0.8, o=0.4), -19, 0, -10)  # centre pediment
-	p += [("box", (14, 6, 4), (-19, H - 2, -10), GOLD, g()), ("box", (4.6, 4.6, 0.6), (-19, H + 3.5, -12.2), GOLD3, g()), ("box", (3.2, 3.2, 0.8), (-19, H + 3.5, -12.4), GOLDW, g(0.5))]  # square gable window (a round one read as a clock)
+	p += rotate(gable(4, 14, 8, H + 0.8, GOLD, o=0.4), 90, -19, -10)  # centre pediment
+	p += [("box", (14, 6, 4), (-19, H - 2, -10), GOLD, g()), ("box", (4.0, 4.0, 0.6), (-19, H + 3.2, -12.5), GOLD3, g()), ("box", (2.8, 2.8, 0.8), (-19, H + 3.2, -12.7), GOLDW, g(0.5))]  # square gable window (a round one read as a clock)
 	p += [("box", (5, 7, 0.8), (-19, 4.5, -11.1), GOLDD, g(0.6, metal=0.6)), ("cyl", (5, 0.8, 5), (-19, 8, -11.1), GOLDD, g(0.6, metal=0.6, rot=(90, 0, 0), seg=10))]
 	p += move(kerb_set(), -24, 0, -16) + move(kerb_set(), 18, 0, -16)
 	return p
@@ -287,11 +287,11 @@ def palace():
 	p += [("box", (22, H + 14, 6), (0, (H + 14) / 2, -13.5), GOLD, g()), ("box", (23, 1.2, 7), (0, H + 0.2, -13.5), GOLD3, g())]
 	p += move(win_grid(18, 2, 6, 11, 3, True), 0, 0, -16.5)
 	p += [("box", (8, 7, 0.6), (0, H + 7, -16.7), GOLD3, g()), ("box", (5, 5, 0.8), (0, H + 7, -16.9), GOLDW, g(0.5))]  # square window in the gable
-	p += move(gable(24, 8, 16, H + 14, o=0.6), 0, 0, -12.5)
+	p += rotate(gable(14, 23, 16, H + 14, GOLD, o=0.6), 90, 0, -10)  # ridge along Z, wall gold: the gable end reads against the roof
 	p += [("box", (24, 1.2, 5), (0, 24, -18.5), GOLD3, g()), ("box", (24, 3, 0.6), (0, 26, -20.8), GOLD3, g())]  # balcony
 	for x in (-15, 15):  # dormers on the roof
 		p += [("box", (5, 6, 4), (x, H + 6, -7), GOLD, g()), ("box", (3, 3.5, 0.6), (x, H + 6, -9.2), GOLDW, g(0.5))]
-		p += move(gable(5, 4, 3, H + 9, o=0.3), x, 0, -7)
+		p += rotate(gable(4, 5, 3, H + 9, o=0.3), 90, x, -7)
 	for x in (-10, 10):  # chimneys
 		p.append(("box", (3, 10, 3), (x, H + 28, 10), GOLD2, g()))
 	# a ring of round turrets with short cone roofs round the manor, all below its ridge (refs 01, 02)
@@ -409,6 +409,7 @@ def figure(x, z, s, stride, hands, extra):
 		sh = P(side * 2.3, 14.4, 0.0)
 		el = P(side * 2.7 + (h[0] - side * 2.7) * 0.3, 11.8, (h[2]) * 0.4)
 		hp = P(*h)
+		p.append(("ball", (2.0 * s, 2.0 * s, 2.0 * s), sh, GOLD, g(0.24, subdiv=1, smooth=True)))  # rounded shoulder
 		p.append(limb(sh, el, 1.7 * s, GOLD, 0.9))
 		p.append(limb(el, hp, 1.5 * s, GOLD, 0.75))
 		p.append(("ball", (1.15 * s, 1.3 * s, 1.15 * s), hp, GOLD3, g(0.2, subdiv=1, smooth=True)))
@@ -422,7 +423,7 @@ def people():
 	p += figure(-5, 0, 1.0, 22, ((2.9, 11.2, -2.0), (-2.6, 9.6, 0.6)), "staff")
 	p.append(limb((-5 + 2.9, 0.0, -1.2), (-5 + 2.9, 20.5, -2.6), 0.55, GOLDR, 1.0, 6))  # staff through the hand
 	p.append(("ball", (1.3, 1.3, 1.3), (-5 + 2.9, 20.8, -2.6), GOLD3, g(0.15, subdiv=1)))
-	p += figure(3, 3, 0.95, 16, ((2.8, 10.4, -1.8), (-2.4, 11.0, -1.6)), "basket")
+	p += figure(3, 3, 0.95, 16, ((1.9, 9.8, -2.9), (-1.6, 9.8, -2.9)), "basket")
 	p += [("cyl", (3.6, 2.2, 2.8), (3 + 0.2, 9.0, 3 - 2.6), GOLDR, g(seg=10)), ("ball", (3.0, 1.2, 2.4), (3 + 0.2, 10.2, 3 - 2.6), GOLD3, g(subdiv=1, smooth=True))]
 	p += figure(9, -3, 0.68, 34, ((2.6, 12.6, -2.4), (-2.6, 10.8, 2.0)), "child")
 	# satin gold: a mirror-polished cloak seen from behind reflected the dark ground and read as a black tombstone
