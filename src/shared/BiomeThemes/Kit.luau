@@ -438,14 +438,14 @@ end
 -- PartsOnly props (1-2 parts, built exactly). The draft's placements and lamps go to BiomeDressing's Placed layer; the
 -- procedural layers stay empty. Sky and sun map to an Atmosphere profile (spec 5.2; every mapped number is a
 -- placeholder). o = { Assets, Gate, Terrain, Audio, Particles?, Atmosphere? (overrides) }
--- Small props a draft repeats hundreds of times cast no shadow (BIOME_ENVIRONMENT_SPEC 8: shadow casters); heroes and
--- buildings keep theirs. Placeholder list, by draft prop name.
+-- Low ground clutter a draft repeats hundreds of times casts no shadow (BIOME_ENVIRONMENT_SPEC 8: shadow casters):
+-- grass tufts (2.6 studs tall), flower patches (1.8), flagstone strips (0.9) and crowd figures (21). Everything else,
+-- heroes and the larger repeated props (Cedar, SkyDoor, Pine, Brush, Tree, Wagon) included, keeps its shadow until the
+-- owner rules on them. Placeholder list, by draft prop name.
 local NO_SHADOW = {
-	HellGate = { SkyDoor = true, Grass = true },
-	AntIsland = { Brush = true },
-	HauntedTunnel = { Cedar = true },
-	ElvenPlains = { Pine = true, Flowers = true },
-	GoldenCity = { People = true, Tree = true, Wagon = true },
+	HellGate = { Grass = true },
+	ElvenPlains = { Flowers = true },
+	GoldenCity = { People = true },
 	DemonCastle = { Edge = true },
 }
 
