@@ -8,11 +8,10 @@ local WorldConfig = {}
 
 WorldConfig.COUNT = 2
 
--- Place id of each world in universe 10773557968. World 2's place does not exist yet: the owner creates it (Studio,
--- File > Game Settings > Places > Add), then its id goes here. Until then travel to World 2 is refused.
+-- Place id of each world in universe 10773557968. World 2's place was created by the owner 2026-11-23 ("World 2").
 WorldConfig.PLACES = {
 	[1] = 102957063656302,
-	[2] = nil,
+	[2] = 79352569024576,
 }
 
 -- Per-world keys (design doc 4.47): track progress and the team. World 1 keeps them at the top of the save, World 2

@@ -2,7 +2,7 @@
 -- Biome harness (docs/BIOME_ENVIRONMENT_SPEC.md 3.2): runs the real TrackBuilder, BiomeThemes, BiomeDressing.Prune,
 -- TerrainShape.Prepare and BiomeDressing.SnapToTerrain on the track chain in Lune, Instances from @lune/roblox.
 -- Run from the repo root: `lune run tools/lune/biome_harness.luau`. Env: ROOT (repo root, default cwd), N (tracks,
--- default 10), NOFIGHT=1 (no fight scenes, fw7), NOTUNNEL=1 (no biome has a Tunnel, fw8: the framework's identity
+-- default 10), WORLD=2 (World 2's tracks and themes), NOFIGHT=1 (no fight scenes, fw7), NOTUNNEL=1 (no biome has a Tunnel, fw8: the framework's identity
 -- check), SIGNED=1 (every ledger row counts as reviewed), ONLY=1 (print every padded prop over 1 stud), NOMESH=1 (fallback parts instead of one part per mesh),
 -- TUNNEL=1 (give Track 7 the spec 3.5 example Tunnel and a pinned test hero outside the bays, and check it: no terrain in the
 -- box, ceiling >= 12 studs, every prop inside the walls or on a bay platform, pinned heroes in their bays, the gate
@@ -124,7 +124,7 @@ function Node:WaitForChild(k)
 	return assert(self:FindFirstChild(k), "no child " .. k .. " in " .. self._path)
 end
 function Node:IsA(c)
-	return c == "ModuleScript"
+	return c == (FILES[self._path] and "ModuleScript" or "Folder") -- a directory without init.luau is a Folder
 end
 function Node:GetChildren()
 	local o = {}
@@ -150,6 +150,18 @@ local game = {
 	GetService = function(_, s)
 		if s == "CollectionService" then
 			return CS
+		end
+		if s == "ReplicatedStorage" and process.env.WORLD == "2" then -- Shared/WorldConfig reads WorldId
+			return {
+				FindFirstChild = function(_, name)
+					if name == "WorldId" then
+						local id = R.Instance.new("IntValue")
+						id.Value = 2
+						return id
+					end
+					return nil
+				end,
+			}
 		end
 		return setmetatable({}, {
 			__index = function()
@@ -336,6 +348,95 @@ if process.env.SIGNED then
 	end
 end
 
+-- WORLD=2: the approved World 2 themes (docs/WORLD2_SPEC.md "Blender first", BIOME_ENVIRONMENT_SPEC 4.2-4.5, design doc
+-- 5). Prints "W2 FAIL <check>" per problem and "W2 CHECKS pass=<n> fail=<n>"; LEDGER=1 stops after these checks.
+local W2_APPROVED =
+	{ "DevilTokyo", "RuinedCityZ", "HauntedTunnel", "KaijuBase", "ElvenPlains", "AntIsland", "MonsterDen", "HellGate" }
+local W2_STANDIN = { DemonCastle = "Forest", GoldenCity = "Volcano" }
+if process.env.WORLD == "2" then
+	-- realNameIn from the server tests' own source, so the hashed name list stays in one place
+	local cat = fs.readFile(ROOT .. "/src/server/ServerTest/CatalogTests.luau")
+	local from, to = cat:find("local REAL_NAME_HASHES", 1, true), cat:find("function Tests.catalog", 1, true)
+	local realNameIn = luau.load(cat:sub(from, to - 1) .. "\nreturn realNameIn", { debugName = "realNameIn" })()
+	local Themes = req(Shared.BiomeThemes)
+	local pass, fail = 0, 0
+	local function check(ok, name)
+		if ok then
+			pass += 1
+		else
+			fail += 1
+			print("W2 FAIL " .. name)
+		end
+	end
+	local function strings(t, out, seen)
+		if type(t) == "string" then
+			table.insert(out, t)
+		elseif type(t) == "table" and not seen[t] then
+			seen[t] = true
+			for k, v in t do
+				strings(k, out, seen)
+				strings(v, out, seen)
+			end
+		end
+		return out
+	end
+	for key, standIn in W2_STANDIN do
+		check(Themes[key] == Themes[standIn], key .. " keeps its stand-in")
+	end
+	for _, key in W2_APPROVED do
+		local t = Themes[key]
+		check(t ~= nil and t.Placed ~= nil and #t.Placed > 0, key .. " has its own draft theme")
+		t = t or {}
+		check(
+			type(t.Terrain) == "table"
+				and type(t.Atmosphere) == "table"
+				and type(t.Atmosphere.Lighting.ClockTime) == "number"
+				and type(t.Audio) == "table"
+				and type(t.Assets) == "table",
+			key .. " sections"
+		)
+		local hit
+		for _, text in strings(t, {}, {}) do
+			hit = hit or realNameIn((string.gsub(string.lower(text), "[^%w]+", "_")))
+		end
+		check(hit == nil, key .. " no real names")
+		local used, meshes = {}, 0
+		for name, def in t.Props or {} do
+			check(#def.Parts > 0, key .. "/" .. name .. " has a parts fallback")
+			if def.Mesh then
+				meshes += 1
+				used[def.Mesh] = true
+				local row = t.Assets[def.Mesh]
+				check(
+					type(row) == "table"
+						and row.Kind == "Mesh"
+						and row.Lane == "B"
+						and type(row.Tris) == "number"
+						and type(row.Prompt) == "string"
+						and row.Prompt ~= ""
+						and (row.Id == nil or string.match(row.Id, "^rbxassetid://%d+$") ~= nil)
+						and (row.Reviewed == nil or string.match(row.Reviewed, "^%d%d%d%d%-%d%d%-%d%d %S") ~= nil),
+					key .. "/" .. def.Mesh .. " ledger row"
+				)
+				check(string.sub(def.Mesh, 1, #key + 4) == "W2_" .. key .. "_", def.Mesh .. " key uses the biome key")
+			end
+		end
+		for asset in t.Assets or {} do
+			check(used[asset] == true, key .. "/" .. asset .. " ledger row is used")
+		end
+		check(meshes <= 12, key .. " unique meshes " .. meshes .. " <= 12")
+		local unknown = 0
+		for _, e in t.Placed or {} do
+			unknown += (t.Props[e[1]] and 0 or 1)
+		end
+		check(unknown == 0, key .. " placements name known props")
+	end
+	print(string.format("W2 CHECKS pass=%d fail=%d", pass, fail))
+	if process.env.LEDGER then
+		process.exit(fail == 0 and 0 or 1)
+	end
+end
+
 -- Measure
 local BD = req(Shared.BiomeDressing)
 if not process.env.NOMESH then
@@ -354,7 +455,25 @@ local spawnArea = R.Instance.new("Part") -- the plaza floor (SpawnArea.FLOOR_SIZ
 spawnArea.Size = R.Vector3.new(188, 1, 220)
 spawnArea.CFrame = R.CFrame.new(0, -1, 0)
 spawnArea.Position = spawnArea.CFrame.Position
+local function placedCount(m) -- WORLD=2: draft placements standing in a track's Environment
+	local n = 0
+	for _, c in m.Environment:GetChildren() do
+		n += string.match(c.Name, "^Placed_") and 1 or 0
+	end
+	return n
+end
+local built = {}
+for i, m in models do
+	built[i] = placedCount(m)
+end
 BD.Prune(models, { spawnArea })
+if process.env.WORLD == "2" then -- draft placements kept by the budget and own-ground rule (built), then by Prune (kept)
+	local Themes = req(Shared.BiomeThemes)
+	for i, e in entries do
+		local total = Themes[e.Biome].Placed and #Themes[e.Biome].Placed or 0
+		print(string.format("W2 PLACED %s total %d built %d kept %d", e.Biome, total, built[i], placedCount(models[i])))
+	end
+end
 local clear = {}
 for _, m in models do
 	table.insert(clear, m:FindFirstChild("Checkpoint"))

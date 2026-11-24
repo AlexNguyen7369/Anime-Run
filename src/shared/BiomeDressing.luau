@@ -713,6 +713,45 @@ end
 
 local fightScene -- below Prune's clearance test, which it reuses
 
+BiomeDressing.PLACED_LIGHTS = 48 -- placeholder: lamps per track from a draft's Lights (brightest first)
+
+-- Explicit placements (docs/WORLD2_SPEC.md "Blender first"): theme.Placed lists the props of an approved Blender draft,
+-- exported by tools/blender/world2/export_props.py, as { Prop, X, Y, Z, Yaw, Scale[, RX, RZ, Stretch] } in this
+-- track's start frame (`origin`), biggest first; theme.Props[Prop] is the def. Each keeps the draft's height
+-- (SnapToTerrain leaves it, as a tunnel prop), must have its base centre on this track's ground (a draft reaches over its
+-- neighbours' zones) and stops at the budget. theme.Lights { X, Y, Z, Color, Energy } become PointLights in an invisible
+-- part (1 budget part each). Prune still removes what comes within CLEARANCE of a road.
+local function placed(folder, biome, theme, origin, count, budget, onGround)
+	for i, e in theme.Placed or {} do
+		local def = scaled(theme.Props[e[1]], e[9] or e[6])
+		local base = origin * CFrame.new(e[2], e[3], e[4]) * CFrame.fromEulerAnglesYXZ(e[7] or 0, e[5], e[8] or 0)
+		if count + cost(biome, def, 0) <= budget and onGround(base, 0) then
+			count += place(folder, biome, def, base, "Placed_" .. i, def.Hero, nil, true)
+		end
+	end
+	for i, l in theme.Lights or {} do
+		if i > BiomeDressing.PLACED_LIGHTS or count + 1 > budget then
+			break
+		end
+		local holder = Instance.new("Part")
+		holder.Name = "Lamp_" .. i
+		holder.Size = Vector3.one
+		holder.Transparency = 1
+		holder.CastShadow = false
+		holder.CFrame = origin * CFrame.new(l[1], l[2], l[3])
+		visual(holder)
+		local light = Instance.new("PointLight")
+		light.Color = l[4]
+		light.Range = math.clamp(math.sqrt(l[5]) / 8, 8, 60) -- placeholder: Blender watts to a Roblox range
+		light.Brightness = 1.5 -- placeholder
+		light.Shadows = false
+		light.Parent = holder
+		holder.Parent = folder
+		count += 1
+	end
+	return count
+end
+
 function BiomeDressing.Build(model, layout, spec, origin)
 	local biome = spec.Biome
 	local theme = type(biome) == "string" and Themes[biome]
@@ -773,6 +812,7 @@ function BiomeDressing.Build(model, layout, spec, origin)
 		local l = ground.CFrame:PointToObjectSpace(base.Position)
 		return l.X - reach >= lo.X and l.X + reach <= hi.X and l.Z - reach >= lo.Z and l.Z + reach <= hi.Z
 	end
+	count = placed(folder, biome, theme, origin, count, budget, onGround)
 	-- Hero defs with At are pinned (below); the rest keep cycling by index
 	local landmarks, pinned = theme.Landmarks, {}
 	for _, def in landmarks.Props do
