@@ -66,7 +66,8 @@ rarity when they are added to the game (**proposed**).
 | `side_dragon` | Solara Dragon | Solar Dragon | Frieren | Secret | Fly |
 | `side_dark` | Darkness Devill | Darkness Devil | Saw Man | Secret | Fly |
 
-## Draft state (2026-11-23), waiting on the owner
+## Draft state: looks APPROVED by the owner 2026-11-23
+The owner approved all 42 looks from the contact sheets, the five at 6 included, as shown (so Jijo is the human form, Acro Silka keeps slim limbs and Berru keeps foot claws). Looks are frozen: no edits without the owner's word. Names, rarities, uploads and publishing were not part of this approval.
 All 42 new ids have a model, 4 review views, portrait, head and evidence file. Sheets: `assets/characters_avatar/review/world2_{heroes_1,heroes_2,villains,sidekicks,reused}.png`.
 Independent review (bar 7/10): 37 pass. Five stalled at 6 and are shown as-is:
 - `punch_psychic`: hair curls read as fins, plain dress.

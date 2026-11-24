@@ -807,6 +807,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   Kaiju No. 8 and Frieren (owner 2026-11-23). World 2 rolls only World 2 characters.
 - Cast and Sidekicks (owner 2026-11-23): the full World 2 cast and a new 12-Sidekick set are drafted as models and digital art
   for owner approval; list, names and rarities **proposed** in `docs/WORLD2_CAST.md`.
+  Looks of all 42 approved by the owner 2026-11-23; names and rarities stay **proposed**.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 

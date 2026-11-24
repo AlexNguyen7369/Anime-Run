@@ -198,6 +198,7 @@ Blocks: d3 (rules and build). Summon is preserved (owner 2026-11-19).
 Answered by the owner 2026-11-20 (approved the Studio captures https://claude.ai/artifact/16AdtJyLjWfV8AUwD2mo4D): item 1, the reference layout (draft A, Makimono) with the Summon parchment scroll look; item 2, the reference's dark lacquer two-tier altars with gold trim and gold-orange rings; item 3, square relic and Sidekick icons as drawn; item 7, the approved captures show the reference's fixed order (slot 1 centre); what the ‹ › arrows do stays open. Items 4, 5 and 6 stay open (design doc 4.45 "Team Select night dojo"); the plaza Team altar's look is a new open question.
 
 ## 2026-11-23 w2-cast: World 2 cast drafts
+Answered by the owner 2026-11-23 ("approved", from the contact sheets): items 1, 3 and 4 as shown. Still open: names and rarities, 2 (publishing) and 5.
 1. Approve, change or drop each of the 42 drafts (sheets `assets/characters_avatar/review/world2_*.png`, list `docs/WORLD2_CAST.md`).
 2. Licensing: every draft is an unlicensed reference. Two subagents declined to draw recognisable characters (One Punch; Saw Man and Solo); the orchestrator drew those 14 as private drafts. Publishing waits on your decision; section 5 records that you accept the takedown risk.
 3. `dan_hex` Jijo: human form (built) or the Evil Eye form?

@@ -235,8 +235,9 @@
 231. 2026-11-23 — Alex Nguyen — World 2: Track 4 HauntedTunnel passed independent likeness review at 7/10 (frozen); Tracks 2 and 7 round 3 committed; model close-ups now render under a neutral studio sky instead of the biome's tinted sky.
 232. 2026-11-23 — Alex Nguyen — World 2 cast: wrote the list of 21 heroes, 9 villains and 12 new Sidekicks (docs/WORLD2_CAST.md, design doc 4.47 pointer, goal w2-cast), pre-approved by the owner for drafting.
 233. 2026-11-23 — Alex Nguyen — World 2 cast: built 42 drafts (21 heroes, 9 villains, 12 Sidekicks) with models, portraits, heads and evidence on orch/world2/cast; independent review after three rounds has 37 at 7/10 or more and 5 at 6.
+234. 2026-11-23 — Alex Nguyen — World 2 cast: the owner approved the looks of all 42 drafts from the contact sheets (frozen); recorded in WORLD2_CAST and design doc 4.47.
 
 ## What's next
-**The owner reviews the World 2 cast sheets (assets/characters_avatar/review/world2_*.png) and answers the w2-cast questions.**
+**Render the attack key-frame slices of the 12 World 2 Sidekicks for owner approval.**
 
-**Why this is next:** uploads, catalog rows, the World 2 roll pool and Sidekick attack key frames all wait on approved looks.
+**Why this is next:** Sidekick animation needs the owner's approval of key frames before in-betweens, and the Sidekicks cannot ship without it.
