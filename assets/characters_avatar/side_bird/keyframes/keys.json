@@ -1,0 +1,284 @@
+{
+ "id": "side_bird",
+ "movement": "Fly",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.1,
+   2.3
+  ],
+  "Head": [
+   0.0,
+   -0.6,
+   2.95
+  ],
+  "LegLeft": [
+   0.34,
+   0.2,
+   1.75
+  ],
+  "LegRight": [
+   -0.34,
+   0.2,
+   1.75
+  ],
+  "Tail": [
+   0.0,
+   1.1,
+   1.85
+  ],
+  "WingLeft": [
+   0.78,
+   0.0,
+   2.75
+  ],
+  "WingRight": [
+   -0.78,
+   0.0,
+   2.75
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingRight": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Stilla: streak dive (proposed)",
+   "end": 1.0,
+   "Release": 0.42,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.25,
+     "desc": "Rears back, wings lifted high",
+     "root_offset": {
+      "Body": [
+       0,
+       0.3,
+       0.2
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -34,
+       0,
+       0
+      ],
+      "Head": [
+       20,
+       0,
+       0
+      ],
+      "LegLeft": [
+       -24,
+       0,
+       0
+      ],
+      "LegRight": [
+       -24,
+       0,
+       0
+      ],
+      "Tail": [
+       24,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       -40,
+       16
+      ],
+      "WingRight": [
+       0,
+       40,
+       -16
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.42,
+     "desc": "Folds into a dart, beak leading, wings pinned back",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.5,
+       -0.1
+      ]
+     },
+     "rotations": {
+      "Body": [
+       46,
+       0,
+       0
+      ],
+      "Head": [
+       -30,
+       0,
+       0
+      ],
+      "LegLeft": [
+       70,
+       0,
+       0
+      ],
+      "LegRight": [
+       70,
+       0,
+       0
+      ],
+      "Tail": [
+       -20,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       34,
+       58
+      ],
+      "WingRight": [
+       0,
+       -34,
+       -58
+      ]
+     }
+    },
+    {
+     "name": "Break",
+     "t": 0.58,
+     "desc": "Throws both wings open to stop, body upright",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.3,
+       0.2
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -22,
+       0,
+       0
+      ],
+      "Head": [
+       14,
+       0,
+       0
+      ],
+      "LegLeft": [
+       -40,
+       0,
+       0
+      ],
+      "LegRight": [
+       -40,
+       0,
+       0
+      ],
+      "Tail": [
+       -40,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       -14,
+       -34
+      ],
+      "WingRight": [
+       0,
+       14,
+       34
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 0.8,
+     "desc": "Level hover, head tilted",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0
+      ]
+     },
+     "rotations": {
+      "Body": [
+       4,
+       0,
+       0
+      ],
+      "Head": [
+       0,
+       14,
+       10
+      ],
+      "LegLeft": [
+       6,
+       0,
+       0
+      ],
+      "LegRight": [
+       6,
+       0,
+       0
+      ],
+      "Tail": [
+       4,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       12,
+       0
+      ],
+      "WingRight": [
+       0,
+       -12,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

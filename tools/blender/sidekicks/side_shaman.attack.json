@@ -1,0 +1,228 @@
+{
+	"movement": "Walk",
+	"title": "Tuskar: hymn of fire (proposed)",
+	"end": 1.4,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.35,
+			"desc": "Draws the staff back, free hand low",
+			"root": {
+				"Torso": [
+					0,
+					0.3,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					-8,
+					0,
+					-24
+				],
+				"Head": [
+					4,
+					0,
+					18
+				],
+				"RightArm": [
+					30,
+					16,
+					0
+				],
+				"LeftArm": [
+					-40,
+					-10,
+					0
+				],
+				"LeftLeg": [
+					-14,
+					0,
+					0
+				],
+				"RightLeg": [
+					14,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Chant",
+			"t": 0.65,
+			"desc": "Staff lifted overhead, free arm raised, head thrown back",
+			"root": {
+				"Torso": [
+					0,
+					0.3,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					-14,
+					0,
+					0
+				],
+				"Head": [
+					-20,
+					0,
+					0
+				],
+				"RightArm": [
+					-140,
+					12,
+					0
+				],
+				"LeftArm": [
+					-130,
+					-18,
+					0
+				],
+				"Staff": [
+					140,
+					0,
+					0
+				],
+				"LeftLeg": [
+					-8,
+					0,
+					0
+				],
+				"RightLeg": [
+					8,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.9,
+			"desc": "Staff thrust forward, fireball leaves the skull",
+			"root": {
+				"Torso": [
+					0,
+					-0.5,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					18,
+					0,
+					22
+				],
+				"Head": [
+					-12,
+					0,
+					-16
+				],
+				"RightArm": [
+					-78,
+					-8,
+					0
+				],
+				"LeftArm": [
+					40,
+					-14,
+					0
+				],
+				"Staff": [
+					96,
+					0,
+					0
+				],
+				"LeftLeg": [
+					20,
+					0,
+					0
+				],
+				"RightLeg": [
+					-28,
+					0,
+					0
+				]
+			},
+			"markers": [
+				{
+					"label": "violet fireball",
+					"shape": "disc",
+					"at": [
+						-0.8,
+						-7.4,
+						3.6
+					],
+					"r": 1.3,
+					"rgb": [
+						0.6,
+						0.3,
+						1
+					]
+				},
+				{
+					"label": "",
+					"shape": "burst",
+					"at": [
+						-0.8,
+						-7.4,
+						3.6
+					],
+					"r": 1.8,
+					"rgb": [
+						0.8,
+						0.6,
+						1
+					]
+				}
+			]
+		},
+		{
+			"name": "Recovery",
+			"t": 1.15,
+			"desc": "Straightens, staff butt swings to the ground",
+			"parts": {
+				"Torso": [
+					-4,
+					0,
+					6
+				],
+				"Head": [
+					4,
+					0,
+					-4
+				],
+				"RightArm": [
+					-24,
+					4,
+					0
+				],
+				"LeftArm": [
+					-12,
+					-6,
+					0
+				],
+				"Staff": [
+					22,
+					0,
+					0
+				],
+				"LeftLeg": [
+					4,
+					0,
+					0
+				],
+				"RightLeg": [
+					-6,
+					0,
+					0
+				]
+			}
+		}
+	],
+	"view": [
+		-0.65,
+		-0.75,
+		0.18
+	]
+}

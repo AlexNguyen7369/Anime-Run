@@ -1,5 +1,22 @@
 # Nightly report
 
+## Nightly run 2026-11-23 → 23:30 (World 2 cast)
+
+### Blocked (needs you)
+- Look approval, licensing, Jijo's form, Sidekick body rule, shared block bug: `docs/OWNER_QUESTIONS.md` 2026-11-23 w2-cast. State: `orch/world2/cast`, pushed, not merged.
+
+### Done
+- 42 drafts with models, drawn portraits, heads and evidence. Verified by a file check (none missing), a real-name grep (clean) and independent review (37 at 7+, 5 at 6).
+
+### Decisions I made for you
+- Sidekick list of 12 chosen at your word, distinct from World 1 and spread over all 6 series. Revert: edit `docs/WORLD2_CAST.md`.
+- Two subagents declined on copyright grounds, twice; I drew their 14 ids myself as private unlicensed drafts. Revert: drop those ids.
+- Turbo Grammy re-toned to ash-pale after a reviewer flagged a caricature risk.
+- Stopped after three rounds per your stalled-track rule.
+
+### Skipped
+- Uploads, Studio, catalog rows, Sidekick attack key frames, a published review page, PR (approval first).
+
 ## Nightly run 2026-11-20 04:55 → 13:30 (audit fixes, compatibility harness, Team Select)
 
 ### Blocked (needs you)

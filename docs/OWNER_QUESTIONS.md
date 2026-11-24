@@ -196,3 +196,11 @@ Blocks: d3 (rules and build). Summon is preserved (owner 2026-11-19).
 6. Team Bonus: only 4.8's series/preset stamina and cruise. The brief's damage, HP, drop-rate, pity bonuses would be new economy rules.
 7. Carousel (picked member rotates to the centre) or fixed order as in the reference?
 Answered by the owner 2026-11-20 (approved the Studio captures https://claude.ai/artifact/16AdtJyLjWfV8AUwD2mo4D): item 1, the reference layout (draft A, Makimono) with the Summon parchment scroll look; item 2, the reference's dark lacquer two-tier altars with gold trim and gold-orange rings; item 3, square relic and Sidekick icons as drawn; item 7, the approved captures show the reference's fixed order (slot 1 centre); what the ‹ › arrows do stays open. Items 4, 5 and 6 stay open (design doc 4.45 "Team Select night dojo"); the plaza Team altar's look is a new open question.
+
+## 2026-11-23 w2-cast: World 2 cast drafts
+Answered by the owner 2026-11-23 ("approved", from the contact sheets): items 1, 3 and 4 as shown. Still open: names and rarities, 2 (publishing) and 5.
+1. Approve, change or drop each of the 42 drafts (sheets `assets/characters_avatar/review/world2_*.png`, list `docs/WORLD2_CAST.md`).
+2. Licensing: every draft is an unlicensed reference. Two subagents declined to draw recognisable characters (One Punch; Saw Man and Solo); the orchestrator drew those 14 as private drafts. Publishing waits on your decision; section 5 records that you accept the takedown risk.
+3. `dan_hex` Jijo: human form (built) or the Evil Eye form?
+4. Are Sidekicks exempt from the block-body rule (`side_acrobat` has slim limbs), and are foot claws allowed on `solo_ant`?
+5. `Model.block` in `tools/blender/build_boss_event.py` can turn a block inside out (false mauve shading in portraits). Fix it in the shared file? That would change already approved Sidekicks. New Sidekicks use `tools/blender/sidekick_solid.py` or their own box instead.

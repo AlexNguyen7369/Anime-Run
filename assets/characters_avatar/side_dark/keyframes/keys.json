@@ -1,0 +1,284 @@
+{
+ "id": "side_dark",
+ "movement": "Fly",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "HandsLeft": [
+   0.9,
+   0.2,
+   3.2
+  ],
+  "HandsRight": [
+   -0.9,
+   0.2,
+   3.2
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   5.0
+  ],
+  "LeftArm": [
+   1.3,
+   0.0,
+   4.5
+  ],
+  "RightArm": [
+   -1.3,
+   0.0,
+   4.5
+  ],
+  "Sword": [
+   -2.1,
+   -0.8,
+   2.9
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   3.4
+  ]
+ },
+ "rest": {
+  "HandsLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HandsRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Sword": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Darkness Devill: silent cut (proposed)",
+   "end": 1.45,
+   "Release": 0.95,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.4,
+     "desc": "Bows, every hand folds in round the cloak",
+     "root_offset": {
+      "Torso": [
+       0,
+       0.3,
+       -0.2
+      ]
+     },
+     "rotations": {
+      "HandsLeft": [
+       0,
+       30,
+       -26
+      ],
+      "HandsRight": [
+       0,
+       -30,
+       26
+      ],
+      "Head": [
+       14,
+       0,
+       0
+      ],
+      "LeftArm": [
+       -30,
+       0,
+       20
+      ],
+      "RightArm": [
+       -20,
+       0,
+       -16
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       16,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Unfold",
+     "t": 0.75,
+     "desc": "Rises tall, hands spread like a halo, sword lifted",
+     "root_offset": {
+      "Torso": [
+       0,
+       0.3,
+       0.5
+      ]
+     },
+     "rotations": {
+      "HandsLeft": [
+       0,
+       -26,
+       12
+      ],
+      "HandsRight": [
+       0,
+       26,
+       -12
+      ],
+      "Head": [
+       -8,
+       0,
+       16
+      ],
+      "LeftArm": [
+       -30,
+       -40,
+       0
+      ],
+      "RightArm": [
+       -110,
+       20,
+       0
+      ],
+      "Sword": [
+       100,
+       0,
+       0
+      ],
+      "Torso": [
+       -14,
+       0,
+       -20
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.95,
+     "desc": "One flat cut across, all hands point at the target",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.6,
+       0
+      ]
+     },
+     "rotations": {
+      "HandsLeft": [
+       -30,
+       0,
+       -54
+      ],
+      "HandsRight": [
+       -30,
+       0,
+       54
+      ],
+      "Head": [
+       -8,
+       0,
+       -24
+      ],
+      "LeftArm": [
+       30,
+       -20,
+       0
+      ],
+      "RightArm": [
+       -50,
+       -40,
+       0
+      ],
+      "Sword": [
+       80,
+       0,
+       0
+      ],
+      "Torso": [
+       14,
+       0,
+       30
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.2,
+     "desc": "Sinks upright, hands drift back out",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0.1
+      ]
+     },
+     "rotations": {
+      "HandsLeft": [
+       0,
+       4,
+       6
+      ],
+      "HandsRight": [
+       0,
+       -4,
+       -6
+      ],
+      "Head": [
+       4,
+       0,
+       -4
+      ],
+      "LeftArm": [
+       -6,
+       0,
+       0
+      ],
+      "RightArm": [
+       -8,
+       0,
+       0
+      ],
+      "Sword": [
+       8,
+       0,
+       0
+      ],
+      "Torso": [
+       -2,
+       0,
+       6
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

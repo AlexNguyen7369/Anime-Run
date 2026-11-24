@@ -1,0 +1,344 @@
+{
+ "id": "side_shaman",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Head": [
+   0.0,
+   0.0,
+   4.1
+  ],
+  "HeadNeon": [
+   0.0,
+   0.0,
+   4.1
+  ],
+  "LeftArm": [
+   1.7,
+   0.0,
+   3.9
+  ],
+  "LeftLeg": [
+   0.6,
+   0.0,
+   2.0
+  ],
+  "RightArm": [
+   -1.7,
+   0.0,
+   3.9
+  ],
+  "RightLeg": [
+   -0.6,
+   0.0,
+   2.0
+  ],
+  "Staff": [
+   -1.7,
+   -0.6,
+   2.0
+  ],
+  "StaffNeon": [
+   -1.7,
+   -0.6,
+   2.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   3.0
+  ]
+ },
+ "rest": {
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Staff": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "StaffNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Tuskar: hymn of fire (proposed)",
+   "end": 1.4,
+   "Release": 0.9,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.35,
+     "desc": "Draws the staff back, free hand low",
+     "root_offset": {
+      "Torso": [
+       0,
+       0.3,
+       0.069
+      ]
+     },
+     "rotations": {
+      "Head": [
+       4,
+       0,
+       18
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       -40,
+       -10,
+       0
+      ],
+      "LeftLeg": [
+       -14,
+       0,
+       0
+      ],
+      "RightArm": [
+       30,
+       16,
+       0
+      ],
+      "RightLeg": [
+       14,
+       0,
+       0
+      ],
+      "Staff": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "StaffNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       -8,
+       0,
+       -24
+      ]
+     }
+    },
+    {
+     "name": "Chant",
+     "t": 0.65,
+     "desc": "Staff lifted overhead, free arm raised, head thrown back",
+     "root_offset": {
+      "Torso": [
+       0,
+       0.3,
+       0.012
+      ]
+     },
+     "rotations": {
+      "Head": [
+       -20,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       -130,
+       -18,
+       0
+      ],
+      "LeftLeg": [
+       -8,
+       0,
+       0
+      ],
+      "RightArm": [
+       -140,
+       12,
+       0
+      ],
+      "RightLeg": [
+       8,
+       0,
+       0
+      ],
+      "Staff": [
+       140,
+       0,
+       0
+      ],
+      "StaffNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       -14,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.9,
+     "desc": "Staff thrust forward, fireball leaves the skull",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.5,
+       0.057
+      ]
+     },
+     "rotations": {
+      "Head": [
+       -12,
+       0,
+       -16
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       40,
+       -14,
+       0
+      ],
+      "LeftLeg": [
+       20,
+       0,
+       0
+      ],
+      "RightArm": [
+       -78,
+       -8,
+       0
+      ],
+      "RightLeg": [
+       -28,
+       0,
+       0
+      ],
+      "Staff": [
+       96,
+       0,
+       0
+      ],
+      "StaffNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       18,
+       0,
+       22
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.15,
+     "desc": "Straightens, staff butt swings to the ground",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0.054
+      ]
+     },
+     "rotations": {
+      "Head": [
+       4,
+       0,
+       -4
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       -12,
+       -6,
+       0
+      ],
+      "LeftLeg": [
+       4,
+       0,
+       0
+      ],
+      "RightArm": [
+       -24,
+       4,
+       0
+      ],
+      "RightLeg": [
+       -6,
+       0,
+       0
+      ],
+      "Staff": [
+       22,
+       0,
+       0
+      ],
+      "StaffNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       -4,
+       0,
+       6
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

@@ -1,6 +1,7 @@
 # Board
 
 ## Doing
+- world2 w2-cast: 42 World 2 models and drawn portraits (docs/WORLD2_CAST.md), branch orch/world2/cast (drafts done 2026-11-23, 37 of 42 at 7/10; looks owner-approved 2026-11-23; uploads need the owner's word)
 - ui-scroll: t1-t5 merged on feature/alex/ui-scroll-redesign 2026-11-22 (311af3c, audit PASS); next the full harness once in Studio, then the PR into main with a fresh reviewer
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 

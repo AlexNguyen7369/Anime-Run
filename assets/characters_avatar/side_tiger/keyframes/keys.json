@@ -1,0 +1,284 @@
+{
+ "id": "side_tiger",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.3,
+   1.7
+  ],
+  "Head": [
+   0.0,
+   -1.1,
+   2.2
+  ],
+  "LegBackLeft": [
+   0.62,
+   1.2,
+   1.5
+  ],
+  "LegBackRight": [
+   -0.62,
+   1.2,
+   1.5
+  ],
+  "LegFrontLeft": [
+   0.6,
+   -0.6,
+   1.5
+  ],
+  "LegFrontRight": [
+   -0.6,
+   -0.6,
+   1.5
+  ],
+  "Tail": [
+   0.0,
+   1.6,
+   1.9
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Bakku: pounce and roar (proposed)",
+   "end": 1.2,
+   "Release": 0.66,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.32,
+     "desc": "Sinks on its haunches, shoulders low, tail lashing",
+     "root_offset": {
+      "Body": [
+       0,
+       0.4,
+       0.174
+      ]
+     },
+     "rotations": {
+      "Body": [
+       14,
+       0,
+       0
+      ],
+      "Head": [
+       -16,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       -20,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       -20,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -40,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       -40,
+       0,
+       0
+      ],
+      "Tail": [
+       -24,
+       0,
+       26
+      ]
+     }
+    },
+    {
+     "name": "Leap",
+     "t": 0.5,
+     "desc": "Off the ground, all four legs stretched",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.1,
+       0.55
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -20,
+       0,
+       0
+      ],
+      "Head": [
+       10,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       56,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       56,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -68,
+       -8,
+       0
+      ],
+      "LegFrontRight": [
+       -68,
+       8,
+       0
+      ],
+      "Tail": [
+       26,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.66,
+     "desc": "Lands with both forepaws slamming down",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.5,
+       0.2
+      ]
+     },
+     "rotations": {
+      "Body": [
+       16,
+       0,
+       0
+      ],
+      "Head": [
+       -12,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       14,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       14,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -44,
+       -14,
+       0
+      ],
+      "LegFrontRight": [
+       -44,
+       14,
+       0
+      ],
+      "Tail": [
+       -40,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 0.95,
+     "desc": "Rises, head thrown up in a roar",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.2,
+       0.123
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -8,
+       0,
+       0
+      ],
+      "Head": [
+       -26,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       8,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       8,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -4,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       6,
+       0,
+       0
+      ],
+      "Tail": [
+       -10,
+       0,
+       -18
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

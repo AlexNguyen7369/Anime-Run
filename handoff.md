@@ -1,3 +1,8 @@
+## RESUME HERE (2026-11-23 23:30, w2-cast): 42 World 2 drafts built, looks OWNER-APPROVED (frozen)
+- Branch `orch/world2/cast` pushed (worktree `../AnimeRun-orch/w2-cast`, based on world2-place 27310ac; not merged). State, scores and gaps: `docs/WORLD2_CAST.md` "Draft state". Questions: `docs/OWNER_QUESTIONS.md` 2026-11-23 w2-cast.
+- Nothing uploaded, no catalog row, no Studio. Sidekick attack keyframes not started (owner approves looks first).
+- Next: merge into feature/alex/world2-place (animerun-cf owns that worktree), Sidekick key-frame slices for the owner, uploads under the owner's word, catalog rows with the World 2 speed table.
+
 ## RESUME HERE (2026-11-23 18:50, world2): PAUSED by the owner
 - Approved and frozen: T1, T3, T4, T5, T6, T7, T8, T10. Rework: T2 (6/10, round 7 interrupted), T9 (round 4 interrupted).
 - World 2 place created by the owner: 79352569024576 (in WorldConfig.PLACES[2]).

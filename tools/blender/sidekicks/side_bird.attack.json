@@ -1,0 +1,228 @@
+{
+	"movement": "Fly",
+	"title": "Stilla: streak dive (proposed)",
+	"end": 1.0,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.25,
+			"desc": "Rears back, wings lifted high",
+			"root": {
+				"Body": [
+					0,
+					0.3,
+					0.2
+				]
+			},
+			"parts": {
+				"Body": [
+					-34,
+					0,
+					0
+				],
+				"Head": [
+					20,
+					0,
+					0
+				],
+				"WingLeft": [
+					0,
+					-40,
+					16
+				],
+				"WingRight": [
+					0,
+					40,
+					-16
+				],
+				"Tail": [
+					24,
+					0,
+					0
+				],
+				"LegLeft": [
+					-24,
+					0,
+					0
+				],
+				"LegRight": [
+					-24,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.42,
+			"desc": "Folds into a dart, beak leading, wings pinned back",
+			"root": {
+				"Body": [
+					0,
+					-0.5,
+					-0.1
+				]
+			},
+			"parts": {
+				"Body": [
+					46,
+					0,
+					0
+				],
+				"Head": [
+					-30,
+					0,
+					0
+				],
+				"WingLeft": [
+					0,
+					34,
+					58
+				],
+				"WingRight": [
+					0,
+					-34,
+					-58
+				],
+				"Tail": [
+					-20,
+					0,
+					0
+				],
+				"LegLeft": [
+					70,
+					0,
+					0
+				],
+				"LegRight": [
+					70,
+					0,
+					0
+				]
+			},
+			"markers": [
+				{
+					"label": "streak",
+					"shape": "cone",
+					"at": [
+						0,
+						2.4,
+						2.4
+					],
+					"r": 0.9,
+					"rgb": [
+						1,
+						0.7,
+						0.25
+					]
+				},
+				{
+					"label": "peck",
+					"shape": "burst",
+					"at": [
+						0,
+						-3.6,
+						2.2
+					],
+					"r": 0.7,
+					"rgb": [
+						1,
+						0.95,
+						0.6
+					]
+				}
+			]
+		},
+		{
+			"name": "Break",
+			"t": 0.58,
+			"desc": "Throws both wings open to stop, body upright",
+			"root": {
+				"Body": [
+					0,
+					-0.3,
+					0.2
+				]
+			},
+			"parts": {
+				"Body": [
+					-22,
+					0,
+					0
+				],
+				"Head": [
+					14,
+					0,
+					0
+				],
+				"WingLeft": [
+					0,
+					-14,
+					-34
+				],
+				"WingRight": [
+					0,
+					14,
+					34
+				],
+				"Tail": [
+					-40,
+					0,
+					0
+				],
+				"LegLeft": [
+					-40,
+					0,
+					0
+				],
+				"LegRight": [
+					-40,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 0.8,
+			"desc": "Level hover, head tilted",
+			"parts": {
+				"Body": [
+					4,
+					0,
+					0
+				],
+				"Head": [
+					0,
+					14,
+					10
+				],
+				"WingLeft": [
+					0,
+					12,
+					0
+				],
+				"WingRight": [
+					0,
+					-12,
+					0
+				],
+				"Tail": [
+					4,
+					0,
+					0
+				],
+				"LegLeft": [
+					6,
+					0,
+					0
+				],
+				"LegRight": [
+					6,
+					0,
+					0
+				]
+			}
+		}
+	]
+}
