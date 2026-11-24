@@ -67,6 +67,7 @@ return {
 		"runner_effects",
 		"race_progress_map",
 		"world_layout",
+		"world_travel", -- design doc 4.47: one trip at a time, frozen until departure, restored on failure
 		"track_loading",
 		"team_fill", -- audit fixes 2026-11-20 (commit c80e4de): kept rolls fill empty Team slots
 		"auto_restart", -- audit fixes 2026-11-20 (commit c80e4de): Auto restarts 3 s after an exhausted run

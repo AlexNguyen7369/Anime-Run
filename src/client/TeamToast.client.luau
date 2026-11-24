@@ -1,6 +1,7 @@
 --!nonstrict
 -- Team toasts (docs/TEAM_AND_STAMINA_SPEC.md "Swap" / "Run end by exhaustion"), display only: "<Name> TAG IN!" when
--- the next slot takes over and "TEAM EXHAUSTED +$X" with the per-distance share paid into Money, from Remotes.RunEvent.
+-- the next slot takes over and "TEAM EXHAUSTED +$X" with the per-distance share paid into Money, from Remotes.RunEvent;
+-- "TRAVEL FAILED, TRY AGAIN" when a world trip fails (Server/WorldTravel).
 -- shortcut: plain text toast, no swap VFX; upgrade with the art pass.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -68,5 +69,7 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent
 		show((spec and spec.Name or "Next runner") .. " TAG IN!", 1.5)
 	elseif ev.Kind == "Exhausted" then
 		show("TEAM EXHAUSTED  +" .. HudFormat.MoneyText(tonumber(ev.Banked) or 0), 3)
+	elseif ev.Kind == "TravelFailed" then -- Server/WorldTravel: the teleport failed, the player stays here
+		show("TRAVEL FAILED, TRY AGAIN", 3)
 	end
 end)

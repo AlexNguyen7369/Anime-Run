@@ -8,6 +8,12 @@
 --     * start gate = SpawnArea.StartPad (tag StartPad); Track 1's Start part lies within one road width of it.
 --     * safety baseplate = Workspace.Baseplate (a BasePart, or a Model / Folder of tiles), below the plaza floor,
 --       covering every part of the hub and the track chain plus BASEPLATE_MARGIN studs.
+-- `world_travel` (design doc 4.47, docs/WORLD2_SPEC.md "Travel and gate", audit 2026-11-24): Server/WorldTravel.Go
+--   keeps the player busy from the call until departure or failure, for the gate and the admin /world1 /world2 alike;
+--   after the release save the player is frozen (DataLoaded off, Travelling on: MoneyService pays nothing); a failure
+--   (TeleportAsync error, TeleportInitFailed -> WorldTravel.Failed, or the TIMEOUT) restores DataLoaded, clears busy and
+--   notifies the player once; a read-only save (PlayerData.Save returns false, true) still travels. Seams:
+--   WorldTravel.Save / Teleport / Notify / AllowStudio / TIMEOUT. Fake players are Folders.
 -- retired: the 7 Dojo plots and the `dojo` scenario (Dojo squad, plot assignment): Dojos removed, design doc 4.43
 --   (owner 2026-11-11).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -204,6 +210,150 @@ function Tests.make(helpers)
 		end
 		m.real_name_at = named[1]
 		flag("world_no_real_names_in_hub", #named == 0, #named, 0)
+		return r
+	end
+
+	function W.world_travel()
+		local r, flag = H.report("world_travel")
+		local Server = script.Parent.Parent
+		local travel = H.module(Server, "WorldTravel")
+		local money = H.module(Server, "MoneyService")
+		local admin = H.module(Server, "AdminService")
+		local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
+		local api = travel ~= nil
+			and money ~= nil
+			and admin ~= nil
+			and type(travel.Go) == "function"
+			and type(travel.Failed) == "function"
+			and type(travel.Busy) == "function"
+			and type(travel.Save) == "function"
+			and type(travel.Notify) == "function"
+		flag("travel_api_exists", api == true)
+		if not api then
+			return r
+		end
+		local target = WorldConfig.Id == 1 and 2 or 1
+		local command = admin.Commands["world" .. target]
+		local saved = { travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT }
+		local cleanup = {}
+		local saves, teleports, notes = 0, 0, 0
+		local saveResult = { true, false }
+		local teleportError = nil
+		travel.AllowStudio = true
+		travel.Save = function()
+			saves += 1
+			return saveResult[1], saveResult[2]
+		end
+		travel.Teleport = function()
+			teleports += 1
+			if teleportError then
+				error(teleportError)
+			end
+		end
+		travel.Notify = function()
+			notes += 1
+		end
+		local function player(name)
+			local p = H.player(cleanup, 970000 + #cleanup)
+			p.Name = "ServerTestTravel_" .. name
+			money.Setup(p)
+			p:SetAttribute("DataLoaded", true)
+			return p
+		end
+		local function reset()
+			saves, teleports, notes, saveResult, teleportError = 0, 0, 0, { true, false }, nil
+		end
+		local ok, err = pcall(function()
+			-- 1. A trip in flight: busy, frozen, and the gate and admin command are refused
+			local a = player("Pending")
+			local okGo = travel.Go(a, target)
+			flag("travel_go_ok", okGo == true and saves == 1 and teleports == 1, saves * 10 + teleports, 11)
+			flag("travel_busy_until_departure", travel.Busy(a) == true)
+			flag("travel_frozen_data_loaded_off", a:GetAttribute("DataLoaded") == nil)
+			flag("travel_frozen_travelling_on", a:GetAttribute("Travelling") == true)
+			local before = a.leaderstats.Money.Value
+			local paid = money.Award(a, 100)
+			flag("travel_frozen_no_income", paid == nil and a.leaderstats.Money.Value == before, paid or 0, 0)
+			flag("travel_frozen_no_gems", money.AddGems(a, 5) == nil)
+			local again, againMessage = travel.Go(a, target)
+			flag("travel_second_go_refused", again == false and saves == 1 and teleports == 1, againMessage)
+			local okAdmin = command and command.Apply(a, command.Check({}))
+			flag("travel_admin_shares_busy_guard", command ~= nil and okAdmin == false and teleports == 1)
+
+			-- 2. TeleportInitFailed (WorldTravel.Failed): restored, not busy, told once
+			travel.Failed(a, "ServerTest init failed")
+			flag("travel_init_failed_clears_busy", travel.Busy(a) == false)
+			flag("travel_init_failed_restores_data", a:GetAttribute("DataLoaded") == true)
+			flag("travel_init_failed_unfreezes", a:GetAttribute("Travelling") == nil and money.Award(a, 1) ~= nil)
+			flag("travel_init_failed_notifies", notes == 1, notes, 1)
+			travel.Failed(a, "late duplicate")
+			flag("travel_failed_twice_notifies_once", notes == 1, notes, 1)
+
+			-- 3. TeleportAsync errors: the same restore
+			reset()
+			local b = player("Error")
+			teleportError = "ServerTest teleport error"
+			local okErr = travel.Go(b, target)
+			flag("travel_error_returns_false", okErr == false)
+			flag(
+				"travel_error_restores",
+				travel.Busy(b) == false and b:GetAttribute("DataLoaded") == true and b:GetAttribute("Travelling") == nil
+			)
+			flag("travel_error_notifies", notes == 1, notes, 1)
+
+			-- 4. A failed save: no teleport, nothing frozen
+			reset()
+			local c = player("NoSave")
+			saveResult = { false, false }
+			local okSave = travel.Go(c, target)
+			flag("travel_save_failed_refused", okSave == false and teleports == 0, teleports, 0)
+			flag("travel_save_failed_not_frozen", travel.Busy(c) == false and c:GetAttribute("DataLoaded") == true)
+
+			-- 5. A read-only save (newer version): no write needed, travels anyway
+			reset()
+			local d = player("ReadOnly")
+			saveResult = { false, true }
+			local okRead = travel.Go(d, target)
+			flag("travel_read_only_travels", okRead == true and teleports == 1, teleports, 1)
+			travel.Failed(d, "ServerTest cleanup")
+
+			-- 6. No departure and no failure event within TIMEOUT: restored
+			reset()
+			travel.TIMEOUT = 0.2
+			local e = player("Timeout")
+			travel.Go(e, target)
+			task.wait(0.6)
+			flag("travel_timeout_restores", travel.Busy(e) == false and e:GetAttribute("DataLoaded") == true)
+
+			-- 7. PlayerData: a release save of a read-only record returns false, true and releases the lock
+			local module = Server.PlayerData:Clone()
+			module.Name, module.Parent = "ServerTestTravelData", Server
+			table.insert(cleanup, module)
+			local data = require(module)
+			local store = H.store()
+			data.SetStore(store)
+			local id = 979001
+			store.data[data.KeyFor(id)] = { Version = 1e6, Money = 5 }
+			local f = H.player(cleanup, id)
+			local loaded = data.Load(f, id)
+			flag("travel_read_only_fixture", loaded == true and f:GetAttribute("DataReadOnly") == true)
+			local wrote, readOnly = data.Save(f, id, true)
+			local record = store.data[data.KeyFor(id)]
+			flag("travel_read_only_save_flag", wrote == false and readOnly == true)
+			flag("travel_read_only_lock_released", type(record) == "table" and record.Lock == nil)
+			flag("travel_read_only_record_kept", type(record) == "table" and record.Version == 1e6)
+			local g = H.player(cleanup, id + 1)
+			store.data[data.KeyFor(id + 1)] = { Version = 1 }
+			data.Load(g, id + 1)
+			local wroteG, readOnlyG = data.Save(g, id + 1, true)
+			flag("travel_normal_save_flag", wroteG == true and readOnlyG == false)
+		end)
+		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT = table.unpack(saved)
+		for _, p in cleanup do
+			pcall(travel.Failed, p, "ServerTest cleanup")
+			p:Destroy()
+		end
+		flag("travel_no_error", ok, ok and 1 or tostring(err))
 		return r
 	end
 

@@ -463,7 +463,7 @@ function Tests.race_progress_map()
 		flag("v10_pb_defaults_empty", next(times.Snapshot(old)) == nil)
 		-- the Speed half is retired: saved Speed is never read (design doc 4.13, owner 2026-11-01)
 		flag("v10_existing_stats_preserved", old.leaderstats.Money.Value == 123)
-		flag("v10_upgrades_on_save", data.Save(old, oldId, true))
+		flag("v10_upgrades_on_save", (data.Save(old, oldId, true)))
 		local upgraded = fake.data[data.KeyFor(oldId)]
 		flag(
 			"v10_saved_as_version11_empty_pb",
@@ -473,7 +473,7 @@ function Tests.race_progress_map()
 		flag("v11_loads", data.Load(player, id))
 		flag("v11_load_sanitizes_pb", same(times.Snapshot(player), { ["1"] = 80.25, ["2"] = 90 }))
 		times.Record(player, 1, 75.125)
-		flag("v11_atomic_save", data.Save(player, id, true))
+		flag("v11_atomic_save", (data.Save(player, id, true)))
 		local saved = fake.data[data.KeyFor(id)]
 		flag(
 			"v11_payload_and_release",

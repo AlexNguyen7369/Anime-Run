@@ -191,7 +191,7 @@ return {
 		},
 		Graveyard = {
 			Size = v(54, 14.662, 31.705),
-			Tris = 6548,
+			Tris = 4648,
 			Parts = {
 				{ v(54, 0.4, 30), v(0, 2.755, -0.639), hex("3A3632"), M.SmoothPlastic, P.Cylinder, v(0, 0, 0) },
 				{

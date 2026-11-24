@@ -430,11 +430,66 @@ if process.env.WORLD == "2" then
 			unknown += (t.Props[e[1]] and 0 or 1)
 		end
 		check(unknown == 0, key .. " placements name known props")
+		-- A placed prop's mesh (def.Size times its Scale or Stretch, BiomeDressing.placed) and every fallback part
+		-- must fit Roblox's 2048-stud part limit per axis, or the engine clamps it and the art changes shape
+		for i, e in t.Placed or {} do
+			local def, k = t.Props[e[1]], e[9] or e[6]
+			if def then
+				local big = def.Size * k
+				for _, p in def.Parts do
+					big = big:Max(p.Size * k)
+				end
+				local axis = math.max(big.X, big.Y, big.Z)
+				check(
+					axis <= 2048,
+					string.format("%s Placed_%d %s fits 2048 (%.0f x %.0f x %.0f)", key, i, e[1], big.X, big.Y, big.Z)
+				)
+			end
+		end
 	end
 	print(string.format("W2 CHECKS pass=%d fail=%d", pass, fail))
 	if process.env.LEDGER then
 		process.exit(fail == 0 and 0 or 1)
 	end
+end
+
+-- Spawn plaza look per world (design doc 4.47 "Moonlit Dojo"): in World 2 the plaza profile and colours come from
+-- Shared/PlazaLook's World 2 table; World 1 has none and keeps its golden hour. Prints "PLAZA FAIL <check>" per problem
+-- and "PLAZA CHECKS pass=<n> fail=<n>".
+do
+	local Look = req(Shared.PlazaLook)
+	local p = req(Shared.BiomeEnvironment).Profile(0)
+	local hex = R.Color3.fromHex
+	local pass, fail = 0, 0
+	local function check(ok, name)
+		if ok then
+			pass += 1
+		else
+			fail += 1
+			print("PLAZA FAIL " .. name)
+		end
+	end
+	if process.env.WORLD == "2" then
+		local a = Look.Atmosphere
+		check(a ~= nil and Look.Glow ~= nil and Look.Accent ~= nil and Look.Sakura ~= nil, "World 2 table")
+		a = a or { Lighting = {}, Atmosphere = {}, Sky = {}, Particles = { {} } }
+		for _, key in { "ClockTime", "Ambient", "OutdoorAmbient", "Brightness" } do
+			check(p.Lighting[key] == a.Lighting[key], "Lighting." .. key .. " from the table")
+		end
+		check(
+			p.Atmosphere.Density == a.Atmosphere.Density and p.Atmosphere.Color == a.Atmosphere.Color,
+			"fog from the table"
+		)
+		check(p.Sky.Skybox == nil and (p.Sky.StarCount or 0) > 0 and (p.Sky.MoonAngularSize or 0) > 0, "night sky")
+		check(p.Particles[1].Texture == "PlazaPetal" and p.Particles[1].Color == a.Particles[1].Color, "petals tinted")
+		check(p.Lighting.ClockTime < 5 or p.Lighting.ClockTime > 19, "night clock")
+	else
+		check(next(Look) == nil, "World 1 has no plaza overrides")
+		check(p.Lighting.ClockTime == 16.6 and p.Lighting.OutdoorAmbient == hex("B09A88"), "golden hour kept")
+		check(p.Atmosphere.Density == 0.18 and p.Sky.Skybox == "SkyGolden", "golden fog and sky kept")
+		check(p.Particles[1].Color == hex("FFFFFF"), "white petals kept")
+	end
+	print(string.format("PLAZA CHECKS pass=%d fail=%d", pass, fail))
 end
 
 -- Measure

@@ -12040,6 +12040,7 @@ do
 		polySeparation = spawnPolySeparation,
 	})
 	Scenarios.world_layout = world.world_layout
+	Scenarios.world_travel = world.world_travel -- design doc 4.47 travel guard and freeze (audit 2026-11-24)
 	-- docs/TRACKS_AND_BIOMES_SPEC.md "Build order and tests" step 1 (a table, so Scenarios.Run never runs it)
 	Scenarios._trackChain = require(script.Parent.TrackChainTests).make({
 		partPoly = spawnPartPoly,

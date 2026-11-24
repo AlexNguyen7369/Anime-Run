@@ -435,7 +435,8 @@ local function save(player, userId, release)
 	end)
 	if readOnly then
 		player:SetAttribute("DataReadOnly", true)
-		return false -- the lock is kept, nothing of this session is written
+		-- nothing of this session is written; the lock moved (released on a release save), so a trip needs no save
+		return false, ok == true
 	end
 	if ok and not refused and type(result) == "table" then
 		-- Preserve any legitimate potion changes made while UpdateAsync yielded.
@@ -457,13 +458,13 @@ function PlayerData.Save(player, userId, release)
 		task.wait()
 	end
 	saving[player] = true
-	local ok, result = pcall(save, player, userId, release)
+	local ok, result, readOnly = pcall(save, player, userId, release)
 	saving[player] = nil
 	if not ok then
 		warn("PlayerData save failed: " .. tostring(result))
 		return false
 	end
-	return result
+	return result, readOnly == true
 end
 
 -- Admin /newplayer: replaces the save with an empty record and stops this session's saves, so the next load is a brand
