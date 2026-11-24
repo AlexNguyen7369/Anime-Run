@@ -186,7 +186,9 @@ def band_hit(raster, pts):
 	n = raster["tmin"].shape
 	ok = (ij[:, 0] >= 0) & (ij[:, 1] >= 0) & (ij[:, 0] < n[0]) & (ij[:, 1] < n[1])
 	ij, y = ij[ok], pts[ok, 1]
-	return bool(((y > raster["tmax"][ij[:, 0], ij[:, 1]] + 0.05) & (y < raster["tmin"][ij[:, 0], ij[:, 1]] + 14)).any())
+	lo, hi = raster["tmin"][ij[:, 0], ij[:, 1]], raster["tmax"][ij[:, 0], ij[:, 1]]
+	# a cell no waypoint marked holds +inf / -inf: without the finite test every point off the roads counted as a hit
+	return bool((np.isfinite(lo) & (y > hi + 0.05) & (y < lo + 14)).any())
 
 
 PLAZA_ZONE = math.hypot(*SPAWN_HALF) + 64  # TerrainShape PlazaRadius: the spawn floor's far corner + PLAZA_MARGIN

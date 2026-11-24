@@ -11,10 +11,25 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   universe 10773557968), `GATE_OPEN = false`, `PROGRESS_KEYS`.
 - `Shared/TrackRegistry` loads `Shared/Tracks/World2/` in World 2.
 
+## Track lighting
+- Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed). Seen in Studio before the fix:
+  Track 1, 4 and 8 were close to black (Ambient under 30 of 255, Track 8's OutdoorAmbient 15), and Track 2's
+  OutdoorAmbient was taken from the draft's below-horizon stop (32, 23, 35) instead of its orange skyline.
+- Rule: a track's lighting keeps the hue of its approved draft sky, but the road and the runner must read on every
+  track. `Kit.fromDraft` builds each profile from the draft's sky stops and sun with floors (`Kit` `LIGHT_FLOOR`, all
+  **proposed**): night tracks (draft sun energy under 2: Tracks 1, 4, 8) get a moon of Brightness at least 2, Ambient
+  at least 0.5, OutdoorAmbient at least 0.62 (largest colour channel, 0-1; a lifted colour is also mixed 35% toward grey), ExposureCompensation 1.1, fog Density at
+  most 0.22 and no Haze; the others Brightness at least 1.4, Ambient at least 0.36, OutdoorAmbient at least 0.6. Fog
+  colours are lifted to 0.3 so the distance never fades to black. The horizon colour is the first sky stop at or over 0.
+- A theme's own `Atmosphere` overrides still win (Track 4's moon size).
+
 ## Save
 - One save per player (`PlayerStats_v2`, VERSION unchanged at 19 so live World 1 servers never go read-only).
 - `Shared/WorldSave.View` swaps `BestTrack`, `Checkpoint`, `RaceBestTimes`, `Team` and `Equipped` (`WorldConfig.PROGRESS_KEYS`)
-  for the world's own on load (a fresh World 2 team is the starter);
+  for the world's own on load. First entry (owner 2026-11-24, design doc 4.47): while `Worlds.W2` holds no team, or only
+  the placeholder starter, `View` gives World 1's `Team` and `Equipped`, so the team carries over; the first World 2 save
+  writes it to `Worlds.W2`. `GachaService.CheckStarter` does nothing in World 2 (no starter choice, auto-roll not turned
+  off for the roll tutorial) and `Client/ArrivalState.IsNew` is false there;
   `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys.
 - `Worlds.W2.Welcomed` (true once World 2's welcome was given; absent = not yet): a one-way flag
   (`WorldSave.FLAG_KEYS`), never cleared by a save without it. VERSION unchanged: an older save has none and is

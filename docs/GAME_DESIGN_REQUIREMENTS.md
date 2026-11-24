@@ -809,6 +809,11 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   (`tools/blender/world2`) and approved by the owner before it goes in the game.
 - Speed: a per-world cruise table; the studs/s band stays World 1's (48-800). World 1 characters run at x0.1 there
   (**proposed**), World 2 adds the Eternal rarity (780, **proposed**).
+- Arriving in World 2 resets nothing (owner 2026-11-24: "world 2 should not reset character so they dont need to go
+  through tutorial again or choose starter"): a first entry keeps the World 1 team as World 2's first team (changed there
+  freely afterwards; a World 2 team that holds only the placeholder starter counts as none, **proposed**), and World 2
+  never opens the starter choice (4.21), the roll tutorial or the first-join flow (4.24). A save that owns no character
+  runs as the placeholder starter there.
 - World 2 only: a **team of 4** (slot 4 unlocked on first entry; this amends 4.2 and 4.8 for World 2: bonuses need any 3
   matching members) and **Awakening** (duplicate Copies buy up to 5 stars per character; owner 2026-11-24: each star gives +3% cruise and
   +3% stamina, so +15% of each at 5 stars; star costs 1, 2, 4, 8, 16 Copies are **placeholders**).
@@ -920,6 +925,8 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-24: owner: "fix lighting in tracks" (4.47, WORLD2_SPEC "Track lighting"): World 2 track lighting keeps each draft sky's hue but has brightness floors so the road and the runner read on every track; numbers proposed.
+- 2026-11-24: owner: "world 2 should not reset character so they dont need to go through tutorial again or choose starter" (4.47): a first entry to World 2 keeps the World 1 team; World 2 never opens the starter choice, the roll tutorial or the first-join flow. Replaces "a fresh World 2 team is the starter".
 - 2026-11-24: harness saves (4.24; owner asked for the fix after a UI test run in World 2 reset World 1 characters on a real save; wording is the orchestrator's default): a test harness moves its Studio session to an in-memory copy of the save and never writes a real save, gift route or leaderboard; the client UI harness refuses to run until then.
 - 2026-11-24: owner: "edit world2 ui to be old hud instead of scroll hud, gui can stay": World 2's always-on HUD keeps its look from before 4.46 option A; panels, popups and boss UI keep the Scroll Dojo look; World 1 unchanged (4.47).
 - 2026-11-24: owner: World 2 (4.47): opening rule confirmed (gate stays closed until the owner opens it); Awakening +3% cruise and +3% stamina per star; World 2 pays first-clear Gems again and more Money; World 1 boss events run in World 2 with the team of 4; plaza Rift Shrine; all 10 track drafts approved.

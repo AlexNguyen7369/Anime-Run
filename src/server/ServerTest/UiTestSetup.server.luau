@@ -281,6 +281,10 @@ end
 -- Run once per test session: the baseline is kept until 'restore' (a second snapshot must never overwrite it with
 -- state the tests already changed, e.g. after emphasized_next or turbo_next).
 local indexBefore = {} -- [Player] = GachaService.Snapshot before the first index_states ('restore' drops it)
+-- Declared here so the full 'restore' can drop them too (an aborted scenario must not leave a stale "was racing").
+local indexRacing = {} -- [Player] = was auto racing before index_states stopped the run to equip
+local teamFullRacing = {} -- [Player] = was auto racing
+local teamFullGranted = {} -- [Player] = { ids team_full granted } (World 2: a new save owns one character)
 function setups.snapshot(player)
 	if snapshots[player] then
 		return
@@ -740,6 +744,7 @@ function setups.restore(player)
 	restoreRelics(player)
 	longStamina[player] = nil
 	indexBefore[player] = nil -- snap.gacha below is older
+	indexRacing[player], teamFullRacing[player], teamFullGranted[player] = nil, nil, nil
 	local snap = snapshots[player]
 	if not snap then
 		error(
@@ -796,7 +801,6 @@ function setups.restore(player)
 end
 
 -- ui_index asks for it (UiScenarios.Needs): what it replaced comes back with restore:index_states, right after.
-local indexRacing = {} -- [Player] = was auto racing before index_states stopped the run to equip
 function setups.index_states(player)
 	local G = live("GachaService")
 	if not indexBefore[player] then
@@ -883,8 +887,6 @@ end
 -- ui_hitboxes: a full Team (3; World 2: 4), the minibar row as a player with a full kept Team sees it (FillTeam, c80e4de).
 -- With two members the empty third circle draws smaller than a portrait and the row's OpenTeam padding depends on the save.
 -- Team changes are locked during a run, so the run stops first; restore:team_full puts the Team and the run back.
-local teamFullRacing = {} -- [Player] = was auto racing
-local teamFullGacha = {} -- [Player] = GachaService.Snapshot before team_full granted characters (World 2: a new save owns one)
 function setups.team_full(player)
 	local size = require(Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
 	local team = string.split(player:GetAttribute("Team") or "", ",")
@@ -909,12 +911,11 @@ function setups.team_full(player)
 			table.insert(ids, spec.Id)
 		end
 	end
-	-- Too few owned (a new save has only the starter): grant more; restore:team_full applies the snapshot back
+	-- Too few owned (a new save has only the starter): grant more; restore:team_full takes exactly these back
 	for _, spec in C.All() do
 		if #ids < size and spec.Rollable and not table.find(ids, spec.Id) then
-			if teamFullGacha[player] == nil then
-				teamFullGacha[player] = G.Snapshot(player)
-			end
+			teamFullGranted[player] = teamFullGranted[player] or {}
+			table.insert(teamFullGranted[player], spec.Id)
 			G.Grant(player, spec.Id)
 			table.insert(ids, spec.Id)
 		end
@@ -928,18 +929,39 @@ function setups.team_full(player)
 	end
 end
 local function restoreTeamFull(player)
-	local before = teamBefore[player]
-	teamBefore[player] = nil
+	-- Stop first: stopRun errors after 5 s, and what was saved must then still be here for the next restore.
 	if teamFullRacing[player] then
 		stopRun(player, "restore:team_full") -- Team changes are locked during a run
 	end
-	local saved = teamFullGacha[player]
-	teamFullGacha[player] = nil
-	if saved then
-		live("GachaService").Apply(player, saved)
-	end
+	local before = teamBefore[player]
+	teamBefore[player] = nil
+	local granted = teamFullGranted[player]
+	teamFullGranted[player] = nil
+	local G = live("GachaService")
 	if before and before ~= "" then
-		live("GachaService").SetTeam(player, string.split(before, ","))
+		G.SetTeam(player, string.split(before, ","))
+	elseif granted then
+		local kept = {}
+		for _, id in G.TeamList(player) do
+			if not table.find(granted, id) then
+				table.insert(kept, id)
+			end
+		end
+		if #kept > 0 then
+			G.SetTeam(player, kept)
+		end
+	end
+	-- Only what the fixture granted goes: a full GachaService.Apply of an older snapshot would also undo the rolls,
+	-- characters and stat points gained since.
+	local data = player:FindFirstChild("GachaData")
+	for _, id in granted or {} do
+		local entry = data and data:FindFirstChild(id)
+		if entry then
+			entry:Destroy()
+		end
+	end
+	if granted then
+		player:SetAttribute("StatPoints", G.FreePoints(player)) -- Grant gave points for each new character
 	end
 	if teamFullRacing[player] then
 		live("RunnerService").SetAutoRace(player, true)

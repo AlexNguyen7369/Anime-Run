@@ -15,6 +15,17 @@ table.insert(KEYS, "Awakening")
 -- the flag never clears it). Welcomed: the first-arrival welcome was given (Server/WorldWelcome, docs/WORLD2_SPEC.md).
 WorldSave.FLAG_KEYS = { "Welcomed" }
 
+-- The id GachaService gives an empty team (CharacterCatalog.STARTER_ID; not required here, this module stays pure).
+WorldSave.PLACEHOLDER = "starter"
+
+-- True when a saved team names nobody: absent, empty, or only the placeholder (an old save has just Equipped).
+local function noTeam(team, equipped)
+	if type(team) == "table" and #team > 0 then
+		return #team == 1 and team[1] == WorldSave.PLACEHOLDER
+	end
+	return type(equipped) ~= "string" or equipped == "" or equipped == WorldSave.PLACEHOLDER
+end
+
 -- The record as world `id`'s services read it: the progress keys swapped for that world's (absent = a fresh world).
 function WorldSave.View(record, id)
 	local key = WorldConfig.SaveKey(id)
@@ -26,6 +37,11 @@ function WorldSave.View(record, id)
 	local mine = type(worlds[key]) == "table" and worlds[key] or {}
 	for _, name in KEYS do
 		view[name] = mine[name]
+	end
+	-- First entry keeps the team (design doc 4.47, owner 2026-11-24): this world has no team yet, so the top-level one
+	-- (World 1's) is read; the first save here writes it to this world's keys.
+	if noTeam(mine.Team, mine.Equipped) and not noTeam(record.Team, record.Equipped) then
+		view.Team, view.Equipped = record.Team, record.Equipped
 	end
 	for _, name in WorldSave.FLAG_KEYS do
 		view[name] = mine[name] == true or nil

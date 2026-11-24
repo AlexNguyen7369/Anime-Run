@@ -1,6 +1,7 @@
 --!nonstrict
 -- What the first-join flow (design doc 4.24) needs in more than one client script. Display only.
 local Players = game:GetService("Players")
+local WorldConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("WorldConfig"))
 
 local ArrivalState = {}
 
@@ -11,6 +12,9 @@ local loadingOver = false
 -- True for a player who has not finished a run yet. Survives a rejoin: only runs add to MoneyEarned (MoneyService.Award)
 -- and BestTrack; a claimed Daily rules out older saves that predate MoneyEarned. Rolls is not used: rolling comes first.
 function ArrivalState.IsNew(player)
+	if WorldConfig.Id ~= 1 then
+		return false -- design doc 4.47 (owner 2026-11-24): nobody is new in World 2, no first-join flow there
+	end
 	return player:GetAttribute("NeedsStarter") == true
 		or (
 			player:GetAttribute("DataLoaded") == true

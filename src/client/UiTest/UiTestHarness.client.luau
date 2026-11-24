@@ -133,6 +133,7 @@ local function runClick(id)
 	local ok, res
 	if isolated("UiTestClick") then
 		start()
+		pcall(UiScenarios.DismissWelcome) -- as before a run: a lone click must not press under World 2's welcome
 		ok, res = pcall(UiScenarios.RunClick, id)
 	else
 		ok, res = true, refusal("click:" .. tostring(id))

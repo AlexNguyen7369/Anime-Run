@@ -623,6 +623,9 @@ end
 -- A save with no rolls has auto-roll off until Client/AutoRollTutorial has the player turn it on; a brand new save also
 -- opens the starter popup (design doc 4.21). Called once a real save has loaded.
 function GachaService.CheckStarter(player)
+	if WorldConfig.Id ~= 1 then
+		return -- design doc 4.47 (owner 2026-11-24): World 2 never asks for a starter or the roll tutorial
+	end
 	if cleanCount(player:GetAttribute("Rolls")) == 0 then
 		player:SetAttribute("AutoRoll", false)
 		if #folder(player):GetChildren() == 0 then

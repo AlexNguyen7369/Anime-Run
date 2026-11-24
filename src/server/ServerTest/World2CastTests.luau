@@ -593,14 +593,30 @@ function Tests.world2_cast()
 		end
 		flag("save_keeps_sidekicks", kept)
 		flag("sidekick_gain_any_world", near(SidekickService.CruiseMulti(p, "leaf_hero"), 1.15))
-		-- World 2 play never touches World 1's team; a first entry has no team, which Apply turns into the starter
+		-- World 2 play never touches World 1's team; a first entry keeps it (design doc 4.47, owner 2026-11-24)
 		local record = { Cars = ids, Team = { "leaf_hero" }, Equipped = "leaf_hero", BestTrack = 10 }
 		local folded = WorldSave.Fold({ Cars = ids, Team = { "punch_rider" }, BestTrack = 2 }, record, 2)
 		flag("fold_keeps_cast", H.same(folded.Cars, ids) and H.same(folded.Worlds.W2.Team, { "punch_rider" }))
 		local fresh = H.player(cleanup, UID + 1)
 		GachaService.Setup(fresh)
 		GachaService.Apply(fresh, WorldSave.View(record, 2))
-		flag("fresh_world2_team_starter", fresh:GetAttribute("Team") == "starter", fresh:GetAttribute("Team"))
+		flag("first_entry_keeps_team", fresh:GetAttribute("Team") == "leaf_hero", fresh:GetAttribute("Team"))
+		local view = WorldSave.View(folded, 2)
+		flag("own_team_once_saved", H.same(view.Team, { "punch_rider" }))
+		local placeholder =
+			{ Team = { "leaf_hero" }, Equipped = "leaf_hero", Worlds = { W2 = { Team = { "starter" } } } }
+		flag("placeholder_team_counts_as_none", H.same(WorldSave.View(placeholder, 2).Team, { "leaf_hero" }))
+		flag("no_team_anywhere", WorldSave.View({ BestTrack = 3 }, 2).Team == nil)
+		flag("world1_view_untouched", WorldSave.View(placeholder, 1) == placeholder)
+		local old = WorldSave.View({ Equipped = "leaf_hero" }, 2) -- a save from before teams: Equipped only
+		flag("old_save_equipped_carries", old.Team == nil and old.Equipped == "leaf_hero")
+		-- World 2 never asks for a starter or turns auto-roll off for the roll tutorial
+		local empty = H.player(cleanup, UID + 2)
+		GachaService.Setup(empty)
+		empty:SetAttribute("AutoRoll", true)
+		GachaService.CheckStarter(empty)
+		local asked = empty:GetAttribute("NeedsStarter") == true or empty:GetAttribute("AutoRoll") == false
+		flag("starter_only_in_world1", asked == (require(Shared.WorldConfig).Id == 1), asked)
 	end)
 
 	for _, instance in cleanup do
