@@ -53,6 +53,7 @@ return {
 		"world2_team",
 		"awakening", -- design doc 4.47: World 2 stars from Copies, World 1 unchanged
 		"world2_rewards", -- WORLD2_SPEC "Rewards": World 2 pad Cash, first-clear Gems per world
+		"powerups", -- PowerUpTests: registered in Scenarios but missing here until 2026-11-24
 		"character_models",
 		"sidekick_follow",
 		"sidekick_pity",
