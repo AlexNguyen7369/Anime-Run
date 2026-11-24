@@ -809,6 +809,11 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   (`tools/blender/world2`) and approved by the owner before it goes in the game.
 - Speed: a per-world cruise table; the studs/s band stays World 1's (48-800). World 1 characters run at x0.1 there
   (**proposed**), World 2 adds the Eternal rarity (780, **proposed**).
+- **World 2's UI is World 1's** (owner 2026-11-24, later the same day: "UI and GUI should stay exactly the same with
+  world 1 with the exception of a 4th team slot"). This replaces the "World 2 HUD look" rule below: the always-on HUD
+  keeps the 4.46 option A look in World 2 too (`Client/HudPlaque.Old` is false everywhere). What differs in World 2 is
+  the fourth team slot (Team panel, TeamHud row, boss team). Open question for the owner: the World 2 welcome popup and
+  the Awakening bar exist only in World 2; kept, since they are features and not a look.
 - Arriving in World 2 resets nothing (owner 2026-11-24: "world 2 should not reset character so they dont need to go
   through tutorial again or choose starter"): a first entry keeps the World 1 team as World 2's first team (changed there
   freely afterwards; a World 2 team that holds only the placeholder starter counts as none, **proposed**), and World 2
@@ -925,6 +930,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-24: owner: "UI and GUI should stay exactly the same with world 1 with the exception of a 4th team slot" (4.47): World 2's always-on HUD goes back to the 4.46 look; replaces the same day's "old hud" ruling.
 - 2026-11-24: owner: "fix lighting in tracks" (4.47, WORLD2_SPEC "Track lighting"): World 2 track lighting keeps each draft sky's hue but has brightness floors so the road and the runner read on every track; numbers proposed.
 - 2026-11-24: owner: "world 2 should not reset character so they dont need to go through tutorial again or choose starter" (4.47): a first entry to World 2 keeps the World 1 team; World 2 never opens the starter choice, the roll tutorial or the first-join flow. Replaces "a fresh World 2 team is the starter".
 - 2026-11-24: harness saves (4.24; owner asked for the fix after a UI test run in World 2 reset World 1 characters on a real save; wording is the orchestrator's default): a test harness moves its Studio session to an in-memory copy of the save and never writes a real save, gift route or leaderboard; the client UI harness refuses to run until then.

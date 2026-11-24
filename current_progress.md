@@ -251,8 +251,9 @@
 247. 2026-11-24 — Alex Nguyen — Made every test harness move its Studio session to an in-memory copy of the save before changing a player (design doc 4.24 "Harness saves"); server test harness_save 24/24 and a refused client-only trigger checked in the World 2 Studio on a test save.
 248. 2026-11-24 — Alex Nguyen — World 2 keeps the World 1 team on first entry and never opens the starter choice or new-player tutorials; World 2 track lighting got brightness floors so night tracks read; fixed the review findings in the UI fixtures and the export corridor check.
 249. 2026-11-24 — Alex Nguyen — Server tests in World 2 drive a same-speed World 2 character instead of a World 1 one at a tenth of its cruise; the safety baseplate hides its textures with its tiles (the template grid showed in World 2).
+250. 2026-11-24 — Alex Nguyen — World 2 UI is World 1's again except the fourth team slot (owner ruling); boss events checked in World 2 with the boss tests following the team of 4; runner 88/88 and world_layout 12/12 confirmed in the World 2 Studio.
 
 ## What's next
-**Bring the Mac back, stop Play in the World 2 window and clear the test attributes, then rerun `runner` and `world_layout` and the full server suite in World 2.**
+**Owner says whether World 2 needs its own new boss or the three World 1 bosses are enough, and rules on the live save; then run the full World 2 server suite and UiTestRun.**
 
-**Why this is next:** the Mac dropped before the two scenarios reported, so the runner fix and the new baseplate check have no result yet, and the full suite has still never finished in World 2.
+**Why this is next:** the existing bosses now pass in World 2, a new boss is a separate build with its own approvals, and the full suites have still never finished in World 2.

@@ -5,14 +5,14 @@
 -- Colours and fonts are UiTheme.Scroll's (the Summon kit). Sizes are proposed.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
-local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
 
 local K = UiTheme.Scroll
 local HudPlaque = {}
--- The one switch (design doc 4.47 "World 2 HUD look", owner 2026-11-24): the World 2 place keeps the always-on HUD in
--- its look from before option A (4.40 Tab tilt icons, white outlined labels, dark pills, blue Gems, the generated
--- Turbo bar, dark team circles). Every HUD site reads it and skips its dressing; panels and popups never read it.
-HudPlaque.Old = WorldConfig.Id == 2
+-- The one switch for the always-on HUD's look from before option A (4.40 Tab tilt icons, white outlined labels, dark
+-- pills, blue Gems, the generated Turbo bar, dark team circles). Off everywhere: the owner first asked for it in
+-- World 2 and then ruled the same day that World 2's UI is World 1's except the fourth team slot (design doc 4.47,
+-- owner 2026-11-24). The HUD sites still read it, so the old look comes back by setting it true.
+HudPlaque.Old = false
 HudPlaque.Ink = K.TileInk
 HudPlaque.Script = K.Script -- Kalam Bold brush labels
 HudPlaque.Heading = K.Heading -- Permanent Marker

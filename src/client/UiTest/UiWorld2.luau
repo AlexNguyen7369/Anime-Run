@@ -137,7 +137,7 @@ function Module.Build(h)
 	end
 
 	function scenarios.ui_hud_look_by_world(res)
-		local old = WorldConfig.Id == 2
+		local old = false -- owner 2026-11-24 (later ruling): World 2's HUD is World 1's, the option A dressing in both
 		local plaques, seals = 0, 0
 		for _, name in { "HudChrome", "RacerSecondColumn" } do
 			local gui = playerGui:WaitForChild(name, 10)

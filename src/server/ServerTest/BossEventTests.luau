@@ -203,6 +203,8 @@ function Tests.make(deps)
 			end
 		end
 		flag("test_has_seven_characters", #chars >= 7, #chars, 7)
+		-- 3; World 2: 4 (design doc 4.47: World 1's boss events run in World 2 with the World 2 team of 4)
+		local TEAM_SIZE = require(Shared.StaminaConfig).TEAM_SIZE
 		local function fighter()
 			local p = newPlayer()
 			wear(p, chars[1], "side_knight")
@@ -806,7 +808,7 @@ function Tests.make(deps)
 						Destroyed = 0,
 						Slot = 1,
 						Line = line,
-						Stamina = { 100, 100, 100 },
+						Stamina = table.create(TEAM_SIZE, 100),
 					}
 					function run:Destroy()
 						self.Destroyed += 1
@@ -1171,6 +1173,12 @@ function Tests.make(deps)
 					wear(p, id, "side_chain")
 				end
 				gacha.Grant(p, bare)
+				-- one more than a team holds, every one with a Sidekick: refused for its size alone
+				local tooMany = { a, b, c, d }
+				if TEAM_SIZE >= 4 then
+					wear(p, chars[7], "side_chain")
+					table.insert(tooMany, chars[7])
+				end
 				local normal, equipped = p:GetAttribute("Team"), p:GetAttribute("EquippedCharacter")
 				eq("set_team_needs_joining", S.SetTeam(p, { a }), false)
 				S.Join(p)
@@ -1178,7 +1186,7 @@ function Tests.make(deps)
 				local picked = { c, a, b }
 				flag("team_kept_in_slot_order", H.same(S.TeamOf(p), picked))
 				local refused = {
-					["four"] = { a, b, c, d },
+					["four"] = tooMany, -- World 2: five
 					["duplicate"] = { a, a },
 					["no_sidekick"] = { a, bare },
 					["unowned"] = { a, unowned },
@@ -1479,7 +1487,11 @@ function Tests.make(deps)
 					damageOf("side_knight") > damageOf("side_dogs") and damageOf("side_dogs") > damageOf("side_chain")
 				)
 				local normal = p:GetAttribute("Team")
-				flag("auto_by_damage_then_cruise_max_3", H.same(S.AutoTeam(p), { others[2], others[1], high }))
+				local auto = { others[2], others[1], high }
+				if TEAM_SIZE >= 4 then
+					table.insert(auto, low) -- World 2's fourth slot: the last one wearing a Sidekick
+				end
+				flag("auto_by_damage_then_cruise_max_3", H.same(S.AutoTeam(p), auto))
 				eq("auto_team_sets_nothing", p:GetAttribute("Team"), normal)
 				eq("auto_team_no_sidekick_empty", #S.AutoTeam(newPlayer()), 0)
 
