@@ -59,3 +59,13 @@ grid joins the cluster. `Gate` has a full see-through wall of fire behind the ar
 beside it, out behind the pillars) and flame wrapped round each pillar base (`cerberus_gate`). The rider's flame mane is
 about twice as big, swept to one side with flame lobes (`baran_anime`); the wyvern's snout is longer, with a centre
 ridge plate and side horns flaring outward (`kaisel_flight`).
+
+Round 8 (2026-11-23): `Gate` fire is a few wide, see-through orange-to-yellow sheets with broad tapered tops, so the
+dark-red pillars read through it, and a dark-red lintel crosses each pillar pair (`cerberus_gate`). `Hound`: about 1.5x
+shoulder and arm bulk and a broader chest, the heads sitting lower between the shoulders and tipped further down at the
+road, larger fangs, and short tongues lying in the lower jaw. `ChainTower`: pale stone with a dark window grid and pale
+floor ledges, seven big see-through flame tongues a face with forked tapered tops, broad diagonal black ash tatters
+(`webtoon_castle`); chain links doubled (about a quarter of the tower's width) and a fourth anchor chain. Ruins: small
+pale pink window cells instead of bars, denser pink veils on the road-facing facades (`anime_castle2`). `Wyvern`: a
+longer, narrower tapering snout and the brow horns raised clear of the head (`kaisel_flight`). The ground and the sky
+below the horizon are a lighter purple-brown, and scatter is kept out of the 05 side camera's near frame.
