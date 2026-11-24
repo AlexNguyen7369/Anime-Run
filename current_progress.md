@@ -247,6 +247,8 @@
 243. 2026-11-24 — Alex Nguyen — Paused World 2 work for a move to another computer: WIP commits for the UI harness fixes and the placement search, handoff and nightly report updated.
 244. 2026-11-24 — Alex Nguyen — Uploaded the 26 audited World 2 scenery meshes, recorded their MeshIds in the ledgers and baked them into the World 2 place (saved as version 50).
 
+245. 2026-11-24 — Alex Nguyen — Wrote the World 2 cast handoff for the move to another computer and saved the upload log in docs; merged orch/world2/cast-ingame into feature/alex/world2-place.
+
 ## What's next
 **Owner rules on the live save (restore the last clean DataStore version or inspect first), then finish the World 2 UI harness run and screenshots.**
 
