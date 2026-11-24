@@ -3,6 +3,7 @@
 -- Runs in the background after the world is built. SpawnArea still builds the gameplay parts:
 -- prompts, pads, zones and collision stay on them. A loaded mesh only turns its stand-in invisible, so a failed
 -- load leaves the plain stand-in working. ReplicatedStorage attribute PlazaReady turns true when done.
+local CollectionService = game:GetService("CollectionService")
 local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -73,6 +74,7 @@ local function loadAsset(key, row)
 					light.Range = Look.LampLight.Range
 					light.Shadows = false
 					light.Parent = d
+					CollectionService:AddTag(light, "BiomeEffect") -- off under REDUCED EFFECTS (Client/BiomeEnvironment)
 				end
 			else
 				d.Material = Enum.Material.SmoothPlastic

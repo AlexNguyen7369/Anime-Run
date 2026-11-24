@@ -163,7 +163,8 @@ end
 
 -- World 2's rift (design doc 4.47, plaza_w2.py rift()): a blue disc with two violet spiral arms that turns slowly in its
 -- own plane on near clients (BiomeSpin turns about the pivot's Y, here the disc's normal), a cyan rim and a ring of
--- floating stones. The glowing pieces are BiomeDetail (REDUCED EFFECTS hides them far away). 64 parts, no lights.
+-- floating stones. The glowing pieces are BiomeDetail (REDUCED EFFECTS hides them far away and stops the disc). 64 parts,
+-- no lights.
 local function bar(parent, name, a, b, width, normal, color)
 	return part(
 		parent,
@@ -197,6 +198,7 @@ local function rift(parent, spec)
 	disc.WorldPivot = pivot
 	disc:SetAttribute("BasePivot", pivot)
 	disc.Parent = parent
+	disc:SetAttribute("ReducedStill", true) -- Client/BiomeAmbience holds it at rest under REDUCED EFFECTS
 	CollectionService:AddTag(disc, "BiomeSpin")
 	CollectionService:AddTag(disc, "BiomeDetail")
 

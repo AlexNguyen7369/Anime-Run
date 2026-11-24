@@ -5,8 +5,10 @@
 -- The rest pivot is the server's "BasePivot" attribute (BiomeDressing sets it after snapping), not the client's
 -- GetPivot: with streaming the tag can arrive before the model's parts (a mesh hero's MeshPart streams in later).
 -- Parts that stream in later arrive at the rest pose and are moved to the current pose.
+-- A model with the attribute ReducedStill stays at rest while the player's ReduceEffects is on (the World 2 plaza rift).
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
@@ -63,9 +65,16 @@ RunService.RenderStepped:Connect(function()
 	if t - nearAt >= NEAR_INTERVAL then
 		nearAt = t
 		local eye = camera.CFrame.Position
+		local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
 		table.clear(near)
 		for model, base in bases do
-			if (base.Pivot.Position - eye).Magnitude < AMBIENCE_DISTANCE then
+			if reduced and model:GetAttribute("ReducedStill") then
+				if base.Current then -- back to rest once, then left alone
+					model.WorldPivot = base.Current
+					model:PivotTo(base.Pivot)
+					base.Current = nil
+				end
+			elseif (base.Pivot.Position - eye).Magnitude < AMBIENCE_DISTANCE then
 				near[model] = base
 			end
 		end
