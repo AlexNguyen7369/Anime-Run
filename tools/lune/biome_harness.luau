@@ -13,6 +13,7 @@
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local process = require("@lune/process")
+local serde = require("@lune/serde")
 local R = require("@lune/roblox")
 local ROOT = process.env.ROOT or process.cwd
 local failed = false -- any printed FAIL line makes the process exit 1 at the end
@@ -578,10 +579,15 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 	-- kept placement, and (b) no kept Placed_ prop intrudes on another track's corridor. (b) approximates the exporter's
 	-- triangle test: each part's box centre (a mesh is one box here) within 24 studs of another track's centre line and
 	-- from its road top to 14 over it. A box is coarser than the triangles and every draft placement already passed the
-	-- exporter's test, so a (b) hit is a "W2 ROAD WARN" line, not a FAIL. Prints "W2 ROAD FAIL <check>" and
-	-- "W2 ROAD CHECKS pass=<n> fail=<n> warn=<n>".
+	-- exporter's test, so a (b) hit pinned in tools/lune/w2_road_warn_pins.json (biome, prop, track: count) is a
+	-- "W2 ROAD WARN" line; an unpinned hit or a higher count is a FAIL. PIN=write rewrites the pins from this build
+	-- (rerun it after any placement change). (c) That verdict holds for the game only if the game builds each
+	-- placement where the exporter tested it: every mesh placement's part must have the draft row's CFrame and Size
+	-- (origin * (X, Y, Z) * YXZ(RX, Yaw, RZ), up by half its height; Size * Scale), "W2 TRANSFORM FAIL" otherwise.
+	-- Prints "W2 ROAD FAIL <check>" and "W2 ROAD CHECKS pass=<n> fail=<n> warn=<n>".
 	do
 		local rpass, rfail, rwarn = 0, 0, 0
+		local tpass, tfail, hits, hitWhere = 0, 0, {}, {}
 		local function rcheck(ok, name)
 			if ok then
 				rpass += 1
@@ -669,6 +675,39 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 					if #ps > 0 then -- a hero counts only with something built (a mesh or its fallback parts)
 						kept[designed(name)] = (kept[designed(name)] or 0) + 1
 					end
+					local def = name and Themes[e.Biome].Props[name]
+					local mp = def and def.Mesh and not process.env.NOMESH and prop:FindFirstChild(def.Name) -- (c) the mesh
+					if mp then
+						local m = Themes[e.Biome].Placed[k]
+						local size = def.Size * (m[9] or m[6])
+						local want = e.Origin
+							* R.CFrame.new(m[2], m[3], m[4])
+							* R.CFrame.fromEulerAnglesYXZ(m[7] or 0, m[5], m[8] or 0)
+							* R.CFrame.new(0, size.Y / 2, 0)
+						local got = mp.CFrame
+						if
+							(got.Position - want.Position).Magnitude < 0.01
+							and (mp.Size - size).Magnitude < 0.01
+							and got.RightVector:Dot(want.RightVector) > 0.99999
+							and got.UpVector:Dot(want.UpVector) > 0.99999
+						then
+							tpass += 1
+						else
+							tfail += 1
+							print(
+								string.format(
+									"W2 TRANSFORM FAIL %s %s %s: built at %s size %s, draft row says %s size %s",
+									e.Biome,
+									prop.Name,
+									name,
+									tostring(got.Position),
+									tostring(mp.Size),
+									tostring(want.Position),
+									tostring(size)
+								)
+							)
+						end
+					end
 					for _, part in ps do
 						local half = part.Size / 2
 						local cf = part.CFrame
@@ -688,7 +727,11 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 									if not seen[box] and not (box[1] == i and exempt[designed(name)]) then
 										seen[box] = true
 										if sat(cf, half, box[2], box[3]) then
-											bad[prop.Name .. " " .. name .. " on track " .. box[1]] = true
+											bad[prop.Name .. " " .. name .. " on track " .. box[1]] = e.Biome
+												.. " "
+												.. name
+												.. " track "
+												.. box[1]
 										end
 									end
 								end
@@ -713,23 +756,98 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 						)
 					)
 				end
-				local list = {}
-				for what in bad do
-					table.insert(list, what)
+				for what, key in bad do
+					hits[key] = (hits[key] or 0) + 1
+					hitWhere[key] = (hitWhere[key] and hitWhere[key] .. ", " or "") .. string.match(what, "^%S+")
 				end
-				table.sort(list)
-				for _, what in list do
-					print(
-						"W2 ROAD WARN "
-							.. e.Biome
-							.. " box test hit (the exporter's triangle test cleared it): "
-							.. what
-					)
-				end
-				rwarn += #list
 			end
 		end
+		local PINS = ROOT .. "/tools/lune/w2_road_warn_pins.json"
+		local keys = {}
+		for key in hits do
+			table.insert(keys, key)
+		end
+		table.sort(keys)
+		if process.env.PIN == "write" then
+			local out = {}
+			for _, key in keys do
+				table.insert(out, string.format("\t%q: %d", key, hits[key]))
+			end
+			fs.writeFile(PINS, "{\n" .. table.concat(out, ",\n") .. "\n}\n")
+			print("W2 ROAD pins written: " .. PINS)
+		end
+		local okPins, pinText = pcall(fs.readFile, PINS)
+		local pins = okPins and serde.decode("json", pinText) or {}
+		rcheck(okPins, "box-hit pins file exists (tools/lune/w2_road_warn_pins.json; PIN=write makes it)")
+		for _, key in keys do
+			if hits[key] <= (pins[key] or 0) then
+				rwarn += hits[key]
+				print(string.format("W2 ROAD WARN pinned box hit %s x%d: %s", key, hits[key], hitWhere[key]))
+			else
+				rcheck(
+					false,
+					string.format(
+						"box hit %s x%d over its pin %d (%s): the exporter's triangle test did not see this",
+						key,
+						hits[key],
+						pins[key] or 0,
+						hitWhere[key]
+					)
+				)
+			end
+		end
+		print(string.format("W2 TRANSFORM CHECKS pass=%d fail=%d", tpass, tfail))
 		print(string.format("W2 ROAD CHECKS pass=%d fail=%d warn=%d", rpass, rfail, rwarn))
+	end
+	do -- a cut prop's pieces (Group, Whole) are built, skipped and pruned together: a synthetic two-piece group on Track 1
+		local gpass, gfail = 0, 0
+		local function gcheck(ok, name)
+			if ok then
+				gpass += 1
+			else
+				gfail += 1
+				print("W2 GROUP FAIL " .. name)
+			end
+		end
+		local TB, base = req(Shared.TrackBuilder), Themes[entries[1].Biome]
+		local piece = table.clone(base.Props[base.Placed[1][1]])
+		piece.Mesh, piece.Hero = nil, nil
+		local function build(whole, p2)
+			local theme = table.clone(base)
+			theme.Props = { Piece_p1 = piece, Piece_p2 = piece }
+			theme.Lights, theme.Heroes = {}, {}
+			theme.Placed = {
+				{ "Piece_p1", 0, -1, -150, 0, 1, Group = 1, Whole = whole },
+				{ "Piece_p2", p2.X, -1, p2.Z, 0, 1, Group = 1, Whole = whole },
+			}
+			Themes.W2GroupTest = theme
+			local spec = table.clone(entries[1].Spec or req(Shared.TrackRegistry).Chain()[1])
+			spec.Biome = "W2GroupTest"
+			local model = TB.Build(spec, entries[1].Origin)
+			Themes.W2GroupTest = nil
+			local env = model:FindFirstChild("Environment")
+			return model, env and env:FindFirstChild("Placed_1"), env and env:FindFirstChild("Placed_2")
+		end
+		-- piece 2's own base is far off the ground; the whole prop's base is on it: both build
+		local model, p1, p2 = build(R.Vector3.new(0, -1, -150), R.Vector3.new(99999, 0, 99999))
+		gcheck(p1 ~= nil and p2 ~= nil, "both pieces build when the whole prop's base is on the ground")
+		gcheck(
+			p1 and p1:GetAttribute("PlacedGroup") == 1 and p2 and p2:GetAttribute("PlacedGroup") == 1,
+			"pieces carry PlacedGroup"
+		)
+		if p1 and p2 then -- a blocker over piece 1 only: Prune removes both
+			local block = R.Instance.new("Part")
+			block.Size = R.Vector3.new(4, 4, 4)
+			block.CFrame = parts(p1)[1].CFrame
+			block.Position = block.CFrame.Position
+			BD.Prune({}, { block }, { model })
+			gcheck(model.Environment:FindFirstChild("Placed_1") == nil, "Prune removes the blocked piece")
+			gcheck(model.Environment:FindFirstChild("Placed_2") == nil, "Prune removes its sibling piece with it")
+		end
+		-- both pieces' own bases on the ground, the whole prop's base off it: neither builds
+		local _, q1, q2 = build(R.Vector3.new(99999, -1, 99999), R.Vector3.new(20, 0, -150))
+		gcheck(q1 == nil and q2 == nil, "neither piece builds when the whole prop's base is off the ground")
+		print(string.format("W2 GROUP CHECKS pass=%d fail=%d", gpass, gfail))
 	end
 	for i, e in entries do -- shadow casters among the kept draft props (Kit.fromDraft's NO_SHADOW)
 		local casters = 0
@@ -862,23 +980,27 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 		end
 	end
 	print(string.format("W2 DRAFT CLEARANCE pass=%d fail=%d", pass, fail))
-	-- tools/blender/world2/chain.py (the drafts' and the exporter's road) against the game's chain: every world
-	-- waypoint of build/world2/chain.json within 0.05 studs of TrackBuilder's (run chain.py first)
-	local ok, text = pcall(fs.readFile, ROOT .. "/build/world2/chain.json")
-	if ok then
-		local chain, worst, same = require("@lune/serde").decode("json", text), 0, #entries == 10
-		for i, e in entries do
-			local wps, py = e.Layout.WorldWaypoints, chain[i] and chain[i].Waypoints or {}
-			same = same and #wps == #py
-			for j = 1, math.min(#wps, #py) do
-				local w, p = wps[j], py[j]
-				worst = math.max(worst, math.abs(w.X - p[1]), math.abs(w.Y - p[2]), math.abs(w.Z - p[3]))
-			end
+	-- tools/blender/world2/chain.py (the drafts' and the exporter's road) against the game's chain: its committed sample
+	-- tools/blender/world2/chain_check.json (each track's waypoint count, every Step-th world waypoint and the last;
+	-- python3 tools/blender/world2/chain.py rewrites it) within 0.05 studs of TrackBuilder's. Missing file: FAIL.
+	local ok, text = pcall(fs.readFile, ROOT .. "/tools/blender/world2/chain_check.json")
+	local chain, worst, same = ok and serde.decode("json", text) or {}, 0, ok and #entries == 10
+	for i, e in entries do
+		local wps, c = e.Layout.WorldWaypoints, chain[i] or { Count = -1, Step = 1, Points = {} }
+		same = same and #wps == c.Count
+		for n, p in c.Points do
+			local w = wps[math.min((n - 1) * c.Step + 1, #wps)]
+			worst = math.max(worst, math.abs(w.X - p[1]), math.abs(w.Y - p[2]), math.abs(w.Z - p[3]))
 		end
-		print(string.format("W2 CHAIN PARITY %s worst %.3f studs", same and worst <= 0.05 and "pass" or "FAIL", worst))
-	else
-		print("W2 CHAIN PARITY skipped: no build/world2/chain.json")
 	end
+	print(
+		string.format(
+			"W2 CHAIN PARITY %s worst %.3f studs%s",
+			same and worst <= 0.05 and "pass" or "FAIL",
+			worst,
+			ok and "" or " (no tools/blender/world2/chain_check.json: run chain.py)"
+		)
+	)
 end
 local clear = {}
 for _, m in models do

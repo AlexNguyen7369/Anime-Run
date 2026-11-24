@@ -14,6 +14,10 @@ import re
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 TRACKS = os.path.join(ROOT, "src", "shared", "Tracks", "World2")
 OUT = os.path.join(ROOT, "build", "world2", "chain.json")
+# Committed sample for the biome harness's CHAIN PARITY (build/ is gitignored): per track its waypoint count and every
+# CHECK_STEP-th waypoint plus the last. Rewritten by main(); regenerate after any World 2 track change.
+CHECK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chain_check.json")
+CHECK_STEP = 8
 ORIGIN = (-118.0, 1.0, 80.0)  # TrackBuilder.CHAIN_ORIGIN, heading 0
 TURN_STEP_DEG, WAYPOINT_SPACING, SLOPE_STEP = 6, 12, 8
 
@@ -121,7 +125,13 @@ def main():
 		print("%2d %-16s %-14s %7.0f studs (target %7.0f) %5d waypoints" % (t["Number"], t["Name"], t["Biome"], t["Length"], t["Target"], len(t["Waypoints"])))
 	os.makedirs(os.path.dirname(OUT), exist_ok=True)
 	json.dump(chain, open(OUT, "w"))
-	print("wrote", OUT)
+	check = []
+	for t in chain:
+		w = t["Waypoints"]
+		idx = sorted(set(range(0, len(w), CHECK_STEP)) | {len(w) - 1})
+		check.append({"Number": t["Number"], "Count": len(w), "Step": CHECK_STEP, "Points": [[round(c, 3) for c in w[i]] for i in idx]})
+	json.dump(check, open(CHECK, "w"), separators=(",", ":"))
+	print("wrote", OUT, "and", CHECK)
 
 
 if __name__ == "__main__":
