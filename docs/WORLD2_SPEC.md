@@ -66,4 +66,5 @@ The "Based on" names stay in docs and never ship (design doc 5).
 - Approved by the owner 2026-11-23 (second batch, as shown on the page at their last reviewed commit): Track 1
   DevilTokyo (6fbb25e), Track 3 RuinedCityZ (11045e6), Track 6 ElvenPlains (dfe607d), Track 7 AntIsland (24c6008). Frozen.
   Unreviewed partial rounds started after those commits are kept in git stash, not applied.
-- Not approved, work continues: Track 2 DemonCastle, Track 5 KaijuBase, Track 9 GoldenCity (owner 2026-11-23).
+- Not approved, work continues: Track 2 DemonCastle, Track 9 GoldenCity (owner 2026-11-23).
+- Approved by the owner 2026-11-23 after rework: Track 5 KaijuBase (round 16, c96b876). Frozen.
