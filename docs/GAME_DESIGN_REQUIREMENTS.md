@@ -869,6 +869,7 @@ None open here; 4.25 marks its own open question.
 
 ## Change log
 - 2026-11-23: owner: World 2 (4.47): separate place, locked plaza gate with /world2 for admins, per-world progress, 10 tracks Blender-first, per-world cruise, team of 4 and Awakening in World 2, 6 series.
+- 2026-11-23: owner: World 2 (4.47): scenery placed from the approved Blender drafts keeps the drafts' clearance (24+ studs from the road centre line, overhead 14+), not World 1's 8-stud road-edge clearance; track names 'Devil Hunter City' and 'Wrecked Kaiju Base' (no real place names); the 8 approved tracks' meshes are uploaded under the owner's account.
 - 2026-11-20: owner: game-wide Scroll Dojo look from the Summon and Team pages, center-out handscroll open about 0.45 s with input live, HUD and boss UI in scope; references first (4.46 draft; 4.20, 4.42 replaced for redesigned GUIs on approval).
 - 2026-11-20: owner approved the Scroll Dojo references: every frame, HUD option A, Money and Gems on lacquer plates (4.40 no-box rule replaced), Shop in three columns, kanji and sub lines kept, game potion art; the Upgrades tree is left as it is (4.46).
 - 2026-11-22: owner, HUD option A details: the team row keeps its circles and arc (lacquer and gold look only); the Turbo bar becomes wood with a vermilion fill (4.40, 4.46).

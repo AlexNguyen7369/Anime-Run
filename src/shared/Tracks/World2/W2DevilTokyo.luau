@@ -1,10 +1,10 @@
 --!nonstrict
--- World 2 Track 1 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Devil Hunter Tokyo run.
+-- World 2 Track 1 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Devil Hunter City run.
 -- Same route as World 1's Track 1 (Oval), so its length, spiral lap and validator results carry over
 -- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
 return {
 	Name = "W2DevilTokyo",
-	Description = "Devil Hunter Tokyo run: neon night streets, alley corners and the hunters' headquarters tower.",
+	Description = "Devil Hunter City run: neon night streets, alley corners and the hunters' headquarters tower.",
 	Number = 1,
 	Biome = "DevilTokyo",
 	Width = 40,

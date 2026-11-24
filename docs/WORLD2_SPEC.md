@@ -31,11 +31,11 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 
 | Track | Id | Biome key | Series | Biome (working name) | Enemy (based on) |
 |---|---|---|---|---|---|
-| 1 | W2DevilTokyo | DevilTokyo | Saw Man | Devil Hunter Tokyo | Katanah Man (Katana Man) |
+| 1 | W2DevilTokyo | DevilTokyo | Saw Man | Devil Hunter City | Katanah Man (Katana Man) |
 | 2 | W2DemonCastle | DemonCastle | Solo Levelup | Demon King's Castle | Barran (Baran) |
 | 3 | W2RuinedCityZ | RuinedCityZ | One Punch | Ruined City Zed | Garoo (Garou) |
 | 4 | W2HauntedTunnel | HauntedTunnel | Dandadan | Haunted Tunnel Road | Turbo Grammy (Turbo Granny) |
-| 5 | W2KaijuBase | KaijuBase | Kaiju No. 8 | Wrecked Tachikawa | Kaijo No. 9 (Kaiju No. 9) |
+| 5 | W2KaijuBase | KaijuBase | Kaiju No. 8 | Wrecked Kaiju Base | Kaijo No. 9 (Kaiju No. 9) |
 | 6 | W2ElvenPlains | ElvenPlains | Frieren | Elven Ruin Plains | Ora (Aura the Guillotine) |
 | 7 | W2AntIsland | AntIsland | Solo Levelup | Ant Island | Berru (Beru) |
 | 8 | W2MonsterDen | MonsterDen | One Punch | Monster Den | Orochy (Orochi) |
@@ -67,4 +67,7 @@ The "Based on" names stay in docs and never ship (design doc 5).
   DevilTokyo (6fbb25e), Track 3 RuinedCityZ (11045e6), Track 6 ElvenPlains (dfe607d), Track 7 AntIsland (24c6008). Frozen.
   Unreviewed partial rounds started after those commits are kept in git stash, not applied.
 - Not approved, work continues: Track 2 DemonCastle, Track 9 GoldenCity (owner 2026-11-23).
+- In game (owner 2026-11-23): props placed from an approved draft keep the draft's clearance (24+ studs from the road
+  centre line, overhead 14+, checked by tools/blender/world2/clearance.py). World 1's 8-stud road-edge clearance
+  (BiomeDressing.CLEARANCE) does not prune them.
 - Approved by the owner 2026-11-23 after rework: Track 5 KaijuBase (round 16, c96b876). Frozen.

@@ -1,10 +1,10 @@
 --!nonstrict
--- World 2 Track 5 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Wrecked Tachikawa run.
+-- World 2 Track 5 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Wrecked Kaiju Base run.
 -- Same route as World 1's Track 5 (Serpentine), so its length, spiral lap and validator results carry over
 -- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
 return {
 	Name = "W2KaijuBase",
-	Description = "Wrecked Tachikawa run: a kaiju-smashed city, defense force base walls and giant bones in the streets.",
+	Description = "Wrecked Kaiju Base run: a kaiju-smashed city, defense force base walls and giant bones in the streets.",
 	Number = 5,
 	Biome = "KaijuBase",
 	Width = 36,

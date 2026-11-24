@@ -10,7 +10,7 @@ local Kit = require(script.Parent.Parent.Kit)
 local M, hex, gate, draftMesh = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh
 
 return Kit.fromDraft("KaijuBase", require(script.Parent.KaijuBaseDraft), {
-	DisplayName = "Wrecked Tachikawa",
+	DisplayName = "Wrecked Kaiju Base",
 	Gate = gate(hex("ECECE6"), M.Concrete, hex("FF8A1E")),
 	GroundMaterial = M.Ground,
 	-- Flat ground at the corridor height, as the draft's ground plane (spec 3.3 Blocks)

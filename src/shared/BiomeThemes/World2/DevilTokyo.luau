@@ -10,7 +10,7 @@ local Kit = require(script.Parent.Parent.Kit)
 local M, hex, gate, draftMesh = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh
 
 return Kit.fromDraft("DevilTokyo", require(script.Parent.DevilTokyoDraft), {
-	DisplayName = "Devil Hunter Tokyo",
+	DisplayName = "Devil Hunter City",
 	Gate = gate(hex("9A9C9E"), M.Concrete, hex("FFA850")),
 	GroundMaterial = M.Asphalt,
 	-- Flat ground at the corridor height, as the draft's ground plane (spec 3.3 Blocks)

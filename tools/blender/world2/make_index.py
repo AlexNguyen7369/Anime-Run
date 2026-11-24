@@ -11,11 +11,11 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")
 OUT = os.path.join(ROOT, "assets", "world2_draft")
 REFS = os.path.join(ROOT, "build", "world2", "refs")
 TRACKS = [
-	(1, "DevilTokyo", "Devil Hunter Tokyo", "Saw Man", "Katanah Man"),
+	(1, "DevilTokyo", "Devil Hunter City", "Saw Man", "Katanah Man"),
 	(2, "DemonCastle", "Demon King's Castle", "Solo Levelup", "Barran"),
 	(3, "RuinedCityZ", "Ruined City Zed", "One Punch", "Garoo"),
 	(4, "HauntedTunnel", "Haunted Tunnel Road", "Dandadan", "Turbo Grammy"),
-	(5, "KaijuBase", "Wrecked Tachikawa", "Kaiju No. 8", "Kaijo No. 9"),
+	(5, "KaijuBase", "Wrecked Kaiju Base", "Kaiju No. 8", "Kaijo No. 9"),
 	(6, "ElvenPlains", "Elven Ruin Plains", "Frieren", "Ora"),
 	(7, "AntIsland", "Ant Island", "Solo Levelup", "Berru"),
 	(8, "MonsterDen", "Monster Den", "One Punch", "Orochy"),
