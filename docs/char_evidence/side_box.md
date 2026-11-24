@@ -37,7 +37,7 @@ Source quality: One official plush photo viewed (Movic) and merchandise text; no
 |---|---|---|
 | Defining attributes | pass | Red barrel-lid chest, brown bands, worn patches, white teeth on both rims, dark mouth, lolling tongue |
 | Views | pass | All four views, portrait and head viewed, portrait and head also at 110 px |
-| Triangles | pass | @TRIS@ |
+| Triangles | pass | 3744 total, largest mesh 2240, of 20000 per mesh |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

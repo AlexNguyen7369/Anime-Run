@@ -37,7 +37,7 @@ Source quality: One official trading card viewed (head, neck, shoulders). No ful
 |---|---|---|
 | Defining attributes | pass | Crimson scales, pale nose horn, horned crown, blue eyes, salmon throat plates, broad wings |
 | Views | pass | All four views, portrait and head viewed, portrait and head also at 110 px |
-| Triangles | pass | @TRIS@ |
+| Triangles | pass | 5860 total, largest mesh 1564, of 20000 per mesh |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

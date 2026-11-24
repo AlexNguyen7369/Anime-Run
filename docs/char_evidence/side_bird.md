@@ -37,7 +37,7 @@ Source quality: One anime still viewed, left profile. Wiki page read only as a s
 |---|---|---|
 | Defining attributes | pass | Orange plump body, long dark beak, olive ring eye, crest tuft, dark feet |
 | Views | pass | All four views, portrait and head viewed, portrait and head also at 110 px |
-| Triangles | pass | @TRIS@ |
+| Triangles | pass | 2380 total, largest mesh 644, of 20000 per mesh |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

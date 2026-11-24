@@ -40,7 +40,7 @@ Source quality: Fan-site text only. Fandom refused fetch (HTTP 402), other artic
 |---|---|---|
 | Defining attributes | pass | Black shaggy hound, six red eyes, no ears or nose, huge fangs, four toes, bare muscle below |
 | Views | pass | All four views, portrait and head viewed, portrait and head also at 110 px |
-| Triangles | pass | @TRIS@ |
+| Triangles | pass | 8212 total, largest mesh 2444, of 20000 per mesh |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |
