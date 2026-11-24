@@ -105,6 +105,8 @@ def torso(m):
 
 
 def build(k):
+	from sidekick_solid import solid_blocks
+
 	parts = {
 		"Torso": ((0, 0, 3), None),
 		"Head": ((0, 0, 4.6), "Torso"),
@@ -120,6 +122,7 @@ def build(k):
 	}
 	# a dancer's open arms
 	m = k.Model(ID, RAMPS, parts, {"LeftArm": (-14, -30, 0), "RightArm": (-14, 30, 0)})
+	solid_blocks(m)
 	head(m)
 	hat(m)
 	hair(m)
