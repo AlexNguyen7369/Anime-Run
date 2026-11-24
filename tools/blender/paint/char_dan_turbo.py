@@ -3,7 +3,7 @@
 # rolled trousers and bare grey feet. Block body as everyone's. +X is the viewer's right. Drawn in-house.
 import math
 
-from dan_style3 import Kit, T, bare_foot, big_head, block, core_leg, crown, ears, eye, finish, gem, hoop, jacket, mop, prism, ramps, rest, shade, sleeve, stroke, trouser
+from dan_style3 import Kit, T, bare_foot, big_head, block, core_leg, crown, ear, eye, finish, gem, hoop, jacket, mop, prism, ramps, rest, scalp, shade, sleeve, stroke, trouser
 
 SKIN = "#bdb6b4"
 SKIN_D = "#7c7478"
@@ -84,7 +84,7 @@ def _coat(k):
 def model(parts, kit):
 	k = Kit(kit, parts, R, outline=0)
 	big_head(k)
-	ears(k, z=4.74)
+	ear(k, z=4.78)
 	_hair(k)
 	_mask(k)
 	for s in (1, -1):
@@ -121,3 +121,4 @@ def paint(a):
 	R.paint(a)
 	_face(a["Head_F"])
 	rest(a, SKIN, "#b8b6be", BLACK, BLACK, BLACK)
+	scalp(a, "#b8b6be")

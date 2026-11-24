@@ -42,9 +42,9 @@ Source quality: AniList character images and text, read through its public API, 
 | Version | pass | varsity jacket outfit with the bat |
 | Defining attributes | pass | hair, glasses, earrings, eyes, jacket, vest, bat, footwear |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed; portrait also at 110 px |
-| Self score | 8.5/10 | Builder's own likeness score |
+| Self score | 8/10 | Builder's own likeness score |
 | Camera readability | not checked | No in-game camera |
-| Triangles | pass | 5760 of 12000 |
+| Triangles | pass | 6136 of 12000 |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

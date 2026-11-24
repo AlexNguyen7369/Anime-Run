@@ -38,9 +38,9 @@ Source quality: AniList character images and text, read through its public API, 
 | Version | pass | human form in the school blazer, not the Evil Eye possessed form |
 | Defining attributes | pass | hair, eyes, earrings, outfit |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed; portrait also at 110 px |
-| Self score | 7.5/10 | Builder's own likeness score |
+| Self score | 7/10 | Builder's own likeness score |
 | Camera readability | not checked | No in-game camera |
-| Triangles | pass | 3576 of 12000 |
+| Triangles | pass | 4348 of 12000 |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

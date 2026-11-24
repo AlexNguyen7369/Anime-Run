@@ -37,7 +37,7 @@ Source quality: fan wikis, guide sites and shop text only. "Read directly" means
 | Known gaps | open | Outfit geometry and ramps are shared with char_boss_mage.py on purpose: a change there changes this hero on rebuild. The tails are part of the Head and do not swing. |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed, portrait also near 110 px; side view not viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 4052 of 12000 |
+| Triangles | pass | 4084 of 12000 |
 | Hard facets, no outline | pass | Built through `finish()` |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

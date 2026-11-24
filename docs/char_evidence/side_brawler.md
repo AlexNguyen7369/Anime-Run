@@ -37,7 +37,7 @@ Source quality: one stylised chibi product photograph and one AniList portrait, 
 |---|---|---|
 | Version | pass | Human-sized fighting form from the base raid |
 | Defining attributes | pass | Crimson hulk, split dome with one pale eye, long horn, grin, pink core, spikes, ringed tail |
-| Views agree | pass | Front, three-quarter, portrait and head viewed |
+| Views agree | pass | All four views, portrait and head viewed |
 | Camera readability | not checked | Review renders only |
 | Triangles | pass | 5684 of 20000 per mesh |
 | Hard facets, no outline | pass | Facet-baked meshes, no ink shell |

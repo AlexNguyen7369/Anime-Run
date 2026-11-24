@@ -21,7 +21,7 @@ def plate(m, part, ramp, y, pts, t=0.04, a=0.5, b=0.05):
 def head(m):
 	h = "Head"
 	# a long narrow block face, drawn down to a heavy chin
-	m.block(h, "skin", 0, 0, 7.1, 5.0, 0.74, 0.7, ch=0.1, flare=-0.02, mids=(6.2,), jit=0.01, a=0.74, b=0.22)
+	m.block(h, "skin", 0, 0, 7.24, 5.0, 0.74, 0.7, ch=0.1, flare=-0.02, mids=(6.2,), jit=0.01, a=0.74, b=0.22)
 	m.block(h, "skin", 0, -0.12, 5.2, 4.72, 0.44, 0.52, ch=0.1, a=0.74, b=0.22)
 	m.block(h, "skin", 0, 0, 5.0, 4.4, 0.36, 0.36, ch=0.04, a=0.44, b=0.36)
 	y = -0.72
@@ -51,9 +51,9 @@ def hat(m):
 	rings = []
 	# one wide drooping brim and a soft low crown
 	for r, z in ((0.5, 7.0), (2.0, 6.82), (2.06, 6.9), (1.9, 7.02), (0.96, 7.2), (0.98, 7.6), (0.82, 7.9), (0.4, 7.98)):
-		rings.append([(r * m_cos(i, n), r * 0.94 * m_sin(i, n) + 0.04, z - (0.16 * abs(m_sin(i, n)) if r > 1.5 else 0)) for i in range(n)])
+		rings.append([(r * m_cos(i, n), r * 0.94 * m_sin(i, n) + 0.04, z + 0.26 - 0.1 * r * m_sin(i, n)) for i in range(n)])
 	m.add(h, "hat", *m._loft(rings), a=0.5, b=0.44)
-	rings = [[(r * m_cos(i, n), r * 0.94 * m_sin(i, n) + 0.04, z) for i in range(n)] for r, z in ((1.0, 7.18), (1.04, 7.22), (1.03, 7.4), (0.98, 7.42))]
+	rings = [[(r * m_cos(i, n), r * 0.94 * m_sin(i, n) + 0.04, z - 0.1 * r * m_sin(i, n)) for i in range(n)] for r, z in ((1.0, 7.44), (1.04, 7.48), (1.03, 7.66), (0.98, 7.68))]
 	m.add(h, "hollow", *m._loft(rings), a=0.6, b=0.3)
 
 
@@ -71,7 +71,7 @@ def m_sin(i, n):
 
 def hair(m):
 	h = "Hair"
-	m.block(h, "hair", 0, 0.14, 7.1, 5.8, 0.84, 0.72, ch=0.08, a=0.5, b=0.4)
+	m.block(h, "hair", 0, 0.14, 7.34, 5.8, 0.86, 0.74, ch=0.08, a=0.5, b=0.4)
 	for s in (1, -1):
 		# two straight front curtains either side of the face
 		m.path(h, "hair", [(s * 0.78, -0.5, 7.0), (s * 0.92, -0.7, 5.6), (s * 0.94, -0.84, 4.2), (s * 0.92, -0.9, 2.5)], [0.2, 0.24, 0.24, 0.02], [0.16, 0.18, 0.16, 0.02], n=6, a=0.54, b=0.5)

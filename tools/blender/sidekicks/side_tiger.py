@@ -66,15 +66,12 @@ def body(m):
 	b = "Body"
 	m.path(b, "fur", [(0, y, z) for y, z, _, _ in BODY], [w for _, _, w, _ in BODY], [h for _, _, _, h in BODY], n=8, a=0.58, b=0.34, jit=0.015)
 	box(m, b, "fur", 0, -0.6, 2.72, 2.2, 0.66, 0.5, ch=0.14, jit=0.015, a=0.6, b=0.3)  # shoulder hump
-	box(m, b, "cream", 0, -1.08, 1.9, 0.94, 0.62, 0.22, ch=0.1, jit=0.02, a=0.58, b=0.3)
+	box(m, b, "cream", 0, -1.0, 2.0, 0.98, 0.7, 0.24, ch=0.14, flare=-0.16, jit=0.015, a=0.58, b=0.3)
 	for i, (y, e, w) in enumerate(((-0.6, 0.5, 0.15), (-0.2, 0.66, 0.16), (0.24, 0.48, 0.15), (0.66, 0.64, 0.16), (1.06, 0.5, 0.14), (1.42, 0.58, 0.11))):
 		for s in (1, -1):
 			body_stripe(m, y + 0.06 * s, 0.02 * s, s * e, w, lean=0.1 * (1 if i % 2 else -1))
 			if i in (1, 3, 4):
 				body_stripe(m, y + 0.2, s * 0.78, s * 0.42, w * 0.7)
-	for s in (1, -1):
-		m.spike(b, "cream", (s * 0.4, -1.1, 1.3), (s * 0.36, -1.28, 0.74), 0.24, flat=0.6, a=0.56, b=0.3)
-
 
 def leg(m, name, x, y, s, hip, back):
 	m.path(name, "fur", [(x, y, hip), (x + s * 0.06, y + (0.1 if back else -0.04), 0.96), (x + s * 0.06, y - 0.02, 0.4)], [0.44, 0.4, 0.36], [0.56 if back else 0.5, 0.42, 0.36], n=8, a=0.56, b=0.34, jit=0.012)
@@ -123,12 +120,18 @@ def head(m):
 		for z in (0.02, -0.2, -0.42):
 			m.plate(h, "stripe", [(s * 0.6, y, cz + z - 0.02), (s * 0.86, y, cz + z + 0.12), (s * 0.86, y, cz + z - 0.0)], (0, 0.07, 0), a=0.5, b=0.1)
 			m.plate(h, "stripe", [(s * 1.0, cy - 0.56, cz + z + 0.15), (s * 1.0, cy + 0.2, cz + z + 0.24), (s * 1.0, cy - 0.56, cz + z)], (0.06, 0, 0), a=0.5, b=0.1)
+		# the back of the head: bars curving out from the middle, as on the forehead
+		for x0, z0, x1, z1, w0, w1 in ((0.05, 0.5, 0.8, 0.62, 0.12, 0.04), (0.05, 0.24, 0.82, 0.3, 0.14, 0.04), (0.05, -0.04, 0.8, -0.04, 0.13, 0.04), (0.3, -0.3, 0.82, -0.36, 0.04, 0.1)):
+			yb = cy + 0.72
+			m.plate(h, "stripe", [(s * x0, yb, cz + z0 + w0 / 2), (s * x1, yb, cz + z1 + w1 / 2), (s * x1, yb, cz + z1 - w1 / 2), (s * x0, yb, cz + z0 - w0 / 2)], (0, 0.07, 0), a=0.5, b=0.1)
+		for yt in (-0.2, 0.2):
+			m.plate(h, "stripe", [(s * 0.06, cy + yt - 0.05, cz + 0.84), (s * 0.46, cy + yt, cz + 0.84), (s * 0.06, cy + yt + 0.07, cz + 0.84)], (0, 0, 0.05), a=0.5, b=0.1)
 		# small round ear, black behind, pale and pink inside
 		m.disc(h, "stripe", (s * 0.74, cy + 0.12, cz + 0.84), (0, 1, 0), 0.38, th=0.22, n=10, a=0.5, b=0.3)
 		m.disc(h, "cream", (s * 0.74, cy + 0.02, cz + 0.83), (0, 1, 0), 0.3, th=0.16, n=10, a=0.64, b=0.26)
 		m.disc(h, "pink", (s * 0.74, cy - 0.04, cz + 0.8), (0, 1, 0), 0.16, th=0.14, n=8, a=0.56, b=0.2)
 		# ruff of fur round the cheeks
-		for i, (x, z, tx, tz) in enumerate(((0.9, 0.1, 1.34, -0.1), (0.9, -0.2, 1.3, -0.5), (0.8, -0.5, 1.02, -0.96), (0.5, -0.6, 0.56, -1.1))):
+		for i, (x, z, tx, tz) in enumerate(((0.9, 0.14, 1.34, -0.06), (0.9, -0.16, 1.32, -0.42), (0.86, -0.42, 1.16, -0.74))):
 			m.spike(h, "cream" if i % 2 else "fur", (s * x, cy + 0.06, cz + z), (s * tx, cy + 0.06, cz + tz), 0.28, flat=0.6, a=0.58, b=0.32)
 
 

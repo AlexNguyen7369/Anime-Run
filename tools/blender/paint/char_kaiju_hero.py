@@ -1,6 +1,7 @@
 # Target look for kaiju_hero "Kafko", kaiju form (design doc section 5): a horned bone skull for a face with small cyan eyes and a long row of
 # teeth, a dark scaled hood with spines, charcoal muscle plates split by glowing cyan seams, a bone collar line, layered armour legs.
 # +X is the viewer's right in the front view. Drawn in-house.
+from jk_style3 import bake, jitter
 from kaiju_style3 import Kit, Ramps, big_head, block, finish, gem, prism, slab, stroke
 
 BONE, BONE_D = "#dcdad2", "#a5a298"
@@ -23,8 +24,13 @@ T = "UpperTorso"
 def _head(k):
 	h = "Head"
 	# the dark scaled hood over the top, sides and back
-	block(k, h, "Hood", 0, 0.24, 5.86, 3.96, 1.0, 0.66, "hide", ch=0.14, corner=0.3, sub=1, jit=0.03, mids=(5.2, 4.6), a=0.46, b=0.5, tone=0.04)
-	block(k, h, "HoodTop", 0, -0.08, 5.82, 5.36, 0.92, 0.78, "hide", ch=0.14, corner=0.3, jit=0.02, sub=1, a=0.5, b=0.5)
+	for name, rows in (
+		("Hood", [(0, 0.16, 5.98, 0.34, 0.32), (0, 0.2, 5.84, 0.66, 0.58), (0, 0.22, 5.5, 0.9, 0.74), (0, 0.22, 4.9, 0.98, 0.76), (0, 0.22, 4.4, 0.94, 0.7), (0, 0.2, 3.96, 0.78, 0.54)]),
+		("HoodTop", [(0, -0.12, 5.86, 0.46, 0.4), (0, -0.12, 5.74, 0.74, 0.62), (0, -0.1, 5.44, 0.9, 0.72), (0, -0.1, 5.3, 0.9, 0.72)]),
+	):
+		o = k.tube(h, name, rows, "hide", corner=0.6, nc=2, sub=1, outline=0)
+		jitter(o, 0.03)
+		bake(o, "hide", k, a=0.48, b=0.5, tone=0.05)
 	# spines marching over the crown and down the back
 	for i, (y0, z0, y1, z1, r) in enumerate(((0.1, 5.7, 0.4, 6.3, 0.26), (0.5, 5.6, 1.0, 6.04, 0.28), (0.74, 5.2, 1.4, 5.5, 0.28), (0.8, 4.7, 1.44, 4.86, 0.28), (0.8, 4.3, 1.3, 4.3, 0.24))):
 		gem(k, h, f"Spine{i}", (0, y0, z0), (0, y1, z1), r, "plate", flat=0.5, across=(1, 0, 0), a=0.5)
@@ -32,8 +38,10 @@ def _head(k):
 		for i, (y0, z0, y1, z1) in enumerate(((0.3, 5.5, 0.6, 6.0), (0.7, 5.1, 1.2, 5.44), (0.76, 4.6, 1.24, 4.76))):
 			gem(k, h, f"Scale{s}{i}", (s * 0.6, y0, z0), (s * 0.92, y1, z1), 0.24, "hide", flat=0.5, across=(1, 0, 0), a=0.54)
 		# the bone horn: root on the brow, up and forward
-		gem(k, h, f"Horn{s}", (s * 0.54, -0.62, 5.36), (s * 0.86, -0.84, 6.74), 0.29, "bone", flat=0.8, twist=0.2, bend=0.06, a=0.52)
-		block(k, h, f"HornRoot{s}", s * 0.52, -0.62, 5.62, 5.2, 0.32, 0.3, "bone", ch=0.08, corner=0.3, a=0.52, b=0.46)
+		# low on the brow, heavy at the root, sweeping out and back to a point, ridged
+		gem(k, h, f"Horn{s}", (s * 0.42, -0.8, 5.16), (s * 1.02, -0.3, 6.28), 0.33, "bone", flat=0.8, twist=0.2, bend=0.1, a=0.52)
+		gem(k, h, f"HornStep{s}", (s * 0.34, -0.86, 5.0), (s * 0.68, -0.82, 5.82), 0.22, "bone", flat=0.6, twist=0.2, a=0.6)
+		block(k, h, f"HornRoot{s}", s * 0.52, -0.62, 5.5, 5.16, 0.34, 0.3, "bone", ch=0.08, corner=0.3, a=0.52, b=0.46)
 		# brow ridge and cheekbone, raised bone
 		prism(k, h, f"Brow{s}", [(s * 0.04, 4.86), (s * 0.84, 5.18), (s * 0.94, 5.36), (s * 0.5, 5.46), (s * 0.04, 5.22)], -1.02, -0.8, "bone", a=0.56, b=0.46)
 		prism(k, h, f"Cheek{s}", [(s * 0.3, 4.6), (s * 0.94, 4.78), (s * 0.95, 4.54), (s * 0.56, 4.42)], -0.95, -0.8, "bone", a=0.56, b=0.4)
@@ -55,7 +63,11 @@ def _head(k):
 		x = i * 0.185 + 0.09
 		ln = 0.32 if i in (-4, 3) else 0.2
 		prism(k, h, f"ToothL{i}", [(x - 0.08, 4.08), (x + 0.08, 4.08), (x, 4.08 + ln)], -0.93, -0.84, "bone", a=0.6, b=0.2)
-	block(k, h, "Jaw", 0, -0.5, 4.12, 3.9, 0.78, 0.4, "bone", ch=0.06, corner=0.3, a=0.5, b=0.46)
+	# the jaw: a hinge at each side, tapering to a narrow chin
+	prism(k, h, "Jaw", [(-0.84, 4.14), (0.84, 4.14), (0.7, 3.96), (0.36, 3.82), (-0.36, 3.82), (-0.7, 3.96)], -0.94, -0.4, "bone", a=0.52, b=0.46)
+	prism(k, h, "Chin", [(-0.24, 4.06), (0.24, 4.06), (0.3, 3.86), (-0.3, 3.86)], -1.0, -0.9, "bone", a=0.58, b=0.4)
+	for s in (1, -1):
+		slab(k, f"JawSide{s}", [(-0.9, 4.12), (0.1, 4.34), (0.22, 4.1), (0.0, 3.96), (-0.8, 3.86)], *sorted((s * 0.8, s * 0.94)), "bone", a=0.5, b=0.4)
 
 
 def _body(k):
@@ -92,20 +104,21 @@ def _arm(k, side, s):
 		block(k, arm, f"Fore{tag}", cx, 0, 2.86, 2.3, hw, 0.55, "hide", ch=0.06, jit=0.015, a=0.5, b=0.52)
 	block(k, arm, "Wrist", ax, 0, 2.36, 2.28, 0.52, 0.52, "cyan", ch=0.02, a=0.66, b=0.2)
 	block(k, arm, "Hand", ax, 0, 2.28, 1.78, 0.53, 0.53, "hide", ch=0.06, a=0.56, b=0.5)
-	for i, dx in enumerate((-0.33, -0.11, 0.11, 0.33)):
-		block(k, arm, f"Knuckle{i}", ax + dx, -0.53, 2.04, 1.82, 0.06, 0.04, "cyan", ch=0.02, a=0.66, b=0.2)
+	block(k, arm, "HandSeam", ax, 0, 2.06, 2.0, 0.54, 0.54, "cyan", ch=0.02, a=0.64, b=0.2)
 
 
 def _leg(k, side, s):
 	leg, x, px = f"{side}UpperLeg", s * 0.5, s * 0.535
 	k.reshape(leg, f"{side}Leg", [(x, 0, 2.0, 0.42, 0.42), (x, 0, 0.1, 0.42, 0.42)], corner=0.1, nc=1)
 	block(k, leg, "Core", px, 0, 1.96, 0.2, 0.46, 0.5, "deep", ch=0.04, a=0.5, b=0.5)
-	# overlapping armour: three flaring tiers on the thigh, four on the shin
-	for i, (z1, z0) in enumerate(((1.98, 1.66), (1.72, 1.42), (1.48, 1.2))):
-		block(k, leg, f"Thigh{i}", px, 0, z1, z0, 0.49, 0.54, "plate", ch=0.05, flare=0.05, corner=0.18, a=0.48, b=0.54)
-	block(k, leg, "Knee", px, -0.5, 1.2, 0.92, 0.3, 0.16, "plate", ch=0.06, corner=0.3, a=0.6, b=0.5)
-	for i, (z1, z0) in enumerate(((0.98, 0.74), (0.8, 0.56), (0.62, 0.38))):
-		block(k, leg, f"Shin{i}", px, 0.02, z1, z0, 0.47, 0.52, "plate", ch=0.05, flare=0.06, corner=0.18, a=0.48, b=0.54)
+	# overlapping armour of uneven plates: long curved thigh shells with a pointed front, shorter shin shells
+	for i, (z1, z0, fl) in enumerate(((1.98, 1.5, 0.05), (1.56, 1.18, 0.08))):
+		block(k, leg, f"Thigh{i}", px, 0.02, z1, z0, 0.47, 0.52, "plate", ch=0.05, flare=fl, corner=0.2, a=0.46 + 0.06 * i, b=0.54)
+		prism(k, leg, f"ThighV{i}", [(px - 0.42, z1 - 0.08), (px + 0.42, z1 - 0.08), (px + 0.46, z0 + 0.1), (px + s * 0.12, z0 - 0.1), (px - 0.46, z0 + 0.1)], -0.66, -0.5, "plate", a=0.56, b=0.5, g=0.2)
+	block(k, leg, "Knee", px, -0.5, 1.2, 0.9, 0.3, 0.2, "hide", ch=0.07, corner=0.3, a=0.62, b=0.5)
+	for i, (z1, z0, fl) in enumerate(((1.0, 0.7, 0.04), (0.72, 0.4, 0.08))):
+		block(k, leg, f"Shin{i}", px, 0.02, z1, z0, 0.46, 0.5, "plate", ch=0.05, flare=fl, corner=0.2, a=0.46 + 0.06 * i, b=0.54)
+		prism(k, leg, f"ShinV{i}", [(px - 0.36, z1 - 0.04), (px, z1 - 0.14), (px + 0.36, z1 - 0.04), (px + 0.3, z0 + 0.08), (px, z0 - 0.06), (px - 0.3, z0 + 0.08)], -0.66, -0.5, "plate", a=0.58, b=0.5, g=0.2)
 	block(k, leg, "Foot", px, -0.22, 0.4, 0.0, 0.52, 0.66, "hide", ch=0.1, corner=0.22, a=0.52, b=0.5)
 	for i, dx in enumerate((-0.36, -0.12, 0.12, 0.36)):
 		block(k, leg, f"Toe{i}", px + dx, -0.9, 0.2, 0.0, 0.1, 0.12, "hide", ch=0.04, a=0.5, b=0.5)

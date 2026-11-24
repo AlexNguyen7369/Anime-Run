@@ -36,9 +36,9 @@ Source quality: one AniList head portrait viewed directly and search extracts. N
 |---|---|---|
 | Version | pass | Plain tiger, no rider |
 | Defining attributes | pass | White fur, black stripes, teal eyes, pink nose, round ears, ruff |
-| Views agree | pass | Front, three-quarter, portrait and head viewed |
+| Views agree | pass | All four views, portrait and head viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 5192 of 20000 per mesh |
+| Triangles | pass | 5144 of 20000 per mesh |
 | Hard facets, no outline | pass | Facet-baked meshes, no ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

@@ -25,7 +25,7 @@ Source quality: one official figure product photograph (front, cut at the hip) a
 ## Contradictions and choices
 
 - AniList hair is ash blonde, the figure's is yellow. Chosen: yellow, the more recognisable.
-- Axe held low so the portrait frame stays on her face; sources also show it on the shoulder.
+- Axe held low across the fist so the portrait frame stays on her face; sources also show it on the shoulder.
 - She is a minor in the source; fully clothed, armoured, unslimmed block body like everyone.
 
 ## Project rules over source
@@ -40,9 +40,9 @@ Source quality: one official figure product photograph (front, cut at the hip) a
 |---|---|---|
 | Version | pass | Standard combat suit with her axe |
 | Defining attributes | pass | Yellow twin tails, black ribbons, zigzag locks, green eyes, suit, huge axe |
-| Views agree | pass | Front, three-quarter, portrait and head viewed |
+| Views agree | pass | All four views, portrait and head viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 5750 of 12000 |
+| Triangles | pass | 6272 of 12000 |
 | Hard facets, no outline | pass | Facet-baked meshes, no ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

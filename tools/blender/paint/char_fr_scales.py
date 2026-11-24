@@ -1,7 +1,7 @@
 # Target look for fr_scales "Ora" (design doc section 5): violet-pink hair with a pointed centre fringe, low twin tails split into three braids, two long dark curving
 # horns, violet eyes and a smug smile; a dark blue bodice, long dark gloves, a short white skirt with a frilled pink half cape, high dark boots, the gold scales in her left hand.
 # The source's bare midriff is closed (brief: fully clothed). +X is the viewer's right. Drawn in-house.
-from fr_style3 import Kit, Ramps, T, big_head, block, boot, collar, elf_ears, face, fill_body, finish, gem, helmet, horns, jacket, locks, prism, rod, skirt
+from fr_style3 import Kit, Ramps, T, big_head, block, boot, collar, elf_ears, face, fill_body, finish, gem, helmet, horns, jacket, locks, prism, rod, skirt, turned
 
 SKIN = "#fae0d8"
 SKIN_D = "#d4a8a0"
@@ -86,17 +86,23 @@ def _arm(k, side, s):
 
 
 def _scales(k):
-	"""The balance, upright from her left fist: a post, a level beam, two hung pans."""
-	arm, x, y = "LeftUpperArm", 1.66, -0.8
-	block(k, arm, "Post", x, y, 3.86, 1.8, 0.07, 0.07, "gold", ch=0.02, a=0.56, b=0.44)
-	block(k, arm, "Foot", x, y, 1.96, 1.74, 0.2, 0.2, "gold", ch=0.05, a=0.56, b=0.44)
-	prism(k, arm, "Beam", [(x - 0.62, 3.6), (x - 0.57, 3.72), (x, 3.64), (x + 0.57, 3.72), (x + 0.62, 3.6), (x, 3.5)], y - 0.06, y + 0.06, "gold", a=0.58, b=0.42)
-	rod(k, arm, "Finial", [(x, y, 3.8), (x, y, 3.9), (x, y, 4.06), (x, y, 4.22)], [0.05, 0.14, 0.12, 0.02], "gem", n=6, a=0.58, b=0.46)
+	"""The balance, held: its post runs through her left fist and leans forward, a level beam, two hung pans."""
+	arm, x, y = "LeftUpperArm", 1.58, -0.36
+
+	def build():
+		block(k, arm, "Post", x, y, 3.8, 1.56, 0.075, 0.075, "gold", ch=0.02, a=0.56, b=0.44)
+		block(k, arm, "Foot", x, y, 1.72, 1.5, 0.2, 0.2, "gold", ch=0.05, a=0.56, b=0.44)
+		block(k, arm, "Collar", x, y, 2.62, 2.42, 0.15, 0.15, "gold", ch=0.04, a=0.58, b=0.44)
+		prism(k, arm, "Beam", [(x - 0.62, 3.56), (x - 0.57, 3.68), (x, 3.6), (x + 0.57, 3.68), (x + 0.62, 3.56), (x, 3.46)], y - 0.06, y + 0.06, "gold", a=0.58, b=0.42)
+		rod(k, arm, "Finial", [(x, y, 3.76), (x, y, 3.86), (x, y, 4.02), (x, y, 4.18)], [0.05, 0.14, 0.12, 0.02], "gem", n=6, a=0.58, b=0.46)
+
+	turned(build, (x, y, 2.05), 24, 0, 0)
+	py, pz = -0.99, 3.46
 	for d in (1, -1):
 		px = x + d * 0.55
 		for e in (1, -1):
-			rod(k, arm, f"Cord{d}{e}", [(px, y, 3.62), (px + e * 0.24, y, 3.1)], 0.022, "gold", n=4, a=0.6, b=0.4)
-		rod(k, arm, f"Pan{d}", [(px, y, 3.12), (px, y, 3.06), (px, y, 2.94)], [0.32, 0.31, 0.12], "gold", n=8, a=0.58, b=0.44)
+			rod(k, arm, f"Cord{d}{e}", [(px, py, pz), (px + e * 0.22, py, pz - 0.5)], 0.024, "gold", n=4, a=0.6, b=0.4)
+		rod(k, arm, f"Pan{d}", [(px, py, pz - 0.48), (px, py, pz - 0.54), (px, py, pz - 0.66)], [0.3, 0.29, 0.11], "gold", n=8, a=0.58, b=0.44)
 
 
 def model(parts, kit):

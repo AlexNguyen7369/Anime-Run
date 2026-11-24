@@ -5,6 +5,7 @@ from atlas import shade  # noqa: F401
 from ds_style3 import block as rblock  # noqa: F401  takes rot
 from ds_style3 import eye, gem, xf  # noqa: F401
 from jk_common import brow2  # noqa: F401
+from jk_style3 import bake
 from jk_style3 import block, collar, crown, ears, head_rest, prism, slab, stroke  # noqa: F401
 from style2 import Kit, Ramps  # noqa: F401
 from style3 import big_head, finish  # noqa: F401
@@ -94,6 +95,25 @@ def top_layers(k, xs, z=5.3, y=-1.02, r=0.28, root=(-0.3, 6.08), bend=0.6):
 		gem(k, "Head", f"Layer{i}", (x * 0.3, root[0], root[1]), (x * 0.96, y + 0.1 * abs(x), z + 0.06 * (i % 2)), r, flat=0.42, twist=0.2 + 0.12 * (i % 3), bend=bend, across=(1, 0, 0), a=0.5 + 0.05 * (i % 2))
 
 
+def hair_back(k, nape=4.02, temple=True):
+	"""The back of the head: a rounded backing down to the nape with two overlapping rows of locks, and a panel at each temple."""
+	rows = [(0, 0.5, 5.7, 0.8, 0.42), (0, 0.48, 5.3, 0.94, 0.5), (0, 0.48, 4.7, 0.94, 0.5), (0, 0.5, nape + 0.24, 0.84, 0.42), (0, 0.5, nape + 0.1, 0.7, 0.34)]
+	o = k.tube("Head", "BackShell", rows, "hair", corner=0.5, nc=2, outline=0)
+	bake(o, "hair", k, a=0.46, b=0.4, tone=0.03)
+	for i, x in enumerate((-0.74, -0.38, 0.0, 0.38, 0.74)):
+		gem(k, "Head", f"BackTop{i}", (x * 0.7, 0.62, 5.86), (x * 1.08, 1.12 - 0.12 * abs(x), 4.66 + 0.1 * (i % 2)), 0.32, flat=0.45, twist=0.15 + 0.1 * (i % 3), bend=0.1, across=(1, 0, 0), a=0.52 + 0.04 * (i % 2))
+	for i, x in enumerate((-0.62, -0.22, 0.2, 0.6)):
+		gem(k, "Head", f"BackLow{i}", (x, 0.78, 5.1), (x * 1.04, 1.0, nape + 0.08 * (i % 2)), 0.3, flat=0.45, twist=0.2 + 0.1 * (i % 2), across=(1, 0, 0), a=0.46)
+	if temple:
+		for s in (1, -1):
+			slab(k, f"Temple{s}", [(-0.7, 5.58), (0.4, 5.6), (0.4, 4.86), (-0.1, 4.92), (-0.44, 5.02), (-0.7, 5.2)], *sorted((s * 0.86, s * 0.97)), "hair", a=0.48, b=0.4)
+
+
+def fist_grip(k, side, s, y=-0.62):
+	"""A plain block of glove over the hilt, so the weapon is seen held; no fingers."""
+	block(k, f"{side}UpperArm", "GripHand", s * 1.5, y - 0.06, 2.24, 1.9, 0.26, 0.16, "suit", ch=0.05, corner=0.2, a=0.68, b=0.46)
+
+
 def skin_face(f, skin, dark, blush=0.2):
 	"""Flat anime skin: a hair shadow, soft sides and jaw, a small nose. The caller draws eyes and mouth."""
 	f.skin = skin
@@ -110,7 +130,11 @@ def skin_face(f, skin, dark, blush=0.2):
 
 def suit_paint(a, skin, hair):
 	head_rest(a, shade(skin, 0.84), shade(skin, 0.62))
+	# hair colour under the hair, so no gap between locks shows skin; the front edge of each side stays a cheek
 	a["Head_T"].fill(hair)
+	a["Head_B"].fill(hair)
+	a["Head_L"].path("M-5-5H125V116H62V48H-5Z", hair)
+	a["Head_R"].path("M-5-5H125V48H58V116H-5Z", hair)
 	for n in list(a.faces):
 		if n.startswith(("Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg")):
 			a[n].fill(BLACK)

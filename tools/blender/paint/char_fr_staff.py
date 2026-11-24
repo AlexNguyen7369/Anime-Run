@@ -24,7 +24,7 @@ PROPS = []
 
 def _hair(k):
 	helmet(k, low=4.2)
-	mane(k, 1.5, mid=1.0, end=0.72, n=5)
+	mane(k, 1.5, mid=1.0, end=0.74, n=5)
 	# blunt fringe, side to side, just over the eyes
 	for i, x in enumerate((-0.84, -0.56, -0.28, 0, 0.28, 0.56, 0.84)):
 		pts = [(x * 0.8 - 0.12, 5.86), (x * 0.8 + 0.12, 5.86), (x + 0.16, 5.4), (x + 0.15, 4.98 + 0.04 * (i % 2)), (x, 4.92 + 0.05 * (i % 2)), (x - 0.15, 4.98 + 0.04 * (i % 2)), (x - 0.16, 5.4)]
@@ -37,8 +37,8 @@ def _hair(k):
 		gem(k, "Head", f"Long2{s}", (s * 1.06, -0.3, 5.3), (s * 1.16, -0.66, 3.0), 0.3, flat=0.45, twist=0.15, a=0.46, across=(0, 1, 0))
 		gem(k, "Head", f"Half{s}", (s * 0.96, 0.1, 5.5), (s * 0.12, 1.16, 5.2), 0.2, flat=0.5, a=0.56)
 		# the ornament's wings, seen past the head from the sides and the back
-		prism(k, "Head", f"Fly{s}", [(s * 0.04, 5.3), (s * 0.2, 5.72), (s * 0.62, 5.86), (s * 0.66, 5.5), (s * 0.42, 5.26), (s * 0.54, 4.94), (s * 0.3, 4.8), (s * 0.06, 5.1)], 1.18, 1.28, "fly", a=0.56, b=0.4)
-	block(k, "Head", "FlyBody", 0, 1.26, 5.46, 4.9, 0.06, 0.06, "gold", ch=0.02, a=0.56, b=0.4)
+		prism(k, "Head", f"Fly{s}", [(s * 0.04, 5.3), (s * 0.2, 5.72), (s * 0.62, 5.86), (s * 0.66, 5.5), (s * 0.42, 5.26), (s * 0.54, 4.94), (s * 0.3, 4.8), (s * 0.06, 5.1)], 1.2, 1.32, "fly", a=0.56, b=0.4)
+	block(k, "Head", "FlyBody", 0, 1.3, 5.46, 4.9, 0.06, 0.06, "gold", ch=0.02, a=0.56, b=0.4)
 
 
 def _dress(k):

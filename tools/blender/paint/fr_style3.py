@@ -24,15 +24,29 @@ def helmet(k, low=4.5, ramp="hair", back_y=0.3, scalp=None, brow=5.2):
 	block(k, "Head", "Scalp", 0, (0.98 + back_y) / 2, 5.4, low, 1.0, (0.98 - back_y) / 2, scalp or ramp, ch=0.08, corner=0.25, a=0.44, b=0.42)
 
 
-def mane(k, low, ramp="hair", top=1.0, mid=1.05, end=0.8, y=0.98, n=5, seed=0):
-	"""Long hair down the back: one tapering solid with shingled locks over it, uneven tips."""
-	zs = 4.2 if low < 3 else (5.2 + low) / 2
-	o = k.tube("Head", "Mane", [(0, 0.72, 5.7, top * 0.7, 0.14), (0, y - 0.1, 5.2, top * 0.92, 0.18), (0, y - 0.02, 4.6, top, 0.2), (0, y, zs - 0.6, mid, 0.18), (0, y + 0.02, low + 0.3, end, 0.14), (0, y + 0.02, low, end * 0.9, 0.1)], ramp, corner=0.3, nc=1, sub=2, outline=0)
-	bake(o, ramp, k, a=0.5, b=0.4)
-	for i in range(n):
-		u = 2 * i / (n - 1) - 1
-		gem(k, "Head", f"ManeTop{i}", (u * 0.55, 0.62, 5.96), (u * mid, y + 0.18, zs), 0.36, ramp, flat=0.35, twist=0.15, a=0.5 + 0.06 * (i % 2), across=(1, 0, 0))
-		gem(k, "Head", f"ManeLow{i}", (u * mid * 0.8, y + 0.02, zs + 0.4), (u * end, y + 0.26, low - 0.22 + 0.2 * ((i + seed) % 2)), 0.34 * mid, ramp, flat=0.35, twist=0.15, a=0.46 + 0.07 * ((i + 1) % 2), across=(1, 0, 0))
+def pleat(k, part, name, rows, ramp, n=5, depth=0.07, d=1, curl=0.0, ragged=0.0, th=0.14, **bk):
+	"""One continuous folded sheet: ridges run the whole way down. rows = (z, centre x, y, half width), top first. d +1 faces the back,
+	-1 the front; curl wraps its sides round the body; ragged ends every ridge in a point."""
+	rings, m = [], 2 * n
+	for ri, (z, cx, y, hw) in enumerate(rows):
+		last = ri == len(rows) - 1
+		amp = depth * min(1.0, 0.35 + ri * 0.35)
+		out, inn = [], []
+		for j in range(m + 1):
+			u = 2 * j / m - 1
+			base = y - d * curl * u**4
+			zz = z + (ragged * (-1.0 - 0.5 * (j % 4 == 1) if j % 2 else 0.6) if last else 0.0)
+			out.append((cx + u * hw, base + d * (amp if j % 2 else -amp), zz))
+			inn.append((cx + u * hw * 0.98, base - d * th, zz))
+		rings.append(out + inn[::-1])
+	verts, faces, flat = k._loft(rings)
+	return bake(k._mesh(name, part, verts, faces, flat, outline=0), ramp, k, **dict(dict(a=0.52, b=0.5, g=0.12), **bk))
+
+
+def mane(k, low, ramp="hair", mid=1.05, end=0.8, y=1.0, n=5):
+	"""Long hair down the back: one layered fall from the crown to uneven points."""
+	rows = [(6.0, 0, 0.3, 0.42), (5.72, 0, 0.74, 0.72), (5.2, 0, y, 0.94), (4.4, 0, y + 0.06, mid), ((4.4 + low) / 2, 0, y + 0.1, (mid * 1.1 + end) / 2), (low, 0, y + 0.14, end)]
+	pleat(k, "Head", "Mane", rows, ramp, n=n, depth=0.09, curl=0.24, ragged=0.24, th=0.2, a=0.54, b=0.5)
 
 
 def elf_ears(k, out=1.72, up=5.16):
@@ -72,14 +86,14 @@ def open_coat(k, ramp, trim, hem, gap=0.4, low_gap=0.5, back_ramp=None):
 
 def cape(k, ramp, lining, hem, trim=None, w=0.74, y=0.78):
 	"""A cape down the back, wider than the body so it shows from the front; below the waist it rides the legs."""
-	block(k, T, "CapeTop", 0, y, 4.1, 1.96, 1.08, 0.08, ramp, ch=0.03, flare=0.2, sub=2, a=0.52, b=0.44)
-	block(k, T, "CapeIn", 0, y - 0.1, 3.9, 1.98, 1.04, 0.03, lining, ch=0.01, flare=0.2, a=0.5, b=0.4)
+	pleat(k, T, "CapeTop", [(4.1, 0, y, 1.06), (3.2, 0, y + 0.04, 1.16), (1.96, 0, y + 0.06, 1.3)], ramp, n=6, depth=0.08, th=0.1)
+	pleat(k, T, "CapeIn", [(4.0, 0, y - 0.1, 1.04), (1.98, 0, y - 0.06, 1.28)], lining, n=2, depth=0.02, d=-1, th=0.04)
 	for s, side in ((1, "Left"), (-1, "Right")):
 		leg = f"{side}UpperLeg"
-		block(k, leg, "Cape", s * w * 0.95, y + 0.03, 2.02, hem, w * 0.95, 0.08, ramp, ch=0.03, flare=0.12, sub=1, a=0.5, b=0.44, g=0.14)
-		block(k, leg, "CapeIn", s * w * 0.95, y - 0.07, 2.0, hem + 0.04, w * 0.95 - 0.03, 0.03, lining, ch=0.01, flare=0.12, a=0.5, b=0.4)
+		pleat(k, leg, "Cape", [(2.03, s * 0.65, y + 0.06, 0.65), ((2 + hem) / 2, s * 0.7, y + 0.1, 0.72), (hem, s * 0.74, y + 0.13, 0.8)], ramp, n=3, depth=0.08, th=0.1)
+		pleat(k, leg, "CapeIn", [(2.0, s * 0.65, y - 0.06, 0.63), (hem + 0.04, s * 0.74, y + 0.0, 0.78)], lining, n=2, depth=0.02, d=-1, th=0.04)
 		if trim:
-			block(k, leg, "CapeTrim", s * w * 0.95, y + 0.03, hem + 0.14, hem - 0.02, w * 0.95 + 0.14, 0.12, trim, ch=0.02, a=0.56, b=0.42)
+			block(k, leg, "CapeTrim", s * w * 0.95, y + 0.08, hem + 0.14, hem - 0.02, w * 0.95 + 0.14, 0.19, trim, ch=0.02, a=0.56, b=0.42)
 
 
 def turned(fn, pivot, rx=0.0, ry=0.0, rz=0.0, scale=1.0, move=(0, 0, 0)):
@@ -117,11 +131,18 @@ def face(f, skin, dark, iris, lash, brow, mouth, w=34, up=13, dn=10, inner=3.0, 
 	f.path(mouth, stroke="#8a4440", sw=2.0)
 
 
+def scalp(a, colour):
+	"""The head block's own paint is hair above and behind the cheeks, so a gap between locks never shows skin."""
+	a["Head_T"].fill(colour)
+	a["Head_B"].fill(colour)
+	a["Head_L"].path("M-5-5H125V135H66V46H-5Z", colour)
+	a["Head_R"].path("M125-5H-5V135H54V46H125Z", colour)
+
+
 def fill_body(a, skin, skin_d, torso, arm, leg, top, hand=None):
 	"""Every body face under the garments, so nothing pale peeks out."""
 	head_rest(a, shade(skin, 0.84), shade(skin, 0.62))
-	a["Head_T"].fill(top)
-	a["Head_B"].fill(top)
+	scalp(a, top)
 	for n in "FBLR":
 		a[f"Torso_{n}"].fill(torso)
 		form(a[f"Torso_{n}"], shade(torso, 0.5), 0.45)

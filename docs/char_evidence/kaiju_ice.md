@@ -39,9 +39,9 @@ Source quality: one official figure product photograph (front, cut at the hip) a
 |---|---|---|
 | Version | pass | Standard combat suit with the freezing-round rifle |
 | Defining attributes | pass | Silver fringe, lilac-grey eyes, black and green suit, pale shoulder plates, rifle with ice |
-| Views agree | pass | Front, three-quarter, portrait and head viewed |
+| Views agree | pass | All four views, portrait and head viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 5620 of 12000 |
+| Triangles | pass | 6066 of 12000 |
 | Hard facets, no outline | pass | Facet-baked meshes, no ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

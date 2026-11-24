@@ -4,7 +4,7 @@
 import math
 
 import char_boss_mage as base
-from fr_style3 import Kit, big_head, block, collar, elf_ears, face, finish, gem, head_rest, helmet, locks, mane, prism, rod, shade, skirt, slab, turned
+from fr_style3 import Kit, big_head, block, collar, elf_ears, face, finish, gem, head_rest, helmet, locks, mane, prism, rod, scalp, shade, skirt, slab, turned
 
 SKIN, SKIN_D, DEFAULT, R = base.SKIN, base.SKIN_D, base.DEFAULT, base.R
 HAIR = {"colour": "#D4D2E4", "locks": []}
@@ -20,6 +20,7 @@ def _hair(k):
 	part = [(-0.96, 5.5), (-0.84, 5.92), (-0.4, 6.16), (0.1, 6.2), (0.1, 6.1), (-0.4, 5.84), (-0.78, 5.84), (-0.9, 5.5)]
 	slab(k, "Part", part, -0.03, 0.03, "parting", a=0.5, b=0.2)
 	for s in (1, -1):
+		prism(k, "Head", f"Under{s}", [(s * 0.4, 5.6), (s * 1.0, 5.6), (s * 1.0, 4.94), (s * 0.84, 5.0), (s * 0.4, 5.26)], -0.92, -0.7, "hair", a=0.5, b=0.4)
 		# centre-parted fringe: locks to the brow, longer towards the temples
 		locks(k, f"Bang{s}", (s * 0.06, -0.72, 5.98), (((s * 0.2, -1.02, 5.14), 0.22), ((s * 0.46, -1.02, 5.02), 0.26), ((s * 0.74, -0.98, 4.96), 0.28), ((s * 0.98, -0.9, 4.8), 0.28)), bend=0.04)
 		gem(k, "Head", f"Lock{s}", (s * 0.92, -0.64, 5.5), (s * 0.94, -0.86, 3.4), 0.25, flat=0.45, twist=0.15, a=0.54, across=(1, 0, 0))
@@ -66,7 +67,6 @@ def paint(a):
 	R.paint(a)
 	face(a["Head_F"], SKIN, SKIN_D, ("#1e6c50", "#40a880", "#a4ecc8"), "#5a5470", "#a29cb8", "M58 105Q65 107 72 105", w=34, up=12, dn=10, inner=1.5, outer=-1.5, ir=(11, 12.5), lid=0.3, thick=1.2, brow_y=43, brow_w=22, brow_t=6.4, tilt=0.2, blush=0.24)
 	head_rest(a, shade(SKIN, 0.84), shade(SKIN, 0.64))
-	a["Head_T"].fill("#b2aec6")
-	a["Head_B"].fill("#b2aec6")
+	scalp(a, "#d4d2e4")
 	base._torso(a)
 	base._limbs(a)

@@ -3,7 +3,7 @@
 # high top, dark shorts, wooden sandals, a metal bat held low. Block body as everyone's. +X is the viewer's right. Drawn in-house.
 import math
 
-from dan_style3 import SKIN, SKIN_D, Kit, T, bake, big_head, block, brow2, core_leg, crown, ears, eye, face, finish, gem, hoop, mop, nose, prism, ramps, rblock, rest, sleeve, stroke, torso_core
+from dan_style3 import SKIN, SKIN_D, Kit, T, bake, big_head, block, brow2, core_leg, crown, ear, eye, face, finish, gem, hairline, hoop, mop, nose, prism, ramps, rblock, rest, scalp, sleeve, stroke, torso_core
 
 BLUE = "#285a90"
 DEFAULT = BLUE
@@ -26,7 +26,10 @@ def _hair(k):
 	# everything combed up off the neck to the tower
 	for i, d in enumerate((20, 55, 90, 125, 160)):
 		c, s = math.cos(math.radians(d)), math.sin(math.radians(d))
-		gem(k, "Head", f"Up{i}", (0.96 * c, 0.9 * s, 4.5), (0.4 * c, 0.1 + 0.36 * s, 6.34), 0.46, flat=0.34, bend=0.0, twist=0.15, across=(-s, c, 0), a=0.5)
+		gem(k, "Head", f"Up{i}", (0.7 * c, 0.6 * s, 4.6), (0.4 * c, 0.1 + 0.36 * s, 6.34), 0.46, flat=0.34, bend=0.0, twist=0.15, across=(-s, c, 0), a=0.5)
+	# combed sheets over the back, pointed at the nape
+	for i, (x, tx) in enumerate(((-0.7, -0.8), (-0.24, -0.3), (0.24, 0.2), (0.7, 0.76))):
+		gem(k, "Head", f"Sheet{i}", (x * 0.5, 0.74, 5.9), (tx, 0.98, 4.1), 0.36, flat=0.34, bend=0.04, twist=0.15 + 0.1 * i, across=(1, 0, 0), a=0.54)
 	for s in (1, -1):
 		gem(k, "Head", f"Temple{s}", (s * 0.96, -0.3, 4.96), (s * 0.4, 0.1, 6.3), 0.42, flat=0.34, twist=0.2, across=(0, 1, 0), a=0.52)
 		gem(k, "Head", f"Wisp{s}", (s * 0.96, -0.6, 5.2), (s * 0.99, -0.72, 4.56), 0.1, flat=0.6, across=(0, 1, 0), a=0.5)
@@ -68,6 +71,12 @@ def _body(k):
 	# the yellow vest and its big buttons
 	prism(k, T, "Vest", [(-0.6, 3.6), (-0.3, 3.62), (0, 3.4), (0.3, 3.62), (0.6, 3.6), (0.62, 2.1), (0.14, 1.94), (-0.14, 1.94), (-0.62, 2.1)], -0.64, -0.5, "yellow", a=0.54, b=0.44)
 	block(k, T, "VestBack", 0, 0, 3.3, 2.1, 0.99, 0.52, "yellow", ch=0.03, a=0.5, b=0.44)
+	# the vest is cut in panels: raised side panels, a button placket, trim at the top, points at the hem
+	for s in (1, -1):
+		prism(k, T, f"Panel{s}", [(s * 0.17, 3.42), (s * 0.3, 3.58), (s * 0.56, 3.54), (s * 0.5, 2.96), (s * 0.58, 2.2), (s * 0.18, 2.0)], -0.69, -0.6, "yellow", a=0.62, b=0.44)
+		prism(k, T, f"VestTrim{s}", [(0, 3.46), (s * 0.3, 3.68), (s * 0.6, 3.66), (s * 0.6, 3.56), (s * 0.3, 3.56), (0, 3.34)], -0.72, -0.6, "gold", a=0.5, b=0.4)
+		prism(k, T, f"VestTuck{s}", [(s * 0.3, 2.9), (s * 0.34, 2.9), (s * 0.4, 2.2), (s * 0.34, 2.2)], -0.71, -0.66, "gold", a=0.3, b=0.3)
+		prism(k, T, f"VestPoint{s}", [(s * 0.02, 2.06), (s * 0.4, 2.1), (s * 0.2, 1.78)], -0.68, -0.58, "yellow", a=0.52, b=0.4)
 	for i, z in enumerate((3.1, 2.72, 2.34)):
 		block(k, T, f"Button{i}", 0, -0.67, z + 0.1, z - 0.1, 0.1, 0.05, "yellow", ch=0.03, corner=0.5, a=0.72, b=0.3)
 	# the open jacket: white raglan shoulders, blue body, striped hem band
@@ -117,11 +126,11 @@ def _leg(k, side, s):
 def model(parts, kit):
 	k = Kit(kit, parts, R, outline=0)
 	big_head(k)
-	ears(k, z=4.66)
+	ear(k)
 	_hair(k)
 	_glasses(k)
 	for s in (1, -1):
-		hoop(k, "Head", f"Hoop{s}", (s * 1.1, -0.1, 4.22), 0.27, 0.045, "gold", a=0.6, b=0.4)
+		hoop(k, "Head", f"Hoop{s}", (s * 1.02, -0.1, 4.15), 0.25, 0.045, "gold", a=0.6, b=0.4)
 	_body(k)
 	_bat(k)
 	for s, side in ((1, "Left"), (-1, "Right")):
@@ -132,6 +141,7 @@ def model(parts, kit):
 
 def _face(f):
 	face(f, blush=None)
+	hairline(f, "#a8acc6")
 	for s, cx in ((-1, 37), (1, 93)):
 		eye(f, cx, 60, s, ("#3a1810", "#7a3a22", "#b86a44"), w=37, up=14, dn=9, inner=5, outer=-6, ir=(11, 13), pu=(3.4, 5.0), wing=7, thick=1.5, lid=0.34)
 		brow2(f, cx, 40, s, 30, 3.6, 5.0, "#8a8ea8", arc=-3)
@@ -144,3 +154,4 @@ def paint(a):
 	R.paint(a)
 	_face(a["Head_F"])
 	rest(a, SKIN, "#a8acc6", BLUE, "#eceef2", SKIN)
+	scalp(a, "#a8acc6")

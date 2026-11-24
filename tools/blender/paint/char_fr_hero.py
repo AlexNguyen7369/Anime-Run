@@ -30,6 +30,8 @@ def _hair(k):
 	for s in (1, -1):
 		for i, (y, tz, r) in enumerate(((-0.7, 4.54, 0.26), (-0.4, 4.36, 0.34), (-0.02, 4.5, 0.38), (0.36, 4.34, 0.38), (0.72, 4.16, 0.36))):
 			gem(k, "Head", f"Side{s}{i}", (s * 0.94, y * 0.9, 5.6), (s * (1.14 + 0.06 * (i % 2)), y * 1.15, tz), r, flat=0.42, twist=0.2, a=0.46 + 0.07 * (i % 2), across=(0, 1, 0))
+	for s in (1, -1):
+		prism(k, "Head", f"Under{s}", [(s * 0.5, 5.6), (s * 1.02, 5.6), (s * 1.04, 4.7), (s * 0.9, 4.78), (s * 0.5, 5.2)], -0.92, -0.6, "hair", a=0.5, b=0.42)
 	for i, x in enumerate((-0.6, -0.2, 0.2, 0.6)):
 		gem(k, "Head", f"Back{i}", (x, 0.84, 5.4), (x * 1.15, 1.18, 4.04 + 0.1 * (i % 2)), 0.36, flat=0.42, twist=0.2, a=0.48 + 0.06 * (i % 2), across=(1, 0, 0))
 	# fringe swept from a part on the viewer's left, long over the far brow

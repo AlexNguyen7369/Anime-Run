@@ -17,7 +17,7 @@ Licensing: no Roblox-supported license found; unlicensed reference. The owner ac
 | Collar | Red with gold bell, green bib | supported | Same |
 | Coin | Large gold oval | supported | Same |
 | Gold ball | In the raised paw | supported | Soft vinyl photo |
-| Tail | Short, upright | inferred | Not visible in the photos |
+| Tail, back patches, collar bow | Short upright tail, dark patches and a red bow at the back | inferred | Not visible in the photos |
 
 Source quality: AniList character images and text, read through its public API, and licensed-product photos from one shop. Fan wikis were read only as search-result extracts. No official character sheet or full turnaround was reached, and no row was checked against the manga or anime itself.
 
@@ -41,7 +41,7 @@ Source quality: AniList character images and text, read through its public API, 
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed; portrait also at 110 px |
 | Self score | 8/10 | Builder's own likeness score |
 | Camera readability | not checked | No in-game camera |
-| Triangles | pass | 1920 of 20000 per mesh, total over all parts |
+| Triangles | pass | 2128 of 20000 per mesh, total over all parts |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

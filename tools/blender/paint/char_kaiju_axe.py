@@ -2,7 +2,7 @@
 # one zigzag lock and two long thin strands by the cheeks, sharp green eyes and a proud smile, the corps' combat suit, a huge slab axe.
 # +X is the viewer's right. Drawn in-house.
 from ds_style3 import eye, xf
-from kaiju_style3 import BLACK, SUIT, Kit, Ramps, big_head, block, brow2, crown, ears, finish, gem, prism, rblock, skin_face, suit, suit_paint, top_layers
+from kaiju_style3 import BLACK, SUIT, Kit, Ramps, big_head, block, brow2, crown, ears, finish, gem, prism, rblock, skin_face, suit, suit_paint, hair_back, fist_grip, top_layers
 
 SKIN, SKIN_D = "#fbdcc2", "#d8a88a"
 DEFAULT = BLACK
@@ -16,6 +16,7 @@ PROPS = []
 
 
 def _hair(k):
+	hair_back(k)
 	top_layers(k, (-0.8, -0.4, 0.0, 0.4, 0.8))
 	crown(k, [(0.96, 5.2), (1.06, 5.46), (1.02, 5.8), (0.68, 6.1), (0.2, 6.2)], at=(0, 0.0, 0))
 	block(k, "Head", "Back", 0, 0.34, 5.5, 4.5, 0.98, 0.58, "hair", ch=0.08, corner=0.3, sub=1, jit=0.02, a=0.44, b=0.42)
@@ -43,18 +44,19 @@ def _hair(k):
 
 
 def _axe(k):
-	"""Held low in the viewer's left hand, the huge slab head forward and out. Built pointing down, swung from the fist."""
-	arm, x, y = "RightUpperArm", -1.5, -0.34
-	turn = ((x, y, 2.1), -50, 0, -16)
-	rblock(k, arm, "Haft", x, y, 3.2, -0.1, 0.09, 0.09, "gun", ch=0.02, corner=0.4, rot=turn, a=0.58, b=0.5)
-	rblock(k, arm, "HaftCap", x, y, 3.34, 3.06, 0.14, 0.14, "plate", ch=0.04, corner=0.4, rot=turn, a=0.56, b=0.4)
-	rblock(k, arm, "Ring", x, y, 0.86, 0.62, 0.15, 0.15, "steel", ch=0.03, corner=0.4, rot=turn, a=0.56, b=0.4)
+	"""Held low across the front of the viewer's left fist, the huge slab head down and out. Built pointing down, then swung."""
+	arm, x, y = "RightUpperArm", -1.5, -0.68
+	turn = ((x, y, 2.06), -12, 46, 0)
+	rblock(k, arm, "Haft", x, y, 3.0, 0.3, 0.09, 0.09, "gun", ch=0.02, corner=0.4, rot=turn, a=0.64, b=0.5)
+	rblock(k, arm, "HaftCap", x, y, 3.1, 2.84, 0.14, 0.14, "plate", ch=0.04, corner=0.4, rot=turn, a=0.56, b=0.4)
+	rblock(k, arm, "Ring", x, y, 1.2, 0.98, 0.15, 0.15, "steel", ch=0.03, corner=0.4, rot=turn, a=0.56, b=0.4)
 	# the head: a broad dark slab with a pale cutting edge on the outside, a blunt pale hammer on the inside
-	xf(prism(k, arm, "Head", [(x + 0.2, 0.8), (x - 0.6, 1.04), (x - 1.04, 0.6), (x - 1.04, -0.6), (x - 0.6, -1.04), (x + 0.2, -0.72)], y - 0.2, y + 0.2, "gun", a=0.56, b=0.5), *turn)
-	xf(prism(k, arm, "Edge", [(x - 0.96, 0.8), (x - 1.4, 1.2), (x - 1.56, 0.0), (x - 1.4, -1.2), (x - 0.96, -0.8)], y - 0.11, y + 0.11, "edge", a=0.58, b=0.4), *turn)
-	xf(prism(k, arm, "Hammer", [(x + 0.2, 0.5), (x + 0.6, 0.4), (x + 0.6, -0.34), (x + 0.2, -0.44)], y - 0.26, y + 0.26, "plate", a=0.56, b=0.42), *turn)
+	xf(prism(k, arm, "Head", [(x + 0.18, 1.02), (x - 0.5, 1.22), (x - 0.86, 0.86), (x - 0.86, -0.14), (x - 0.5, -0.5), (x + 0.18, -0.24)], y - 0.18, y + 0.18, "gun", a=0.56, b=0.5), *turn)
+	xf(prism(k, arm, "Edge", [(x - 0.8, 1.02), (x - 1.16, 1.36), (x - 1.3, 0.36), (x - 1.16, -0.64), (x - 0.8, -0.3)], y - 0.1, y + 0.1, "edge", a=0.58, b=0.4), *turn)
+	xf(prism(k, arm, "Hammer", [(x + 0.18, 0.78), (x + 0.5, 0.7), (x + 0.5, 0.08), (x + 0.18, 0.0)], y - 0.23, y + 0.23, "plate", a=0.56, b=0.42), *turn)
 	for d in (1, -1):
-		xf(prism(k, arm, f"Core{d}", [(x - 0.12, 0.48), (x - 0.67, 0.6), (x - 0.77, 0.0), (x - 0.67, -0.6), (x - 0.12, -0.4)], y + d * 0.22 - 0.04, y + d * 0.22 + 0.04, "green", a=0.6, b=0.4), *turn)
+		xf(prism(k, arm, f"Core{d}", [(x - 0.1, 0.76), (x - 0.56, 0.86), (x - 0.64, 0.36), (x - 0.56, -0.14), (x - 0.1, 0.02)], y + d * 0.2 - 0.04, y + d * 0.2 + 0.04, "green", a=0.6, b=0.4), *turn)
+	fist_grip(k, "Right", -1, y)
 
 
 def model(parts, kit):

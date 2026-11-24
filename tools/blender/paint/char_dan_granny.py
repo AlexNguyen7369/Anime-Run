@@ -3,7 +3,7 @@
 # Block body as everyone's. +X is the viewer's right. Drawn in-house.
 import math
 
-from dan_style3 import Kit, T, art_jacket, bake, bare_foot, big_head, block, collar, core_leg, crown, finish, form, gem, mop, prism, ramps, rest, stroke, torso_core, trouser
+from dan_style3 import Kit, T, art_jacket, bake, bare_foot, big_head, block, collar, core_leg, crown, finish, form, gem, mop, prism, ramps, rest, scalp, stroke, torso_core, trouser
 from leaf_common import begin_clip, ell, end_clip
 
 SKIN = "#6e4436"
@@ -45,9 +45,13 @@ def _wrinkles(k):
 	y = -0.87
 	for s in (1, -1):
 		prism(k, "Head", f"Brow{s}", [(s * 0.1, 4.92), (s * 0.62, 4.98), (s * 0.66, 4.88), (s * 0.12, 4.78)], y - 0.06, y + 0.06, "skin", a=0.66, b=0.4)
-		prism(k, "Head", f"Cheek{s}", [(s * 0.18, 4.52), (s * 0.64, 4.5), (s * 0.5, 4.28), (s * 0.3, 4.3)], y - 0.04, y + 0.06, "skin", a=0.6, b=0.4)
-		prism(k, "Head", f"Jowl{s}", [(s * 0.3, 4.3), (s * 0.48, 4.26), (s * 0.4, 4.0), (s * 0.28, 4.02)], y - 0.03, y + 0.06, "skin", a=0.54, b=0.4)
-	prism(k, "Head", "Nose", [(-0.06, 4.8), (0.06, 4.8), (0.18, 4.42), (0.08, 4.34), (-0.08, 4.34), (-0.18, 4.42)], y - 0.14, y + 0.04, "skin", a=0.6, b=0.46)
+		prism(k, "Head", f"Cheek{s}", [(s * 0.3, 4.56), (s * 0.68, 4.52), (s * 0.6, 4.32), (s * 0.42, 4.34)], y - 0.04, y + 0.06, "skin", a=0.6, b=0.4)
+		prism(k, "Head", f"Jowl{s}", [(s * 0.42, 4.34), (s * 0.58, 4.3), (s * 0.52, 4.06), (s * 0.4, 4.08)], y - 0.03, y + 0.06, "skin", a=0.54, b=0.4)
+	prism(k, "Head", "Nose", [(-0.06, 4.8), (0.06, 4.8), (0.18, 4.56), (0.08, 4.49), (-0.08, 4.49), (-0.18, 4.56)], y - 0.14, y + 0.04, "skin", a=0.6, b=0.46)
+
+	# the mouth: two thin dark lips in a raised pucker
+	prism(k, "Head", "Pucker", [(-0.36, 4.3), (-0.2, 4.42), (0.2, 4.42), (0.36, 4.3), (0.2, 4.14), (-0.2, 4.14)], y - 0.03, y + 0.06, "skin", a=0.7, b=0.3)
+	prism(k, "Head", "Mouth", [(-0.31, 4.25), (-0.14, 4.33), (0, 4.3), (0.14, 4.33), (0.31, 4.25), (0.16, 4.2), (-0.16, 4.2)], y - 0.06, y, "dark", a=0.0, b=0.05)
 
 
 def _arm(k, side, s):
@@ -64,7 +68,7 @@ def model(parts, kit):
 	_hair(k)
 	_wrinkles(k)
 	art_jacket(k, hem=1.84)
-	collar(k, "wrap", 4.14, 4.5, z0=3.86, rx=0.8, ry=0.78, a=0.5, b=0.5)
+	collar(k, "wrap", 4.0, 4.4, z0=3.86, rx=0.8, ry=0.78, a=0.5, b=0.5)
 	prism(k, T, "Wrap", [(-0.44, 4.04), (0.44, 4.04), (0.34, 2.9), (0, 2.7), (-0.34, 2.9)], -0.7, -0.58, "wrap", a=0.5, b=0.46)
 	for s in (1, -1):
 		prism(k, T, f"Edge{s}", [(s * 0.42, 4.04), (s * 0.64, 4.04), (s * 0.5, 2.96), (s * 0.08, 1.86), (s * -0.08, 1.86), (s * 0.04, 2.6), (s * 0.34, 2.96)], -0.73, -0.6, "trim", a=0.52, b=0.46)
@@ -119,6 +123,7 @@ def paint(a):
 	R.paint(a)
 	_face(a["Head_F"])
 	rest(a, SKIN, "#b8beb2", RED, RED, "#342c2a")
+	scalp(a, "#b8beb2", sides=30)
 	for n in ("Torso_F", "Torso_B", "Torso_L", "Torso_R"):
 		_cloth(a[n], n)
 	for side in ("Left", "Right"):

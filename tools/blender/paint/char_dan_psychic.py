@@ -1,7 +1,7 @@
 # Target look for dan_psychic "Momu" (design doc section 5): a dark chestnut bob with long blunt locks to the collar and loose flicks on top, sharp brown eyes,
 # a black choker, long teal earrings, a roomy pink sweater with a white collar and big red bow, a navy pleated skirt, slouched white socks, brown loafers.
 # Block body as everyone's. +X is the viewer's right. Drawn in-house.
-from dan_style3 import SKIN, Kit, T, big_head, block, bow, brow2, crown, eye, face, finish, gem, mop, nose, pleats, prism, ramps, rest, shirt_collar, slab, sleeve, sock_leg, torso_core
+from dan_style3 import SKIN, Kit, T, big_head, block, bow, brow2, crown, eye, face, finish, gem, hairline, mop, nose, pleats, prism, ramps, rest, scalp, shirt_collar, slab, sleeve, sock_leg, torso_core
 
 PINK = "#f29cb8"
 DEFAULT = PINK
@@ -25,6 +25,7 @@ def _hair(k):
 		slab(k, f"Lock{s}", [(-0.72, 5.2), (-0.86, 4.5), (-0.8, 3.74), (-0.5, 3.62), (-0.1, 5.2)], s * 0.86, s * 1.04, "hair", a=0.52, b=0.36)
 		gem(k, "Head", f"LockIn{s}", (s * 0.6, -0.56, 5.84), (s * 0.92, -1.0, 3.5), 0.3, flat=0.5, twist=0.2, across=(1, 0, 0), a=0.54)
 		gem(k, "Head", f"LockOut{s}", (s * 0.78, -0.34, 5.64), (s * 1.08, -0.72, 3.46), 0.36, flat=0.4, twist=0.2, across=(0, 1, 0), a=0.5)
+		block(k, "Head", f"TempleFill{s}", s * 0.82, -0.62, 5.5, 5.0, 0.16, 0.24, "hair", ch=0.06, corner=0.3, a=0.48, b=0.4)
 	# the fringe: a centre lock over the nose bridge, the rest swept away from a high part
 	part = (0.16, -0.7, 6.02)
 	for i, (t, r) in enumerate((((0.06, -1.02, 4.84), 0.17), ((-0.3, -1.03, 4.98), 0.24), ((-0.66, -1.0, 4.9), 0.28), ((-0.98, -0.94, 4.7), 0.28), ((0.4, -1.03, 5.04), 0.24), ((0.72, -1.0, 4.94), 0.27), ((1.0, -0.94, 4.72), 0.28))):
@@ -37,8 +38,8 @@ def _hair(k):
 
 def _earrings(k):
 	for s in (1, -1):
-		block(k, "Head", f"Stud{s}", s * 1.15, -0.6, 4.5, 4.34, 0.06, 0.08, "teal", ch=0.02, a=0.62, b=0.34)
-		prism(k, "Head", f"Drop{s}", [(s * 1.15, 4.34), (s * 1.24, 3.94), (s * 1.15, 3.76), (s * 1.06, 3.94)], -0.66, -0.56, "teal", a=0.6, b=0.36)
+		block(k, "Head", f"Stud{s}", s * 1.08, -0.6, 4.48, 4.34, 0.07, 0.08, "teal", ch=0.02, a=0.62, b=0.34)
+		prism(k, "Head", f"Drop{s}", [(s * 1.08, 4.36), (s * 1.14, 4.3), (s * 1.18, 3.98), (s * 1.1, 3.74), (s * 1.03, 3.98), (s * 1.04, 4.3)], -0.7, -0.58, "teal", a=0.6, b=0.36)
 
 
 def _body(k):
@@ -50,7 +51,7 @@ def _body(k):
 	for s in (1, -1):
 		prism(k, T, f"VeeRim{s}", [(s * 0.46, 4.02), (s * 0.6, 4.02), (s * 0.02, 3.2), (s * 0.0, 3.34)], -0.69, -0.6, "pink", a=0.42, b=0.4)
 	bow(k, z=3.68, w=0.58, y=-0.8)
-	pleats(k, "navy", top=1.98, hem=1.22)
+	pleats(k, "navy", top=1.98, hem=0.98)
 
 
 def model(parts, kit):
@@ -58,17 +59,18 @@ def model(parts, kit):
 	big_head(k)
 	_hair(k)
 	_earrings(k)
-	block(k, "Head", "Choker", 0, 0, 4.14, 3.97, 0.78, 0.83, "black", ch=0.02, corner=0.2, sub=1, a=0.56, b=0.44)
+	block(k, "Head", "Choker", 0, 0, 4.03, 3.9, 0.74, 0.77, "black", ch=0.02, corner=0.2, sub=1, a=0.56, b=0.44)
 	_body(k)
 	for s, side in ((1, "Left"), (-1, "Right")):
 		sleeve(k, side, s, ramp="pink", cuff=2.36)
 		block(k, f"{side}UpperArm", "Slouch", s * 1.5, 0, 2.72, 2.5, 0.56, 0.56, "pink", ch=0.06, corner=0.18, jit=0.015, a=0.54, b=0.46)
-		sock_leg(k, side, s, top=1.0, baggy=True)
+		sock_leg(k, side, s, top=0.92, baggy=True)
 	finish()
 
 
 def _face(f):
 	face(f)
+	hairline(f, "#3a1c1e")
 	for s, cx in ((-1, 37), (1, 93)):
 		eye(f, cx, 64, s, ("#2c1010", "#6c2c24", "#b4604a"), w=37, up=16, dn=10, inner=5, outer=-5, ir=(12, 14.5), pu=(3.8, 5.6), lash="#1c0c10", wing=7, thick=1.4, lid=0.24)
 		brow2(f, cx, 42, s, 30, 3.0, 4.4, "#47202a", arc=-2)
@@ -82,3 +84,4 @@ def paint(a):
 	R.paint(a)
 	_face(a["Head_F"])
 	rest(a, SKIN, "#47202a", PINK, PINK, SKIN)
+	scalp(a, "#3a1c1e", sides=20)

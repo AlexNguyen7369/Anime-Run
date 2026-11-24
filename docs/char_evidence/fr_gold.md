@@ -35,11 +35,11 @@ Source quality: fan wikis, guide sites and shop text only. "Read directly" means
 | Check | Result | Note |
 |---|---|---|
 | Version | pass | Golden Land arc, manga |
-| Defining attributes | pass | Slicked crimson-magenta hair, horns, narrow blue eyes, gold cord, blue coat on the left shoulder, red gloves, gold greatsword |
-| Known gaps | open | Uniform colour is the biggest open point. The hairline still shows small points. The sword tip is cut by the fixed review frame. |
+| Defining attributes | pass | Swept-back crimson-magenta hair, horns, narrow blue eyes, gold cord, blue coat on the left shoulder, red gloves, gold greatsword |
+| Known gaps | open | Uniform colour is the biggest open point. The sword tip is cut by the fixed review frame. |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed, portrait also near 110 px; side view not viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 6248 of 12000 |
+| Triangles | pass | 6088 of 12000 |
 | Hard facets, no outline | pass | Built through `finish()` |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

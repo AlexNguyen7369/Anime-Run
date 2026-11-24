@@ -37,9 +37,9 @@ Source quality: AniList character images and text, read through its public API, 
 | Version | pass | original old-woman form |
 | Defining attributes | pass | hair, eyes, face, clothes, upper |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed; portrait also at 110 px |
-| Self score | 8.5/10 | Builder's own likeness score |
+| Self score | 8/10 | Builder's own likeness score |
 | Camera readability | not checked | No in-game camera |
-| Triangles | pass | 3484 of 12000 |
+| Triangles | pass | 3528 of 12000 |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

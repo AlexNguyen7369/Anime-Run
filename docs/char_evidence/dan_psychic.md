@@ -40,9 +40,9 @@ Source quality: AniList character images and text, read through its public API, 
 | Version | pass | school uniform with the pink sweater |
 | Defining attributes | pass | hair, choker, earrings, sweater, skirt, socks, shoes, eyes |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed; portrait also at 110 px |
-| Self score | 8/10 | Builder's own likeness score |
+| Self score | 7.5/10 | Builder's own likeness score |
 | Camera readability | not checked | No in-game camera |
-| Triangles | pass | 4158 of 12000 |
+| Triangles | pass | 4294 of 12000 |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

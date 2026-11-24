@@ -38,7 +38,7 @@ Source quality: fan wikis, guide sites and shop text only. "Read directly" means
 | Known gaps | open | The ornament shows only from the back and sides. Coat against cape is unresolved. |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed, portrait also near 110 px; side view not viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 5444 of 12000 |
+| Triangles | pass | 5176 of 12000 |
 | Hard facets, no outline | pass | Built through `finish()` |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

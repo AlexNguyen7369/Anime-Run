@@ -100,6 +100,26 @@ def sock_leg(k, side, s, top=1.0, baggy=False, skin="skin"):
 	block(k, leg, "Strap", px, -0.44, 0.39, 0.3, 0.4, 0.2, "loafer", ch=0.03, a=0.72, b=0.3)
 
 
+def ear(k, z=4.64, ramp="skin"):
+	"""A full block ear; its lobe ends at z - 0.26."""
+	for s in (1, -1):
+		block(k, "Head", f"Ear{s}", s * 0.96, -0.04, z + 0.26, z - 0.26, 0.13, 0.2, ramp, ch=0.05, corner=0.3, a=0.58, b=0.32)
+		block(k, "Head", f"EarIn{s}", s * 1.08, -0.06, z + 0.14, z - 0.1, 0.03, 0.09, ramp, ch=0.02, a=0.3, b=0.3)
+
+
+def nape(k, low, hw=1.0, y0=0.0, y1=0.96):
+	"""A solid hair backing over the head's rear half, so no skin shows between locks."""
+	block(k, "Head", "Nape", 0, (y0 + y1) / 2, 5.6, low, hw, (y1 - y0) / 2, "hair", ch=0.08, corner=0.25, jit=0.015, sub=1, mids=(5.1, 4.6), a=0.42, b=0.4)
+
+
+def jacket_back(k, ramp, hem=1.9, y=0.65):
+	"""Centre seam, shoulder yoke line and a vent with one overlapping flap."""
+	for name, x, z1, z0, hw in (("Seam", 0, 3.9, 2.5, 0.02), ("Yoke", 0, 3.5, 3.45, 1.0)):
+		block(k, T, f"Back{name}", x, y, z1, z0, hw, 0.015, ramp, ch=0.006, a=0.12, b=0.2)
+	block(k, T, "BackVent", 0.14, y, 2.5, hem, 0.16, 0.035, ramp, ch=0.02, a=0.6, b=0.4)
+	block(k, T, "BackVentGap", -0.04, y, 2.46, hem, 0.025, 0.02, ramp, ch=0.006, a=0.0, b=0.1)
+
+
 def bare_foot(k, leg, px, ramp="skin", top=0.9):
 	block(k, leg, "Shin", px, 0, top, 0.2, 0.46, 0.48, ramp, ch=0.04, corner=0.16, a=0.52, b=0.42)
 	block(k, leg, "Foot", px, -0.2, 0.3, 0.0, 0.48, 0.68, ramp, ch=0.07, corner=0.2, a=0.54, b=0.42)
@@ -136,3 +156,15 @@ def rest(a, skin, top, torso, arm, leg):
 		for key in ("F", "B", "O", "I", "T", "Bo"):
 			a[f"{side}Arm_{key}"].fill(arm)
 			a[f"{side}Leg_{key}"].fill(leg)
+
+
+def scalp(a, hair, sides=46, top=44):
+	"""Hair colour under the locks: all of the back and top, the sides behind the ear line, and the brow edge of the face."""
+	a["Head_T"].fill(hair)
+	a["Head_B"].fill(hair)
+	for n, d in (("Head_L", f"M{sides} -5H125V135H{sides + 24}V{top}H-5V-5Z"), ("Head_R", f"M{120 - sides} -5H-5V135H{96 - sides}V{top}H125V-5Z")):
+		a[n].path(d, hair)
+
+
+def hairline(f, hair):
+	f.path("M-5 -5H16L9 30L-5 46ZM135 -5H114L121 30L135 46Z", hair)

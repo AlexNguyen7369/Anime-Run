@@ -38,10 +38,10 @@ Source quality: fan wikis, guide sites and shop text only. "Read directly" means
 |---|---|---|
 | Version | pass | season 1 fight |
 | Defining attributes | pass | Pink-violet hair with pointed centre fringe, three braids a side, big horns, smug violet eyes, dark blue bodice, white skirt with pink frill, gold scales |
-| Known gaps | open | Horns curve out, not back in: an inward curl made the portrait's outline fill black. The head icon cuts the braids short. The front braid touches the scales. |
+| Known gaps | open | Horns curve out, not back in: an inward curl made the portrait's outline fill black. The head icon cuts the braids short. |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed, portrait also near 110 px; side view not viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 5846 of 12000 |
+| Triangles | pass | 5906 of 12000 |
 | Hard facets, no outline | pass | Built through `finish()` |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

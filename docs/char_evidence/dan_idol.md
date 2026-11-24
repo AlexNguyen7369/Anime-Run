@@ -39,7 +39,7 @@ Source quality: AniList character images and text, read through its public API, 
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed; portrait also at 110 px |
 | Self score | 7.5/10 | Builder's own likeness score |
 | Camera readability | not checked | No in-game camera |
-| Triangles | pass | 4522 of 12000 |
+| Triangles | pass | 5022 of 12000 |
 | Hard facets, no outline | pass | No ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

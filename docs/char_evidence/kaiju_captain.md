@@ -25,6 +25,7 @@ Source quality: one official figure product photograph (front, cut at the hip) a
 
 ## Contradictions and choices
 
+- Black hair is lifted with blue-grey facets so it reads.
 - Cannon is shortened and held at the hip in one hand: full length would cross the lane and shrink the portrait.
 
 ## Project rules over source
@@ -39,9 +40,9 @@ Source quality: one official figure product photograph (front, cut at the hip) a
 |---|---|---|
 | Version | pass | Combat suit with the large cannon |
 | Defining attributes | pass | Black high tail, side locks, pale clips, red-brown eyes, suit, cannon |
-| Views agree | pass | Front, three-quarter, portrait and head viewed |
+| Views agree | pass | All four views, portrait and head viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 5920 of 12000 |
+| Triangles | pass | 6416 of 12000 |
 | Hard facets, no outline | pass | Facet-baked meshes, no ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

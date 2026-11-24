@@ -37,7 +37,7 @@ Source quality: fan wikis, guide sites and shop text only. "Read directly" means
 | Known gaps | open | Gown colours not confirmed by text. The gown hides most of each anklet. The long hair is part of the Head and does not swing. |
 | Views agree | pass | Front, three-quarter, back, portrait and head viewed, portrait also near 110 px; side view not viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 4882 of 12000 |
+| Triangles | pass | 4350 of 12000 |
 | Hard facets, no outline | pass | Built through `finish()` |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

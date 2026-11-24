@@ -21,6 +21,8 @@ Source quality: one official figure photograph (front, cut at the thigh) and one
 ## Contradictions and choices
 
 - Teeth: jagged in text, square and even on the figure and in the panel. Chosen: square.
+- Head: the figure and the panel both show two separate stacked discs, so both stay; they are joined here as one continuous flared growth with a pinch between, to avoid two loose saucers.
+- Back ribs and vertebrae are inferred.
 
 ## Project rules over source
 
@@ -34,9 +36,9 @@ Source quality: one official figure photograph (front, cut at the thigh) and one
 |---|---|---|
 | Version | pass | First form |
 | Defining attributes | pass | Two discs, faceless grin, bone body, brown spots, shoulder spines |
-| Views agree | pass | Front, three-quarter, portrait and head viewed |
+| Views agree | pass | All four views, portrait and head viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 5448 of 12000 |
+| Triangles | pass | 7048 of 12000 |
 | Hard facets, no outline | pass | Facet-baked meshes, no ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

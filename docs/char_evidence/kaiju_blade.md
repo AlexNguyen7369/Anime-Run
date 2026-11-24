@@ -40,9 +40,9 @@ Source quality: one official figure product photograph (front, cut at the hip) a
 |---|---|---|
 | Version | pass | Standard combat suit with twin blades |
 | Defining attributes | pass | Violet bowl cut, shut smiling eyes, grin, suit, twin black blades |
-| Views agree | pass | Front, three-quarter, portrait and head viewed |
+| Views agree | pass | All four views, portrait and head viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 5298 of 12000 |
+| Triangles | pass | 6060 of 12000 |
 | Hard facets, no outline | pass | Facet-baked meshes, no ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

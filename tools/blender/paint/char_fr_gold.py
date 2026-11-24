@@ -1,6 +1,6 @@
 # Target look for fr_gold "Machto" (design doc section 5): long crimson-magenta hair slicked back off a high forehead, two dark horns, pointed ears, narrow blue eyes, calm; a
 # dark military coat with a gold cord from the left shoulder across the chest, red gloves, a great blue coat over the left shoulder, boots, a golden greatsword. +X is the viewer's right. Drawn in-house.
-from fr_style3 import Kit, Ramps, T, big_head, block, boot, collar, elf_ears, face, fill_body, finish, gem, helmet, horns, jacket, mane, prism, rblock, rod, skirt, sleeve, trouser, turned
+from fr_style3 import Kit, Ramps, T, big_head, block, boot, collar, elf_ears, face, fill_body, finish, gem, helmet, horns, jacket, mane, pleat, prism, rblock, rod, skirt, sleeve, trouser, turned
 
 SKIN = "#f2d6c6"
 SKIN_D = "#c69a86"
@@ -23,20 +23,18 @@ PROPS = []
 
 
 def _hair(k):
-	helmet(k, low=4.2, brow=5.46)
-	mane(k, 2.2, mid=0.98, end=0.66, n=5)
-	# everything runs back from a high hairline: no fringe
-	for i, x in enumerate((-0.84, -0.5, -0.17, 0.17, 0.5, 0.84)):
-		tone = 0.48 + 0.08 * (i % 2)
-		# up off the forehead, then over the crown and back, pointed at the hairline
-		gem(k, "Head", f"Rise{i}", (x * 0.8, -0.3, 5.86), (x, -0.93, 5.2 + 0.16 * abs(x)), 0.34, flat=0.5, bend=0.2, twist=0.1, a=tone, across=(1, 0, 0))
-		gem(k, "Head", f"Slick{i}", (x * 0.9, -0.5, 5.72), (x * 0.95, 1.16, 5.3), 0.3, flat=0.6, bend=0.22, twist=0.1, a=tone, across=(1, 0, 0))
+	helmet(k, low=4.2, brow=5.24)
+	mane(k, 2.0, mid=1.0, end=0.72, n=5)
+	# long locks swept up off a centre peak, over the crown and back, at uneven heights: no flat top
+	for i, (x, up) in enumerate(((-0.8, 0.2), (-0.5, 0.34), (-0.18, 0.44), (0.18, 0.4), (0.5, 0.36), (0.8, 0.2))):
+		gem(k, "Head", f"Slick{i}", (x * 0.7, -0.84, 5.46), (x * 1.0, 1.2, 5.3), 0.34, flat=0.7, bend=up, twist=0.15, a=0.46 + 0.08 * (i % 2), across=(1, 0, 0))
 	for s in (1, -1):
-		block(k, "Head", f"Temple{s}", s * 0.94, 0.1, 5.66, 4.96, 0.1, 0.72, "hair", ch=0.05, a=0.46, b=0.44)
-		gem(k, "Head", f"SideB{s}", (s * 0.96, -0.5, 5.4), (s * 1.12, 0.8, 4.6), 0.3, flat=0.4, a=0.5, across=(0, 0, 1))
-		# two long strands loose in front of the ears
-		gem(k, "Head", f"Strand{s}", (s * 0.9, -0.6, 5.5), (s * 1.06, -0.78, 3.6), 0.2, flat=0.5, twist=0.1, a=0.56, across=(1, 0, 0))
-		gem(k, "Head", f"Back{s}", (s * 0.8, 0.7, 5.3), (s * 1.2, 1.02, 3.3), 0.4, flat=0.5, a=0.46, across=(1, 0, 0))
+		# the hairline: from the peak each lock sweeps out over the temple and falls back past the ear
+		for i, (bx, bz, t, r) in enumerate(((0.06, 5.56, (0.62, -1.0, 5.1), 0.3), (0.16, 5.66, (0.98, -0.96, 4.86), 0.32), (0.34, 5.7, (1.16, -0.6, 4.6), 0.34), (0.5, 5.7, (1.24, 0.1, 4.84), 0.34))):
+			gem(k, "Head", f"Sweep{s}{i}", (s * bx, -0.74, bz), tuple((s * t[0], t[1], t[2])), r, flat=0.45, bend=0.12, twist=0.15, a=0.48 + 0.07 * (i % 2), across=(s * 0.6, 0, 0.8))
+		block(k, "Head", f"Temple{s}", s * 0.94, 0.14, 5.6, 4.94, 0.1, 0.74, "hair", ch=0.05, a=0.46, b=0.44)
+		gem(k, "Head", f"Strand{s}", (s * 0.9, -0.62, 5.4), (s * 1.06, -0.8, 3.5), 0.22, flat=0.5, twist=0.1, a=0.56, across=(1, 0, 0))
+		gem(k, "Head", f"Back{s}", (s * 0.8, 0.6, 5.3), (s * 1.16, 0.98, 3.4), 0.34, flat=0.5, a=0.5, across=(1, 0, 0))
 	horns(k, [(0.62, -0.46, 5.66), (0.9, -0.46, 5.94), (1.12, -0.36, 6.28), (1.24, -0.24, 6.58), (1.28, -0.14, 6.82)], [0.22, 0.21, 0.17, 0.11, 0.02])
 
 
@@ -57,18 +55,19 @@ def _body(k):
 	block(k, T, "Buckle", 0, -0.66, 2.54, 2.22, 0.15, 0.03, "gold", ch=0.015, a=0.58, b=0.42)
 	skirt(k, "uni", 1.28, "gold", flare=0.06, th=0.07)
 	# the great blue coat hung over the left shoulder: across the back and down that side to the calf
-	block(k, T, "CoatBack", 0.3, 0.76, 4.16, 1.96, 0.94, 0.1, "blue", ch=0.04, flare=0.1, sub=1, a=0.52, b=0.44)
-	prism(k, T, "CoatFront", [(0.6, 4.14), (1.14, 4.14), (1.14, 1.96), (0.86, 1.96), (0.7, 3.2)], -0.8, -0.6, "blue", a=0.52, b=0.48)
-	prism(k, T, "CoatEdge", [(0.5, 4.14), (0.62, 4.14), (0.72, 3.2), (0.88, 1.96), (0.76, 1.96), (0.6, 3.2)], -0.84, -0.62, "gold", a=0.56, b=0.42)
+	pleat(k, T, "CoatBack", [(4.16, 0.3, 0.82, 0.9), (3.2, 0.3, 0.84, 0.98), (1.96, 0.3, 0.86, 1.06)], "blue", n=5, depth=0.08, th=0.12)
+	pleat(k, T, "CoatFront", [(4.16, 0.86, -0.74, 0.3), (3.2, 0.9, -0.78, 0.28), (1.96, 0.98, -0.82, 0.3)], "blue", n=3, depth=0.06, d=-1, th=0.12)
+	prism(k, T, "CoatEdge", [(0.46, 4.16), (0.58, 4.16), (0.64, 3.2), (0.72, 1.96), (0.6, 1.96), (0.52, 3.2)], -0.88, -0.66, "gold", a=0.56, b=0.42)
 	collar(k, "blue", 3.94, 4.5, z0=3.8, rx=0.94, ry=0.82, power=1.1, name="CoatCollar")
 	leg = "LeftUpperLeg"
-	block(k, leg, "CoatLF", 1.02, -0.76, 2.02, 0.5, 0.26, 0.08, "blue", ch=0.02, flare=0.08, a=0.5, b=0.48)
+	pleat(k, leg, "CoatLF", [(2.04, 0.99, -0.82, 0.31), (1.3, 1.02, -0.87, 0.36), (0.5, 1.06, -0.92, 0.42)], "blue", n=3, depth=0.07, d=-1, th=0.14)
+	prism(k, leg, "CoatLEdge", [(0.6, 2.04), (0.72, 2.04), (0.68, 1.3), (0.7, 0.48), (0.56, 0.48), (0.58, 1.3)], -0.98, -0.78, "gold", a=0.56, b=0.42)
 	block(k, leg, "CoatLS", 1.28, 0.0, 2.02, 0.5, 0.08, 0.82, "blue", ch=0.02, flare=0.08, a=0.5, b=0.48)
-	block(k, leg, "CoatLB", 0.62, 0.78, 2.02, 0.5, 0.72, 0.09, "blue", ch=0.02, flare=0.08, a=0.5, b=0.44)
-	block(k, leg, "CoatLHem", 1.3, 0.0, 0.64, 0.48, 0.17, 0.94, "gold", ch=0.02, a=0.56, b=0.42)
-	block(k, leg, "CoatBHem", 0.62, 0.78, 0.64, 0.48, 0.82, 0.18, "gold", ch=0.02, a=0.56, b=0.42)
-	block(k, "RightUpperLeg", "CoatRB", -0.3, 0.78, 2.02, 0.5, 0.4, 0.09, "blue", ch=0.02, flare=0.08, a=0.5, b=0.44)
-	block(k, "RightUpperLeg", "CoatRHem", -0.3, 0.78, 0.64, 0.48, 0.5, 0.18, "gold", ch=0.02, a=0.56, b=0.42)
+	pleat(k, leg, "CoatLB", [(2.04, 0.68, 0.86, 0.68), (0.5, 0.72, 0.96, 0.78)], "blue", n=3, depth=0.08, th=0.14)
+	block(k, leg, "CoatLHem", 1.3, 0.0, 0.64, 0.46, 0.17, 1.06, "gold", ch=0.02, a=0.56, b=0.42)
+	block(k, leg, "CoatBHem", 0.7, 0.92, 0.64, 0.46, 0.84, 0.16, "gold", ch=0.02, a=0.56, b=0.42)
+	pleat(k, "RightUpperLeg", "CoatRB", [(2.04, -0.36, 0.86, 0.4), (0.5, -0.4, 0.96, 0.46)], "blue", n=2, depth=0.08, th=0.14)
+	block(k, "RightUpperLeg", "CoatRHem", -0.4, 0.92, 0.64, 0.46, 0.5, 0.16, "gold", ch=0.02, a=0.56, b=0.42)
 
 
 def _coat_arm(k):
@@ -110,5 +109,12 @@ def model(parts, kit):
 
 def paint(a):
 	R.paint(a)
-	face(a["Head_F"], SKIN, SKIN_D, ("#143c80", "#3c84cc", "#b0e0ff"), "#2c1018", "#6e1c38", "M54 107Q65 109 76 106", w=34, up=8, dn=7, inner=3, outer=-3.5, ir=(8.6, 9.5), pu=(2.6, 4), lid=0.4, thick=1.4, wing=5, brow_y=49, brow_t=4.2, tilt=1.6, blush=0)
+	f = a["Head_F"]
+	face(f, SKIN, SKIN_D, ("#143c80", "#3c84cc", "#b0e0ff"), "#2c1018", "#5c1830", "M53 109Q65 105 77 109", w=35, up=5, dn=6, inner=4, outer=-4.5, ir=(8, 8.5), pu=(2.4, 3.6), lid=0.5, thick=1.9, wing=6, brow_y=53, brow_w=34, brow_t=7.0, tilt=4.0, blush=0)
+	# hollow cheeks, a hard jaw line, a longer nose, the frown between the brows
+	f.path("M-5 84L12 92L28 118L40 135H-5Z", SKIN_D, opacity=0.6)
+	f.path("M135 84L118 92L102 118L90 135H135Z", SKIN_D, opacity=0.75)
+	f.path("M66 62L71 86L63 87Z", SKIN_D, opacity=0.6)
+	f.path("M60 50L62 58M70 50L68 58", stroke="#9c6c5c", sw=1.2)
+	f.path("M58 118L72 118", stroke=SKIN_D, sw=1.4)
 	fill_body(a, SKIN, SKIN_D, "#26262f", "#26262f", "#26262f", "#6e1c38", "#8c161c")

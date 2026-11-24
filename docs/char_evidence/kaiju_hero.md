@@ -23,6 +23,8 @@ Source quality: a fan wiki draft page fetched directly, its linked full-body cha
 
 - Some figure photographs show a bluish body, the visual is charcoal. Chosen: charcoal.
 - The source is lean; ours is the block body.
+- Horns are shorter and swept back from the brow, where the source's stand upright.
+- Glowing finger tips are dropped for a plain block hand with one cyan seam.
 
 ## Project rules over source
 
@@ -36,9 +38,9 @@ Source quality: a fan wiki draft page fetched directly, its linked full-body cha
 |---|---|---|
 | Version | pass | Base kaiju form with the cyan glow |
 | Defining attributes | pass | Horned skull, sockets with cyan eyes, fangs, hood and spines, cyan seams, bone collar, segmented legs |
-| Views agree | pass | Front, three-quarter, portrait and head viewed |
+| Views agree | pass | All four views, portrait and head viewed |
 | Camera readability | not checked | Review renders only |
-| Triangles | pass | 7194 of 12000 |
+| Triangles | pass | 6890 of 12000 |
 | Hard facets, no outline | pass | Facet-baked meshes, no ink shell |
 | In game | not checked | No Studio run, no upload, no animation |
 | IP | label | Unlicensed reference |

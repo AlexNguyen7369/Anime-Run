@@ -19,11 +19,8 @@ PROPS = []
 
 def _hair(k):
 	helmet(k, low=4.2)
-	mane(k, 0.4, mid=1.28, end=1.16, y=1.0, n=7)
+	mane(k, 0.5, mid=1.3, end=1.5, y=1.02, n=8)
 	for s in (1, -1):
-		# the mass spreads past the body on both sides to the ankles
-		for i, (b, t, r) in enumerate((((0.9, 0.6, 5.4), (1.52, 1.02, 2.6), 0.42), ((1.1, 0.8, 4.0), (1.76, 1.16, 0.5), 0.46), ((0.9, 0.88, 3.2), (1.2, 1.3, 0.3), 0.46))):
-			gem(k, "Head", f"Veil{s}{i}", (s * b[0], b[1], b[2]), (s * t[0], t[1], t[2]), r, flat=0.45, twist=0.2, a=0.46 + 0.07 * (i % 2), across=(1, 0, 0))
 		gem(k, "Head", f"Top{s}", (0, 0.0, 5.84), (s * 1.1, 0.0, 5.3), 0.44, flat=0.45, bend=0.12, a=0.54)
 		gem(k, "Head", f"TopB{s}", (0, 0.1, 5.84), (s * 0.8, 0.9, 5.1), 0.46, flat=0.45, bend=0.12, a=0.5)
 		# side locks tied with gold, hanging in front of the shoulders
