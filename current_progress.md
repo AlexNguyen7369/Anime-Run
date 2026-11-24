@@ -224,8 +224,9 @@
 220. 2026-11-23 — Alex Nguyen — ui-scroll: fixed PR #27 review note (ink-in no longer writes Visible, so a part its panel hides mid-unroll stays hidden; ui_handscroll 21/0 with the new owner-hide check, ui_index 10/0, ui_panel_focus 57/0) and merged main (PR #26) into the integration branch.
 221. 2026-11-23 — Alex Nguyen — Merged the Scroll Dojo UI redesign (goal ui-scroll, PR #27) into main after a fresh merge review approved it and its one player-visible note was fixed.
 222. 2026-11-23 — Alex Nguyen — Full UiTestRun on main 6a36029 in Studio: 75 pass, 2 fail (ui_run_visual needs a focused Studio window; ui_layout's Daily claimed-day seal fixed by dropping its UIAspectRatioConstraint, rerun ui_layout 891/0 and ui_daily_boosts 13/0); ui_boss_king_arena and ui_character_icons green.
+223. 2026-11-24 — Alex Nguyen — Vendored the orchestrator, nightly-run and 12 other Claude skills, 3 commands and the rules-auditor brief into .claude/ with a Linux systemd runner installer and project hooks and plugins, so a clone on the VM has them (branch feature/alex/vm-skills).
 
 ## What's next
-**Rerun ui_run_visual with Studio as the front window once the owner allows focus.**
+**Merge the feature/alex/vm-skills pull request, then on the Linux VM clone the repo, run `gh auth login` and start the runner with `.claude/skills/orchestrator/scripts/install_systemd.sh`.**
 
-**Why this is next:** it is the only UI red left on main and only fails because the Studio window is throttled in the background; the owner's no-focus rule means it needs the owner's word.
+**Why this is next:** the VM can only load the skills once they are on a branch it clones, and the orchestrator cannot open pull requests there until `gh` is signed in.
