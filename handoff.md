@@ -1,3 +1,10 @@
+## RESUME HERE (2026-11-23 18:50, world2): PAUSED by the owner
+- Approved and frozen: T1, T3, T4, T5, T6, T7, T8, T10. Rework: T2 (6/10, round 7 interrupted), T9 (round 4 interrupted).
+- World 2 place created by the owner: 79352569024576 (in WorldConfig.PLACES[2]).
+- Mesh upload (owner-approved, via Studio MCP open_cloud_invoke; env ROBLOX_OPEN_CLOUD_KEY is invalid): 48 of 91 done, ids (MeshId) in the World2/<Key>.luau ledgers (f8b2bb9), log in build/world2/export/uploaded.tsv. Resume with upload_props.pending(); per mesh: upload Model, poll, LoadAsset to read MeshId, write_id.
+- Uncommitted work in progress when paused: T2 round 7 (DemonCastle.py, partial renders), T9 round 4 (GoldenCity.py, partial renders), clearance ruling (BiomeDressing.luau + biome_harness.luau, red check written, fix not yet made). Check each before committing.
+- Still to do: rules audit of each uploaded asset, baked copies, Studio check in World 2 mode, publish World 2 build into the new place (ask the owner first).
+
 ## RESUME HERE (2026-11-23 late, world2): 7 tracks owner-approved; implementation phase 1 running
 - Owner approved T1, T3, T4, T6, T7, T8, T10 (frozen; commits in WORLD2_SPEC "Render set approvals"). Not approved, rework continues: T2, T5, T9 (builders running). Unreviewed partial rounds of T1/T3/T6/T7 are in git stash, not applied.
 - Owner: "begin on approved track implementation within world 2, simultaneously work on remaining track renders".
