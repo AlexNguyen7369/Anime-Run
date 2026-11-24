@@ -237,7 +237,7 @@ function Tests.catalog()
 	local passes = catalog.Passes()
 	flag("no_pass_characters", type(passes) == "table" and #passes == 0, type(passes) == "table" and #passes or -1, 0)
 
-	local all, rollable = catalog.All(), catalog.Rollable()
+	local all, rollable = catalog.All(1), catalog.Rollable(1)
 	flag("all_47_characters", #all == #CAST, #all, #CAST)
 	flag("rollable_44_characters", #rollable == #CAST - 3, #rollable, #CAST - 3) -- owner 2026-11-03: 3 event-only out
 
@@ -422,7 +422,7 @@ function Tests.catalog()
 
 	-- Villains (design doc 4.32): every track enemy's model is worn by a rollable character
 	local npc = H.module(Shared, "NpcConfig")
-	local tracks = npc and npc.Tracks or {}
+	local tracks = npc and npc.World1 or {}
 	local wearer, villainBad, foeTracks = {}, {}, 0
 	for _, c in rollable do
 		if c.Model ~= nil then

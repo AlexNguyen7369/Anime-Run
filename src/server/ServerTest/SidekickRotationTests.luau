@@ -6,6 +6,7 @@
 --   Server/SidekickRotation (server only; a client learns only the current slot's Secret, never a future one) reads SidekickArt at call time, so a row losing its Model leaves the rotation.
 --     A tier with too few rows that have a Model holds the ones it has.
 --   Rotation.Odds maps only in-rotation ids.
+--   Every function takes the world last (default: this place's); the service rolls the place's.
 --   Rotation.Public(slot) has exactly: Ids (array), SecretChoices (array of { Name, Odds }), SecretId (the slot's
 --     live Secret, owner ruling: Details shows it as a black silhouette), EndsAt ((slot + 1) * 1800), Odds (Rotation.Odds(slot):
 --     id to percent, the numbers Details shows).
@@ -44,8 +45,42 @@ local POOL = {
 	{ "side_fox", "Secret", 0.001, "Walk", 0.2, 0.2, 55, 30 },
 }
 
+-- World 2's 12 (docs/SIDEKICK_SPEC.md "World 2 set"), each value its World 1 rarity's
+local POOL2 = {
+	{ "side_box", "Common", 24.166, "Walk", 0, 0.05, 6, 2 },
+	{ "side_cat", "Common", 24.166, "Walk", 0, 0.05, 6, 2 },
+	{ "side_lucky", "Common", 24.166, "Walk", 0, 0.05, 6, 2 },
+	{ "side_tiger", "Rare", 12, "Walk", 0, 0.12, 10, 5 },
+	{ "side_bird", "Rare", 12, "Fly", 0, 0.12, 10, 5 },
+	{ "side_hound", "Legendary", 1, "Walk", 0.1, 0.05, 22, 20 },
+	{ "side_shaman", "Legendary", 1, "Walk", 0.1, 0.05, 22, 20 },
+	{ "side_acrobat", "Mythic", 0.5, "Walk", 0.15, 0.1, 35, 25 },
+	{ "side_brawler", "Mythic", 0.5, "Walk", 0.15, 0.1, 35, 25 },
+	{ "side_general", "Mythic", 0.5, "Walk", 0.15, 0.1, 35, 25 },
+	{ "side_dragon", "Secret", 0.001, "Fly", 0.2, 0.2, 55, 30 },
+	{ "side_dark", "Secret", 0.001, "Fly", 0.2, 0.2, 55, 30 },
+}
+
 local function near(a, b, slack)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (slack or 1e-6)
+end
+
+-- A parsed JSON number may be one ulp off in the lune mock
+local function sameJson(a, b)
+	if type(a) == "table" and type(b) == "table" then
+		for key in b do
+			if a[key] == nil then
+				return false
+			end
+		end
+		for key, value in a do
+			if not sameJson(value, b[key]) then
+				return false
+			end
+		end
+		return true
+	end
+	return near(a, b, 1e-9) or a == b
 end
 
 local function idOf(result)
@@ -81,14 +116,17 @@ function Tests.sidekick_rotation()
 
 	local Cfg = require(Shared.SidekickConfig)
 	local Art = require(Shared.SidekickArt)
-	local byRarity, secretIds, secretNames = {}, {}, {}
-	for _, row in Cfg.List do
-		byRarity[row.Rarity] = byRarity[row.Rarity] or {}
-		table.insert(byRarity[row.Rarity], row.Id)
-		if row.Rarity == "Secret" then
-			table.insert(secretIds, row.Id)
-			table.insert(secretNames, row.Name)
+	local function rowsOf(world)
+		local byRarity, secretIds, secretNames = {}, {}, {}
+		for _, row in Cfg.Lists[world] do
+			byRarity[row.Rarity] = byRarity[row.Rarity] or {}
+			table.insert(byRarity[row.Rarity], row.Id)
+			if row.Rarity == "Secret" then
+				table.insert(secretIds, row.Id)
+				table.insert(secretNames, row.Name)
+			end
 		end
+		return byRarity, secretIds, secretNames
 	end
 	local function listed(id)
 		return Cfg.Get(id).Odds
@@ -101,248 +139,303 @@ function Tests.sidekick_rotation()
 		return sum
 	end
 
-	section("pool", function()
-		flag("list_has_12", #Cfg.List == #POOL, #Cfg.List, #POOL)
-		local seenNames, odds = {}, 0
-		for _, want in POOL do
-			local row = Cfg.Get(want[1])
-			local id = want[1]
-			flag("listed_" .. id, row ~= nil and table.find(Cfg.List, row) ~= nil)
-			if row then
-				flag("rarity_" .. id, row.Rarity == want[2], row.Rarity, want[2])
-				flag("odds_" .. id, near(row.Odds, want[3]), row.Odds, want[3])
-				flag("movement_" .. id, row.Movement == want[4], row.Movement, want[4])
-				flag("cruise_" .. id, near(row.Cruise, want[5]), row.Cruise, want[5])
-				flag("stamina_" .. id, near(row.Stamina, want[6]), row.Stamina, want[6])
-				flag("damage_" .. id, row.Damage == want[7], row.Damage, want[7])
-				flag("sell_" .. id, row.SellGems == want[8], row.SellGems, want[8])
-				flag("name_" .. id, type(row.Name) == "string" and row.Name ~= "" and not seenNames[row.Name])
-				seenNames[row.Name] = true
-				odds += row.Odds
-			end
-		end
-		flag("listed_odds_sum_100", near(odds, 100), odds, 100)
-		local raga = Cfg.BossDrops[1]
-		-- Owner 2026-11-11 (design doc 4.36 Boss Sidekicks): side_raga, side_mage, side_king.
-		flag("raga_stays_a_boss_drop", raga.Id == "side_raga" and #Cfg.BossDrops == 3)
-		flag("raga_not_listed", table.find(Cfg.List, raga) == nil)
-	end)
-
 	flag("rotation_module_not_replicated", ReplicatedStorage:FindFirstChild("SidekickRotation", true) == nil)
 
-	section("pure", function()
-		local Rotation = require(Server.SidekickRotation)
-		flag("slot_seconds", Rotation.SLOT_SECONDS == 1800, Rotation.SLOT_SECONDS, 1800)
-		for _, case in { { 0, 0 }, { 1799, 0 }, { 1799.9, 0 }, { 1800, 1 }, { 3600, 2 }, { 1800000123, 1000000 } } do
-			flag("slot_of_" .. case[1], Rotation.Slot(case[1]) == case[2], Rotation.Slot(case[1]), case[2])
+	-- The same rules on each world's own list, in any place; World 2's checks carry the w2_ prefix.
+	local function worldRules(world, pool, prefix, featured)
+		local list = Cfg.Lists[world]
+		local byRarity, secretIds, secretNames = rowsOf(world)
+		local rares, common, otherMythics = byRarity.Rare, byRarity.Common[1], {}
+		for _, id in byRarity.Mythic do
+			if id ~= featured then
+				table.insert(otherMythics, id)
+			end
 		end
 
-		local first = H.copy(Rotation.For(SLOT0))
-		local seen, featuredEverySlot, secretChanges = {}, true, 0
-		local countsOk, ranksOk, commonsOk, noRaga, oddsKeysOk, oddsSumOk, keepOk, commonOk =
-			true, true, true, true, true, true, true, true
-		local publicSecretOk, publicSecretChoice = true, true
-		local publicKeysOk, publicIdsOk, publicEndsOk, publicHidden, choicesSame = true, true, true, true, true
-		local publicOddsOk = true
-		local firstChoices
-		local previous
-		for slot = SLOT0, SLOT0 + SLOTS - 1 do
-			local rotation = Rotation.For(slot)
-			for tier, size in TIER_SIZE do
-				local ids = rotation[tier]
-				local distinct = 0
-				for _ in setOf(ids) do
-					distinct += 1
-				end
-				countsOk = countsOk and #ids == size and distinct == size
-				for _, id in ids do
-					seen[id] = true
-					ranksOk = ranksOk and Cfg.Get(id).Rarity == tier
-				end
-			end
-			commonsOk = commonsOk and H.same(setOf(rotation.Common), setOf(byRarity.Common))
-			local secret = rotation.Secret
-			ranksOk = ranksOk and type(secret) == "string" and Cfg.Get(secret).Rarity == "Secret"
-			seen[secret] = true
-
-			local inRotation = members(rotation)
-			table.insert(inRotation, secret)
-			noRaga = noRaga and table.find(inRotation, "side_raga") == nil
-			-- Owner 2026-11-12 (c4580fb, SIDEKICK_SPEC "Igriz is the featured Mythic"): the same Mythic in every slot.
-			featuredEverySlot = featuredEverySlot and rotation.Mythic[1] == Cfg.FeaturedMythic
-			if previous then
-				secretChanges += previous.Secret ~= secret and 1 or 0
-			end
-			previous = rotation
-
-			local odds = Rotation.Odds(slot)
-			local keys, sum = {}, 0
-			for id, percent in odds do
-				keys[id] = true
-				sum += percent
-			end
-			oddsKeysOk = oddsKeysOk and H.same(keys, setOf(inRotation))
-			oddsSumOk = oddsSumOk and near(sum, 100)
-			local extra = (100 - listedSum(inRotation)) / #byRarity.Common
-			for _, id in inRotation do
-				if Cfg.Get(id).Rarity == "Common" then
-					commonOk = commonOk and near(odds[id], listed(id) + extra)
-				else
-					keepOk = keepOk and near(odds[id], listed(id))
+		section(prefix .. "pool", function()
+			flag(prefix .. "list_has_12", #list == #pool, #list, #pool)
+			local seenNames, odds = {}, 0
+			for _, want in pool do
+				local row = Cfg.Get(want[1])
+				local id = want[1]
+				flag(prefix .. "listed_" .. id, row ~= nil and table.find(list, row) ~= nil)
+				if row then
+					flag(prefix .. "rarity_" .. id, row.Rarity == want[2], row.Rarity, want[2])
+					flag(prefix .. "odds_" .. id, near(row.Odds, want[3]), row.Odds, want[3])
+					flag(prefix .. "movement_" .. id, row.Movement == want[4], row.Movement, want[4])
+					flag(prefix .. "cruise_" .. id, near(row.Cruise, want[5]), row.Cruise, want[5])
+					flag(prefix .. "stamina_" .. id, near(row.Stamina, want[6]), row.Stamina, want[6])
+					flag(prefix .. "damage_" .. id, row.Damage == want[7], row.Damage, want[7])
+					flag(prefix .. "sell_" .. id, row.SellGems == want[8], row.SellGems, want[8])
+					flag(
+						prefix .. "name_" .. id,
+						type(row.Name) == "string" and row.Name ~= "" and not seenNames[row.Name]
+					)
+					seenNames[row.Name] = true
+					odds += row.Odds
 				end
 			end
-			commonOk = commonOk and near(odds[rotation.Common[1]], 24.5, 0.01) -- with today's art and rates
+			flag(prefix .. "listed_odds_sum_100", near(odds, 100), odds, 100)
+			local raga = Cfg.BossDrops[1]
+			-- Owner 2026-11-11 (design doc 4.36 Boss Sidekicks): side_raga, side_mage, side_king.
+			flag(prefix .. "raga_stays_a_boss_drop", raga.Id == "side_raga" and #Cfg.BossDrops == 3)
+			flag(prefix .. "raga_not_listed", table.find(list, raga) == nil)
+		end)
 
-			local public = Rotation.Public(slot)
-			local publicKeys = {}
-			for key in public do
-				publicKeys[key] = true
-			end
-			publicKeysOk = publicKeysOk
-				and H.same(
-					publicKeys,
-					{ Ids = true, SecretChoices = true, SecretId = true, EndsAt = true, Odds = true }
+		section(prefix .. "pure", function()
+			local Rotation = require(Server.SidekickRotation)
+			flag(prefix .. "slot_seconds", Rotation.SLOT_SECONDS == 1800, Rotation.SLOT_SECONDS, 1800)
+			for _, case in { { 0, 0 }, { 1799, 0 }, { 1799.9, 0 }, { 1800, 1 }, { 3600, 2 }, { 1800000123, 1000000 } } do
+				flag(
+					prefix .. "slot_of_" .. case[1],
+					Rotation.Slot(case[1]) == case[2],
+					Rotation.Slot(case[1]),
+					case[2]
 				)
-			publicOddsOk = publicOddsOk and H.same(public.Odds, odds)
-			publicIdsOk = publicIdsOk and H.same(setOf(public.Ids or {}), setOf(members(rotation)))
-			publicEndsOk = publicEndsOk and public.EndsAt == (slot + 1) * 1800
-			local raw = HttpService:JSONEncode(public)
-			publicSecretOk = publicSecretOk and public.SecretId == rotation.Secret
-			local liveChoice = false
-			for _, choice in public.SecretChoices do
-				liveChoice = liveChoice or choice.Name == Cfg.Get(rotation.Secret).Name
 			end
-			publicSecretChoice = publicSecretChoice and liveChoice
-			for _, id in secretIds do
-				publicHidden = publicHidden and (id == rotation.Secret or string.find(raw, id, 1, true) == nil)
-			end
-			-- The same every slot: SecretId alone tells the live Secret.
-			local choices = HttpService:JSONEncode(public.SecretChoices)
-			firstChoices = firstChoices or choices
-			choicesSame = choicesSame and choices == firstChoices
-		end
-		flag("tier_counts_exact", countsOk)
-		flag("tier_ranks_right", ranksOk)
-		flag("commons_all_in", commonsOk)
-		flag("raga_never_in_rotation", noRaga)
-		for _, want in POOL do
-			-- The other Mythics never rotate in while the featured one has its model (c4580fb).
-			if want[2] ~= "Common" and want[2] ~= "Mythic" then
-				flag("seen_over_200_slots_" .. want[1], seen[want[1]] == true)
-			end
-		end
-		flag("featured_mythic_every_slot", featuredEverySlot, Cfg.FeaturedMythic)
-		flag("secret_really_rotates", secretChanges >= 20, secretChanges, 20)
 
-		flag("odds_keys_are_the_rotation", oddsKeysOk)
-		flag("odds_sum_100", oddsSumOk)
-		flag("odds_keep_listed", keepOk)
-		flag("odds_remainder_on_commons", commonOk)
-
-		flag("public_keys_exact", publicKeysOk)
-		flag("public_odds_are_the_slots", publicOddsOk)
-		flag("public_ids_without_secret", publicIdsOk)
-		flag("public_ends_at_slot_end", publicEndsOk)
-		flag("public_secret_id_is_the_slots", publicSecretOk)
-		flag("public_secret_id_is_a_choice", publicSecretChoice)
-		flag("public_hides_the_other_secret_ids", publicHidden)
-		flag("public_choices_same_every_slot", choicesSame)
-		local choices = Rotation.Public(SLOT0).SecretChoices
-		local names = {}
-		for _, choice in choices do
-			table.insert(names, choice.Name)
-			flag("public_choice_odds_" .. tostring(choice.Name), near(choice.Odds, 0.001), choice.Odds, 0.001)
-		end
-		flag("public_choices_every_secret_name", H.same(setOf(names), setOf(secretNames)) and #names == #secretNames)
-
-		-- From the slot alone: no call order, no global random, no module state, any server.
-		flag("for_same_after_other_slots", H.same(Rotation.For(SLOT0), first))
-		math.randomseed(1)
-		local seededOne = H.copy(Rotation.For(SLOT0 + 7))
-		local nextOne = math.random()
-		math.randomseed(1)
-		local seededTwo = H.copy(Rotation.For(SLOT0 + 7))
-		flag("for_leaves_global_random_alone", math.random() == nextOne)
-		math.randomseed(99)
-		flag("for_ignores_global_random", H.same(seededOne, seededTwo) and H.same(Rotation.For(SLOT0 + 7), seededOne))
-		local clone = Server.SidekickRotation:Clone()
-		clone.Name = "ServerTestRotationClone"
-		clone.Parent = Server
-		table.insert(cleanup, clone)
-		local server2 = require(clone)
-		local sameOnAServer2 = true
-		for slot = SLOT0 + SLOTS - 1, SLOT0, -1 do
-			sameOnAServer2 = sameOnAServer2 and H.same(server2.For(slot), Rotation.For(slot))
-		end
-		flag("for_same_on_a_fresh_server", sameOnAServer2)
-
-		-- No uploaded Model: out of its tier. Art is put back before any yield, because live code shares it.
-		local function without(ids, fn)
-			local saved = {}
-			for _, id in ids do
-				saved[id] = Art[id].Model
-				Art[id].Model = nil
-			end
-			local ok, err = pcall(fn)
-			for id, model in saved do
-				Art[id].Model = model
-			end
-			if not ok then
-				error(err, 0)
-			end
-		end
-		local function everySlot(fn)
-			local holds = true
+			local first = H.copy(Rotation.For(SLOT0, world))
+			local seen, featuredEverySlot, secretChanges = {}, true, 0
+			local countsOk, ranksOk, commonsOk, noRaga, oddsKeysOk, oddsSumOk, keepOk, commonOk =
+				true, true, true, true, true, true, true, true
+			local publicSecretOk, publicSecretChoice = true, true
+			local publicKeysOk, publicIdsOk, publicEndsOk, publicHidden, choicesSame = true, true, true, true, true
+			local publicOddsOk = true
+			local firstChoices
+			local previous
 			for slot = SLOT0, SLOT0 + SLOTS - 1 do
-				holds = fn(slot, Rotation.For(slot), Rotation.Odds(slot)) and holds
+				local rotation = Rotation.For(slot, world)
+				for tier, size in TIER_SIZE do
+					local ids = rotation[tier]
+					local distinct = 0
+					for _ in setOf(ids) do
+						distinct += 1
+					end
+					countsOk = countsOk and #ids == size and distinct == size
+					for _, id in ids do
+						seen[id] = true
+						ranksOk = ranksOk and Cfg.Get(id).Rarity == tier
+					end
+				end
+				commonsOk = commonsOk and H.same(setOf(rotation.Common), setOf(byRarity.Common))
+				local secret = rotation.Secret
+				ranksOk = ranksOk and type(secret) == "string" and Cfg.Get(secret).Rarity == "Secret"
+				seen[secret] = true
+
+				local inRotation = members(rotation)
+				table.insert(inRotation, secret)
+				noRaga = noRaga and table.find(inRotation, "side_raga") == nil
+				-- Owner 2026-11-12 (c4580fb, SIDEKICK_SPEC "Igriz is the featured Mythic"): the same Mythic in every slot.
+				featuredEverySlot = featuredEverySlot and rotation.Mythic[1] == featured
+				if previous then
+					secretChanges += previous.Secret ~= secret and 1 or 0
+				end
+				previous = rotation
+
+				local odds = Rotation.Odds(slot, world)
+				local keys, sum = {}, 0
+				for id, percent in odds do
+					keys[id] = true
+					sum += percent
+				end
+				oddsKeysOk = oddsKeysOk and H.same(keys, setOf(inRotation))
+				oddsSumOk = oddsSumOk and near(sum, 100)
+				local extra = (100 - listedSum(inRotation)) / #byRarity.Common
+				for _, id in inRotation do
+					if Cfg.Get(id).Rarity == "Common" then
+						commonOk = commonOk and near(odds[id], listed(id) + extra)
+					else
+						keepOk = keepOk and near(odds[id], listed(id))
+					end
+				end
+				commonOk = commonOk and near(odds[rotation.Common[1]], 24.5, 0.01) -- with today's art and rates
+
+				local public = Rotation.Public(slot, world)
+				local publicKeys = {}
+				for key in public do
+					publicKeys[key] = true
+				end
+				publicKeysOk = publicKeysOk
+					and H.same(
+						publicKeys,
+						{ Ids = true, SecretChoices = true, SecretId = true, EndsAt = true, Odds = true }
+					)
+				publicOddsOk = publicOddsOk and H.same(public.Odds, odds)
+				publicIdsOk = publicIdsOk and H.same(setOf(public.Ids or {}), setOf(members(rotation)))
+				publicEndsOk = publicEndsOk and public.EndsAt == (slot + 1) * 1800
+				local raw = HttpService:JSONEncode(public)
+				publicSecretOk = publicSecretOk and public.SecretId == rotation.Secret
+				local liveChoice = false
+				for _, choice in public.SecretChoices do
+					liveChoice = liveChoice or choice.Name == Cfg.Get(rotation.Secret).Name
+				end
+				publicSecretChoice = publicSecretChoice and liveChoice
+				for _, id in secretIds do
+					publicHidden = publicHidden and (id == rotation.Secret or string.find(raw, id, 1, true) == nil)
+				end
+				-- The same every slot: SecretId alone tells the live Secret.
+				local choices = HttpService:JSONEncode(public.SecretChoices)
+				firstChoices = firstChoices or choices
+				choicesSame = choicesSame and choices == firstChoices
 			end
-			return holds
-		end
-		local function sums100(odds)
-			local sum = 0
-			for _, percent in odds do
-				sum += percent
+			flag(prefix .. "tier_counts_exact", countsOk)
+			flag(prefix .. "tier_ranks_right", ranksOk)
+			flag(prefix .. "commons_all_in", commonsOk)
+			flag(prefix .. "raga_never_in_rotation", noRaga)
+			for _, want in pool do
+				-- The other Mythics never rotate in while the featured one has its model (c4580fb).
+				if want[2] ~= "Common" and want[2] ~= "Mythic" then
+					flag(prefix .. "seen_over_200_slots_" .. want[1], seen[want[1]] == true)
+				end
 			end
-			return near(sum, 100)
-		end
-		without({ "side_fist" }, function()
+			flag(prefix .. "featured_mythic_every_slot", featuredEverySlot, featured)
+			flag(prefix .. "secret_really_rotates", secretChanges >= 20, secretChanges, 20)
+
+			flag(prefix .. "odds_keys_are_the_rotation", oddsKeysOk)
+			flag(prefix .. "odds_sum_100", oddsSumOk)
+			flag(prefix .. "odds_keep_listed", keepOk)
+			flag(prefix .. "odds_remainder_on_commons", commonOk)
+
+			flag(prefix .. "public_keys_exact", publicKeysOk)
+			flag(prefix .. "public_odds_are_the_slots", publicOddsOk)
+			flag(prefix .. "public_ids_without_secret", publicIdsOk)
+			flag(prefix .. "public_ends_at_slot_end", publicEndsOk)
+			flag(prefix .. "public_secret_id_is_the_slots", publicSecretOk)
+			flag(prefix .. "public_secret_id_is_a_choice", publicSecretChoice)
+			flag(prefix .. "public_hides_the_other_secret_ids", publicHidden)
+			flag(prefix .. "public_choices_same_every_slot", choicesSame)
+			local choices = Rotation.Public(SLOT0, world).SecretChoices
+			local names = {}
+			for _, choice in choices do
+				table.insert(names, choice.Name)
+				flag(
+					prefix .. "public_choice_odds_" .. tostring(choice.Name),
+					near(choice.Odds, 0.001),
+					choice.Odds,
+					0.001
+				)
+			end
 			flag(
-				"no_model_mythic_out",
-				everySlot(function(_, rotation, odds)
-					return rotation.Mythic[1] ~= "side_fist"
-						and #rotation.Mythic == 1
-						and odds.side_fist == nil
-						and sums100(odds)
-				end)
+				prefix .. "public_choices_every_secret_name",
+				H.same(setOf(names), setOf(secretNames)) and #names == #secretNames
 			)
-		end)
-		without({ "side_dogs" }, function()
+
+			-- From the slot alone: no call order, no global random, no module state, any server.
+			flag(prefix .. "for_same_after_other_slots", H.same(Rotation.For(SLOT0, world), first))
+			math.randomseed(1)
+			local seededOne = H.copy(Rotation.For(SLOT0 + 7, world))
+			local nextOne = math.random()
+			math.randomseed(1)
+			local seededTwo = H.copy(Rotation.For(SLOT0 + 7, world))
+			flag(prefix .. "for_leaves_global_random_alone", math.random() == nextOne)
+			math.randomseed(99)
 			flag(
-				"no_model_rare_out",
-				everySlot(function(_, rotation, odds)
-					return H.same(rotation.Rare, { "side_reindeer" })
-						and odds.side_dogs == nil
-						and sums100(odds)
-						and near(
-							odds.side_chain,
-							listed("side_chain") + (100 - listedSum(members(rotation)) - listed(rotation.Secret)) / 3
-						)
-				end)
+				prefix .. "for_ignores_global_random",
+				H.same(seededOne, seededTwo) and H.same(Rotation.For(SLOT0 + 7, world), seededOne)
 			)
-			flag("no_model_public_hides_it", table.find(Rotation.Public(SLOT0).Ids, "side_dogs") == nil)
+			local clone = Server.SidekickRotation:Clone()
+			clone.Name = "ServerTestRotationClone" .. world
+			clone.Parent = Server
+			table.insert(cleanup, clone)
+			local server2 = require(clone)
+			local sameOnAServer2 = true
+			for slot = SLOT0 + SLOTS - 1, SLOT0, -1 do
+				sameOnAServer2 = sameOnAServer2 and H.same(server2.For(slot, world), Rotation.For(slot, world))
+			end
+			flag(prefix .. "for_same_on_a_fresh_server", sameOnAServer2)
+
+			-- No uploaded Model: out of its tier. Art is put back before any yield, because live code shares it.
+			local function without(ids, fn)
+				local saved = {}
+				for _, id in ids do
+					saved[id] = Art[id].Model
+					Art[id].Model = nil
+				end
+				local ok, err = pcall(fn)
+				for id, model in saved do
+					Art[id].Model = model
+				end
+				if not ok then
+					error(err, 0)
+				end
+			end
+			local function everySlot(fn)
+				local holds = true
+				for slot = SLOT0, SLOT0 + SLOTS - 1 do
+					holds = fn(slot, Rotation.For(slot, world), Rotation.Odds(slot, world)) and holds
+				end
+				return holds
+			end
+			local function sums100(odds)
+				local sum = 0
+				for _, percent in odds do
+					sum += percent
+				end
+				return near(sum, 100)
+			end
+			without({ otherMythics[1] }, function()
+				flag(
+					prefix .. "no_model_mythic_out",
+					everySlot(function(_, rotation, odds)
+						return rotation.Mythic[1] ~= otherMythics[1]
+							and #rotation.Mythic == 1
+							and odds[otherMythics[1]] == nil
+							and sums100(odds)
+					end)
+				)
+			end)
+			-- The featured Mythic has its Model in every slot above, so only without it does a Mythic without a Model matter.
+			without({ featured }, function()
+				local drawn = {}
+				flag(prefix .. "no_model_featured_draws_the_others", everySlot(function(_, rotation, odds)
+					drawn[rotation.Mythic[1]] = true
+					return #rotation.Mythic == 1 and odds[featured] == nil and sums100(odds)
+				end) and H.same(drawn, setOf(otherMythics)))
+			end)
+			without({ featured, otherMythics[1] }, function()
+				flag(
+					prefix .. "no_model_mythic_never_drawn",
+					everySlot(function(_, rotation, odds)
+						return H.same(rotation.Mythic, { otherMythics[2] })
+							and odds[otherMythics[1]] == nil
+							and sums100(odds)
+					end)
+				)
+			end)
+			without({ rares[1] }, function()
+				flag(
+					prefix .. "no_model_rare_out",
+					everySlot(function(_, rotation, odds)
+						return H.same(rotation.Rare, { rares[2] })
+							and odds[rares[1]] == nil
+							and sums100(odds)
+							and near(
+								odds[common],
+								listed(common) + (100 - listedSum(members(rotation)) - listed(rotation.Secret)) / 3
+							)
+					end)
+				)
+				flag(
+					prefix .. "no_model_public_hides_it",
+					table.find(Rotation.Public(SLOT0, world).Ids, rares[1]) == nil
+				)
+			end)
+			without({ rares[1], rares[2], byRarity.Legendary[1], byRarity.Legendary[2] }, function()
+				flag(
+					prefix .. "no_model_tier_empty_still_100",
+					everySlot(function(_, rotation, odds)
+						return #rotation.Rare == 0 and #rotation.Legendary == 0 and sums100(odds)
+					end)
+				)
+			end)
 		end)
-		without({ "side_dogs", "side_reindeer", "side_ant", "side_reaper" }, function()
-			flag(
-				"no_model_tier_empty_still_100",
-				everySlot(function(_, rotation, odds)
-					return #rotation.Rare == 0 and #rotation.Legendary == 0 and sums100(odds)
-				end)
-			)
-		end)
-	end)
+	end
+	worldRules(1, POOL, "", "side_knight")
+	worldRules(2, POOL2, "w2_", "side_general")
 
 	section("service", function()
 		local Rotation = require(Server.SidekickRotation)
+		local _, secretIds, secretNames = rowsOf(require(Shared.WorldConfig).Id) -- the service rolls the place's set
 		S = require(Server.SidekickService)
 		oldCooldown = S.REMOTE_COOLDOWN
 		S.REMOTE_COOLDOWN = 0
@@ -550,7 +643,7 @@ function Tests.sidekick_rotation()
 		for check = SLOT0, SLOT0 + 49 do
 			at(check * 1800 + 5)
 			local raw, decoded = attribute()
-			same = same and H.same(decoded, Rotation.Public(check))
+			same = same and sameJson(decoded, Rotation.Public(check))
 			local rawText = type(raw) == "string" and raw or ""
 			for _, id in secretIds do
 				hidden = hidden and (id == Rotation.For(check).Secret or string.find(rawText, id, 1, true) == nil)

@@ -78,9 +78,30 @@ local ANCESTORS = {
 	ModuleScript = { LuaSourceContainer = true },
 	Script = { LuaSourceContainer = true, BaseScript = true },
 	Part = { BasePart = true, PVInstance = true },
+	MeshPart = { BasePart = true, PVInstance = true },
 }
 local Methods = {}
 local data = setmetatable({}, { __mode = "k" })
+
+local game
+local tagSignals = {}
+local function tagSignal(tag)
+	tagSignals[tag] = tagSignals[tag] or newSignal()
+	return tagSignals[tag]
+end
+-- CollectionService's added signals for an instance (and its descendants) that just entered the DataModel
+local function fireTags(instance)
+	if game == nil or not Methods.IsDescendantOf(instance, game) then
+		return
+	end
+	local entered = Methods.GetDescendants(instance)
+	table.insert(entered, instance)
+	for _, node in entered do
+		for tag in data[node].Tags do
+			tagSignal(tag):Fire(node)
+		end
+	end
+end
 
 local mt = {}
 function mt.__index(self, key)
@@ -125,6 +146,7 @@ function mt.__newindex(self, key, value)
 		if value then
 			table.insert(data[value].Children, self)
 			fire(value, "ChildAdded", self)
+			fireTags(self)
 		end
 		return
 	end
@@ -147,6 +169,7 @@ local function newInstance(class, parent)
 		Children = {},
 		Attributes = {},
 		Signals = {},
+		Tags = {},
 	}
 	if parent then
 		self.Parent = parent
@@ -253,6 +276,7 @@ function Methods.Clone(self)
 		data[copy].Props[key] = value
 	end
 	data[copy].Attributes = table.clone(data[self].Attributes)
+	data[copy].Tags = table.clone(data[self].Tags)
 	data[copy].Path, data[copy].Source = data[self].Path, data[self].Source
 	for _, child in data[self].Children do
 		Methods.Clone(child).Parent = copy
@@ -265,7 +289,7 @@ end
 
 -- DataModel ------------------------------------------------------------------------------------------------------------
 
-local game = newInstance("DataModel")
+game = newInstance("DataModel")
 local services = {}
 function Methods.GetService(_, name)
 	if not services[name] then
@@ -316,17 +340,34 @@ service("RunService", {
 	end,
 })
 service("CollectionService", {
-	GetTagged = function()
-		return {}
+	GetTagged = function(_, tag)
+		local out = {}
+		for _, instance in game:GetDescendants() do
+			if data[instance].Tags[tag] then
+				table.insert(out, instance)
+			end
+		end
+		return out
 	end,
-	AddTag = function() end,
-	HasTag = function()
-		return false
+	AddTag = function(_, instance, tag)
+		if data[instance].Tags[tag] then
+			return
+		end
+		data[instance].Tags[tag] = true
+		if instance:IsDescendantOf(game) then
+			tagSignal(tag):Fire(instance)
+		end
 	end,
-	GetInstanceAddedSignal = newSignal,
+	HasTag = function(_, instance, tag)
+		return data[instance].Tags[tag] == true
+	end,
+	GetInstanceAddedSignal = function(_, tag)
+		return tagSignal(tag)
+	end,
 	GetInstanceRemovedSignal = newSignal,
 })
 local workspace = service("Workspace", {
+	Gravity = 196.2,
 	GetServerTimeNow = function()
 		return os.time()
 	end,

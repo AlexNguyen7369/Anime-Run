@@ -226,6 +226,7 @@ UiScenarios.Names = {
 	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
+	"ui_late_models", -- another world's model arriving after Ready (UiLateModels; docs/WORLD2_SPEC.md "Cast in game")
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
 	"ui_remote_guards",
 	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened
@@ -9112,6 +9113,11 @@ K.sidekickFollow = require(script.Parent.UiSidekickFollow).Build({
 	player = player,
 })
 for name, fn in K.sidekickFollow.Scenarios do
+	S[name] = fn
+end
+
+K.lateModels = require(script.Parent.UiLateModels).Build({ check = check })
+for name, fn in K.lateModels.Scenarios do
 	S[name] = fn
 end
 

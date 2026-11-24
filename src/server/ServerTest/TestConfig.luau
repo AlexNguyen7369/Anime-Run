@@ -49,6 +49,7 @@ return {
 		"sidekicks",
 		"sidekick_rotation",
 		"world2_cast",
+		"character_models",
 		"sidekick_follow",
 		"sidekick_pity",
 		"sidekick_tutorial",

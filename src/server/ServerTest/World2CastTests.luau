@@ -207,6 +207,8 @@ local function near(a, b)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= 1e-9
 end
 
+Tests.SPEC = SPEC -- Scenarios.gacha rolls against it
+
 function Tests.world2_cast()
 	local r, flag = H.report("world2_cast")
 	local catalog, gacha = require(Shared.CharacterCatalog), require(Shared.GachaConfig)
