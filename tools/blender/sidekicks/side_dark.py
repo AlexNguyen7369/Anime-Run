@@ -18,8 +18,11 @@ def mask(m, part, x, y, z, r):
 
 
 def build(k):
+	import sidekick_solid
+
 	parts = {"Torso": ((0, 0, 3.4), None), "Head": ((0, 0, 5.0), "Torso"), "LeftArm": ((1.3, 0, 4.5), "Torso"), "RightArm": ((-1.3, 0, 4.5), "Torso"), "HandsLeft": ((0.9, 0.2, 3.2), "Torso"), "HandsRight": ((-0.9, 0.2, 3.2), "Torso"), "Sword": ((-2.1, -0.8, 2.9), "RightArm")}
 	m = k.Model(ID, RAMPS, parts)
+	sidekick_solid.solid_blocks(m)
 	h = "Head"
 	m.block(h, "cloak", 0, 0.1, 6.5, 4.8, 0.8, 0.7, ch=0.2, jit=0.03)
 	# the crown of faces, the largest at the front

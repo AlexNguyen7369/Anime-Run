@@ -13,8 +13,11 @@ NEON = ("HeadNeon", "TorsoNeon")
 
 
 def build(k):
+	import sidekick_solid
+
 	parts = {"Torso": ((0, 0, 3), None), "TorsoNeon": ((0, 0, 3), "Torso"), "Head": ((0, 0, 4.1), "Torso"), "HeadNeon": ((0, 0, 4.1), "Head"), "LeftArm": ((1.54, 0, 3.9), "Torso"), "RightArm": ((-1.54, 0, 3.9), "Torso"), "LeftLeg": ((0.54, 0, 2), "Torso"), "RightLeg": ((-0.54, 0, 2), "Torso"), "WingLeft": ((0.5, 0.6, 3.7), "Torso"), "WingRight": ((-0.5, 0.6, 3.7), "Torso"), "Sword": ((-1.54, -0.5, 1.9), "RightArm")}
 	m = k.Model(ID, RAMPS, parts, neon=NEON)
+	sidekick_solid.solid_blocks(m)
 	h = "Head"
 	m.block(h, "plate", 0, 0, 5.4, 4.02, 0.86, 0.82, ch=0.14, mids=(4.7,), jit=0.015)
 	m.plate(h, "trim", [(0, -0.98, 4.0), (0.2, -0.94, 4.5), (0.18, -0.94, 5.3), (0, -0.98, 6.2), (-0.18, -0.94, 5.3), (-0.2, -0.94, 4.5)], (0, 0.16, 0), a=0.56)

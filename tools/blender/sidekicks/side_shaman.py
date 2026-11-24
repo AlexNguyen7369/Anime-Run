@@ -13,8 +13,11 @@ NEON = ("HeadNeon", "StaffNeon")
 
 
 def build(k):
+	import sidekick_solid
+
 	parts = {"Torso": ((0, 0, 3), None), "Head": ((0, 0, 4.1), "Torso"), "HeadNeon": ((0, 0, 4.1), "Head"), "LeftArm": ((1.7, 0, 3.9), "Torso"), "RightArm": ((-1.7, 0, 3.9), "Torso"), "LeftLeg": ((0.6, 0, 2), "Torso"), "RightLeg": ((-0.6, 0, 2), "Torso"), "Staff": ((-1.7, -0.6, 2), "RightArm"), "StaffNeon": ((-1.7, -0.6, 2), "Staff")}
 	m = k.Model(ID, RAMPS, parts, neon=NEON)
+	sidekick_solid.solid_blocks(m)
 	h = "Head"
 	m.block(h, "hide", 0, -0.1, 5.2, 4.0, 0.9, 0.84, ch=0.12, jit=0.015, a=0.54)
 	# hood with a deep peak

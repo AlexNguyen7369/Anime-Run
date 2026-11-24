@@ -11,10 +11,13 @@ RAMPS = {
 
 
 def build(k):
+	import sidekick_solid
+
 	parts = {"Body": ((0, 0.4, 1.4), None), "Head": ((0, -0.9, 2.3), "Body"), "Tail": ((0, 1.6, 1.8), "Body")}
 	for n, x, y in (("FrontLeft", 0.46, -0.5), ("FrontRight", -0.46, -0.5), ("BackLeft", 0.5, 1.1), ("BackRight", -0.5, 1.1)):
 		parts["Leg" + n] = ((x, y, 1.0), "Body")
 	m = k.Model(ID, RAMPS, parts)
+	sidekick_solid.solid_blocks(m)
 	m.path("Body", "fur", [(0, 1.7, 1.5), (0, 0.9, 1.62), (0, 0, 1.6), (0, -0.8, 1.74)], [0.5, 0.78, 0.76, 0.62], [0.5, 0.72, 0.7, 0.6], n=8, jit=0.02)
 	m.plate("Body", "dark", [(-0.66, 0.0, 2.1), (0.5, 0.0, 2.3), (0.7, 0.9, 2.2), (-0.1, 1.2, 2.36), (-0.7, 0.8, 2.1)], (0, 0, 0.06), a=0.5)
 	h, y = "Head", -0.96
