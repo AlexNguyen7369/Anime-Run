@@ -237,3 +237,18 @@ Nothing here is decided; the game runs the proposed default named in each item u
    gaps (5,000-stud gaps clear all but push the farthest road out to 27,144 studs)?
 8. Confirm the 7 hero moves in `tools/blender/world2/hero_moves.json` (Railgun 2,410 and LairTower 5,620 studs are
    large).
+
+## 2026-11-24 World 2 test coverage gaps (open work, none of it is done)
+In the World 2 place the server harness reports these as SKIP with a reason, counted apart from pass and fail
+(`TestConfig.World1Only`, `TestConfig.World1TrackTests`). A SKIP is missing coverage, not a pass. Goal `w2-game` says
+"the track tests and environment scenarios are green in the World 2 mode": that is not met while these stand.
+1. Track tests: `ServerTest/TrackTests` holds the briefs of World 1's ten tracks only. World 2's ten tracks have no
+   briefs. A brief states the owner's limits per track (length, width, radius, grade), so they need the owner's numbers
+   or approval of numbers taken from `docs/WORLD2_SPEC.md`. Covered today: `runner` runs all ten World 2 tracks,
+   `world_layout` places them.
+2. `environment`: every check names one of World 1's ten biomes. World 2's biomes are checked offline only
+   (`tools/lune/biome_harness.luau`, WORLD=2); there is no Studio scenario for them.
+3. `roll_anim`: expects World 1's roll pool and reel odds. World 2's pool is checked by `world2_cast`; its roll
+   animation reel is checked by nothing.
+4. Narrowed to World 1 inside scenarios that still run in World 2: `npc` holds enemy names to World 1's cast (World 2's
+   enemies are still proposed); `weather` expects event-only characters in World 1 only (World 2 has none specified).

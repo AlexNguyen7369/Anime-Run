@@ -286,8 +286,10 @@ function Tests.weather()
 					break
 				end
 			end
-			-- docs/CHARACTER_GACHA_SPEC.md "Event-only characters": ds_water (rain), jk_night (night), sea_gold (gold)
-			flag("weather_event_only_character_exists_" .. event, eventCharacter ~= nil)
+			-- docs/CHARACTER_GACHA_SPEC.md "Event-only characters": ds_water (rain), jk_night (night), sea_gold (gold).
+			-- They are World 1 characters: World 2's catalog has no event-only character (none is specified).
+			local world1 = require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id == 1
+			flag("weather_event_only_character_exists_" .. event, (eventCharacter ~= nil) == world1)
 			if eventCharacter then
 				-- Model is nil ("?") until character art exists; when set it is the character's own template.
 				local models = ReplicatedStorage:FindFirstChild("CarModels")

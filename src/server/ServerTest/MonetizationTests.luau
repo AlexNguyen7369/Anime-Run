@@ -143,9 +143,14 @@ function Tests.passes()
 		flag("passes_exclusive_not_rollable", spec and spec.Rollable == false and spec.Chance == nil)
 		flag("passes_exclusive_id_not_in_index", not table.find(CharacterCatalog.All(), spec))
 		flag("passes_exclusive_id_not_rolled", not table.find(CharacterCatalog.Rollable(), spec))
-		flag("passes_exclusive_cruise_350", RaceConfig.Cruise(spec, 1) == 350, RaceConfig.Cruise(spec, 1), 350)
-		flag("passes_exclusive_boosts_apply", RaceConfig.Cruise(spec, 2) == 700)
-		flag("passes_exclusive_capped", RaceConfig.Cruise(spec, 3) == RaceConfig.MAX_CRUISE)
+		-- design doc 4.47: in World 2 a World 1 character, Saitamo included, runs at CARRY_CRUISE of its final cruise
+		local carry = require(Shared.WorldConfig).Id == 2 and RaceConfig.CARRY_CRUISE or 1
+		local function nearCruise(multi, want)
+			return math.abs(RaceConfig.Cruise(spec, multi) - want * carry) < 1e-6
+		end
+		flag("passes_exclusive_cruise_350", nearCruise(1, 350), RaceConfig.Cruise(spec, 1), 350 * carry)
+		flag("passes_exclusive_boosts_apply", nearCruise(2, 700))
+		flag("passes_exclusive_capped", nearCruise(3, RaceConfig.MAX_CRUISE))
 		-- Commit c80e4de (design doc 4.39, MONETIZATION_SPEC): its own 6 s stamina, no longer the Mythic 27 s
 		local saitamoStamina = StaminaConfig.Base(spec)
 		flag("passes_exclusive_stamina_6", saitamoStamina == 6, saitamoStamina, 6)
@@ -158,7 +163,7 @@ function Tests.passes()
 		flag("passes_exclusive_granted", e.GachaData:FindFirstChild(spec.Id) ~= nil)
 		e:SetAttribute("Team", spec.Id)
 		e:SetAttribute("EquippedCharacter", spec.Id)
-		flag("passes_exclusive_runs_350", GachaService.CruiseFor(e, spec.Id, 1) >= 350)
+		flag("passes_exclusive_runs_350", GachaService.CruiseFor(e, spec.Id, 1) >= 350 * carry - 1e-6)
 		local saved = GachaService.Snapshot(e)
 		local reload = player("PassExclusiveReload")
 		GachaService.Apply(reload, saved)
