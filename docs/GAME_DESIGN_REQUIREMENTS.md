@@ -797,7 +797,9 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - 10 tracks, one per new series first, then classic arcs: Saw Man, Solo Levelup, One Punch, Dandadan, Kaiju No. 8,
   Frieren, then Solo Levelup, One Punch, Frieren, Saw Man (names and enemies **proposed**, `WORLD2_SPEC`). Routes reuse
   World 1's validated track routes; biomes are new.
-- World 2 spawn plaza (owner pre-approved, picked 2026-11-24): "Moonlit Dojo": World 1's plaza layout, footprint,
+- World 2 spawn plaza (**proposed**, 2026-11-24): the owner suggested "the sakura dojo theme but altered" and asked
+  for concepts; the coordinator picked variant A under the owner's general go-ahead ("approved to do anything"); the
+  owner has not yet confirmed this pick. "Moonlit Dojo": World 1's plaza layout, footprint,
   spawn and services unchanged; night sky with stars and a large pale moon framed by the torii; the Great Sakura's
   blossoms crimson-violet with a soft glow; lanterns lit; cyber accents and the plaza sky loop violet/magenta instead of
   World 1's colour; the return gate to World 1 at hub-local (194, -176). Concepts: `assets/world2_draft/plaza/`
