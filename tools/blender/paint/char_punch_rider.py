@@ -11,27 +11,30 @@ PROPS = []
 def model(parts, kit):
 	k = start(kit, parts, R)
 	h = "Head"
-	crown(k, [(1.08, 5.2), (1.14, 5.5), (1.04, 5.86), (0.7, 6.12), (0.2, 6.2)], "helm")
-	block(k, h, "Brim", 0, -0.02, 5.34, 5.16, 1.1, 1.04, "helm", ch=0.04, corner=0.3, a=0.42)
+	crown(k, [(1.22, 5.2), (1.28, 5.5), (1.04, 5.86), (0.7, 6.12), (0.2, 6.2)], "helm")
+	block(k, h, "Brim", 0, -0.02, 5.36, 5.16, 1.16, 1.08, "helm", ch=0.04, corner=0.3, a=0.42)
 	for x in (-0.46, 0, 0.46):
 		block(k, h, f"Vent{x}", x, -0.5, 6.12 - abs(x) * 0.3, 5.56, 0.1, 0.5, "vent", ch=0.04, a=0.5)
 	for s in (1, -1):
 		block(k, h, f"Strap{s}", s * 0.94, -0.16, 5.2, 4.16, 0.05, 0.08, "strap", ch=0.02)
-		block(k, h, f"GogRim{s}", s * 0.45, -0.86, 5.02, 4.5, 0.39, 0.07, "rim", ch=0.04, corner=0.3)
+		[block(k, h, f"Gog{s}{n}", s * x, -0.9, z1, z0, w, 0.05, "rim", ch=0.015) for n, x, z1, z0, w in (("L", 0.43, 4.5, 4.42, 0.4), ("I", 0.06, 5.06, 4.42, 0.04), ("O", 0.82, 5.06, 4.42, 0.04))]
 		block(k, h, f"GogStrap{s}", s * 0.94, -0.2, 4.88, 4.66, 0.06, 0.62, "rim", ch=0.02)
 		gem(k, h, f"Side{s}", (s * 0.9, -0.3, 5.2), (s * 1.0, -0.5, 4.4), 0.2, "hair", flat=0.5, across=(0, 1, 0))
-	block(k, h, "Nape", 0, 0.66, 5.2, 4.4, 0.8, 0.26, "hair", ch=0.06, corner=0.2)
+	back_hair(k, low=4.44)
+	block(k, h, "ChinStrap", 0, -0.2, 4.1, 3.98, 0.86, 0.1, "strap", ch=0.02)
 	# the lens shows the painted eyes, so only a rim bridge and a pale glint are solid
 	block(k, h, "Bridge", 0, -0.9, 4.84, 4.7, 0.1, 0.05, "rim", ch=0.02)
 	for s in (1, -1):
-		block(k, h, f"Lens{s}", s * 0.45, -0.95, 4.95, 4.57, 0.32, 0.02, "lens", ch=0.01, corner=0.3, a=0.6, b=0.1)
-		block(k, h, f"Pupil{s}", s * 0.4, -0.98, 4.86, 4.64, 0.07, 0.015, "rim", ch=0.005, a=0.3, b=0.0)
+		pass
+		block(k, h, f"RimTop{s}", s * 0.43, -0.9, 5.06, 4.98, 0.4, 0.05, "rim", ch=0.02)
 		prism(k, h, f"Brow{s}", [(s * 0.22, 5.1), (s * 0.7, 5.12), (s * 0.7, 5.04), (s * 0.22, 5.03)], -0.95, -0.85, "hair")
 	art_jacket(k)
 	block(k, T, "Vest", 0, 0, 3.96, 2.6, 1.1, 0.64, "pad", ch=0.06, corner=0.16, sub=1)
 	block(k, T, "VestLow", 0, -0.02, 2.96, 2.5, 1.0, 0.66, "strap", ch=0.04, corner=0.16)
 	for s in (1, -1):
 		block(k, T, f"Plate{s}", s * 0.5, -0.63, 3.78, 3.04, 0.42, 0.07, "pad", ch=0.04, corner=0.2, a=0.6)
+	back_panel(k, "pad", "strap")
+	block(k, T, "ChestStrap", 0, -0.7, 3.46, 3.34, 1.04, 0.04, "strap", ch=0.01)
 	collar(k, "suit", 4.12, 4.3, z0=3.86, rx=0.7, ry=0.66)
 	block(k, T, "Belt", 0, 0, 2.4, 2.16, 1.11, 0.64, "strap", ch=0.03)
 	arms(k, [("Sleeve", 3.94, 2.4, 0.5, "suit"), ("Pad", 4.06, 3.5, 0.58, "pad"), ("Elbow", 3.1, 2.8, 0.55, "pad"), ("Glove", 2.5, 1.78, 0.53, "strap")])
@@ -44,4 +47,4 @@ def model(parts, kit):
 def paint(a):
 	R.paint(a)
 	face(a["Head_F"], SKIN, ("#2e1c12", "#5a3c26", "#8a6444"), None, mouth="flat")
-	base(a, SKIN, "#2c2c32", "#2c2c32", "#2c2c32")
+	base(a, SKIN, "#2c2c32", "#2c2c32", "#2c2c32", hair="#4a3020")

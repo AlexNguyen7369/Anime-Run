@@ -2,7 +2,7 @@
 from w2_kit import *  # noqa: F403
 
 SKIN = "#e6bc96"
-R = Ramps(skin=ramp(SKIN), hair=["#8a90a0", "#b8bec8", "#e2e6ec", "#ffffff"], top=["#0e0f16", "#1b1d28", "#2c2f3e", "#484c60"], sash=ramp("#4a4e5e"), pant=["#6e6658", "#978e7c", "#c2b9a4", "#e6decc"], shoe=ramp("#1c1c22"), sole=ramp("#d8d2c4"))
+R = Ramps(skin=ramp(SKIN), hair=["#8a90a0", "#b8bec8", "#e2e6ec", "#ffffff"], top=["#1a1c28", "#2a2e3e", "#40455a", "#666c86"], sash=ramp("#8a90a4"), pant=["#6e6658", "#978e7c", "#c2b9a4", "#e6decc"], shoe=ramp("#1c1c22"), sole=ramp("#d8d2c4"))
 DEFAULT = "#1b1d28"
 HAIR = {"colour": "#E2E6EC", "locks": []}
 PROPS = []
@@ -16,7 +16,8 @@ def model(parts, kit):
 	for s in (1, -1):
 		gem(k, "Head", f"Brow{s}", (s * 0.18, -0.9, 5.06), (s * 0.98, -0.98, 5.28), 0.14, "hair", flat=0.5)
 		gem(k, "Head", f"Must{s}", (s * 0.06, -0.94, 4.5), (s * 0.66, -1.0, 4.2), 0.15, "hair", flat=0.6)
-		block(k, "Head", f"Burn{s}", s * 0.92, -0.3, 5.3, 4.7, 0.05, 0.16, "hair", ch=0.02)
+		gem(k, "Head", f"Burn{s}", (s * 0.9, -0.3, 5.5), (s * 0.96, -0.42, 4.5), 0.24, "hair", flat=0.4, across=(0, 1, 0))
+	back_hair(k)
 	art_jacket(k)
 	block(k, T, "Top", 0, 0, 4.0, 2.2, 1.08, 0.6, "top", ch=0.06, corner=0.14, sub=1, jit=0.015, mids=(3.1,))
 	collar(k, "top", 4.18, 4.26, z0=3.86, rx=0.72, ry=0.66, a=0.6)
@@ -24,6 +25,9 @@ def model(parts, kit):
 	for z in (3.7, 3.3, 2.9):
 		block(k, T, f"Frog{z}", 0, -0.64, z + 0.05, z - 0.05, 0.24, 0.03, "sash", ch=0.02)
 	block(k, T, "Sash", 0, 0, 2.52, 2.2, 1.12, 0.64, "sash", ch=0.05)
+	back_panel(k, "top", "sash")
+	for s in (1, -1):
+		prism(k, T, f"Fold{s}", [(s * 0.3, 3.7), (s * 0.94, 3.5), (s * 0.8, 2.8), (s * 0.5, 2.6)], -0.66, -0.58, "top", a=0.62)
 	arms(k, [("Sleeve", 4.0, 2.5, 0.54, "top"), ("Roll", 2.72, 2.44, 0.58, "top"), ("Hand", 2.52, 1.76, 0.5, "skin")])
 	legs(k, [("Thigh", 2.02, 0.5, 0.5, "pant"), ("Bag", 1.2, 0.52, 0.56, "pant"), ("Ankle", 0.6, 0.36, 0.46, "pant")], shoe=(0.4, "shoe", "sole"))
 	finish()
@@ -39,4 +43,4 @@ def paint(a):
 		f.path(f"M{65 + s * 14} 88Q{65 + s * 26} 98 {65 + s * 27} 112", stroke="#a87c58", sw=1.6)
 		f.path(f"M{x + s * 16} 68L{x + s * 24} 64M{x + s * 16} 72L{x + s * 24} 74", stroke="#a87c58", sw=1.2)
 	f.path("M46 34Q65 30 84 34", stroke="#a87c58", sw=1.3)
-	base(a, SKIN, "#1b1d28", "#1b1d28", "#c2b9a4", SKIN)
+	base(a, SKIN, "#2a2e3e", "#2a2e3e", "#c2b9a4", SKIN, hair="#b8bec8")

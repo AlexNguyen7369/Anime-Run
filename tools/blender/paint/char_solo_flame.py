@@ -2,7 +2,7 @@
 from w2_kit import *  # noqa: F403
 
 SKIN = "#c9b2b8"
-R = Ramps(skin=ramp(SKIN), hair=["#8c8494", "#b8b0c0", "#e0dae6", "#ffffff"], plate=["#0e0b12", "#1f1a26", "#383042", "#625670"], gold=["#7c5210", "#b4822a", "#e2b650", "#fff0a8"], horn=["#1c1216", "#33222a", "#523a42", "#7c5e66"], cape=["#34080e", "#5c1018", "#8a1c24", "#b63a3a"], fur=["#7c7680", "#aaa4b0", "#d8d4de", "#ffffff"], fire=["#a8b8f0", "#ccd8fc", "#ecf2ff", "#ffffff"], sole=ramp("#100c14"))
+R = Ramps(skin=ramp(SKIN), hair=["#8c8494", "#b8b0c0", "#e0dae6", "#ffffff"], plate=["#1c1624", "#322a3e", "#4e4460", "#807490"], gold=["#7c5210", "#b4822a", "#e2b650", "#fff0a8"], horn=["#1c1216", "#33222a", "#523a42", "#7c5e66"], cape=["#34080e", "#5c1018", "#8a1c24", "#b63a3a"], fur=["#7c7680", "#aaa4b0", "#d8d4de", "#ffffff"], fire=["#a8b8f0", "#ccd8fc", "#ecf2ff", "#ffffff"], sole=ramp("#100c14"))
 DEFAULT = "#1f1a26"
 HAIR = {"colour": "#E0DAE6", "locks": []}
 PROPS = []
@@ -35,14 +35,22 @@ def model(parts, kit):
 	prism(k, T, "Buckle", [(0, 2.44), (0.26, 2.2), (0, 1.86), (-0.26, 2.2)], -0.78, -0.66, "cape")
 	collar(k, "fur", 3.98, 4.6, z0=3.6, rx=1.24, ry=0.9, name="Fur", a=0.6)
 	block(k, T, "Cape", 0, 0.78, 4.1, 0.5, 1.3, 0.09, "cape", ch=0.03, flare=0.34, mids=(3.2, 2.2, 1.2), jit=0.04)
+	for i, x in enumerate((-0.9, -0.45, 0, 0.45, 0.9)):
+		gem(k, T, f"CapeFold{i}", (x, 0.86, 4.0), (x * 1.5, 1.04, 0.4 + 0.2 * (i % 2)), 0.26, "cape", flat=0.4, across=(1, 0, 0), a=0.62)
+	for s in (1, -1):
+		gem(k, "Head", f"Scowl{s}", (s * 0.1, -0.94, 4.86), (s * 0.84, -1.0, 5.16), 0.12, "hair", flat=0.5)
+		gem(k, "Head", f"Fang{s}", (s * 0.2, -0.86, 4.24), (s * 0.2, -0.92, 4.06), 0.06, "hair")
+		block(k, "Head", f"Temple{s}", s * 0.94, -0.3, 5.3, 4.3, 0.06, 0.5, "plate", ch=0.02)
+	back_hair(k, low=3.8)
 	arms(k, [("Arm", 3.94, 2.6, 0.48, "plate"), ("Pad", 4.26, 3.5, 0.66, "plate"), ("PadRim", 3.62, 3.46, 0.68, "gold"), ("Vam", 3.0, 2.4, 0.58, "plate"), ("VamRim", 2.5, 2.36, 0.6, "gold"), ("Hand", 2.44, 1.74, 0.54, "plate")])
 	for s, side in ((1, "Left"), (-1, "Right")):
 		arm, leg, x = f"{side}UpperArm", f"{side}UpperLeg", s * 1.5
 		for i, (dx, dy, z) in enumerate(((0.1, 0, 5.1), (0.5, 0.1, 4.7))):
 			gem(k, arm, f"PadSpike{i}", (x + s * dx, dy, 4.1), (x + s * (dx + 0.4), dy, z), 0.22, "gold")
-		for i, (dx, dy, z) in enumerate(((0.1, -0.7, 3.3), (0.6, -0.3, 3.1), (-0.6, -0.4, 2.9), (0.3, 0.6, 3.0))):
-			gem(k, arm, f"Fire{i}", (x + dx * 0.8, dy * 0.9, 1.9), (x + dx * 1.2, dy * 1.2, z), 0.36, "fire", flat=0.8, a=0.66)
-		gem(k, arm, "FireTail", (x, 0, 1.8), (x + s * 0.1, -0.1, 0.9), 0.5, "fire", a=0.66)
+		# clawed gauntlet flares lit white at the knuckles, flames licking up the outside of the arm
+		block(k, arm, "Knuckle", x, -0.5, 2.14, 1.9, 0.5, 0.1, "fire", ch=0.04, a=0.66)
+		for i, (dz, r, t) in enumerate(((2.0, 0.3, 2.9), (2.3, 0.26, 3.3), (2.6, 0.2, 3.6))):
+			gem(k, arm, f"Fire{i}", (x + s * 0.44, -0.2 + 0.2 * i, dz), (x + s * 0.86, -0.1 + 0.2 * i, t), r, "fire", flat=0.5, bend=-0.1, across=(0, 1, 0), a=0.66)
 		block(k, leg, "Tasset", s * 0.56, -0.62, 2.04, 1.2, 0.46, 0.08, "plate", ch=0.03, flare=0.05)
 		block(k, leg, "TassetG", s * 0.56, -0.66, 1.3, 1.16, 0.5, 0.06, "gold", ch=0.02)
 		block(k, leg, "Knee", s * 0.54, -0.56, 1.16, 0.74, 0.34, 0.14, "gold", ch=0.05, corner=0.3)
@@ -52,5 +60,5 @@ def model(parts, kit):
 
 def paint(a):
 	R.paint(a)
-	face(a["Head_F"], SKIN, ("#8a1410", "#f03c20", "#ffc080"), "#5a5264", up=9, dn=6, inner=6, outer=-7, lid=0.3, tilt=6, thick=6, mouth="frown", white="#1a0c10", ir=(8, 8), pu=(1.6, 4))
-	base(a, SKIN, "#1f1a26", "#1f1a26", "#1f1a26")
+	face(a["Head_F"], SKIN, ("#8a1410", "#f03c20", "#ffc080"), "#5a5264", up=9, dn=6, inner=6, outer=-7, lid=0.3, tilt=6, thick=6, mouth="grin", white="#1a0c10", ir=(8, 8), pu=(1.6, 4))
+	base(a, SKIN, "#322a3e", "#322a3e", "#322a3e", hair="#b8b0c0")

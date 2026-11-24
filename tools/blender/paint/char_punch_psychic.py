@@ -2,7 +2,7 @@
 from w2_kit import *  # noqa: F403
 
 SKIN = "#f9dcc6"
-R = Ramps(skin=ramp(SKIN), hair=["#0c4a34", "#167250", "#26a070", "#62d6a0"], dress=["#08080e", "#14141c", "#22222c", "#3c3c4a"], glow=["#1c9a5a", "#34cc7c", "#7cf0ac", "#d0ffe0"], shoe=ramp("#1c1c26"), sole=ramp("#0c0c12"))
+R = Ramps(skin=ramp(SKIN), hair=["#0c4a34", "#167250", "#26a070", "#62d6a0"], dress=["#16161f", "#262632", "#3a3a4a", "#5e5e74"], edge=["#5a5a70", "#7a7a92", "#a0a0b8", "#d0d0e0"], glow=["#1c9a5a", "#34cc7c", "#7cf0ac", "#d0ffe0"], shoe=ramp("#1c1c26"), sole=ramp("#0c0c12"))
 DEFAULT = "#14141c"
 HAIR = {"colour": "#26A070", "locks": []}
 PROPS = []
@@ -29,17 +29,24 @@ def model(parts, kit):
 	for s, side in ((1, "Left"), (-1, "Right")):
 		leg = f"{side}UpperLeg"
 		# long skirt in front and back panels, open at the thigh sides
-		block(k, leg, "SkirtF", s * 0.5, -0.62, 2.04, 0.62, 0.48, 0.07, "dress", ch=0.02, flare=0.1)
+		block(k, leg, "SkirtF", s * 0.5, -0.62, 2.04, 0.4, 0.5, 0.07, "dress", ch=0.02, flare=0.08)
+		block(k, leg, "HemF", s * 0.5, -0.64, 0.48, 0.4, 0.59, 0.1, "edge", ch=0.02)
+		block(k, leg, "SkirtS", s * 1.06, 0.2, 2.04, 0.5, 0.06, 0.48, "dress", ch=0.02, flare=0.06)
 		block(k, leg, "SkirtB", s * 0.5, 0.62, 2.04, 0.54, 0.5, 0.07, "dress", ch=0.02, flare=0.12)
-		gem(k, leg, "Point", (s * 1.0, -0.6, 0.94), (s * 1.3, -0.74, 0.3), 0.26, "dress", flat=0.3)
 	legs(k, [("Leg", 2.0, 0.4, 0.47, "skin"), ("Short", 2.02, 1.3, 0.5, "dress")], shoe=(0.4, "shoe", "sole"))
-	# the green psychic glow: floating shards
-	for i, (x, y, z) in enumerate(((1.95, -0.5, 4.3), (-1.95, -0.5, 4.7), (2.1, 0.2, 3.5), (-2.1, 0.2, 3.2))):
-		gem(k, T, f"Shard{i}", (x, y, z), (x + 0.04, y, z + 0.5), 0.13, "glow", flat=0.8, a=0.64)
+	block(k, T, "Seam", 0, -0.6, 3.9, 2.0, 0.03, 0.02, "edge", ch=0.01)
+	for s in (1, -1):
+		prism(k, T, f"Fold{s}", [(s * 0.2, 3.6), (s * 0.9, 3.7), (s * 0.7, 3.1), (s * 0.36, 2.2)], -0.63, -0.56, "dress", a=0.66)
+		block(k, T, f"Hip{s}", s * 0.5, -0.02, 2.5, 1.98, 0.52, 0.64, "dress", ch=0.05, a=0.56)
+	back_panel(k, "dress")
+	back_hair(k, low=4.4)
+	# the green psychic light orbits well clear of the arms
+	for i, (x, y, z) in enumerate(((2.6, -0.3, 4.9), (-2.6, -0.3, 5.2), (2.5, 0.2, 2.6), (-2.5, 0.1, 2.9))):
+		gem(k, T, f"Shard{i}", (x, y, z - 0.3), (x, y, z + 0.4), 0.2, "glow", flat=0.8, a=0.64)
 	finish()
 
 
 def paint(a):
 	R.paint(a)
 	face(a["Head_F"], SKIN, ("#0c6a40", "#22b070", "#90f8c0"), "#167250", up=16, dn=11, inner=4, outer=-5, lid=0.15, tilt=6, thick=3, mouth="frown", ir=(11, 14), by=43)
-	base(a, SKIN, "#14141c", "#14141c", SKIN, SKIN)
+	base(a, SKIN, "#262632", "#262632", SKIN, SKIN, hair="#167250")

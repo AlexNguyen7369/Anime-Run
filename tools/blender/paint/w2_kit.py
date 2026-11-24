@@ -71,9 +71,13 @@ def face(f, skin, iris, brow_c, lash="#1a1020", w=32, up=12, dn=9, inner=4, oute
 		f.path("M46 111Q65 115 85 109", stroke=line, sw=1.1)
 
 
-def base(a, skin, torso, arm, leg, hand=None):
+def base(a, skin, torso, arm, leg, hand=None, hair=None):
 	head_rest(a, shade(skin, 0.86), shade(skin, 0.64))
-	a["Head_T"].fill(shade(skin, 0.64))
+	a["Head_T"].fill(hair or shade(skin, 0.64))
+	if hair:  # no bare scalp between the locks: the block under them takes the hair's colour
+		a["Head_B"].fill(hair)
+		for n, d in (("Head_L", "M0 0H120V130H66V34H0Z"), ("Head_R", "M0 0H120V34H54V130H0Z")):
+			a[n].path(d, hair)
 	for n in ("Torso_F", "Torso_B", "Torso_L", "Torso_R", "Torso_T", "Torso_Bo"):
 		a[n].fill(torso)
 	for n in ("Torso_F", "Torso_B", "Torso_L", "Torso_R"):
@@ -82,3 +86,29 @@ def base(a, skin, torso, arm, leg, hand=None):
 		for key in ("F", "B", "O", "I", "T", "Bo"):
 			a[f"{side}Arm_{key}"].fill(arm if key != "Bo" else hand or arm)
 			a[f"{side}Leg_{key}"].fill(leg)
+
+
+def back_hair(k, low=4.3, ramp_name="hair", w=0.96):
+	"""A layered backing under the back locks, skull to nape."""
+	block(k, "Head", "BackA", 0, 0.52, 5.64, low + 0.3, w, 0.44, ramp_name, ch=0.1, corner=0.28, jit=0.02, mids=(5.0,))
+	for i, x in enumerate((-0.7, -0.35, 0, 0.35, 0.7)):
+		gem(k, "Head", f"NapeL{i}", (x * 0.9, 0.78, low + 0.7), (x * 1.05, 1.0, low - 0.16 - 0.1 * (i % 2)), 0.28, ramp_name, flat=0.5, across=(1, 0, 0))
+
+
+def jacket_lines(a, light, dark):
+	"""Seams and folds on the torso faces, so dark cloth still reads."""
+	for n in ("Torso_F", "Torso_B"):
+		f = a[n]
+		for s in (-1, 1):
+			f.path(f"M{100 + s * 30} 10Q{100 + s * 46} 90 {100 + s * 34} 190", stroke=light, sw=3, opacity=0.5)
+			f.path(f"M{100 + s * 80} 50Q{100 + s * 60} 90 {100 + s * 88} 120", stroke=dark, sw=4, opacity=0.7)
+		f.path("M100 8V192", stroke=dark, sw=2.5, opacity=0.8)
+
+
+def back_panel(k, ramp_name, trim=None):
+	"""Yoke, centre seam and hem pleats on the back."""
+	block(k, T, "Yoke", 0, 0.62, 3.9, 3.36, 0.92, 0.05, ramp_name, ch=0.02, a=0.66)
+	for s in (1, -1):
+		prism(k, T, f"BackP{s}", [(s * 0.08, 3.3), (s * 0.92, 3.3), (s * 0.84, 2.3), (s * 0.08, 2.3)], 0.6, 0.66, ramp_name, a=0.62)
+	if trim:
+		block(k, T, "YokeTrim", 0, 0.66, 3.4, 3.32, 0.94, 0.03, trim, ch=0.01, a=0.6)

@@ -2,7 +2,7 @@
 from w2_kit import *  # noqa: F403
 
 SKIN = "#f3d8c2"
-R = Ramps(skin=ramp(SKIN), hair=["#0c0a16", "#1a1728", "#2c283e", "#4c465e"], scarf=["#463a5e", "#665682", "#8a7aa6", "#b4a6cc"], suit=["#0e0e16", "#1c1c28", "#2c2c3c", "#48485c"], plate=["#4a4c5a", "#70737f", "#9a9da8", "#c8cad2"], purple=ramp("#6a3f9a"), steel=["#8890a0", "#b8c0ce", "#e4e8f0", "#ffffff"], sole=ramp("#101016"))
+R = Ramps(skin=ramp(SKIN), hair=["#0c0a16", "#1a1728", "#2c283e", "#4c465e"], scarf=["#463a5e", "#665682", "#8a7aa6", "#b4a6cc"], suit=["#1a1b28", "#2c2e40", "#43465c", "#686c86"], saya=["#7a1c2c", "#a42c3c", "#cc4a54", "#f08080"], plate=["#4a4c5a", "#70737f", "#9a9da8", "#c8cad2"], purple=ramp("#6a3f9a"), steel=["#8890a0", "#b8c0ce", "#e4e8f0", "#ffffff"], sole=ramp("#101016"))
 DEFAULT = "#1c1c28"
 HAIR = {"colour": "#2C283E", "locks": []}
 PROPS = []
@@ -15,8 +15,9 @@ def model(parts, kit):
 	# topknot: a fan of spikes off the tie
 	locks(k, "Knot", [((0, 0.36, 6.1), (0, 0.5, 7.1), 0.34), ((0, 0.4, 6.1), (0.66, 0.6, 6.94), 0.3), ((0, 0.4, 6.1), (-0.66, 0.6, 6.94), 0.3), ((0, 0.5, 6.1), (0.36, 1.3, 6.7), 0.32), ((0, 0.5, 6.1), (-0.36, 1.3, 6.7), 0.32), ((0, 0.5, 6.06), (0, 1.5, 6.2), 0.32)])
 	locks(k, "Fringe", [((0.02, -0.5, 5.86), (-0.5, -0.98, 5.02), 0.26), ((0.06, -0.5, 5.86), (0.5, -0.98, 5.02), 0.26), ((0, -0.5, 5.86), (0.06, -1.0, 4.94), 0.22), ((-0.4, -0.5, 5.8), (-0.9, -0.94, 4.9), 0.28), ((0.4, -0.5, 5.8), (0.9, -0.94, 4.9), 0.28)])
-	locks(k, "Frame", [((0.86, -0.54, 5.5), (1.02, -0.8, 4.0), 0.26), ((0.96, -0.1, 5.5), (1.16, -0.1, 4.3), 0.3), ((0.8, 0.5, 5.5), (1.0, 0.84, 4.5), 0.36)], mirror=True)
+	locks(k, "Frame", [((0.84, -0.5, 5.5), (0.94, -0.8, 4.0), 0.22), ((0.9, -0.1, 5.6), (1.0, -0.14, 4.3), 0.28), ((0.8, 0.5, 5.5), (1.0, 0.84, 4.5), 0.36)], mirror=True)
 	locks(k, "Rear", [((0, 0.7, 5.5), (0, 1.02, 4.5), 0.44)])
+	back_hair(k)
 	art_jacket(k)
 	block(k, T, "Suit", 0, 0, 3.98, 2.1, 1.06, 0.58, "suit", ch=0.06, corner=0.14, sub=1)
 	for s in (1, -1):
@@ -27,9 +28,10 @@ def model(parts, kit):
 	block(k, T, "ScarfRoll", 0, -0.1, 4.04, 3.7, 0.98, 0.74, "scarf", ch=0.12, corner=0.26, jit=0.02)
 	for i, s in enumerate((1, -1)):  # two tails blown back
 		gem(k, T, f"Tail{s}", (s * 0.3, 0.7, 3.96), (s * 1.0, 2.1, 3.1 - 0.4 * i), 0.36, "scarf", flat=0.3, bend=0.12, across=(0, 0, 1))
-	rod(k, T, "Sheath", (-0.9, 0.78, 4.5), (0.8, 0.82, 2.0), 0.11, "suit")
-	rod(k, T, "Hilt", (-1.24, 0.77, 5.0), (-0.92, 0.78, 4.54), 0.09, "purple")
-	block(k, T, "Guard", -0.91, 0.78, 4.6, 4.48, 0.18, 0.16, "steel", ch=0.03)
+	rod(k, T, "Sheath", (-0.9, 0.78, 4.5), (0.8, 0.82, 2.0), 0.16, "saya")
+	rod(k, T, "Hilt", (-1.24, 0.77, 5.0), (-0.92, 0.78, 4.54), 0.13, "purple")
+	block(k, T, "Guard", -0.91, 0.78, 4.6, 4.48, 0.26, 0.22, "steel", ch=0.03)
+	back_panel(k, "suit", "plate")
 	arms(k, [("Sleeve", 3.94, 2.6, 0.5, "suit"), ("Pauldron", 4.12, 3.62, 0.58, "plate"), ("Guard", 2.96, 2.4, 0.56, "plate"), ("Hand", 2.5, 1.78, 0.51, "suit")])
 	legs(k, [("Thigh", 2.02, 0.9, 0.5, "suit"), ("ThighBand", 1.6, 1.4, 0.5, "plate")], shoe=(0.96, "suit", "sole"))
 	for s, side in ((1, "Left"), (-1, "Right")):
@@ -44,4 +46,4 @@ def paint(a):
 	for s in (1, -1):
 		x = 65 + s * 28
 		f.path(f"M{x - 9} 79L{x + 9} 79L{x + s * 4} 98Z", "#6a3f9a")
-	base(a, SKIN, "#1c1c28", "#1c1c28", "#1c1c28")
+	base(a, SKIN, "#2c2e40", "#2c2e40", "#2c2e40", hair="#1a1728")
