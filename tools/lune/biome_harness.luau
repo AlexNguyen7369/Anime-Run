@@ -462,17 +462,142 @@ local function placedCount(m) -- WORLD=2: draft placements standing in a track's
 	end
 	return n
 end
-local built = {}
+local built, plaza, finish = {}, {}, {}
 for i, m in models do
 	built[i] = placedCount(m)
+end
+if process.env.WORLD == "2" then -- first what the other tracks and the spawn area remove, then the own finish pieces
+	for i, m in models do
+		local others = table.clone(models)
+		table.remove(others, i)
+		BD.Prune(others, { spawnArea }, { m })
+		plaza[i] = placedCount(m)
+		local stub = R.Instance.new("Model") -- the own Checkpoint (finish area and WinPad) without the Road and Walls
+		m.Checkpoint:Clone().Parent = stub
+		BD.Prune({ stub }, nil, { m })
+		finish[i] = placedCount(m)
+	end
 end
 BD.Prune(models, { spawnArea })
 if process.env.WORLD == "2" then -- draft placements kept by the budget and own-ground rule (built), then by Prune (kept)
 	local Themes = req(Shared.BiomeThemes)
 	for i, e in entries do
 		local total = Themes[e.Biome].Placed and #Themes[e.Biome].Placed or 0
-		print(string.format("W2 PLACED %s total %d built %d kept %d", e.Biome, total, built[i], placedCount(models[i])))
+		print(
+			string.format(
+				"W2 PLACED %s total %d built %d clear of other tracks and the plaza %d kept %d",
+				e.Biome,
+				total,
+				built[i],
+				plaza[i],
+				placedCount(models[i])
+			)
+		)
 	end
+	-- Owner 2026-11-23 (WORLD2_SPEC "Render set approvals"): an approved draft's placements keep the draft's own
+	-- clearance, so their own track's Road and Walls remove none of them in Prune (other tracks' roads, the spawn area
+	-- and the own finish pieces still do, counted before the test). WARN only: the placements (but the draft's CLEAR_EXEMPT spans / supports, read from
+	-- tools/blender/world2/biomes/<Key>.py) whose footprint comes within 24 studs of their track's centre line, counting
+	-- only parts reaching the band from the road top to 14 studs over it. The footprint is each part's box (a mesh is one
+	-- box here); clearance.py's vertex test is the authority (WORLD2_SPEC).
+	local pass, fail = 0, 0
+	for i, e in entries do
+		if table.find(W2_APPROVED, e.Biome) then
+			print(
+				string.format("INFO W2 %s own finish area removed %d draft placements", e.Biome, plaza[i] - finish[i])
+			)
+			local removed = finish[i] - placedCount(models[i])
+			if removed == 0 then
+				pass += 1
+			else
+				fail += 1
+				print(
+					string.format(
+						"W2 FAIL %s Prune removed %d draft placements for their own Road or Walls",
+						e.Biome,
+						removed
+					)
+				)
+			end
+			local py = fs.readFile(ROOT .. "/tools/blender/world2/biomes/" .. e.Biome .. ".py")
+			local exempt = {}
+			for name in string.gmatch(string.match(py, "\nCLEAR_EXEMPT = {([^}]*)}") or "", '"(%w+)"') do
+				exempt[name] = true
+			end
+			local wps = e.Layout.WorldWaypoints
+			local close = {}
+			local function seen(d, name)
+				if d < 24 then
+					close[name] = math.min(close[name] or d, d)
+				end
+			end
+			for _, prop in models[i].Environment:GetChildren() do
+				local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+				local key = k and Themes[e.Biome].Placed[k][1]
+				local name = key and prop.Name .. " " .. key
+				for _, part in key and not exempt[key] and parts(prop) or {} do
+					local h = part.Size / 2
+					local lo, hi, road, best = math.huge, -math.huge, nil, math.huge
+					for _, c in
+						{
+							{ 1, 1, 1 },
+							{ 1, 1, -1 },
+							{ 1, -1, 1 },
+							{ 1, -1, -1 },
+							{ -1, 1, 1 },
+							{ -1, 1, -1 },
+							{ -1, -1, 1 },
+							{ -1, -1, -1 },
+						}
+					do
+						local y = part.CFrame:PointToWorldSpace(R.Vector3.new(c[1] * h.X, c[2] * h.Y, c[3] * h.Z)).Y
+						lo, hi = math.min(lo, y), math.max(hi, y)
+					end
+					for _, w in wps do
+						local d = (w.X - part.Position.X) ^ 2 + (w.Z - part.Position.Z) ^ 2
+						if d < best then
+							best, road = d, w.Y
+						end
+					end
+					if hi <= road or lo >= road + 14 then
+						continue -- under the road top, or 14+ overhead
+					end
+					for _, w in wps do -- the road running through the footprint
+						local q = part.CFrame:PointToObjectSpace(R.Vector3.new(w.X, part.Position.Y, w.Z))
+						if math.abs(q.X) <= h.X and math.abs(q.Z) <= h.Z then
+							seen(0, name)
+						end
+					end
+					for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+						for _, y in { 1, -1 } do
+							local p = part.CFrame:PointToWorldSpace(R.Vector3.new(c[1] * h.X, y * h.Y, c[2] * h.Z))
+							for j = 1, #wps - 1 do
+								local a, b = wps[j], wps[j + 1]
+								local ab = R.Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+								local ap = R.Vector3.new(p.X - a.X, 0, p.Z - a.Z)
+								local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-9), 0, 1)
+								seen((ap - ab * t).Magnitude, name)
+							end
+						end
+					end
+				end
+			end
+			local near = {}
+			for name, d in close do
+				table.insert(near, { name, d })
+			end
+			table.sort(near, function(a, b)
+				return a[2] < b[2]
+			end)
+			for j, n in near do
+				near[j] = string.format("%s %.1f", n[1], n[2])
+			end
+			if #near > 0 then
+				print(string.format("WARN W2 %s box footprint < 24 studs: %s", e.Biome, table.concat(near, ", ")))
+			end
+		end
+	end
+	print(string.format("W2 DRAFT CLEARANCE pass=%d fail=%d", pass, fail))
 end
 local clear = {}
 for _, m in models do

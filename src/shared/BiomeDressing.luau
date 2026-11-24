@@ -720,7 +720,7 @@ BiomeDressing.PLACED_LIGHTS = 48 -- placeholder: lamps per track from a draft's 
 -- track's start frame (`origin`), biggest first; theme.Props[Prop] is the def. Each keeps the draft's height
 -- (SnapToTerrain leaves it, as a tunnel prop), must have its base centre on this track's ground (a draft reaches over its
 -- neighbours' zones) and stops at the budget. theme.Lights { X, Y, Z, Color, Energy } become PointLights in an invisible
--- part (1 budget part each). Prune still removes what comes within CLEARANCE of a road.
+-- part (1 budget part each). Prune skips their own track's Road and Walls: the draft has its own road clearance.
 local function placed(folder, biome, theme, origin, count, budget, onGround)
 	for i, e in theme.Placed or {} do
 		local def = scaled(theme.Props[e[1]], e[9] or e[6])
@@ -1015,14 +1015,16 @@ local function overlaps(cfA, halfA, cfB, halfB)
 end
 
 local function blockers(trackModels, extra)
-	local list = {}
-	local function addAll(root)
+	local list, owner = {}, {}
+	local function addAll(root, model)
 		if root:IsA("BasePart") then
 			table.insert(list, root)
+			owner[#list] = model
 		end
 		for _, d in root:GetDescendants() do
 			if d:IsA("BasePart") then
 				table.insert(list, d)
+				owner[#list] = model
 			end
 		end
 	end
@@ -1030,7 +1032,7 @@ local function blockers(trackModels, extra)
 		for _, name in { "Road", "Walls", "Checkpoint" } do
 			local child = model:FindFirstChild(name)
 			if child then
-				addAll(child)
+				addAll(child, name ~= "Checkpoint" and model or nil) -- owner: a track's own Road and Walls
 			end
 		end
 		local pad = model:FindFirstChild("WinPad", true)
@@ -1042,7 +1044,7 @@ local function blockers(trackModels, extra)
 	for _, inst in extra or {} do
 		addAll(inst)
 	end
-	return list, columns
+	return list, columns, owner
 end
 
 local function cells(lo, hi, fn)
@@ -1056,17 +1058,18 @@ end
 -- Broad-phase grid of the blockers, and a test: does `prop`, grown by CLEARANCE, touch any of them?
 local function clearance(trackModels, extra)
 	local grid = {}
-	local list, columns = blockers(trackModels, extra)
+	local list, columns, owner = blockers(trackModels, extra)
 	for k, part in list do
 		local lo, hi = bounds(part.CFrame, part.Size)
-		local box = { lo, hi, part.CFrame, part.Size / 2, k > columns }
+		local box = { lo, hi, part.CFrame, part.Size / 2, k > columns, owner[k] }
 		cells(lo, hi, function(key)
 			grid[key] = grid[key] or {}
 			table.insert(grid[key], box)
 		end)
 	end
 	local grow = Vector3.one * BiomeDressing.CLEARANCE
-	return function(prop)
+	-- skipOwn (an approved draft's placement): its own track's Road and Walls do not block it (owner 2026-11-23)
+	return function(prop, skipOwn)
 		local hit = false
 		-- Each part on its own: a gate's posts and beam are clear even though their joint box spans the road.
 		for _, part in prop:IsA("BasePart") and { prop } or prop:GetDescendants() do
@@ -1080,7 +1083,8 @@ local function clearance(trackModels, extra)
 							or part.CFrame
 						hit = hit
 							or (
-								lo.X < box[2].X
+								(skipOwn == nil or box[6] ~= skipOwn)
+								and lo.X < box[2].X
 								and hi.X > box[1].X
 								and (box[5] or lo.Y < box[2].Y and hi.Y > box[1].Y)
 								and lo.Z < box[2].Z
@@ -1096,6 +1100,9 @@ local function clearance(trackModels, extra)
 end
 
 -- Removes every Environment prop whose box, grown by CLEARANCE, touches a blocker. Returns how many.
+-- A draft placement (Placed_<i>) keeps the approved draft's own road clearance (24+ studs from the centre line, checked
+-- by tools/blender/world2/clearance.py; owner 2026-11-23): its own track's Road and Walls do not block it; other
+-- tracks' roads, every checkpoint and win pad, and the spawn area still do.
 -- The spawn area (`extra`) is an area on the ground, so a prop also may not hang over it at any height (a giant
 -- tree's canopy above the floor): its parts block as vertical columns.
 -- `targets` (default trackModels): only their props are tested, against the roads of trackModels (a late-built track,
@@ -1106,7 +1113,7 @@ function BiomeDressing.Prune(trackModels, extra, targets)
 	for _, model in targets or trackModels do
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
-			if touches(prop) then
+			if touches(prop, string.match(prop.Name, "^Placed_") and model or nil) then
 				if prop:GetAttribute("FightScene") then
 					warn("[BiomeDressing] fight scene of " .. model.Name .. " is within CLEARANCE of a road: removed")
 				end
