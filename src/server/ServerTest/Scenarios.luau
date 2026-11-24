@@ -12153,6 +12153,7 @@ do
 	Scenarios.world_travel_freeze = world.world_travel_freeze -- review of 8557dcf: nothing earned lost mid-trip
 	Scenarios.biome_runtime = world.biome_runtime -- mesh timeout, retry and shadow flag; build yield; draft lamps
 	Scenarios.world_arrival = world.world_arrival -- design doc 4.47: a non-admin in World 2 goes back while locked
+	Scenarios.world_gate_rule = world.world_gate_rule -- design doc 4.47: CanEnter (admins, GATE_OPEN, Track 10, rebirth 5)
 	-- docs/TRACKS_AND_BIOMES_SPEC.md "Build order and tests" step 1 (a table, so Scenarios.Run never runs it)
 	Scenarios._trackChain = require(script.Parent.TrackChainTests).make({
 		partPoly = spawnPartPoly,

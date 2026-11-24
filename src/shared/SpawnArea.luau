@@ -601,6 +601,10 @@ local function worldGate(startCFrame)
 			BLACK
 		)
 		wall.Transparency = 1
+		-- touching it tells the player why (Server/WorldTravel: "COMING SOON")
+		wall:SetAttribute("TargetWorld", target)
+		wall:SetAttribute("Locked", true)
+		CollectionService:AddTag(wall, SpawnArea.WORLD_GATE_TAG)
 	end
 	local light = Instance.new("PointLight")
 	light.Color = swirl

@@ -242,7 +242,11 @@ function Tests.make(helpers)
 			travel.TIMEOUT,
 			travel.Depart,
 			travel.Retake,
+			travel.IsAdmin,
 		}
+		travel.IsAdmin = function() -- the trip mechanics; who may go is world_gate_rule's
+			return true
+		end
 		travel.Depart = function() end
 		travel.Retake = function()
 			return true
@@ -360,7 +364,7 @@ function Tests.make(helpers)
 			local wroteG, readOnlyG = data.Save(g, id + 1, true)
 			flag("travel_normal_save_flag", wroteG == true and readOnlyG == false)
 		end)
-		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT, travel.Depart, travel.Retake =
+		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT, travel.Depart, travel.Retake, travel.IsAdmin =
 			table.unpack(saved)
 		for _, p in cleanup do
 			pcall(travel.Failed, p, "ServerTest cleanup")
@@ -407,7 +411,11 @@ function Tests.make(helpers)
 			travel.TIMEOUT,
 			travel.Depart,
 			travel.Retake,
+			travel.IsAdmin,
 		}
+		travel.IsAdmin = function() -- the trip mechanics; who may go is world_gate_rule's
+			return true
+		end
 		local cleanup, log = {}, {}
 		local duringSave = nil -- runs inside the release save's yield
 		local hang = nil -- seconds the next Teleport hangs, then errors
@@ -576,7 +584,7 @@ function Tests.make(helpers)
 		SpawnArea.START_COOLDOWN = oldCooldown
 		shop.SetPlayers(nil)
 		shop.SetSave(nil)
-		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT, travel.Depart, travel.Retake =
+		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT, travel.Depart, travel.Retake, travel.IsAdmin =
 			table.unpack(saved)
 		for _, p in cleanup do
 			pcall(travel.Failed, p, "ServerTest cleanup")
@@ -690,7 +698,10 @@ function Tests.make(helpers)
 			sent = { sent[1] } -- the counts below are of the first guest's trip
 
 			WorldConfig.GATE_OPEN = true
-			flag("arrival_open_gate_stays", travel.Arrived(player(978003)) == false and #sent == 1, #sent, 1)
+			local qualified = player(978003)
+			qualified:SetAttribute("World1BestTrack", WorldConfig.GATE_TRACK)
+			qualified:SetAttribute("RebirthLevel", WorldConfig.GATE_REBIRTH)
+			flag("arrival_open_gate_qualified_stays", travel.Arrived(qualified) == false and #sent == 1, #sent, 1)
 			WorldConfig.Id, WorldConfig.GATE_OPEN = 1, false
 			flag("arrival_world1_stays", travel.Arrived(player(978004)) == false and #sent == 1, #sent, 1)
 		end)
@@ -706,6 +717,126 @@ function Tests.make(helpers)
 			p:Destroy()
 		end
 		flag("arrival_no_error", ok, ok and 1 or tostring(err))
+		return r
+	end
+
+	-- `world_gate_rule` (design doc 4.47, owner 2026-11-24): WorldTravel.CanEnter is the one rule for the gate touch,
+	-- Go and the arrival check. Admins always; World 1 always; anyone else needs WorldConfig.GATE_OPEN AND World 1 Track
+	-- GATE_TRACK beaten (BestTrack: highest track number beaten; World1BestTrack in World 2) AND RebirthLevel >=
+	-- GATE_REBIRTH. A closed gate refuses a qualified non-admin in Go and in Arrived; an open gate keeps a qualified
+	-- arrival. GATE_OPEN / Id are set on the shared module for the test and restored.
+	function W.world_gate_rule()
+		local r, flag = H.report("world_gate_rule")
+		local Server = script.Parent.Parent
+		local travel = H.module(Server, "WorldTravel")
+		local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
+		local api = travel ~= nil and type(travel.CanEnter) == "function"
+		flag("gate_rule_api_exists", api == true)
+		flag("gate_rule_numbers", WorldConfig.GATE_TRACK == 10 and WorldConfig.GATE_REBIRTH == 5)
+		flag("gate_rule_ships_closed", WorldConfig.GATE_OPEN == false)
+		if not api then
+			return r
+		end
+		local saved = {
+			travel.IsAdmin,
+			travel.Save,
+			travel.Teleport,
+			travel.AllowStudio,
+			travel.Depart,
+			WorldConfig.Id,
+			WorldConfig.GATE_OPEN,
+		}
+		local cleanup, sent, admins = {}, {}, {}
+		local ok, err = pcall(function()
+			travel.IsAdmin = function(p)
+				return admins[p] == true
+			end
+			travel.Save = function()
+				return true, false
+			end
+			travel.Teleport = function(_, p)
+				table.insert(sent, p)
+			end
+			travel.Depart = function() end
+			travel.AllowStudio = true
+			local function player(id, best, rebirth)
+				local p = H.player(cleanup, id)
+				p:SetAttribute("DataLoaded", true)
+				p:SetAttribute("BestTrack", best)
+				p:SetAttribute("World1BestTrack", best)
+				p:SetAttribute("RebirthLevel", rebirth)
+				return p
+			end
+			local T, R = WorldConfig.GATE_TRACK, WorldConfig.GATE_REBIRTH
+			local admin = player(979101, 0, 0)
+			admins[admin] = true
+			local fit, lowTrack, lowRebirth =
+				player(979102, T, R), player(979103, T - 1, R + 3), player(979104, T + 5, R - 1)
+			for _, id in { 1, 2 } do
+				WorldConfig.Id = id
+				WorldConfig.GATE_OPEN = false
+				local okA = travel.CanEnter(admin, 2)
+				local okC, whyC = travel.CanEnter(fit, 2)
+				flag("gate_rule_admin_always_closed_w" .. id, okA == true)
+				flag("gate_rule_closed_refuses_qualified_w" .. id, okC == false and whyC == "COMING SOON", whyC)
+				flag("gate_rule_world1_always_closed_w" .. id, travel.CanEnter(lowTrack, 1) == true)
+				WorldConfig.GATE_OPEN = true
+				local okF = travel.CanEnter(fit, 2)
+				local okT, whyT = travel.CanEnter(lowTrack, 2)
+				local okR, whyR = travel.CanEnter(lowRebirth, 2)
+				flag("gate_rule_admin_always_open_w" .. id, travel.CanEnter(admin, 2) == true)
+				flag("gate_rule_open_admits_qualified_w" .. id, okF == true)
+				flag("gate_rule_open_needs_track_w" .. id, okT == false and whyT == "Beat Track " .. T, whyT)
+				flag("gate_rule_open_needs_rebirth_w" .. id, okR == false and whyR == "Reach Rebirth " .. R, whyR)
+				flag("gate_rule_world1_always_open_w" .. id, travel.CanEnter(lowRebirth, 1) == true)
+			end
+			-- World 2 reads World 1's progress, not its own BestTrack
+			WorldConfig.Id, WorldConfig.GATE_OPEN = 2, true
+			local w2Only = player(979105, 0, R)
+			w2Only:SetAttribute("BestTrack", T)
+			flag("gate_rule_w2_reads_world1_best", travel.CanEnter(w2Only, 2) == false)
+
+			-- Go (the gate touch and /world2 both go through it) in World 1: a closed gate is a second condition
+			WorldConfig.Id, WorldConfig.GATE_OPEN = 1, false
+			local goC, goWhy = travel.Go(fit, 2)
+			flag("gate_rule_go_closed_refuses_qualified", goC == false and #sent == 0, goWhy)
+			local goA = travel.Go(admin, 2)
+			flag("gate_rule_go_admin_closed", goA == true and sent[#sent] == admin, #sent, 1)
+			WorldConfig.GATE_OPEN = true
+			local goT, goTWhy = travel.Go(lowTrack, 2)
+			flag("gate_rule_go_open_refuses_unqualified", goT == false and #sent == 1, goTWhy)
+			local goF = travel.Go(fit, 2)
+			flag("gate_rule_go_open_admits_qualified", goF == true and sent[#sent] == fit, #sent, 2)
+			travel.Failed(admin, "ServerTest cleanup")
+			travel.Failed(fit, "ServerTest cleanup")
+
+			-- Arrived (World 2) follows the same rule; each arrival is destroyed at once so no retry runs
+			local function arrive(id, best, rebirth)
+				local p = player(id, best, rebirth)
+				local before = #sent
+				local went = travel.Arrived(p)
+				local back = #sent > before and sent[#sent] == p
+				p.Parent = nil
+				return went, back
+			end
+			WorldConfig.Id, WorldConfig.GATE_OPEN = 2, false
+			local wentC, backC = arrive(979110, T, R)
+			flag("gate_rule_arrival_closed_sends_qualified_back", wentC == true and backC == true)
+			WorldConfig.GATE_OPEN = true
+			local wentF, backF = arrive(979111, T, R)
+			flag("gate_rule_arrival_open_qualified_stays", wentF == false and backF == false)
+			local wentT, backT = arrive(979112, T - 1, R)
+			flag("gate_rule_arrival_open_low_track_back", wentT == true and backT == true)
+			local wentR, backR = arrive(979113, T, R - 1)
+			flag("gate_rule_arrival_open_low_rebirth_back", wentR == true and backR == true)
+		end)
+		travel.IsAdmin, travel.Save, travel.Teleport, travel.AllowStudio, travel.Depart = table.unpack(saved, 1, 5)
+		WorldConfig.Id, WorldConfig.GATE_OPEN = saved[6], saved[7]
+		for _, p in cleanup do
+			pcall(travel.Failed, p, "ServerTest cleanup")
+			p:Destroy()
+		end
+		flag("gate_rule_no_error", ok, ok and 1 or tostring(err))
 		return r
 	end
 

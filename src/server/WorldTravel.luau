@@ -1,7 +1,7 @@
 --!nonstrict
 -- Travel between the World 1 and World 2 places (design doc 4.47, docs/WORLD2_SPEC.md "Travel"). The save is written
--- and its session lock released first, so the other place's load takes the lock at once. Admins only while the gate
--- is locked (Server/AdminService /world1, /world2). One trip at a time per player (gate and admin commands alike): the
+-- and its session lock released first, so the other place's load takes the lock at once. CanEnter decides who may go
+-- (admins always, Server/AdminService /world1, /world2). One trip at a time per player (gate and admin commands alike): the
 -- player stays busy from Go until they leave the server or the trip fails.
 -- Go first ends what could still pay (Depart: the run stops, the boss event is left), then freezes the player
 -- (DataLoaded off, as PlayerData.ResetToNew does, so no remote, receipt, roll, run or autosave runs; Travelling on, so
@@ -64,6 +64,42 @@ end
 WorldTravel.IsAdmin = function()
 	return false
 end
+
+-- Test seam: tells the player why the gate refused them (Client/TeamToast: Remotes.RunEvent { Kind = "WorldGate", Text }).
+WorldTravel.Notice = function(player, text)
+	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+	local event = remotes and remotes:FindFirstChild("RunEvent")
+	if event and player:IsA("Player") then
+		event:FireClient(player, { Kind = "WorldGate", Text = text })
+	end
+end
+
+-- Test seam: the player's World 1 BestTrack (the highest World 1 track number beaten, RaceService). In World 2 the
+-- BestTrack attribute is World 2's, so it reads World1BestTrack there.
+-- shortcut: nothing sets World1BestTrack yet, so in World 2 everyone reads 0 (refused); PlayerData must copy the
+-- record's top-level BestTrack into it on load before the owner opens the gate.
+WorldTravel.World1Best = function(player)
+	return tonumber(player:GetAttribute(WorldConfig.Id == 1 and "BestTrack" or "World1BestTrack")) or 0
+end
+
+-- Design doc 4.47: may `player` enter world `id`? Returns ok, reason (the player's notice when refused). World 1 and
+-- admins always; anyone else needs the gate open (WorldConfig.GATE_OPEN) AND the opening rule: World 1 Track
+-- GATE_TRACK beaten and rebirth >= GATE_REBIRTH (no Money cost, nothing resets). Go and Arrived both ask it.
+function WorldTravel.CanEnter(player, id)
+	if id == 1 or WorldTravel.IsAdmin(player) then
+		return true, nil
+	end
+	if not WorldConfig.GATE_OPEN then
+		return false, "COMING SOON"
+	end
+	if WorldTravel.World1Best(player) < WorldConfig.GATE_TRACK then
+		return false, "Beat Track " .. WorldConfig.GATE_TRACK
+	end
+	if (tonumber(player:GetAttribute("RebirthLevel")) or 0) < WorldConfig.GATE_REBIRTH then
+		return false, "Reach Rebirth " .. WorldConfig.GATE_REBIRTH
+	end
+	return true, nil
+end
 WorldTravel.ARRIVAL_WAIT = 30 -- placeholder: seconds an arrival waits for its save to load before it is sent back
 WorldTravel.ARRIVAL_TRIES = 3 -- placeholder: return trips tried before the arrival is kicked
 WorldTravel.ARRIVAL_RETRY = 3 -- placeholder: seconds between return trips
@@ -123,6 +159,10 @@ function WorldTravel.Go(player, id, arrival)
 	if id == WorldConfig.Id then
 		return false, "already in World " .. id
 	end
+	local allowed, reason = WorldTravel.CanEnter(player, id)
+	if not allowed then
+		return false, reason
+	end
 	local placeId = WorldConfig.PLACES[id]
 	if type(placeId) ~= "number" then
 		return false, "World " .. tostring(id) .. " has no place yet (WorldConfig.PLACES)"
@@ -176,8 +216,8 @@ function WorldTravel.Go(player, id, arrival)
 	return true, "travelling to World " .. id
 end
 
--- Design doc 4.47: the World 2 gate is locked for everyone and admins travel with /world2, so while
--- WorldConfig.GATE_OPEN is false a non-admin who arrives in World 2 is sent back to World 1 (never in Studio, as Go).
+-- Design doc 4.47: a player who arrives in World 2 but may not enter it (CanEnter: not an admin and the gate closed,
+-- or open but the opening rule unmet) is sent back to World 1 (never in Studio, as Go).
 -- The return trip runs in the background: a failed one is tried again (the player stays frozen) up to ARRIVAL_TRIES
 -- times, then the player is kicked. Returns ok, message (true once the return trips started, or false and why it stays).
 local function sendBack(player)
@@ -201,14 +241,14 @@ local function sendBack(player)
 end
 
 function WorldTravel.Arrived(player)
-	if WorldConfig.Id ~= 2 or WorldConfig.GATE_OPEN then
-		return false, "the gate is open here"
+	if WorldConfig.Id ~= 2 then
+		return false, "not World 2"
 	end
 	if RunService:IsStudio() and not WorldTravel.AllowStudio then
 		return false, "no arrival check in Studio"
 	end
-	if WorldTravel.IsAdmin(player) then
-		return false, "admin"
+	if WorldTravel.CanEnter(player, 2) then
+		return false, "may stay"
 	end
 	if busy[player] then
 		return false, "already travelling"
@@ -217,7 +257,8 @@ function WorldTravel.Arrived(player)
 	return true, "sending back to World 1"
 end
 
--- Open world gates (tag WorldGate, attribute TargetWorld; Shared/SpawnArea) send a touching player's avatar on.
+-- World gates (tag WorldGate, attribute TargetWorld; Shared/SpawnArea) send a touching player on if CanEnter allows,
+-- else tell them why. A Locked gate never sends: admins travel with /world2.
 function WorldTravel.Start()
 	local CollectionService = game:GetService("CollectionService")
 	TeleportService.TeleportInitFailed:Connect(function(player, result, message, _, options)
@@ -235,13 +276,22 @@ function WorldTravel.Start()
 		part.Touched:Connect(function(hit)
 			local player = Players:GetPlayerFromCharacter(hit.Parent)
 			local target = part:GetAttribute("TargetWorld")
-			if not player or cooldown[player] or part:GetAttribute("Locked") or type(target) ~= "number" then
+			if not player or cooldown[player] or type(target) ~= "number" then
 				return
 			end
 			cooldown[player] = true
-			local ok, message = WorldTravel.Go(player, target)
+			local ok, message = WorldTravel.CanEnter(player, target)
 			if not ok then
-				warn("WorldTravel: " .. player.Name .. ": " .. message)
+				pcall(WorldTravel.Notice, player, message)
+			elseif part:GetAttribute("Locked") then
+				ok = false
+			else
+				ok, message = WorldTravel.Go(player, target)
+				if not ok then
+					warn("WorldTravel: " .. player.Name .. ": " .. message)
+				end
+			end
+			if not ok then
 				task.wait(3)
 			end
 			cooldown[player] = nil

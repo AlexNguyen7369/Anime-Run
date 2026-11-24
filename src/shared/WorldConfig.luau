@@ -21,6 +21,10 @@ WorldConfig.PROGRESS_KEYS = { "BestTrack", "Checkpoint", "RaceBestTimes", "Team"
 -- The World 2 gate in the World 1 plaza (design doc 4.47): locked for everyone until the owner opens it; admins travel
 -- with /world2 (Server/AdminService).
 WorldConfig.GATE_OPEN = false
+-- The opening rule once the gate is open (design doc 4.47, owner 2026-11-24): World 1 Track GATE_TRACK beaten and
+-- rebirth >= GATE_REBIRTH; no Money cost, nothing resets (Server/WorldTravel.CanEnter).
+WorldConfig.GATE_TRACK = 10
+WorldConfig.GATE_REBIRTH = 5
 
 local value = ReplicatedStorage:FindFirstChild("WorldId")
 WorldConfig.Id = value and value:IsA("IntValue") and math.clamp(value.Value, 1, WorldConfig.COUNT) or 1
