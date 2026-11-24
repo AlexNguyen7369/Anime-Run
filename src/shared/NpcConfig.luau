@@ -56,6 +56,7 @@ NpcConfig.World2 = {
 	[9] = { Label = "Makto", Model = "fr_gold" },
 	[10] = { Label = "Makina", Model = "saw_control" },
 }
+NpcConfig.World1 = NpcConfig.Tracks -- World 1's rows, in either place
 if require(script.Parent.WorldConfig).Id == 2 then
 	NpcConfig.Tracks = NpcConfig.World2
 end
