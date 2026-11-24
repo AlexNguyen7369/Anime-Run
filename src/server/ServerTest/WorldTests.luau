@@ -694,7 +694,7 @@ function Tests.make(helpers)
 			)
 			flag("arrival_kicks_the_arrival", kicks[1] == failing and failing:GetAttribute("Travelling") == true)
 			flag("arrival_failed_never_unfrozen", failing:GetAttribute("DataLoaded") == nil)
-			flag("arrival_guest_not_kicked", table.find(kicks, guest) == nil)
+			flag("arrival_only_failing_kicked", #kicks == 1 and table.find(kicks, guest) == nil, #kicks, 1)
 			sent = { sent[1] } -- the counts below are of the first guest's trip
 
 			WorldConfig.GATE_OPEN = true
@@ -796,6 +796,33 @@ function Tests.make(helpers)
 			w2Only:SetAttribute("BestTrack", T)
 			flag("gate_rule_w2_reads_world1_best", travel.CanEnter(w2Only, 2) == false)
 
+			-- PlayerData in World 2 mirrors the save's top-level (World 1) BestTrack into World1BestTrack on load
+			local module = Server.PlayerData:Clone()
+			module.Name, module.Parent = "ServerTestGateData", Server
+			table.insert(cleanup, module)
+			local data = require(module)
+			local store = H.store()
+			data.SetStore(store)
+			local function loaded(id, best)
+				store.data[data.KeyFor(id)] = { Version = 1, BestTrack = best, RebirthLevel = R }
+				local p = H.player(cleanup, id)
+				local okLoad = data.Load(p, id)
+				return p, okLoad
+			end
+			local p10, ok10 = loaded(979120, T)
+			local p9, ok9 = loaded(979121, T - 1)
+			flag("gate_rule_load_fixture", ok10 == true and ok9 == true and p10:GetAttribute("RebirthLevel") == R)
+			flag("gate_rule_load_mirrors_world1_best", p10:GetAttribute("World1BestTrack") == T)
+			flag("gate_rule_load_w2_own_best", (p10:GetAttribute("BestTrack") or 0) == 0) -- World 2's own, fresh
+			flag("gate_rule_load_qualifies", travel.CanEnter(p10, 2) == true)
+			flag("gate_rule_load_track9_refused", travel.CanEnter(p9, 2) == false)
+			data.Save(p10, 979120)
+			local rec = store.data[data.KeyFor(979120)]
+			flag(
+				"gate_rule_mirror_never_saved",
+				type(rec) == "table" and rec.World1BestTrack == nil and rec.BestTrack == T
+			)
+
 			-- Go (the gate touch and /world2 both go through it) in World 1: a closed gate is a second condition
 			WorldConfig.Id, WorldConfig.GATE_OPEN = 1, false
 			local goC, goWhy = travel.Go(fit, 2)
@@ -837,6 +864,334 @@ function Tests.make(helpers)
 			p:Destroy()
 		end
 		flag("gate_rule_no_error", ok, ok and 1 or tostring(err))
+		return r
+	end
+
+	-- `world_travel_review` (review of 3258513, design doc 4.47): mutants that survived the earlier tests. A release save
+	-- that outlives TIMEOUT never travels and retakes the lock once (an arrival's instead marks the lock out for later
+	-- tries); a failed save tells a normal traveller once and keeps an arrival frozen; an arrival carries DataLoaded and
+	-- the release across return trips, a hung trip still ends at TIMEOUT and the kick comes after one more frozen
+	-- release save; TeleportInitFailed with no teleport data fails the pending trip, an older trip id does not; Depart
+	-- calls DuelService.PlayerLeft as a traveller (cooldown kept); a frozen player picks no starter and takes no admin
+	-- command (and /roll says so); a group rank lookup that keeps failing is "unknown" and the arrival waits.
+	function W.world_travel_review()
+		local r, flag = H.report("world_travel_review")
+		local Server = script.Parent.Parent
+		local travel = H.module(Server, "WorldTravel")
+		local admin = H.module(Server, "AdminService")
+		local config = H.module(Server, "AdminConfig")
+		local gacha = H.module(Server, "GachaService")
+		local money = H.module(Server, "MoneyService")
+		local duel = H.module(Server, "DuelService")
+		local runner = H.module(Server, "RunnerService")
+		local boss = H.module(Server, "BossEventService")
+		local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
+		local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
+		local api = travel ~= nil
+			and admin ~= nil
+			and type(travel.InitFailed) == "function"
+			and type(admin.RankOf) == "function"
+			and type(admin.GroupOf) == "function"
+		flag("review_api_exists", api == true)
+		if not api then
+			return r
+		end
+		local keys = {
+			"Save",
+			"Teleport",
+			"Notify",
+			"AllowStudio",
+			"TIMEOUT",
+			"Depart",
+			"Retake",
+			"IsAdmin",
+			"Kick",
+			"ARRIVAL_RETRY",
+			"ADMIN_RECHECK",
+		}
+		local saved = {}
+		for i, k in keys do
+			saved[i] = travel[k]
+		end
+		local savedAdmin = { admin.GroupOf, admin.RankOf, admin.RANK_WAIT, admin.AllowStudio }
+		local savedDuel = { duel and duel.PlayerLeft, runner and runner.SetAutoRace, boss and boss.Leave }
+		local savedWorld = { WorldConfig.Id, WorldConfig.GATE_OPEN }
+		local cleanup = {}
+		local saves, teleports, notes, retakes, kicks = 0, 0, 0, 0, {}
+		local saveFn = function(_p)
+			return true, false
+		end
+		local teleportFn = function(_p) end
+		local ok, err = pcall(function()
+			travel.AllowStudio = true
+			travel.Depart = function() end
+			travel.Save = function(p)
+				saves += 1
+				return saveFn(p)
+			end
+			travel.Teleport = function(_, p)
+				teleports += 1
+				return teleportFn(p)
+			end
+			travel.Notify = function()
+				notes += 1
+			end
+			travel.Retake = function()
+				retakes += 1
+				return true
+			end
+			travel.Kick = function(p)
+				table.insert(kicks, p)
+			end
+			travel.IsAdmin = function()
+				return false
+			end
+			travel.ARRIVAL_RETRY = 0.05
+			local nextId = 979200
+			local function player()
+				nextId += 1
+				local p = H.player(cleanup, nextId)
+				p:SetAttribute("DataLoaded", true)
+				return p
+			end
+			local function reset(save, teleport)
+				saves, teleports, notes, retakes, kicks = 0, 0, 0, 0, {}
+				saveFn = save or function(_p)
+					return true, false
+				end
+				teleportFn = teleport or function(_p) end
+			end
+			local function waitUntil(fn, seconds)
+				local deadline = os.clock() + seconds
+				while not fn() and os.clock() < deadline do
+					task.wait(0.05)
+				end
+				return fn()
+			end
+			local target = WorldConfig.Id == 1 and 2 or 1
+			travel.IsAdmin = function() -- a normal trip: who may go is world_gate_rule's
+				return true
+			end
+
+			-- 1. Late release save (outlives TIMEOUT): no teleport, unfrozen, one lock retake
+			travel.TIMEOUT = 0.15
+			reset(function()
+				task.wait(0.4)
+				return true, false
+			end)
+			local late = player()
+			local okLate, whyLate = travel.Go(late, target)
+			task.wait(0.1)
+			flag("review_late_save_no_travel", okLate == false and teleports == 0, whyLate)
+			flag("review_late_save_retakes_once", retakes == 1, retakes, 1)
+			flag("review_late_save_unfrozen", late:GetAttribute("DataLoaded") == true and not travel.Busy(late))
+			-- the same for an arrival: the lock is marked out, no retake
+			reset(function()
+				task.wait(0.4)
+				return true, false
+			end)
+			local carry = { Loaded = true, Released = false }
+			local lateArrival = player()
+			travel.Go(lateArrival, 1 == WorldConfig.Id and 2 or 1, carry)
+			task.wait(0.1)
+			flag("review_late_arrival_save_marks_release", carry.Released == true and retakes == 0, retakes, 0)
+			flag("review_late_arrival_stays_frozen", lateArrival:GetAttribute("Travelling") == true)
+			travel.TIMEOUT = 60
+
+			-- 2. A failed release save: told once and unfrozen; an arrival stays frozen, untold
+			reset(function()
+				return false, false
+			end)
+			local failSave = player()
+			local okFail = travel.Go(failSave, target)
+			flag("review_save_fail_notifies_once", okFail == false and notes == 1 and teleports == 0, notes, 1)
+			flag("review_save_fail_unfrozen", failSave:GetAttribute("DataLoaded") == true)
+			reset(function()
+				return false, false
+			end)
+			local failArrival = player()
+			travel.Go(failArrival, target, { Loaded = true, Released = false })
+			flag(
+				"review_arrival_save_fail_stays_frozen",
+				notes == 0
+					and failArrival:GetAttribute("DataLoaded") == nil
+					and failArrival:GetAttribute("Travelling") == true
+					and not travel.Busy(failArrival)
+			)
+
+			-- 3. TeleportInitFailed: no teleport data fails the pending trip; an older trip id leaves it alone
+			reset()
+			local init = player()
+			travel.Go(init, target)
+			travel.InitFailed(init, "ServerTest", "old", {
+				GetTeleportData = function()
+					return { TravelTrip = -1 }
+				end,
+			})
+			flag("review_init_old_id_ignored", travel.Busy(init) == true)
+			travel.InitFailed(init, "ServerTest", "nil data", nil)
+			flag("review_init_nil_data_fails", travel.Busy(init) == false and notes == 1, notes, 1)
+
+			-- 4. Arrivals (World 2, the gate closed): every save fails, the first one late -> each try saves again
+			-- (DataLoaded carried), never unfrozen, one more release save, then one kick
+			WorldConfig.Id, WorldConfig.GATE_OPEN = 2, false
+			travel.IsAdmin = function()
+				return false
+			end
+			travel.TIMEOUT = 0.15
+			local first = true
+			reset(function()
+				if first then
+					first = false
+					task.wait(0.3)
+				end
+				return false, false
+			end)
+			local stuck = player()
+			flag("review_arrival_sent", travel.Arrived(stuck) == true)
+			waitUntil(function()
+				return #kicks > 0
+			end, 4)
+			flag(
+				"review_arrival_saves_each_try_then_before_kick",
+				saves == travel.ARRIVAL_TRIES + 1 and teleports == 0,
+				saves,
+				travel.ARRIVAL_TRIES + 1
+			)
+			flag("review_arrival_kicked_once", #kicks == 1 and kicks[1] == stuck, #kicks, 1)
+			flag(
+				"review_arrival_never_unfrozen",
+				stuck:GetAttribute("DataLoaded") == nil and stuck:GetAttribute("Travelling") == true
+			)
+			-- saved once, every teleport hangs: each hung trip ends at TIMEOUT, later tries skip the save, no extra save
+			reset(nil, function()
+				task.wait(5)
+			end)
+			local hung = player()
+			travel.Arrived(hung)
+			waitUntil(function()
+				return #kicks > 0
+			end, 4)
+			flag("review_hung_trip_still_kicks", #kicks == 1 and kicks[1] == hung, #kicks, 1)
+			flag(
+				"review_release_carried_across_tries",
+				saves == 1 and teleports == travel.ARRIVAL_TRIES,
+				saves * 10 + teleports,
+				10 + travel.ARRIVAL_TRIES
+			)
+			-- a pending return trip (teleport went out) is never kicked
+			travel.TIMEOUT = 60
+			reset()
+			local pending = player()
+			travel.Arrived(pending)
+			task.wait(travel.ARRIVAL_TRIES * travel.ARRIVAL_RETRY + 0.5)
+			flag(
+				"review_pending_arrival_not_kicked",
+				#kicks == 0 and travel.Busy(pending) and teleports == 1,
+				#kicks,
+				0
+			)
+
+			-- 5. Group rank lookup: failing every try is "unknown"; the arrival waits, then goes once the rank is known
+			local calls, rank = 0, nil
+			admin.GroupOf = function()
+				return 1
+			end
+			admin.RankOf = function()
+				calls += 1
+				if rank == nil then
+					error("ServerTest rank down")
+				end
+				return rank
+			end
+			admin.RANK_WAIT = 0.01
+			admin.AllowStudio = false
+			travel.IsAdmin = admin.IsAdmin
+			local member = player()
+			local isAdmin, state = admin.IsAdmin(member)
+			flag("review_rank_unknown", isAdmin == false and state == "unknown", tostring(state))
+			flag("review_rank_tried", calls == admin.RANK_TRIES, calls, admin.RANK_TRIES)
+			travel.ADMIN_RECHECK = 0.1
+			reset()
+			local okArr = travel.Arrived(member)
+			flag("review_rank_unknown_arrival_waits", okArr == false and teleports == 0, teleports, 0)
+			rank = 0
+			flag(
+				"review_rank_known_arrival_goes",
+				waitUntil(function()
+					return teleports == 1
+				end, 2),
+				teleports,
+				1
+			)
+			local leaver = player()
+			calls = 0
+			rank = nil
+			admin.RankOf = function(p)
+				calls += 1
+				p.Parent = nil
+				error("ServerTest rank down")
+			end
+			flag("review_rank_left_during_wait", admin.IsAdmin(leaver) == false and calls == 1, calls, 1)
+			admin.GroupOf, admin.RankOf, admin.RANK_WAIT = savedAdmin[1], savedAdmin[2], savedAdmin[3]
+
+			-- 6. Depart (the real one) calls DuelService.PlayerLeft as a traveller, stops auto racing, leaves the event
+			if duel and runner and boss then
+				local seen = {}
+				duel.PlayerLeft = function(_, travelling)
+					seen.Duel = travelling == true
+				end
+				runner.SetAutoRace = function(_, on)
+					seen.Auto = on == false
+				end
+				boss.Leave = function(_, why)
+					seen.Boss = why == "Travel"
+				end
+				saved[6](player())
+				duel.PlayerLeft, runner.SetAutoRace, boss.Leave = savedDuel[1], savedDuel[2], savedDuel[3]
+				flag("review_depart_duel_as_traveller", seen.Duel == true)
+				flag("review_depart_stops_auto", seen.Auto == true)
+				flag("review_depart_leaves_event", seen.Boss == true)
+			end
+
+			-- 7. A frozen (travelling) player picks no starter and takes no admin command; /roll that rolls nothing fails
+			local frozen = player()
+			if money then
+				money.Setup(frozen)
+			end
+			frozen:SetAttribute("NeedsStarter", true)
+			frozen:SetAttribute("Travelling", true)
+			local pick = CharacterCatalog.STARTER_PICKS[1]
+			flag("review_frozen_no_starter", gacha.PickStarter(frozen, pick) == false)
+			table.insert(config.UserIds, frozen:GetAttribute("UserId") or nextId)
+			local okCmd, cmdMessage = admin.Run(frozen, "/money 5")
+			flag(
+				"review_frozen_no_admin_command",
+				okCmd == false and string.find(cmdMessage, "travelling") ~= nil,
+				cmdMessage
+			)
+			local roll = admin.Commands.roll
+			frozen:SetAttribute("DataLoaded", nil)
+			local okRoll, rollMessage = roll.Apply(frozen, 2)
+			flag("review_roll_refused_says_so", okRoll == false and not string.find(rollMessage, "rolled"), rollMessage)
+			local at = table.find(config.UserIds, frozen:GetAttribute("UserId") or nextId)
+			if at then
+				table.remove(config.UserIds, at)
+			end
+		end)
+		for i, k in keys do
+			travel[k] = saved[i]
+		end
+		admin.GroupOf, admin.RankOf, admin.RANK_WAIT, admin.AllowStudio = table.unpack(savedAdmin, 1, 4)
+		if duel and runner and boss then
+			duel.PlayerLeft, runner.SetAutoRace, boss.Leave = savedDuel[1], savedDuel[2], savedDuel[3]
+		end
+		WorldConfig.Id, WorldConfig.GATE_OPEN = savedWorld[1], savedWorld[2]
+		for _, p in cleanup do
+			pcall(travel.Failed, p, "ServerTest cleanup")
+			p:Destroy()
+		end
+		flag("review_no_error", ok, ok and 1 or tostring(err))
 		return r
 	end
 

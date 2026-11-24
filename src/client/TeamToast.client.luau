@@ -71,5 +71,7 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent
 		show("TEAM EXHAUSTED  +" .. HudFormat.MoneyText(tonumber(ev.Banked) or 0), 3)
 	elseif ev.Kind == "TravelFailed" then -- Server/WorldTravel: the teleport failed, the player stays here
 		show("TRAVEL FAILED, TRY AGAIN", 3)
+	elseif ev.Kind == "WorldGate" and type(ev.Text) == "string" then -- Server/WorldTravel: why the gate refused
+		show(ev.Text, 3)
 	end
 end)
