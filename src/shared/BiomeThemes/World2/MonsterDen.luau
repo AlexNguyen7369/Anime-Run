@@ -26,42 +26,42 @@ return Kit.fromDraft("MonsterDen", require(script.Parent.MonsterDenDraft), {
 		W2_MonsterDen_Ceiling = draftMesh(
 			1276,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: wet rock cave ceiling over a road with ivory rib arches, chains with cage lanterns and stalactites",
 			"mid prop, 106 placed; build/world2/export/MonsterDen/W2_MonsterDen_Ceiling.glb"
 		),
 		W2_MonsterDen_FleshWall = draftMesh(
 			2036,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: organic cave wall of wet rock with a monster maw of ivory fangs, a glaring eye and two curling tentacles",
 			"mid prop, 425 placed; build/world2/export/MonsterDen/W2_MonsterDen_FleshWall.glb"
 		),
 		W2_MonsterDen_LairTower = draftMesh(
 			12084,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: underground round stone tower with ledges on corbels, arched windows and outside staircases",
 			"hero landmark, 1 placed; build/world2/export/MonsterDen/W2_MonsterDen_LairTower.glb"
 		),
 		W2_MonsterDen_Coliseum = draftMesh(
 			11616,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: round underground hall of dark grey stone tiers over deep black gaps with tall thin poles and a spiked throne",
 			"hero landmark, 1 placed; build/world2/export/MonsterDen/W2_MonsterDen_Coliseum.glb"
 		),
 		W2_MonsterDen_Shrine = draftMesh(
 			2900,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: stepped stone temple with a wide central stair, balustrades, niche blocks and a blank relief slab",
 			"hero landmark, 1 placed; build/world2/export/MonsterDen/W2_MonsterDen_Shrine.glb"
 		),
 		W2_MonsterDen_MineRail = draftMesh(
 			854,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: timber mine rail trestle with an ore cart of gold, a lantern post and glowing veins",
 			"mid prop, 220 placed; build/world2/export/MonsterDen/W2_MonsterDen_MineRail.glb"
 		),
@@ -75,35 +75,35 @@ return Kit.fromDraft("MonsterDen", require(script.Parent.MonsterDenDraft), {
 		W2_MonsterDen_Colonnade = draftMesh(
 			612,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: ruined colonnade: two stone columns under a broken lintel, a stump and a fallen drum",
 			"mid prop, 146 placed; build/world2/export/MonsterDen/W2_MonsterDen_Colonnade.glb"
 		),
 		W2_MonsterDen_CityChunk = draftMesh(
 			876,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: rock mass with two tilted city buildings embedded in it, pipes and a tilted lattice pylon",
 			"mid prop, 120 placed; build/world2/export/MonsterDen/W2_MonsterDen_CityChunk.glb"
 		),
 		W2_MonsterDen_RockPillar = draftMesh(
 			168,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: cave column: a stalagmite rising into a stalactite with glowing veins at its foot",
 			"mid prop, 462 placed; build/world2/export/MonsterDen/W2_MonsterDen_RockPillar.glb"
 		),
 		W2_MonsterDen_LavaChasm = draftMesh(
 			660,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: lava river stretch between raised broken rock lips with crust plates",
 			"mid prop, 75 placed; build/world2/export/MonsterDen/W2_MonsterDen_LavaChasm.glb"
 		),
 		W2_MonsterDen_BoneArch = draftMesh(
 			968,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: rib bone arch on a vertebra spine spanning a road",
 			"mid prop, 52 placed; build/world2/export/MonsterDen/W2_MonsterDen_BoneArch.glb"
 		),

@@ -26,84 +26,84 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 		W2_ElvenPlains_Flowers = draftMesh(
 			746,
 			"rbxassetid://87953167963009", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: patch of low clusters of small pale blue five petal flowers in short grass",
 			"mid prop, 286 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Flowers.glb"
 		),
 		W2_ElvenPlains_Pine = draftMesh(
 			68,
 			"rbxassetid://86341868807167", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: conifer tree with a short trunk and four stacked narrowing cone tiers",
 			"mid prop, 290 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Pine.glb"
 		),
 		W2_ElvenPlains_Forest = draftMesh(
 			604,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small pine wood of seven conifers on a low mound with a dirt path",
 			"mid prop, 141 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Forest.glb"
 		),
 		W2_ElvenPlains_FarWood = draftMesh(
 			624,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: far hazed hillside: a broad pale green swell with pale pines",
 			"mid prop, 30 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_FarWood.glb"
 		),
 		W2_ElvenPlains_Cottage = draftMesh(
 			1156,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: half timbered village house: stone ground floor, jettied plaster upper storey, steep shingled gable roof, chimney, shutters, a wattle fence and barrels",
 			"mid prop, 15 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Cottage.glb"
 		),
 		W2_ElvenPlains_HeroStatue = draftMesh(
 			3316,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: patina statue of a generic caped swordsman on a two course stone plinth, both hands on a sword pommel",
 			"hero landmark, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_HeroStatue.glb"
 		),
 		W2_ElvenPlains_Rank = draftMesh(
 			18224,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: block of thirty empty suits of dark plate armour in four staggered ranks on a raised mound",
 			"mid prop, 14 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Rank.glb"
 		),
 		W2_ElvenPlains_RuinWall = draftMesh(
 			368,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: ruined brick coursed castle wall with two tall round arched windows, a broken top and a roofless half tower",
 			"mid prop, 46 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_RuinWall.glb"
 		),
 		W2_ElvenPlains_RuinedCastle = draftMesh(
 			3940,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: ruined castle on a rocky rise: a long hall with rows of tall paired arched windows and a broken vault",
 			"hero landmark, 1 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_RuinedCastle.glb"
 		),
 		W2_ElvenPlains_Town = draftMesh(
 			9446,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: fortified hill town: a long cream curtain wall on an oval, round towers with slate cones, a gatehouse and roofs inside",
 			"hero landmark, 1 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Town.glb"
 		),
 		W2_ElvenPlains_Mountain = draftMesh(
 			1728,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
 			"mid prop, 4 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain.glb"
 		),
 		W2_ElvenPlains_Mound = draftMesh(
 			844,
 			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low grassy mound",
 			"mid prop, 12 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mound.glb"
 		),

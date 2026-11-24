@@ -29,77 +29,77 @@ return Kit.fromDraft("HauntedTunnel", require(script.Parent.HauntedTunnelDraft),
 		W2_HauntedTunnel_Cedar = draftMesh(
 			112,
 			"rbxassetid://79139214379536", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: tall dark cedar tree with a narrow conical crown",
 			"mid prop, 671 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_Cedar.glb"
 		),
 		W2_HauntedTunnel_Mountain = draftMesh(
 			832,
 			"rbxassetid://76863404086440", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low forested mountain ridge with dark green slopes",
 			"mid prop, 16 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_Mountain.glb"
 		),
 		W2_HauntedTunnel_Guardrail = draftMesh(
 			468,
 			"rbxassetid://92459771126821", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: white roadside guardrail on posts beside a steep slope",
 			"mid prop, 82 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_Guardrail.glb"
 		),
 		W2_HauntedTunnel_Mirror = draftMesh(
 			256,
 			"rbxassetid://127172492240976", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: orange roadside curve mirror on a post",
 			"mid prop, 25 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_Mirror.glb"
 		),
 		W2_HauntedTunnel_TunnelSeg = draftMesh(
 			276,
 			"rbxassetid://92988886596764", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: segment of an old concrete road tunnel with a curved lining",
 			"mid prop, 28 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_TunnelSeg.glb"
 		),
 		W2_HauntedTunnel_Portal = draftMesh(
 			13018,
 			"rbxassetid://136990120156711", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: old concrete mountain road tunnel portal with a stone face, set into a cedar covered slope",
 			"hero landmark, 2 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_Portal.glb"
 		),
 		W2_HauntedTunnel_School = draftMesh(
 			4036,
 			"rbxassetid://75157437084781", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: three storey concrete school building with rows of windows, a clock face with no numbers and a school gate",
 			"hero landmark, 1 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_School.glb"
 		),
 		W2_HauntedTunnel_Hospital = draftMesh(
 			6400,
 			"rbxassetid://92718831172316", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: abandoned multi storey hospital with dark windows and a rooftop crown",
 			"hero landmark, 1 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_Hospital.glb"
 		),
 		W2_HauntedTunnel_OldWoodHouse = draftMesh(
 			4076,
 			"rbxassetid://137759944010636", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: old two storey wooden house with a tiled gable roof, engawa veranda and a small garden wall",
 			"hero landmark, 1 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_OldWoodHouse.glb"
 		),
 		W2_HauntedTunnel_House = draftMesh(
 			1100,
 			"rbxassetid://90524789648692", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small two storey suburban house with a tiled gable roof",
 			"mid prop, 74 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_House.glb"
 		),
 		W2_HauntedTunnel_House2 = draftMesh(
 			696,
 			"rbxassetid://86991347584325", -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"2026-11-23 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small two storey suburban house with a different tiled roof and siding",
 			"mid prop, 77 placed; build/world2/export/HauntedTunnel/W2_HauntedTunnel_House2.glb"
 		),
