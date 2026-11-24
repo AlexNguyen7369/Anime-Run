@@ -54,6 +54,8 @@ local function userIdOf(player)
 	return ok and type(id) == "number" and id or nil
 end
 
+AdminService.RANK_TRIES = 3 -- placeholder: GetRankInGroup tries per check before it counts as no rank
+
 function AdminService.IsAdmin(player)
 	if typeof(player) ~= "Instance" or player.Parent == nil then
 		return false -- nil, or a player that left / a destroyed stand-in
@@ -68,11 +70,20 @@ function AdminService.IsAdmin(player)
 				return true
 			end
 			if game.CreatorType == Enum.CreatorType.Group and player:IsA("Player") then
-				if groupRank[player] == nil then
+				-- a failed lookup is not cached: tried again (here and on the next check), so a group admin is never
+				-- taken for a guest (the World 2 arrival check)
+				for try = 1, AdminService.RANK_TRIES do
+					if groupRank[player] ~= nil then
+						break
+					end
 					local ok, rank = pcall(player.GetRankInGroup, player, game.CreatorId)
-					groupRank[player] = ok and rank or 0
+					if ok and type(rank) == "number" then
+						groupRank[player] = rank
+					elseif try < AdminService.RANK_TRIES then
+						task.wait(1)
+					end
 				end
-				if groupRank[player] >= AdminConfig.GROUP_MIN_RANK then
+				if (groupRank[player] or 0) >= AdminConfig.GROUP_MIN_RANK then
 					return true
 				end
 			end
@@ -690,7 +701,13 @@ local function execute(sender, text)
 
 	local anyOk, lastMessage = false, ""
 	for _, target in targets do
-		local ok, message = cmd.Apply(target, value)
+		local ok, message
+		if target:GetAttribute("Travelling") == true then
+			-- Server/WorldTravel's freeze: the release save is written, so a change now would be lost
+			ok, message = false, target.Name .. " is travelling"
+		else
+			ok, message = cmd.Apply(target, value)
+		end
 		anyOk = anyOk or ok
 		lastMessage = (#targets > 1 and (target.Name .. ": ") or "") .. message
 	end

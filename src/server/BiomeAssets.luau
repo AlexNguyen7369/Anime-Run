@@ -2,8 +2,11 @@
 -- Mesh registry for biome props (docs/BIOME_ENVIRONMENT_SPEC.md 4.2). A prop def with Mesh = "<AssetKey>" asks
 -- Clone(biome, key, size); the key must be a reviewed Mesh row with an Id in that biome's Assets ledger (4.4).
 -- One template per key is loaded with CreateMeshPartAsync on first use (or by Preload, in parallel) and cached. A load
--- that fails or takes over TIMEOUT returns nil, and BiomeDressing builds the def's fallback Parts instead; a failed key
--- is tried again in the background after RETRY seconds (a late load still fills the cache), an unreviewed row never.
+-- that fails or takes over TIMEOUT returns nil, and BiomeDressing builds the def's fallback Parts instead. A failed key
+-- is loaded again in the background after RETRY seconds, until it loads (an unreviewed row is never tried). A load that
+-- arrives late (after its TIMEOUT, or on a retry) serves every prop placed after it, such as the late-built tracks;
+-- props already built keep their parts: they were budgeted, pruned and snapped as parts, and a swap after the build would
+-- skip those passes. A load that never returns keeps one waiting thread for its key and starts no retry.
 local AssetService = game:GetService("AssetService")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,7 +22,7 @@ BiomeAssets.TIMEOUT = 10 -- placeholder: seconds a build waits on one mesh load 
 BiomeAssets.RETRY = { 30, 120, 600 } -- placeholder: seconds before a failed key is tried again (the last repeats)
 BiomeAssets.DEBUG = RunService:IsStudio() -- os.clock timing prints of each load (Studio only)
 
--- "<biome>/<key>" -> { Part = template or nil, Pending, Deadline, Tries, RetryAt }
+-- "<biome>/<key>" -> { Part = template or nil, Pending, Deadline, Tries }
 local cache = {}
 
 BiomeAssets.Row = BiomeEnvironment.Row -- the usable ledger row (reviewed, with an Id) or nil
@@ -38,35 +41,51 @@ BiomeAssets.Fetch = function(row)
 	})
 end
 
--- Starts a background load of `id` into its cache entry (a later call retries a failed one)
+-- Starts a background load of `id` into its cache entry; a failure schedules the next try
 local function start(id, biome, key)
 	local entry = cache[id] or { Tries = 0 }
 	cache[id] = entry
-	local row = BiomeAssets.Row(biome, key, "Mesh")
-	if not row then
-		entry.RetryAt = math.huge -- unreviewed: fallback parts for this server's life
-		return entry
+	local okRow, row = pcall(BiomeAssets.Row, biome, key, "Mesh")
+	if not (okRow and row) then
+		return entry -- unreviewed: fallback parts for this server's life
 	end
 	entry.Pending, entry.Deadline = true, os.clock() + BiomeAssets.TIMEOUT
 	task.spawn(function()
 		local t0 = os.clock()
-		local ok, part = pcall(BiomeAssets.Fetch, row)
-		entry.Pending = false
-		if ok and part then
+		local ok, part = pcall(function()
+			local template = BiomeAssets.Fetch(row)
+			if not template then
+				error("no mesh returned")
+			end
 			local texture = row.Texture and BiomeAssets.Row(biome, row.Texture, "Texture")
 			if texture then
-				part.TextureContent = Content.fromUri(texture.Id)
+				template.TextureContent = Content.fromUri(texture.Id)
 			end
-			part.Anchored = true
-			part.CanCollide = false
-			part.CanTouch = false
-			part.CanQuery = false
+			template.Anchored = true
+			template.CanCollide = false
+			template.CanTouch = false
+			template.CanQuery = false
+			return template
+		end)
+		entry.Pending = false
+		if ok then
 			entry.Part, entry.Tries = part, 0
 		else
 			entry.Tries += 1
 			local delay = BiomeAssets.RETRY[math.min(entry.Tries, #BiomeAssets.RETRY)]
-			entry.RetryAt = os.clock() + delay
-			warn(string.format("[BiomeAssets] %s failed to load (retry in %d s): %s", id, delay, tostring(part)))
+			warn(
+				string.format(
+					"[BiomeAssets] %s failed to load (retry in %s s): %s",
+					id,
+					tostring(delay),
+					tostring(part)
+				)
+			)
+			task.delay(delay, function()
+				if not entry.Part and not entry.Pending then
+					start(id, biome, key)
+				end
+			end)
 		end
 		if BiomeAssets.DEBUG then
 			print(
@@ -125,13 +144,7 @@ end
 -- def's CastShadow flag (nil: only a prop over 30 studs across casts, BIOME_ENVIRONMENT_SPEC 8).
 function BiomeAssets.Clone(biome, key, size, castShadow)
 	local id = biome .. "/" .. key
-	local entry = cache[id]
-	if not entry then
-		entry = start(id, biome, key)
-	elseif not entry.Part and not entry.Pending and os.clock() >= entry.RetryAt then
-		start(id, biome, key) -- in the background: this prop keeps its parts
-		return nil
-	end
+	local entry = cache[id] or start(id, biome, key) -- a failed key retries on its own (start)
 	local template = if entry.Pending then await(id, entry) else entry.Part
 	if not template then
 		return nil

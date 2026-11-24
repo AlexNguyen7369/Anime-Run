@@ -69,6 +69,7 @@ return {
 		"world_layout",
 		"world_travel", -- design doc 4.47: one trip at a time, frozen until departure, restored on failure
 		"world_travel_freeze", -- review of 8557dcf: Depart before the release save, freeze, lock retake, hung teleport
+		"biome_runtime", -- World 2 runtime review: BiomeAssets timeout / retry / CastShadow, build yield, draft lamps
 		"world_arrival", -- design doc 4.47: a non-admin who arrives in World 2 while the gate is locked goes back
 		"track_loading",
 		"team_fill", -- audit fixes 2026-11-20 (commit c80e4de): kept rolls fill empty Team slots

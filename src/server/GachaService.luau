@@ -401,6 +401,9 @@ end
 -- The fifth return value is what auto sell paid for this roll (0 when it was kept).
 function GachaService.Roll(player, roller)
 	local roll = rollOnce(player, roller)
+	if not roll then
+		return nil -- refused (Server/WorldTravel's freeze)
+	end
 	playRoll(player, roll)
 	return roll.Id, roll.IsNew, roll.Turbo, roll.Emphasized, roll.SoldFor, roll.Luck
 end
@@ -584,7 +587,11 @@ local STARTER_ROLL_HOLD = 5 -- seconds (proposed)
 local rollHoldUntil = setmetatable({}, { __mode = "k" })
 
 function GachaService.PickStarter(player, id)
-	if player:GetAttribute("NeedsStarter") ~= true or not table.find(CharacterCatalog.STARTER_PICKS, id) then
+	if
+		player:GetAttribute("NeedsStarter") ~= true
+		or player:GetAttribute("Travelling") == true -- Server/WorldTravel's freeze: the next session picks
+		or not table.find(CharacterCatalog.STARTER_PICKS, id)
+	then
 		return false
 	end
 	addEntry(folder(player), id)

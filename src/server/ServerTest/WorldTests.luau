@@ -385,6 +385,8 @@ function Tests.make(helpers)
 		local shop = H.module(Server, "ShopService")
 		local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
 		local Monetization = require(Shared:WaitForChild("MonetizationConfig"))
+		local SpawnArea = require(Shared:WaitForChild("SpawnArea"))
+		local oldCooldown = SpawnArea.START_COOLDOWN
 		local api = travel ~= nil
 			and money ~= nil
 			and gacha ~= nil
@@ -443,13 +445,22 @@ function Tests.make(helpers)
 			return p
 		end
 		local ok, err = pcall(function()
-			-- 1. Depart before the freeze and the save; the save sees a frozen player; nothing pays in its yield
+			-- 1. Depart before the freeze and the save; the save sees a frozen player; nothing pays in its yield. The
+			-- player has a live fake avatar on foot, so the StartPad would start a run but for the freeze (control below).
 			local a = player("Order")
+			local character = helpers.newFakeCharacter(runner.WalkSpawnCFrame())
+			character.Parent = character.Parent or workspace
+			table.insert(cleanup, character)
+			runner.OnCharacter(a, character)
+			SpawnArea.START_COOLDOWN = 0 -- so only the freeze can refuse the touch
+			local leg = character:FindFirstChild("Left Leg")
 			local rolls, receipt, pad = "unset", "unset", "unset"
 			duringSave = function(p)
 				local before = p:GetAttribute("Rolls")
-				rolls = gacha.RollTick(p) == nil and p:GetAttribute("Rolls") == before
-				pad = runner.PadTouched(p, workspace) == false and runner.SetAutoRace(p, true) == false
+				rolls = gacha.RollTick(p) == nil and gacha.Roll(p) == nil and p:GetAttribute("Rolls") == before
+				pad = runner.PadTouched(p, leg) ~= true
+					and runner.SetAutoRace(p, true) == false
+					and not runner.IsAutoRacing(p)
 				local pack = Monetization.GemPacks[1]
 				shop.SetSave(function()
 					return true
@@ -492,6 +503,44 @@ function Tests.make(helpers)
 				"freeze_failure_restores",
 				a:GetAttribute("DataLoaded") == true and a:GetAttribute("Travelling") == nil
 			)
+			-- control: unfrozen, the same touch starts a run, and the real Depart stops it
+			flag("freeze_pad_control_starts_run", runner.PadTouched(a, leg) == true and runner.IsAutoRacing(a))
+			pcall(saved[6], a)
+			flag("freeze_real_depart_stops_run", not runner.IsAutoRacing(a))
+			runner.SetAutoRace(a, false)
+			SpawnArea.START_COOLDOWN = oldCooldown
+
+			-- real Save(frozen) and Retake on a PlayerData copy with a fake store: an unflagged save of a frozen player
+			-- is refused, the frozen release save writes and drops the lock, the retake save takes it back
+			do
+				local module = Server.PlayerData:Clone()
+				module.Name, module.Parent = "ServerTestFreezeData", Server
+				table.insert(cleanup, module)
+				local data = require(module)
+				local store = H.store()
+				data.SetStore(store)
+				local id = 979101
+				store.data[data.KeyFor(id)] = { Version = 1 }
+				local f = H.player(cleanup, id)
+				flag("freeze_data_fixture", data.Load(f, id) == true)
+				f:SetAttribute("DataLoaded", nil)
+				f:SetAttribute("Travelling", true)
+				flag("freeze_unflagged_save_refused", data.Save(f, id, true) == false)
+				local wrote = data.Save(f, id, true, true)
+				local record = store.data[data.KeyFor(id)]
+				flag(
+					"freeze_frozen_release_save_writes",
+					wrote == true and type(record) == "table" and record.Lock == nil
+				)
+				f:SetAttribute("Travelling", nil)
+				f:SetAttribute("DataLoaded", true)
+				local relocked = data.Save(f, id)
+				record = store.data[data.KeyFor(id)]
+				flag(
+					"freeze_retake_relocks",
+					relocked == true and type(record) == "table" and type(record.Lock) == "table"
+				)
+			end
 
 			-- 3. Left during the release save: not teleported, not busy
 			table.clear(log)
@@ -524,6 +573,7 @@ function Tests.make(helpers)
 			flag("freeze_hung_go_returns_false", first ~= nil and first[1] == false)
 		end)
 		duringSave, hang = nil, nil
+		SpawnArea.START_COOLDOWN = oldCooldown
 		shop.SetPlayers(nil)
 		shop.SetSave(nil)
 		travel.Save, travel.Teleport, travel.Notify, travel.AllowStudio, travel.TIMEOUT, travel.Depart, travel.Retake =
@@ -562,8 +612,11 @@ function Tests.make(helpers)
 			WorldConfig.GATE_OPEN,
 			travel.Depart,
 			travel.Retake,
+			travel.Kick,
+			travel.ARRIVAL_RETRY,
 		}
 		local cleanup, sent = {}, {}
+		local kicks = {}
 		local ADMIN_ID = 978002
 		local ok, err = pcall(function()
 			flag("arrival_wired_to_admin_check", travel.IsAdmin == admin.IsAdmin)
@@ -572,6 +625,10 @@ function Tests.make(helpers)
 			travel.Retake = function()
 				return true
 			end
+			travel.Kick = function(p)
+				table.insert(kicks, p)
+			end
+			travel.ARRIVAL_RETRY = 0.05
 			admin.AllowStudio = false -- only AdminConfig.UserIds makes an admin here
 			table.insert(config.UserIds, ADMIN_ID)
 			travel.Save = function()
@@ -602,6 +659,36 @@ function Tests.make(helpers)
 			flag("arrival_uses_travel_go", travel.Busy(guest) == true) -- Go's one-trip guard holds the guest
 			travel.Failed(guest, "ServerTest cleanup")
 
+			flag(
+				"arrival_failed_trip_stays_frozen",
+				guest:GetAttribute("Travelling") == true and guest:GetAttribute("DataLoaded") == nil
+			)
+
+			-- a return trip that keeps failing: tried ARRIVAL_TRIES times, never unfrozen, then kicked once
+			local teleport = travel.Teleport
+			local tries = 0
+			local failing = player(978005)
+			travel.Teleport = function()
+				tries += 1
+				error("ServerTest teleport down")
+			end
+			travel.Arrived(failing)
+			local deadline = os.clock() + 3
+			while #kicks == 0 and os.clock() < deadline do
+				task.wait(0.05)
+			end
+			travel.Teleport = teleport
+			flag(
+				"arrival_retries_then_kicks",
+				tries == travel.ARRIVAL_TRIES and #kicks == 1,
+				tries,
+				travel.ARRIVAL_TRIES
+			)
+			flag("arrival_kicks_the_arrival", kicks[1] == failing and failing:GetAttribute("Travelling") == true)
+			flag("arrival_failed_never_unfrozen", failing:GetAttribute("DataLoaded") == nil)
+			flag("arrival_guest_not_kicked", table.find(kicks, guest) == nil)
+			sent = { sent[1] } -- the counts below are of the first guest's trip
+
 			WorldConfig.GATE_OPEN = true
 			flag("arrival_open_gate_stays", travel.Arrived(player(978003)) == false and #sent == 1, #sent, 1)
 			WorldConfig.Id, WorldConfig.GATE_OPEN = 1, false
@@ -609,7 +696,7 @@ function Tests.make(helpers)
 		end)
 		travel.Save, travel.Teleport, travel.AllowStudio, travel.IsAdmin = saved[1], saved[2], saved[3], saved[4]
 		admin.AllowStudio, WorldConfig.Id, WorldConfig.GATE_OPEN = saved[5], saved[6], saved[7]
-		travel.Depart, travel.Retake = saved[8], saved[9]
+		travel.Depart, travel.Retake, travel.Kick, travel.ARRIVAL_RETRY = saved[8], saved[9], saved[10], saved[11]
 		local at = table.find(config.UserIds, ADMIN_ID)
 		if at then
 			table.remove(config.UserIds, at)
@@ -619,6 +706,140 @@ function Tests.make(helpers)
 			p:Destroy()
 		end
 		flag("arrival_no_error", ok, ok and 1 or tostring(err))
+		return r
+	end
+
+	-- `biome_runtime` (World 2 runtime review, BIOME_ENVIRONMENT_SPEC 4.2 and 8, WORLD2_SPEC "Blender first"), on a copy
+	-- of Server/BiomeAssets with its Row and Fetch seams: a slow load falls back to parts within TIMEOUT and serves
+	-- later props once it arrives; a failed key is loaded again by itself (no Clone needed); a template whose property
+	-- writes throw never errors out; an unreviewed row is never fetched; a def's CastShadow wins over the size rule.
+	-- BiomeDressing.Build yields every YIELD_EVERY props (control: a huge YIELD_EVERY builds in one go). Every draft
+	-- lamp (Lamp_<i>) in the live world stands inside a Placed_ prop and is tagged BiomeEffect (World 2 Play; World 1 has
+	-- no draft lamps, so there it only checks that none is loose).
+	function W.biome_runtime()
+		local r, flag = H.report("biome_runtime")
+		local Server = script.Parent.Parent
+		local cleanup = {}
+		local ok, err = pcall(function()
+			local module = Server.BiomeAssets:Clone()
+			module.Name, module.Parent = "ServerTestBiomeAssets", Server
+			table.insert(cleanup, module)
+			local A = require(module)
+			A.DEBUG = false
+			A.TIMEOUT, A.RETRY = 0.2, { 0.2, 1e9 }
+			A.Row = function(_, key, kind)
+				if kind == "Mesh" and key ~= "Unreviewed" then
+					return { Id = "rbxassetid://1", Key = key }
+				end
+				return nil
+			end
+			local fetches = {}
+			A.Fetch = function(row)
+				fetches[row.Key] = (fetches[row.Key] or 0) + 1
+				if row.Key == "Slow" then
+					task.wait(0.5)
+				elseif row.Key == "Flaky" and fetches.Flaky == 1 then
+					error("ServerTest flaky load")
+				elseif row.Key == "BadTemplate" then
+					return Instance.new("Folder") -- Anchored and the rest do not exist: the writes throw
+				end
+				local part = Instance.new("Part")
+				table.insert(cleanup, part)
+				return part
+			end
+			local small, big = Vector3.new(2, 2, 2), Vector3.new(40, 40, 40)
+			local t0 = os.clock()
+			flag(
+				"assets_timeout_falls_back",
+				A.Clone("T", "Slow", small) == nil and os.clock() - t0 < 0.5,
+				os.clock() - t0
+			)
+			task.wait(0.5)
+			local late = A.Clone("T", "Slow", small)
+			flag("assets_late_load_serves_later_props", late ~= nil and fetches.Slow == 1)
+
+			flag("assets_failure_falls_back", A.Clone("T", "Flaky", small) == nil)
+			task.wait(0.5)
+			flag("assets_retry_runs_by_itself", fetches.Flaky == 2, fetches.Flaky, 2)
+			flag("assets_retry_loads", A.Clone("T", "Flaky", small) ~= nil)
+
+			local okBad, bad = pcall(A.Clone, "T", "BadTemplate", small)
+			flag("assets_bad_template_no_error", okBad and bad == nil, tostring(bad))
+			flag(
+				"assets_unreviewed_never_fetched",
+				A.Clone("T", "Unreviewed", small) == nil and fetches.Unreviewed == nil
+			)
+
+			local plain, plainBig = A.Clone("T", "Fast", small), A.Clone("T", "Fast", big)
+			local off, on = A.Clone("T", "Fast", big, false), A.Clone("T", "Fast", small, true)
+			flag(
+				"assets_cast_shadow_flag",
+				plain.CastShadow == false
+					and plainBig.CastShadow == true
+					and off.CastShadow == false
+					and on.CastShadow == true
+			)
+			for _, part in { late, plain, plainBig, off, on } do
+				part:Destroy()
+			end
+
+			-- the build yields every YIELD_EVERY props
+			local BD = require(Shared.BiomeDressing)
+			local TB = require(Shared.TrackBuilder)
+			local spec = require(Shared.TrackRegistry).Chain()[1]
+			local old = BD.YIELD_EVERY
+			local function build(every)
+				BD.YIELD_EVERY = every
+				local done, model = false, nil
+				task.spawn(function()
+					model = TB.Build(spec, CFrame.new(0, -2000, 60000))
+					done = true
+				end)
+				local yielded = not done
+				local deadline = os.clock() + 60
+				while not done and os.clock() < deadline do
+					task.wait(0.1)
+				end
+				BD.YIELD_EVERY = old
+				if model then
+					table.insert(cleanup, model)
+				end
+				return yielded, done
+			end
+			local yieldedOnce, doneOnce = build(1e9)
+			flag("build_control_no_yield", doneOnce and not yieldedOnce)
+			local yielded, done = build(1)
+			flag("build_yields_between_props", done and yielded)
+
+			-- draft lamps in the live world
+			local lamps, loose, untagged = 0, 0, 0
+			for _, model in (Workspace:FindFirstChild("Track") or Instance.new("Folder")):GetChildren() do
+				local env = model:FindFirstChild("Environment")
+				for _, d in env and env:GetDescendants() or {} do
+					if d:IsA("BasePart") and string.match(d.Name, "^Lamp_%d+$") then
+						lamps += 1
+						if not (d.Parent:IsA("Model") and string.match(d.Parent.Name, "^Placed_")) then
+							loose += 1
+						end
+						local light = d:FindFirstChildOfClass("PointLight")
+						if not (light and CollectionService:HasTag(light, "BiomeEffect")) then
+							untagged += 1
+						end
+					end
+				end
+			end
+			r.metrics.draft_lamps = lamps
+			local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
+			if WorldConfig.Id == 2 then
+				flag("lamps_built", lamps > 0, lamps)
+			end
+			flag("lamps_inside_placed_props", loose == 0, loose, 0)
+			flag("lamps_tagged_reduced_effects", untagged == 0, untagged, 0)
+		end)
+		for _, inst in cleanup do
+			inst:Destroy()
+		end
+		flag("biome_runtime_no_error", ok, ok and 1 or tostring(err))
 		return r
 	end
 
