@@ -14,7 +14,6 @@ return {
 	-- docs/OWNER_QUESTIONS.md "World 2 test coverage gaps".
 	World1Only = {
 		environment = "names World 1's ten biomes; World 2's are checked offline only (tools/lune/biome_harness.luau, WORLD=2), no Studio scenario yet",
-		roll_anim = "expects World 1's roll pool and reel odds; World 2's pool is checked by world2_cast, its reel by nothing yet",
 	},
 	-- Every TrackTests file is the brief of one World 1 track (owner limits per track).
 	World1TrackTests = "briefs of World 1's ten tracks; World 2's tracks have no briefs yet (the runner scenario runs all ten, world_layout places them)",
@@ -36,7 +35,7 @@ return {
 		"bank",
 		"multiplayer",
 		"admin",
-		"roll_anim",
+		"roll_anim", -- both worlds: the reel and the 4.40 bar are held to the place's own cast (World 2: World2CastTests)
 		"upgrades",
 		"weather",
 		"rebirth",

@@ -208,6 +208,7 @@ local function near(a, b)
 end
 
 Tests.SPEC = SPEC -- Scenarios.gacha rolls against it
+Tests.CAST_BY_RARITY = CAST -- Scenarios.roll_anim: the rarity of each id above (rarity -> ids, rarest last)
 
 function Tests.world2_cast()
 	local r, flag = H.report("world2_cast")
