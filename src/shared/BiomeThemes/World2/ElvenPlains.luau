@@ -93,12 +93,26 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 			"in-house Blender parts model, low poly flat colours: fortified hill town: a long cream curtain wall on an oval, round towers with slate cones, a gatehouse and roofs inside",
 			"hero landmark, 1 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Town.glb"
 		),
-		W2_ElvenPlains_Mountain = draftMesh(
-			1728,
-			"rbxassetid://133497375541070", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+		W2_ElvenPlains_Mountain_p1 = draftMesh(
+			704,
+			nil, -- Id: tools/blender/world2/upload_props.py
+			nil, -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
-			"mid prop, 4 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain.glb"
+			"piece 1 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p1.glb"
+		),
+		W2_ElvenPlains_Mountain_p2 = draftMesh(
+			820,
+			nil, -- Id: tools/blender/world2/upload_props.py
+			nil, -- Reviewed: the rules audit
+			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
+			"piece 2 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p2.glb"
+		),
+		W2_ElvenPlains_Mountain_p3 = draftMesh(
+			772,
+			nil, -- Id: tools/blender/world2/upload_props.py
+			nil, -- Reviewed: the rules audit
+			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
+			"piece 3 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p3.glb"
 		),
 		W2_ElvenPlains_Mound = draftMesh(
 			844,

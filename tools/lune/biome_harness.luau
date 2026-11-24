@@ -298,8 +298,11 @@ function World.build(count)
 	return entries, models
 end
 
--- The spec 3.5 example (Track 7, section 7 values) for TUNNEL=1; the biome module owns the real one
-if process.env.TUNNEL then
+-- The spec 3.5 example (Track 7, section 7 values) for TUNNEL=1; the biome module owns the real one. World 1 only:
+-- WORLD=2 loads no Desert theme, so the example is skipped there (its own tunnels are still checked)
+if process.env.TUNNEL and not req(Shared.BiomeThemes).Desert then
+	print("INFO TUNNEL=1: no Desert theme in this world, the spec 3.5 example Tunnel is skipped")
+elseif process.env.TUNNEL then
 	req(Shared.BiomeThemes).Desert.Tunnel = {
 		Width = 120, -- fw8 (owner 2026-11-01): the target width, narrowed per side near other tracks
 		Height = 26,
@@ -350,9 +353,22 @@ end
 
 -- WORLD=2: the approved World 2 themes (docs/WORLD2_SPEC.md "Blender first", BIOME_ENVIRONMENT_SPEC 4.2-4.5, design doc
 -- 5). Prints "W2 FAIL <check>" per problem and "W2 CHECKS pass=<n> fail=<n>"; LEDGER=1 stops after these checks.
-local W2_APPROVED =
-	{ "DevilTokyo", "RuinedCityZ", "HauntedTunnel", "KaijuBase", "ElvenPlains", "AntIsland", "MonsterDen", "HellGate" }
-local W2_STANDIN = { DemonCastle = "Forest", GoldenCity = "Volcano" }
+local W2_APPROVED = {
+	"DevilTokyo",
+	"DemonCastle",
+	"RuinedCityZ",
+	"HauntedTunnel",
+	"KaijuBase",
+	"ElvenPlains",
+	"AntIsland",
+	"MonsterDen",
+	"GoldenCity",
+	"HellGate",
+}
+-- A prop cut into pieces for the 2048-stud limit (WORLD2_SPEC 2026-11-24) is <Prop>_p<i>: the designed prop's name
+local function designed(name)
+	return string.match(name, "^(.-)_p%d+$") or name
+end
 if process.env.WORLD == "2" then
 	-- realNameIn from the server tests' own source, so the hashed name list stays in one place
 	local cat = fs.readFile(ROOT .. "/src/server/ServerTest/CatalogTests.luau")
@@ -380,9 +396,6 @@ if process.env.WORLD == "2" then
 		end
 		return out
 	end
-	for key, standIn in W2_STANDIN do
-		check(Themes[key] == Themes[standIn], key .. " keeps its stand-in")
-	end
 	for _, key in W2_APPROVED do
 		local t = Themes[key]
 		check(t ~= nil and t.Placed ~= nil and #t.Placed > 0, key .. " has its own draft theme")
@@ -400,11 +413,13 @@ if process.env.WORLD == "2" then
 			hit = hit or realNameIn((string.gsub(string.lower(text), "[^%w]+", "_")))
 		end
 		check(hit == nil, key .. " no real names")
-		local used, meshes = {}, 0
+		local used, meshes, seenProp = {}, 0, {}
 		for name, def in t.Props or {} do
 			check(#def.Parts > 0, key .. "/" .. name .. " has a parts fallback")
 			if def.Mesh then
-				meshes += 1
+				-- the 12-mesh cap counts designed props; a prop's pieces are one (ledger Notes list them)
+				meshes += seenProp[designed(name)] and 0 or 1
+				seenProp[designed(name)] = true
 				used[def.Mesh] = true
 				local row = t.Assets[def.Mesh]
 				check(
@@ -471,8 +486,11 @@ do
 	end
 	if process.env.WORLD == "2" then
 		local a = Look.Atmosphere
-		check(a ~= nil and Look.Glow ~= nil and Look.Accent ~= nil and Look.Sakura ~= nil, "World 2 table")
-		a = a or { Lighting = {}, Atmosphere = {}, Sky = {}, Particles = { {} } }
+		check(
+			a ~= nil and Look.Glow ~= nil and Look.Accent ~= nil and Look.Rift ~= nil and Look.Sakura == nil,
+			"World 2 table"
+		)
+		a = a or { Lighting = {}, Atmosphere = {}, Sky = {} }
 		for _, key in { "ClockTime", "Ambient", "OutdoorAmbient", "Brightness" } do
 			check(p.Lighting[key] == a.Lighting[key], "Lighting." .. key .. " from the table")
 		end
@@ -480,9 +498,13 @@ do
 			p.Atmosphere.Density == a.Atmosphere.Density and p.Atmosphere.Color == a.Atmosphere.Color,
 			"fog from the table"
 		)
-		check(p.Sky.Skybox == nil and (p.Sky.StarCount or 0) > 0 and (p.Sky.MoonAngularSize or 0) > 0, "night sky")
-		check(p.Particles[1].Texture == "PlazaPetal" and p.Particles[1].Color == a.Particles[1].Color, "petals tinted")
-		check(p.Lighting.ClockTime < 5 or p.Lighting.ClockTime > 19, "night clock")
+		check(p.Sky.Skybox == nil and p.Sky.SunAngularSize == a.Sky.SunAngularSize, "dusk sky from the table")
+		check(p.Particles[1].Texture == "PlazaPetal" and p.Particles[1].Color == hex("FFFFFF"), "World 1 petals kept")
+		check(p.Lighting.ClockTime > 16 and p.Lighting.ClockTime < 19, "dusk clock")
+		check(#(Look.Islands or {}) == 5, "five islands")
+		for i, isle in Look.Islands or {} do -- outside the plaza floor (x +-94, z +-110)
+			check(math.abs(isle[1]) > 94 or math.abs(isle[2]) > 110, "island " .. i .. " outside the floor")
+		end
 	else
 		check(next(Look) == nil, "World 1 has no plaza overrides")
 		check(p.Lighting.ClockTime == 16.6 and p.Lighting.OutdoorAmbient == hex("B09A88"), "golden hour kept")
@@ -518,8 +540,17 @@ local function placedCount(m) -- WORLD=2: draft placements standing in a track's
 	return n
 end
 local built, plaza, finish = {}, {}, {}
+local builtHeroes = {} -- track -> designed prop name -> built (before any Prune), for the hero check's message
 for i, m in models do
 	built[i] = placedCount(m)
+	builtHeroes[i] = {}
+	local theme = process.env.WORLD == "2" and req(Shared.BiomeThemes)[entries[i].Biome]
+	for _, c in m.Environment:GetChildren() do
+		local k = theme and theme.Placed and tonumber(string.match(c.Name, "^Placed_(%d+)$"))
+		if k then
+			builtHeroes[i][designed(theme.Placed[k][1])] = true
+		end
+	end
 end
 if process.env.WORLD == "2" then -- first what the other tracks and the spawn area remove, then the own finish pieces
 	for i, m in models do
@@ -536,6 +567,95 @@ end
 BD.Prune(models, { spawnArea })
 if process.env.WORLD == "2" then -- draft placements kept by the budget and own-ground rule (built), then by Prune (kept)
 	local Themes = req(Shared.BiomeThemes)
+	-- WORLD2_SPEC 2026-11-24: draft props are road-tested at export against every track (export_props.py, real
+	-- triangles), so in the built result (a) every hero of each approved biome (its draft's Heroes, MODEL_SHOTS) has a
+	-- kept placement, and (b) no kept Placed_ prop intrudes on another track's corridor. (b) approximates the exporter's
+	-- triangle test: each part's box centre (a mesh is one box here) within 24 studs of another track's centre line and
+	-- from its road top to 14 over it. Prints "W2 ROAD FAIL <check>" and "W2 ROAD CHECKS pass=<n> fail=<n>".
+	do
+		local rpass, rfail = 0, 0
+		local function rcheck(ok, name)
+			if ok then
+				rpass += 1
+			else
+				rfail += 1
+				print("W2 ROAD FAIL " .. name)
+			end
+		end
+		local CELL = 64 -- segment grid (studs), grown by 24 so a centre looks in its own cell only
+		local grid = {}
+		for i, e in entries do
+			local wps = e.Layout.WorldWaypoints
+			for j = 1, #wps - 1 do
+				local a, b = wps[j], wps[j + 1]
+				for gx = math.floor((math.min(a.X, b.X) - 24) / CELL), math.floor((math.max(a.X, b.X) + 24) / CELL) do
+					for gz = math.floor((math.min(a.Z, b.Z) - 24) / CELL), math.floor((math.max(a.Z, b.Z) + 24) / CELL) do
+						local k = gx .. "," .. gz
+						grid[k] = grid[k] or {}
+						table.insert(grid[k], { i, a, b })
+					end
+				end
+			end
+		end
+		for i, e in entries do
+			if table.find(W2_APPROVED, e.Biome) then
+				local draftModule =
+					Shared:FindFirstChild("BiomeThemes"):FindFirstChild("World2"):FindFirstChild(e.Biome .. "Draft")
+				local heroes = draftModule and req(draftModule).Heroes
+				rcheck(heroes ~= nil, e.Biome .. " draft lists its Heroes")
+				local kept, bad = {}, {}
+				for _, prop in models[i].Environment:GetChildren() do
+					local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+					local name = k and Themes[e.Biome].Placed[k][1]
+					if name then
+						kept[designed(name)] = (kept[designed(name)] or 0) + 1
+						for _, part in parts(prop) do
+							local c = part.Position
+							for _, seg in grid[math.floor(c.X / CELL) .. "," .. math.floor(c.Z / CELL)] or {} do
+								local a, b = seg[2], seg[3]
+								if seg[1] ~= i then
+									local ab = R.Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+									local ap = R.Vector3.new(c.X - a.X, 0, c.Z - a.Z)
+									local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-9), 0, 1)
+									local top = a.Y + (b.Y - a.Y) * t
+									if (ap - ab * t).Magnitude < 24 and c.Y > top and c.Y < top + 14 then
+										bad[prop.Name .. " " .. name .. " on track " .. seg[1]] = true
+									end
+								end
+							end
+						end
+					end
+				end
+				for _, hero in heroes or {} do
+					local inDraft = false
+					for _, pe in Themes[e.Biome].Placed do
+						inDraft = inDraft or designed(pe[1]) == hero
+					end
+					rcheck(
+						kept[hero] ~= nil,
+						string.format(
+							"%s hero %s has a kept placement (%s)",
+							e.Biome,
+							hero,
+							not inDraft and "dropped at export"
+								or builtHeroes[i][hero] and "built, then removed by Prune"
+								or "in the draft, not built: budget or own-ground rule"
+						)
+					)
+				end
+				local list = {}
+				for what in bad do
+					table.insert(list, what)
+				end
+				table.sort(list)
+				rcheck(
+					#list == 0,
+					e.Biome .. " Placed props clear of other tracks' corridors: " .. table.concat(list, ", ")
+				)
+			end
+		end
+		print(string.format("W2 ROAD CHECKS pass=%d fail=%d", rpass, rfail))
+	end
 	for i, e in entries do
 		local total = Themes[e.Biome].Placed and #Themes[e.Biome].Placed or 0
 		print(
