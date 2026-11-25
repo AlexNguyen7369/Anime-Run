@@ -669,7 +669,7 @@ def street(k, r, side, names, front, start, end, gap, avoid, sight=(), flip=0.0,
 				continue
 			if near is not None and r.overlaps(near, pos[0], pos[2], yaw, w, dep):
 				continue
-			if name == "Mansion" and (near is not None or k.rng.random() < flip):
+			if name == "Mansion" and near is None and k.rng.random() < flip:  # a back row keeps its balconies to the road
 				yaw += math.pi  # Aki's apartment beat: the corridor face toward the road
 			k.place(name, pos, yaw)
 			last = name
@@ -719,8 +719,8 @@ def build(k):
 				head = p + right * (off - s * 5.5)  # the lamp head, inside the kit's box: the game keeps a lamp with its prop
 				kits.append((d, s, (head.x, 17.5, head.z)))
 		d += 48
-	# Hero landmarks: two HQs, each at the end of a street axis: past the first corner (0.06 run camera) and, where
-	# one is legal, on the 0.9 camera's.
+	# Hero landmark: one HQ at the end of the street axis past the first corner (0.06 run camera). A second on the 0.9
+	# camera's axis is tried below; no legal spot exists there, so none is placed.
 	near = r.neighbours()
 	avoid, sight, hq_at = [], [], []
 
