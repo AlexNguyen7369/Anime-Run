@@ -306,6 +306,7 @@
 285. 2026-11-25 — Alex Nguyen — Recorded the owner's approval of the locked Mythic colours and the merchants' names.
 286. 2026-11-25 — Alex Nguyen — Fixed the merchant-poses re-audit wording, pinned the approved locked colours in a test and added the script that measures what stands behind the locked Mythic.
 287. 2026-11-25 — Alex Nguyen — Dropped the locked Mythic's contrast check per the owner's answer to question 31 (colours kept, no limit); the plaza now has one waiting check.
+288. 2026-11-25 — Alex Nguyen — Drew in-house gradient skies for World 2 Tracks 10, 2, 9 and 7 from their drafts with previews for the owner, and coded them behind an off switch with zero ids (nothing uploaded).
 
 ## What's next
 **Audit the white-mesh and grass fix (with the narrowed slab collar), run `biome_runtime` in Studio and look at the grass by the plaza and a finish slab, then merge it into the World 2 branch.**
