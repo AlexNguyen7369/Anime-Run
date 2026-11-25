@@ -31,11 +31,11 @@ bp.PAL.update({
 	"cream": "#F3E6CB", "cream2": "#E2D0AC", "marble": "#D9CDBD", "marble2": "#BFB1A0", "burg": "#6E1B2E", "burg2": "#4A1222", "lacq": "#B3261F",
 	"goldd": "#B07F22", "pk0": "#F6D3DF", "pk1": "#FFC9DC", "pk2": "#FF94BC", "pk3": "#E85A97", "pk4": "#B93778", "jade": "#2F8F86", "jade2": "#1F6A68",
 	"obs": "#2B2940", "obs2": "#3B3858", "obs3": "#1D1B2E", "iron": "#5A5660", "iron2": "#77727E", "rockp": "#5A4E6E", "rockp2": "#73658A", "leaf": "#4F8A55",
-	"off": "#6C6674", "dust0": "#A8949A", "dust1": "#8F7482", "dust2": "#755466", "sil": "#17151E",
+	"off": "#6C6674", "rose": "#B06A7E", "rose2": "#8C4458", "dust0": "#A8949A", "dust1": "#8F7482", "dust2": "#755466", "sil": "#17151E",
 })
 bp.GLOW.update({
 	"g_gold": ("#FFC04A", 1.5), "g_pink": ("#FF6FB0", 1.5), "g_cyan": ("#35D6E6", 1.5), "g_white": ("#FFF3DC", 1.3), "g_vio": ("#A070FF", 1.5),
-	"g_paper": ("#FFD89A", 1.0),
+	"g_paper": ("#FFD89A", 1.0), "g_dim": ("#C98A46", 0.45), "g_cream": ("#FFE9C8", 0.7),
 })
 OFF = {}  # locked: the glow and bright materials an asleep altar swaps
 
@@ -171,14 +171,13 @@ class M(bp.M):
 		self.box((4 * s, 1.6 * s, 3.4 * s), (x, y, z), body)
 		self.box((3.2 * s, 1.8 * s, 2.6 * s), (x, y, z), "goldd")
 		self.tube([(x + 1.3 * s * cos(k / 8 * math.pi), y, z + 1.7 * s + 1.6 * s * sin(k / 8 * math.pi)) for k in range(9)], 0.36 * s, "iron2", 6)
-		for k in range(5):  # a plain five-petal keyhole rosette, no mark
-			a = k / 5 * tau + math.pi / 2
-			self.orb((x + 0.6 * s * cos(a), y - 0.95 * s, z + 0.6 * s * sin(a)), 0.4 * s, dark, 6, 4)
+		self.orb((x, y - 0.8 * s, z + 0.35 * s), 0.62 * s, dark, 10, 6)  # a plain keyhole: no flower, no mark
+		self.box((0.6 * s, 0.6 * s, 1.5 * s), (x, y - 0.8 * s, z - 0.5 * s), dark)
 
 
 # what each material turns into while the altar is locked
 OFF_MAP = {
-	"g_gold": "goldd", "g_pink": "off", "g_cyan": "off", "g_white": "off", "g_vio": "off", "g_paper": "shutter",
+	"g_gold": "goldd", "g_pink": "off", "g_cyan": "off", "g_white": "off", "g_vio": "off", "g_paper": "shutter", "g_dim": "shutter", "g_cream": "marble2", "rose": "dust1", "rose2": "dust2",
 	"pk0": "dust0", "pk1": "dust1", "pk2": "dust2", "pk3": "dust2", "pk4": "dust2", "gold": "goldd", "lamp": "shutter",
 	"cream": "marble2", "lacq": "burg2", "burg": "burg2", "jade": "jade2",
 }
@@ -203,146 +202,125 @@ def lantern(m, x, y, z, s=1.0):
 
 
 # --- A: Twin-roof shrine stage -----------------------------------------------------------------------------------------
+def deck(hw, front, back, fc, bc):
+	return [(-hw + fc, front), (hw - fc, front), (hw, front + fc), (hw, back - bc), (hw - bc, back), (-hw + bc, back), (-hw, back - bc), (-hw, front + fc)]
+
+
 def concept_a(locked):
 	body, fx = M("A_Body", locked), M("A_Float", locked)
 	m = body
-	cy = 1.0
-	tiers = ((64, 36, 8, 1.4, "marble"), (55, 30, 7, 2.8, "cream"), (46, 24, 6, 4.2, "marble"))
+	fronts = (-16.0, -13.0, -10.2)
 	z = 0
-	for w, d, c, top, col in tiers:
-		m.prism(slab(w, d, c, cy), z, top - 0.35, "marble2", "marble2")
-		m.prism(slab(w + 0.7, d + 0.7, c, cy), top - 0.35, top, col, "gold")
+	for hw, f, back, top, col in ((33.4, fronts[0], 19.2, 1.4, "marble"), (32.2, fronts[1], 18.4, 2.8, "cream"), (31, fronts[2], 17.6, 4.2, "marble")):
+		m.prism(deck(hw - 0.35, f + 0.35, back - 0.35, 9, 6), z, top - 0.35, "marble2", "marble2")
+		m.prism(deck(hw, f, back, 9, 6), top - 0.35, top, col, "gold")
 		z = top
-	fronts = [cy - d / 2 - 0.35 for _, d, *_ in tiers]
-	for (f, z0, z1) in zip(fronts, (0, 1.4, 2.8), (1.4, 2.8, 4.2)):
-		m.stairs(18, f - 1.9, f, z0, z1, 2, "cream2", "lacq")
-	D = 4.2
-	# inlaid floor and the dais
-	for r, col, h in ((10.6, "gold", 0.08), (10.0, "burg", 0.14), (9.0, "gold", 0.2), (8.5, "cream", 0.26)):
-		m.cyl(r, h, (0, 1, D), col, n=24)
-	m.local = Matrix.Translation((0, -0.5, 0))
-	m.cyl(7.2, 1.2, (0, 0, D), "lacq", n=12, r2=6.8)
-	m.cyl(7.0, 0.4, (0, 0, D + 1.2), "g_pink", n=12)
-	m.cyl(6.2, 1.1, (0, 0, D + 1.6), "gold", n=12, r2=5.6)
-	m.cyl(5.2, 0.3, (0, 0, D + 2.7), "cream", n=12)
-	for k in range(12):  # carved petals round the dais
-		m.petal(k / 12 * tau + math.pi / 2, 5.6, 2.8, 2.4, 40, 18, D + 1.5, ("pk1", "pk2"), seg=3, thick=0.2)
+	for f, z0, z1 in zip(fronts, (0, 1.4, 2.8), (1.4, 2.8, 4.2)):
+		m.stairs(18, f - 1.8, f, z0, z1, 2, "cream2", "lacq")
+	D, sy = 4.2, -0.8
+	# the dais: three drums, so the Mythic stands 4.3 over the deck
+	m.local = Matrix.Translation((0, sy, 0))
+	for r, col, h in ((9.2, "gold", 0.1), (8.8, "burg", 0.18)):
+		m.cyl(r, h, (0, 0, D), col, n=24)
+	for r, r2, z0, h, col in ((7.8, 7.2, 0, 1.4, "lacq"), (7.4, 7.4, 1.4, 0.35, "g_pink"), (6.6, 5.6, 1.75, 1.6, "gold"), (6.0, 6.8, 3.35, 0.7, "lacq"), (6.8, 6.8, 4.05, 0.3, "g_cream")):
+		m.cyl(r, h, (0, 0, D + z0), col, n=16, r2=r2)
+	for k in range(12):
+		m.petal(k / 12 * tau + math.pi / 2, 5.8, 2.9, 2.6, 40, 18, D + 1.6, ("rose", "rose2"), seg=3, thick=0.2)
 	m.local = Matrix.Identity(4)
-	spot = (0, -0.5, D + 11.6)
-	# the great folding fan behind everything: pleated blades, gold ribs, a scalloped lit hem
-	fy, fz, n = 12.6, 18.0, 13
+	size = 25.0
+	spot = (0, sy, D + 4.35 + size / 2)
+	# folding fan, dimmed: plain pleats, gold ribs, no flowers
+	fy, fz, n = 16.4, 19.0, 11
 	for k in range(n):
-		a0, a1 = rad(23 + 134 * k / n), rad(23 + 134 * (k + 1) / n)
+		a0, a1 = rad(30 + 120 * k / n), rad(30 + 120 * (k + 1) / n)
 		am = (a0 + a1) / 2
-		R = 36.0 if k % 2 == 0 else 34.4
+		R = 33.0
 		pt = lambda rr, a, dy: (rr * cos(a), fy + dy, fz + rr * sin(a))
-		band = (("burg2", 12, 18), ("burg", 18, 25), ("pk3", 25, 29.5), ("pk1", 29.5, R))
-		for col, r0, r1 in band:
+		for col, r0, r1 in (("burg2", 14, 22), ("burg", 22, 27), ("rose2", 27, 30.5), ("rose", 30.5, R)):
 			for aa, ab, da, db in ((a0, am, 0.9, 0), (am, a1, 0, 0.9)):
 				f = [pt(r0, aa, da), pt(r0, ab, db), pt(r1, ab, db), pt(r1, aa, da)]
 				m.face(f[::-1], col)
 				m.face([(x, yy + 0.5, zz) for x, yy, zz in f], "burg2")
-		f = [pt(R, a0, 0.9), pt(R, a1, 0.9), pt(R + 1.8, am, 0.2)]
-		m.face(f[::-1], "g_gold")
-		m.face([(x, yy + 0.5, zz) for x, yy, zz in f], "gold")
-		m.tube([pt(11, a0, 0.2), pt(R + 1.2, a0, 0.2)], 0.34, "gold", 4)
-		if 1 < k < n - 1 and k % 2:  # five-petal blossoms on every other blade (a plain flower, no crest)
-			for j in range(5):
-				b = j / 5 * tau + math.pi / 2
-				c = Vector(pt(22, am, -0.35)) + Vector((1.15 * cos(b), 0, 1.15 * sin(b)))
-				m.face([(c.x + 0.85 * cos(q / 6 * tau), c.y, c.z + 0.85 * sin(q / 6 * tau)) for q in range(6)], "pk1")
-	m.tube([pt(11, rad(157), 0.2), pt(36.2, rad(157), 0.2)], 0.34, "gold", 4)
-	# sun disc behind the model
-	y, zc = 10.6, 19.5
-	for k in range(24):
-		a = k / 24 * tau
-		r0, r1, w = 13.4, (18.6 if k % 2 == 0 else 16.2), 0.9
-		d, s = Vector((cos(a), 0, sin(a))), Vector((-sin(a), 0, cos(a)))
-		o = Vector((0, y, zc))
-		q = [o + d * r0 - s * w, o + d * r0 + s * w, o + d * r1]
-		th = Vector((0, 0.7, 0))
-		mt = "gold" if k % 2 == 0 else "g_gold"
-		m.face([q[1], q[0], q[2]], mt)
-		m.face([q[0] + th, q[1] + th, q[2] + th], mt)
-		m.face([q[0], q[0] + th, q[2] + th, q[2]], "goldd")
-		m.face([q[1] + th, q[1], q[2], q[2] + th], "goldd")
-	m.ring3((0, y, zc), 13.6, 1.0, "gold", n=32, sides=6)
-	m.ring3((0, y - 0.4, zc), 12.2, 0.4, "g_pink", n=32, sides=4)
-	for r, col, dy in ((13.2, "pk2", 0.3), (11.2, "pk1", 0.1), (8.6, "pk0", -0.05)):
-		m.face([(r * cos(k / 24 * tau), y + dy, zc + r * sin(k / 24 * tau)) for k in range(24)], col)
-	m.face([(13.2 * cos(-k / 24 * tau), y + 0.7, zc + 13.2 * sin(-k / 24 * tau)) for k in range(24)], "burg2")
-	m.box((5, 1.6, 8), (0, y + 0.8, D + 4 - 0.2), "lacq")
+		f = [pt(R, a0, 0.9), pt(R, a1, 0.9), pt(R + 1.5, am, 0.2)]
+		m.face(f[::-1], "gold")
+		m.face([(x, yy + 0.5, zz) for x, yy, zz in f], "goldd")
+	for k in (0, n):
+		a0 = rad(30 + 120 * k / n)
+		m.tube([pt(12, a0, 0.2), pt(R + 0.6, a0, 0.2)], 0.5, "goldd", 4)
+	# the disc behind the model: dark field, one lit ring, standing in a solid plinth
+	y, zc = 14.6, D + 4.35 + size / 2 - 0.5
+	R = 16.0
+	m.ring3((0, y, zc), R, 1.1, "gold", n=36, sides=6)
+	m.ring3((0, y - 0.5, zc), R - 1.5, 0.42, "g_pink", n=36, sides=4)
+	for r, col, dy in ((R - 0.4, "burg", 0.3), (R - 3.4, "burg2", 0.1)):
+		m.face([(r * cos(k / 32 * tau), y + dy, zc + r * sin(k / 32 * tau)) for k in range(32)], col)
+	m.face([((R - 0.4) * cos(-k / 32 * tau), y + 0.8, zc + (R - 0.4) * sin(-k / 32 * tau)) for k in range(32)], "burg2")
+	m.box((17, 4.4, 2.6), (0, y + 0.6, D + 1.2), "lacq")
+	m.box((17.8, 5.0, 0.5), (0, y + 0.6, D + 2.7), "gold")
+	# crown: a mast off the fan's apex carries a cradle and the crystal, all joined
+	top = fz + 33.0
+	m.tube([(0, fy - 0.2, zc + R), (0, fy - 0.2, top - 2), (0, fy + 0.4, top + 3.2)], 1.1, "gold", 8, r1=0.8)
+	m.cyl(1.6, 1.4, (0, fy + 0.4, top + 2.4), "gold", n=8, r2=3.4)
+	for k in range(4):  # claws of the cradle: from the cup up round the crystal's foot
+		a = k / 4 * tau + math.pi / 4
+		m.tube([(r * cos(a), fy + 0.4 + r * sin(a), top + h) for r, h in ((2.2, 3.2), (5.8, 5.8), (6.8, 10.0), (5.4, 14.4))], 0.8, "gold", 5, r1=0.15)
+	m.gem((0, fy + 0.4, top + 13.0), 5.0, 19.0, "g_pink", n=8)
+	# the two pavilions: smaller, set back and turned in
 	for s in (-1, 1):
-		m.box((2.2, 2.2, 10), (s * 8, y + 1, D + 5), "lacq")
-		m.box((2.8, 2.8, 0.8), (s * 8, y + 1, D + 0.4), "gold")
-	# the two towers
-	for s in (-1, 1):
-		x, ty = s * 23.5, 4.0
-		m.box((15, 13, 1.2), (x, ty, D + 0.6), "marble2")
-		m.box((13.6, 11.6, 0.5), (x, ty, D + 1.45), "gold")
+		m.local = Matrix.Translation((s * 24.4, 7.0, 0)) @ Matrix.Rotation(rad(-24 * s), 4, "Z") @ Matrix.Translation((0, 0, D)) @ Matrix.Scale(0.72, 4)
+		m.box((14.6, 12.6, 1.2), (0, 0, 0.6), "marble2")
+		m.box((13.4, 11.4, 0.5), (0, 0, 1.45), "gold")
 		for px in (-5.4, 5.4):
 			for py in (-4.4, 4.4):
-				m.cyl(1.0, 13, (x + px, ty + py, D + 1.7), "lacq", n=8, r2=0.85)
-				m.cyl(1.35, 1.1, (x + px, ty + py, D + 1.7), "black", n=8)
-				m.cyl(0.9, 1.2, (x + px, ty + py, D + 13.5), "gold", n=8, r2=1.5)
-		m.box((9.6, 7.6, 12.6), (x, ty, D + 8), "wood")
-		for gx in (-2.9, 0, 2.9):  # shoji front and sides
-			m.box((2.5, 0.3, 8.6), (x + gx, ty - 3.9, D + 8), "g_paper")
-			m.box((0.22, 0.4, 8.6), (x + gx, ty - 4.0, D + 8), "dark")
+				m.cyl(1.0, 13, (px, py, 1.7), "lacq", n=8, r2=0.85)
+				m.cyl(1.35, 1.1, (px, py, 1.7), "black", n=8)
+				m.cyl(0.9, 1.2, (px, py, 13.5), "gold", n=8, r2=1.5)
+		m.box((9.6, 7.6, 12.6), (0, 0, 8), "wood")
+		for gx in (-2.9, 0, 2.9):
+			m.box((2.5, 0.3, 8.6), (gx, -3.9, 8), "g_dim")
+			m.box((0.22, 0.4, 8.6), (gx, -4.0, 8), "dark")
 			for gz in (5.2, 8, 10.8):
-				m.box((2.5, 0.4, 0.22), (x + gx, ty - 4.0, D + gz), "dark")
+				m.box((2.5, 0.4, 0.22), (gx, -4.0, gz), "dark")
 		for sx in (-1, 1):
-			m.box((0.3, 5.6, 8.6), (x + sx * 4.9, ty, D + 8), "g_paper")
+			m.box((0.3, 5.6, 8.6), (sx * 4.9, 0, 8), "g_dim")
 			for gy in (-1.4, 1.4):
-				m.box((0.4, 0.22, 8.6), (x + sx * 5.0, ty + gy, D + 8), "dark")
-		m.box((13, 11, 1.0), (x, ty, D + 15.1), "lacq")
-		m.roof(x, ty, D + 15.8, 21, 18, 5.2, "tileb", ridge=0.5, lift=3.0, trim="gold", hip_rings=4)
-		m.box((8.2, 6.6, 6.4), (x, ty, D + 23), "wood")
+				m.box((0.4, 0.22, 8.6), (sx * 5.0, gy, 8), "dark")
+		m.box((13, 11, 1.0), (0, 0, 15.1), "lacq")
+		m.roof(0, 0, 15.8, 20, 17, 5.2, "tileb", ridge=0.5, lift=3.0, trim="gold", hip_rings=4)
+		m.box((8.2, 6.6, 6.4), (0, 0, 23), "wood")
 		for gx in (-2, 2):
-			m.box((2.8, 0.3, 4), (x + gx, ty - 3.4, D + 23.4), "g_paper")
-			m.box((0.2, 0.4, 4), (x + gx, ty - 3.5, D + 23.4), "dark")
-		m.box((10, 8.4, 0.7), (x, ty, D + 26.3), "lacq")
-		m.roof(x, ty, D + 26.6, 16, 14, 7.4, "tileb", ridge=0.4, lift=2.8, trim="gold", hip_rings=4)
-		m.cyl(0.6, 3.0, (x, ty, D + 34.2), "gold", n=6, r2=0.4)
-		m.gem((x, ty, D + 38.6), 1.3, 3.6, "g_pink")
-		# horn: the split ridge that frames the beam
-		horn = [(s * 15.5, 5, D + 17), (s * 12.6, 5, D + 24), (s * 10.8, 5, D + 31), (s * 11.0, 5, D + 38), (s * 8.6, 5, D + 46), (s * 4.6, 5, D + 52)]
-		m.tube(horn, 2.0, "lacq", 8, r1=0.35)
-		m.tube([(p[0] * 1.0, p[1] - 1.3 + 0.2 * i, p[2]) for i, p in enumerate(horn[1:])], 0.4, "g_gold", 4, r1=0.15)
-		for i in (1, 2, 3):
-			m.tube([Vector(horn[i]) - (Vector(horn[i + 1]) - Vector(horn[i])) * 0.09, Vector(horn[i]) + (Vector(horn[i + 1]) - Vector(horn[i])) * 0.09], 2.0 - 0.25 * i, "gold", 8)
-		# hanging cloth
-		for bx in (-5.4, 5.4):
-			xx, yy = x + bx, ty - 5.6
-			m.box((2.6, 0.24, 9), (xx, yy, D + 9.2), "burg")
-			m.box((2.9, 0.3, 0.5), (xx, yy, D + 13.9), "gold")
-			m.box((2.6, 0.3, 0.4), (xx, yy, D + 5.6), "gold")
-			m.face([(xx - 1.3, yy - 0.12, D + 4.7), (xx + 1.3, yy - 0.12, D + 4.7), (xx, yy - 0.12, D + 3.2)][::1], "burg")
-			m.face([(xx + 1.3, yy + 0.12, D + 4.7), (xx - 1.3, yy + 0.12, D + 4.7), (xx, yy + 0.12, D + 3.2)], "burg")
-		# stair lanterns and edge lanterns
-		for lx, ly, lz in ((11.2, fronts[0] + 1.6, 1.4), (11.2, fronts[1] + 1.6, 2.8), (28.5, -8.6, 1.4), (20, fronts[1] + 1.5, 2.8)):
+			m.box((2.8, 0.3, 4), (gx, -3.4, 23.4), "g_dim")
+			m.box((0.2, 0.4, 4), (gx, -3.5, 23.4), "dark")
+		m.box((10, 8.4, 0.7), (0, 0, 26.3), "lacq")
+		m.roof(0, 0, 26.6, 15, 13, 7.4, "tileb", ridge=0.4, lift=2.8, trim="gold", hip_rings=4)
+		m.cyl(0.6, 3.0, (0, 0, 34.2), "gold", n=6, r2=0.4)
+		m.gem((0, 0, 38.4), 1.3, 3.4, "gold")
+		for sx in (-1, 1):  # eave lanterns in place of the rope of lamps
+			m.box((0.16, 0.16, 1.6), (sx * 7.4, -6.2, 14.6), "dark")
+			m.cyl(0.95, 1.9, (sx * 7.4, -6.2, 11.9), "g_dim", n=8)
+			m.cyl(1.1, 0.35, (sx * 7.4, -6.2, 13.7), "gold", n=8)
+			m.cyl(1.1, 0.35, (sx * 7.4, -6.2, 11.6), "gold", n=8)
+		m.local = Matrix.Identity(4)
+		for lx, ly, lz in ((10.8, fronts[0] + 1.4, 1.4), (10.8, fronts[1] + 1.3, 2.8), (26.5, -8.6, 1.4)):
 			lantern(m, s * lx, ly, lz, 0.85)
-	# garland of lamps across the front, high between the towers
-	rope = [(x, -2.5, D + 28.5 - 4.0 * (1 - (x / 16) ** 2)) for x in [-16 + 32 * k / 16 for k in range(17)]]
-	if not locked:
-		m.tube(rope, 0.18, "rope", 4)
-		for k in range(2, 15, 2):
-			p = rope[k]
-			m.cyl(0.75, 1.5, (p[0], p[1], p[2] - 2.0), "g_paper", n=8)
-			m.cyl(0.8, 0.25, (p[0], p[1], p[2] - 0.5), "gold", n=8)
-			m.cyl(0.8, 0.25, (p[0], p[1], p[2] - 2.2), "gold", n=8)
-	fx.gem((0, 5, D + 57), 2.8, 9.0, "g_pink", n=8)
-	fx.ring3((0, 5, D + 57), 4.8, 0.35, "gold", Matrix.Rotation(rad(74), 3, "X"), n=20, sides=4)
+		# four bollards on the deck: the locked chains hang from these
+		for bx, by in ((12.5, -6.6), (15.0, 5.0)):
+			m.cyl(0.95, 4.4, (s * bx, by, D), "lacq", n=8, r2=0.75)
+			m.cyl(1.15, 0.7, (s * bx, by, D + 4.4), "gold", n=8, r2=0.7)
 	rng = random.Random(3)
 	if not locked:
-		for k in range(8):
-			a = k / 8 * tau + 0.3
-			fx.gem((13.5 * cos(a), 4 + 3.0 * sin(a), D + 12 + 18 * rng.random()), 0.5, 1.6, rng.choice(("g_pink", "g_gold")))
+		for k in range(6):
+			a = k / 6 * tau + 0.3
+			fx.gem((15.0 * cos(a), 4 + 4.0 * sin(a), D + 8 + 20 * rng.random()), 0.5, 1.6, "g_pink")
 	if locked:
-		for a, b in (((-16.5, -3.5, D + 20), (16.5, -3.5, D + 3)), ((16.5, -3.5, D + 20), (-16.5, -3.5, D + 3))):
-			m.chain(a, b, 1.6, "iron2", 1.7, 0.3)
-		m.padlock((0, -4.4, D + 10.2), 1.0)
-	return [body, fx], spot, 17.0, dict(beam=((0, 7.5, D + 2), 92, 4.4, 2.6, "g_pink"), top_fx=D + 52)
+		lock = (0, sy - 8.9, D + 2.4)
+		for s in (-1, 1):
+			m.chain((s * 12.5, -6.6, D + 4.2), (s * 1.0, lock[1], D + 3.8), 1.2, "iron2", 1.7, 0.3)
+			m.chain((s * 12.5, -6.6, D + 4.2), (s * 15.0, 5.0, D + 4.2), 1.1, "iron2", 1.7, 0.3)
+			m.chain((s * 15.0, 5.0, D + 4.2), (s * (R + 0.3), y - 0.6, zc - 1), 1.0, "iron2", 1.7, 0.3)
+			m.orb((s * (R + 0.2), y - 0.6, zc - 1), 1.0, "gold", 8, 4)  # the boss the chain ends in
+		m.padlock(lock, 0.85)
+	return [body, fx], spot, size, dict(beam=((0, fy + 0.4, top + 16), 140, 4.6, 3.2, "g_pink"), key=True, label=(0, -17.2, 4.0))
 
 
 # --- B: Great lotus ------------------------------------------------------------------------------------------------------
@@ -734,6 +712,15 @@ def add_concept(key, locked):
 		lt.data.energy, lt.data.color, lt.data.shadow_soft_size = 3200, (1.0, 0.86, 0.84), 2.0
 		lt.matrix_world = MAT @ Matrix.Translation((spot[0], spot[1] - 11, spot[2] + 5))
 		col.objects.link(lt)
+		if info.get("key"):  # the second light of the budget: both aimed at the Mythic, so it is the brightest thing here
+			for lx, e in ((-9, 32000), (10, 26000)):
+				k = bpy.data.objects.new("FX_Key", bpy.data.lights.new("FX_Key", "SPOT"))
+				k.data.energy, k.data.color, k.data.spot_size, k.data.spot_blend, k.data.shadow_soft_size = e, (1.0, 0.93, 0.9), rad(54), 0.5, 1.0
+				k.data.use_shadow = False
+				w = MAT @ Vector((spot[0] + lx, spot[1] - 24, spot[2] + 8))
+				k.matrix_world = Matrix.Translation(w) @ ((MAT @ Vector(spot)) - w).to_track_quat("-Z", "Y").to_matrix().to_4x4()
+				col.objects.link(k)
+			lt.data.energy = 0
 		rnd = random.Random(5)
 		pm = M("FX_Motes")  # 60 of the proposed about 90 particles alive
 		for _ in range(60):
@@ -744,7 +731,7 @@ def add_concept(key, locked):
 		pm.build(col)
 	else:
 		# stand-in for the game's existing "Rebirth 2" BillboardGui (Client/SidekickAltarView): not part of any mesh
-		text(col, "Rebirth 2", (spot[0], spot[1] - 9.5, spot[2] - half - 1.4), 2.4, "#FFFFFF", "UI_RebirthLabel")
+		text(col, "Rebirth 2\n(game label)", info.get("label", (spot[0], spot[1] - 9.5, spot[2] - half - 1.4)), 1.7 if "label" in info else 2.4, "#FFFFFF", "UI_RebirthLabel")
 	return col, obs, spot, info
 
 
@@ -759,12 +746,14 @@ def view(cam, name, key):
 		for o in scene.objects:
 			if o.name.startswith(("SkyLoop", "RunnerTrails", "Runner_")):
 				o.hide_render = True
-		eye, look, fov = rbx((0, -80, 20)), rbx((0, 0, 26.5)), 50
+		eye, look, fov = rbx((0, -80, 20)), rbx((0, 0, 31 if key == "A" else 26.5)), 56 if key == "A" else 50
 	elif name == "threeq":
-		eye, look, fov = rbx((56, -36, 25)), rbx((0, 2, 24)), 62  # outside the loop
+		eye, look, fov = rbx((56, -36, 25)), rbx((0, 2, 32 if key == "A" else 24)), 74 if key == "A" else 62  # outside the loop
+	elif name == "close" and key == "A":
+		eye, look, fov = rbx((13, -27.5, 12)), rbx((0, 0, 14)), 80
 	elif name == "close":
 		eye, look, fov = rbx((7.5, -19, 9.5)), rbx((0, 2, 15.5)), 70
-	elif name == "spawn":  # a 70 degree Roblox camera 12 behind and 4 above a player on the walk spawn, turned to the altar
+	elif name in ("spawn", "option_statue8"):  # a 70 degree Roblox camera 12 behind and 4 above a player on the walk spawn, turned to the altar
 		f = Vector((X, Z)).normalized()
 		eye, look, fov = (-f.x * 12, bp.SPAWN_TOP + 8.5, -f.y * 12), (X, 15, Z), 70
 	elif name == "spawnside":  # the same camera with the player 8 studs to the Team altar's side of the walk spawn
@@ -820,6 +809,24 @@ def top_marks(scene):
 # The sky-loop post at 45 degrees: centre (43.84, 43.84), base radius 1.7
 POST = (62 * cos(rad(45)), 62 * sin(rad(45)))
 LIMIT_ROUND = math.hypot(X - POST[0], Z - POST[1]) - 1.7
+
+
+def statue_option(cam):
+	"""OWNER OPTION render only: the Saitamo pedestal 8 studs along its own step, toward Best Roll. Undone after the shot."""
+	turn = Matrix.Rotation(2 * math.asin(4 / math.hypot(*bp.PEDESTAL[:2])), 4, "Z")
+	out = []
+	for o in bpy.context.scene.objects:
+		if o.name.startswith(("LegendPedestal", "Exclusive_")):
+			out.append((o, o.matrix_world.copy()))
+			o.matrix_world = turn @ o.matrix_world
+	cu = bpy.data.curves.new("OptText", "FONT")
+	cu.body, cu.size, cu.align_x = "OWNER OPTION: statue moved 8 studs aside (not in the normal set)", 0.034, "CENTER"
+	cu.materials.append(plain("T_#101018", "#101018", True))
+	t = bpy.data.objects.new("OptText", cu)
+	t.matrix_world = Matrix.Translation(cam.location) @ cam.rotation_euler.to_matrix().to_4x4() @ Matrix.Translation((0, 0.62, -1))
+	bpy.context.scene.collection.objects.link(t)
+	out.append((t, None))
+	return out
 
 
 # --- Clearances ----------------------------------------------------------------------------------------------------------
@@ -883,7 +890,7 @@ def main():
 		return
 	keys = [a for a in argv if a in CONCEPTS] or list(CONCEPTS)
 	states = [a for a in argv if a in ("unlocked", "locked")] or ["unlocked", "locked"]
-	views = [a for a in argv if a in ("front", "threeq", "close", "spawn", "spawnside", "top")] or ["front", "threeq", "close", "spawn", "spawnside", "top"]
+	views = [a for a in argv if a in ("front", "threeq", "close", "spawn", "spawnside", "top", "option_statue8")] or ["front", "threeq", "close", "spawn", "spawnside", "top"]
 	scene, cam = context_scene()
 	if "report" in argv:
 		rows = []
@@ -916,9 +923,15 @@ def main():
 			col, *_ = add_concept(k, st == "locked")
 			for v in views:
 				view(cam, v, k)
+				extra = statue_option(cam) if v == "option_statue8" else []
 				scene.render.filepath = os.path.join(OUT, f"{k}_{NAMES[k]}_{st}_{v}.jpg")
 				bpy.ops.render.render(write_still=True)
 				print("SHOT", scene.render.filepath, flush=True)
+				for o, mw in extra:
+					if mw is None:
+						bpy.data.objects.remove(o)
+					else:
+						o.matrix_world = mw
 			for o in list(col.objects):
 				bpy.data.objects.remove(o)
 			bpy.data.collections.remove(col)

@@ -32,3 +32,10 @@ form is 13,788 triangles (over 12,000, mostly chain) and needs a second petal me
 Rounds: 1 first build; 2 beam moved off the model, bigger model, folding fan (A), taller fan (B), bigger rings (C);
 3 fan pulled in from the floor edge (0.95 to 3.0), front petals opened, rings off the deck, locked colours, label;
 4 front ring taken off the model (C), second spawn view; then lighter chains and a darker petal root.
+
+## A after the blind review (rounds 5-6; SELF SCORED by the maker, every final A image opened)
+
+1 Extravagance 8; 2 Spawn read 7 (crown, beam and the Mythic's head clear the statue and the loop, but the statue still
+covers its lower half and the loop post a strip of it: below the bar of 8); 3 Focal point 9; 4 Close-up craft 8;
+5 Locked 9; 6 Fit 8; 7 Clearance 9; 8 Phone cost 9; 9 Distinct 9. The owner option (statue aside) would read 8.
+The scores above for A, and its sizes there, describe round 4. B and C are unchanged but for the padlock's plain keyhole.
