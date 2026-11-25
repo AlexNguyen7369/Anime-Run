@@ -117,13 +117,14 @@ local function draw()
 end
 
 local function open()
-	if PanelSwitch.IsOpen(NAME) or player:GetAttribute("BossEvent") == true then
-		return -- already talking, or in the arena
+	if
+		PanelSwitch.IsOpen(NAME)
+		or player:GetAttribute("BossEvent") == true
+		or not Config.Talks(player:GetAttribute("RebirthLevel"))
+	then
+		return -- already talking, in the arena, or below rebirth 1
 	end
-	pages = Config.Pages(
-		ReplicatedStorage:GetAttribute(Gate.OPEN_ATTRIBUTE) == true,
-		player:GetAttribute("RebirthLevel") or 0
-	)
+	pages = Config.Pages(ReplicatedStorage:GetAttribute(Gate.OPEN_ATTRIBUTE) == true)
 	page = 1
 	draw()
 	PanelSwitch.Toggle(NAME)
@@ -145,7 +146,7 @@ end
 
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible and #pages == 0 then -- opened by name (the UI tests), not by the prompt
-		pages = Config.Pages(false, 0)
+		pages = Config.Pages(false)
 		draw()
 	end
 	if not panel.Visible then
@@ -165,6 +166,33 @@ end)
 player:GetAttributeChangedSignal("BossEvent"):Connect(function()
 	if player:GetAttribute("BossEvent") == true then
 		close()
+	end
+end)
+-- His prompt is built off and shows only to a player he talks to. Found again whenever the hub streams back in.
+local function refreshPrompt(d)
+	if d:IsA("ProximityPrompt") and d.Name == Gate.GUIDE_PROMPT then
+		d.Enabled = Config.Talks(player:GetAttribute("RebirthLevel"))
+	end
+end
+local function watch(model)
+	if model.Name == NAME then
+		model.DescendantAdded:Connect(refreshPrompt)
+		for _, d in model:GetDescendants() do
+			refreshPrompt(d)
+		end
+	end
+end
+workspace.ChildAdded:Connect(watch)
+for _, child in workspace:GetChildren() do
+	watch(child)
+end
+player:GetAttributeChangedSignal("RebirthLevel"):Connect(function()
+	for _, child in workspace:GetChildren() do
+		if child.Name == NAME then
+			for _, d in child:GetDescendants() do
+				refreshPrompt(d)
+			end
+		end
 	end
 end)
 -- Test seams (UiBossGuide): the prompt press and the Next press.

@@ -448,7 +448,7 @@ before any Studio work.
 - Boss gate and guide (owner 2026-11-25; WORLD_REDESIGN_SPEC 4.2): a boss gate stands next to the plaza's Summon altar, closed
   while no boss event is active and open while one is; its prompt opens the same Bosses popup as the Bosses button and changes
   no boss rule, timing or reward. `jk_strongest` (Gojio) stands at it; a player who walks up presses E to start a conversation
-  that gives information about the boss gate; text only, nothing granted. Wording, sizes, prompt range and the rebirth 1 case
+  that gives information about the boss gate; text only, nothing granted. He does not talk to a player below rebirth 1 (owner 2026-11-25). Sizes and prompt range
   **proposed** (`docs/BOSS_GUIDE_SPEC.md`; off in the game until the gate is turned on).
 - Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked
   out. The event lasts 8 minutes in total (owner 2026-11-05), and Phase 2's start adds 2 fresh minutes (owner 2026-11-06):
@@ -942,6 +942,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-25: owner: "No he shouldnt", asked whether Gojio should talk to players below rebirth 1 (4.37, WORLD_REDESIGN_SPEC 4.2): he stands there, with no prompt for them (the missing prompt is how it is built, **proposed**).
 - 2026-11-25: owner: "yes to all", to eight listed decisions with the recommendations shown: (1) swap layouts of round 7 approved, Devil Hunter HQ left out for now, ground rule by base centre, the round 7 counts accepted; (2) white-mesh fix for textureless World 2 meshes; (3) grass off the road on World 2 with a brown strip of 2 to 4 studs; (4) upload the approved models and save both places; (5) lift the World 2 re-export hold after one test model is compared beside an old one; (6) split the always-red plaza test (guards always on, the waiting checks on demand); (7) the moved Index, Team altar and statue wait for the uploads before `main`; (8) Gojio's lines and popup layout B. Publishing a place is not among them.
 - 2026-11-25: clarification of the owner's "approved all" (recorded above): where 4.43, 4.45 and WORLD_REDESIGN_SPEC 4 give older Index, Team altar, statue and loop-post spots, WORLD_REDESIGN_SPEC 4.2's fuller layout replaces them. The boss gate keeps its full size and may shift inward up to 2.5 studs of S4 (agent-1's proposed margin, **proposed**).
 - 2026-11-25: owner: "approved all continue the merge", answering the list "the swap, the kaiju, and building the spawn pieces" (4.47, WORLD_REDESIGN_SPEC 4.2). Orchestrator's reading: boss gate spot S4 with the fuller layout, the revised altar B, the small stall clip fixes, and Track 1/6 swap and kaiju go ahead once their checks and the 7 bar pass; the swap's round 6 renders were not seen by the owner yet, so they are sent with the result. Uploads, place saves and publishing are not covered by these words.

@@ -134,7 +134,7 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
   Sensei header (proposed: full size with the header 1.9 studs higher); which models "every world shows" covers (4.47).
 - Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
   start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
-  the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed; names and
+  the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed (not below rebirth 1, owner 2026-11-25); names and
   wording in the tweaked forms; the E prompt is separate from the gate's own prompt so both can be reached.
 
 ## 5. Player plots: removed (owner 2026-11-11, design doc 4.43)
