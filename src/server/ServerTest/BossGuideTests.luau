@@ -77,18 +77,25 @@ function Tests.boss_guide()
 	flag("static", moving == 0, moving, 0)
 	flag("not_in_the_way", solid == 0, solid, 0)
 
-	-- One position value: the guide's spot follows GATE_POS.
+	-- One source: the spot and the reach are Shared/BossGateConfig's, and the two prompts never overlap.
+	local Gate = require(Shared.BossGateConfig)
 	local world = Guide.CFrame(start)
-	local gate = Vector3.new(Config.GATE_POS.X, world.Position.Y, Config.GATE_POS.Y)
-	local away = (world.Position - gate).Magnitude
-	flag("stands_at_the_gate", away <= 30, away, 30)
-	flag("clear_of_the_gate_prompt", away > 2 * Config.PROMPT_DISTANCE, away, 2 * Config.PROMPT_DISTANCE)
-	local saved = Config.GATE_POS
-	Config.GATE_POS = saved + Vector2.new(-5, -3)
-	local moved = Guide.CFrame(start).Position - world.Position
-	Config.GATE_POS = saved
-	-- the facing turns with the spot, so the shift is near, not exactly, the same
-	flag("follows_gate_pos", (moved - Vector3.new(-5, 0, -3)).Magnitude < 1.6, moved.Magnitude)
+	local function flatAt()
+		local at = Guide.CFrame(start).Position
+		return Vector2.new(at.X, at.Z)
+	end
+	flag("stands_by_the_gate_config", (flatAt() - Gate.At(Gate.GUIDE_OFFSET)).Magnitude < 0.01)
+	flag("no_second_source", Config.GATE_POS == nil and Config.OFFSET == nil and Config.PROMPT_DISTANCE == nil)
+	local apart = (flatAt() - Gate.At(Gate.PROMPT_OFFSET)).Magnitude
+	local reach = Gate.PROMPT_DISTANCE + Gate.GUIDE_PROMPT_DISTANCE
+	flag("clear_of_the_gate_prompt", apart > reach, apart, reach)
+	local saved = Gate.POS
+	Gate.POS = saved + Vector2.new(-5, -3)
+	flag("follows_gate_pos", (flatAt() - Gate.At(Gate.GUIDE_OFFSET)).Magnitude < 0.01)
+	Gate.POS = saved
+	local toSpawn = -Gate.POS.Unit
+	local look = world.LookVector
+	flag("faces_like_the_gate", look.X * toSpawn.X + look.Z * toSpawn.Y > 0.99)
 	local area = SpawnArea.Bounds(start).Area
 	local at = world.Position
 	flag("on_plaza", at.X > area.Min.X and at.X < area.Max.X and at.Z > area.Min.Z and at.Z < area.Max.Z)

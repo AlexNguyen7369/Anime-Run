@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("BossGuideConfig"))
+local Gate = require(Shared:WaitForChild("BossGateConfig"))
 
 local OPEN_WAIT, CLOSE_WAIT = 1, 0.6 -- s: the unroll and the roll-up have finished
 
@@ -43,7 +44,7 @@ function Module.Build(h)
 		task.wait(0.1)
 		ok(res, "second_press_keeps_it", PanelSwitch.IsOpen("BossGuide"))
 		local pages = Config.Pages(
-			ReplicatedStorage:GetAttribute("BossEventPhase") ~= nil,
+			ReplicatedStorage:GetAttribute(Gate.OPEN_ATTRIBUTE) == true,
 			player:GetAttribute("RebirthLevel") or 0
 		)
 		local line, nextButton = panel:FindFirstChild("Line", true), panel:FindFirstChild("Next", true)

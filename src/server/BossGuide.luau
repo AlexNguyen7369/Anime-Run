@@ -5,17 +5,19 @@
 local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.BossGuideConfig)
+local Gate = require(Shared.BossGateConfig)
 local RunnerFactory = require(Shared.RunnerFactory)
 local SpawnArea = require(Shared.SpawnArea)
 
 local BossGuide = {}
 
--- His feet, facing the spawn like the gate.
+-- His feet, facing the way the gate does.
 function BossGuide.CFrame(startCFrame)
 	local centre = SpawnArea.CENTRE
-	local gate = Vector3.new(Config.GATE_POS.X + centre.X, SpawnArea.TOP_Y, Config.GATE_POS.Y + centre.Y)
-	local frame = CFrame.lookAt(gate, Vector3.new(centre.X, gate.Y, centre.Y))
-	return SpawnArea.Base(startCFrame) * frame * CFrame.new(Config.OFFSET.X, 0, -Config.OFFSET.Y)
+	local at = Gate.At(Gate.GUIDE_OFFSET) + centre
+	local feet = Vector3.new(at.X, SpawnArea.TOP_Y, at.Y)
+	local toSpawn = -Gate.POS.Unit
+	return SpawnArea.Base(startCFrame) * CFrame.lookAt(feet, feet + Vector3.new(toSpawn.X, 0, toSpawn.Y))
 end
 
 function BossGuide.Build(startCFrame)
@@ -39,13 +41,13 @@ function BossGuide.Build(startCFrame)
 	anchor.CastShadow = false
 	anchor.Parent = model
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = Config.PROMPT
+	prompt.Name = Gate.GUIDE_PROMPT
 	prompt.ActionText = "Talk"
 	prompt.ObjectText = Config.Name()
 	prompt.KeyboardKeyCode = Enum.KeyCode.E -- gamepad X and touch are the engine's defaults
 	prompt.Exclusivity = Enum.ProximityPromptExclusivity.OnePerButton -- never beside another E prompt
 	prompt.HoldDuration = Config.HOLD
-	prompt.MaxActivationDistance = Config.PROMPT_DISTANCE
+	prompt.MaxActivationDistance = Gate.GUIDE_PROMPT_DISTANCE
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = anchor
 	model.PrimaryPart = anchor

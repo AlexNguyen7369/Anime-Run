@@ -1,6 +1,6 @@
 --!nonstrict
--- The boss gate guide (WORLD_REDESIGN_SPEC 4.2, docs/BOSS_GUIDE_SPEC.md): where Gojio stands and what he says. Words and
--- positions are proposed. Numbers in the lines come from the configs that rule them, so a line never drifts from the game.
+-- The boss gate guide (WORLD_REDESIGN_SPEC 4.2, docs/BOSS_GUIDE_SPEC.md): what Gojio says (words proposed). Where he
+-- stands and his prompt's reach are Shared/BossGateConfig's. Numbers in the lines come from the configs that rule them, so a line never drifts from the game.
 local BossEventConfig = require(script.Parent.BossEventConfig)
 local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local SidekickConfig = require(script.Parent.SidekickConfig)
@@ -9,14 +9,7 @@ local BossGuideConfig = {}
 
 BossGuideConfig.LIVE = false -- he is built only once the boss gate and its owner-chosen spot are in the game
 BossGuideConfig.ID = "jk_strongest" -- owner 2026-11-25
--- The boss gate's world (x, z): the one value to change when the owner picks a spot (proposed: draft spot S4).
-BossGuideConfig.GATE_POS = Vector2.new(2.5, 94.8)
--- Beside the gate as it faces the spawn: studs to its right (the side away from the Team altar) and toward the spawn. The draft
--- gate is 35.3 wide, so he stands outside its frame and outside its prompt (proposed).
-BossGuideConfig.OFFSET = Vector2.new(21, 6)
-BossGuideConfig.PROMPT_DISTANCE = 8 -- proposed; the stalls' is 10
 BossGuideConfig.HOLD = 0 -- as every plaza prompt
-BossGuideConfig.PROMPT = "TalkBossGuide"
 
 function BossGuideConfig.Name()
 	return CharacterCatalog.Get(BossGuideConfig.ID).Name

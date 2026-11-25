@@ -10,6 +10,7 @@ local player = Players.LocalPlayer
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterPortraits = require(Shared:WaitForChild("CharacterPortraits"))
 local Config = require(Shared:WaitForChild("BossGuideConfig"))
+local Gate = require(Shared:WaitForChild("BossGateConfig"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
@@ -97,8 +98,10 @@ local function open()
 	if PanelSwitch.IsOpen(NAME) or player:GetAttribute("BossEvent") == true then
 		return -- already talking, or in the arena
 	end
-	pages =
-		Config.Pages(ReplicatedStorage:GetAttribute("BossEventPhase") ~= nil, player:GetAttribute("RebirthLevel") or 0)
+	pages = Config.Pages(
+		ReplicatedStorage:GetAttribute(Gate.OPEN_ATTRIBUTE) == true,
+		player:GetAttribute("RebirthLevel") or 0
+	)
 	page = 1
 	draw()
 	PanelSwitch.Toggle(NAME)
@@ -133,7 +136,7 @@ TouchTarget.Add(nextButton, advance) -- the drawn button is 24 to 31 px tall
 TouchTarget.Add(closeButton, close)
 PanelFrame.CloseOnOutsideClick(panel, close)
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
-	if prompt.Name == Config.PROMPT and prompt:IsDescendantOf(workspace) then
+	if prompt.Name == Gate.GUIDE_PROMPT and prompt:IsDescendantOf(workspace) then
 		open()
 	end
 end)

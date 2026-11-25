@@ -7799,18 +7799,19 @@ local SPAWN_PLAZA = {
 	SPAWN_XZ = Vector2.new(0, 0),
 	PAD_XZ = Vector2.new(-84, 78),
 	-- the ring of radius 84 round the spawn, one slot every 45 degrees from the gate's angle (build_plaza.py ring_spot);
+	-- the Index, the Team altar and the boss gate stand as the fuller layout (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2);
 	-- every front faces the spawn (Front = false: the Best Roll pedestal is round)
 	RING = {
 		{ Name = "ShopStall", At = Vector2.new(-83.9, -3.1), Front = true },
 		{ Name = "PotionsStall", At = Vector2.new(-57.2, -61.6), Front = true },
 		{ Name = "Marketplace", At = Vector2.new(3.1, -83.9), Front = true },
-		{ Name = "IndexBoard", At = Vector2.new(61.6, -57.2), Front = true },
+		{ Name = "IndexBoard", At = Vector2.new(76.7, -34.2), Front = true },
 		{ Name = "BestRoll", At = Vector2.new(83.9, 3.1), Front = false },
 		{ Name = "SidekickAltar", At = Vector2.new(57.2, 61.6), Front = true },
-		-- the slot before the gate axis (design doc 4.45, owner 2026-11-17); the gate-axis slot stays empty
-		{ Name = "TeamAltar", At = Vector2.new(-3.1, 83.9), Front = true },
+		{ Name = "TeamAltar", At = Vector2.new(-35.0, 76.4), Front = true }, -- was the slot before the gate axis (4.45)
+		{ Name = "BossGate", At = Vector2.new(2.5, 94.8), Front = true }, -- spot S4
 	},
-	EXCLUSIVE_XZ = Vector2.new(11.6, 12.5), -- the Saitamo pedestal, on the terrace's middle step
+	EXCLUSIVE_XZ = Vector2.new(-16.5, 4.4), -- the Saitamo pedestal, on the terrace's middle step (fuller layout)
 	TERRACE = { 26, 20, 14 }, -- step radii bottom up
 	TERRACE_STEP = 0.8, -- studs tall
 	SENSEI_XZ = Vector2.new(-80.0, 57.9),
@@ -12262,6 +12263,8 @@ end
 -- docs/WORLD_REDESIGN_SPEC.md sections 1, 2 and 7: the placeholder anime runner and the car scrap list
 Scenarios.runner = require(script.Parent.RunnerTests).runner
 Scenarios.scrap = require(script.Parent.RunnerTests).scrap
+-- docs/WORLD_REDESIGN_SPEC.md 4.2 "Redrafted spawn pieces" (owner 2026-11-25): red until built
+Scenarios.plaza_build = require(script.Parent.PlazaBuildTests).plaza_build
 -- docs/WORLD_REDESIGN_SPEC.md sections 3, 5 and 7: the world layout (Dojos removed, design doc 4.43)
 do
 	local world = require(script.Parent.WorldTests).make({

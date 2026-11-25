@@ -274,8 +274,12 @@
 267. 2026-11-25 — Alex Nguyen — Merged origin/main (5ef219ed, PR #29) into the World 2 branch on feature/alex/agent-3: HudPlaque and its option A branches removed, World 2's differences and the stricter HUD tests kept (offline checks only, no Studio).
 268. 2026-11-25 — Alex Nguyen — Built the boss gate guide on feature/alex/boss-guide (Gojio, one E prompt, text-only conversation, spec draft and tests; offline checks only, position and wording proposed).
 269. 2026-11-25 — Alex Nguyen — Fixed the boss gate guide after its rules audit: Rewards line per phase, guide off until the gate is built, tests tightened.
+268. 2026-11-25 — Alex Nguyen — Wrote docs/PLAZA_BUILD_PLAN.md, the draft-to-game plan for the approved spawn pieces (nothing built or uploaded).
+269. 2026-11-25 — Alex Nguyen — Wrote the red tests for the approved spawn pieces (plaza_build, spawn_area RING and statue rows, moved headers) and gave the offline scenario runner Roblox's lookAt.
+270. 2026-11-25 — Alex Nguyen — Built the upload-free part of the approved spawn layout: Index, Team altar and statue moved with their headers, the boss gate as a Parts stand-in with its state and prompt, merchant markers (offline checks only, no Studio).
+271. 2026-11-25 — Alex Nguyen — Merged the boss gate build (2468a9a6) into feature/alex/boss-guide: the guide reads Shared/BossGateConfig, with a popup mock-up, text-fit numbers and touch targets (offline checks only).
 
 ## What's next
-**Bring the owner the full ground-ownership count (props and heroes of all ten World 2 tracks).**
+**Check the boss gate and guide prompts, the guide's popup and the moved buildings in Studio.**
 
-**Why this is next:** the owner wants it before any frozen track changes, and swap round 6, the swap merge and the kaiju re-cut depend on it.
+**Why this is next:** the gate and guide are merged but only checked offline, and the mesh export and uploads should follow a layout seen in Studio.

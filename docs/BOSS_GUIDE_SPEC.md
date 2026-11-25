@@ -5,17 +5,15 @@ Relies on `docs/WORLD_REDESIGN_SPEC.md` 4.2 (owner 2026-11-25), design doc 4.37,
 conversation that gives info about the boss gate. Everything else here is **proposed**.
 
 ## Where he stands
-- One value, `Shared/BossGuideConfig.GATE_POS`, the gate's world (x, z): (2.5, 94.8), draft spot S4, not chosen by the owner yet.
-- He stands 21 studs to the gate's right and 6 toward the spawn (`OFFSET`), facing the spawn: about (23.3, 88.2). The draft gate is 35.3
-  wide, so he is outside its frame, on the side away from the Team altar.
+- `Shared/BossGateConfig` is the one source (gate spot S4 moved 1.5 studs toward the spawn, guide offset 21 right and 6 toward the spawn, his
+  prompt's reach 8). He faces the spawn beside the gate, outside its 35.3-stud frame, on the side away from the old Team altar spot.
 - Static model, no collision, name label. World 2 loads his model because the rig wears it (4.47 "Models").
-- The gate itself is not built here. At S4 the draft gate overlaps today's Team altar (-3.1, 83.9), which only the fuller layout moves.
-- Off in the game (`BossGuideConfig.LIVE` = false) until the gate is built and the owner picks its spot: his lines speak of the gate.
+- Off in the game (`BossGuideConfig.LIVE` = false) until the lead turns him on with the gate.
 
 ## How it shows
 - One ProximityPrompt `TalkBossGuide`: E, "Talk", "Gojio", `HoldDuration` 0 like every plaza prompt, 8 studs, gamepad X and touch by the
-  engine's default. On whether the gate is open or closed. `OnePerButton`: the engine shows one E prompt at a time. He is 21.8 studs
-  from the gate's centre, so keep the gate's prompt range under 13.8 or the two ranges overlap.
+  engine's default. On whether the gate is open or closed. `OnePerButton`: the engine shows one E prompt at a time. His prompt
+  and the gate's are 21.4 studs apart, more than their reaches together (8 + 10).
 - The prompt opens one handscroll (4.46), the game's popup style: his portrait, one line, Next (Done on the last), the page count in the footer.
   Closed by Done, its X, a click outside, gamepad B or Escape. A press while it is open does nothing.
 - It is a `PanelSwitch` panel: one at a time with every panel, gamepad focus on Next. A teleport into the event closes it. Text is set when
