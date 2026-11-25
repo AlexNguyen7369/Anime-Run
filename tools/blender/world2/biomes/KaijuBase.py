@@ -1146,12 +1146,20 @@ def overlapped(box, boxes):
 	return out
 
 
+# Owner 2026-11-25 "A with 12": left out of fill draft A, (x, z, prop); each touches a van as placed.
+LEFT_OUT = ((-471.8, 875.3, "Apartment"), (-613.6, 876.6, "Apartment"))
+
+
 def cut_fill(k, label, boxes):
-	"""Owner 2026-11-25: the site fill (k.fill) keeps only props clear of every other track's scenery, box against box."""
+	"""Owner 2026-11-25: the site fill (k.fill) keeps only props clear of every other track's scenery, box against box, less
+	LEFT_OUT."""
 	bpy.context.view_layer.update()
-	pre, stays, cut, by, left = "W2_%s_" % k.biome, {}, {}, {}, []
+	pre, stays, cut, by, left, out = "W2_%s_" % k.biome, {}, {}, {}, [], set()
 	for ob in k.fill:
 		name, hit = ob.data.name[len(pre) :], overlapped(instance_box(ob), boxes)
+		if not hit and any(name == n and abs(ob.location.x - x) < 0.2 and abs(-ob.location.y - z) < 0.2 for x, z, n in LEFT_OUT):
+			hit = {"owner": 1}
+			out.add((round(ob.location.x, 1), round(-ob.location.y, 1), name))
 		for t in hit:
 			by[t] = by.get(t, 0) + 1
 		(cut if hit else stays)[name] = (cut if hit else stays).get(name, 0) + 1
@@ -1159,9 +1167,10 @@ def cut_fill(k, label, boxes):
 			bpy.data.objects.remove(ob)
 		else:
 			left.append(ob)
+	print("KAIJUBASE owner left out", sorted(out))
 	k.fill = left
 	FILL[:] = [(o.location.x, -o.location.y, o.data.name[len(pre) :]) for o in left]
-	print("KAIJUBASE fill against drafts %s: kept" % label, len(left), stays, "removed", sum(cut.values()), cut, "removed props by track", dict(sorted(by.items())))
+	print("KAIJUBASE fill against drafts %s: kept" % label, len(left), stays, "removed", sum(cut.values()), cut, "removed props by track", dict(sorted(by.items(), key=str)))
 
 
 def corpse_sites(k, city_end, windows, avoid, tall_avoid):
