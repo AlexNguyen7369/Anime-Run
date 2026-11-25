@@ -24,14 +24,14 @@ def curl(*args):
 	return json.loads(r.stdout)
 
 
-def upload(key):
+def upload(key, folder=os.path.join(BUILD, "glb")):
 	req = {
 		"assetType": "Model",
 		"displayName": "AnimeRun_Plaza_" + key,
 		"description": "Anime Run plaza mesh",
 		"creationContext": {"creator": {"userId": os.environ["ROBLOX_CREATOR_ID"]}},
 	}
-	op = curl("-X", "POST", API + "assets", "-F", "request=" + json.dumps(req), "-F", f"fileContent=@{os.path.join(BUILD, 'glb', key + '.glb')};type=model/gltf-binary")
+	op = curl("-X", "POST", API + "assets", "-F", "request=" + json.dumps(req), "-F", f"fileContent=@{os.path.join(folder, key + '.glb')};type=model/gltf-binary")
 	if "path" not in op:
 		raise RuntimeError(f"{key}: {op}")
 	for _ in range(60):

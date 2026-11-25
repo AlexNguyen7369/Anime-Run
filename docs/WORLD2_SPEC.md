@@ -61,9 +61,9 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   (120 s): the next join waits for it. An admin check that fails ("unknown") is asked again up to `ADMIN_RECHECKS`
   times, then the player counts as no admin.
 ### Gate
-- `SpawnArea.WorldGate`, hub-local (194, -176) on the plaza's south-east corner, facing the spawn: a dais, two
-  leaning obsidian monoliths, a 16-segment stone ring with a neon lip and a glowing portal disc. In World 1 it is locked:
-  crossed chains, a padlock plate, an invisible barrier, "WORLD 2 / COMING SOON"; touching the barrier shows "COMING
+- `SpawnArea.WorldGate`, hub-local (194, -176) on the plaza's south-east corner, facing the spawn: draft B, the
+  shrine gatehouse (owner 2026-11-25; `docs/WORLD_REDESIGN_SPEC.md` 4.2 has its look, label and touch box). In World 1 it is locked:
+  its locked mesh (barred doors, chain, padlock), an invisible barrier, "WORLD 2 / COMING SOON"; touching the barrier shows "COMING
   SOON". Open but not qualified: "Beat Track 10" / "Reach Rebirth 5" (TeamToast, `RunEvent { Kind = "WorldGate" }`).
   In World 2 it is open ("WORLD 1 / ENTER") and its Portal (tag `WorldGate`, attribute `TargetWorld`) sends a touching
   player back.

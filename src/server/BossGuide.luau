@@ -49,6 +49,7 @@ function BossGuide.Build(startCFrame)
 	prompt.HoldDuration = Config.HOLD
 	prompt.MaxActivationDistance = Gate.GUIDE_PROMPT_DISTANCE
 	prompt.RequiresLineOfSight = false
+	prompt.Enabled = false -- Client/BossGuideUi turns it on for a player he talks to
 	prompt.Parent = anchor
 	model.PrimaryPart = anchor
 	return model
