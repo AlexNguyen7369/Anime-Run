@@ -283,7 +283,7 @@ function Methods.Clone(self)
 	end
 	return copy
 end
-for _, name in { "FireClient", "FireAllClients", "FireServer", "Fire", "PivotTo" } do
+for _, name in { "FireClient", "FireAllClients", "FireServer", "Fire", "PivotTo", "ScaleTo" } do
 	Methods[name] = function() end
 end
 

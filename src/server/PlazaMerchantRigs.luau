@@ -42,7 +42,9 @@ function PlazaMerchantRigs.Stand(spawnArea)
 			still(d)
 		end
 		rig.DescendantAdded:Connect(still) -- the model's meshes arrive later
-		rig:PivotTo(spot.WorldCFrame * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0))
+		local scale = row.Scale / RunnerFactory.SCALE
+		rig:ScaleTo(scale)
+		rig:PivotTo(spot.WorldCFrame * CFrame.new(0, RunnerFactory.HIP_HEIGHT * scale, 0))
 		rig.Parent = service
 		local dummy = service:FindFirstChild("Rig") -- the sensei's
 		if dummy then

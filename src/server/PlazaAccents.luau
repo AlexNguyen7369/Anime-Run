@@ -36,7 +36,7 @@ local STALLS = {
 	MarketStall = { Eave = Vector3.new(20, -7.2, 8.75), Screen = { 0, 4.4, 6.8, 5, 1.6 }, Color = AMBER },
 }
 -- The same on set B's stalls once they are uploaded (Shared/PlazaPieces): the trim under the sign board or the canopy's front lip, the
--- screen on the inner back wall (heights and depths measured on the draft meshes; proposed)
+-- screen on the inner back wall (kept on set B, owner 2026-11-25; heights and depths measured on the draft meshes, proposed)
 local PIECE_STALLS = {
 	SHOPStall = { Eave = Vector3.new(6.4, -5.95, 10.1), Screen = { 0, 3.55, 6.2, 4, 2.2 }, Color = GOLD },
 	POTIONSStall = { Eave = Vector3.new(6, -8.25, 8.8), Screen = { 0, 4.7, 6.2, 4, 2.2 }, Color = PINK },

@@ -16,7 +16,7 @@ local UiTheme = require(ReplicatedStorage.Shared:WaitForChild("UiTheme"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
-local MODEL_SIZE = PlazaPieces.ALTAR_MODEL_SIZE -- placeholder: studs, the model's largest extent
+local MODEL_SIZE = PlazaPieces.AltarModelSize() -- studs, the model's largest extent
 local TURN_SPEED = math.rad(30) -- placeholder: radians per second
 local TURN_DISTANCE = 250 -- placeholder: studs; farther away the model holds still
 local LOCKED_COLOR = Color3.fromRGB(24, 22, 30) -- placeholder: the locked silhouette

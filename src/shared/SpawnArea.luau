@@ -509,7 +509,7 @@ local function pieceAltar(m, f, piece)
 		at.Parent = last
 		at.WorldCFrame = cf
 	end
-	spot("ModelSpot", f * CFrame.new(0, piece.Stand + PlazaPieces.ALTAR_MODEL_SIZE / 2, -piece.Ahead))
+	spot("ModelSpot", f * CFrame.new(0, piece.Stand + piece.ModelSize / 2, -piece.Ahead))
 	spot("LockSpot", f * CFrame.new(piece.Lock))
 	glow(last, 20)
 	-- the prompt's own part, in front of the model's stand: within reach from the steps

@@ -79,7 +79,18 @@ function Tests.plaza_pieces()
 			local row = Pieces.Assets[key]
 			flag("row_" .. key, row ~= nil and type(row.Asset) == "number" and next(row.Parts) ~= nil)
 		end
-		flag("altar_model_size_unchanged", Pieces.ALTAR_MODEL_SIZE == 7, Pieces.ALTAR_MODEL_SIZE, 7) -- open: the owner's
+		-- owner 2026-11-25: 17.5 on the lotus, 25 on the roof stage, Kakashe the smaller one; today's altar keeps 7
+		for world, size in { 17.5, 25 } do
+			WorldConfig.Id = world
+			fill(0)
+			flag("altar_model_size_before_w" .. world, Pieces.AltarModelSize() == 7, Pieces.AltarModelSize(), 7)
+			fill(1)
+			flag("altar_model_size_w" .. world, Pieces.AltarModelSize() == size, Pieces.AltarModelSize(), size)
+		end
+		for name, row in H.module(Shared, "PlazaMerchants") do
+			local want = name == "CheckpointNpc" and 0.75 or 1
+			flag("merchant_scale_" .. name, row.Scale == want, row.Scale or -1, want)
+		end
 		flag("merchants_off_by_default", oldMerchants == false)
 
 		for _, world in { 1, 2 } do
@@ -184,7 +195,7 @@ function Tests.plaza_pieces()
 			flag(w .. "on_lock_spot", find(onAltar, "Attachment", "LockSpot") ~= nil)
 			local spot = find(onAltar, "Attachment", "ModelSpot")
 			local stand = world == 1 and 10.3 or 8.55 -- what the draft's model stands on, studs over the floor
-			local want = 1 + stand + Pieces.ALTAR_MODEL_SIZE / 2
+			local want = 1 + stand + (world == 1 and 17.5 or 25) / 2
 			flag(
 				w .. "on_model_stands",
 				spot ~= nil and math.abs(spot.WorldCFrame.Position.Y - want) < 0.05,

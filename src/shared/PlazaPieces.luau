@@ -9,18 +9,19 @@ local WorldConfig = require(script.Parent.WorldConfig)
 local PlazaPieces = {}
 
 PlazaPieces.Assets = require(script.Parent.PlazaPieceAssets)
--- OPEN, the owner's: the turning Mythic's size on the altar. The drafts show 17.5 (lotus) and 25 (roof stage); today's stays.
-PlazaPieces.ALTAR_MODEL_SIZE = 7
--- The merchants' switch. OPEN: 4.47 "every world shows" (Frierin in World 1) and Kakashe's header. The Sensei dummy stays while off.
+local TODAYS_MODEL_SIZE = 7 -- studs, the turning Mythic's largest extent in today's altar
+-- The merchants' switch, off: their poses are not built. The owner's rulings are in (2026-11-25: Frierin may load in World 1, Kakashe
+-- is the smaller one). The Sensei dummy stays while off.
 PlazaPieces.MERCHANTS_LIVE = false
 PlazaPieces.LOOP_POSTS = { 19, 75, 200, 250, 322 } -- degrees; the SkyLoop piece's (tools/blender/plaza/build_plaza.py LOOP_POSTS)
 PlazaPieces.ALTAR_TAGS = { Locked = "PlazaAltarLocked", Unlocked = "PlazaAltarUnlocked" } -- Shared/PlazaPieceLook, per player
 
 -- Per world: the altar's look, what its model stands on over the floor (studs, and studs ahead of the centre), its lock label's
--- spot (altar frame) and the height of its floating header (proposed: over the crest)
+-- spot (altar frame) and the height of its floating header (over the crest, owner 2026-11-25)
 local ALTARS = {
 	{
 		Look = "GreatLotus",
+		ModelSize = 17.5, -- owner 2026-11-25
 		Stand = 10.3,
 		Ahead = 0,
 		Lock = Vector3.new(0, 8.9, -13.4),
@@ -28,6 +29,7 @@ local ALTARS = {
 	},
 	{
 		Look = "TwinRoof",
+		ModelSize = 25, -- owner 2026-11-25
 		Stand = 8.55,
 		Ahead = 0.8,
 		Lock = Vector3.new(0, 8, -17.2),
@@ -64,6 +66,12 @@ function PlazaPieces.Altar()
 	local altar = ALTARS[WorldConfig.Id]
 	local key = "Altar" .. altar.Look
 	return PlazaPieces.Ready(key .. "Locked") and PlazaPieces.Ready(key .. "Unlocked") and altar or nil
+end
+
+-- Studs: the turning Mythic's largest extent on the altar that stands here.
+function PlazaPieces.AltarModelSize()
+	local altar = PlazaPieces.Altar()
+	return altar and altar.ModelSize or TODAYS_MODEL_SIZE
 end
 
 -- True when every key of `needs` is in `loaded`.
