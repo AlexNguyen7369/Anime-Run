@@ -121,7 +121,9 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Positions, prompts a
   changes no boss rule, timing or reward; below the rebirth level that hides the Bosses button it stays closed.
 - Layout (owner 2026-11-25): the Saitamo statue and the Index board may move so they block nothing (the world gate, the
   Summon altar and the boss gate from the spawn). New positions **proposed**, the owner approves them from renders. The
-  Index keeps its prompt, panel and header. The sky loop and its posts were not mentioned: they stay.
+  Index keeps its prompt, panel and header. The sky loop and its posts stay in that
+  layout. Owner, same day: "propose new format of spawn if needed": a fuller new layout may also be proposed; nothing
+  moves until the owner approves it.
 - Summon altar: World 1 draft B (great lotus), World 2 draft A (twin-roof stage). The only difference between the worlds'
   pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged.
 - Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds.
