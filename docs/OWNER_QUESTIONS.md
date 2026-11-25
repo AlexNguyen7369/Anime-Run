@@ -300,6 +300,8 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
     that fit no spot under the rule (leave out, shrink or move far). Asked with the full count.
 14. Swap round 5 (5747dda6) scored T1 6, T6 6 (bar 7) on its own scenery; round 6 waits for the ownership count.
 15. Audit of round 5 (NEEDS OWNER, no hard violation): Mound 4 to 0, LowBlock 3 to 1 and item 10's counts are stale (now 63, 49, 57); moved props keep their old turn; the 5% / 15% overlap limits are in no doc. Harness exit 1 on the 10 known unplaced heroes only (ROAD 47/10, TRANSFORM 10684/0, PIN 11/0, 154 warnings), run twice independently.
+16. Ground count (docs/proposals/world2_ground_count): (a) base centre moves 12% of props and leaves 107 touching pairs; (b) any footprint point 17% and 0 pairs, but T1 would lose 40 to 65% of its own views. Recommend (a), props touching a neighbour fixed one by one. Which?
+17. T6 HQ, T5 Railgun, T7 Nest, T8 LairTower stand on another track's ground and have no legal spot under the rule (all approved heroes). Keep them as exceptions, or leave them out? T4 Hospital would move 1987 studs. Until ruled, round 6 leaves HQ where it is.
 
 ## 2026-11-25 Spawn drafts: world gate, Summon altar, markets and merchants (renders only; nothing in game)
 1. Gate: blind re-score B 7.8 (recommended), A 7.0, C 6.8, current 4.3 (bar 7). Pick one? Any pick moves the floating label, B and C need a non-disc touch part, and each needs a locked and an open mesh.

@@ -1,0 +1,116 @@
+pairs 2746 surface 2745 enclosed 1
+CONTACT props touching another track's prop, per track (pairs)
+before built 10684 pairs 2746 ['T1 15/255', 'T2 165/406', 'T3 275/464', 'T4 368/903', 'T5 149/536', 'T6 95/746', 'T7 429/951', 'T8 865/1397', 'T9 328/1615', 'T10 111/3411']
+a all built 9391 pairs 107 ['T1 2/220', 'T2 6/351', 'T3 21/348', 'T4 33/632', 'T5 28/500', 'T6 20/649', 'T7 24/793', 'T8 22/1245', 'T9 16/1260', 'T10 3/3393']
+a keep heroes built 9461 pairs 305 ['T1 5/220', 'T2 19/356', 'T3 31/349', 'T4 37/633', 'T5 29/501', 'T6 33/656', 'T7 87/799', 'T8 91/1283', 'T9 63/1260', 'T10 13/3404']
+b all built 8894 pairs 0 ['T1 0/194', 'T2 0/339', 'T3 0/327', 'T4 0/585', 'T5 0/420', 'T6 0/601', 'T7 0/737', 'T8 0/1168', 'T9 0/1208', 'T10 0/3315']
+b keep heroes built 9096 pairs 204 ['T1 3/196', 'T2 14/346', 'T3 14/330', 'T4 6/588', 'T5 6/421', 'T6 22/632', 'T7 64/752', 'T8 70/1221', 'T9 45/1208', 'T10 9/3402']
+b>=50% built 9399 pairs 123 ['T1 4/219', 'T2 15/362', 'T3 37/348', 'T4 31/627', 'T5 25/500', 'T6 21/655', 'T7 25/791', 'T8 22/1247', 'T9 16/1257', 'T10 3/3393']
+T1 before pairs 16 [(('Flowers', 'T2 RuinB'), 2), (('Flowers', 'T2 Crag'), 2), (('Flowers', 'T5 Apartment'), 2), (('Forest', 'T2 RuinB'), 2), (('Rank', 'T2 Hound'), 1), (('Pine', 'T2 Hound'), 1), (('Rank', 'T5 Smoke'), 1), (('Pine', 'T2 RuinB'), 1), (('Rank', 'T8 FleshWall'), 1)]
+T1 a all pairs 2 [(('Pine', 'T2 RuinB'), 1), (('RuinWall', 'T2 RuinB'), 1)]
+T1 b all pairs 0 []
+T6 before pairs 120 [(('StreetKit', 'T4 Cedar'), 11), (('StreetKit', 'T7 Brush'), 8), (('Mansion', 'T7 ThatchHouse'), 7), (('StreetKit', 'T7 Ruin'), 7), (('StreetKit', 'T4 Hospital'), 7), (('Konbini', 'T7 ThatchHouse'), 5), (('Mansion', 'T7 Camp'), 4), (('StreetKit', 'T7 ThatchHouse'), 4), (('LowBlock', 'T7 Brush'), 4)]
+T6 a all pairs 24 [(('Mansion', 'T7 Camp'), 4), (('LowBlock', 'T7 Brush'), 4), (('ShopHouse', 'T7 Camp'), 3), (('Konbini', 'T7 Camp'), 2), (('Apaato', 'T5 Hangar'), 2), (('Mansion', 'T7 ThatchHouse'), 2), (('Mansion', 'T5 Hangar'), 2), (('Mansion', 'T5 Apartment'), 1), (('LowBlock', 'T7 ThatchHouse'), 1)]
+T6 b all pairs 0 []
+COST share of own props; heroes; run views: own in frame <=1024 studs, lost a, lost b, lost angular weight a/b %; other tracks' props in frame, lost a
+T1 ElvenPlains lost a 13.7% (35) b 23.9% (61)
+   0.06 own 72 lost a 8 (w 1%) b 16 (w 10%) | others 638 lost a 141 b 179
+   0.33 own 74 lost a 6 (w 5%) b 16 (w 47%) | others 712 lost a 130 b 182
+   0.62 own 23 lost a 6 (w 1%) b 11 (w 65%) | others 665 lost a 135 b 182
+   0.90 own 84 lost a 19 (w 6%) b 30 (w 40%) | others 500 lost a 123 b 141
+T2 DemonCastle lost a 13.5% (55) b 16.5% (67)
+   0.06 own 112 lost a 20 (w 16%) b 22 (w 16%) | others 551 lost a 95 b 137
+   0.33 own 155 lost a 15 (w 13%) b 19 (w 15%) | others 590 lost a 135 b 181
+   0.62 own 63 lost a 13 (w 16%) b 16 (w 39%) | others 540 lost a 121 b 150
+   0.90 own 33 lost a 3 (w 6%) b 5 (w 9%) | others 480 lost a 105 b 133
+T3 RuinedCityZ lost a 25.0% (116) b 29.5% (137)
+   0.06 own 133 lost a 35 (w 10%) b 41 (w 11%) | others 626 lost a 99 b 167
+   0.33 own 85 lost a 23 (w 23%) b 30 (w 29%) | others 553 lost a 105 b 142
+   0.62 own 32 lost a 9 (w 58%) b 9 (w 58%) | others 446 lost a 104 b 128
+   0.90 own 37 lost a 9 (w 16%) b 9 (w 16%) | others 425 lost a 83 b 117
+T4 HauntedTunnel lost a 30.0% (271) b 35.2% (318)
+   0.06 own 243 lost a 42 (w 14%) b 62 (w 15%) | others 422 lost a 58 b 103
+   0.33 own 174 lost a 35 (w 4%) b 41 (w 25%) | others 361 lost a 59 b 90
+   0.62 own 65 lost a 28 (w 11%) b 33 (w 12%) | others 361 lost a 54 b 75
+   0.90 own 38 lost a 21 (w 30%) b 23 (w 55%) | others 393 lost a 63 b 92
+T5 KaijuBase lost a 6.7% (36) b 21.6% (116)
+   0.06 own 94 lost a 9 (w 8%) b 33 (w 14%) | others 470 lost a 74 b 107
+   0.33 own 33 lost a 0 (w 0%) b 2 (w 2%) | others 403 lost a 63 b 91
+   0.62 own 94 lost a 2 (w 2%) b 4 (w 3%) | others 342 lost a 82 b 105
+   0.90 own 95 lost a 1 (w 6%) b 6 (w 9%) | others 415 lost a 99 b 121
+T6 DevilTokyo lost a 13.0% (97) b 19.4% (145)
+   0.06 own 88 lost a 9 (w 2%) b 18 (w 5%) | others 250 lost a 50 b 55
+   0.33 own 82 lost a 6 (w 1%) b 13 (w 5%) | others 308 lost a 49 b 74
+   0.62 own 94 lost a 15 (w 5%) b 16 (w 5%) | others 312 lost a 65 b 72
+   0.90 own 160 lost a 8 (w 2%) b 16 (w 4%) | others 207 lost a 37 b 57
+T7 AntIsland lost a 16.6% (158) b 22.5% (214)
+   0.06 own 150 lost a 3 (w 2%) b 9 (w 3%) | others 408 lost a 70 b 137
+   0.33 own 72 lost a 10 (w 38%) b 15 (w 54%) | others 303 lost a 81 b 101
+   0.62 own 79 lost a 19 (w 50%) b 24 (w 57%) | others 148 lost a 33 b 44
+   0.90 own 155 lost a 4 (w 1%) b 9 (w 2%) | others 217 lost a 45 b 76
+T8 MonsterDen lost a 10.9% (152) b 16.4% (229)
+   0.06 own 184 lost a 9 (w 1%) b 14 (w 3%) | others 60 lost a 39 b 40
+   0.33 own 63 lost a 6 (w 5%) b 6 (w 5%) | others 225 lost a 51 b 57
+   0.62 own 60 lost a 14 (w 36%) b 18 (w 43%) | others 135 lost a 37 b 42
+   0.90 own 88 lost a 1 (w 0%) b 2 (w 8%) | others 30 lost a 23 b 25
+T9 GoldenCity lost a 22.0% (355) b 25.2% (407)
+   0.06 own 82 lost a 5 (w 2%) b 7 (w 4%) | others 20 lost a 14 b 14
+   0.33 own 64 lost a 3 (w 1%) b 4 (w 1%) | others 8 lost a 3 b 4
+   0.62 own 62 lost a 6 (w 4%) b 7 (w 6%) | others 28 lost a 1 b 4
+   0.90 own 76 lost a 0 (w 0%) b 0 (w 0%) | others 0 lost a 0 b 0
+T10 HellGate lost a 0.5% (18) b 2.8% (96)
+   0.06 own 93 lost a 0 (w 0%) b 0 (w 0%) | others 27 lost a 27 b 27
+   0.33 own 94 lost a 0 (w 0%) b 0 (w 0%) | others 0 lost a 0 b 0
+   0.62 own 88 lost a 0 (w 0%) b 0 (w 0%) | others 0 lost a 0 b 0
+   0.90 own 65 lost a 0 (w 0%) b 0 (w 0%) | others 0 lost a 0 b 0
+HEROES built on other ground (a):
+  T2 Wyvern owner T1 at [-309.  129. -364.] share 0.50
+  T2 Wyvern owner T3 at [-521.   68. -173.] share 0.81
+  T2 Hound owner T3 at [ 335.  -17. -584.] share 0.62
+  T2 Hound owner T3 at [133. -17. 444.] share 0.62
+  T2 Hound owner T1 at [133. -17. 276.] share 0.61
+  T3 BrickFlat owner T2 at [-119.   -1.  415.] share 0.72
+  T4 Hospital owner T6 at [1083.   -2. -929.] share 1.00
+  T5 Railgun owner T7 at [-976.   -2. 1172.] share 1.00
+  T6 HQ owner T7 at [-1248.     0.   950.] share 1.00
+  T6 Mansion owner T5 at [ 423.    0. 1040.] share 0.60
+  T6 Mansion owner T5 at [1024.    0. -309.] share 0.66
+  T6 Mansion owner T7 at [-1114.     0.   604.] share 1.00
+  T6 Mansion owner T5 at [ 448.    0. 1045.] share 0.56
+  T6 Konbini owner T5 at [1024.    0.   86.] share 1.00
+  T6 Konbini owner T7 at [   35.     0. -1163.] share 0.49
+  T7 Nest owner T8 at [1281.   -9. 1596.] share 1.00
+  T7 Ant owner T8 at [ 1.016e+03 -1.000e+00  1.383e+03] share 0.66
+  T7 Ant owner T8 at [ 970.   30. 1493.] share 1.00
+  T7 Ant owner T8 at [1209.    3. 1585.] share 1.00
+  T7 Ant owner T8 at [ 8.690e+02 -1.000e+00  1.402e+03] share 0.81
+  T7 Ant owner T8 at [ 854.    2. 1635.] share 1.00
+  T8 LairTower owner T9 at [ 1.805e+03 -1.000e+00 -2.468e+03] share 1.00
+  T8 Graveyard owner T9 at [-2037.    -7.  -678.] share 0.98
+  T8 Graveyard owner T7 at [-1320.    -6.   403.] share 1.00
+  T8 Graveyard owner T2 at [-362.   -6. -196.] share 1.00
+  T8 Graveyard owner T9 at [  264.    -5. -2144.] share 1.00
+  GONE under a all T2 Wyvern (2 built)
+  GONE under a all T3 BrickFlat (1 built)
+  GONE under a all T4 Hospital (1 built)
+  GONE under a all T5 Railgun (1 built)
+  GONE under a all T6 HQ (1 built)
+  GONE under a all T7 Nest (1 built)
+  GONE under a all T8 LairTower (1 built)
+  GONE under b all T2 Gate (1 built)
+  GONE under b all T2 Hound (4 built)
+  GONE under b all T2 Wyvern (2 built)
+  GONE under b all T3 BrickFlat (1 built)
+  GONE under b all T3 Overpass (2 built)
+  GONE under b all T4 Portal (2 built)
+  GONE under b all T4 Hospital (1 built)
+  GONE under b all T5 Railgun (1 built)
+  GONE under b all T6 HQ (1 built)
+  GONE under b all T7 Ant (6 built)
+  GONE under b all T7 Nest (1 built)
+  GONE under b all T8 LairTower (1 built)
+  GONE under b all T8 Shrine (1 built)
+plaza rows by track Counter({1: 51, 4: 2, 2: 1, 5: 1})
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit
