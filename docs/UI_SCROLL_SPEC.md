@@ -22,13 +22,15 @@ Status: owner approved the references 2026-11-20. Sizes, timings and colours sta
 ## Per-GUI layouts
 Design doc 4.46 lists each layout. Reference frame per GUI (`assets/ui/scroll_redesign/drafts/<name>.html`, shots in
 `drafts/shots/`): index, phone_index, backpack, shop, market, quests, daily, rebirth, stats, settings, settings_profile,
-tracks, duel, starter, itemmenu, pickers, rolloptions, toasts, bosses, bossreward, bossinvite, bosshud, hud_a.
+tracks, duel, starter, itemmenu, pickers, rolloptions, toasts, bosses, bossreward, bossinvite, bosshud, hud_a (reverted
+2026-11-23, "too blocky and cluttered"; withdrawn 2026-11-24, see "HUD exception").
 Not built: hud_b (option B rejected), upgrades (the Upgrades tree stays as it is).
 
-## World 2 exception (owner 2026-11-24, design doc 4.47)
-- HUD only: in the World 2 place the always-on HUD skips option A (`Client/HudPlaque.Old`; no Plaque, Seal or Lacquer
-  dressing, no wooden Turbo bar) and keeps its look from before this redesign. Panels, popups, toasts and the boss event UI
-  are unchanged: they keep the handscroll and the kit in both worlds.
+## HUD exception (owner 2026-11-24, design doc 4.46 "HUD look")
+- The always-on HUD is not part of this redesign, in World 1 and World 2 alike: it skips option A
+  (`Client/HudPlaque` is removed; no Plaque, Seal or Lacquer dressing, no wooden Turbo bar, no kit fonts) and keeps its
+  look from before this redesign. HUD option A (`hud_a` above) is withdrawn and kept as history. Panels, popups, toasts
+  and the boss event UI are unchanged: they keep the handscroll and the kit in both worlds.
 
 ## Hookup
 - Panels opt in with the `Handscroll` attribute; `PanelSwitch` then runs the unroll in place of `openMotion` /

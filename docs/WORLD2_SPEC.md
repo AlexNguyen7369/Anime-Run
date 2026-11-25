@@ -7,12 +7,19 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 ## Place
 - One source tree, two places. `default.project.json` builds World 1; `world2.project.json` is the same tree plus
   `ReplicatedStorage.WorldId` (IntValue 2). Keep the two files in step when the tree changes.
-- `Shared/WorldConfig`: `Id`, `PLACES` (World 1 = 102957063656302; World 2 = nil until the owner creates the place in
+- `Shared/WorldConfig`: `Id`, `PLACES` (World 1 = 102957063656302; World 2 = 79352569024576, in
   universe 10773557968), `GATE_OPEN = false`, `PROGRESS_KEYS`.
 - `Shared/TrackRegistry` loads `Shared/Tracks/World2/` in World 2.
 
 ## Track lighting
-- Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed). Seen in Studio before the fix:
+- Seen in Studio 2026-11-25 (World 2 place, merged code 1a3e5795 plus docs, pictures in
+  `assets/world2_draft/audit/lighting_2026-11-25`): all ten tracks' live Lighting values meet the floors below (T8
+  OutdoorAmbient read 0.6176 mid-blend); roads and rails read on Tracks 6 to 10 and 1, 4, 8; a placed runner reads on
+  night Tracks 1, 4 and 8, and on 4 and 8 in an iPhone 17 Pro emulation. Not seen: real phones, a real run, Tracks 2, 3 and
+  5 in pictures, high or low quality settings. Flaws found, not fixed (docs/BUGS.md): grass through the road on Tracks 6
+  and 7, near-black scenery props on 1, 4, 6, 7, 8 and 10.
+- Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed; the road-and-runner rule below is
+  met as seen above, owner 2026-11-25 "approved all continue the merge"). Seen in Studio before the fix:
   Track 1, 4 and 8 were close to black (Ambient under 30 of 255, Track 8's OutdoorAmbient 15), and Track 2's
   OutdoorAmbient was taken from the draft's below-horizon stop (32, 23, 35) instead of its orange skyline.
 - Rule: a track's lighting keeps the hue of its approved draft sky, but the road and the runner must read on every
@@ -63,14 +70,13 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 
 ## World HUD and welcome (proposed, design doc 4.47)
 ### World HUD
-- HUD look (owner 2026-11-24, design doc 4.47 "World 2 HUD look"): World 2's always-on HUD keeps its look from before
-  the Scroll Dojo redesign (4.40, main at `6a36029^1`); every panel, popup and the boss event UI keep the 4.46 look.
-  One switch, `Client/HudPlaque.Old` (`WorldConfig.Id == 2`), read by HudChrome, BossEventUi (Bosses and Team column),
-  RacerUiController (Money, Gems, Turbo bar), TeamHud and WorldHud. Positions and behaviour are unchanged.
+- HUD look (owner 2026-11-24, design doc 4.46 "HUD look" and 4.47): World 2's HUD is World 1's, and both keep the
+  always-on HUD's look from before the Scroll Dojo redesign (4.40, main at `6a36029^1`); every panel, popup and the
+  boss event UI keep the 4.46 look. No switch (`Client/HudPlaque` is removed, main PR #29). Positions
+  and behaviour are unchanged. World 2 differs only by the fourth team slot.
 - World label: `Client/WorldHud` shows "World N" (`WorldConfig.Id`) under the top-right pills, as wide as and
-  right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales): a small lacquer plate in
-  World 1, the old top-right pills' dark round pill with white outlined text in World 2. Display only; shown in both
-  worlds.
+  right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales): the old top-right
+  pills' dark round pill with white outlined text, in both worlds. Display only; shown in both worlds.
 - Travel: while the server holds a trip (player attribute `Travelling`, `WorldTravel.Go`, gate or admin command alike),
   TeamToast shows "Travelling to World N..."; a failed trip shows TeamToast's "TRAVEL FAILED, TRY AGAIN". The locked
   gate looks unchanged.
@@ -101,7 +107,7 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 
 The "Based on" names stay in docs and never ship (design doc 5).
 
-Track swap (owner 2026-11-25): Tracks 1 and 6 exchanged biomes. Moves with the biome: track id, name, palette, scenery,
+Track swap (owner 2026-11-25; **not built yet**: the code still has DevilTokyo at 1 and ElvenPlains at 6 until the swap branch merges): Tracks 1 and 6 exchange biomes. Moves with the biome: track id, name, palette, scenery,
 lighting, card blurb, enemy name and model. Stays with the number: road segments and length, pay, Gems, `BestTrack` /
 `Checkpoint` / `RaceBestTimes`, enemy speed (Track 6: 190). Approvals and hero moves below that name Track 1 or 6 were
 written before the swap.
@@ -172,6 +178,19 @@ written before the swap.
   (b) Track 5's dead kaiju (`GiantCorpse`) and its site (ground, crushed buildings, rubble and crew around it), sized to
   fit a legal spot, earlier form rulings dropped; reference renders need the owner's approval before export, upload or
   placement. The rest of Track 5 stays frozen. Every other track stays on the re-export hold.
+- Owner 2026-11-25 on the dead kaiju's first draft: shape, size (about 311 x 150 studs, 116 tall) and colour are good and
+  stay; fix the lead's four faults (crushed walls look like flat cutouts, visible ground edge around the body, soft feet
+  and claws and an eye that barely reads, bare road-side bank) in review rounds against the references. This is not the
+  approval of the reference renders.
+- Approved by the owner 2026-11-25: Track 5's dead kaiju, round 5 (1bc5e9f7), frozen; its added surroundings are cut to
+  the props that overlap no other track's scenery ("approve round 5, cut to the clear props"). Export, ledger, upload
+  and placement in game still need the Track 5 re-export hold lifted and the owner's upload word.
+- Spawn pieces (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2): gate, boss gate, stalls and merchants are World 1's; the Summon altar is draft A here and draft B in World 1.
+- Ground ownership (owner 2026-11-25, the overlap question): where two tracks' scenery meets, a spot belongs to the track
+  whose road (nearest centre line) is nearest; other tracks' props there are moved or removed. Before any frozen track
+  changes, a full count (props and heroes per track) goes to the owner; the freezes and the re-export hold stand until
+  then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
+  legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its

@@ -80,6 +80,7 @@ Nothing car-shaped stays in the game:
   - Summon wing, each front facing (-0.68, -0.73): Best Roll (43.3, 14.3), Sidekick summon altar (26.8, 40.6), Saitamo exclusive pedestal (-3.4, 53.7) (owner 2026-11-10; was Legends (0.8, 53.8) and (-7.6, 53.5)).
   - Sensei (-80.0, 57.9), facing the path. The Great Sakura stays at (80, 118). The Sidekicks stall is removed.
   - Floating headers move with their buildings; the altar gets a SIDEKICKS header like the row's.
+- **Replaced 2026-11-25 (owner, 4.2):** the Index, Team altar and Saitamo pedestal positions and the sky-loop posts below give way to the fuller layout of 4.2; every other position in this section stays.
 - **Spawn showpiece** (owner picked draft C "Terrace, wide court" 2026-11-11, design doc 4.43; built the same day): a raised landmark at the spawn, the six service buildings on a ring round it, every front facing the spawn. Roblox world (x, z) at the floor; sizes proposed, the arrangement fixed.
   - Terrace (`Showpiece` mesh over `SpawnArea`'s Terrace1-3 cylinder stand-ins, which keep the collision): 3 steps of radius 26 / 20 / 14, each 0.8 tall, top at y 3.4 (`SpawnArea.SPAWN_TOP`); the SpawnLocation and the walk spawn on the top step; a spawn disc of radius 9.5 with a neon rim; a petal moat from radius 10 to 13.4 with 8 bloom jets and 8 small lanterns baked into the mesh. The spawn mosaic is retired. The path's stones start 27 studs out.
   - Saitamo exclusive pedestal on the middle step at (11.6, 12.5), rig feet at y 5.2, facing the spawn (-0.68, -0.73).
@@ -108,6 +109,33 @@ positions are **proposed**; warm gold, amber and paper, one pink accent, matchin
 - **Drones**: 4 warm steel discs (4 across) with a gold rim (one pink) and an amber lamp with a soft light, 15 to 18
   above the 4 stone lanterns by the gate, bobbing on near clients (tag `BiomeBob`). 12 parts.
 - Total 39 parts, 4 lights. No new client script, asset or sound.
+
+
+### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders, build not started)
+The same in both worlds unless a line says otherwise (owner: "consistent with world"); replaces "services unchanged" in
+WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels stay; positions stay except those the fuller layout below replaces; every size **proposed**.
+- World gate: gate draft B (shrine gatehouse). Position, lock rule and destination unchanged. Proposed: the label moves up,
+  a non-disc touch part, a locked and an open mesh.
+- Boss gate (new): gate draft A (stone ring). Owner 2026-11-25: stands next to the Summon altar (read of "spawn altar";
+  spot S4 (2.5, 94.8) facing the spawn, full size, owner 2026-11-25 "approved all", orchestrator's reading), does the same as clicking the Bosses button (opens the Bosses
+  popup), closed while no boss event is active and open while one is. **Proposed**: closed, its prompt does nothing; it
+  changes no boss rule, timing or reward; below the rebirth level that hides the Bosses button it stays closed.
+- Layout (owner 2026-11-25): the Saitamo statue and the Index board may move so they block nothing (the world gate, the
+  Summon altar and the boss gate from the spawn). Fuller layout approved (owner 2026-11-25, same words and reading): statue (-16.5, 4.4), Index (76.7, -34.2), Team altar (-35.0, 76.4), loop posts 45 to 19, 100 to 75, 315 to 322 degrees; to fix while building: the gate's left pillar cut on the join view, the statue over the RACE START sign. The
+  Index keeps its prompt, panel and header. The sky loop and its posts stay in that
+  layout. Owner, same day: "propose new format of spawn if needed": a fuller new layout may also be proposed; nothing
+  moves until the owner approves it.
+- Summon altar: World 1 draft B (great lotus), World 2 draft A (twin-roof stage). The only difference between the worlds'
+  pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged.
+- Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds.
+- Merchants (owner 2026-11-25, "approved merchant casts"): existing roster models, the same in both worlds: Shop
+  `sea_navigator` (Nammi), Potions `leaf_medic` (Sakara), Market `ds_flame` (Rengoko), Index `fr_mage` (Frierin), Sensei
+  `leaf_copycat` (Kakashe), display names the tweaked ones (design doc 5). Static. **Open**: Kakashe's size under the
+  Sensei header (proposed: full size with the header 1.9 studs higher); which models "every world shows" covers (4.47).
+- Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
+  start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
+  the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed; names and
+  wording in the tweaked forms; the E prompt is separate from the gate's own prompt so both can be reached.
 
 ## 5. Player plots: removed (owner 2026-11-11, design doc 4.43)
 

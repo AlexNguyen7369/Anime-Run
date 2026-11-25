@@ -42,7 +42,6 @@ local UiFeedback = require(client.UiFeedback)
 local PanelBand = require(client.PanelBand)
 local PanelFrame = require(client.PanelFrame)
 local AnimeSkin = require(client:WaitForChild("AnimeSkin"))
-local HudPlaque = require(client:WaitForChild("HudPlaque"))
 local NpcConfig = require(Shared.NpcConfig)
 local BossWaitCamera = require(client.BossWaitCamera)
 local RunnerVisual = require(client.RunnerVisual)
@@ -65,18 +64,9 @@ hud.MoneyPlate:Destroy()
 hud.Unbanked:Destroy()
 UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
--- World 2 (HudPlaque.Old, design doc 4.47): the 4.40 read-outs, Fredoka gradient numbers with no plate, blue Gems.
-local OLD_HUD = HudPlaque.Old
-if not OLD_HUD then
-	HudPlaque.Font(hud.MoneyValue, HudPlaque.Heading) -- option A (design doc 4.46): Permanent Marker on the lacquer plate
-end
 -- Gems read-out (design doc 4.35, 4.40): a row directly under the Money number, inside Money so it follows its layout
 -- and scale; RacerHud is generated, so it is built here.
--- Option A (design doc 4.46, drafts/hud_a.html): gold Kalam numbers on the lacquer plate.
-local GEM, GEM_DEEP = HudPlaque.Gold, Color3.fromRGB(214, 150, 40)
-if OLD_HUD then
-	GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255)
-end
+local GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255)
 local gemsPlate = Instance.new("Frame")
 gemsPlate.Name = "Gems"
 gemsPlate.BackgroundTransparency = 1
@@ -96,11 +86,7 @@ gemsValue.Name = "GemsValue"
 gemsValue.Position = UDim2.fromScale(0.2, 0)
 gemsValue.Size = UDim2.fromScale(0.8, 1)
 gemsValue.BackgroundTransparency = 1
-if OLD_HUD then
-	gemsValue.Font = UiTheme.Font
-else
-	HudPlaque.Font(gemsValue, HudPlaque.Script)
-end
+gemsValue.Font = UiTheme.Font
 gemsValue.TextSize = 26
 gemsValue.TextColor3 = Color3.new(1, 1, 1)
 gemsValue.TextXAlignment = Enum.TextXAlignment.Left
@@ -109,45 +95,12 @@ gemsValue.ZIndex = 3
 UiTheme.Gradient(gemsValue, GEM, GEM_DEEP)
 UiTheme.Stroke(gemsValue, 2, Color3.fromRGB(18, 22, 43))
 gemsValue.Parent = gemsPlate
--- Owner 2026-11-20 (design doc 4.40, 4.46 option A): Money and Gems each sit on a lacquer counter plate (dark, gold
--- rim) fitted to the shown number; the Money coin overlaps the plate's left end. Behind the text (ZIndex 2), never input.
-local PLATE_PAD = 12 -- px past the number's end (proposed)
-local moneyLacquer, gemsLacquer -- nil in World 2 (no plates there)
-if not OLD_HUD then
-	moneyLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
-	moneyLacquer.Name = "MoneyLacquer" -- not MoneyPlate: that generated part stays retired (UiSpec.Hud.RetiredMoneyParts)
-	moneyLacquer.ZIndex = 2
-	moneyLacquer.Active = false
-	moneyLacquer.Parent = hud.Money
-	gemsLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
-	gemsLacquer.Name = "GemsLacquer"
-	gemsLacquer.ZIndex = 2
-	gemsLacquer.Active = false
-	gemsLacquer.Parent = gemsPlate
-end
 -- Follows MoneyValue's desktop and phone layouts, so it needs no phone branch of its own.
 local function placeGems()
 	local value = hud.MoneyValue
 	local x, y, height = value.Position.X.Offset, value.Position.Y.Offset, value.Size.Y.Offset
 	gemsPlate.Size = UDim2.fromOffset(value.Size.X.Offset, height * 0.7)
 	gemsPlate.Position = UDim2.fromOffset(x, y + height + 4)
-	if not moneyLacquer then
-		return
-	end
-	local icon = hud.MoneyIcon
-	local left = icon.Position.X.Offset + icon.Size.X.Offset / 2
-	local right = math.min(x + value.TextBounds.X + PLATE_PAD, hud.Money.Size.X.Offset)
-	moneyLacquer.Position = UDim2.fromOffset(left, y - 6)
-	moneyLacquer.Size = UDim2.fromOffset(math.max(right - left, 0), height + 12)
-	local gemsHeight = height * 0.7
-	gemsLacquer.Position = UDim2.fromOffset(-6, -3)
-	gemsLacquer.Size = UDim2.fromOffset(
-		math.min(
-			gemsValue.Position.X.Scale * gemsPlate.Size.X.Offset + gemsValue.TextBounds.X + PLATE_PAD + 6,
-			value.Size.X.Offset + 6
-		),
-		gemsHeight + 6
-	)
 end
 -- Owner 2026-11-01: the speedometer and the cruise read-out are removed from the HUD.
 hud.Speed:Destroy()
@@ -1485,10 +1438,6 @@ end
 placeGems()
 hud.MoneyValue:GetPropertyChangedSignal("Position"):Connect(placeGems)
 hud.MoneyValue:GetPropertyChangedSignal("Size"):Connect(placeGems)
--- The plates fit the number as it counts.
-hud.MoneyValue:GetPropertyChangedSignal("TextBounds"):Connect(placeGems)
-gemsValue:GetPropertyChangedSignal("TextBounds"):Connect(placeGems)
-hud.MoneyIcon:GetPropertyChangedSignal("Size"):Connect(placeGems)
 -- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
 local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
 local moneyBigOwed = false -- a big gain that landed during a roll: its coins wait for the roll to end
@@ -1638,43 +1587,6 @@ end
 hud.Turbo.ClipsDescendants = true
 hud.TurboFill.ZIndex = 2
 hud.TurboLabel.ZIndex = 5
--- Owner 2026-11-22 (design doc 4.40, 4.46 HUD option A, drafts/hud_a.html): a wooden bar with a vermilion fill. Only
--- colours change: the Face is the dark well the fill runs in (so the fill's share of the bar is unchanged), its rim
--- the wood frame, the Shadow the dark wood edge under it. Size, position, names and behaviour stay.
-if not OLD_HUD then -- World 2 keeps the generated bar (design doc 4.47)
-	local wood = UiTheme.Scroll.Skins.Parchment
-	local face, shadow = hud.Turbo, hud.Turbo.Parent:FindFirstChild("Shadow")
-	local well = face:FindFirstChildOfClass("UIGradient")
-	if well then
-		well.Color = ColorSequence.new(Color3.fromRGB(44, 26, 14), Color3.fromRGB(30, 18, 10))
-	end
-	local rim = face:FindFirstChildOfClass("UIStroke")
-	if rim then
-		rim.Color, rim.Thickness = wood.RodTop, 4
-		local grain = Instance.new("UIGradient")
-		grain.Name = "Wood"
-		grain.Rotation = 90
-		grain.Color = ColorSequence.new(Color3.fromRGB(154, 106, 64), wood.RodBottom)
-		grain.Parent = rim
-	end
-	if shadow then
-		shadow.BackgroundColor3, shadow.BackgroundTransparency = UiTheme.Scroll.TileEdge, 0
-		local edge = shadow:FindFirstChildOfClass("UIStroke")
-		if edge then
-			edge.Color, edge.Transparency = UiTheme.Scroll.TileEdge, 0
-		end
-	end
-	local lift = face:FindFirstChild("Lift")
-	if lift then
-		lift.Visible = false -- the well is sunk, not lit
-	end
-	hud.TurboFill.BackgroundColor3 = Color3.new(1, 1, 1)
-	local verm = Instance.new("UIGradient")
-	verm.Name = "Vermilion"
-	verm.Rotation = 90
-	verm.Color = ColorSequence.new(UiTheme.Dojo.DeployTop, UiTheme.Dojo.DeployBottom)
-	verm.Parent = hud.TurboFill
-end
 
 playerGui:SetAttribute("RacerUiReady", true)
 

@@ -230,7 +230,9 @@ UiScenarios.Names = {
 	-- World label, travel toast and the World 2 welcome (UiWorld2; docs/WORLD2_SPEC.md "World HUD", "Welcome")
 	"ui_world_label",
 	"ui_world2_welcome",
-	"ui_hud_look_by_world", -- World 2: 4.40 HUD, no option A dressing; panels keep the handscroll in both (design doc 4.47)
+	"ui_boss_gate", -- the gate's look and its prompt, closed and open (UiBossGate; WORLD_REDESIGN_SPEC 4.2)
+	"ui_boss_guide", -- Gojio's conversation at the boss gate (UiBossGuide; docs/BOSS_GUIDE_SPEC.md)
+	"ui_hud_look_by_world", -- both worlds: 4.40 HUD, no option A dressing; panels keep the handscroll (design doc 4.46 "HUD look")
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
 	"ui_remote_guards",
 	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened
@@ -338,6 +340,7 @@ UiScenarios.Needs = {
 	ui_team = { "hud_unlock" },
 	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
+	ui_boss_guide = { "quiet" }, -- auto-rolls and runs move what grants_nothing watches
 	ui_bag_full = { "auto_roll_on" },
 	-- An undiscovered tile needs an unowned character: the reused test save can own them all (full_run5)
 	ui_index = { "index_states" },
@@ -346,7 +349,7 @@ UiScenarios.Needs = {
 }
 -- Put back right after the scenario that asked (RestoreSetups runs only at the end of a full run), so later scenarios
 -- see the saved RebirthLevel again.
-FX.RESTORE_AFTER = { hud_unlock = true, team_full = true, index_states = true }
+FX.RESTORE_AFTER = { hud_unlock = true, team_full = true, index_states = true, quiet = true }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
 UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
@@ -5692,46 +5695,20 @@ function S.ui_hud(res)
 			end
 		end
 		checkList(res, "hud_labels_inside_panel", outside)
-		-- Owner 2026-11-20 (design doc 4.40, 4.46 option A): Money and Gems each sit on a lacquer plate
-		-- (UiSpec.Hud.MoneyPlates), opaque with a gold Border rim; nothing else in Money draws a background or a border
-		-- stroke (text outlines stay).
-		local boxed, clickable, plates = {}, {}, {}
-		for _, p in UiSpec.Hud.MoneyPlates do
-			local plate = findPath(p)
-			local rim = plate and plate:FindFirstChildOfClass("UIStroke")
-			plates[plate or p] = true
-			if not (plate and plate:IsA("GuiObject")) then
-				table.insert(boxed, p .. " missing")
-			elseif plate.BackgroundTransparency > 0.001 then
-				table.insert(boxed, p .. " not opaque: BackgroundTransparency " .. plate.BackgroundTransparency)
-			elseif
-				not (
-					rim
-					and rim.Enabled
-					and rim.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
-					and sameColour(rim.Color, UiSpec.Hud.MoneyPlateRim)
-				)
-			then
-				table.insert(boxed, p .. " has no gold Border rim")
-			end
-		end
+		-- No box (design doc 4.40; 4.46 "HUD look", owner 2026-11-24, both worlds: no option A lacquer plate):
+		-- Money, Gems and everything in them draw no background and no border stroke (text outlines stay).
+		local boxed, clickable = {}, {}
 		for _, o in { hudPanel, table.unpack(hudPanel:GetDescendants()) } do
-			local plate = plates[o] or (o:IsA("UIStroke") and plates[o.Parent]) -- a plate and its own rim
-			if not plate and o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
+			if o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
 				table.insert(boxed, pathOf(o) .. " BackgroundTransparency " .. o.BackgroundTransparency)
-			elseif
-				not plate
-				and o:IsA("UIStroke")
-				and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
-				and o.Enabled
-			then
+			elseif o:IsA("UIStroke") and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border and o.Enabled then
 				table.insert(boxed, pathOf(o) .. " border stroke")
 			end
 			if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
 				table.insert(clickable, pathOf(o))
 			end
 		end
-		checkList(res, "money_gems_lacquer_plates", boxed)
+		checkList(res, "money_gems_no_box", boxed)
 		checkList(res, "money_gems_non_interactive", clickable)
 	end
 	if not (money and moneyValue) then
@@ -5804,6 +5781,40 @@ function S.ui_hud(res)
 		end
 	end
 	checkList(res, "hud_counters_have_text_gradient", noGradient)
+	-- Design doc 4.46 "HUD look" (owner 2026-11-24, both worlds): the 4.40 read-outs. Both numbers are in the
+	-- game font with no kit role, and the Gems gradient is blue.
+	local wrongLook = {}
+	for _, p in UiSpec.Hud.GradientLabels do
+		local l = findPath(p)
+		if not l then
+			table.insert(wrongLook, p .. " missing")
+		elseif l.Font ~= UiSpec.Hud.ReadoutFont then
+			table.insert(wrongLook, ("%s Font %s, want %s"):format(p, l.Font.Name, UiSpec.Hud.ReadoutFont.Name))
+		elseif l:GetAttribute("AnimeRole") == "Dojo" then
+			table.insert(wrongLook, p .. " has the kit font role (AnimeRole Dojo)")
+		end
+	end
+	local gemsGradient = gemsValue and gemsValue:FindFirstChildOfClass("UIGradient")
+	local keys = gemsGradient and gemsGradient.Color.Keypoints
+	if
+		not (
+			keys
+			and sameColour(keys[1].Value, UiSpec.Hud.GemsGradient[1])
+			and sameColour(keys[#keys].Value, UiSpec.Hud.GemsGradient[2])
+		)
+	then
+		table.insert(
+			wrongLook,
+			("%s gradient %s to %s, want blue %s to %s"):format(
+				UiSpec.Hud.GemsValue,
+				tostring(keys and keys[1].Value),
+				tostring(keys and keys[#keys].Value),
+				tostring(UiSpec.Hud.GemsGradient[1]),
+				tostring(UiSpec.Hud.GemsGradient[2])
+			)
+		)
+	end
+	checkList(res, "hud_readouts_old_look", wrongLook)
 	local toggle = findPath(UiSpec.Hud.Auto)
 	check(
 		res,
@@ -7612,6 +7623,14 @@ local function billboardsAtHub(res)
 		"Pedestal.CharacterMount",
 		mount ~= nil and bestStats ~= nil and bestStats:IsA("BillboardGui") and bestStats.Adornee == mount
 	)
+	-- WORLD_REDESIGN_SPEC 4.2 (owner 2026-11-25, fuller layout): the moved Index and Team altar keep their floating
+	-- headers over them (Client/PlazaWayfinding). World (x, z); 8 studs: a header may hang over its building's front.
+	for key, at in { Index = Vector2.new(76.7, -34.2), Team = Vector2.new(-35.0, 76.4) } do
+		local anchor = Workspace.Terrain:FindFirstChild("Wayfinding_" .. key)
+		local p = anchor and anchor.WorldPosition
+		local off = p and (Vector2.new(p.X, p.Z) - at).Magnitude or -1
+		check(res, "header_" .. key .. "_over_moved_building", off, 8, p ~= nil and off <= 8)
+	end
 end
 
 function S.ui_billboards(res)
@@ -9138,6 +9157,18 @@ for name, fn in K.world2.Scenarios do
 	S[name] = fn
 end
 for cond, fn in K.world2.After do
+	access.After[cond] = fn
+end
+
+K.bossGate = require(script.Parent.UiBossGate).Build({ check = check })
+for name, fn in K.bossGate.Scenarios do
+	S[name] = fn
+end
+K.bossGuide = require(script.Parent.UiBossGuide).Build({ check = check })
+for name, fn in K.bossGuide.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossGuide.After do
 	access.After[cond] = fn
 end
 

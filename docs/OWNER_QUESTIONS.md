@@ -261,3 +261,79 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
    or count only the current world's discoveries in each world? Blocks nothing; the tests hold the rule as written.
 2. In the World 2 report the checks `service_roll_new_secret_emphasized` and the auto-roll pause run on the place's
    rarest character, an Eternal (hold 5 s, 4.47), under their old names. Rename them, or leave?
+
+## 2026-11-25 Track 1 and 6 swap, dead kaiju rework (open; nothing merged, exported to the ledger or uploaded)
+1. Elven RuinedCastle on Track 1: no legal spot at the approved scale 1.5 so far; it fits at 0.52. Default: not built at
+   1.5's rule. Keep it at 0.52, or leave it out? (Audit of cb6d716e: 0.52 without a ruling is a FAIL.)
+2. Elven hill Town: no legal spot on Track 1 either (it had none on Track 6). Accept?
+3. Devil Hunter HQ on Track 6 fits at scale 1.0 but its box overlaps 11 other-track props. Part of the overlap question.
+4. Kaiju site fill: 169 of 185 added props overlap other tracks' draft props (counted before the swap); the kaiju's own
+   box overlaps 19 and 25. Cut to the clear ones (about 16, apron bare again) or keep them?
+   Answered by the owner 2026-11-25: cut to the clear props; round 5 of the kaiju approved.
+5. Kaiju references: `build/world2/refs/KaijuBase` is only on the Mac, the linked wiki refuses automated access; no
+   image comparison is done.
+6. Kaiju rework, rules audit of 55f74eed (NEEDS OWNER): all 8 frozen SweeperVans moved along the road to stand by the new
+   sites. Are the vans part of the reopened site, and do the new spots stand? (Approved round 5 shows them moved, but the
+   move was not pointed out to the owner.)
+7. The kaiju's own box overlaps 17 and 24 other-track props (against cb6d716e), most of them Track 6's. Leave them, or
+   reopen those layouts to remove them?
+8. Swap round 2 (39311940), rules audit: "approved turn" is not defined for a re-laid layout. Default: the old draft's turn
+   rules. Do more statues (3, was 2) and army Ranks (7, was 4) on Track 1 stand? Two HQs on Track 6 overlap 9 and 3
+   other-track props (item 3's "11" is replaced): both, the second only, or neither?
+9. Kaiju vans (item 6): 5 of 8 can return to their frozen spots (bb93b6c4 scratch test); 3 would stand inside the kaiju.
+   Kaiju overlaps with exempt props counted: 21 and 28 (item 7's 17 and 24 left them out).
+10. Swap round 3 (c45275d7): close-up model counts on Track 6's longer road (2.95 times Track 1's): Mansion 95 (48), Apaato
+    60 (35), Konbini 65 (16), Retro 2 (1). Accept? Second HQ is now out; the one HQ overlaps 9 other-track props (item 8).
+    Track 1 options rendered, not exported: castle at 0.52; statues and Ranks turned to the runner (6 Ranks).
+    FarWood and RoofTile are not built on either track. Review page: https://claude.ai/artifact/Ng3id1ML1KNxWoYP1xoZ4E
+11. Swap round 4 (2d0d07a9; scores T1 7, T6 7; rules audit: no violations): the four Ranks overlap 6, 1, 1 and 2 (agent-1's
+    count; the audit's table lists 1 for the last) other-track props. The finish Rank at (364, 399) stands about 13 studs
+    from Track 2's RuinB and nearer Track 2's road than Track 1's. Keep it, or leave it out (the finish goes emptier)?
+    Item 8's Rank and statue counts are back to the old 4 and 2; its second HQ is out.
+12. Scenery overlap across tracks (the open overlap question, now seen in renders with all ten tracks drawn, 5747dda6
+    track01_ElvenPlains/context and track06_DevilTokyo/context): other tracks' scenery fills Track 1's views, and the
+    old layouts intersected too. agent-1's mesh test, props of ours touching another track's: old slot 1 154 of 338,
+    old slot 6 240 of 652; round 5 Track 1 21 of 255, Track 6 95 of 746 (Track 6 lost 88 props for it). The finish Rank of
+    item 11 was inside Track 2's RuinB and is removed. A rule for which track owns which ground is needed first.
+    Ruled by the owner 2026-11-25: nearest road owns the ground (WORLD2_SPEC "Ground ownership"); full count first.
+13. Ground ownership, details the ruling does not give: the plaza's ground; centre or whole footprint of a prop; heroes
+    that fit no spot under the rule (leave out, shrink or move far). Asked with the full count.
+14. Swap round 5 (5747dda6) scored T1 6, T6 6 (bar 7) on its own scenery; round 6 waits for the ownership count.
+15. Audit of round 5 (NEEDS OWNER, no hard violation): Mound 4 to 0, LowBlock 3 to 1 and item 10's counts are stale (now 63, 49, 57); moved props keep their old turn; the 5% / 15% overlap limits are in no doc. Harness exit 1 on the 10 known unplaced heroes only (ROAD 47/10, TRANSFORM 10684/0, PIN 11/0, 154 warnings), run twice independently.
+16. Ground count (docs/proposals/world2_ground_count): (a) base centre moves 12% of props and leaves 107 touching pairs; (b) any footprint point 17% and 0 pairs, but T1 would lose 40 to 65% of its own views. Recommend (a), props touching a neighbour fixed one by one. Which?
+17. T6 HQ, T5 Railgun, T7 Nest, T8 LairTower stand on another track's ground and have no legal spot under the rule (all approved heroes). Keep them as exceptions, or leave them out? T4 Hospital would move 1987 studs. Until ruled, round 6 leaves HQ where it is.
+18. Kaiju fill after the swap (docs/proposals/kaiju_dry_run): the re-cut keeps 12 props, 9 of them round 5 candidates the swap frees; only 3 of the committed 10 survive. Do freed props come back (12), or may the fill only shrink (3)? The 8 committed site renders match neither. Kaiju overlaps now 25 and 28.
+
+## 2026-11-25 Spawn drafts: world gate, Summon altar, markets and merchants (renders only; nothing in game)
+1. Gate: blind re-score B 7.8 (recommended), A 7.0, C 6.8, current 4.3 (bar 7). Pick one? Any pick moves the floating label, B and C need a non-disc touch part, and each needs a locked and an open mesh.
+2. Gate spawn view: the Index board and a sky-loop post cover about the right half of every gate, today's included. Move one, or accept? The 1.3x option touches no neighbour but overhangs the floor corner by 6 to 7.4 studs and does not fix it.
+3. The approved Rift Shrine rift is a spiral disc; the gate drafts dropped a spiral for design doc section 5. Keep the rift as is?
+4. Altar (blind scores A 7.6, B 6.4, C 6.1): all three read poorly from the spawn because the Saitamo pedestal (11.6, 12.5) and a sky-loop post stand on the sightline. Move the pedestal, or accept? A is in a revision round.
+5. A reviewer says the orange and black runner model used as a scale dummy (repo model, not the altar) has a red swirl on its back close to a known ninja series emblem. Check it against design doc section 5.
+6. Markets and merchants (blind scores A dojo 7.3, B rift shrine 7.5, today's 3.5): which direction, and in which world? WORLD2_SPEC says World 2's services are unchanged from World 1, so B there needs a rule. Merchants at the stalls are new figures and need a design doc line before code. Likeness fixes from the review are in a revision round.
+7. Stalls are small from the spawn at today's sizes. Allow bigger ones? The sky-loop leg also hides the Index's middle.
+8. Altar A after its revision (f76bf1b5): blind 7.3, spawn view 5 (6.5 with the statue moved 8 studs, rendered as an option). Pick A, and move the statue?
+9. Two altar reviewers flag the models in the renders, not the altar: the Mythic in the pictures (side_general) has a moderate likeness to a known ninja series armoured giant, and the dummy runner a red spiral. Check both against design doc section 5.
+10. Drafts final state: gate B 7.8, altar A 7.3, markets B 7.25 and A 6.9 blind (A before its last fix pass). On adoption: the stall neon lines, wall screens and the SIDEKICKS header must be re-placed. The altar renders show a World 2 Mythic in a World 1 plaza as a display stand-in. The leaf_hero red swirl is its documented changed mark (CHARACTER_ART_REFERENCES.md:9); the modelled shape was not checked against it. Renders: assets/plaza_draft2/{gate,altar,markets}.
+11. Answered by the owner 2026-11-25: gate B, gate A as the boss gate, altar B in World 1 and A in World 2, markets B in both, roster models as merchants. Still open: where the boss gate stands and whether entering it joins the event (proposed: the Bosses panel's Go); which character at which stall; moving the statue or the Index board (items 2, 4, 8).
+12. Answered by the owner 2026-11-25: boss gate next to the Summon altar, opens the Bosses popup, closed without an active event; the statue and the Index board may move. Waiting: three boss gate spots and the new layout, as renders.
+13. Merchants (drafts, orch/world2/w2-merchants): proposed Shop Nammi, Potions Sakara, Market Rengoko, Index Frierin, Sensei Kakashe, the same in both worlds. Frierin is a World 2 character: use her in World 1, or Gohon? Kakashe is at 0.75 scale under the 6.2 header limit: raise the header, or Pikolo? The headband and sleeve swirls are the models' approved marks; merchants would show them constantly. First review below bar (pose, polish, spawn view), revision running.
+14. Merchants revised (8290f897, https://claude.ai/artifact: "Merchant Cast Review", private): blind Shop 7.75, Market 8.4, Potions 6.9, Index 5.9, Sensei 5.5 (the last two mostly from sightlines). Reviewer would use Orihima at Potions, Gohon at Index, Kakashe at full size (header up 1.9) or Pikolo. Small clip fixes to the approved stalls (lectern, shards, rings, lanterns) need the owner's OK.
+15. Boss gate (90f825ff): blind 7.9. Spots S1, S2, S3 and S4, layouts minimal and fuller: private page "Spawn Layout Proposals". Reviewer and lead: S4 with the fuller layout; it moves the Team altar and three sky-loop posts. Altars B and A: blind 7.6 each before B's last polish pass (012abf93).
+16. Audit of altar-b, boss-gate and merchants (no violations, drafts only). Before adoption: approve the revised look of altar B (petals, Mythic 17.5 studs, label moved); S3 is 95 studs from the altar so it does not fit "next to"; S2 and the fuller layout move ring pieces the base rule keeps; merchants must count as models "every world shows" (4.47 loads only a world's own models). Layout images carry no "proposed" caption.
+17. Answered by the owner 2026-11-25: merchant cast as drafted; Gojio at the boss gate as an E-prompt guide. Still open: the boss gate spot and layout, altar B's revised look, the small stall fixes, Kakashe's header, the guide's dialogue text.
+18. Owner 2026-11-25 "approved all continue the merge": recorded as S4 + fuller layout, revised altar B, stall fixes, and swap and kaiju to proceed when they pass their checks. Not answered: uploads and place saves (boss models, new assets), Kakashe's header, Frierin in World 1 (kept as drafted), ground rule (a)/(b) and the four no-spot heroes, kaiju fill 12 or 3, vans.
+19. agent-3's blind scores at 1a3e5795: altar B unlocked 8, locked 7; merchants 7 in both worlds (Index keeper 6); layouts before 5, minimal 6, fuller 8. Remaining faults are with agent-1's build plan. Section 5 asks: the headband swirls and the arm tattoo on the merchants must be confirmed as approved marks.
+20. Plaza build (feature/alex/plaza-build 08733df2, 74 pass / 53 red offline, not merged): blocked on uploads (8 gate and altar assets, stalls, Index and Sensei dais, SkyLoop) and place saves. Owner to rule: the gate's left pillar on the join view and the statue over RACE START come from the approved spots (88% and 94% visible now): move either, or accept? Also Kakashe's size and header, the altar Mythic's size (7 in game, 17.5 / 25 in the drafts), cyber accents on set B roofs, merchant models under 4.47.
+21. Boss guide (feature/alex/boss-guide 1bfdc8a1, off until the gate is built): approve the six lines in docs/BOSS_GUIDE_SPEC.md; below rebirth 1 shorten the talk or keep it; leave Money and Gems out of the rewards line; a kanji in its title. Render of the popup not made yet.
+22. Swap round 6 (017accdb): blind T1 game 7, context 5; T6 game 7, context 7. Audit: no violations, NEEDS OWNER 9. Office towers on Track 6 fell to 0 without notice (back in round 7). HQ stands inside two T7/T9 props (item 17). Finish Rank not readable from the finish view. T1 context stays 5 because neighbours' props stand in its views (ground rule (a)/(b)).
+23. Boss gate and guide audit (42566847: 4 small violations, fixing; nothing merged). Ship the Parts stand-in gate publicly before the real mesh is uploaded, and without Gojio? Until answered the gate gets an off switch. The loop posts still stand at 45/100/315 (mesh upload needed). Guide: 5% "of that phase's HP" is proposed.
+
+## 2026-11-25 `plaza_build` in the full suite (open; unchanged until ruled)
+- 23 of its 149 checks fail in Studio by design: 22 wait for the uploads and unbuilt pieces, 1 (the sensei's dummy) for the merchants. It is in the always-on list,
+  so the full suite stays red until then. Options: (a) keep it, red until the uploads; (b) the whole scenario on demand until
+  then, which also takes its guards (stall spots and prompts, the gate switch) out of the full suite; (c) split it: the guards
+  stay always on, the waiting checks go on demand as `plaza_build_pending`. Recommended: (c).
+24. Swap round 7 (ab8457cf, not merged): blind T1 game 7, context 5; T6 7 and 7; harness only the known 10; audit no violations, NEEDS OWNER: HQ exception, see the renders ("Track Swap Round 7", private page), base centre or footprint, counts. cross_track no longer checks that Cottage and RuinWall hide a landmark. T1 finish Rank left out.
+25. World 2 scenery (feature/alex/w2-visual-bugs 3a402d6a, not merged): white-mesh fix (code only, +56% per channel on textureless meshes; previewed in Studio, T7_white_preview.jpg and T8_white_preview.jpg: buildings and arches lighter, darkest props still near black); grass fix (code only, a brown strip of 2 to 4 studs beside walls); colour-export fix (branch feature/alex/w2-color-export, needs re-export and upload of up to 115 meshes). Merge the white fix? Grass strip ok? Lift the re-export hold?
+26. Owner 2026-11-25 "yes to all" answers items 22 to 25 and the round 7 questions: see the change log. Not covered: publishing a place; vans; kaiju fill 12 or 3; altar Mythic size; Frierin loading in World 1; the join-view and RACE START nudges.
