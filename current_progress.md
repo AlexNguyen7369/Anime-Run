@@ -290,6 +290,7 @@
 277. 2026-11-25 — Alex Nguyen — Merged the spawn pieces' code, the export tools and Gojio's rebirth rule into the World 2 branch (offline checks in both worlds).
 278. 2026-11-25 — Alex Nguyen — Turned on the 14 reviewed spawn pieces in the World 2 branch, fixed the loader for uploads whose part names carry a number, and saved copies in both places (World 1 v915, World 2 v90, not published); Studio `spawn_area` 188/188 in both worlds, World 1's tests not rerun after the loader fix.
 279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
+280. 2026-11-25 — Alex Nguyen — Merged the Track 5 kaiju fill "A with 12" into the World 2 branch as a draft (Blender tools and renders only; not exported to the game, nothing uploaded).
 
 ## What's next
 **Merge the white-mesh and grass fix once its audit passes, after running `biome_runtime` in Studio.**
