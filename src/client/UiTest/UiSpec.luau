@@ -1657,6 +1657,11 @@ UiSpec.ServerSetup = {
 			.. "puts AutoRoll back to the 'snapshot' value.",
 	},
 	{
+		Id = "quiet",
+		When = "asked for by ui_boss_guide itself (UiScenarios.Needs); put back right after it (restore:quiet)",
+		What = "AutoRoll off and auto racing stopped, so only the scenario itself could move Rolls, Money or Gems.",
+	},
+	{
 		Id = "auto_roll_on",
 		When = "before UiTestRun if AutoRoll is false (a scenario fails with state_missing:auto_roll_on)",
 		What = "Turns auto-rolling back on (AutoRoll = true). Empties spares if the bag is half full (design doc 4.41), until its restore.",

@@ -340,6 +340,7 @@ UiScenarios.Needs = {
 	ui_team = { "hud_unlock" },
 	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
+	ui_boss_guide = { "quiet" }, -- auto-rolls and runs move what grants_nothing watches
 	ui_bag_full = { "auto_roll_on" },
 	-- An undiscovered tile needs an unowned character: the reused test save can own them all (full_run5)
 	ui_index = { "index_states" },
@@ -348,7 +349,7 @@ UiScenarios.Needs = {
 }
 -- Put back right after the scenario that asked (RestoreSetups runs only at the end of a full run), so later scenarios
 -- see the saved RebirthLevel again.
-FX.RESTORE_AFTER = { hud_unlock = true, team_full = true, index_states = true }
+FX.RESTORE_AFTER = { hud_unlock = true, team_full = true, index_states = true, quiet = true }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
 UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
