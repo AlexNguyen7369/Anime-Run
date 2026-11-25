@@ -12269,10 +12269,11 @@ end
 -- docs/WORLD_REDESIGN_SPEC.md sections 1, 2 and 7: the placeholder anime runner and the car scrap list
 Scenarios.runner = require(script.Parent.RunnerTests).runner
 Scenarios.scrap = require(script.Parent.RunnerTests).scrap
--- docs/WORLD_REDESIGN_SPEC.md 4.2 "Redrafted spawn pieces" (owner 2026-11-25): red until built
+-- docs/WORLD_REDESIGN_SPEC.md 4.2 "Redrafted spawn pieces" (owner 2026-11-25): guards, and what waits on demand
 Scenarios.plaza_build = require(script.Parent.PlazaBuildTests).plaza_build
 -- docs/BUGS.md w2-dark-props: a textureless World 2 mesh is not tinted by the part's default grey
 Scenarios.biome_mesh_color = require(script.Parent.BiomeMeshColorTests).biome_mesh_color
+Scenarios.plaza_build_pending = require(script.Parent.PlazaBuildTests).plaza_build_pending
 -- docs/WORLD_REDESIGN_SPEC.md sections 3, 5 and 7: the world layout (Dojos removed, design doc 4.43)
 do
 	local world = require(script.Parent.WorldTests).make({

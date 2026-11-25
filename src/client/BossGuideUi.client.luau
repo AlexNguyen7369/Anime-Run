@@ -10,15 +10,19 @@ local player = Players.LocalPlayer
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterPortraits = require(Shared:WaitForChild("CharacterPortraits"))
 local Config = require(Shared:WaitForChild("BossGuideConfig"))
+local Layout = require(Shared:WaitForChild("BossGuideLayout"))
 local Gate = require(Shared:WaitForChild("BossGateConfig"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local Dojo = require(script.Parent:WaitForChild("IndexAnimeStyle")).Dojo
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local TouchTarget = require(script.Parent:WaitForChild("TouchTarget"))
 
 local NAME = "BossGuide"
 local WIDTH = 640 * AnimeSkin.Units.W / 920 -- px at most, as Client/World2Welcome (placeholder)
+
+local ART = Color3.fromRGB(190, 212, 222) -- the portrait card's fill, as the approved mock-up
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -44,26 +48,33 @@ local panel = make("Frame", "Panel", root, {
 })
 local title = make("TextLabel", "Title", panel, { Text = Config.Name() })
 local closeButton = make("TextButton", "CloseButton", panel, { Text = "" })
-local g = AnimeSkin.IndexFrame(panel, { Title = title, Close = closeButton })
+local g = AnimeSkin.IndexFrame(panel, { Title = title, Close = closeButton, H = Layout.FRAME_H, Top = Layout.TOP })
+-- Layout B: the portrait in a framed card, the line on a paper slip with a vermilion edge (no slip on phones)
+local function plate(name, zIndex)
+	return make("Frame", name, panel, { Active = false, BorderSizePixel = 0, ZIndex = zIndex })
+end
+local card, slip, bar = plate("Card", 2), plate("Slip", 2), plate("SlipBar", 3)
 local portrait = make("ImageLabel", "Portrait", panel, {
 	BackgroundTransparency = 1,
+	ZIndex = 3,
 	ScaleType = Enum.ScaleType.Fit,
 	Image = CharacterPortraits[Config.ID] or "",
 })
 local line = make("TextLabel", "Line", panel, {
 	BackgroundTransparency = 1,
+	ZIndex = 4,
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextYAlignment = Enum.TextYAlignment.Center,
 	Text = "",
 })
-local nextButton = make("TextButton", "Next", panel, { Text = "Next", AutoButtonColor = false })
+local nextButton = make("TextButton", "Next", panel, { Text = "Next", AutoButtonColor = false, ZIndex = 5 })
 nextButton:SetAttribute("FirstFocus", true) -- gamepad: A pages on, B closes (PanelSwitch)
 
 local function size()
 	local view = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
 	local U = AnimeSkin.Units
-	local w, h = AnimeSkin.Compact() and U.PhoneW or U.W, AnimeSkin.Compact() and U.PhoneH or U.H
+	local w, h = AnimeSkin.Compact() and U.PhoneW or U.W, AnimeSkin.Compact() and U.PhoneH or Layout.FRAME_H
 	local width = math.min(WIDTH, (view.X - 32) * w / (w + 80), (view.Y - 32) * w / (h + 100))
 	panel.Size = UDim2.fromOffset(math.floor(width), math.floor(width * h / w))
 end
@@ -71,18 +82,29 @@ size()
 if workspace.CurrentCamera then
 	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(size)
 end
--- The portrait on the left, the line beside it, Next under both.
 local function layout()
-	local c, U = g.Content, AnimeSkin.Units
-	local body = c.H - U.Button - U.Gap
-	local art = math.min(body, c.W * 0.3)
-	g.Place(portrait, c.X, c.Y + (body - art) / 2, art, art)
-	g.Place(line, c.X + art + U.Gap, c.Y, c.W - art - U.Gap, body)
-	g.Place(nextButton, c.X + (c.W - 200) / 2, c.Y + c.H - U.Button, 200, U.Button)
-	g.Role(line, "Item")
+	local at = Layout.Rects(g.Content, g.Small)
+	local function place(gui, rect)
+		g.Place(gui, rect.X, rect.Y, rect.W, rect.H)
+	end
+	place(card, at.Card)
+	place(portrait, at.Portrait)
+	place(line, at.Line)
+	place(nextButton, at.Next)
+	slip.Visible, bar.Visible = at.Slip ~= nil, at.Bar ~= nil
+	if at.Slip then
+		place(slip, at.Slip)
+		place(bar, at.Bar)
+	end
+	g.Role(line, at.Role)
 	g.Role(nextButton, "Item")
 end
 UiTheme.Apply(panel)
+Dojo.Fill(card, ART) -- after UiTheme.Apply, as the button below
+Dojo.Rim(card, Dojo.Colors.SlipRim, 2)
+Dojo.Fill(slip, Dojo.Colors.Field)
+Dojo.Rim(slip, Dojo.Colors.SlipRim, 2)
+Dojo.Fill(bar, Dojo.Colors.Verm)
 g.Button(nextButton, "Go") -- after UiTheme.Apply's corner snap (design doc 4.42)
 g.OnLayout(layout)
 PanelSwitch.Register(NAME, panel)

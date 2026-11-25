@@ -282,9 +282,10 @@
 272. 2026-11-25 — Alex Nguyen — Merged world2-place into feature/alex/boss-guide, fixed the guide's stale wording from its re-audit and drew popup layout B as a mock-up proposal (not coded).
 273. 2026-11-25 — Alex Nguyen — Fixed the boss guide's audit items and gave the boss gate an off switch (BossGateConfig.LIVE, the guide needs both switches) with tests for both states and the closed-gate prompt (offline checks only).
 274. 2026-11-25 — Alex Nguyen — Made ui_boss_guide run with auto-roll and racing off and a quiet baseline before grants_nothing, and reworded plaza_build's sensei check (offline checks only, branch feature/alex/boss-guide-tests).
-275. 2026-11-25 — Alex Nguyen — Found the causes of the World 2 grass-through-road and dark-prop bugs, with red tests and patch drafts (docs/W2_VISUAL_BUGS.md; offline only, nothing uploaded).
-276. 2026-11-25 — Alex Nguyen — Wrote the red test for grey-tinted World 2 meshes (biome_mesh_color) and moved the vertex-colour export patch to its own branch feature/alex/w2-color-export.
-277. 2026-11-25 — Alex Nguyen — Made textureless World 2 meshes white instead of the default grey and wrote the owner's note on the three visual fixes (offline checks only, no Studio).
+275. 2026-11-25 — Alex Nguyen — Coded the boss gate guide's popup layout B, split plaza_build into guards and plaza_build_pending, and widened grants_nothing to the Money stat and Relics (offline checks only).
+276. 2026-11-25 — Alex Nguyen — Found the causes of the World 2 grass-through-road and dark-prop bugs, with red tests and patch drafts (docs/W2_VISUAL_BUGS.md; offline only, nothing uploaded).
+277. 2026-11-25 — Alex Nguyen — Wrote the red test for grey-tinted World 2 meshes (biome_mesh_color) and moved the vertex-colour export patch to its own branch feature/alex/w2-color-export.
+278. 2026-11-25 — Alex Nguyen — Made textureless World 2 meshes white instead of the default grey and wrote the owner's note on the three visual fixes (offline checks only, no Studio).
 
 ## What's next
 **Land the Track 1 and 6 swap: round 7 restores Track 6's office towers, then its score, audit and merge.**

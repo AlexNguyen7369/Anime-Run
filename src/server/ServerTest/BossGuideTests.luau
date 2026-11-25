@@ -105,6 +105,50 @@ function Tests.boss_guide()
 	local at = world.Position
 	flag("on_plaza", at.X > area.Min.X and at.X < area.Max.X and at.Z > area.Min.Z and at.Z < area.Max.Z)
 
+	-- Popup layout B (owner 2026-11-25): the frame, the sizes and where everything stands, in design units.
+	local Layout = H.module(Shared, "BossGuideLayout")
+	flag("layout_exists", Layout ~= nil)
+	if Layout then
+		flag("layout_frame_520", Layout.FRAME_H == 520, Layout.FRAME_H, 520)
+		flag("layout_content_from_120", Layout.TOP == 120, Layout.TOP, 120)
+		flag("layout_text_48", Layout.TEXT == 48, Layout.TEXT, 48)
+		local function inside(a, b)
+			return a.X >= b.X and a.Y >= b.Y and a.X + a.W <= b.X + b.W and a.Y + a.H <= b.Y + b.H
+		end
+		local function separate(a, b)
+			return a.X + a.W <= b.X or b.X + b.W <= a.X or a.Y + a.H <= b.Y or b.Y + b.H <= a.Y
+		end
+		for _, case in
+			{
+				{ "desktop", false, { X = 56, Y = 120, W = 1200 - 112, H = 520 - 120 - 82 } },
+				{ "phone", true, { X = 56, Y = 144, W = 650 - 112, H = 420 - 144 - 82 } },
+			}
+		do
+			local label, small, content = case[1], case[2], case[3]
+			local rects = Layout.Rects(content, small)
+			for _, key in { "Card", "Line", "Next" } do
+				flag(("layout_%s_%s_in_content"):format(label, key), inside(rects[key], content))
+			end
+			flag(("layout_%s_portrait_in_card"):format(label), inside(rects.Portrait, rects.Card))
+			flag(("layout_%s_line_clear_of_next"):format(label), separate(rects.Line, rects.Next))
+			flag(("layout_%s_line_clear_of_card"):format(label), separate(rects.Line, rects.Card))
+			flag(("layout_%s_next_200_by_44"):format(label), rects.Next.W == 200 and rects.Next.H == 44)
+			flag(("layout_%s_card_square"):format(label), rects.Card.W == rects.Card.H)
+			flag(("layout_%s_slip"):format(label), (rects.Slip ~= nil) == not small) -- phones have no paper slip
+			flag(("layout_%s_role"):format(label), rects.Role == (small and "Item" or "Speech"), rects.Role)
+			if rects.Slip then
+				flag(
+					"layout_slip_holds_line_and_next",
+					inside(rects.Line, rects.Slip) and inside(rects.Next, rects.Slip)
+				)
+				flag("layout_slip_beside_card", separate(rects.Slip, rects.Card) and rects.Slip.H == rects.Card.H)
+				flag("layout_card_fills_height", rects.Card.H == content.H, rects.Card.H, content.H)
+			else
+				flag("layout_phone_card_110", rects.Card.W == 110, rects.Card.W, 110)
+			end
+		end
+	end
+
 	-- The text table: every topic, both gate states, both rebirth states, short, tweaked names only.
 	for _, gateOpen in { false, true } do
 		for _, rebirth in { 0, Sidekick.HudFromRebirth } do
