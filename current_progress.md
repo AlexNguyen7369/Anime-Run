@@ -294,8 +294,9 @@
 277. 2026-11-25 — Alex Nguyen — Merged the spawn pieces' code, the export tools and Gojio's rebirth rule into the World 2 branch (offline checks in both worlds).
 278. 2026-11-25 — Alex Nguyen — Turned on the 14 reviewed spawn pieces in the World 2 branch, fixed the loader for uploads whose part names carry a number, and saved copies in both places (World 1 v915, World 2 v90, not published); Studio `spawn_area` 188/188 in both worlds, World 1's tests not rerun after the loader fix.
 279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
+280. 2026-11-25 — Alex Nguyen — Narrowed World 2's bare ground round finish slabs and the plaza to 2 studs past their own footprint (was up to 7.2 from the CLEARANCE-grown boxes), with a harness collar check written red first; offline only, World 1 hashes unchanged.
 
 ## What's next
-**Merge the white-mesh and grass fix once its audit passes, after running `biome_runtime` in Studio.**
+**Audit the white-mesh and grass fix (with the narrowed slab collar), run `biome_runtime` in Studio and look at the grass by the plaza and a finish slab, then merge it into the World 2 branch.**
 
 **Why this is next:** the World 2 colour re-export cannot start before it (new meshes would show at 64% brightness), and the next PR into main should carry it.
