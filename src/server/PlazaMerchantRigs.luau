@@ -1,6 +1,6 @@
 --!nonstrict
 -- The merchants (WORLD_REDESIGN_SPEC 4.2, Shared/PlazaMerchants): a static roster rig at each MerchantSpot whose new stall is
--- uploaded, in its pose, behind one switch (PlazaPieces.MERCHANTS_LIVE, off). Scenery: anchored, no collision, touch or query.
+-- uploaded, in its pose, behind one switch (PlazaPieces.MERCHANTS_LIVE, on: owner 2026-11-25). Scenery: anchored, no collision, touch or query.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local PlazaMerchants = require(Shared.PlazaMerchants)
 local PlazaPieces = require(Shared.PlazaPieces)

@@ -111,7 +111,7 @@ positions are **proposed**; warm gold, amber and paper, one pink accent, matchin
 - Total 39 parts, 4 lights. No new client script, asset or sound.
 
 
-### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; on in both worlds, except the boss gate, its guide and the merchants, which have their own switches)
+### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; on in both worlds, except the boss gate and its guide, which have their own switches; the merchants' switch is on, owner 2026-11-25)
 The same in both worlds unless a line says otherwise (owner: "consistent with world"); replaces "services unchanged" in
 WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels stay; positions stay except those the fuller layout below replaces; every size **proposed**.
 - **Proposed**: a piece with any of its parts missing after loading counts as not loaded, so its stand-in stays (the sky loop has none and is absent).
@@ -140,6 +140,8 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
   `leaf_copycat` (Kakashe), display names the tweaked ones (design doc 5). Static. Owner 2026-11-25: Kakashe is the
   smaller one (draft 0.75, the Sensei header stays), and Frierin may load in World 1 (her rig there loads her, 4.47 "Models"). Each shows the rig's floating name but Kakashe,
   who stands under the Sensei header (owner 2026-11-25). **Proposed**: they hold the approved draft's poses (static turns of the existing rigs' limbs, no animation).
+  On (`PlazaPieces.MERCHANTS_LIVE`, owner 2026-11-25: "merchants can be added already to merge"); the Sensei merchant replaces
+  SpawnArea's dummy.
 - Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
   start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
   the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed (not below rebirth 1, owner 2026-11-25); names and
