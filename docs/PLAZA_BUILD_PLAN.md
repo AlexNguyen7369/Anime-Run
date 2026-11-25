@@ -1,6 +1,8 @@
 # Plaza build plan (WORLD_REDESIGN_SPEC 4.2, design doc change log 2026-11-25)
 
-A plan, not a rule: the spec and the design doc win. Nothing here is built, uploaded or saved. Numbers are measured from the
+A plan, not a rule: the spec and the design doc win. Built so far (offline only, no Studio): the Index, Team altar and
+statue moves with their headers, the boss gate's Parts stand-in, state and prompt, the merchant markers, and the guide. Gate and
+guide are off (`BossGateConfig.LIVE`, `BossGuideConfig.LIVE` = false). No mesh is uploaded, no place saved. Numbers are measured from the
 draft scripts at 03148343 (headless Blender); "proposed" where no owner word exists. Red tests: `plaza_build` (new),
 `spawn_area` RING rows and EXCLUSIVE_XZ, `ui_billboards` headers.
 
@@ -65,8 +67,9 @@ pads reach 33 studs: check them against the sky-loop post and the boss gate (14.
 
 ## 5. Tests
 - Red now: see the header. Guards in `plaza_build` stay green: stall positions, facings and prompts, gate place and lock rule.
-- To write with the code, before each step: boss gate closed or open by phase and rebirth, closed prompt does nothing, guide text
-  grants nothing (`boss_event`, UI); header heights over roofs; altar locked look per player (UI); Frierin loaded in World 1 once
+- Written: boss gate on and off, closed or open by phase and rebirth, closed prompt does nothing, the look (`plaza_build`); guide text
+  grants nothing (`boss_guide`); the client wiring (`ui_boss_gate`, `ui_boss_guide`, neither run in Studio yet).
+- To write with the code, before each step: header heights over roofs; altar locked look per player (UI); Frierin loaded in World 1 once
   the 4.47 list is ruled; `world_layout` unchanged (the plaza still clears the roads); UiTeam's `TeamAltar` check only finds the
   model by name and stays green. Best Roll, the gate pad, the sensei's spot and `boss_arena` are not touched.
 
@@ -77,7 +80,8 @@ pads reach 33 studs: check them against the sky-loop post and the boss gate (14.
    stall_, gate_ (not mesh), boss_gate_ (not mesh), merchant_.
 3. Boss gate client behaviour and the guide's dialogue (text needs the owner).
 4. Merchants. 5. Build scripts, export, rules audit. 6. Owner: upload, then PlazaAssets, then the mesh tests. 7. Studio and captures.
-   The statue's Pos, its pedestal and LoopPosts come from PlazaAssets, so they move with step 6, in one commit with the mesh.
+   The statue's Pos moved ahead of the mesh (2468a9a6, PlazaAssets from a fresh export, no upload); LoopPosts and the moved
+   posts did not, they come with step 6. A gate mesh may only stand while `BossGateConfig.LIVE` is true.
 
 ## 7. Owner items
 Uploads: about 8 to 16 new assets (the table), re-upload of SkyLoop and the stalls. Copies in both places' `ServerStorage.BakedModels`

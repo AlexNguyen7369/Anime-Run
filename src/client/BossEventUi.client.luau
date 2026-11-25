@@ -1503,22 +1503,21 @@ do -- its own scope: this file is at Luau's limit of locals
 		end
 	end
 	bossButton.Activated:Connect(toggleBosses)
-	-- The boss gate's prompt does what the button does, where the button shows and no panel covers the popup; a closed gate's
-	-- does nothing (WORLD_REDESIGN_SPEC 4.2)
-	game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt)
+	local function gatePressed(prompt)
 		if
-			prompt.Name == BossGateConfig.PROMPT
-			and prompt:IsDescendantOf(workspace)
-			and bossButton.Visible
-			and not PanelSwitch.AnyOpen()
-			and BossGateConfig.IsOpen(
+			BossGateConfig.PromptOpens(
+				prompt,
+				bossButton.Visible,
+				PanelSwitch.AnyOpen(),
 				ReplicatedStorage:GetAttribute(BossGateConfig.OPEN_ATTRIBUTE),
 				player:GetAttribute("RebirthLevel")
 			)
 		then
 			toggleBosses()
 		end
-	end)
+	end
+	game:GetService("ProximityPromptService").PromptTriggered:Connect(gatePressed)
+	make("BindableEvent", "GatePrompt", root, {}).Event:Connect(gatePressed) -- test seam (UiBossGate): the press
 end
 bossesClose.Activated:Connect(function()
 	bossesOpen = false

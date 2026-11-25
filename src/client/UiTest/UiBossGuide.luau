@@ -28,9 +28,9 @@ function Module.Build(h)
 	function scenarios.ui_boss_guide(res)
 		local gui, panel = parts()
 		ok(res, "gui_exists", panel ~= nil)
-		local model = workspace:WaitForChild("BossGuide", Config.LIVE and 10 or 0.1)
+		local model = workspace:WaitForChild("BossGuide", Config.IsLive() and 10 or 0.1)
 		local prompt = model and model:FindFirstChild("TalkBossGuide", true)
-		ok(res, "prompt_follows_live", (prompt ~= nil) == Config.LIVE)
+		ok(res, "prompt_follows_live", (prompt ~= nil) == Config.IsLive())
 		if not panel then
 			return
 		end

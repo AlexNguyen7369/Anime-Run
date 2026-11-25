@@ -723,6 +723,7 @@ local function bossGate(startCFrame)
 	)
 	return m
 end
+SpawnArea.BossGate = bossGate
 
 function SpawnArea.Build(startCFrame)
 	local model = Instance.new("Model")
@@ -799,7 +800,9 @@ function SpawnArea.Build(startCFrame)
 	-- The Sidekicks stall became the summon altar (design doc 4.36).
 	altar(startCFrame).Parent = model
 	teamAltar(startCFrame).Parent = model
-	bossGate(startCFrame).Parent = model
+	if BossGateConfig.LIVE then
+		bossGate(startCFrame).Parent = model
+	end
 	stall(
 		model,
 		startCFrame,

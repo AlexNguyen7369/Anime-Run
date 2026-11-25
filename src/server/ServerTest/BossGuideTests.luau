@@ -9,6 +9,7 @@ local Server = script.Parent.Parent
 local Tests = {}
 
 local TOPICS = { "Intro", "What", "When", "Join", "Rewards", "Gate" }
+local GATE_NEAR = 30 -- studs from the gate's centre at most: he stands at the gate (proposed)
 local LINE_MAX = 170 -- characters: one short line per page (BOSS_GUIDE_SPEC)
 -- Design doc section 5: no real character, series or boss name in the conversation.
 local REAL = {
@@ -85,6 +86,8 @@ function Tests.boss_guide()
 		return Vector2.new(at.X, at.Z)
 	end
 	flag("stands_by_the_gate_config", (flatAt() - Gate.At(Gate.GUIDE_OFFSET)).Magnitude < 0.01)
+	local near = (flatAt() - Gate.POS).Magnitude
+	flag("stands_at_the_gate", near <= GATE_NEAR, near, GATE_NEAR)
 	flag("no_second_source", Config.GATE_POS == nil and Config.OFFSET == nil and Config.PROMPT_DISTANCE == nil)
 	local apart = (flatAt() - Gate.At(Gate.PROMPT_OFFSET)).Magnitude
 	local reach = Gate.PROMPT_DISTANCE + Gate.GUIDE_PROMPT_DISTANCE
@@ -92,6 +95,8 @@ function Tests.boss_guide()
 	local saved = Gate.POS
 	Gate.POS = saved + Vector2.new(-5, -3)
 	flag("follows_gate_pos", (flatAt() - Gate.At(Gate.GUIDE_OFFSET)).Magnitude < 0.01)
+	local moved = (flatAt() - Gate.POS).Magnitude
+	flag("stands_at_the_moved_gate", moved <= GATE_NEAR, moved, GATE_NEAR)
 	Gate.POS = saved
 	local toSpawn = -Gate.POS.Unit
 	local look = world.LookVector
@@ -160,14 +165,36 @@ function Tests.boss_guide()
 	table.sort(api)
 	flag("server_api_only_builds", words(api) == "Build CFrame Start", words(api), "Build CFrame Start")
 
-	-- In a live server: exactly one guide in the world.
-	local built = 0
-	for _, child in workspace:GetChildren() do
-		built += child.Name == "BossGuide" and 1 or 0
+	-- One switch pair: he is in the world only while both his switch and the gate's are on.
+	local function count()
+		local built = 0
+		for _, child in workspace:GetChildren() do
+			built += child.Name == "BossGuide" and 1 or 0
+		end
+		return built
 	end
-	local live = Config.LIVE and workspace:FindFirstChild("SpawnArea") ~= nil
-	flag("off_until_the_gate_is_built", Config.LIVE == false)
-	flag("live_one_guide", built == (live and 1 or 0), built, live and 1 or 0)
+	local isLive = type(Config.IsLive) == "function" and Config.IsLive
+	local inServer = workspace:FindFirstChild("SpawnArea") ~= nil
+	flag("off_until_turned_on", Config.LIVE == false)
+	local want = inServer and isLive and isLive() and 1 or 0
+	flag("live_one_guide", count() == want, count(), want)
+	local guideWas, gateWas = Config.LIVE, Gate.LIVE
+	for _, state in { { false, false }, { false, true }, { true, false }, { true, true } } do
+		Config.LIVE, Gate.LIVE = state[1], state[2]
+		local label = ("guide_%s_gate_%s"):format(state[1] and "on" or "off", state[2] and "on" or "off")
+		local on = state[1] and state[2]
+		flag("is_live_" .. label, isLive and isLive() == on)
+		if not inServer then -- never beside a live server's own
+			Guide.Start(start)
+			flag("built_" .. label, count() == (on and 1 or 0), count(), on and 1 or 0)
+			local extra = workspace:FindFirstChild("BossGuide")
+			while extra do
+				extra:Destroy()
+				extra = workspace:FindFirstChild("BossGuide")
+			end
+		end
+	end
+	Config.LIVE, Gate.LIVE = guideWas, gateWas
 	model:Destroy()
 	return r
 end

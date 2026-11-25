@@ -7,6 +7,10 @@ local SidekickConfig = require(script.Parent.SidekickConfig)
 
 local BossGateConfig = {}
 
+-- The gate's off switch; the lead turns it on. While false nothing of the gate is built: no model, prompt or attribute. The
+-- moved Index, Team altar and statue do not depend on it. The guide needs this one and his own (BossGuideConfig.IsLive).
+BossGateConfig.LIVE = false
+
 BossGateConfig.SPOT = Vector2.new(2.5, 94.8) -- S4, owner 2026-11-25
 -- Studs toward the spawn: at the exact spot the base is 0.2 from the floor's south edge; up to 2.5 is allowed
 BossGateConfig.SHIFT = 1.5
@@ -37,9 +41,19 @@ function BossGateConfig.At(offset)
 	return BossGateConfig.POS + right * offset.X + toSpawn * offset.Y
 end
 
--- Open for a player: an event is active and their Bosses button is past the rebirth that hides it.
+-- Open for a player: the gate is on, an event is active and their Bosses button is past the rebirth that hides it.
 function BossGateConfig.IsOpen(active, rebirth)
-	return active == true and (rebirth or 0) >= SidekickConfig.HudFromRebirth
+	return BossGateConfig.LIVE and active == true and (rebirth or 0) >= SidekickConfig.HudFromRebirth
+end
+
+-- The gate's prompt does what the Bosses button does, where the button shows and no panel covers the popup; a closed gate's
+-- does nothing (WORLD_REDESIGN_SPEC 4.2, proposed).
+function BossGateConfig.PromptOpens(prompt, buttonVisible, panelOpen, active, rebirth)
+	return prompt.Name == BossGateConfig.PROMPT
+		and prompt:IsDescendantOf(workspace)
+		and buttonVisible
+		and not panelOpen
+		and BossGateConfig.IsOpen(active, rebirth)
 end
 
 return BossGateConfig

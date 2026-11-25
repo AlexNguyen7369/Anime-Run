@@ -55,7 +55,7 @@ function BossGuide.Build(startCFrame)
 end
 
 function BossGuide.Start(startCFrame)
-	if Config.LIVE then
+	if Config.IsLive() then
 		BossGuide.Build(startCFrame).Parent = Workspace
 	end
 end

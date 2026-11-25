@@ -9,7 +9,8 @@ are the owner's too. Everything else here is **proposed**.
 - `Shared/BossGateConfig` is the one source (gate spot S4, approved by the owner 2026-11-25 with the fuller layout; moved 1.5 studs toward the spawn, **proposed**; guide offset 21 right and 6 toward the spawn, his
   prompt's reach 8). He faces the spawn beside the gate, outside its 35.3-stud frame, on the side away from the Team altar, which moves to (-35.0, 76.4).
 - Static model, no collision, name label. World 2 loads his model because the rig wears it (4.47 "Models").
-- Off in the game (`BossGuideConfig.LIVE` = false) until the lead turns him on with the gate.
+- Off in the game: the gate stand-in is in the code behind `BossGateConfig.LIVE` and he behind `BossGuideConfig.LIVE`, both false until
+  the lead turns them on. He is built only while both are true; with the gate off, nothing of the gate is built either.
 
 ## How it shows
 - One ProximityPrompt `TalkBossGuide`: E, "Talk", "Gojio", `HoldDuration` 0 like every plaza prompt, 8 studs, gamepad X and touch by the
@@ -30,7 +31,7 @@ Open question: the Join, Rewards and When pages still name the popup and the ope
 The Bosses button is hidden (4.36) and the gate stays closed (4.2, proposed). He still talks; only the last line differs.
 
 ## Lines
-Numbers come from `BossEventConfig` and `SidekickConfig`; the 30 minutes and 5% are owner rules. No odds, prices or placeholder numbers.
+"of that phase's HP" in the Rewards line is **proposed** wording. Numbers come from `BossEventConfig` and `SidekickConfig`; the 30 minutes and 5% are owner rules. No odds, prices or placeholder numbers.
 
 | Page | Line |
 |---|---|
@@ -46,7 +47,7 @@ Numbers come from `BossEventConfig` and `SidekickConfig`; the 30 minutes and 5% 
 Left out on purpose: Money and Gems (amounts and which boss pays what are part **proposed**), the paid spawn, how long an event lasts.
 
 ## Open questions (owner)
-- The lines above; Money and Gems left out; the talk below rebirth 1.
+- The lines above ("of that phase's HP" included); Money and Gems left out; the talk below rebirth 1.
 - Title kanji and sub line: 4.46 says they stay under each title, and "GOJIO" has none. Proposed: 案内 ("guide") and "Boss gate guide".
 - Popup layout: A, as coded, or B, a proposal (mock-ups `layout_b_*.jpg`, not coded). B keeps the handscroll, header, seal close and footer: frame 520 units
   tall instead of 620 (`IndexFrame` H, as the Backpack sets its own), content from 120 instead of 164 (no tabs row), the portrait in a framed art card that its shoulders meet, the line on a paper slip at

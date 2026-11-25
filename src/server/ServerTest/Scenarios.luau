@@ -8163,8 +8163,14 @@ function Scenarios.spawn_area()
 	end
 
 	-- The ring: each building at its slot, its front toward the spawn
+	local BossGateConfig = sharedModule("BossGateConfig")
+	local gateLive = BossGateConfig ~= nil and BossGateConfig.LIVE == true
 	for _, e in W.RING do
 		local model = area:FindFirstChild(e.Name)
+		if e.Name == "BossGate" and not gateLive then -- switched off (BossGateConfig.LIVE): nothing of it is built
+			check(checks, "plaza_boss_gate_off_absent", model and 1 or 0, 0, model == nil)
+			continue
+		end
 		placed(e.Name, centreOf(model), e.At)
 		if e.Front then
 			faces(e.Name, frontOf(model), (W.SPAWN_XZ - e.At).Unit)

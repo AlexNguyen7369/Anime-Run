@@ -5,7 +5,7 @@
 --     lock rule unchanged; a touch part that is no disc and fills B's doorway; the label over B's roof; a locked and an
 --     open mesh in Shared/PlazaAssets, inside today's gate footprint.
 --   boss_gate_*: draft A (draft_boss_gate.py) at S4 facing the spawn, whole on the floor, its own prompt, a closed and an
---     open mesh, and the guide with a prompt of its own. What the prompts do is client code (not covered here).
+--     open mesh, and the guide with a prompt of its own; its off switch (boss_gate_off_*), look and prompt rule.
 --   altar_*: World 1 the great lotus (draft B), World 2 the twin-roof stage (draft A), a locked and an unlocked mesh of
 --     each, so a player below rebirth 2 sees it locked. Place, prompt and the model spot stay.
 --   merchant_*: Shared/PlazaMerchants' cast, the same in both worlds, standing static at the five stalls.
@@ -16,7 +16,7 @@
 -- altar's Look attribute, PlazaMerchants, MerchantSpot, BossGate, OpenBosses, TalkBossGuide) are this test's contract,
 -- **proposed**.
 -- It builds a fresh plaza outside the DataModel, so hub-local positions are read directly (world + (118, -80)). Not covered
--- here: the meshes' looks, the client's altar display and locked label, header heights, loading of the merchants' models
+-- here: the wiring of the client scripts (ui_boss_gate), the meshes' looks, the client's altar display and locked label, header heights, loading of the merchants' models
 -- (4.47 "every world shows" is open), collision by walking, the boss event states, views from the spawn.
 -- Offline: lune run tools/lune/server_scenarios <1|2> PlazaBuildTests.plaza_build
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -154,7 +154,40 @@ function Tests.plaza_build()
 	end
 
 	local oldOpen = WorldConfig.GATE_OPEN
+	-- The boss gate's off switch (lead 2026-11-25): its checks below run with it on; boss_gate_off_* with it off.
+	local Switch, GuideSwitch = H.module(Shared, "BossGateConfig"), H.module(Shared, "BossGuideConfig")
+	local gateWas, guideWas = Switch and Switch.LIVE, GuideSwitch and GuideSwitch.LIVE
 	local ok, err = xpcall(function()
+		flag("boss_gate_off_by_default", gateWas == false, text(gateWas), "false")
+		Switch.LIVE = false
+		local offArea = SpawnArea.Build(CFrame.new())
+		flag("boss_gate_off_not_built", offArea:FindFirstChild("BossGate") == nil)
+		flag("boss_gate_off_no_prompt", find(offArea, "ProximityPrompt", "OpenBosses") == nil)
+		local CollectionService = game:GetService("CollectionService")
+		local tagged = 0
+		for _, d in offArea:GetDescendants() do
+			tagged += (CollectionService:HasTag(d, Switch.CLOSED_TAG) or CollectionService:HasTag(d, Switch.OPEN_TAG)) and 1 or 0
+		end
+		flag("boss_gate_off_no_tag", tagged == 0, tagged, 0)
+		flag("boss_gate_off_never_open", not Switch.IsOpen(true, 99))
+		-- the fuller layout does not wait for the gate
+		for _, name in { "IndexBoard", "TeamAltar" } do
+			flag("boss_gate_off_keeps_" .. name, offArea:FindFirstChild(name) ~= nil)
+		end
+		local live = workspace:FindFirstChild("SpawnArea")
+		if live then
+			flag("boss_gate_live_as_switched", (live:FindFirstChild("BossGate") ~= nil) == (gateWas == true))
+		end
+		local Service = H.module(script.Parent.Parent, "BossGate")
+		if Service and not live then
+			ReplicatedStorage:SetAttribute(Switch.OPEN_ATTRIBUTE, nil)
+			Service.Start()
+			ReplicatedStorage:SetAttribute("BossEventPhase", "Fight")
+			local state = ReplicatedStorage:GetAttribute(Switch.OPEN_ATTRIBUTE)
+			flag("boss_gate_off_no_attribute", state == nil, text(state), "nil")
+			ReplicatedStorage:SetAttribute("BossEventPhase", nil)
+		end
+		Switch.LIVE = true
 		local area = SpawnArea.Build(CFrame.new())
 
 		-- Guards: positions, facings and prompts (green before the build too)
@@ -236,9 +269,27 @@ function Tests.plaza_build()
 			local wide = margin ~= nil and margin >= LAYOUT.FloorMargin
 			flag("boss_gate_mesh_" .. key .. "_on_plaza", wide, margin or "missing", LAYOUT.FloorMargin)
 		end
-		-- The guide is its own model (Server/BossGuide, feature/alex/boss-guide): red until that branch merges
+		-- The guide is its own model (Server/BossGuide): in the world only while both switches are on (BossGuideTests has
+		-- all four states). Its checks read what Start puts there; a live server's own guide is judged as switched.
 		local Guide = H.module(script.Parent.Parent, "BossGuide")
-		local guide = Guide and Guide.Build(CFrame.new())
+		local guide
+		if live then
+			local want = gateWas == true and guideWas == true
+			guide = workspace:FindFirstChild("BossGuide")
+			flag("boss_guide_live_as_switched", (guide ~= nil) == want, guide and 1 or 0, want and 1 or 0)
+			guide = guide or Guide and Guide.Build(CFrame.new())
+		elseif Guide then
+			GuideSwitch.LIVE = false
+			Guide.Start(CFrame.new())
+			flag("boss_guide_absent_while_off", workspace:FindFirstChild("BossGuide") == nil)
+			GuideSwitch.LIVE = true
+			Guide.Start(CFrame.new())
+			guide = workspace:FindFirstChild("BossGuide")
+			flag("boss_guide_present_while_on", guide ~= nil)
+			if guide then
+				guide.Parent = nil
+			end
+		end
 		local talk = find(guide, "ProximityPrompt", "TalkBossGuide")
 		flag("boss_guide_prompt", talk ~= nil and talk.KeyboardKeyCode == Enum.KeyCode.E, talk and 1 or "missing", 1)
 		local guideRig = guide and guide:FindFirstChild("Rig")
@@ -289,12 +340,53 @@ function Tests.plaza_build()
 			)
 			flag("boss_gate_open_in_event", GateConfig.IsOpen(true, need))
 			local built = { Closed = 0, Open = 0 }
-			local CollectionService = game:GetService("CollectionService")
 			for _, d in boss and boss:GetDescendants() or {} do
 				built.Closed += CollectionService:HasTag(d, GateConfig.CLOSED_TAG) and (d.Transparency or 0) == 0 and 1 or 0
 				built.Open += CollectionService:HasTag(d, GateConfig.OPEN_TAG) and d.Transparency == 1 and 1 or 0
 			end
 			flag("boss_gate_built_closed", built.Closed > 0 and built.Open > 0)
+
+			-- The client's part (Client/BossGateView, Client/BossEventUi) through the functions it runs.
+			local Look = H.module(Shared, "BossGateLook")
+			flag("boss_gate_look_module", Look ~= nil)
+			if Look and not live then -- never repaints a live server's gate
+				boss.Parent = workspace
+				for _, state in { { "open", true }, { "closed", false } } do
+					Look.Apply(state[2])
+					local wrong, shadows = 0, 0
+					for tag, shown in { [GateConfig.CLOSED_TAG] = not state[2], [GateConfig.OPEN_TAG] = state[2] } do
+						for _, part in CollectionService:GetTagged(tag) do
+							wrong += part.Transparency == (shown and 0 or 1) and 0 or 1
+							local shadow = shown and tag == GateConfig.CLOSED_TAG
+							shadows += part.CastShadow == shadow and 0 or 1
+						end
+					end
+					flag("boss_gate_look_" .. state[1], wrong == 0, wrong, 0)
+					flag("boss_gate_look_shadows_" .. state[1], shadows == 0, shadows, 0)
+				end
+			end
+			flag("boss_gate_prompt_rule", type(GateConfig.PromptOpens) == "function")
+			if GateConfig.PromptOpens and not live then
+				local function press(p, button, panel, active, rebirth)
+					return GateConfig.PromptOpens(p, button, panel, active, rebirth)
+				end
+				local outside = Instance.new("ProximityPrompt")
+				outside.Name = GateConfig.PROMPT
+				flag("boss_gate_press_open", press(bossPrompt, true, false, true, need) == true)
+				flag("boss_gate_press_closed_nothing", press(bossPrompt, true, false, false, need) == false)
+				flag("boss_gate_press_no_state_nothing", press(bossPrompt, true, false, nil, need) == false)
+				flag("boss_gate_press_below_rebirth_nothing", press(bossPrompt, true, false, true, need - 1) == false)
+				flag("boss_gate_press_no_button_nothing", press(bossPrompt, false, false, true, need) == false)
+				flag("boss_gate_press_panel_open_nothing", press(bossPrompt, true, true, true, need) == false)
+				flag("boss_gate_press_other_prompt_nothing", press(talk, true, false, true, need) == false)
+				flag("boss_gate_press_not_in_world_nothing", press(outside, true, false, true, need) == false)
+				GateConfig.LIVE = false
+				flag("boss_gate_press_off_nothing", press(bossPrompt, true, false, true, need) == false)
+				GateConfig.LIVE = true
+			end
+			if not live and boss then
+				boss.Parent = area
+			end
 		end
 		-- The server's state follows the attribute the Bosses panel reads
 		local Gate = H.module(script.Parent.Parent, "BossGate")
@@ -462,6 +554,9 @@ function Tests.plaza_build()
 		)
 	end, debug.traceback)
 	WorldConfig.GATE_OPEN = oldOpen
+	if Switch and GuideSwitch then
+		Switch.LIVE, GuideSwitch.LIVE = gateWas, guideWas
+	end
 	flag("plaza_build_completed", ok, ok and 1 or tostring(err))
 	return r
 end

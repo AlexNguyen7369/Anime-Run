@@ -3,14 +3,19 @@
 -- stands and his prompt's reach are Shared/BossGateConfig's. Numbers in the lines come from the configs that rule them, so a
 -- line never drifts from the game.
 local BossEventConfig = require(script.Parent.BossEventConfig)
+local BossGateConfig = require(script.Parent.BossGateConfig)
 local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local SidekickConfig = require(script.Parent.SidekickConfig)
 
 local BossGuideConfig = {}
 
-BossGuideConfig.LIVE = false -- he is built only once the boss gate is in the game; the lead turns him on
+BossGuideConfig.LIVE = false -- his own switch, turned on by the lead; he is in the game only with the gate's on too (IsLive)
 BossGuideConfig.ID = "jk_strongest" -- owner 2026-11-25
 BossGuideConfig.HOLD = 0 -- as every plaza prompt
+
+function BossGuideConfig.IsLive()
+	return BossGuideConfig.LIVE and BossGateConfig.LIVE
+end
 
 function BossGuideConfig.Name()
 	return CharacterCatalog.Get(BossGuideConfig.ID).Name

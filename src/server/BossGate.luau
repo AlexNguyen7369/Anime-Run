@@ -7,6 +7,9 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared").BossGateConfig)
 local BossGate = {}
 
 function BossGate.Start()
+	if not Config.LIVE then
+		return
+	end
 	local function update()
 		ReplicatedStorage:SetAttribute(Config.OPEN_ATTRIBUTE, ReplicatedStorage:GetAttribute("BossEventPhase") ~= nil)
 	end

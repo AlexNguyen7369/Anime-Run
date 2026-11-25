@@ -230,6 +230,7 @@ UiScenarios.Names = {
 	-- World label, travel toast and the World 2 welcome (UiWorld2; docs/WORLD2_SPEC.md "World HUD", "Welcome")
 	"ui_world_label",
 	"ui_world2_welcome",
+	"ui_boss_gate", -- the gate's look and its prompt, closed and open (UiBossGate; WORLD_REDESIGN_SPEC 4.2)
 	"ui_boss_guide", -- Gojio's conversation at the boss gate (UiBossGuide; docs/BOSS_GUIDE_SPEC.md)
 	"ui_hud_look_by_world", -- both worlds: 4.40 HUD, no option A dressing; panels keep the handscroll (design doc 4.46 "HUD look")
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
@@ -9158,6 +9159,10 @@ for cond, fn in K.world2.After do
 	access.After[cond] = fn
 end
 
+K.bossGate = require(script.Parent.UiBossGate).Build({ check = check })
+for name, fn in K.bossGate.Scenarios do
+	S[name] = fn
+end
 K.bossGuide = require(script.Parent.UiBossGuide).Build({ check = check })
 for name, fn in K.bossGuide.Scenarios do
 	S[name] = fn
