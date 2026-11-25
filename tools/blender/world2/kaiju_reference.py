@@ -27,6 +27,13 @@ MODEL = {
 	"back": ((-120, 110, 290), (0, 35, 0), 45),
 	"34": ((210, 95, -230), (10, 30, 0), 45),
 	"head": ((175, 32, -125), (118, 18, -42), 40),
+	"foot": ((112, 22, -100), (70, 6, -54), 40),
+	"wreck_mid": ((-70, 30, -120), (-40, 8, -48), 48),
+	"wreck_tail": ((-60, 34, -110), (-104, 12, -30), 48),
+	"wreck_back": ((110, 60, 140), (80, 14, 44), 48),
+	"eye": ((112, 34, -86), (116, 24, -34), 34),
+	"crew": ((112, 10, -66), (101, 7, -52), 40),
+	"crew_flank": ((30, 70, -80), (8, 60, -20), 45),
 	"top": ((0, 460, -30), (0, 0, 0), 40),
 }
 
@@ -126,6 +133,12 @@ def fit(k):
 		top = max([f for f in [0.8 + 0.01 * n for n in range(51)] if ok(base(pos, rot, sc, f), f)] or [0.0])
 		n, big = ep.props_overlap(local, origin, yaw, pos, e, sc, ctx)
 		dist = np.sqrt(((ctx["line"] - (pos[0], pos[2])) ** 2).sum(1)).min()
+		c_, Rb, hb = ep.hero_box(local, origin, yaw, pos, e, sc)
+		over = {}
+		for bc, bR, bh, tn, pn in ctx["props"]:
+			if ep.obb_overlap(c_, Rb, hb, bc, bR, bh):
+				over["T%d %s" % (tn, pn)] = over.get("T%d %s" % (tn, pn), 0) + 1
+		print("FIT overlaps", over)
 		print("FIT site %d base centre (%.0f, %.0f) scale %.2f as drafted passes=%s %s size %s own road %.0f largest passing scale there %.2f other-track props %d (%s)" % (i + 1, pos[0], pos[2], sc[0], as_drafted, why, [round(lsize[j] * sc[j], 1) for j in range(3)], dist, top * sc[0], n, big), flush=True)
 		if "--search" in sys.argv:  # local search: along the road, across it and a turn
 			best = (0, 0)

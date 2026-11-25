@@ -222,6 +222,11 @@ Replaces the corpse described in the table and in rounds 13 to 16:
   on its cheek with a closed eye, hung jaw and tongue, keels down the back, a tail wrapped round the front.
 - It lies in churned, cracked earth that runs out below the ground (no oval, nothing far under the ground) among the
   building corners it crushed; two lighter teal gantries, a few ropes, crew at human scale.
-- Two legal pockets on the left of the road, d 1049 and 2683, 94 off the centre line, scale 1.00.
-- The city closes up round both (`corpse_sites`, its own random stream): the frozen instances keep their places, except 8
+- Two legal pockets on the left of the road, d 1057 and 2683, 92 and 91 off the centre line, scale 1.00.
+- The city closes up round both (`corpse_sites`, its own random stream): the frozen instances keep their places, except 9
   rubble heaps under the bodies and the 8 vans, which moved up the road from the new spots.
+- Round 2: broken buildings in the city's own floor-plate and window-band language, pinned and tilted (no flat walls);
+  earth banks under chin, hands and tail that run out into the ground colour; separate toes with knuckles and clefts,
+  closed dull eye, nostrils, horn rings, lip and tongue groove; spike collars and low flank plates; stake line along the
+  back, sweepers on ropes, crushed cars, barriers and crew on the bank. The middle gantry is a one-sided mast with a
+  stayed jib, because the body fills the lane behind it. Site fill on any track's road corridor is not placed.

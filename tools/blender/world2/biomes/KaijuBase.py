@@ -244,18 +244,19 @@ def shot_eye(k, f):
 HIDE_RAMP = ("2A1C19", "33221E", "3C2722", "462D26", "50342B", "5A3B30", "654235", "704A3B", "7B5241", "865C49")  # back and flank hide, dark to light
 BELLY_RAMP = ("5E4C3C", "6C5846", "7A6550", "88725A", "967F64", "A38C70")  # belly scutes
 KEEL_RAMP = ("4A4038", "5C5044", "6E6152", "807260", "93846F", "A5967F")  # dorsal keels, horns and brow
+MID_RAMP = ("5E4034", "694A3B", "755543", "80604C", "8A6C56")  # between hide and belly
 DUSTY = "857A6C"  # hide dusted by the ground it lies in
 STANDIN = "010203"  # the stand-in parts of the body (the parts fallback's silhouette); their faces never ship
-BODY_TRIS, BERM = 10250, ("565049", "69625A", "7B746A", DUST)  # berm: churned earth at the body out to the ground colour
+BODY_TRIS, BERM = 11050, ("5B544C", "665F56", "716A60", "7A7368", "837C71", DUST)  # berm: churned earth at the body out to the ground colour
 SPINE = [(-80, 57, 2, 2.4), (-102, 55, 4, 4.6), (-121, 47, 6, 7), (-134, 31, 8, 10), (-134, 12, 11, 13.5), (-119, -5, 15, 17.5), (-95, -16, 20, 23), (-62, -22, 26, 30), (-28, -25, 31, 32), (8, -25, 37, 38), (42, -18, 36, 36), (70, -3, 28, 25), (91, 13, 20, 18.5), (106, 27, 16, 16)]
 HEAD_AT, HEAD_YAW, HEAD_ROLL = (110, 27, 18), math.radians(44), math.radians(-24)  # the skull's back; the snout points toward the road and forward
 LIMBS = {  # joints (x, y, z, radius); the last is the palm or sole
-	"fore_near": [(44, 10, 42, 22), (34, 40, 24, 13.5), (34, 45, 17, 12.5), (60, 52, 8, 9), (70, 54, 5, 8.5)],
-	"fore_far": [(42, -42, 40, 20), (18, -55, 22, 13), (34, -58, 8, 9), (46, -58, 5, 8)],
-	"hind_near": [(-62, 2, 34, 25), (-40, 32, 29, 18), (-38, 35, 24, 15), (-10, 47, 10, 10), (2, 51, 5, 8.5)],
-	"hind_far": [(-64, -42, 30, 19), (-36, -56, 20, 14), (-62, -58, 8, 9), (-50, -60, 5, 8)],
+	"fore_near": [(44, 10, 42, 22), (34, 40, 24, 13.5), (34, 45, 17, 12.5), (59, 51, 11, 8), (69, 52.5, 8, 8.5)],
+	"fore_far": [(42, -42, 40, 20), (18, -50, 22, 12.5), (34, -54, 8, 9), (46, -54, 5, 8)],
+	"hind_near": [(-62, 2, 34, 25), (-40, 32, 29, 18), (-38, 35, 24, 15), (-11, 46, 11, 8.6), (0, 50, 7, 8.5)],
+	"hind_far": [(-64, -42, 30, 19), (-36, -49, 20, 13), (-62, -54, 8, 9), (-50, -56, 5, 8)],
 }
-DIGITS = {"fore_near": ((8, 4), (14, 1), (14, -4), (9, -9)), "fore_far": ((10, 4), (13, 0), (10, -4)), "hind_near": ((13, 5), (15, 0), (12, -5)), "hind_far": ((13, 4), (14, 0), (12, -4))}
+DIGITS = {"fore_near": ((7, 8.6), (14, 3.0), (14, -3.0), (9, -9)), "fore_far": ((10, 5.5), (14, 0), (10, -5.5)), "hind_near": ((9, 7.6), (14, 2.2), (13.5, -3.4), (8, -9)), "hind_far": ((11, 5.5), (14, 0), (11, -5.5))}
 
 
 def spine_at(s):
@@ -368,11 +369,26 @@ def keels():
 	return out
 
 
+def flank_plates(F):
+	"""Low oval plates along the upper flanks: (centre on the skin, axes), flat against it (marched from the body's line)."""
+	np, out = F.np, []
+	for i in range(9):
+		for side, degs in ((1, (34, 62)), (-1, (40, 70))):
+			for j, deg in enumerate(degs):
+				x, y, z, _ = spine_at(0.36 + i * 0.052 + 0.02 * j)
+				a = math.radians(deg) * side
+				dr = (0.0, math.sin(a), math.cos(a))
+				rr = next((q for q in range(12, 64) if F.at(np.array([[x, y + dr[1] * q, z + dr[2] * q]]))[0] > 0), 0)
+				if rr and z + dr[2] * rr > 24:
+					out.append(((x, y + dr[1] * rr, z + dr[2] * rr), ((1, 0, 0), (0, math.cos(a), -math.sin(a)), dr)))
+	return out
+
+
 def corpse_field():
 	"""The whole body's field: spine masses, ribcage, girdles, jointed limbs, skull and jaw, keels, then skin relief."""
 	import numpy as np
 
-	F = Field((-152, -70, -5), (152, 70, 104), 1.25)
+	F = Field((-152, -76, -5), (152, 70, 104), 1.1)
 	n = 64
 	pts = [spine_at(i / n) for i in range(n + 1)]
 	for a, b in zip(pts, pts[1:]):
@@ -401,9 +417,16 @@ def corpse_field():
 		px, py, pz, pr = js[-1]
 		F.ball((px, py, pz), (pr * 1.15, pr, pr * 0.62), 4)
 		for dx, dy in DIGITS[name]:
-			mid = (px + dx * 0.7, py + dy * 0.95, 5.5)
-			F.cone((px, py + dy * 0.5, pz), mid, 3.6, 3.4, 2.2)
-			F.cone(mid, (px + dx * 1.15, py + dy * 1.1, 2.2), 3.4, 2.4, 1.6)
+			kn, tp = (px + dx * 0.72, py + dy, pz + 1.6), (px + dx * 1.15, py + dy * 1.15, pz - 2.6)
+			F.cone((px, py + dy * 0.6, pz), kn, 3.0, 2.7, 1.2)
+			F.ball(kn, (3.3, 2.6, 2.9), 0.9)  # knuckle
+			F.cone(kn, tp, 2.6, 2.3, 0.9)
+			F.ball(tp, (2.7, 2.5, 2.5), 0.8)  # cuff the claw grows from
+		ds = DIGITS[name]
+		for (ax_, ay), (bx_, by_) in zip(ds, ds[1:]):  # the clefts between the toes
+			F.cone((px + 4, py + (ay + by_) * 0.45, pz + 3), (px + (ax_ + bx_) * 0.6 + 3, py + (ay + by_) * 0.6, pz - 1), 1.3, 1.6, 0.8, cut=True)
+		wx, wy, wz, wr = js[-2]
+		F.cone((wx + 2, wy - wr * 0.7, wz + wr * 1.05), (wx + 2, wy + wr * 0.7, wz + wr * 1.05), 1.1, 1.1, 1.6, cut=True)  # the wrist's break
 	# muscle: upper arm, forearm, thigh and calf
 	F.ball((38, 31, 34), (12, 9, 16), 6)
 	F.ball((-52, 22, 36), (22, 12, 18), 7)
@@ -414,22 +437,40 @@ def corpse_field():
 	F.ball(head_pt(33, 0, 3.2), (9.5, 9.5, 5.6), 4, head_axes(-0.1))
 	for v in (-1, 1):
 		F.ball(head_pt(2, v * 13, -4), (11, 6.5, 9), 4, head_axes())  # jaw muscle
-		F.cone(head_pt(21, v * 7.5, 10.5), head_pt(-3, v * 11.5, 16.5), 2.6, 4.6, 2.2)  # brow shelf
+		F.cone(head_pt(21, v * 7.5, 10.5), head_pt(-3, v * 11.5, 16.5), 3.2, 5.0, 1.8)  # brow shelf
 		F.cone(head_pt(22, v * 6, 11), head_pt(38, v * 4.2, 7.6), 2.0, 2.0, 1.8)  # snout ridge to the nostril
-		F.ball(head_pt(12, v * 12.2, 8.2), (5.4, 4.0, 3.6), 1.2, head_axes(), cut=True)  # eye socket
-		F.ball(head_pt(12, v * 9.6, 8.0), (4.2, 2.6, 2.6), 0.9, head_axes())  # the closed lid in it
-		F.ball(head_pt(41.5, v * 4.6, 4.6), (2.2, 1.8, 1.6), 0.8, head_axes(), cut=True)  # nostril
+		F.ball(head_pt(12, v * 13.4, 7.8), (5.4, 3.6, 4.0), 0.8, head_axes(), cut=True)  # eye socket
+		F.ball(head_pt(41.5, v * 4.6, 4.6), (2.8, 2.2, 2.0), 0.7, head_axes(), cut=True)  # nostril
 		F.cone(head_pt(-6, v * 11, 14), head_pt(-17, v * 19, 25), 5.2, 3.8, 2.0)  # horn, swept back
 		F.cone(head_pt(-17, v * 19, 25), head_pt(-30, v * 22, 33), 3.8, 1.0, 1.2)
 		F.cone(head_pt(-2, v * 16, -3), head_pt(-12, v * 22, -4), 3.2, 1.0, 1.8)  # cheek spine
 		F.cone(head_pt(0, v * 10.5, -9), head_pt(33, v * 7 + 3, -14.5), 4.2, 3.2, 2.5)  # jaw bar
+		for q in range(4):  # rings at the horn's root
+			t_ = 0.15 + q * 0.28
+			F.ball(head_pt(-6 - 11 * t_, v * (11 + 8 * t_), 14 + 11 * t_), (5.6 - q * 0.4,) * 3, 0.5)
+		F.cone(head_pt(2, v * 18, -10), head_pt(9, v * 17, 3), 1.0, 1.0, 1.4, cut=True)  # jaw hinge crease
+		F.cone(head_pt(10, v * 12.6, -0.2), head_pt(38, v * 8.6, -1.2), 1.5, 1.4, 1.2)  # upper lip
 	F.ball(head_pt(32, 3, -14.5), (9, 8.5, 3.6), 3, head_axes())  # chin
 	F.ball(head_pt(19, 1.5, -14.5), (18, 8, 2.8), 2, head_axes())  # floor of the mouth
 	F.ball(head_pt(27, 1, -6.2), (21, 12.5, 5.2), 1.6, head_axes(-0.04), cut=True)  # the slack gap between the jaws
 	for a, b, ra, rb in (((8, 1, -10), (30, 4, -8.6), 4.6, 4.2), ((30, 4, -8.6), (39, 8, -10.5), 4.2, 3.6), ((39, 8, -10.5), (44, 10, -17), 3.6, 2.8)):
 		F.cone(head_pt(*a), head_pt(*b), ra, rb, 1.2)  # the tongue, lolling over the jaw's lip
+	F.cone(head_pt(14, 2, -4.6), head_pt(38, 7.6, -5.8), 1.1, 1.1, 0.8, cut=True)  # the tongue's groove
 	for a, b, r in keels():
 		F.cone(a, b, r, r * 0.28, 2.0)
+		F.ball(a, (r * 1.5, r * 1.5, r * 0.95), 1.2)  # the collar it stands in
+	for c_, ax_ in flank_plates(F):
+		F.ball(c_, (6.2, 4.6, 1.5), 1.0, ax_)
+	for arc in ((("x", 62), (-18, 55), 34), (("x", -38), (-8, 56), 30), (("x", -98), (-16, 48), 26)):  # creases at shoulder, hip and tail root
+		cx = arc[0][1]
+		ring = []
+		for j in range(6):
+			a_ = math.radians(-24 + j * 17)
+			c0, dr = (cx + 3 * math.sin(a_ * 2), arc[1][0], 22.0), (0.0, math.sin(a_), math.cos(a_))
+			rr = next((q for q in range(8, 70) if F.at(np.array([[c0[m] + dr[m] * q for m in range(3)]]))[0] > 0), 30)
+			ring.append(tuple(c0[m] + dr[m] * rr for m in range(3)))
+		for p, q in zip(ring, ring[1:]):
+			F.cone(p, q, 1.3, 1.3, 2.2, cut=True)
 	# skin relief: folds at the joints, belly scutes, broad lumps
 	ax = [F.lo[i] + F.cell * np.arange(F.n[i]) for i in range(3)]
 	X, Y, Z = np.meshgrid(*ax, indexing="ij")
@@ -489,12 +530,12 @@ def corpse_body(k):
 	bpy.context.scene.collection.objects.link(ob)
 	vg = ob.vertex_groups.new(name="keep")
 	hx, hy, hz = head_pt(16, 0, 0)
-	tips = [js[-1] for n, js in LIMBS.items() if n.endswith("near")]
+	tips = [js[-1] for js in LIMBS.values()]
 	for v in me.vertices:
 		c = v.co
 		w = max(0.0, 1 - math.dist(c, (hx, hy, hz)) / 44)
 		for t in tips:
-			w = max(w, 0.6 * max(0.0, 1 - math.dist(c, t[:3]) / 22))
+			w = max(w, 0.66 * max(0.0, 1 - math.dist(c, (t[0] + 7, t[1], t[2])) / 24))
 		vg.add([v.index], 1.0 - min(1.0, w * 1.5), "REPLACE")
 	cur = len(me.polygons)
 	dec = ob.modifiers.new("d", "DECIMATE")
@@ -520,7 +561,8 @@ def corpse_body(k):
 	x, y, z = ctr.T
 	n1 = np.sin(x * 0.31 + 2 * np.sin(y * 0.17)) * np.sin(y * 0.27 + 2 * np.sin(z * 0.21)) * np.sin(z * 0.37 + x * 0.11)
 	n2 = np.sin(x * 0.9 + y * 0.7) * np.sin(y * 1.1 - z * 0.8)
-	belly = np.clip((-0.28 - up) * 3, 0, 1) * (nor[:, 2] < 0.55)
+	edge = 0.16 * np.sin(x * 0.07 + 1.1) + 0.12 * np.sin(x * 0.19 + y * 0.05) + 0.06 * n1
+	belly = np.clip((-0.2 - up + edge) * 1.7, 0, 1) * (nor[:, 2] < 0.55)
 	kk = keels()
 	ka, kb = np.array([q[0] for q in kk]), np.array([q[1] for q in kk])
 	kr = np.array([q[2] for q in kk])
@@ -549,7 +591,9 @@ def corpse_body(k):
 		band = max(0.0, math.sin(x[i] * 0.15 + 0.5 * math.sin(z[i] * 0.11) + 0.8 * n1[i])) * max(0.0, min(1.0, up[i] * 1.6 + 0.2))
 		light = 0.56 + 0.09 * n1[i] + 0.02 * n2[i] + 0.8 * (ao[i] - 0.62) - 0.30 * band + 0.10 * (nor[i, 2] - 0.2)
 		ramp = HIDE_RAMP
-		if belly[i] > 0.5 + 0.3 * n1[i] and abs(x[i]) < 128:
+		if abs(x[i]) < 128 and 0.22 < belly[i] < 0.55:  # the hide pales into the belly over a band, no hard edge
+			ramp, light = MID_RAMP, 1.1 * belly[i] + 0.8 * (ao[i] - 0.62) + 0.14 + 0.06 * n2[i]
+		elif belly[i] >= 0.55 and abs(x[i]) < 128:
 			ramp, light = BELLY_RAMP, 0.6 + 0.06 * n2[i] + 0.9 * (ao[i] - 0.62)
 		if kd[i] < 0.9:
 			ramp, light = KEEL_RAMP, 0.2 + 0.6 * kt[i] + 0.04 * n2[i]
@@ -562,8 +606,8 @@ def corpse_body(k):
 				ramp, light = ("4E4450", "655866"), 0.4 + 0.3 * n2[i]  # tongue, grey mauve
 			elif 0 < hu[i] < 46 and av < 10.5 and -13 < hw[i] < -1 and ao[i] < 0.62:
 				ramp, light = ("2A1814", "3A211C"), 0.3 + 0.4 * ao[i]  # inside of the mouth: dark, no gore
-			elif 8.3 < hu[i] < 15.8 and av > 9.5 and 6.6 < hw[i] < 8.2:
-				ramp, light = ("1C1210",), 0  # the closed lid's slit
+			elif 5 < hu[i] < 19 and av > 8.5 and 3 < hw[i] < 12.5 and ao[i] < 0.66:
+				ramp, light = ("2A1C18", "33221E"), 0.5  # the socket
 			elif hw[i] < -10:
 				ramp, light = BELLY_RAMP, 0.45 + 0.4 * (ao[i] - 0.6) + 0.15 * n2[i]
 		if z[i] < 2.4 + 1.6 * n1[i]:
@@ -581,24 +625,26 @@ def corpse_berm(k, F, rnd):
 	import numpy as np
 
 	step = 7.0
-	xs, ys = np.arange(-161, 161.1, step), np.arange(-77, 64.1, step)
-	jx = np.array([[rnd.uniform(-1.8, 1.8) for _ in ys] for _ in xs])
-	jy = np.array([[rnd.uniform(-1.8, 1.8) for _ in ys] for _ in xs])
+	xs, ys = np.arange(-154, 154.1, step), np.arange(-83, 64.1, step)
+	jx = np.array([[rnd.uniform(-2.2, 2.2) for _ in ys] for _ in xs])
+	jy = np.array([[rnd.uniform(-2.2, 2.2) for _ in ys] for _ in xs])
 	X, Y = np.meshgrid(xs, ys, indexing="ij")
 	X, Y = X + jx, Y + jy
 	d = F.at(np.stack((X.ravel(), Y.ravel(), np.full(X.size, 3.0)), 1)).reshape(X.shape)
+	d = np.where((np.abs(X) > 150) | (np.abs(Y) > 68), np.maximum(d, 16), d)  # past the field's box
 	nz = np.sin(X * 0.11 + 1.3 * np.sin(Y * 0.13)) + np.sin(Y * 0.17 + X * 0.07)
-	reach = 23 + 6 * nz  # how far the heap runs out, ragged
-	edge = np.maximum(np.maximum(np.abs(X) - 143, Y - 52), -Y - 62) / 12  # fades inside the footprint
-	t = np.clip(1 - np.maximum(d, 0) / np.maximum(reach, 5) - np.clip(edge, 0, 1), 0, 1)
-	hgt = 6.5 * t**1.7 * (0.8 + 0.2 * nz)
-	for px, py, rr in [(js[-1][0] + 8, js[-1][1], 26) for js in LIMBS.values()] + [(head_pt(30, 2, 0)[0], head_pt(30, 2, 0)[1], 34), (head_pt(6, 2, 0)[0], head_pt(6, 2, 0)[1], 26)]:
-		hgt = hgt * np.clip(0.12 + (np.hypot(X - px, Y - py) / rr) ** 2, 0, 1)  # low under the feet and the jaw
-	hgt = np.where(t <= 0, -0.8, hgt + 0.1)
-	crack = np.abs(np.sin(np.arctan2(Y, X * 0.5) * 11 + 1.6 * np.sin(d * 0.16) + nz)) < 0.13
-	crack &= (d > 3) & (t > 0.08)
-	hgt = np.where(crack, hgt - 1.3, hgt)
-	hgt = np.where((t > 0) & (hgt < 0.15) & ~crack, 0.15, hgt)
+	reach = 27 + 9 * nz  # how far the heap runs out, ragged
+	edge = np.maximum(np.maximum(np.abs(X) - 134, Y - 50), -Y - 64) / 17
+	t = np.clip(1 - np.maximum(d, 0) / np.maximum(reach, 8) - np.clip(edge, 0, 1), 0, 1)
+	hgt = 8.0 * np.clip(t - 0.12, 0, 1) ** 2 * (0.85 + 0.25 * nz)
+	# banks the body sank into: chin, forearm, belly, hind foot, tail (x, y, height, radius)
+	for bx_, by_, bh, br in BANKS:
+		hgt = np.maximum(hgt, np.clip((66 - Y) / 14, 0, 1) * bh * np.exp(-(((X - bx_) ** 2 + ((Y - by_) * 1.5) ** 2) / br**2)) * (0.9 + 0.12 * nz))
+	crack = np.abs(np.sin(np.arctan2(Y, X * 0.5) * 11 + 1.6 * np.sin(d * 0.16) + nz)) < 0.1
+	crack &= (d > 4) & (t > 0.3)
+	hgt = np.where(crack, hgt - 0.9, hgt)
+	fade = np.clip(t / 0.2, 0, 1)  # the outer band runs down through the ground, in the ground's own colour
+	hgt = hgt * fade + (-0.5) * (1 - fade) + 0.12 * fade
 	me = bpy.data.meshes.new("KaijuBermTmp")
 	verts, faces, vi = [], [], {}
 	T = {}
@@ -614,46 +660,88 @@ def corpse_berm(k, F, rnd):
 		for j in range(len(ys) - 1):
 			cs = ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))
 			for tri in ((cs[0], cs[1], cs[2]), (cs[0], cs[2], cs[3])):
-				if max(t[c] for c in tri) > 0.02 and min(d[c] for c in tri) < 60 and max(d[c] for c in tri) > -5:
+				if max(t[c] for c in tri) > 0.01 and min(d[c] for c in tri) < 60 and max(d[c] for c in tri) > -5:
 					faces.append(tuple(vert(*c) for c in tri))
 	me.from_pydata(verts, [], faces)
 	me.update()
-	cols = [k.mat(c, 1.0) for c in BERM] + [k.mat("2E2925", 1.0)]
+	cols = [k.mat(c, 1.0) for c in BERM] + [k.mat("3A342E", 1.0)]
 	for m in cols:
 		me.materials.append(m)
 	for p in me.polygons:
 		ts = [T[v] for v in p.vertices]
 		q = sum(v[0] for v in ts) / 3 + 0.06 * ts[0][2]
-		p.material_index = 4 if sum(v[1] for v in ts) >= 2 else (0 if q > 0.66 else 1 if q > 0.42 else 2 if q > 0.2 else 3)
+		n_ = len(BERM)
+		p.material_index = n_ if sum(v[1] for v in ts) >= 2 else max(0, min(n_ - 1, int((1 - (q - 0.16) / 0.6) * (n_ - 1) + 0.999)))
+		p.use_smooth = q < 0.4
 	return me
 
 
-def wreck(p, rnd, x, z, w, h, yaw, lean=0.0):
-	"""What is left of a building edge: a broken wall with window holes stepping down, a floor slab sheared off it, beams
-	and rebar. Stands on the ground at (x, z) (Roblox axes), leaning `lean` degrees toward its own -Z."""
+BANKS = [(124, 46, 3.6, 15), (76, 49, 5.2, 14), (34, 52, 4.4, 13), (6, 50, 5.2, 13), (-34, 50, 5.4, 12), (-80, 52, 4.2, 12), (-120, 48, 3.5, 13), (98, 46, 5.4, 11)]
+
+
+def pose(p, n0, at, yaw=0.0, pitch=0.0, roll=0.0):
+	"""Turns parts p[n0:], built round the local origin, as one rigid piece and moves them to `at` (Roblox axes)."""
+	R = Matrix.Rotation(math.radians(yaw), 3, "Z") @ Matrix.Rotation(math.radians(pitch), 3, "X") @ Matrix.Rotation(math.radians(-roll), 3, "Y")
+	for i in range(n0, len(p)):
+		shape, size, (px, py, pz), col, o = p[i]
+		v = R @ Vector((px, -pz, py))
+		rx, ry, rz = o.get("rot", (0, 0, 0))
+		M = R @ Matrix.Rotation(math.radians(ry), 3, "Z") @ Matrix.Rotation(math.radians(rx), 3, "X") @ Matrix.Rotation(math.radians(-rz), 3, "Y")
+		e = M.to_euler("YXZ")
+		p[i] = (shape, size, (at[0] + v.x, at[1] + v.z, at[2] - v.y), col, {**o, "rot": (math.degrees(e.x), math.degrees(e.z), -math.degrees(e.y))})
+
+
+def wreck(p, rnd, x, z, w, dp, floors, yaw, pitch, roll, y=-3.0, tone="9AA2AA"):
+	"""A broken building of the city (the Office's language): floor plates on a shorter, darker core, window bands and
+	fins on the faces, the upper floors sheared back step by step, rebar, scorch; tilted and sunk as one piece."""
+	n0, fh = len(p), 6.0
+	for f in range(floors):
+		cut = max(0.0, (f - floors * 0.45) / floors) * rnd.uniform(0.7, 1.1)  # how much of this floor is sheared off
+		fw, ox = w * (1 - cut), -w * cut / 2
+		yy = f * fh
+		bx(p, (fw, fh - 1.1, dp), (ox, yy + fh / 2, 0), tone)
+		bx(p, (fw + 1.2, 1.1, dp + 1.2), (ox - 0.2, yy + fh - 0.5, 0), "757A7E")  # floor plate, jutting
+		bx(p, (fw * 0.86, 2.9, dp + 0.5), (ox, yy + 2.9, 0), "465866" if rnd.random() < 0.6 else "20242A")  # window band through both faces
+		bx(p, (fw + 0.5, 2.9, dp * 0.8), (ox, yy + 2.9, 0), "3C4A56")
+		if cut > 0.1:  # torn slab and rebar on the sheared side
+			bx(p, (w * cut * 0.8, 0.9, dp * rnd.uniform(0.4, 0.8)), (w / 2 - w * cut * 0.55, yy + rnd.uniform(0, 1.5), rnd.uniform(-2, 2)), CONC, rot=(rnd.uniform(-12, 12), 0, rnd.uniform(-34, -10)))
+			cab(p, (ox + fw / 2, yy + 2, rnd.uniform(-dp / 3, dp / 3)), (ox + fw / 2 + rnd.uniform(2, 5), yy + rnd.uniform(1, 5), rnd.uniform(-dp / 3, dp / 3)), RUST, thick=0.5)
+	for fx in (-0.5, -0.18, 0.14):  # fins
+		bx(p, (0.8, floors * fh * 0.6, 0.9), (w * fx + 0.6, floors * fh * 0.3, -dp / 2 - 0.4), "AEB4BA")
+	bx(p, (w * 0.3, fh * 1.6, dp + 0.9), (w * 0.22, fh * 1.2, 0), SCORCH)
+	pose(p, n0, (x, y, z), yaw, pitch, roll)
+
+
+def flat_car(p, x, y, z, col, yaw, crush=1.0, roll=0.0):
+	"""A crushed car: low body, caved cabin, dark glass, wheels as two axles."""
 	n0 = len(p)
-	wall, slab = rnd.choice((CONC, "B8B0A2", CONC2)), "8E8A82"
-	n = max(2, int(w / 6))
-	peak = rnd.uniform(0.2, 0.75)
-	for i in range(n):
-		hh = h * max(0.22, 1 - 0.9 * abs(i / (n - 1) - peak)) * rnd.uniform(0.8, 1.05)
-		cx = x + (i + 0.5 - n / 2) * 6
-		bx(p, (6.04, hh + 2, 2.2), (cx, hh / 2 - 1, z), wall)
-		bx(p, (3.4, 2.6, 2.0), (cx + rnd.uniform(-1.2, 1.2), hh + 0.2, z), wall, rot=(0, 0, rnd.uniform(25, 60)))  # torn top
-		for f in range(int((hh - 2) // 8)):
-			bx(p, (3.2, 3.6, 2.5), (cx, f * 8 + 4.8, z), WINDOW)
-	for s_, hh in ((-1, 0.45), (1, 0.3)):  # the side walls' stumps, so it reads as a building's corner
-		bx(p, (1.8, h * hh + 2, 9), (x + s_ * w * 0.44, h * hh / 2 - 1, z + 5), wall)
-	bx(p, (w * 0.7, 1.4, 8), (x + rnd.uniform(-2, 2), h * 0.42, z + 4), slab, rot=(rnd.uniform(14, 28), 0, rnd.uniform(-8, 8)))
-	for i in range(3):
-		seg(p, (x + rnd.uniform(-w / 2, w / 2), h * 0.4, z + 2), (x + rnd.uniform(-w / 2, w / 2), h * rnd.uniform(0.6, 0.85), z + rnd.uniform(2, 6)), RUST, thick=0.45)
-	if lean:
-		for i in range(n0, len(p)):
-			shape, size, (px, py, pz), col, o = p[i]
-			c, s_ = math.cos(math.radians(lean)), math.sin(math.radians(lean))
-			rx, ry, rz = o.get("rot", (0, 0, 0))
-			p[i] = (shape, size, (px, py * c + (pz - z) * s_ * 0.2, pz - py * s_), col, {**o, "rot": (rx - lean, ry, rz)})
-	turn(p, n0, x, z, yaw)
+	bx(p, (9.0, 2.0, 4.2), (0, 1.4, 0), col)
+	p.append(("wedge", (4.2, 1.6 * crush, 4.6), (0.4, 2.4 + 0.8 * crush, 0), "2A3440", {"rot": (0, 90, 8)}))
+	bx(p, (4.0, 0.4, 3.9), (-0.2, 2.5 + 1.2 * crush, 0.2), col, rot=(rnd_tilt(x), 0, -9))
+	for wx in (-2.9, 2.9):
+		p.append(("cyl", (1.9, 4.5, 1.9), (wx, 0.7, 0), "1C1C1E", {"seg": 5, "rot": (90, 0, 0)}))
+	pose(p, n0, (x, y, z), yaw, 0, roll)
+
+
+def rnd_tilt(x):
+	return 7 if int(x) % 2 else -8
+
+
+def crew(p, x, y, z, s=1.0, face=0.0, bend=0.0):
+	"""A Monster Sweeper at figure scale, plain white suit, no mark of any kind (about 130 tris): hood, dark goggles, pack."""
+	n0 = len(p)
+	p.append(("cyl", (2.2, 2.7, 1.7), (0, 2.6, 0), SUIT, {"seg": 6, "taper": 0.8, "smooth": True}))
+	p.append(("ball", (2.2, 2.3, 2.2), (0, 4.8, 0.1), SUIT, {"subdiv": 1, "smooth": True}))
+	bx(p, (1.5, 0.5, 0.5), (0, 5.0, -0.75), "16181C")
+	bx(p, (1.5, 2.8, 1.0), (0, 3.2, 1.2), "5A6A44")
+	bx(p, (2.1, 0.35, 1.8), (0, 1.6, 0), "2A2A2E")
+	for sd in (-1, 1):
+		bx(p, (0.75, 2.4, 0.8), (sd * 1.35, 2.9, -0.5), SUIT, rot=(-32, 0, sd * 10))
+		bx(p, (0.85, 1.9, 1.0), (sd * 0.5, 0.5, 0), SUIT)
+	for i in range(n0, len(p)):
+		sh, size, pos, col, o = p[i]
+		p[i] = (sh, tuple(v * s for v in size), tuple(v * s for v in pos), col, o)
+	pose(p, n0, (x, y, z), face, bend, 0)
 
 
 def kaiju_corpse(k):
@@ -687,75 +775,150 @@ def kaiju_corpse(k):
 	for js in LIMBS.values():
 		for a, b in zip(js, js[1:]):
 			seg(kc, (a[0], a[2], -a[1]), (b[0], b[2], -b[1]), STANDIN, thick=1.6 * min(a[3], b[3]))
-	# teeth along both jaws and claws, set into the body
+	def skin(a, b):
+		"""First hit of the body from a toward b (mesh frame) as (point, normal), or None."""
+		v = Vector(b) - Vector(a)
+		h = tree.ray_cast(Vector(a), v.normalized(), v.length)
+		return (h[0], h[1]) if h[0] else None
+
+	def R_(v):
+		return (v[0], v[2], -v[1])
+
+	# teeth: uneven, rooted through the lip line; claws out of their cuffs, pressed down; the lids' dark slits
+	hax = head_axes()
 	for v in (-1, 1):
-		for i in range(7):
-			u = 12 + i * 4.3
-			lat = v * (10.0 - 0.06 * i * i)
-			for w, s_, ln in ((-1.0, -1, rnd.uniform(3.2, 5.0)), (-12.0, 1, rnd.uniform(2.6, 4.0))):
-				bxp = head_pt(u + (1.5 if s_ > 0 else 0), lat * (0.94 if s_ < 0 else 0.8) + (u * 0.08 if s_ > 0 else 0), w + s_ * ln * 0.3)
-				kc.append(("cone", (2.1, ln, 2.1), (bxp[0], bxp[2], -bxp[1]), BONE, {"seg": 5, "rot": ((0 if s_ > 0 else 180) + math.degrees(HEAD_ROLL) * 0.7, 0, 0)}))
+		for i in range(8):
+			u = 11 + i * 3.8 + rnd.uniform(-0.7, 0.7)
+			lat = v * (10.4 - 0.1 * i * i)
+			for low in (0, 1):
+				ln = rnd.choice((2.4, 3.4, 5.2)) * (0.8 if low else 1.0)
+				c = head_pt(u + low * 1.6, lat * (0.8 if low else 0.97) + (u * 0.08 if low else 0), (-12.2 + ln * 0.25) if low else (-2.0 - ln * 0.3))
+				kc.append(("cone", (1.5 + ln * 0.2, ln + 1, 1.5 + ln * 0.2), R_(c), "D8CDB0", {"seg": 5, "rot": ((0 if low else 180) + math.degrees(HEAD_ROLL) * 0.7, 0, 0)}))
+		kc.append(("ball", (7.0, 7.0, 5.8), R_(head_pt(12, v * 9.6, 7.6)), "4E3C32", {"subdiv": 2, "smooth": True}))  # the closed lid
+		pts = []
+		for q in range(5):  # its dark slit, sagging
+			du, w = -2.9 + q * 1.45, 7.0 - 0.7 * math.sin(q / 4 * math.pi)
+			pts.append(R_(head_pt(12 + du, v * (9.6 + math.sqrt(max(0.2, 3.3**2 - du * du - (w - 7.6) ** 2))), w)))
+		for a, b in zip(pts, pts[1:]):
+			cab(kc, a, b, "1A110E", thick=0.7)
+		kc.append(("ball", (3.6, 2.8, 2.4), R_(head_pt(39.4, v * 4.2, 4.8)), "20140F", {"subdiv": 1}))  # nostril
 	for name, js in LIMBS.items():
 		px, py, pz, pr = js[-1]
 		for dx, dy in DIGITS[name]:
-			seg_dir = math.degrees(math.atan2(dy * 0.15, dx * 0.45))
-			kc.append(("cone", (3.6, 9.5, 3.6), (px + dx * 1.15 + 3.6, 2.0, -(py + dy * 1.1 + 0.6 * (1 if dy > 0 else -1))), BONE2, {"seg": 6, "rot": (0, seg_dir, -100)}))
-	# crushed building edges: broken walls pushed over along the contact line, taller at the back
-	for x, z, w, h, yaw, lean in (
-		(-118, 40, 26, 24, 172, 12), (-84, 52, 24, 34, 184, 16), (-12, 59, 28, 30, 178, 9), (66, 50, 30, 40, 186, 14), (104, 22, 24, 30, 150, 14), (132, 0, 18, 18, 118, 10),
-		(-104, -22, 24, 22, -14, 20), (4, -57, 24, 15, 8, 24), (-128, -58, 12, 12, 24, 10), (112, -60, 12, 9, -20, 12),
+			ax = math.degrees(math.atan2(dy * 0.15, dx * 0.43))
+			tx, ty, tz = px + dx * 1.15 + 1.2, py + dy * 1.15, pz - 2.4
+			n0 = len(kc)
+			kc.append(("cone", (3.3, 3.2, 3.3), (1.2, 0.2, 0), "CFC3A4", {"seg": 6, "taper": 0.7, "rot": (0, 0, -100)}))
+			kc.append(("cone", (2.35, 4.6, 2.35), (4.5, -1.2, 0), "EADFC4", {"seg": 6, "rot": (0, 0, -122)}))
+			pose(kc, n0, (tx, tz, -ty), ax)
+	# buildings it came down on: pinned under jaw, chest, hind leg and tail, the rest pushed over behind
+	for x, z, w, dp, fl, yaw, pitch, roll, y, tone in (
+		(95, -45, 20, 14, 3, 20, 10, 26, -2, "D9D0BC"), (26, -49, 24, 12, 3, 4, 14, 32, -2, "AEB6BE"), (-34, -50, 22, 11, 3, -6, 12, -28, -2, "D9D0BC"),
+		(-103, -30, 24, 18, 5, -20, 12, -18, -4, "AEB6BE"), (-100, 48, 26, 15, 5, 12, -24, 10, -4, "AEB6BE"), (82, 44, 26, 18, 6, -18, -20, -10, -4, "D9D0BC"), (120, 8, 18, 16, 4, 30, -10, 24, -3, "AEB6BE"),
 	):
-		wreck(kc, rnd, x, z, w, h, yaw, lean)
-	for i in range(64):  # rubble, thickest at the body
-		a = rnd.uniform(0, math.tau)
-		x, z = math.cos(a) * rnd.uniform(60, 142), math.sin(a) * rnd.uniform(34, 61)
-		d = float(F.at(F.np.array([[x, -z, 3.0]]))[0])
-		if not 0 < d < 22:
+		wreck(kc, rnd, x, z, w, dp, fl, yaw, pitch, roll, y, tone)
+	for x0, yy in ((14, 20), (-70, 16)):  # facade slabs thrown up against the hide
+		h = skin((x0, 90, yy), (x0, -90, yy))
+		if not h:
 			continue
-		s_ = rnd.uniform(2.0, 6.5) * (1.15 - d / 34)
-		bx(kc, (s_ * rnd.uniform(0.8, 1.7), s_ * 0.6, s_), (x, max(0.2, 3.2 - d * 0.22), z), rnd.choice((CONC, CONC2, "A09A8E", ROCK, "8E8A82")), rot=(rnd.uniform(-25, 25), rnd.uniform(0, 90), rnd.uniform(-25, 25)))
-	# two lattice gantries, lighter than before
-	GH = 112.0
-	for gx, zn, zf in ((-91, -59.5, 63), (-17, -59.5, 64)):
-		for z in (zn, zf):
+		n0 = len(kc)
+		w = rnd.uniform(9, 13)
+		bx(kc, (w, 15, 1.2), (0, 0, 0), rnd.choice(("8E959B", "A79F90")))
+		bx(kc, (w * 0.8, 2.6, 1.5), (0.6, 1.2, 0), "2C3640")
+		bx(kc, (w * 0.5, 5, 1.1), (w * 0.36, 8, 0), "8E959B", rot=(0, 0, 24))
+		z = min(-h[0].y - 2.5, -14)
+		pose(kc, n0, (x0, yy * 0.5, max(z, -56)), rnd.uniform(-20, 20), -38, rnd.uniform(-30, 30))
+	# broken street: tilted asphalt and concrete slabs thick at the body, thinning outward; rubble; kerbs
+	for i in range(125):
+		x, z = rnd.uniform(-143, 143), rnd.uniform(-61, 66)
+		d = float(F.at(F.np.array([[max(-150, min(150, x)), max(-68, min(68, -z)), 3.0]]))[0])
+		if not 1 < d < 34 or rnd.random() > 1.15 - d / 34 or top(x, z):
+			continue
+		s_ = rnd.uniform(2.2, 6.0) * (1.1 - d / 48)
+		g = max([bh * math.exp(-((x - a) ** 2 + ((-z - b) * 1.5) ** 2) / r**2) for a, b, bh, r in BANKS])
+		if i % 3 == 0:
+			bx(kc, (s_ * 1.9, 0.9, s_ * 1.4), (x, max(0.3, g + 1.6 - d * 0.1), z), rnd.choice(("4E4E50", "585654", "8E8A82")), rot=(rnd.uniform(-20, 20) * (1 - d / 40), rnd.uniform(0, 90), rnd.uniform(-20, 20) * (1 - d / 40)))
+		else:
+			bx(kc, (s_ * rnd.uniform(0.7, 1.4), s_ * 0.6, s_ * 0.8), (x, max(0.1, g + 1.5 - d * 0.12), z), rnd.choice((CONC, CONC2, "A09A8E", ROCK, "8E8A82")), rot=(rnd.uniform(-25, 25), rnd.uniform(0, 90), rnd.uniform(-25, 25)))
+	# the road-side bank: crushed cars, street barriers, crew on the banks (they show over the road's barrier)
+	for x, y, z, col, yaw, cr, ro in ((108, 1.5, -58, "B8342E", 24, 0.5, 10), (50, 4.0, -60, "D8D8D4", -12, 0.3, -14), (-62, 2.5, -59, "2F5FA8", 14, 0.5, 8), (-96, 1.2, -59.5, "C8A838", -30, 0.7, 4), (-136, 0.2, -46, "8A9098", 60, 0.6, 0)):
+		flat_car(kc, x, y, z, col, yaw, cr, ro)
+	for x, z, yaw in ((132, -60, 8), (122, -61, -6), (-44, -61, 4), (-72, -61, -10), (-110, -61, 12)):  # concrete street barriers
+		bx(kc, (9, 1.6, 2.4), (x, 0.6, z), "A8AEB4", rot=(0, yaw, 0))
+		bx(kc, (9, 2.2, 1.0), (x, 2.2, z), "C0C4C8", rot=(0, yaw, 0))
+	for x, y, z, f, bd in ((104, 4.6, -51, 30, 0), (99, 4.8, -56, 200, 14), (38, 4.2, -57, 160, 0), (-30, 4.6, -55, 180, 0), (-46, 4.0, -57, 20, 0)):
+		crew(kc, x, y, z, 1.15, f, bd)
+	# stake line along the back with its rope, then ropes from stakes over the hide down to pegs in the ground
+	stakes = []
+	for i in range(10):
+		x = -70 + i * 14.5
+		z = 11 if x < 60 else 4
+		y = top(x, z)
+		if y and y > 30:
+			stakes.append((x, y, z))
+			seg(kc, (x - 1.0, y - 1.5, z), (x, y + 7, z), "8A8E94", thick=0.8)
+	for a, b in zip(stakes, stakes[1:]):
+		m = ((a[0] + b[0]) / 2, max((a[1] + b[1]) / 2 + 4.0, (top((a[0] + b[0]) / 2, (a[2] + b[2]) / 2) or 0) + 1), (a[2] + b[2]) / 2)
+		cab(kc, (a[0], a[1] + 6.5, a[2]), m, "2A2622", thick=0.45)
+		cab(kc, m, (b[0], b[1] + 6.5, b[2]), "2A2622", thick=0.45)
+	for n_, (x, y, z) in enumerate(stakes):
+		line = [(x, y + 6.5, z)]
+		for q in range(1, 9):  # over the crest, then down the flank
+			a = math.radians(8 + q * 10)
+			h = skin((x, -z + 110 * math.sin(a), 24 + 110 * math.cos(a)), (x, -z - 20, 24))
+			if h:
+				line.append(R_(h[0] + h[1] * 0.9))
+		if n_ % 2 == 0:
+			lx, ly, lz = line[-1]
+			line.append((x + 1, 0.2, max(-61, min(lz - 5, -50)) if lz < -20 else lz - 8))
+			bx(kc, (1.2, 2.4, 1.2), (line[-1][0], 0.6, line[-1][2]), "3A3E46")  # peg
+			use = line
+		else:
+			use = line[:5]
+		for a, b in zip(use, use[1:]):
+			cab(kc, a, b, (ROPE_B, ROPE_Y, "2E9A96")[n_ % 3], thick=0.6)
+		if 1 <= n_ <= 8 and len(line) > 5:  # a sweeper braced on the hide, on the end or the middle of the rope
+			wx, wy, wz = line[4]
+			crew(kc, wx, wy - 2.6, wz - 1.2, 1.25, 180, -16)
+	# two lattice gantries over the waist and the tail root, on footings, braced at the corners
+	GH = 106.0
+	for gx, zn, zf in ((-91, -62.5, 52), (-14, -58.5, None)):
+		jib, end = zf is None, 20.0 if zf is None else zf
+		for z in (zn,) if jib else (zn, zf):
 			for x in (-3.5, 3.5):
 				bx(kc, (1.3, GH, 1.3), (gx + x, GH / 2 - 1, z), TEAL, metal=0.4)
-			for y in range(0, int(GH) - 24, 14):
-				bx(kc, (7, 0.8, 0.8), (gx, y + 8, z), TEAL, metal=0.4)
-				seg(kc, (gx - 3.5, y + 8, z), (gx + 3.5, y + 22, z), "286A66", thick=0.6)
-			bx(kc, (12, 1.6, 3.6), (gx, 0, z), "3A3E46")
+			for y in range(0, int(GH) - 24, 16):
+				cab(kc, (gx - 3.5, y + 8, z), (gx + 3.5, y + 8, z), TEAL, thick=0.9)
+				cab(kc, (gx - 3.5, y + 8, z), (gx + 3.5, y + 24, z), "286A66", thick=0.7)
+			bx(kc, (12, 3.4, 4.4), (gx, 0.6, z), "6E6C68")  # footing
+			inn = 1 if z < 0 else -1
+			for x in (-3.5, 3.5):
+				cab(kc, (gx + x, GH - 22, z), (gx + x, GH - 6, z + inn * 14), TEAL, thick=1.0)
 		for x in (-3, 3):
-			bx(kc, (1.2, 1.2, zf - zn), (gx + x, GH, 0), TEAL, metal=0.4)
-			bx(kc, (1.0, 1.0, zf - zn), (gx + x, GH - 7, 0), TEAL, metal=0.4)
-		for i in range(12):
-			z0, z1 = zn + (zf - zn) * i / 12, zn + (zf - zn) * (i + 1) / 12
+			bx(kc, (1.2, 1.2, end - zn), (gx + x, GH, (zn + end) / 2), TEAL, metal=0.4)
+			bx(kc, (1.0, 1.0, end - zn), (gx + x, GH - 7, (zn + end) / 2), TEAL, metal=0.4)
+		for i in range(10):
+			z0, z1 = zn + (end - zn) * i / 10, zn + (end - zn) * (i + 1) / 10
 			a, b = (GH - 7, GH) if i % 2 else (GH, GH - 7)
-			seg(kc, (gx + 3, a, z0), (gx + 3, b, z1), "286A66", thick=0.6)
+			cab(kc, (gx + 3, a, z0), (gx + 3, b, z1), "286A66", thick=0.8)
+		if jib:  # the body fills the lane behind, so this one is a mast with a stayed jib: no leg through the beast
+			for x in (-3, 3):
+				cab(kc, (gx + x, GH - 1, zn), (gx, GH + 8, zn), TEAL, thick=1.2)
+				cab(kc, (gx, GH + 8, zn), (gx + x, GH, end - 2), "2A2622", thick=0.5)
+			for dx in (-34, 34):  # guys to the ground along the road side, never toward the road
+				cab(kc, (gx, GH + 8, zn), (gx + dx, 1.0, zn), "2A2622", thick=0.5)
 		bx(kc, (9, 4, 7), (gx, GH - 3, -14), "E8C840")
-		for j, (dx, y) in enumerate(((14, 56), (27, 44))):  # sweepers braced on the hide, on ropes from the beam
-			z = flank(gx + dx, y)
-			if z is None:
-				continue
-			worker(kc, gx + dx, y, z - 1.6, 1.5, face=180, lo=True)
-			cab(kc, (gx + dx * 0.4, GH - 7, z - 1), (gx + dx, y + 6, z - 1.2), (ROPE_B, ROPE_Y)[j], thick=0.6)
-		for q in range(5):  # loose ropes from the beam to the ground
-			z = zn + 6 + q * 2.4
-			cab(kc, (gx + rnd.uniform(-3, 3), GH - 7, z), (gx + rnd.uniform(-9, 9), 0.4, z - rnd.uniform(0, 2)), (ROPE_B, ROPE_Y, "1A1A1C")[q % 3], thick=0.5)
-	for i in range(4):  # ropes from the back down the near flank
-		x = (-52, 4, 26, 48)[i]
-		pts = [(x, y, flank(x, y)) for y in (72, 66, 60, 54, 48, 42, 36)]
-		pts = [(a, b, c - 1.2) for a, b, c in pts if c is not None]
-		for a, b in zip(pts, pts[1:]):
-			cab(kc, a, b, (ROPE_B, ROPE_Y, "2E9A96")[i % 3], thick=0.5)
-	for x, z in ((-6, 16), (30, 26)):  # on the back
+		h = skin((gx + 2, 14, 140), (gx + 2, 14, 0))
+		if h:  # the hoist's cable ends in a block resting on the hide
+			cab(kc, (gx + 2, GH - 5, -14), R_(h[0]), "1A1A1C", thick=0.6)
+			bx(kc, (3, 3, 3), R_(h[0] + h[1] * 1.0), "E8C840")
+		for q in range(3):  # ropes from the beam, tied to pegs at the footing
+			z = zn + 5 + q * 3.2
+			cab(kc, (gx + (q - 1) * 2, GH - 7, z), (gx + (q - 1) * 5, 1.4, zn + 1 + q), (ROPE_B, ROPE_Y, "1A1A1C")[q], thick=0.5)
+	for x, z in ((15, 8), (38, 16)):  # on the back
 		y = top(x, z)
 		if y:
-			worker(kc, x, y + 0.6, z, 1.1, lo=True)
-	for x, z in ((-42, -58.5), (94, -57)):
-		worker(kc, x, 0.4, z, 1.1, lo=True)
-	for x, z in ((-60, -58.5), (-116, -59)):  # skip bins
-		bx(kc, (10, 4.5, 5), (x, 1.6, z), "2F5FA8")
-		bx(kc, (10.4, 0.5, 5.4), (x, 4.0, z), "244A84")
+			crew(kc, x, y + 0.4, z, 1.15, 40)
 	ob = k.prop("KaijuCorpse", kc)
 	me = ob.data
 	bm = bmesh.new()
@@ -771,6 +934,8 @@ def kaiju_corpse(k):
 		for p in part.polygons:
 			p.material_index = remap[p.material_index]
 		bm.from_mesh(part)
+	# nothing hangs under the ground: whatever was sunk is cut 1.6 below it
+	bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], plane_co=(0, 0, -1.6), plane_no=(0, 0, 1), clear_inner=True)
 	bm.to_mesh(me)
 	bm.free()
 	me.calc_loop_triangles()
@@ -781,7 +946,7 @@ def kaiju_corpse(k):
 
 
 
-SITES = ((1049.0, -94.0, 1.0, 0.0), (2683.0, -94.0, 1.0, 0.0))  # d, off, scale, turn (degrees): the two legal pockets beside Track 5's city half
+SITES = ((1057.0, -92.0, 1.0, -2.0), (2683.0, -91.0, 1.0, -1.0))  # d, off, scale, turn (degrees): the two legal pockets beside Track 5's city half
 
 
 def corpse_sites(k, city_end, windows, avoid, tall_avoid):
@@ -815,6 +980,7 @@ def corpse_sites(k, city_end, windows, avoid, tall_avoid):
 			gone[name] = gone.get(name, 0) + 1
 			bpy.data.objects.remove(ob)
 	print("KAIJUBASE crushed", gone)
+	kept = set(k.col.objects)
 
 	def fill(d, off, names, sc, turn, lean):
 		pos, _ = k.beside(d, off)
@@ -856,6 +1022,28 @@ def corpse_sites(k, city_end, windows, avoid, tall_avoid):
 					k.place(rng.choice(("Office", "Apartment")), (gx, -1.0, gz), rng.choice((0, math.pi / 2, math.pi)), rng.uniform(1.0, 1.6))
 			gz += 160
 		gx += 160
+
+	# the fill only counts where the game would build it: an instance on any track's road corridor goes (export drops it)
+	import build_track
+	import clearance
+	import export_props
+
+	corr = clearance.corridors(build_track.load_chain().values())
+	bpy.context.view_layer.update()
+	local_, drop = {}, {}
+	import numpy as np
+
+	for ob in [o for o in k.col.objects if o not in kept and o.type == "MESH"]:
+		me = ob.data
+		if me.name not in local_:
+			local_[me.name] = export_props.local_tris(me, (0, 0, 0))
+		m = np.array(ob.matrix_world)
+		t = local_[me.name]
+		b = np.stack((t[..., 0], -t[..., 2], t[..., 1]), -1) @ m[:3, :3].T + m[:3, 3]
+		if clearance.intrudes(np.stack((b[..., 0], b[..., 2], -b[..., 1]), -1), corr):
+			drop[me.name[len(pre) :]] = drop.get(me.name[len(pre) :], 0) + 1
+			bpy.data.objects.remove(ob)
+	print("KAIJUBASE fill dropped by the corridor test", drop)
 
 
 def rail_cannon(k):
