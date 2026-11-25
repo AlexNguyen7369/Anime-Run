@@ -19,6 +19,7 @@ render set (design doc 4.47)."""
 
 import math
 
+import roads
 from roads import Roads
 
 MODEL_SHOTS = ["HQ", "Mansion", "Apaato", "Konbini", "Retro"]  # hero close-ups judged at full size (build_track)
@@ -866,3 +867,4 @@ def build(k):
 		elif (int(kd / 48) + (s > 0)) % 2 == 0:
 			k.light(pos, SODIUM, energy=18000, radius=4).data.use_shadow = False
 	print("LAMPS", len(main), "KITS", len(kits))
+	roads.apply_cross_track(k)

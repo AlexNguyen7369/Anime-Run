@@ -25,9 +25,9 @@ from roads import Roads
 # (prop, world x, z, scale) behind the finish: the spots beside the 0.9 axis free of Track 2's ruins, which fill the axis itself
 BEHIND_FINISH = [("RuinWall", 306, 425, 1.0), ("Pine", 322, 410, 1.3), ("Pine", 310, 408, 1.2), ("Pine", 325, 420, 1.3), ("Pine", 405, 402, 1.3), ("Pine", 418, 395, 1.3), ("Pine", 412, 410, 1.3), ("Pine", 420, 406, 1.2)]
 
-# (world x, z, turn off the town's direction) of the army's ranks, one in each run view (0.06, 0.33, 0.62, 0.9): each passes
+# (world x, z, turn off the town's direction) of the army's ranks, one in each of three run views (0.06, 0.33, 0.62): each passes
 # export_props.rules_ok (exact triangles and parts fallback against every road, pads, plaza, own ground)
-RANKS = [(-26, -275, 0.0), (85.5, 277.9, 0.0), (-149.4, -412.4, 0.24), (364, 399, 0.0)]
+RANKS = [(-26, -275, 0.0), (85.5, 277.9, 0.0), (-149.4, -412.4, 0.24)]
 
 MODEL_SHOTS = ["Town", "RuinedCastle", "Rank", "HeroStatue", "Cottage"]  # hero close-ups (build_track.model_shots); Rank is the headless army
 
@@ -651,7 +651,7 @@ def build(k):
 				continue
 			k.place("Rank", (x, -1.0, z), math.atan2(-(tx - x), -(tz - z)) + sh)
 			taken.append((x, z, 50))
-			see({-26: 0.06, 85.5: 0.33, -149.4: 0.62, 364: 0.9}[x], x, z)
+			see({-26: 0.06, 85.5: 0.33, -149.4: 0.62}[x], x, z)
 	# Landmark 3: villages along the first lap and the last straight; the hero's statue on the green of two of them
 	# The hero's statue where the 0.06 run camera sees it, left of the castle, and one by the finish for the 0.9 camera
 	for d, off in ((228, -46), (222, -50), (216, -44), (235, -44), (205, -50), (200, -58)):
@@ -804,3 +804,4 @@ def build(k):
 					break
 	# Bright hazy day: cyan overhead fading to near-white haze at the horizon (no fog: it blacked out the render)
 	k.sky([(0.0, "F6FAF8"), (0.04, "E6F2F4"), (0.12, "C4E4EE"), (0.35, "8ACCE6"), (1.0, "4AA8D6")], strength=0.85, sun=(3.4, "FFF6E6", 48, 150))
+	roads.apply_cross_track(k)

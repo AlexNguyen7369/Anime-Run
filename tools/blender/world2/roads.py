@@ -101,3 +101,43 @@ class Roads:
 		c, s = abs(math.cos(yaw)), abs(math.sin(yaw))
 		ex, ez = (w * c + d * s) / 2, (w * s + d * c) / 2
 		return [(n[4], n[5]) for n in near if abs(n[0] - x) < n[2] + ex and abs(n[1] - z) < n[3] + ez]
+
+
+def apply_cross_track(k, path=None):
+	"""cross_track.json: the props of a swapped layout whose mesh stood in another track's built prop, as
+	[prop, base centre world x, z, dx, dz] (moved by dx, dz) or [prop, x, z, null, null] (left out). Heroes are never in
+	it. Run last in build()."""
+	import json
+	import os
+
+	import bpy
+	from mathutils import Vector
+
+	path = path or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cross_track.json")
+	rows = json.load(open(path)).get(k.biome, []) if os.path.exists(path) else []
+	if not rows:
+		return
+	bpy.context.view_layer.update()
+	by = {}
+	for name, ob in k.props.items():
+		xs, ys = [v.co.x for v in ob.data.vertices], [v.co.y for v in ob.data.vertices]
+		by[ob.data.name] = (name, Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, 0)))
+	obs = []
+	for ob in list(k.col.objects):
+		if ob.type == "MESH" and ob.data.name in by:
+			name, c = by[ob.data.name]
+			w = ob.matrix_world @ c
+			obs.append((name, w.x, -w.y, ob))
+	done = 0
+	for name, x, z, dx, dz in rows:
+		hit = min((q for q in obs if q[0] == name), key=lambda q: math.hypot(q[1] - x, q[2] - z), default=None)
+		if hit is None or math.hypot(hit[1] - x, hit[2] - z) > 0.2:
+			continue
+		obs.remove(hit)
+		done += 1
+		if dx is None:
+			bpy.data.objects.remove(hit[3])
+		else:
+			hit[3].location.x += dx
+			hit[3].location.y -= dz
+	print("CROSS_TRACK", k.biome, done, "of", len(rows))
