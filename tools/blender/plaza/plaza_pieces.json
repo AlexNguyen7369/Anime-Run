@@ -1,0 +1,100 @@
+{
+ "AltarGreatLotusLocked": {
+  "Asset": "117771915492153",
+  "Hash": "3df41d93729506b1",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 8450
+ },
+ "AltarGreatLotusUnlocked": {
+  "Asset": "105330697943341",
+  "Hash": "1bc9f43f871b9768",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 10380
+ },
+ "AltarTwinRoofLocked": {
+  "Asset": "131215160423062",
+  "Hash": "b6e916dd15f34eb4",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 9572
+ },
+ "AltarTwinRoofUnlocked": {
+  "Asset": "102388779723807",
+  "Hash": "7ab221d89d68127d",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 8012
+ },
+ "BossGateClosed": {
+  "Asset": "125398438490160",
+  "Hash": "e8db904463781341",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 11030
+ },
+ "BossGateOpen": {
+  "Asset": "85973554587379",
+  "Hash": "5858dd43d22d12d1",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 10189
+ },
+ "IndexBoard": {
+  "Asset": "115075746119130",
+  "Hash": "2bea49dc5fb8adce",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 2700
+ },
+ "MarketStall": {
+  "Asset": "129542940134303",
+  "Hash": "a7050ed71d413496",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 3980
+ },
+ "POTIONSStall": {
+  "Asset": "123264526991461",
+  "Hash": "68b124bae448e7c4",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 3865
+ },
+ "SHOPStall": {
+  "Asset": "98958521572101",
+  "Hash": "a44856a05d768bbe",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 2198
+ },
+ "SenseiDais": {
+  "Asset": "79274925542688",
+  "Hash": "06c57bf37d8be459",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 504
+ },
+ "SkyLoop": {
+  "Asset": "71711181500455",
+  "Hash": "e8b4b0b42f351141",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 1996
+ },
+ "WorldGateLocked": {
+  "Asset": "91447572769944",
+  "Hash": "ef4e146f35366463",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 10306
+ },
+ "WorldGateOpen": {
+  "Asset": "80093484789171",
+  "Hash": "76c8f25b433c9163",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 8403
+ }
+}
