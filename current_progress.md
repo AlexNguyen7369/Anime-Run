@@ -260,6 +260,7 @@
 256. 2026-11-25 — Alex Nguyen — Handoff and owner questions updated for the World 2 track swap (audit FAIL, round 2 running) and the kaiju rework (rounds 1 to 4 reviewed) (6d39eef5; docs only).
 257. 2026-11-25 — Alex Nguyen — Owner approved the reworked dead kaiju of World 2 Track 5 (round 5, 1bc5e9f7) and ruled its site fill is cut to the clear props (bda2943c; docs only, kaiju branch not merged).
 258. 2026-11-25 — Alex Nguyen — Two owner questions recorded from the kaiju rules audit: the 8 moved vans and the kaiju's overlap with other tracks' props (b7c50814; docs only).
+259. 2026-11-25 — Alex Nguyen — Owner questions recorded from the swap round 2 audit (hero turns and counts, two HQs) and the kaiju van test (b67dcf41; docs only).
 
 ## What's next
 **Finish the World 2 Track 1 and 6 swap (game-true renders, approved scales, fresh rules audit) and cut the kaiju's site fill to the props clear of other tracks' scenery.**
