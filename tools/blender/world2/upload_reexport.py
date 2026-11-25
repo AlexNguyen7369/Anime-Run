@@ -236,11 +236,13 @@ def is_id(text):
 
 
 def taken(m, ledger, key):
-	"""id -> whose it is: every old Model and MeshId, and the new ones but `key`'s own MeshId."""
+	"""id -> whose it is: every old and original Model and MeshId, and the new ones but `key`'s own MeshId."""
 	out = {}
 	for k, a in m.items():
 		out[a.get("OldMesh")], out[a.get("OldModel")] = k + "'s old MeshId", k + "'s old Model"
 	for k, r in ledger.items():
+		old = r.get("Old") or {}  # the originals: after an apply a rebuilt manifest no longer has them
+		out[old.get("Mesh")], out[(old.get("Tsv") or [""] * 3)[2]] = k + "'s original MeshId", k + "'s original Model"
 		out[r.get("Model")] = k + "'s Model"
 		if k != key:
 			out[r.get("Mesh")] = k + "'s MeshId"
@@ -259,6 +261,7 @@ def clear(m, ledger, key, found):
 	if sending["Hash"] != m[key]["Hash"]:
 		raise SystemExit("%s was sent as %s and is built as %s: `clear %s none`, the arrived Model is not this build" % (key, sending["Hash"][:12], m[key]["Hash"][:12], key))
 	ids = taken(m, ledger, key)
+	ids[ledger[key].get("Mesh")] = "its own MeshId"
 	if found in ids:
 		raise SystemExit("%s is %s" % (found, ids[found]))
 	ledger[key] = {"Hash": sending["Hash"], "Model": found, "Old": ledger[key].get("Old") or old_of(m, key)}
@@ -281,7 +284,7 @@ def set_mesh(m, ledger, key, mesh):
 
 
 def sign(m, ledger, keys, field, text):
-	if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2} [^\s\"\\][^\"\\\x00-\x1f\x7f]*", text):  # it goes into a Luau string
+	if not text.isprintable() or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2} [^\s\"\\][^\"\\\x00-\x1f\x7f]*", text):  # it goes into a Luau string
 		raise SystemExit('sign as "<YYYY-MM-DD> <who>", without quotes, backslashes or line breaks')
 	applied = [k for k in keys if ledger.get(k, {}).get("Applied")]
 	if applied:
@@ -439,7 +442,7 @@ def self_test():
 			assert refused(sign, m, l3, ["W2_B_A"], field, "me")
 			sign(m, l3, ["W2_B_A"], field, "2026-11-25 me")
 			assert l3["W2_B_A"][field]
-			for bad in ('2026-11-25 me"', "2026-11-25 me\\", "2026-11-25 me\nx", "2026-11-25 me\n", "2026-11-25 \r"):
+			for bad in ('2026-11-25 me"', "2026-11-25 me\\", "2026-11-25 me\nx", "2026-11-25 me\n", "2026-11-25 \r", "2026-11-25 m\udce9", "2026-11-25 m\u2028x"):
 				assert refused(sign, m, l3, ["W2_B_A"], field, bad), repr(bad)
 			l3["W2_B_A"]["Applied"] = True
 			assert refused(sign, m, l3, ["W2_B_A"], field, "2026-11-25 you") and l3["W2_B_A"][field] == "2026-11-25 me"
@@ -491,6 +494,15 @@ def self_test():
 		assert posts == ["W2_B_A"] and load()["W2_B_A"]["Sending"]["Hash"] == "n", posts
 		later = {**m, "W2_B_A": dict(m["W2_B_A"], Hash="n2", OldModel="61"), "W2_B_C": dict(m["W2_B_C"], OldModel="62")}
 		assert refused(clear, later, load(), "W2_B_A", "555")  # what arrived was the hash that was sent, not today's build
+		l3 = {"W2_B_A": {"Hash": "older", "Model": "81", "Mesh": "82", "Old": old("11"), "Sending": {"At": "t", "Hash": "n"}}}
+		for bad in ("81", "82"):  # its own earlier new ids
+			assert refused(clear, m, l3, "W2_B_A", bad), bad
+		# after an apply the rebuilt manifest's old ids are the new ones: the originals live in the ledger's Old
+		kept = {"W2_B_C": dict(good, Model="22", Mesh="32", Old=dict(old("12"), Tsv=["B", "W2_B_C", "91", "12", "o"]))}
+		rebuilt = {**m, "W2_B_C": dict(m["W2_B_C"], OldMesh="32", OldModel="22")}
+		for bad in ("12", "91"):
+			l3 = {**kept, "W2_B_A": {"Hash": "n", "Model": "21", "Sending": {"At": "t", "Hash": "n"}}}
+			assert refused(set_mesh, rebuilt, l3, "W2_B_A", bad) and refused(clear, rebuilt, l3, "W2_B_A", bad), bad
 		both = {**later, "W2_B_A": dict(m["W2_B_A"], OldModel="61")}
 		l3 = load()
 		l3["W2_B_C"] = {"Hash": "n", "Model": "444", "Mesh": "445"}

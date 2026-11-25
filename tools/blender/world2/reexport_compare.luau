@@ -1,7 +1,7 @@
 --!nonstrict
 -- Compares an old and a new uploaded mesh vertex by vertex (docs/W2_REEXPORT_PLAN.md): `upload_reexport.py compare-script <batch>` prints
 -- this with ROWS filled, to run in Studio's command bar; each REEXPORT_COMPARE line goes back through `upload_reexport.py compare <file>`.
--- Max is the largest distance from a vertex, or a triangle's centre, of either mesh to the nearest one of the other: the order
+-- Max is the largest distance from a vertex, or a triangle's centre, of either mesh to the nearest one of the other, in mesh-native units: the order
 -- and the splitting of vertices on import do not count, a moved or missing one does. It changes nothing in the place.
 local ROWS = {} --ROWS
 
@@ -41,7 +41,7 @@ local function oneWay(a, b, cell)
 	return worst
 end
 
--- { Points, Centres } (lists of { x, y, z }) of two meshes: the largest difference, capped at `cell` studs. An empty mesh is `cell`.
+-- { Points, Centres } (lists of { x, y, z }) of two meshes: the largest difference, capped at `cell` (mesh-native units). An empty mesh is `cell`.
 function M.Max(old, new, cell)
 	cell = cell or 0.5
 	local worst = 0
