@@ -111,7 +111,7 @@ positions are **proposed**; warm gold, amber and paper, one pink accent, matchin
 - Total 39 parts, 4 lights. No new client script, asset or sound.
 
 
-### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders, build not started)
+### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; code and models in place, not turned on)
 The same in both worlds unless a line says otherwise (owner: "consistent with world"); replaces "services unchanged" in
 WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels stay; positions stay except those the fuller layout below replaces; every size **proposed**.
 - World gate: gate draft B (shrine gatehouse). Position, lock rule and destination unchanged. Proposed: the label moves up,
@@ -136,7 +136,7 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
   smaller one (draft 0.75, the Sensei header stays), and Frierin may load in World 1 (her rig there loads her, 4.47 "Models").
 - Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
   start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
-  the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed; names and
+  the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed (not below rebirth 1, owner 2026-11-25); names and
   wording in the tweaked forms, lines and popup layout B approved by the owner 2026-11-25; the E prompt is separate from the gate's own prompt so both can be reached.
 
 ## 5. Player plots: removed (owner 2026-11-11, design doc 4.43)
