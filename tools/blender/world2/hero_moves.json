@@ -15,21 +15,7 @@
   }
  },
  "DemonCastle": {},
- "DevilTokyo": {
-  "Retro": {
-   "From": [
-    52.235,
-    -1.0,
-    -219.482
-   ],
-   "Studs": 10.0,
-   "To": [
-    52.235,
-    -1.0,
-    -229.482
-   ]
-  }
- },
+ "DevilTokyo": {},
  "ElvenPlains": {},
  "GoldenCity": {},
  "HauntedTunnel": {

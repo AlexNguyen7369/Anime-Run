@@ -24,7 +24,7 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   OutdoorAmbient was taken from the draft's below-horizon stop (32, 23, 35) instead of its orange skyline.
 - Rule: a track's lighting keeps the hue of its approved draft sky, but the road and the runner must read on every
   track. `Kit.fromDraft` builds each profile from the draft's sky stops and sun with floors (`Kit` `LIGHT_FLOOR`, all
-  **proposed**): night tracks (draft sun energy under 2: Tracks 4, 6, 8; Track 1 until the 2026-11-25 swap) get a moon of Brightness at least 2, Ambient
+  **proposed**): night tracks (draft sun energy under 2: Tracks 4, 6, 8) get a moon of Brightness at least 2, Ambient
   at least 0.5, OutdoorAmbient at least 0.62 (largest colour channel, 0-1; a lifted colour is also mixed 35% toward grey), ExposureCompensation 1.1, fog Density at
   most 0.22 and no Haze; the others Brightness at least 1.4, Ambient at least 0.36, OutdoorAmbient at least 0.6. Fog
   colours are lifted to 0.3 so the distance never fades to black. The horizon colour is the first sky stop at or over 0.
@@ -107,7 +107,7 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 
 The "Based on" names stay in docs and never ship (design doc 5).
 
-Track swap (owner 2026-11-25; **not built yet**: the code still has DevilTokyo at 1 and ElvenPlains at 6 until the swap branch merges): Tracks 1 and 6 exchange biomes. Moves with the biome: track id, name, palette, scenery,
+Track swap (owner 2026-11-25; layouts approved, round 7, owner 2026-11-25; nothing uploaded): Tracks 1 and 6 exchanged biomes. Moves with the biome: track id, name, palette, scenery,
 lighting, card blurb, enemy name and model. Stays with the number: road segments and length, pay, Gems, `BestTrack` /
 `Checkpoint` / `RaceBestTimes`, enemy speed (Track 6: 190). Approvals and hero moves below that name Track 1 or 6 were
 written before the swap.
@@ -196,12 +196,11 @@ written before the swap.
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
   approved scale and turn) to the nearest spot on its own track's ground that clears its own and every other track's
   corridor, the spawn area and every checkpoint and win pad; the biome drafts stay as approved and the move lives in
-  tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves: Track 1 Retro (52, -219) to
-  (52, -229), 10 studs; Track 4 Hospital (1377, 609) to (1589, 821), 300; Track 5 Railgun (1865, -307) to
+  tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves: Track 4 Hospital (1377, 609) to (1589, 821), 300; Track 5 Railgun (1865, -307) to
   (-362, -1230), 2410; Track 7 Nest (-486, 1809) to (-486, 2059), 250; Track 8 Coliseum (2707, 132) to (3167, 132),
   460; Track 8 LairTower (-680, 1795) to (3294, -2179), 5620; Track 10 DarkGate (3485, 3478) to (3402, 3512), 90.
-  No spot at the approved scale (not built): Track 1 HQ, Track 2 ChainTower, Track 3 HeroHQ and Crater, Track 4
-  School and OldWoodHouse, Track 5 GiantCorpse and DefenseHQ, Track 6 Town and RuinedCastle, Track 7 IslandVolcano.
+  No spot at the approved scale (not built): Track 1 Town and RuinedCastle, Track 2 ChainTower, Track 3 HeroHQ and Crater, Track 4
+  School and OldWoodHouse, Track 5 GiantCorpse and DefenseHQ, Track 6 HQ, Track 7 IslandVolcano.
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's

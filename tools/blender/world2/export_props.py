@@ -29,7 +29,7 @@ if HERE not in sys.path:
 	sys.path.insert(0, HERE)
 
 # Owner-approved and frozen 2026-11-23 / 2026-11-24 (WORLD2_SPEC "Render set approvals"). All 10.
-APPROVED = {1: "DevilTokyo", 2: "DemonCastle", 3: "RuinedCityZ", 4: "HauntedTunnel", 5: "KaijuBase", 6: "ElvenPlains", 7: "AntIsland", 8: "MonsterDen", 9: "GoldenCity", 10: "HellGate"}
+APPROVED = {1: "ElvenPlains", 2: "DemonCastle", 3: "RuinedCityZ", 4: "HauntedTunnel", 5: "KaijuBase", 6: "DevilTokyo", 7: "AntIsland", 8: "MonsterDen", 9: "GoldenCity", 10: "HellGate"}
 ROAD = {"Wall", "Dash", "Apron", "WinPad", "Road", "Ground"}
 # Game names for draft props whose draft name holds a real character, brand or place name (design doc 5): asset keys and
 # shipped data use the right-hand name only. The draft modules are frozen, so the rename lives here.

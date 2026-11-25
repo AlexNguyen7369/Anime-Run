@@ -1,0 +1,205 @@
+TOUCH ElvenPlains on our ground: T2 Crag (-281, 213) Mound x1
+TOUCH ElvenPlains on our ground: T2 Crag (-231, 141) Cottage x1, Flowers x1
+TOUCH ElvenPlains on our ground: T2 Crag (2, 172) Flowers x1, Pine x1
+TOUCH ElvenPlains on our ground: T2 Crag (101, -316) Flowers x1, Mound x1
+TOUCH ElvenPlains on our ground: T2 Crag (218, 221) Forest x1
+TOUCH ElvenPlains on our ground: T2 Crag (274, -225) Flowers x1, Forest x1, Pine x6
+TOUCH ElvenPlains on our ground: T2 Hound (133, 276) Pine x1, Rank x1
+TOUCH ElvenPlains on our ground: T2 RuinA (87, -104) (pruned in game) Flowers x1
+TOUCH ElvenPlains on our ground: T2 RuinB (-334, 196) Forest x1, Pine x4
+TOUCH ElvenPlains on our ground: T2 RuinB (-326, -120) Forest x2, Pine x2
+TOUCH ElvenPlains on our ground: T2 RuinB (-321, 70) Forest x1, Pine x1
+TOUCH ElvenPlains on our ground: T2 RuinB (-299, 262) Mound x1, Pine x1
+TOUCH ElvenPlains on our ground: T2 RuinB (-33, -423) Forest x1, Pine x1
+TOUCH ElvenPlains on our ground: T2 RuinB (42, -425) Flowers x1, Forest x2, Pine x2
+TOUCH ElvenPlains on our ground: T2 RuinB (165, -425) Flowers x1, Pine x2
+TOUCH ElvenPlains on our ground: T2 RuinB (264, 223) Flowers x1, Forest x1
+TOUCH ElvenPlains on our ground: T2 RuinB (281, -400) Cottage x1, Forest x1, Pine x1
+TOUCH ElvenPlains on our ground: T2 RuinB (409, -330) Flowers x1, Forest x1, Pine x1
+TOUCH ElvenPlains on our ground: T3 HighRise (295, -121) Pine x2, RuinWall x1
+TOUCH ElvenPlains on our ground: T4 Cedar (-332, -185) Forest x1, Pine x1
+TOUCH ElvenPlains on our ground: T4 Cedar (-226, 100) Pine x1
+TOUCH ElvenPlains on our ground: T4 Cedar (291, -100) RuinWall x1
+TOUCH ElvenPlains on our ground: T5 Apartment (-342, 87) Forest x2, Pine x1
+TOUCH ElvenPlains on our ground: T5 Apartment (-336, -222) Forest x1, Pine x1
+TOUCH ElvenPlains on our ground: T5 Apartment (-183, -73) Cottage x2, Pine x1
+TOUCH ElvenPlains on our ground: T5 Apartment (427, -145) Pine x1
+TOUCH ElvenPlains on our ground: T5 CityBlock (-15, -70) (pruned in game) Flowers x1
+TOUCH ElvenPlains on our ground: T5 CityBlock (-12, 90) (pruned in game) Flowers x3, Pine x4
+TOUCH ElvenPlains on our ground: T5 Office (100, -4) (pruned in game) Flowers x1, Forest x1
+TOUCH ElvenPlains on our ground: T5 Smoke (-68, -263) Pine x1, Rank x1, RuinWall x2
+TOUCH ElvenPlains on our ground: T8 FleshWall (-236, -402) Mound x1, Pine x2, Rank x1
+TOUCH ElvenPlains on our ground: T8 LavaChasm (115, -47) (pruned in game) Pine x6, RuinWall x1
+TOUCH ElvenPlains on our ground: T8 LavaChasm (237, -247) Flowers x1, Forest x1, Mound x1, Pine x10
+TOUCH ElvenPlains on our ground: T9 CityBlock (21, 96) (pruned in game) Flowers x3, Pine x6
+TOUCH ElvenPlains on our ground: T9 CityBlock (22, -70) (pruned in game) Flowers x1, Pine x2
+TOUCH ElvenPlains on its ground: T2 Gate (408, -486) Flowers x1, Pine x1
+TOUCH ElvenPlains on its ground: T2 Hound (330, -416) Flowers x1, Forest x1
+TOUCH ElvenPlains on its ground: T2 Rampart (-376, -282) Forest x1
+TOUCH ElvenPlains on its ground: T2 Rampart (-376, -238) Forest x1
+TOUCH ElvenPlains on its ground: T2 Rampart (-43, 318) Forest x1
+TOUCH ElvenPlains on its ground: T2 Rampart (-35, -458) Forest x1
+TOUCH ElvenPlains on its ground: T2 Rampart (1, 318) Forest x1
+TOUCH ElvenPlains on its ground: T2 Rampart (9, -458) Forest x1
+TOUCH ElvenPlains on its ground: T2 RuinB (-344, -38) Flowers x1, Forest x1
+TOUCH ElvenPlains on its ground: T2 RuinB (-334, 270) Pine x1
+TOUCH ElvenPlains on its ground: T2 RuinB (-91, 287) Forest x2
+TOUCH ElvenPlains on its ground: T2 RuinB (437, 18) Flowers x2, Pine x1, RuinWall x1
+TOUCH ElvenPlains on its ground: T3 Collapsed (-331, -383) Mound x1
+TOUCH ElvenPlains on its ground: T3 MidRise (-54, 290) Forest x1
+TOUCH ElvenPlains on its ground: T3 OfficeBroken (148, -442) Pine x1
+TOUCH ElvenPlains on its ground: T3 Rubble (-361, -80) Forest x1
+TOUCH ElvenPlains on its ground: T5 Apartment (308, 182) (pruned in game) Flowers x1
+TOUCH ElvenPlains on its ground: T5 Apartment (423, -336) Forest x1
+TOUCH ElvenPlains on its ground: T8 Graveyard (-362, -196) Forest x2, Pine x1
+TOUCH DevilTokyo on our ground: T3 Rubble (-606, 920) Konbini x1, ShopHouse x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-1049, 686) StreetKit x2
+TOUCH DevilTokyo on our ground: T4 Cedar (-1048, 727) Mansion x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-1045, 693) StreetKit x2
+TOUCH DevilTokyo on our ground: T4 Cedar (-958, -767) Apaato x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-945, -858) LowBlock x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-934, 53) Konbini x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-929, -1065) Mansion x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-876, -970) Apaato x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-795, 995) ShopHouse x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-764, 1023) Konbini x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-624, 1008) Konbini x1, ShopHouse x1
+TOUCH DevilTokyo on our ground: T4 Cedar (-427, 1084) CrossWire x1
+TOUCH DevilTokyo on our ground: T4 Cedar (429, 1101) Apaato x1, Mansion x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T4 Cedar (754, -1052) Apaato x1
+TOUCH DevilTokyo on our ground: T4 Cedar (758, -1048) Apaato x1
+TOUCH DevilTokyo on our ground: T4 Cedar (777, -1055) Apaato x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T4 Cedar (779, -1049) Apaato x1, Mansion x1
+TOUCH DevilTokyo on our ground: T4 Cedar (812, -1058) Mansion x1
+TOUCH DevilTokyo on our ground: T4 Cedar (827, -1011) Mansion x1
+TOUCH DevilTokyo on our ground: T4 Cedar (876, -1008) LowBlock x1
+TOUCH DevilTokyo on our ground: T4 Cedar (895, -1040) LowBlock x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T4 Cedar (951, -1000) LowBlock x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T4 Cedar (972, -1067) StreetKit x1
+TOUCH DevilTokyo on our ground: T4 Cedar (981, -1068) Mansion x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T4 Cedar (993, -923) Mansion x1
+TOUCH DevilTokyo on our ground: T4 Cedar (994, -1115) ShopHouse x1
+TOUCH DevilTokyo on our ground: T4 Cedar (1013, 884) Office x1
+TOUCH DevilTokyo on our ground: T4 Cedar (1021, 870) Office x1, ShopHouse x1
+TOUCH DevilTokyo on our ground: T4 Cedar (1032, 752) Konbini x1
+TOUCH DevilTokyo on our ground: T4 Cedar (1136, -446) Konbini x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T4 Cedar (1139, 542) StreetKit x1
+TOUCH DevilTokyo on our ground: T4 Hospital (1083, -929) Apaato x2, Konbini x2, Mansion x1, ShopHouse x1, StreetKit x8
+TOUCH DevilTokyo on our ground: T4 House2 (910, -1123) Konbini x1, Office x1, ShopHouse x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T5 Apartment (929, 1016) Apaato x1, Mansion x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T5 Hangar (697, -1027) Apaato x1, Office x1
+TOUCH DevilTokyo on our ground: T5 Hangar (1039, -106) Konbini x1, Mansion x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T5 Office (-964, 358) Apaato x1
+TOUCH DevilTokyo on our ground: T5 Office (-963, 136) Mansion x1, ShopHouse x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 Brush (-1073, -504) Mansion x1, ShopHouse x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 Brush (-1019, 890) Office x1, ShopHouse x1
+TOUCH DevilTokyo on our ground: T7 Brush (-974, 371) Apaato x1, ShopHouse x1
+TOUCH DevilTokyo on our ground: T7 Brush (-956, -572) Mansion x1
+TOUCH DevilTokyo on our ground: T7 Brush (-951, -478) Mansion x1
+TOUCH DevilTokyo on our ground: T7 Brush (-731, 1176) (pruned in game) Office x1
+TOUCH DevilTokyo on our ground: T7 Brush (-421, -1051) Mansion x1
+TOUCH DevilTokyo on our ground: T7 Brush (-363, -1045) Apaato x1, Mansion x1
+TOUCH DevilTokyo on our ground: T7 Brush (-181, 1140) Mansion x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T7 Brush (-160, 1148) StreetKit x1
+TOUCH DevilTokyo on our ground: T7 Brush (821, -1049) Mansion x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 Brush (944, -945) LowBlock x1, ShopHouse x1
+TOUCH DevilTokyo on our ground: T7 Brush (1038, -239) Mansion x1
+TOUCH DevilTokyo on our ground: T7 Brush (1046, 276) Mansion x1
+TOUCH DevilTokyo on our ground: T7 Brush (1046, 796) Konbini x1
+TOUCH DevilTokyo on our ground: T7 Brush (1050, -155) Konbini x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 Brush (1062, -149) Konbini x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 Brush (1166, 572) Mansion x1, ShopHouse x1
+TOUCH DevilTokyo on our ground: T7 Brush (1180, 481) Mansion x1, ShopHouse x1
+TOUCH DevilTokyo on our ground: T7 Mound (1073, 1014) Apaato x1, Mansion x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 Ruin (-1050, -886) Apaato x1, Mansion x1, Office x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T7 Ruin (-991, 883) Konbini x1, Office x1, ShopHouse x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T7 Ruin (-690, -1158) Mansion x1, ShopHouse x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 Ruin (-287, 1179) Apaato x1
+TOUCH DevilTokyo on our ground: T7 Ruin (125, -1049) Apaato x1, Mansion x1
+TOUCH DevilTokyo on our ground: T7 Ruin (280, -1156) Apaato x1, Mansion x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T7 Ruin (370, 1202) ShopHouse x2
+TOUCH DevilTokyo on our ground: T7 Ruin (371, -1139) Mansion x2, StreetKit x2
+TOUCH DevilTokyo on our ground: T7 Ruin (586, 1197) Apaato x1, ShopHouse x1
+TOUCH DevilTokyo on our ground: T7 Ruin (901, -1127) Office x1, ShopHouse x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (-1082, 729) Mansion x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (-1071, -575) Mansion x1, StreetKit x2
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (-901, -1076) Mansion x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (-821, 1023) Apaato x1, Konbini x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (-604, 1168) Mansion x1, StreetKit x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (-368, -1186) Konbini x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (-140, -1173) Mansion x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (302, -1171) Mansion x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (303, 1180) Apaato x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (934, 1135) Konbini x1, Office x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (1168, -514) Mansion x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (1181, -817) Mansion x1
+TOUCH DevilTokyo on our ground: T7 ThatchHouse (1183, -93) Mansion x1
+TOUCH DevilTokyo on our ground: T8 RockPillar (371, 1179) Office x1, ShopHouse x2, StreetKit x1
+TOUCH DevilTokyo on our ground: T8 RockPillar (540, 1202) Konbini x1, ShopHouse x1
+TOUCH DevilTokyo on its ground: T3 Kerb (-856, -913) Konbini x1, Office x1
+TOUCH DevilTokyo on its ground: T4 Cedar (-188, 879) Mansion x1
+TOUCH DevilTokyo on its ground: T4 Cedar (1031, -699) Mansion x1
+TOUCH DevilTokyo on its ground: T4 Cedar (1038, 46) Office x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-951, 215) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-947, 277) Office x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-934, 157) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-929, 452) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-927, -320) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-925, 134) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-923, -414) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-923, -272) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Apartment (-901, -18) Office x1
+TOUCH DevilTokyo on its ground: T5 CityBlock (-1132, -70) Konbini x1, Mansion x1, StreetKit x1
+TOUCH DevilTokyo on its ground: T5 Hangar (827, 998) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Hangar (936, 916) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Hangar (1010, 801) Konbini x1
+TOUCH DevilTokyo on its ground: T5 Hangar (1039, 2) Mansion x1, Office x1
+TOUCH DevilTokyo on its ground: T5 Office (-924, 89) Konbini x1, ShopHouse x1
+TOUCH DevilTokyo on its ground: T5 Office (-917, 23) Konbini x1, Office x1
+TOUCH DevilTokyo on its ground: T5 Office (-312, -1006) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Office (289, -1007) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Rubble (-931, 177) Mansion x1
+TOUCH DevilTokyo on its ground: T5 Rubble (-795, 800) LowBlock x1
+TOUCH DevilTokyo on its ground: T5 Rubble (-212, -999) ShopHouse x1
+TOUCH DevilTokyo on its ground: T5 SweeperVan (-884, -787) LowBlock x1
+TOUCH DevilTokyo on its ground: T5 SweeperVan (-217, 857) ShopHouse x1
+TOUCH DevilTokyo on its ground: T7 Brush (-1117, 229) Mansion x1
+TOUCH DevilTokyo on its ground: T7 Brush (-1117, 266) Office x1
+TOUCH DevilTokyo on its ground: T7 Brush (-1111, 693) Office x1
+TOUCH DevilTokyo on its ground: T7 Brush (-927, 95) Konbini x1, ShopHouse x1
+TOUCH DevilTokyo on its ground: T7 Brush (-22, -1173) Office x1
+TOUCH DevilTokyo on its ground: T7 Brush (16, -1167) Office x1
+TOUCH DevilTokyo on its ground: T7 Brush (22, 1185) ShopHouse x1
+TOUCH DevilTokyo on its ground: T7 Brush (1202, 79) Konbini x1
+TOUCH DevilTokyo on its ground: T7 Brush (1204, -355) Office x1
+TOUCH DevilTokyo on its ground: T7 Brush (1204, 16) ShopHouse x1
+TOUCH DevilTokyo on its ground: T7 Brush (1204, 180) Office x1
+TOUCH DevilTokyo on its ground: T7 Brush (1209, 52) Konbini x1
+TOUCH DevilTokyo on its ground: T7 Camp (-1097, -815) Apaato x1, Mansion x1
+TOUCH DevilTokyo on its ground: T7 Camp (-1097, 79) Konbini x1, Mansion x1
+TOUCH DevilTokyo on its ground: T7 Camp (-514, -1195) Apaato x1, Mansion x1
+TOUCH DevilTokyo on its ground: T7 Camp (-124, 1204) Apaato x1, Konbini x1, Office x1
+TOUCH DevilTokyo on its ground: T7 Camp (772, 1208) Mansion x1
+TOUCH DevilTokyo on its ground: T7 Camp (1189, -196) Konbini x1, Office x1, ShopHouse x2
+TOUCH DevilTokyo on its ground: T7 Camp (1189, 697) Mansion x1, Office x1
+TOUCH DevilTokyo on its ground: T7 Ruin (-1079, 844) Apaato x1
+TOUCH DevilTokyo on its ground: T7 Ruin (-732, -1180) Mansion x1
+TOUCH DevilTokyo on its ground: T7 ThatchHouse (-1103, -621) Mansion x1
+TOUCH DevilTokyo on its ground: T7 ThatchHouse (-1098, -51) Mansion x1
+TOUCH DevilTokyo on its ground: T7 ThatchHouse (-1076, -928) Office x1
+TOUCH DevilTokyo on its ground: T7 ThatchHouse (75, 1177) ShopHouse x1
+TOUCH DevilTokyo on its ground: T7 ThatchHouse (517, 1232) ShopHouse x1
+TOUCH DevilTokyo on its ground: T7 ThatchHouse (601, -1185) Mansion x1
+TOUCH DevilTokyo on its ground: T7 ThatchHouse (895, -1165) Office x1, ShopHouse x1
+TOUCH DevilTokyo on its ground: T7 ThatchHouse (1196, 83) Konbini x1, Mansion x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (-718, 1207) (pruned in game) Office x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (-516, 1209) Office x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (619, -1185) Apaato x1, Mansion x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (744, 1204) Mansion x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (820, -1185) Mansion x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (1186, 377) Apaato x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (1187, 225) Office x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (1189, -848) Mansion x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (1193, -615) Mansion x1, Office x1
+TOUCH DevilTokyo on its ground: T8 RockPillar (1205, -449) ShopHouse x1
+TOUCH DevilTokyo on its ground: T9 Square (1198, -71) Apaato x1, Mansion x1, StreetKit x1
