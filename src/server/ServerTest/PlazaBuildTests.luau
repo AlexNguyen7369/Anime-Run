@@ -3,7 +3,7 @@
 -- fuller layout), written red before the build.
 --   gate_*: the world gate as gate draft B (tools/blender/plaza/draft_gate.py concept_b). Place, facing, destination and
 --     lock rule unchanged; a touch part that is no disc and fills B's doorway; the label over B's roof; a locked and an
---     open mesh in Shared/PlazaAssets, inside today's gate footprint.
+--     open mesh in Shared/PlazaPieces, inside today's gate footprint.
 --   boss_gate_*: draft A (draft_boss_gate.py) at S4 facing the spawn, whole on the floor, its own prompt, a closed and an
 --     open mesh, and the guide with a prompt of its own; its off switch (boss_gate_off_*), look and prompt rule.
 --   altar_*: World 1 the great lotus (draft B), World 2 the twin-roof stage (draft A), a locked and an unlocked mesh of
@@ -144,31 +144,17 @@ local function bounds(asset)
 	return hi.X >= lo.X and hi - lo or nil, lo.Y
 end
 
--- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 23 checks. When a
+-- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 8 checks. The gate's and the
+-- altar's geometry is judged as if the pieces were uploaded (Shared/PlazaPieces; plaza_pieces has the state before). When a
 -- row's work lands, take the row out here: the check is then a guard of plaza_build. Keep the count in TestConfig's comment.
 local PENDING = {
 	layout_loop_posts = "upload",
 	boss_gate_mesh_BossGateClosed = "upload",
-	boss_gate_mesh_BossGateClosed_on_plaza = "upload",
 	boss_gate_mesh_BossGateOpen = "upload",
-	boss_gate_mesh_BossGateOpen_on_plaza = "upload",
 	gate_mesh_WorldGateLocked = "upload",
-	gate_mesh_WorldGateLocked_footprint = "upload",
-	gate_mesh_WorldGateLocked_on_floor = "upload",
 	gate_mesh_WorldGateOpen = "upload",
-	gate_mesh_WorldGateOpen_footprint = "upload",
-	gate_mesh_WorldGateOpen_on_floor = "upload",
 	altar_mesh_Locked = "upload",
 	altar_mesh_Unlocked = "upload",
-	altar_look_of_this_world = "altar build",
-	gate_locked_touch_not_a_disc = "gate build",
-	gate_locked_touch_fits_doorway = "gate build",
-	gate_locked_touch_at_runner_height = "gate build",
-	gate_locked_label_over_roof = "gate build",
-	gate_open_touch_not_a_disc = "gate build",
-	gate_open_touch_fits_doorway = "gate build",
-	gate_open_touch_at_runner_height = "gate build",
-	gate_open_label_over_roof = "gate build",
 	merchant_sensei_replaces_the_dummy = "merchants", -- red only on a server: offline has no rig to build
 }
 
@@ -183,6 +169,23 @@ local function run(scenario, pending)
 	end
 	local WorldConfig, SpawnArea = require(Shared.WorldConfig), require(Shared.SpawnArea)
 	local PlazaAssets, Catalog = require(Shared.PlazaAssets), require(Shared.CharacterCatalog)
+	local Pieces = H.module(Shared, "PlazaPieces")
+	local pieceRows = Pieces and Pieces.Assets or {}
+	-- Runs fn as if the spawn pieces were uploaded (made-up ids, put back)
+	local function uploaded(fn)
+		local ids = {}
+		for key, row in pieceRows do
+			ids[key], row.Asset = row.Asset, 1
+		end
+		local okRun, result = pcall(fn)
+		for key, row in pieceRows do
+			row.Asset = ids[key]
+		end
+		if not okRun then
+			error(result, 0)
+		end
+		return result
+	end
 	local world = WorldConfig.Id
 	local function text(v)
 		return v == nil and "missing" or tostring(v)
@@ -257,7 +260,7 @@ local function run(scenario, pending)
 		flag("layout_statue", moved <= LAYOUT.PosTol, moved, LAYOUT.PosTol)
 		local front = flat(exclusive.Face).Unit:Dot(-LAYOUT.Statue.Unit)
 		flag("layout_statue_faces_spawn", front >= 0.98, front, 0.98)
-		local posts = PlazaAssets.LoopPosts
+		local posts = Pieces and Pieces.Ready("SkyLoop") and pieceRows.SkyLoop.Posts
 		local same = type(posts) == "table" and #posts == #LAYOUT.Posts
 		for i, deg in LAYOUT.Posts do
 			same = same and posts[i] == deg
@@ -287,8 +290,13 @@ local function run(scenario, pending)
 		local toSpawn = bossAt and bossLook:Dot((HUB - bossAt).Unit) or -1
 		flag("boss_gate_faces_spawn", toSpawn >= 0.98, toSpawn, 0.98)
 		for _, key in { "BossGateClosed", "BossGateOpen" } do
-			local asset = PlazaAssets.Assets[key]
-			flag("boss_gate_mesh_" .. key, asset ~= nil, asset and 1 or "no PlazaAssets.Assets." .. key, 1)
+			local asset = pieceRows[key]
+			flag(
+				"boss_gate_mesh_" .. key,
+				asset ~= nil and asset.Asset ~= 0,
+				asset and asset.Asset or "no row",
+				"an id"
+			)
 			-- every corner of its parts' boxes, stood at the gate's spot, is over the floor (an asset's front is its +Z)
 			local margin = nil
 			for _, p in bossAt and asset and asset.Parts or {} do
@@ -441,75 +449,91 @@ local function run(scenario, pending)
 			ReplicatedStorage:SetAttribute("BossEventPhase", before)
 		end
 
-		-- World gate B
+		-- World gate B. The gate that ships (the table's own ids) and the one with ids filled in hold the same rules; draft B's
+		-- geometry is judged on the second, under the first's names.
 		local function gate(open)
 			WorldConfig.GATE_OPEN = open
-			local m = SpawnArea.WorldGate(CFrame.new())
+			local shipped = SpawnArea.WorldGate(CFrame.new())
+			local piece = uploaded(function()
+				return SpawnArea.WorldGate(CFrame.new())
+			end)
 			WorldConfig.GATE_OPEN = oldOpen
-			return m
+			return { { "", shipped }, { "piece_", piece } }
 		end
 		for _, state in { { "locked", false }, { "open", true } } do
-			local name, m = state[1], gate(state[2])
 			local locked = world == 1 and not state[2] -- World 2's gate leads back and is always open
-			local portal = m:FindFirstChild("Portal")
-			local key = "gate_" .. name
-			flag(key .. "_portal", portal ~= nil)
-			if not portal then
-				continue
+			for _, build in gate(state[2]) do
+				local m = build[2]
+				local portal = m:FindFirstChild("Portal")
+				local key = "gate_" .. build[1] .. state[1]
+				flag(key .. "_portal", portal ~= nil)
+				if not portal then
+					continue
+				end
+				local at = flat(portal.CFrame.Position)
+				flag(key .. "_place", (at - GATE.At).Magnitude <= TOL, (at - GATE.At).Magnitude, TOL)
+				local target = world == 1 and 2 or 1
+				flag(
+					key .. "_destination",
+					portal:GetAttribute("TargetWorld") == target,
+					portal:GetAttribute("TargetWorld"),
+					target
+				)
+				flag(
+					key .. "_lock_rule",
+					portal:GetAttribute("Locked") == locked,
+					text(portal:GetAttribute("Locked")),
+					text(locked)
+				)
+				flag(key .. "_touch", (portal.CanTouch == true) == not locked)
+				local barrier = m:FindFirstChild("Barrier")
+				flag(key .. "_barrier", (barrier ~= nil and barrier.CanCollide ~= false) == locked)
+				-- the box of the touch part in the gate's own frame: x across the doorway, z through it
+				local frame = CFrame.lookAt(Vector3.new(GATE.At.X, FLOOR, GATE.At.Y), Vector3.new(HUB.X, FLOOR, HUB.Y))
+				local rel, s = frame:ToObjectSpace(portal.CFrame), portal.Size
+				local x = math.abs(rel.RightVector.X) * s.X
+					+ math.abs(rel.UpVector.X) * s.Y
+					+ math.abs(rel.LookVector.X) * s.Z
+				local y = math.abs(rel.RightVector.Y) * s.X
+					+ math.abs(rel.UpVector.Y) * s.Y
+					+ math.abs(rel.LookVector.Y) * s.Z
+				local bottom, top = rel.Position.Y - y / 2, rel.Position.Y + y / 2
+				flag(key .. "_touch_fills_doorway", x >= GATE.DoorMinWidth, x, GATE.DoorMinWidth)
+				local named = "gate_" .. state[1]
+				if build[1] == "piece_" then
+					flag(
+						named .. "_touch_not_a_disc",
+						portal.Shape ~= Enum.PartType.Cylinder,
+						text(portal.Shape),
+						"no Cylinder"
+					)
+					flag(
+						named .. "_touch_fits_doorway",
+						x <= GATE.DoorWidth + TOL and top <= GATE.DoorTop + TOL,
+						x,
+						GATE.DoorWidth
+					)
+					flag(
+						named .. "_touch_at_runner_height",
+						bottom <= GATE.SillMax and top >= GATE.ChestMin,
+						bottom,
+						GATE.SillMax
+					)
+				end
+				local label = find(m, "BillboardGui", "Label")
+				local offset = label and (label.StudsOffsetWorldSpace or Vector3.zero).Y or 0
+				local height = portal.CFrame.Position.Y - FLOOR + offset
+				if build[1] == "piece_" then
+					flag(named .. "_label_over_roof", label ~= nil and height >= GATE.RoofTop, height, GATE.RoofTop)
+				end
+				local state2 = find(label, "TextLabel", "State")
+				local want = locked and "COMING SOON" or "ENTER"
+				flag(key .. "_label_text", state2 ~= nil and state2.Text == want, text(state2 and state2.Text), want)
 			end
-			local at = flat(portal.CFrame.Position)
-			flag(key .. "_place", (at - GATE.At).Magnitude <= TOL, (at - GATE.At).Magnitude, TOL)
-			local target = world == 1 and 2 or 1
-			flag(
-				key .. "_destination",
-				portal:GetAttribute("TargetWorld") == target,
-				portal:GetAttribute("TargetWorld"),
-				target
-			)
-			flag(
-				key .. "_lock_rule",
-				portal:GetAttribute("Locked") == locked,
-				text(portal:GetAttribute("Locked")),
-				text(locked)
-			)
-			flag(key .. "_touch", (portal.CanTouch == true) == not locked)
-			local barrier = m:FindFirstChild("Barrier")
-			flag(key .. "_barrier", (barrier ~= nil and barrier.CanCollide ~= false) == locked)
-			-- the box of the touch part in the gate's own frame: x across the doorway, z through it
-			local frame = CFrame.lookAt(Vector3.new(GATE.At.X, FLOOR, GATE.At.Y), Vector3.new(HUB.X, FLOOR, HUB.Y))
-			local rel, s = frame:ToObjectSpace(portal.CFrame), portal.Size
-			local x = math.abs(rel.RightVector.X) * s.X
-				+ math.abs(rel.UpVector.X) * s.Y
-				+ math.abs(rel.LookVector.X) * s.Z
-			local y = math.abs(rel.RightVector.Y) * s.X
-				+ math.abs(rel.UpVector.Y) * s.Y
-				+ math.abs(rel.LookVector.Y) * s.Z
-			local bottom, top = rel.Position.Y - y / 2, rel.Position.Y + y / 2
-			flag(key .. "_touch_not_a_disc", portal.Shape ~= Enum.PartType.Cylinder, text(portal.Shape), "no Cylinder")
-			flag(
-				key .. "_touch_fits_doorway",
-				x <= GATE.DoorWidth + TOL and top <= GATE.DoorTop + TOL,
-				x,
-				GATE.DoorWidth
-			)
-			flag(key .. "_touch_fills_doorway", x >= GATE.DoorMinWidth, x, GATE.DoorMinWidth)
-			flag(
-				key .. "_touch_at_runner_height",
-				bottom <= GATE.SillMax and top >= GATE.ChestMin,
-				bottom,
-				GATE.SillMax
-			)
-			local label = find(m, "BillboardGui", "Label")
-			local offset = label and (label.StudsOffsetWorldSpace or Vector3.zero).Y or 0
-			local height = portal.CFrame.Position.Y - FLOOR + offset
-			flag(key .. "_label_over_roof", label ~= nil and height >= GATE.RoofTop, height, GATE.RoofTop)
-			local state2 = find(label, "TextLabel", "State")
-			local want = locked and "COMING SOON" or "ENTER"
-			flag(key .. "_label_text", state2 ~= nil and state2.Text == want, text(state2 and state2.Text), want)
 		end
 		for _, key in { "WorldGateLocked", "WorldGateOpen" } do
-			local asset = PlazaAssets.Assets[key]
-			flag("gate_mesh_" .. key, asset ~= nil, asset and 1 or "no PlazaAssets.Assets." .. key, 1)
+			local asset = pieceRows[key]
+			flag("gate_mesh_" .. key, asset ~= nil and asset.Asset ~= 0, asset and asset.Asset or "no row", "an id")
 			local size, low = bounds(asset)
 			local m = GATE.MeshMax
 			flag(
@@ -523,16 +547,18 @@ local function run(scenario, pending)
 
 		-- Summon altar per world
 		local altar = area:FindFirstChild("SidekickAltar")
-		local look = altar and altar:GetAttribute("Look")
+		local look = uploaded(function()
+			return SpawnArea.Build(CFrame.new()).SidekickAltar:GetAttribute("Look")
+		end)
 		local wantLook = world == 1 and "GreatLotus" or "TwinRoof"
 		flag("altar_look_of_this_world", look == wantLook, text(look), wantLook)
 		for _, state in { "Locked", "Unlocked" } do
 			local key = "Altar" .. wantLook .. state
 			flag(
 				"altar_mesh_" .. state,
-				PlazaAssets.Assets[key] ~= nil,
-				PlazaAssets.Assets[key] and 1 or "no PlazaAssets.Assets." .. key,
-				1
+				pieceRows[key] ~= nil and pieceRows[key].Asset ~= 0,
+				pieceRows[key] and pieceRows[key].Asset or "no row",
+				"an id"
 			)
 		end
 		local spot = find(altar, "Attachment", "ModelSpot")
