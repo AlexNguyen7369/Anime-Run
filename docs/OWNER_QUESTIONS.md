@@ -305,3 +305,5 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 1. Gate: blind re-score B 7.8 (recommended), A 7.0, C 6.8, current 4.3 (bar 7). Pick one? Any pick moves the floating label, B and C need a non-disc touch part, and each needs a locked and an open mesh.
 2. Gate spawn view: the Index board and a sky-loop post cover about the right half of every gate, today's included. Move one, or accept? The 1.3x option touches no neighbour but overhangs the floor corner by 6 to 7.4 studs and does not fix it.
 3. The approved Rift Shrine rift is a spiral disc; the gate drafts dropped a spiral for design doc section 5. Keep the rift as is?
+4. Altar (blind scores A 7.6, B 6.4, C 6.1): all three read poorly from the spawn because the Saitamo pedestal (11.6, 12.5) and a sky-loop post stand on the sightline. Move the pedestal, or accept? A is in a revision round.
+5. A reviewer says the orange and black runner model used as a scale dummy (repo model, not the altar) has a red swirl on its back close to a known ninja series emblem. Check it against design doc section 5.
