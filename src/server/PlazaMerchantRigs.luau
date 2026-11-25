@@ -8,6 +8,12 @@ local RunnerFactory = require(Shared.RunnerFactory)
 
 local PlazaMerchantRigs = {}
 
+-- The floating name (owner 2026-11-25: shown, but Kakashe's) sized and placed so it never covers the stall's sign, from the spawn
+-- or close by (docs/BUGS.md merchant-names-cover-signs): studs, not pixels, so it does not grow on screen with distance; on an
+-- attachment over the merchant's head, not the head, so it stands where the marker says. Proposed values.
+PlazaMerchantRigs.NAME_SIZE = Vector2.new(4, 0.8) -- studs wide and tall
+PlazaMerchantRigs.NAME_OVER_HEAD = 1.2 -- studs from the head's top (5 studs a Scale over the feet) to the name's bottom
+
 -- Service -> the piece its merchant stands in
 local PIECE = {
 	ShopStall = "SHOPStall",
@@ -69,7 +75,18 @@ function PlazaMerchantRigs.Stand(spawnArea)
 			* CFrame.new(0, RunnerFactory.HIP_HEIGHT * scale, 0)
 		rig:PivotTo(root)
 		pose(rig, root, scale, row.Pose)
-		rig.NameLabel.Enabled = not row.HideName
+		local label = rig.NameLabel
+		label.Enabled = not row.HideName
+		local nameSpot = Instance.new("Attachment")
+		nameSpot.Name = "NameSpot"
+		nameSpot.Parent = spot.Parent
+		local size = PlazaMerchantRigs.NAME_SIZE
+		nameSpot.WorldCFrame = spot.WorldCFrame
+			* CFrame.new(0, 5 * row.Scale + PlazaMerchantRigs.NAME_OVER_HEAD + size.Y / 2, 0)
+		label.Adornee = nameSpot
+		label.Size = UDim2.fromScale(size.X, size.Y)
+		label.StudsOffset = Vector3.zero
+		label.StudsOffsetWorldSpace = Vector3.zero
 		rig.Parent = service
 		local dummy = service:FindFirstChild("Rig") -- the sensei's
 		if dummy then

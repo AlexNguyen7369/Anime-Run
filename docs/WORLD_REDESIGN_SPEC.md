@@ -141,7 +141,9 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
   smaller one (draft 0.75, the Sensei header stays), and Frierin may load in World 1 (her rig there loads her, 4.47 "Models"). Each shows the rig's floating name but Kakashe,
   who stands under the Sensei header (owner 2026-11-25). **Proposed**: they hold the approved draft's poses (static turns of the existing rigs' limbs, no animation).
   On (`PlazaPieces.MERCHANTS_LIVE`, owner 2026-11-25: "merchants can be added already to merge"); the Sensei merchant replaces
-  SpawnArea's dummy.
+  SpawnArea's dummy. **Proposed** (docs/BUGS.md merchant-names-cover-signs): each floating name is 4 x 0.8 studs (sized in
+  studs, not pixels), on an attachment 1.2 studs over the merchant's head top, shown within RunnerFactory.NAME_DISTANCE (120);
+  it never covers the stall's sign from the spawn or from 20 to 40 studs in front (`plaza_pieces` merchant_name_clear_*).
 - Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
   start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
   the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed (not below rebirth 1, owner 2026-11-25); names and

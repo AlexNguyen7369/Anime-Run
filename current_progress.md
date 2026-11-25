@@ -307,6 +307,7 @@
 286. 2026-11-25 — Alex Nguyen — Fixed the merchant-poses re-audit wording, pinned the approved locked colours in a test and added the script that measures what stands behind the locked Mythic.
 287. 2026-11-25 — Alex Nguyen — Dropped the locked Mythic's contrast check per the owner's answer to question 31 (colours kept, no limit); the plaza now has one waiting check.
 288. 2026-11-25 — Alex Nguyen — Turned the plaza merchants on (owner 2026-11-25), made the Sensei dummy check a guard, kept the off checks with the switch set off for the check, and added standing checks for each merchant.
+289. 2026-11-25 — Alex Nguyen — Merchant floating names sized in studs and placed over the head on an attachment so they never cover a stall's sign (test red first, values proposed).
 
 ## What's next
 **Audit the white-mesh and grass fix (with the narrowed slab collar), run `biome_runtime` in Studio and look at the grass by the plaza and a finish slab, then merge it into the World 2 branch.**
