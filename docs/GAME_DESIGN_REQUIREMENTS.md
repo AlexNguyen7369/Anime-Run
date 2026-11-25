@@ -937,7 +937,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
-- 2026-11-25: owner: "switching HUD back to old HUD (World 1 HUD)" (4.40, 4.46, 4.47): confirms the 2026-11-24 ruling below; the always-on HUD's pre-option-A look in both worlds.
+- 2026-11-25: owner: "switching HUD back to old HUD (World 1 HUD)" (4.40, 4.46, 4.47): the 2026-11-24 ruling below stands (its "both worlds" is the orchestrator's reading, as 4.46 says).
 - 2026-11-25: owner: Blender drafts only for a redrafted world gate, a much bigger and more extravagant Summon altar (with market research), and the plaza's markets and merchants (4.24, 4.36, 4.43, 4.47): nothing in game changes until the owner approves the drafts; positions, prompts, sizes and gameplay rules stay as written. Every size in the drafts is **proposed**.
 - 2026-11-25: owner: World 2 ground ownership (4.47, WORLD2_SPEC "Ground ownership"): where two tracks' scenery meets, a spot belongs to the track whose road is nearest; other tracks' props there are moved or removed. A full count goes to the owner before any frozen track changes.
 - 2026-11-25: owner: "switch elven lands with tokyo track (track 1) within world 2" (4.47, WORLD2_SPEC "Tracks"): Elven Ruin Plains is Track 1, Devil Hunter City Track 6. The biome, its name, lighting, card and enemy move; the road, pay, Gems, saved progress and enemy speed stay with the track number (plan approved by the owner the same day).

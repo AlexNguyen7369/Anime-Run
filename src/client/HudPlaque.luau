@@ -11,8 +11,8 @@ local HudPlaque = {}
 -- The one switch for the always-on HUD's look from before option A (4.40 Tab tilt icons, white outlined labels, dark
 -- pills, blue Gems, the generated Turbo bar, dark team circles). On in both worlds (design doc 4.46 "HUD look" and
 -- 4.47, owner 2026-11-24: "revert HUD to world 1 hud or old hud. not scrol hud. Scroll Gui can stay."): every HUD site
--- reads it and skips its option A dressing; panels, popups, toasts, banners and the boss event UI never read it and
--- keep the Scroll Dojo look. False brings option A back.
+-- reads it and skips its option A dressing (BossEventUi only for the Bosses / Team column); panels, popups, toasts,
+-- banners and the boss event UI keep the Scroll Dojo look. False brings option A back.
 HudPlaque.Old = true
 HudPlaque.Ink = K.TileInk
 HudPlaque.Script = K.Script -- Kalam Bold brush labels
