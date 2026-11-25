@@ -46,7 +46,7 @@ PAL = {
 	"hairb": "#3A2A24", "hairg": "#A9A7AE", "hairr": "#8A3A22", "hairv": "#54407C", "hairw": "#E9E6EE", "navy": "#28304E",
 	"silk": "#6A35A6", "silk2": "#8E55C8", "cream": "#F3E3BC", "rose": "#B8456A", "olive": "#5F6B3A", "basalt": "#4A4F68",
 	"basalt2": "#5C6280", "basalt3": "#383C52", "indigo": "#34407A", "indigo2": "#283260", "mist": "#A8B4D8", "geode": "#2E4F9E",
-	"slate": "#59617A", "sun": "#E26A3C", "hill": "#8FA67C", "hill2": "#B9C49A", "dummy": "#4C8FD0", "dummy2": "#2F5F92",
+	"slate": "#59617A", "sun": "#E26A3C", "hill": "#8FA67C", "hill2": "#B9C49A", "dummy": "#4C8FD0", "dummy2": "#2F5F92", "ochre": "#C98A34", "stele": "#8E97BE", "stele2": "#A7B0D2",
 }
 GLOW = {
 	"g_blue": ("#3C9BFF", 1.5), "g_mag": ("#FF4FB8", 1.5), "g_green": ("#46E08A", 1.4), "g_amber": ("#FFB040", 1.4),
@@ -179,6 +179,10 @@ class K(bp.M):
 		for k in (-1, 1):
 			self.box((0.16, s + 0.1, s * 0.82), (x + k * s * 0.36, y, z + s * 0.41), band)
 
+	def coins(self, c, r, count):
+		"""A flat-topped stack of coins."""
+		self.cyl(r * 1.15, 0.12 * count, c, "gold", n=6)
+
 	def chest(self, c, w, body, glow=None, d=1.5, open_=False):
 		x, y, z = c
 		self.box((w, d, 0.9), (x, y, z + 0.45), body)
@@ -188,7 +192,7 @@ class K(bp.M):
 			self.box((w - 0.3, d - 0.3, 0.2), (x, y, z + 0.9), "gold")
 			self.box((w, 0.3, 1.2), (x, y + d / 2 + 0.2, z + 1.35), body, R3(-18, "X"))
 			for i in range(5):
-				self.gem((x - w * 0.3 + w * 0.15 * i, y + (0.2 if i % 2 else -0.2), z + 1.1), 0.26, 0.42, 0.2, glow if i % 2 else "gold")
+				self.coins((x - w * 0.3 + w * 0.15 * i, y + (0.2 if i % 2 else -0.15), z + 1.0), 0.26, 2 - i % 2)
 		else:
 			for i in range(3):  # a rounded lid in three facets
 				a0, a1 = math.pi * i / 3, math.pi * (i + 1) / 3
@@ -210,12 +214,20 @@ class K(bp.M):
 
 
 # --- Merchants: generic, original people in the house style (chunky, blocky, head about a third of the height) --------
+BROWS = {  # angle (positive: outer end down), height, thickness; "raised" lifts the right one
+	"soft": (9, 0.5, 0.12), "flat": (0, 0.45, 0.16), "high": (4, 0.56, 0.1), "raised": (3, 0.46, 0.13), "bushy": (12, 0.46, 0.24), "firm": (-9, 0.42, 0.15),
+}
+
+
 def figure(m, at, s, yaw=0, height=5.5):
-	"""s keys: skin, top, legs, trim, sash, boots, robe(bool), hair, style, hat, hat2, l/r hand targets, eyes, beard, apron."""
+	"""s keys: skin, top, legs, trim, sash, boots, robe, hair, style, hat, l/r hand targets; face: brow, mouth, eyes; build:
+	bulk (width), tall (body stretch, the head keeps its size), belly."""
 	k = height / 5.5
 	old = m.local
-	m.local = old @ Matrix.Translation(Vector(at)) @ Matrix.Rotation(math.radians(yaw), 4, "Z") @ Matrix.Scale(k, 4)
+	base = old @ Matrix.Translation(Vector(at)) @ Matrix.Rotation(math.radians(yaw), 4, "Z") @ Matrix.Scale(k, 4)
 	g = s.get
+	tall = g("tall", 1.0)
+	m.local = base @ Matrix.Diagonal((1, 1, tall, 1))
 	skin, top, trim = s["skin"], s["top"], s["trim"]
 	bulk = g("bulk", 1.0)
 	if g("robe"):
@@ -233,16 +245,20 @@ def figure(m, at, s, yaw=0, height=5.5):
 	m.box((1.75 * bulk, 1.1 * bulk, 0.9), (0, 0, 2.1), top)
 	m.box((2.0 * bulk, 1.16 * bulk, 1.1), (0, 0, 2.95), top)
 	fy = -0.6 * bulk
+	if g("belly"):
+		m.box((1.6 * bulk, 0.5, 1.0), (0, fy - 0.05, 2.2), top)
+		fy -= 0.16
 	for sx in (-1, 1):
 		m.box((0.26, 0.12, 1.45), (sx * 0.3, fy, 2.85), trim, R3(sx * 22, "Y"))
 	m.box((0.5, 0.1, 0.4), (0, fy + 0.02, 3.32), skin)
 	m.box((1.84 * bulk, 1.2 * bulk, 0.42), (0, 0, 1.82), s["sash"])
-	m.box((0.5, 0.24, 0.5), (0.45, fy - 0.06, 1.82), s["sash"])
-	m.box((0.26, 0.12, 0.75), (0.4, fy - 0.08, 1.4), s["sash"], R3(8, "Y"))
-	if g("apron"):
-		m.box((1.35 * bulk, 0.1, 1.7), (0, fy - 0.14, 1.5), s["apron"])
-		m.box((1.0 * bulk, 0.1, 0.9), (0, fy - 0.08, 2.7), s["apron"])
-		m.box((0.7, 0.14, 0.45), (0, fy - 0.18, 1.5), trim)
+	if not g("apron"):
+		m.box((0.5, 0.24, 0.5), (0.45, fy - 0.06, 1.82), s["sash"])
+		m.box((0.26, 0.12, 0.75), (0.4, fy - 0.08, 1.4), s["sash"], R3(8, "Y"))
+	else:
+		m.box((1.35 * bulk, 0.1, 1.7), (0, fy - 0.2, 1.5), s["apron"])
+		m.box((1.0 * bulk, 0.1, 0.9), (0, fy - 0.2, 2.7), s["apron"])
+		m.box((0.7, 0.14, 0.45), (0, fy - 0.24, 1.5), trim)
 	# arms: shoulder, elbow, hand; wide sleeves
 	for sx, key in ((-1, "l"), (1, "r")):
 		sh = Vector((sx * 1.2 * bulk, 0, 3.2))
@@ -253,42 +269,54 @@ def figure(m, at, s, yaw=0, height=5.5):
 		m.taper(mid, wr, 0.74, 0.92, top)
 		m.taper(mid.lerp(hand, 0.64), mid.lerp(hand, 0.76), 0.96, 0.98, trim)
 		m.box((0.52, 0.52, 0.52), hand, skin)
-	if g("pads"):
-		for sx in (-1, 1):
-			m.gem((sx * 1.25 * bulk, 0, 3.45), 0.62, 0.35, 0.3, s["pads"], 6)
-	# head: tapered to the chin
-	m.box((0.6, 0.6, 0.3), (0, 0, 3.58), skin)
-	hz = 3.66
-	m.taper((0, 0, hz), (0, 0, hz + 0.45), 1.18, 1.5, skin)
-	m.box((1.5, 1.5, 0.95), (0, 0, hz + 0.92), skin)
-	f = -0.77
-	ey = hz + 0.72
-	closed = g("eyes") == "closed"
-	for sx in (-1, 1):
-		x = sx * 0.36
-		if closed:
-			m.box((0.36, 0.06, 0.08), (x, f, ey), "ink", R3(sx * 8, "Y"))
-		else:
-			m.box((0.4, 0.04, 0.4), (x, f, ey), "white")
-			m.box((0.24, 0.05, 0.36), (x - sx * 0.03, f - 0.02, ey - 0.01), g("iris") or "hairb")
-			m.box((0.1, 0.06, 0.12), (x - sx * 0.08, f - 0.04, ey + 0.1), "white")
-			m.box((0.5, 0.07, 0.09), (x, f - 0.02, ey + 0.23), "ink", R3(sx * -4, "Y"))
-		m.box((0.46, 0.08, 0.13), (x, f - 0.03, ey + 0.46), s["hair"], R3(sx * (-14 if g("stern") else -5), "Y"))
-		if g("glasses"):
-			m.hoop(0.3, (x, f - 0.09, ey), 0.07, s["glasses"], n=8)
-		m.box((0.2, 0.4, 0.42), (sx * 0.82, 0.05, ey - 0.05), skin)
-	if g("glasses"):
-		m.box((0.2, 0.06, 0.06), (0, f - 0.1, ey + 0.04), s["glasses"])
-	m.box((0.14, 0.12, 0.16), (0, f - 0.03, ey - 0.24), skin)
-	mouth = "ink" if g("stern") else "rose"
-	m.box((0.36, 0.05, 0.08), (0, f + 0.05, ey - 0.46), mouth)
-	if not g("stern"):
-		for sx in (-1, 1):
-			m.box((0.14, 0.05, 0.08), (sx * 0.23, f + 0.04, ey - 0.42), mouth, R3(sx * -35, "Y"))
-	hairdo(m, s, hz)
-	hat(m, s, hz)
 	if g("prop"):
 		g("prop")(m, s)
+	# head: tapered to the chin, its size kept whatever the build
+	m.local = base @ Matrix.Translation((0, 0, 3.6 * (tall - 1)))
+	m.box((0.6, 0.6, 0.3), (0, 0, 3.58), skin)
+	hz = 3.66
+	jaw = g("jaw", 1.18)
+	m.taper((0, 0, hz), (0, 0, hz + 0.45), jaw, 1.5, skin)
+	m.box((1.5, 1.5, 0.95), (0, 0, hz + 0.92), skin)
+	f, ey = -0.77, hz + 0.72
+	ang, up, th = BROWS[g("brow", "flat")]
+	for sx in (-1, 1):
+		x = sx * 0.36
+		eyes = g("eyes", "open")
+		if eyes == "closed":  # two facets of a smiling closed eye
+			for q in (-1, 1):
+				m.box((0.22, 0.06, 0.09), (x + q * 0.09, f, ey + 0.02), "ink", R3(q * 22, "Y"))
+		else:
+			h = {"open": 0.4, "narrow": 0.24, "round": 0.46}[eyes]
+			m.box((0.4, 0.04, h), (x, f, ey), "white")
+			m.box((0.24, 0.05, h - 0.04), (x - sx * 0.03, f - 0.02, ey - 0.01), g("iris") or "hairb")
+			m.box((0.1, 0.06, 0.12), (x - sx * 0.08, f - 0.04, ey + h * 0.25), "white")
+			m.box((0.48, 0.07, 0.08), (x, f - 0.02, ey + h / 2 + 0.03), "ink", R3(sx * ang * 0.5, "Y"))
+		lift = 0.14 if g("brow") == "raised" and sx > 0 else 0
+		m.box((0.46, 0.08, th), (x, f - 0.03, ey + up + lift), g("browc") or s["hair"], R3(sx * ang, "Y"))
+		if g("glasses"):
+			for q in (-1, 1):  # square frames
+				m.box((0.56, 0.06, 0.07), (x, f - 0.09, ey + q * 0.28), s["glasses"])
+				m.box((0.07, 0.06, 0.56), (x + q * 0.27, f - 0.09, ey), s["glasses"])
+		m.box((0.2, 0.4, 0.42), (sx * 0.82, 0.05, ey - 0.05), skin)
+	nose = g("nose", 0.14)
+	m.box((nose, 0.16, 0.18), (0, f - 0.03, ey - 0.24), skin)
+	mz, mo = ey - 0.48, g("mouth", "smile")
+	if mo == "smile":
+		m.box((0.34, 0.05, 0.08), (0, f + 0.07, mz), "rose")
+		for sx in (-1, 1):
+			m.box((0.14, 0.05, 0.08), (sx * 0.22, f + 0.06, mz + 0.04), "rose", R3(sx * -35, "Y"))
+	elif mo == "grin":
+		m.box((0.6, 0.05, 0.2), (0, f + 0.05, mz + 0.02), "ink")
+		m.box((0.52, 0.06, 0.09), (0, f + 0.04, mz + 0.06), "white")
+	elif mo == "smirk":
+		m.box((0.4, 0.05, 0.08), (0.06, f + 0.06, mz + 0.02), "rose", R3(-14, "Y"))
+	elif mo == "small":
+		m.box((0.2, 0.05, 0.09), (0, f + 0.07, mz), "rose")
+	elif mo == "flat":
+		m.box((0.36, 0.05, 0.07), (0, f + 0.07, mz), "ink")
+	hairdo(m, s, hz)
+	hat(m, s, hz)
 	m.local = old
 
 
@@ -296,74 +324,72 @@ def hairdo(m, s, hz):
 	h, st = s["hair"], s.get("style")
 	tip = lambda a, b, w: m.taper(a, b, w, 0.02, h)
 	topz = hz + 1.4
-	if s.get("hat") in ("hood", "cone", "brim"):  # only the fringe and the braid show
-		st_top = False
-	else:
-		st_top = True
-	if st_top and st in ("crop", "bun", "braid", "long", "swept", "bob"):
+	if st in ("crop", "topknot", "lowbun", "bob"):
 		m.box((1.66, 1.35, 0.45), (0, 0.16, topz), h)
 		m.box((1.66, 0.5, 1.2), (0, 0.66, topz - 0.6), h)
 		for sx in (-1, 1):
 			m.box((0.2, 0.9, 0.75), (sx * 0.8, 0.3, topz - 0.3), h)
-	if st == "crop":
-		for x in (-0.55, -0.15, 0.3, 0.62):
-			tip((x, -0.45, topz + 0.1), (x + 0.12, -0.9, topz - 0.32), 0.5)
-			tip((x * 0.9, 0.1, topz + 0.1), (x * 1.2, 0.2, topz + 0.62), 0.6)
-	if st == "swept":
-		for i, x in enumerate((-0.6, -0.2, 0.2, 0.6)):
-			tip((x, -0.5, topz + 0.15), (x + 0.5, -0.92, topz - 0.2 - 0.08 * i), 0.55)
-			tip((x, 0.4, topz), (x * 1.5 + 0.2, 1.25, topz + 0.3 - 0.2 * i), 0.6)
-	if st == "bun":
-		m.gem((0, 0.25, topz + 0.6), 0.5, 0.4, 0.45, h, 7)
-		m.box((1.1, 0.1, 0.1), (0, 0.25, topz + 0.52), "gold", R3(18, "Y"))
-		for x in (-0.5, 0.5):
-			tip((x, -0.45, topz + 0.1), (x * 1.5, -0.88, topz - 0.3), 0.55)
-	if st == "bob":
+	if st == "crop":  # short and blocky, a straight edge
+		m.box((1.5, 0.3, 0.26), (0, -0.62, topz + 0.06), h)
+	if st == "topknot":
+		m.taper((0, 0.35, topz + 0.2), (0, 0.5, topz + 0.5), 0.5, 0.4, h, 6)
+		m.box((0.46, 0.46, 0.14), (0, 0.45, topz + 0.36), "ink")
+	if st == "lowbun":  # parted in the middle, a round bun low at the back, a wooden comb
 		for sx in (-1, 1):
-			m.taper((sx * 0.74, 0.1, topz), (sx * 0.95, -0.05, hz + 0.1), 0.5, 0.7, h)
-			m.gem((sx * 0.72, 0.35, topz + 0.45), 0.45, 0.4, 0.35, h, 6)
-		for x in (-0.5, -0.1, 0.35):
-			tip((x, -0.45, topz + 0.12), (x + 0.1, -0.88, topz - 0.36), 0.56)
-	if st_top and st in ("braid", "long"):
-		for x in (-0.55, 0.0, 0.5):
-			tip((x, -0.45, topz + 0.12), (x * 1.35 + 0.1, -0.88, topz - 0.34), 0.55)
-	if not st_top:
-		for x in (-0.55, -0.1, 0.4):
-			tip((x, -0.72, topz - 0.02), (x + 0.15, -0.86, topz - 0.5), 0.5)
+			m.box((0.86, 0.24, 0.24), (sx * 0.4, -0.66, topz + 0.06), h, R3(sx * 14, "Y"))
+		m.gem((0, 1.2, topz - 0.35), 0.62, 0.5, 0.5, h, 7)
+		m.box((0.7, 0.12, 0.2), (0, 0.5, topz + 0.28), "copper")
+	if st == "bob":  # a plain chin-length cut
+		for sx in (-1, 1):
+			m.box((0.3, 1.2, 1.5), (sx * 0.86, 0.3, topz - 0.8), h)
 	if st == "braid":
+		for sx in (-1, 1):
+			tip((sx * 0.2, -0.72, topz - 0.02), (sx * 0.7, -0.84, topz - 0.42), 0.4)
 		p = Vector((0.75, -0.2, hz + 0.5))
 		for i in range(5):
 			q = p + Vector((0.07, -0.16, -0.5))
 			m.taper(p, q, 0.5 - 0.04 * i, 0.4 - 0.04 * i, h if i < 4 else s["trim"], 5)
 			p = q
-	if st == "long":
-		m.taper((0, 0.75, topz), (0, 0.9, hz - 1.4), 1.2, 0.7, h)
-	b = s.get("beard")
-	if b:
-		m.taper((0, -0.56, hz + 0.14), (0, -0.74, hz + 0.1 - b), 0.95, 0.12, h)
+	if st == "fringe":  # under a hat: side locks only
 		for sx in (-1, 1):
-			tip((sx * 0.06, -0.8, hz + 0.4), (sx * 0.72, -0.8, hz + 0.16), 0.18)
+			m.box((0.22, 0.5, 1.0), (sx * 0.82, -0.3, topz - 0.6), h)
+		m.box((1.5, 0.3, 1.0), (0, 0.74, topz - 0.6), h)
+	if st == "chops":  # mutton chops
+		for sx in (-1, 1):
+			m.box((0.24, 0.7, 0.9), (sx * 0.76, -0.4, hz + 0.45), h)
+	b = s.get("beard")
+	if b == "moustache":
+		for sx in (-1, 1):
+			m.box((0.48, 0.16, 0.2), (sx * 0.22, -0.84, hz + 0.36), h, R3(sx * 14, "Y"))
+	elif b:
+		m.taper((0, -0.56, hz + 0.12), (0, -0.7, hz + 0.1 - b), 0.95, s.get("beardw", 0.3), h)
+		for sx in (-1, 1):
+			m.box((0.44, 0.14, 0.14), (sx * 0.22, -0.82, hz + 0.36), h, R3(sx * 20, "Y"))
 
 
 def hat(m, s, hz):
 	st, a, b = s.get("hat"), s.get("hat_a"), s.get("hat_b")
 	z = hz + 1.25
 	if st == "wrap":  # a tied headcloth
-		m.box((1.72, 1.72, 0.36), (0, 0.04, z + 0.2), a)
-		m.box((0.36, 0.3, 0.46), (0.5, 1.0, z + 0.2), a)
-		for d in (-0.16, 0.16):
-			m.box((0.28, 0.1, 0.9), (0.5 + d, 1.1, z - 0.2), a, R3(d * 60, "Y"))
+		m.box((1.72, 1.72, 0.3), (0, 0.04, z + 0.16), a)
+		m.box((0.36, 0.3, 0.46), (0.5, 1.0, z + 0.16), a)
 	if st == "cone":  # a straw rain hat
-		m.lathe([(1.85, 0), (1.5, 0.28), (0, 1.05)], (0, 0, z - 0.12), a, 12)
-		m.lathe([(0, 0.1), (1.85, 0)], (0, 0, z - 0.12), b, 12)
-	if st == "turban":
-		m.lathe([(0.85, -0.2), (1.12, 0.1), (1.1, 0.5), (0.75, 0.85), (0, 0.95)], (0, 0, z), a, 9, [a, b, a, a])
-		m.gem((0, -1.08, z + 0.35), 0.24, 0.34, 0.34, s.get("jewel", "gold"), 6)
-		m.taper((0, -0.95, z + 0.5), (0.25, -0.7, z + 1.35), 0.3, 0.04, "white")
+		m.lathe([(1.85, 0), (1.5, 0.28), (0, 1.05)], (0, 0, z + 0.06), a, 12)
+		m.lathe([(0, 0.1), (1.85, 0)], (0, 0, z + 0.06), b, 12)
+	if st == "kerchief":  # a folded cloth over the hair, knotted behind
+		m.taper((0, 0.1, z - 0.02), (0, 0.2, z + 0.5), 1.78, 1.3, a)
+		m.taper((0, 0.9, z + 0.1), (0, 1.5, z - 0.4), 0.5, 0.2, a)
+	if st == "skullcap":  # a leather work cap with a stitched band
+		m.taper((0, 0.04, z + 0.1), (0, 0.04, z + 0.46), 1.66, 1.5, a)
+		m.box((1.2, 1.2, 0.2), (0, 0.04, z + 0.52), a)
+		m.box((1.72, 1.72, 0.18), (0, 0.04, z + 0.16), b)
 	if st == "cap":  # a soft scholar's cap
-		m.box((1.7, 1.6, 0.4), (0, 0.06, z + 0.1), a)
-		m.box((1.5, 0.9, 0.75), (0, 0.35, z + 0.6), a)
-		m.box((1.74, 1.64, 0.14), (0, 0.06, z - 0.06), b)
+		m.box((1.7, 1.6, 0.34), (0, 0.06, z + 0.16), a)
+		m.box((1.5, 0.9, 0.55), (0, 0.35, z + 0.55), a)
+		m.box((1.74, 1.64, 0.14), (0, 0.06, z - 0.02), b)
+	if st == "tallcap":  # a pleated cloth cap
+		m.taper((0, 0.1, z), (0, 0.2, z + 0.55), 1.62, 1.3, a)
+		m.box((1.68, 1.68, 0.16), (0, 0.04, z + 0.02), b)
 	if st == "hood":
 		m.taper((0, 0.16, hz + 1.2), (0, 0.5, hz + 2.2), 1.86, 0.5, a)
 		m.box((1.84, 0.36, 1.5), (0, 0.8, hz + 0.6), a)
@@ -371,26 +397,19 @@ def hat(m, s, hz):
 			m.box((0.24, 1.7, 1.45), (sx * 0.94, 0.06, hz + 0.62), a)
 			m.box((0.28, 0.16, 1.45), (sx * 0.92, -0.82, hz + 0.62), b)
 		m.box((2.06, 0.2, 0.26), (0, -0.84, hz + 1.42), b)
-	if st == "goggles":
-		m.box((1.64, 1.64, 0.22), (0, 0, z - 0.02), "leather")
-		for sx in (-1, 1):
-			m.ydisc(0.34, (sx * 0.38, -0.9, z), 0.22, "copper", 8)
-			m.ydisc(0.24, (sx * 0.38, -1.02, z), 0.06, a, 8)
-	if st == "brim":  # a wide flat lacquer hat with a hanging bead each side
-		m.lathe([(0, 0), (1.9, -0.1), (1.9, 0.06), (0.8, 0.2), (0.7, 0.75), (0, 0.85)], (0, 0, z), a, 10, [b, b, a, a, a])
-		m.lathe([(0.82, 0.2), (0.8, 0.36)], (0, 0, z), b, 10)
-		for sx in (-1, 1):
-			m.gem((sx * 1.7, 0, z - 0.55), 0.16, 0.3, 0.3, s.get("jewel", "gold"), 5)
-			m.box((0.05, 0.05, 0.4), (sx * 1.7, 0, z - 0.2), "ink")
-	if st == "circlet":
-		m.box((1.62, 1.62, 0.14), (0, 0, z - 0.05), a)
-		m.gem((0, -0.86, z), 0.2, 0.4, 0.25, b, 5)
-	if st == "halo":
-		m.hoop(1.25, (0, 0.75, hz + 0.95), 0.12, b, n=14)
+	if st == "brim":  # a wide flat festival hat
+		m.lathe([(0, 0), (1.75, 0), (1.75, 0.14), (0.8, 0.2), (0.7, 0.65), (0, 0.75)], (0, 0, z + 0.04), a, 10, [b, b, a, a, a])
+		m.lathe([(0.82, 0.2), (0.8, 0.36)], (0, 0, z + 0.04), b, 10)
 
 
-def p_ingot(m, s):
-	m.chest((0, -1.35, 1.95), 1.5, "r_rare", "g_blue", d=0.9, open_=True)
+def p_purse(m, s):
+	"""A tied coin purse on the palm."""
+	m.lathe([(0.2, 0), (0.5, 0.2), (0.45, 0.6), (0.16, 0.8), (0.3, 1.0)], (0.75, -1.3, 2.5), "leather", 7)
+	m.taper((0.75, -1.3, 3.26), (0.75, -1.3, 3.36), 0.44, 0.44, "gold", 7)
+
+
+def p_shard(m, s):
+	m.crystal((0.8, -1.3, 2.45), (0.05, 0, 1), 0.34, 1.4, "g_blue", 5)
 
 
 def p_mortar(m, s):
@@ -403,7 +422,7 @@ def p_flask(m, s):
 
 
 def p_hoop(m, s):
-	m.hoop(0.75, (1.55, -0.95, 3.75), 0.16, s.get("jewel", "g_amber"), n=12)
+	m.hoop(0.75, (1.6, -0.95, 3.7), 0.16, s.get("jewel", "g_amber"), n=12)
 
 
 def p_book(m, s):
@@ -412,36 +431,34 @@ def p_book(m, s):
 		m.box((0.8, 1.06, 0.1), (sx * 0.38, -1.15, 2.26), s.get("trim"), R3(sx * -14, "Y"))
 
 
-def p_scroll(m, s):
-	m.beam((-0.2, -1.05, 2.1), (1.1, -0.95, 2.9), 0.42, "paper", 8)
-	for e in ((-0.2, -1.05, 2.1), (1.1, -0.95, 2.9)):
-		m.ball(0.2, e, "verm")
-
-
 def p_staff(m, s):
-	m.beam((1.75, -0.45, 0.0), (1.75, -0.45, 5.0), 0.2, "wood", 6)
-	m.box((0.3, 0.3, 0.4), (1.75, -0.45, 4.9), "gold")
+	m.beam((1.75, -0.45, 0.0), (1.75, -0.45, 4.6), 0.2, "wood", 6)
+	m.box((0.3, 0.3, 0.4), (1.75, -0.45, 4.5), "gold")
 
 
-def p_riftstaff(m, s):
-	m.beam((1.75, -0.45, 0.0), (1.75, -0.45, 4.7), 0.2, "dark", 6)
-	m.hoop(0.5, (1.75, -0.45, 5.2), 0.16, "gold", n=10)
-	m.gem((1.75, -0.45, 5.2), 0.22, 0.34, 0.34, "g_cyan", 5)
+def p_lampstaff(m, s):
+	"""A walking pole with a square paper lamp hung from a short crossbar."""
+	m.beam((1.75, -0.45, 0.0), (1.75, -0.45, 4.9), 0.2, "dark", 6)
+	m.box((0.9, 0.16, 0.16), (2.0, -0.6, 4.75), "dark")
+	m.box((0.06, 0.06, 0.3), (2.35, -0.6, 4.55), "ink")
+	m.box((0.56, 0.56, 0.6), (2.35, -0.6, 4.1), "lamp")
+	m.box((0.68, 0.68, 0.12), (2.35, -0.6, 4.44), "verm")
+	m.box((0.62, 0.62, 0.1), (2.35, -0.6, 3.78), "verm")
 
 
 FIG = {
 	# A: the dojo market's people
-	"A_Shop": dict(skin="skin2", top="blue", legs="navy", trim="cream", sash="gold", boots="leather", hair="hairb", style="crop", hat="wrap", hat_a="cream", apron="leather", bulk=1.14, beard=0.35, l=(-0.75, -1.2, 2.25), r=(0.75, -1.2, 2.25), prop=p_ingot),
-	"A_Potions": dict(skin="skin", top="olive", legs="leather", trim="cream", sash="rose", boots="dark", robe=True, hair="hairr", style="braid", hat="cone", hat_a="rope", hat_b="wood", iris="herb", l=(-0.35, -1.2, 2.3), r=(0.5, -1.15, 3.0), prop=p_mortar),
-	"A_Market": dict(skin="skin3", top="silk", legs="cream", trim="gold", sash="rose", boots="gold", hair="hairb", hat="turban", hat_a="cream", hat_b="silk2", jewel="g_amber", bulk=1.2, beard=0.3, robe=True, iris="silk", l=(-1.7, -0.75, 2.5), r=(1.55, -0.85, 3.1), prop=p_hoop),
-	"A_Index": dict(skin="skin", top="cream", legs="verm2", trim="verm", sash="gold", boots="dark", robe=True, hair="hairv", style="bob", glasses="gold", iris="silk", l=(-0.65, -1.05, 2.2), r=(0.65, -1.05, 2.2), prop=p_book),
-	"A_Sensei": dict(skin="skin3", top="white", legs="navy", trim="navy", sash="ink", boots="dark", hair="hairg", style="bun", beard=0.9, stern=True, l=(-1.35, -0.4, 1.8), r=(1.75, -0.5, 2.6), prop=p_staff),
+	"A_Shop": dict(skin="skin2", top="ochre", legs="leather", trim="cream", sash="verm2", boots="dark", hair="hairb", style="crop", hat="wrap", hat_a="cream", apron="leather", bulk=1.26, belly=True, jaw=1.4, nose=0.24, tall=0.94, beard="moustache", brow="bushy", mouth="none", eyes="closed", l=(-1.3, -0.9, 1.9), r=(0.75, -1.25, 2.25), prop=p_purse),
+	"A_Potions": dict(skin="skin", top="olive", legs="leather", trim="cream", sash="rose", boots="dark", robe=True, hair="hairr", style="braid", hat="cone", hat_a="rope", hat_b="wood", iris="herb", bulk=0.88, tall=1.0, brow="high", mouth="small", l=(-0.35, -1.2, 2.3), r=(0.5, -1.15, 3.0), prop=p_mortar),
+	"A_Market": dict(skin="skin3", top="teal", legs="teal", trim="cream", sash="gold", boots="dark", robe=True, hair="hairb", style="lowbun", bulk=1.12, belly=True, jaw=1.32, tall=0.96, brow="high", mouth="smile", eyes="closed", l=(-1.55, -0.8, 2.4), r=(1.6, -0.85, 3.0), prop=p_hoop),
+	"A_Index": dict(skin="skin", top="cream", legs="hill", trim="olive", sash="copper", boots="dark", robe=True, hair="hairb", style="bob", hat="kerchief", hat_a="olive", glasses="ink", iris="leather", bulk=0.86, tall=1.04, brow="raised", mouth="smirk", l=(-0.65, -1.05, 2.2), r=(0.65, -1.05, 2.2), prop=p_book),
+	"A_Sensei": dict(skin="skin3", top="white", legs="navy", trim="navy", sash="leather", boots="dark", hair="hairg", style="topknot", beard=0.75, beardw=0.5, bulk=0.96, tall=1.14, brow="bushy", mouth="none", eyes="narrow", l=(-1.35, -0.4, 1.8), r=(1.75, -0.5, 2.6), prop=p_staff),
 	# B: the rift shrine's keepers
-	"B_Shop": dict(skin="skin3", top="slate", legs="indigo2", trim="copper", sash="leather", boots="iron", hair="hairr", style="swept", hat="goggles", hat_a="g_cyan", apron="leather", pads="copper", iris="teal", l=(-0.75, -1.2, 2.25), r=(0.75, -1.2, 2.25), prop=p_ingot),
-	"B_Potions": dict(skin="skin2", top="indigo", legs="indigo2", trim="mist", sash="rose", boots="ink", robe=True, hair="hairw", style="braid", hat="hood", hat_a="indigo2", hat_b="mist", jewel="g_mag", iris="silk", l=(-0.8, -1.0, 2.3), r=(1.2, -1.0, 2.75), prop=p_flask),
-	"B_Market": dict(skin="skin", top="teal", legs="silk", trim="gold", sash="silk2", boots="ink", robe=True, hair="hairr", style="long", hat="brim", hat_a="silk", hat_b="gold", jewel="g_amber", iris="teal", l=(-1.6, -0.8, 2.6), r=(1.55, -0.85, 3.1), prop=p_hoop),
-	"B_Index": dict(skin="skin3", top="mist", legs="indigo", trim="indigo2", sash="gold", boots="ink", robe=True, hair="hairg", hat="cap", hat_a="indigo2", hat_b="gold", beard=0.7, glasses="gold", l=(-0.65, -1.05, 2.2), r=(0.65, -1.05, 2.2), prop=p_book),
-	"B_Sensei": dict(skin="skin2", top="white", legs="indigo2", trim="indigo", sash="verm", boots="dark", robe=True, hair="hairw", style="long", hat="circlet", hat_a="gold", hat_b="g_cyan", stern=True, iris="teal", l=(-1.35, -0.4, 1.8), r=(1.75, -0.5, 2.6), prop=p_riftstaff),
+	"B_Shop": dict(skin="skin3", top="copper", legs="indigo2", trim="cream", sash="leather", boots="iron", hair="hairg", style="chops", hat="skullcap", hat_a="leather", hat_b="copper", apron="leather", bulk=1.22, jaw=1.45, nose=0.26, tall=0.98, brow="flat", mouth="grin", eyes="narrow", l=(-1.3, -0.9, 1.9), r=(0.8, -1.25, 2.2), prop=p_shard),
+	"B_Potions": dict(skin="skin2", top="rose", legs="indigo2", trim="mist", sash="gold", boots="ink", robe=True, hair="hairb", style="braid", hat="hood", hat_a="indigo2", hat_b="mist", jewel="g_mag", iris="leather", bulk=0.9, tall=1.02, brow="high", mouth="smile", l=(-0.8, -1.0, 2.3), r=(1.2, -1.0, 2.75), prop=p_flask),
+	"B_Market": dict(skin="skin", top="teal", legs="silk", trim="gold", sash="silk2", boots="ink", robe=True, hair="hairr", style="fringe", hat="brim", hat_a="silk", hat_b="silk2", jewel="g_amber", iris="leather", bulk=0.94, tall=1.1, brow="raised", mouth="smirk", l=(-1.6, -0.8, 2.6), r=(1.55, -0.85, 3.0), prop=p_hoop),
+	"B_Index": dict(skin="skin2", top="rose", legs="cream", trim="cream", sash="gold", boots="ink", robe=True, hair="hairg", style="lowbun", bulk=1.06, jaw=1.3, tall=0.92, brow="soft", mouth="small", eyes="round", iris="leather", l=(-0.65, -1.05, 2.2), r=(0.65, -1.05, 2.2), prop=p_book),
+	"B_Sensei": dict(skin="skin2", top="ochre", legs="leather", trim="cream", sash="navy", boots="dark", robe=True, hair="hairg", style="fringe", hat="tallcap", hat_a="navy", hat_b="gold", beard="moustache", nose=0.2, bulk=1.0, tall=1.12, brow="bushy", mouth="flat", eyes="closed", l=(-1.35, -0.4, 1.8), r=(1.75, -0.5, 2.6), prop=p_lampstaff),
 }
 
 
@@ -487,19 +504,18 @@ def a_shop():
 			for j in range(2):
 				for a in (45, -45):
 					m.box((1.6, 0.12, 0.16), (sx * (w / 2 - 0.65 - 1.2 * i), -d / 2 + 0.16, 1.35 + 1.3 * j), "white", R3(a, "Y"))
-		for i in range(5):
+		for i in range(4):
 			for j in range(2):
 				for a in (45, -45):
-					m.box((0.12, 1.7, 0.16), (sx * (w / 2 + 0.1), -3.1 + 1.55 * i, 1.35 + 1.3 * j), "white", R3(a, "X"))
+					m.box((0.12, 1.7, 0.16), (sx * (w / 2 + 0.1), -3.0 + 2.0 * i, 1.35 + 1.3 * j), "white", R3(a, "X"))
 	# folded-back vault doors with stepped edges, iron straps and ring handles
-	for sx in (-1, 1):
-		rot = R3(sx * 24, "Z")
-		c = Vector((sx * 5.25, -d / 2 - 0.65, 5.4))
-		for k, (dw, dd, mt) in enumerate(((2.5, 0.3, "plaster2"), (2.2, 0.6, "plaster"), (1.9, 0.85, "plaster2"))):
-			m.box((dw, dd, 6.2 - 0.3 * k), c, mt, rot)
-		for zz in (3.4, 5.4, 7.4):
-			m.box((2.0, 0.95, 0.28), (c.x, c.y, zz), "iron", rot)
-		m.hoop(0.42, (c.x, c.y - 0.62, 5.0), 0.16, "gold", n=8)
+	for sx in (-1, 1):  # folded right back flat on the wings, clear of the opening
+		c = Vector((sx * 6.35, -d / 2 - 0.02, 5.9))
+		for k, (dw, dd, mt) in enumerate(((2.5, 0.3, "plaster2"), (2.2, 0.55, "plaster"), (1.9, 0.75, "plaster2"))):
+			m.box((dw, dd, 5.0 - 0.3 * k), c, mt)
+		for zz in (4.4, 5.9, 7.4):
+			m.box((2.0, 0.85, 0.28), (c.x, c.y, zz), "iron")
+		m.hoop(0.42, (c.x, c.y - 0.5, 5.2), 0.16, "gold", n=8)
 	# counter: a strong bench with gold-edged drawers, glass-dark top and trays of gems
 	cy = -2.9
 	m.box((9, 2, 3.0), (0, cy, 1.9), "wood")
@@ -513,16 +529,19 @@ def a_shop():
 	for x, glow in ((-3.6, "g_blue"), (3.7, "g_violet")):
 		m.box((1.7, 1.3, 0.3), (x, cy, 3.85), "verm2")
 		for i in range(3):
-			m.gem((x - 0.5 + 0.5 * i, cy + (0.15 if i == 1 else -0.1), 4.35), 0.34, 0.5, 0.35, glow if i == 1 else "gold")
+			if i == 1:
+				m.gem((x, cy + 0.1, 4.35), 0.4, 0.55, 0.35, glow)
+			else:
+				m.coins((x - 0.5 + 0.5 * i, cy - 0.15, 4.0), 0.27, 2 + i // 2)
 	# back shelves of chests in the rarity colours
 	for zz in (3.2, 5.6):
 		m.box((11, 1.8, 0.25), (0, back - 1.3, zz), "dark")
 	for i, mt in enumerate(("r_common", "r_rare", "r_epic", "r_leg")):
 		m.chest((-4.1 + 2.75 * i, back - 1.4, 3.32), 2.0, mt)
 	for i, mt in enumerate(("r_myth", "r_rare", "r_leg")):
-		m.chest((-3.6 + 3.6 * i, back - 1.4, 5.72), 2.1, mt)
-	m.lantern((-3.9, -3.6, 8.2))
-	m.lantern((3.9, -3.6, 8.2))
+		m.chest(((-4.3, -2.0, 3.6)[i], back - 1.4, 5.72), 2.1, mt)
+	m.lantern((-4.3, -3.9, 8.9))
+	m.lantern((4.3, -3.9, 8.9))
 	for sx in (-1, 1):  # a barred window in each side wall
 		m.box((0.2, 2.6, 2.2), (sx * (w / 2 + 0.02), 0.4, 6.2), "dark")
 		for k in (-0.8, 0, 0.8):
@@ -532,7 +551,7 @@ def a_shop():
 	# the landmark: a treasure chest as tall as a player, one great blue gem standing in it
 	old = m.local
 	m.local = Matrix.Translation((-10.6, -3.6, 0)) @ Matrix.Rotation(math.radians(16), 4, "Z") @ Matrix.Scale(2.0, 4)
-	m.chest((0, 0, 0), 2.4, "r_rare", "gold", d=1.6, open_=True)
+	m.chest((0, 0, 0), 2.4, "verm2", "gold", d=1.6, open_=True)
 	m.lathe([(0.1, 0.95), (0.85, 2.0), (0.6, 2.45), (0, 2.5)], (0, 0, 0), "g_blue", 6)
 	m.local = old
 	# goods at the sides, under the eaves
@@ -676,9 +695,9 @@ def a_market():
 		m.box((1.2, 1.2, 0.6), (x, f + 0.6, 0.8), "stone2")
 		m.box((1.1, 1.1, 0.4), (x, f + 0.6, 8.5), "gold")
 	m.box((w - 1, 0.5, 8.6), (0, b - 0.6, 4.6), "plaster")
-	m.box((w - 2, 0.2, 5.8), (0, b - 1.0, 5.2), "silk")
+	m.box((w - 2, 0.2, 5.8), (0, b - 1.0, 5.2), "cream")
 	for x in (-6.4, -3.2, 0, 3.2, 6.4):
-		m.box((0.14, 0.24, 5.8), (x, b - 1.02, 5.2), "gold")
+		m.box((1.0, 0.24, 5.8), (x, b - 1.02, 5.2), "silk2" if x else "gold")
 	for sx in (-1, 1):
 		m.box((0.6, d - 1.2, 3.0), (sx * 9.5, 0.3, 2.0), "plank")
 		m.box((0.3, 5, 5.2), (sx * 9.5, 2.3, 6.1), "paper")
@@ -687,7 +706,7 @@ def a_market():
 	cy = f + 1.7
 	m.box((11.6, 2, 3.0), (0, cy, 2.0), "wood")
 	m.box((12.2, 2.6, 0.35), (0, cy, 3.65), "plank")
-	m.box((11.0, 0.12, 2.5), (0, cy - 1.05, 2.1), "silk")
+	m.box((11.0, 0.12, 2.5), (0, cy - 1.05, 2.1), "verm2")
 	for k in range(6):  # a scalloped gold hem
 		x = -4.6 + 1.84 * k
 		m.py = cy - 1.12
@@ -696,25 +715,31 @@ def a_market():
 	for x, r, glow in ((-4.6, 0.95, "lampw"), (-2.6, 0.7, "g_cyan"), (4.5, 0.85, "g_amber")):
 		m.box((1.1, 0.9, 0.3), (x, cy, 3.95), "verm2")
 		m.box((0.2, 0.3, 0.4), (x, cy, 4.2), "gold")
-		m.hoop(r, (x, cy, 4.35 + r), 0.2, glow, n=14)
+		m.hoop(r, (x, cy, 4.35 + r), 0.2, glow, n=12)
 	# the landmark: two aura busts on plinths either side of the house
 	for x, glow in ((-13.2, "g_amber"), (13.2, "g_cyan")):
 		y, k = -3.4, 1.9
 		m.cyl(2.2, 0.5, (x, y, 0), "slab", n=8)
 		m.cyl(1.6, 1.8, (x, y, 0.5), "stone3", n=8, r2=1.35)
-		m.taper((x, y, 2.3), (x, y, 5.0), 1.3, 2.9, "cream")
-		m.box((1.3, 1.2, 1.4), (x, y, 6.1), "cream")
-		m.box((0.5, 0.5, 0.6), (x, y, 5.2), "cream")
+		# a wooden mannequin: shoulders in a collared coat, a neck, a head with hair, so it reads as a person
+		m.taper((x, y, 2.3), (x, y, 4.5), 1.5, 2.6, "teal" if x < 0 else "verm2")
+		for q in (-1, 1):
+			m.box((0.28, 0.14, 1.5), (x + q * 0.4, y - 1.22, 3.9), "cream", R3(q * 22, "Y"))
+		m.box((0.8, 0.8, 0.6), (x, y, 4.7), "plank")
+		m.taper((x, y, 4.9), (x, y, 5.4), 1.4, 1.8, "plank")
+		m.box((1.8, 1.8, 1.4), (x, y, 6.1), "plank")
+		m.box((2.0, 1.9, 0.5), (x, y + 0.1, 6.95), "hairb")
+		m.box((2.0, 0.6, 1.3), (x, y + 0.75, 6.3), "hairb")
 		m.hoop(2.5, (x, y + 0.8, 6.3), 0.34, glow, n=18)
-		for q in range(13):
-			a = -0.35 + (math.pi + 0.7) * q / 12
+		for q in range(11):
+			a = -0.35 + (math.pi + 0.7) * q / 10
 			ln = 1.5 if q % 2 else 0.9
 			ray = lambda r: (x + r * math.cos(a), y + 0.8, 6.3 + r * math.sin(a))
 			m.taper(ray(2.75), ray(2.75 + ln), 0.5, 0.02, glow)
 	for i, (mt, x) in enumerate((("g_amber", -8.6), ("g_cyan", -7.6), ("g_violet", 7.6), ("g_amber", 8.6))):
 		rows = []
-		for k in range(8):
-			t = k / 7
+		for k in range(6):
+			t = k / 5
 			cx = x + 0.28 * math.sin(t * TAU + i)
 			wd = 0.42 * (1 - 0.75 * t)
 			rows.append([(cx - wd, f + 0.9 + 0.25 * math.sin(t * 5 + i), 8.4 - 5.6 * t), (cx + wd, f + 0.9 + 0.25 * math.sin(t * 5 + i), 8.4 - 5.6 * t)])
@@ -722,14 +747,14 @@ def a_market():
 	# silk canopy sweeping out over the customer
 	cols = 12
 	rows = []
-	for k in range(4):
-		t = k / 3
+	for k in range(3):
+		t = k / 2
 		rows.append([(-6.6 + 13.2 * c / cols, f + 0.2 - 2.9 * t, 8.45 - 0.5 * t - 0.35 * math.sin(math.pi * t) * (0.4 + 0.6 * math.sin(math.pi * c / cols))) for c in range(cols + 1)])
-	m.strip(rows, "silk", "cream")
+	m.strip(rows, "silk2", "cream")
 	last = rows[-1]
 	for c in range(cols):
 		a, e = last[c], last[c + 1]
-		m.strip([[a, e], [((a[0] + e[0]) / 2 - 0.35, a[1], a[2] - 0.6), ((a[0] + e[0]) / 2 + 0.35, a[1], a[2] - 0.6)]], "gold" if c % 2 else "silk2")
+		m.strip([[a, e], [((a[0] + e[0]) / 2 - 0.35, a[1], a[2] - 0.6), ((a[0] + e[0]) / 2 + 0.35, a[1], a[2] - 0.6)]], "gold" if c % 2 else "verm2")
 	for sx in (-1, 1):
 		m.beam((sx * 6.6, f + 0.3, 5.6), (sx * 6.6, f - 2.6, 7.8), 0.34, "gold")
 		m.lantern((sx * 10.6, f - 0.6, 8.2), 0.65, "silk")
@@ -742,7 +767,13 @@ def a_market():
 	for s in (-1, 1):
 		m.box((0.5, 2.4, 0.5), (s * 5.5, -2.7, 11.6), "dark")
 	m.board(0, -3.8, bp.MARKET_SIGN_Y, 16, 4.1, "silk")
-	karahafu(m, -3.6, 2.6, 13.85, 18.6, 1.25, 0.45, "tile", "gold")
+	# the bow gable stands on the board and runs back into the upper roof, its face filled in
+	karahafu(m, -2.7, 4.4, 13.85, 18.6, 1.25, 0.45, "tile", "gold")
+	m.py = -3.7
+	m.plate([(-7.6, 13.6), (7.6, 13.6), (6.4, 14.15), (3.2, 14.8), (0, 15.05), (-3.2, 14.8), (-6.4, 14.15)], 0.5, "cream")
+	m.py = 0
+	for q in (-1, 1):
+		m.box((0.7, 3.6, 1.0), (q * 7.7, -2.6, 13.5), "verm2")
 	return m, merchant("A_Market", bp.MARKET_STALL, bp.MARKET_FACE, (0.6, -1.5, 1.35), height=5.7)
 
 
@@ -789,7 +820,7 @@ def a_index():
 					if (c + j + q) % 5 == 4:
 						continue
 					mt = ("paper", "cream", "r_rare", "r_leg", "r_epic", "verm")[(c * 5 + j * 2 + q) % 6]
-					m.taper((cx + ox, 1.6, cz + oz), (cx + ox, -1.0 - 0.2 * (q % 2), cz + oz), 0.85, 0.85, mt, 6)
+					m.taper((cx + ox, 1.6, cz + oz), (cx + ox, -1.0 - 0.2 * (q % 2), cz + oz), 0.85, 0.85, mt, 5 if sx > 0 else 6)
 		m.cyl(0.8, 12.2, (sx * 12.4, 0.3, 0.4), "verm2", n=8)
 		m.lantern((sx * 7.5, -1.5, 11.6), 0.55)
 	# a ladder on the right tower
@@ -801,10 +832,16 @@ def a_index():
 	# the keeper's desk, left of the board's middle
 	m.box((2.6, 1.4, 2.6), (-8.2, -4.0, 1.3), "wood")
 	m.box((3.0, 1.8, 0.25), (-8.2, -4.0, 2.7), "dark", R3(8, "X"))
-	m.beam((-9.1, -3.8, 3.1), (-7.9, -3.8, 3.1), 0.42, "paper", 8)
+	m.box((2.9, 0.1, 0.7), (-8.2, -4.86, 2.3), "olive")  # a cloth runner, two drawers with brass pulls, corner posts
+	for q in (0, 1):
+		m.box((2.1, 0.14, 0.62), (-8.2, -4.72, 0.7 + 0.8 * q), "plank")
+		m.box((0.5, 0.2, 0.16), (-8.2, -4.8, 0.7 + 0.8 * q), "gold")
+	for q in (-1, 1):
+		m.box((0.24, 1.6, 2.6), (-8.2 + q * 1.25, -4.0, 1.3), "dark")
+		m.beam((-9.1, -3.8 + 0.1 * q, 3.1 if q < 0 else 3.4), (-7.9, -3.8 + 0.1 * q, 3.1 if q < 0 else 3.4), 0.42, "paper" if q < 0 else "r_rare", 6)
 	m.lathe([(0.25, 0), (0.3, 0.4), (0.15, 0.5)], (-7.2, -3.9, 2.85), "ink", 6)
 	m.taper((-7.2, -3.9, 3.3), (-6.9, -3.7, 4.2), 0.08, 0.3, "white")
-	m.gable(0, 0.3, 12.5, 27, 6.4, 2.8, "tile", "verm2", lift=0.8, ribs=16, segx=8, segt=2)
+	m.gable(0, 0.3, 12.5, 27, 6.4, 2.8, "tile", "verm2", lift=0.8, ribs=14, segx=8, segt=2)
 	return m, merchant("A_Index", bp.INDEX, bp.INDEX_FACE, (-5.2, -4.2, 0), yaw=-14, height=5.4)
 
 
@@ -813,7 +850,7 @@ def a_sensei():
 	m = K("A_Sensei", bp.place(*bp.SENSEI, bp.TOP, bp.SENSEI_FACE))
 	m.cyl(4, 0.45, (0, 0, 0), "stone", n=8)
 	m.cyl(3.6, 0.2, (0, 0, 0.42), "tatami", n=8)
-	for k in (-1.2, 1.2):
+	for k in (0.0,):
 		m.box((0.16, 5.8, 0.06), (k, 0, 0.64), "olive")
 	n = 5
 	pts = [(-3.5 + 7 * i / n, 2.55 + (0.28 if i % 2 else 0) - 0.5 * (abs(i - n / 2) / (n / 2)) ** 2) for i in range(n + 1)]
@@ -828,7 +865,9 @@ def a_sensei():
 			m.beam((xa, ya, z), (xb, yb, z), 0.2, "ink")
 		m.beam((xa, ya, 0.6), (xa, ya, 6.15), 0.2, "ink")
 	m.beam((pts[-1][0], pts[-1][1], 0.6), (pts[-1][0], pts[-1][1], 6.15), 0.2, "ink")
-	m.ydisc(0.62, (2.1, 2.45, 4.9), 0.08, "sun", 12)
+	m.beam((2.35, 2.3, 3.1), (2.1, 2.3, 4.7), 0.18, "bark", 5)  # a painted pine
+	for q, (px, pz, pw) in enumerate(((2.2, 4.1, 1.5), (2.05, 4.65, 1.2), (2.15, 5.15, 0.8))):
+		m.box((pw, 0.1, 0.34), (px, 2.28, pz), "pine" if q % 2 else "pine2")
 	at = lambda t: (-3.1 + 6.2 * t, 2.3, 1.1 + 2.6 * t + 0.5 * math.sin(t * 9))
 	for i in range(9):  # the road: ten stops on one line
 		m.beam(at(i / 9), at((i + 1) / 9), 0.12, "verm")
@@ -841,7 +880,7 @@ def a_sensei():
 	m.box((1.3, 0.9, 0.5), (2.4, -0.3, 0.9), "wood")
 	m.lathe([(0, 0), (0.32, 0.05), (0.36, 0.35), (0.1, 0.5)], (2.2, -0.3, 1.15), "iron", 8)
 	m.cyl(0.14, 0.2, (2.75, -0.4, 1.15), "white", n=6)
-	return m, merchant("A_Sensei", bp.SENSEI, bp.SENSEI_FACE, (0, -0.5, 0.62), height=5.0)
+	return m, merchant("A_Sensei", bp.SENSEI, bp.SENSEI_FACE, (0, -0.5, 0.62), height=4.95)
 
 
 # --- B: rift-shrine market -------------------------------------------------------------------------------------------
@@ -856,7 +895,7 @@ def rift_base(m, rx, ry, seam="g_cyan", n=8, h=0.7):
 
 
 def b_shop():
-	"""Geode vault: a cracked-open geode lined with blue crystal, caskets floating inside, a vermilion lintel in front."""
+	"""Geode vault: a cracked-open geode lined with blue crystal, caskets on ledges inside, the sign on two stone beams."""
 	m = K("B_Shop", bp.place(*bp.SHOP, bp.TOP, bp.SHOP_FACE))
 	rift_base(m, 10.2, 6.6)
 	nu, nv = 14, 6
@@ -882,18 +921,27 @@ def b_shop():
 	m.face(inn[nv][::-1], "geode")
 	for u in range(nu):
 		m.face([out[nv][u], out[nv][u + 1], inn[nv][u + 1], inn[nv][u]], "mist")
-	for v in range(nv):  # crystals along the broken edge and inside
-		for u in (0, nu):
-			c = (Vector(out[v][u]) + Vector(inn[v][u])) / 2
-			d = Vector((c.x * 0.16, -1.0, 2.2)).normalized()
-			m.crystal(c - d * (0.5 if v else -0.6), d, 0.7 + 0.15 * (v % 2), min(2.6 + 0.6 * ((v + u) % 3), (13.9 - c.z) / d.z + 0.5), "g_blue" if v % 2 else "r_rare")
-	for u in range(2, nu - 1, 2):
-		for v in (2, 4):
-			c = Vector(inn[v][u])
-			m.crystal(c, Vector((0, -1.2, 5)) - c, 0.5, 2.0, "r_rare" if (u + v) % 4 else "g_blue")
-	# the landmark: a spray of great crystals breaking out of the shell on both shoulders
-	for x, y, z, dx, r, ln, mt in ((-5.4, 1.8, 9.2, -0.5, 1.0, 4.6, "g_blue"), (-7.6, 1.4, 6.6, -1.0, 0.8, 3.8, "r_rare"), (-4.0, 2.4, 10.4, -0.2, 0.7, 3.2, "r_rare"), (5.6, 1.8, 9.0, 0.6, 0.9, 4.4, "g_blue"), (7.6, 1.6, 6.2, 1.1, 0.9, 3.6, "r_rare"), (-9.6, -2.4, 0.5, -0.35, 0.9, 4.2, "g_blue"), (-8.6, -3.6, 0.5, 0.1, 0.5, 2.4, "r_rare"), (9.7, -2.4, 0.5, 0.35, 0.9, 3.8, "g_blue"), (8.7, -3.6, 0.5, -0.1, 0.55, 2.6, "r_rare")):
-		m.crystal((x, y, z - 0.3 if z > 1 else 0.7), (dx, -0.1, 1), r, min(ln, 14.0 - z), mt, 6)
+	# crystals grow out of the shell: each foot is sunk in its wall, between the outer and inner skin
+	mid = lambda v, u: (Vector(out[v][u]) + Vector(inn[v][u])) / 2
+	def grow(foot, d, r, ln, mt):
+		d = Vector(d).normalized()
+		a = foot - d * 0.7
+		if a.z < 0.5:
+			a = Vector((foot.x, foot.y, 0.5))
+		ln = min(ln + 0.7, (13.9 - a.z) / d.z)
+		m.taper(a, a + d * ln * 0.6, r * 2.1, r * 1.7, mt, 5)
+		m.taper(a + d * ln * 0.6, a + d * ln, r * 1.7, 0, mt, 5)
+	for sx, u in ((1, 0), (-1, nu)):
+		for v, r, ln, mt in ((0, 0.9, 3.6, "g_blue"), (1, 0.75, 2.6, "r_rare"), (2, 0.8, 2.6, "g_blue"), (3, 0.7, 2.2, "r_rare"), (4, 0.75, 2.4, "g_blue")):
+			c = mid(v, u)
+			grow(c, (sx * 0.45, -0.25, 1), r, ln, mt)
+		for v, w_, r, ln, mt in ((3, 2, 1.05, 4.4, "g_blue"), (4, 3, 0.8, 3.0, "r_rare"), (2, 2, 0.8, 3.2, "r_rare")):
+			uu = w_ if u == 0 else nu - w_
+			grow(mid(v, uu), (sx * 0.7, -0.15, 1), r, ln, mt)
+	for u in (3, 5, 9, 11):
+		c = Vector(inn[4][u])
+		d = (Vector((0, -1.0, 5)) - c).normalized()
+		m.taper(c - d * 0.4, c + d * 1.5, 0.9, 0, "r_rare" if u % 3 else "g_blue", 5)
 	# counter: a split stone altar slab with a glowing seam
 	cy = -2.9
 	m.box((9, 2, 2.9), (0, cy, 2.1), "basalt3")
@@ -906,13 +954,10 @@ def b_shop():
 		m.crystal((x, cy, 4.05), (0.1, 0, 1), 0.4, 1.8, "g_blue")
 		m.crystal((x - 0.5, cy + 0.1, 4.05), (-0.5, 0, 1), 0.28, 1.1, "r_rare")
 		m.crystal((x + 0.5, cy - 0.1, 4.05), (0.6, -0.2, 1), 0.25, 1.0, "r_rare")
-	# floating caskets
-	for x, z, mt, yaw in ((-4.2, 6.3, "r_epic", 14), (-1.9, 8.6, "r_leg", -10), (2.1, 8.4, "r_myth", 12), (4.3, 6.2, "r_rare", -16)):
-		old = m.local
-		m.local = Matrix.Translation((x, 0.9, z)) @ Matrix.Rotation(math.radians(yaw), 4, "Y") @ Matrix.Rotation(math.radians(yaw), 4, "Z")
-		m.chest((0, 0, 0), 1.9, mt, "gold")
-		m.gem((0, 0, -0.3), 0.35, 0.15, 0.7, "g_cyan", 5)
-		m.local = old
+	# caskets on stone ledges that run back into the shell, clear of the keeper's head
+	for x, z, mt in ((-4.5, 5.2, "r_epic"), (-2.7, 7.7, "r_leg"), (2.7, 7.7, "r_myth"), (4.5, 5.2, "r_rare")):
+		m.box((2.3, 3.6, 0.4), (x, 2.2, z), "stele")
+		m.chest((x, 1.3, z + 0.2), 1.9, mt, "gold")
 	# the sign hangs on a rough stone beam that juts out of the shell
 	for sx in (-1, 1):
 		m.taper((sx * 2.8, 0.5, 11.6), (sx * 2.8, -5.5, 11.2), 1.2, 0.7, "basalt3", 5)
@@ -923,7 +968,7 @@ def b_shop():
 
 
 def b_potions():
-	"""Rift still: a round parasol roof, three great glass orbs on a vermilion arch feeding a stone basin counter."""
+	"""Rift still: a round parasol roof, glass orbs on a vermilion arch, a curved back wall, two great orbs outside, feeding a stone basin counter."""
 	m = K("B_Potions", bp.place(*bp.POTIONS, bp.TOP, bp.POTIONS_FACE))
 	rift_base(m, 8.2, 6.4, n=10)
 	# arch of beams, behind the keeper
@@ -944,7 +989,7 @@ def b_potions():
 		m.cyl(r * 0.28, 0.5, (x, y, z + r), "copper", n=7)
 		m.beam((x, y, z + r + 0.3), (x, ay, min(8.9, az + math.sqrt(max(0, ar * ar - x * x)))), 0.22, "gold")
 	for sx in (-1, 1):  # drip pipes down to the basin
-		pp = [(sx * 3.7, ay - 0.2, 4.3), (sx * 3.7, -0.8, 3.6), (sx * 3.4, -2.2, 4.6), (sx * 3.2, -3.0, 4.4)]
+		pp = [(sx * 3.7, ay - 0.2, 4.3), (sx * 3.9, 0.3, 4.0), (sx * 3.9, -0.5, 4.1), (sx * 3.9, -1.0, 3.5)]
 		for a, b in zip(pp, pp[1:]):
 			m.beam(a, b, 0.3, "copper", 6)
 	# counter: an arc of stone with a liquid channel
@@ -970,8 +1015,22 @@ def b_potions():
 		m.flask((5.6 * math.sin(a), cy0 - 5.6 * math.cos(a), 3.65), s, glow, kd)
 	# shelf drums at the back
 	for i, x in enumerate((-4.6, -2.6, 2.6, 4.6)):
-		m.lathe([(0.8, 0), (1.0, 0.8), (0.8, 1.8), (0.5, 2.0), (0, 2.0)], (x, 3.3, 0.6), ("slate", "indigo")[i % 2], 8)
-		m.lathe([(1.02, 0.7), (1.02, 0.9)], (x, 3.3, 0.6), ("g_mag", "g_green")[i % 2], 8)
+		m.lathe([(0.8, 0), (1.0, 0.8), (0.8, 1.8), (0, 2.0)], (x, 3.0, 0.6), ("slate", "indigo")[i % 2], 8)
+		m.lathe([(1.02, 0.7), (1.02, 0.9)], (x, 3.0, 0.6), ("g_mag", "g_green")[i % 2], 8)
+	# a curved back wall of stone behind the keeper, with a lit shelf line and a row of vials
+	bw = lambda k, z, r=6.6: (r * math.cos(math.pi * (0.12 + 0.76 * k / 7)), r * 0.75 * math.sin(math.pi * (0.12 + 0.76 * k / 7)), z)
+	for k in range(7):
+		for z0, z1, mt, r in ((0.6, 5.4, "slate", 6.6), (5.4, 5.7, "g_cyan", 6.58), (5.7, 9.0, "basalt2", 6.6)):
+			q = [bw(k, z0, r), bw(k, z1, r), bw(k + 1, z1, r), bw(k + 1, z0, r)]
+			m.face(q, mt)
+			m.face([bw(k + 1, z0, r + 0.5), bw(k + 1, z1, r + 0.5), bw(k, z1, r + 0.5), bw(k, z0, r + 0.5)], "basalt" if mt != "g_cyan" else mt)
+	for k in (0, 7):
+		q = [bw(k, 0.6, 6.6), bw(k, 0.6, 7.1), bw(k, 9, 7.1), bw(k, 9, 6.6)]
+		m.face(q, "basalt3")
+		m.face(q[::-1], "basalt3")
+	m.box((6.4, 1.0, 0.25), (0, 4.4, 4.2), "basalt3")
+	for i, x in enumerate((-2.6, -1.3, 1.3, 2.6)):
+		m.lathe([(0, 0), (0.42, 0.1), (0.45, 0.8), (0.2, 1.1), (0.2, 1.3)], (x, 4.3, 4.32), ("g_green", "g_amber", "g_mag", "g_green")[i], 6)
 	# parasol roof on four posts
 	for x, y in ((-6.0, -3.4), (6.0, -3.4), (-5.2, 4.0), (5.2, 4.0)):
 		m.cyl(0.4, 8.4, (x, y, 0.5), "black", n=6)
@@ -996,10 +1055,10 @@ def b_potions():
 		m.lathe([(r * 1.03, -0.05), (r * 1.03, 0.3)], (x, y, z), "copper", 10)
 		m.cyl(r * 0.34, 0.5, (x, y, z + r - 0.05), "copper", n=8)
 		m.taper((x, y, z - r), (x, y, z - r - 0.7), 0.4, 0.2, "copper", 6)
-		m.gem((x, y, 1.9), 0.18, 0.4, 0.2, glow, 5)
-		m.lathe([(0.9, 0), (0.7, 0.4), (1.3, 1.3), (1.0, 1.3)], (x, y, 0), "basalt", 8)
-		m.lathe([(1.02, 1.15), (0, 1.15)], (x, y, 0), glow, 8)
-	for k in (0, 1, 2, 3):
+		m.taper((x, y, z - r - 0.6), (x, y, 1.2), 0.2, 0.2, glow, 5)
+		m.lathe([(0.9, 0), (0.7, 0.4), (1.3, 1.3), (1.0, 1.3)], (x, y, 0), "basalt", 6)
+		m.lathe([(1.02, 1.15), (0, 1.15)], (x, y, 0), glow, 6)
+	for k in (0, 3):
 		a = (-2.55, -1.95, -1.2, -0.6)[k]
 		m.lantern((7.2 * math.cos(a), 7.2 * math.sin(a) * 0.95, 8.7), 0.4, "indigo2", "g_mag" if k % 2 else "g_green")
 	m.board(0, -5.6, 11.2, 7, 2, "basalt3")
@@ -1009,7 +1068,7 @@ def b_potions():
 
 
 def b_market():
-	"""Halo pavilion: a ring of auras standing behind the keeper, a split roof hovering on light, trails from the posts."""
+	"""Halo pavilion: a ring of auras behind the keeper, a rock island bedded on a pillared frame, trails from the frame."""
 	m = K("B_Market", bp.place(*bp.MARKET_STALL, bp.TOP, bp.MARKET_FACE))
 	w, d = 20, 11
 	for k, (a, b, h, mt) in enumerate(((21, 11.8, 0.3, "basalt3"), (20.2, 11, 0.6, "basalt"))):
@@ -1030,9 +1089,7 @@ def b_market():
 	cz = 5.2
 	for r, wd, glow, y in ((3.6, 0.5, "g_violet", 3.8), (2.75, 0.36, "g_cyan", 3.5), (2.0, 0.28, "lampw", 3.2)):
 		m.hoop(r, (0, y, cz), wd, glow, n=24)
-	for k in range(10):
-		a = k / 10 * TAU + 0.3
-		m.gem((4.5 * math.cos(a), 3.7, cz + 3.55 * math.sin(a)), 0.42, 0.45, 0.4, "basalt2", 5)
+	m.box((3.0, 0.9, 1.4), (0, 3.9, 1.3), "basalt2")  # the cradle the rings stand in
 	# counter
 	cy = f + 1.7
 	m.box((11.6, 2, 2.8), (0, cy, 2.0), "basalt3")
@@ -1045,8 +1102,8 @@ def b_market():
 			m.box((0.4, 0.2, 2.0), (x + k, cy - 1.03, 1.7), "basalt2")
 	for x, r, glow in ((-4.8, 0.95, "lampw"), (-2.9, 0.7, "g_amber"), (4.6, 0.95, "g_violet")):
 		m.cyl(0.6, 0.3, (x, cy, 3.8), "black", n=8)
-		m.gem((x, cy, 4.3), 0.2, 0.3, 0.25, "gold", 5)
-		m.hoop(r, (x, cy, 4.75 + r), 0.2, glow, n=14)
+		m.box((0.3, 0.4, 0.4), (x, cy, 4.2), "gold")
+		m.hoop(r, (x, cy, 4.35 + r), 0.2, glow, n=14)
 	# trails streaming from the outer posts
 	for sx in (-1, 1):
 		for i, glow in enumerate(("g_amber", "g_violet", "g_cyan")):
@@ -1056,16 +1113,16 @@ def b_market():
 				x = sx * (6.9 + 0.75 * i + 0.35 * math.sin(t * 6 + i))
 				wd = 0.36 * (1 - 0.8 * t)
 				y = f + 0.3 - 0.5 * math.sin(t * 4 + i)
-				rows.append([(x - wd, y, 8.2 - 4.6 * t), (x + wd, y, 8.2 - 4.6 * t)])
+				rows.append([(x - wd, y, 8.7 - 5.0 * t), (x + wd, y, 8.7 - 5.0 * t)])
 			m.strip(rows, glow)
 		# display plinth in each outer bay
 		x = sx * 8.1
 		m.cyl(0.95, 1.5, (x, f + 1.6, 0.6), "basalt2", n=6, r2=0.8)
-		m.gem((x, f + 1.6, 3.0), 0.6, 0.9, 0.7, "g_amber" if sx < 0 else "g_violet", 6)
+		m.gem((x, f + 1.6, 2.5), 0.6, 0.9, 0.5, "g_amber" if sx < 0 else "g_violet", 6)
 	# the roof is a floating island (the Rift Shrine's own rocks): a hovering keel of stone, grass and blossom on top
 	rnd = bp.rng
 	nn = 16
-	prof = [(0.0, 9.1), (0.62, 9.2), (0.93, 9.9), (1.0, 11.2), (1.0, 12.8), (0.95, 13.5)]
+	prof = [(0.0, 9.5), (0.74, 9.5), (0.95, 10.0), (1.0, 11.2), (1.0, 12.8), (0.95, 13.5)]
 	jit = [[rnd.uniform(0.95, 1.04) for _ in range(nn)] for i in range(len(prof))]
 	def ring(i, k):
 		r, z = prof[i]
@@ -1085,15 +1142,16 @@ def b_market():
 		m.blob(r, (x, y, 15.55 - r * 0.95), mt, squash=0.8, jitter=0.12)
 	for x in (-9.2, 9.4, 0):
 		m.beam((x, 1.3, 13.2), (x, 1.3, 14.4), 0.5, "bark", 5)
-	for sx in (-1, 1):  # hanging vines of light under the rock's shoulders
-		for x, ln in ((11.4, 1.6), (12.0, 1.0)):
-			m.taper((sx * x, -1.0, 10.2), (sx * x, -1.0, 10.2 - ln), 0.3, 0.02, "g_cyan")
-	for x in (-9.5, -6.6, 6.6, 9.5):  # a lit stone on each pillar: the rock rides on them without touching
-		m.gem((x, f + 0.7, 9.0), 0.42, 0.45, 0.25, "g_cyan", 6)
+	# what holds it: a stone frame on the six pillars, brackets out to the rock, and the rock bedded on it
+	m.box((20.6, 0.9, 0.9), (0, f + 0.7, 9.1), "basalt3")
+	m.box((20.6, 0.94, 0.14), (0, f + 0.7, 8.75), "g_cyan")
+	m.box((20.6, 0.9, 0.9), (0, 4.6, 9.1), "basalt3")
+	for x in (-9.5, -4.8, 0, 4.8, 9.5):
+		m.box((0.8, 9.6, 0.8), (x, -0.1, 9.15), "basalt")
 	for sx in (-1, 1):
-		m.gem((sx * 9.5, 4.6, 9.0), 0.42, 0.3, 0.25, "g_cyan", 6)
-		for x, y, z, r in ((13.4, -0.4, 10.4, 0.8), (13.0, 2.6, 12.6, 0.55), (14.2, 1.4, 11.8, 0.4)):
-			m.gem((sx * x, y, z), r, r, r * 0.9, "basalt2", 6)
+		m.taper((sx * 9.5, 0, 8.2), (sx * 11.2, 0, 10.2), 0.9, 1.4, "basalt3")
+		for x in (9.5, 6.6):
+			m.box((1.4, 1.3, 0.4), (sx * x, f + 0.7, 8.5), "black")
 		m.box((0.5, 3.0, 0.5), (sx * 5.5, -2.4, 11.6), "iron")
 		# the landmark: a great aura ring each side, riding on a stone cradle with loose stones round it
 		x, y, r, glow = sx * 14.2, -2.6, 3.2, ("g_amber" if sx < 0 else "g_violet")
@@ -1101,15 +1159,14 @@ def b_market():
 		m.cyl(1.2, 1.2, (x, y, 0.6), "basalt", n=6, r2=0.8)
 		m.hoop(r, (x, y, 5.6), 0.55, glow, n=20)
 		m.hoop(r - 0.75, (x, y - 0.1, 5.6), 0.22, "lampw", n=18)
-		for k in range(7):
-			a = k / 7 * TAU + 0.4
-			m.gem((x + (r + 0.75) * math.cos(a), y, 5.6 + (r + 0.75) * math.sin(a)), 0.4, 0.42, 0.36, "basalt2", 5)
+		for q in (-1, 1):  # two claws of the cradle hold the ring
+			m.taper((x + q * 0.9, y, 0.6), (x + q * 1.7, y, 3.4), 0.9, 0.6, "basalt2")
 	m.board(0, -3.8, bp.MARKET_SIGN_Y, 16, 4.1, "indigo2")
 	return m, merchant("B_Market", bp.MARKET_STALL, bp.MARKET_FACE, (0, -1.5, 1.35), height=5.7)
 
 
 def b_index():
-	"""Stele archive: five standing stones in a fan, lit card tiles, floating tomes over a lectern."""
+	"""Stele archive: five standing stones in a fan, lit card tiles, a lectern and stacked tomes."""
 	m = K("B_Index", bp.place(*bp.INDEX, bp.TOP, bp.INDEX_FACE))
 	rift_base(m, 13.2, 4.8, n=12)
 	colours = ["r_common", "r_rare", "r_epic", "r_leg", "r_myth"]
@@ -1117,8 +1174,8 @@ def b_index():
 	def stele(x, y, w, h, yaw, cols, rows, seed, top_cut):
 		old = m.local
 		m.local = Matrix.Translation((x, y, 0.6)) @ Matrix.Rotation(math.radians(yaw), 4, "Z")
-		m.plate([(-w / 2, 0), (w / 2, 0), (w / 2 * 0.96, h - top_cut), (w / 2 * 0.55, h), (-w / 2 * 0.7, h - top_cut * 0.5), (-w / 2 * 0.97, h - top_cut * 1.5)], 1.1, "basalt")
-		m.box((w + 0.5, 1.7, 0.9), (0, 0, 0.4), "basalt3")
+		m.plate([(-w / 2, 0), (w / 2, 0), (w / 2 * 0.96, h - top_cut), (w / 2 * 0.55, h), (-w / 2 * 0.7, h - top_cut * 0.5), (-w / 2 * 0.97, h - top_cut * 1.5)], 1.1, "stele")
+		m.box((w + 0.5, 1.7, 0.9), (0, 0, 0.4), "slate")
 		m.box((w + 0.54, 1.74, 0.14), (0, 0, 0.95), "g_cyan")
 		for q in (-1, 1):
 			m.box((0.14, 0.1, h * 0.72), (q * (w / 2 * 0.95 - 0.12), -0.58, h * 0.36 + 0.6), "g_cyan")
@@ -1126,7 +1183,7 @@ def b_index():
 		for i in range(cols):
 			for j in range(rows):
 				cx, cz = -w / 2 + 0.45 + cw * (i + 0.5), 2.5 + ch * j
-				m.box((cw - 0.3, 0.2, ch - 0.35), (cx, -0.58, cz), "gold" if (i + j + seed) % 7 == 0 else "basalt3")
+				m.box((cw - 0.3, 0.2, ch - 0.35), (cx, -0.58, cz), "gold" if (i + j + seed) % 5 == 0 else "white")
 				m.box((cw - 0.5, 0.24, ch - 0.55), (cx, -0.6, cz), colours[(i * 3 + j * 2 + seed) % 5])
 				m.py = -0.75
 				ink = "ink" if (i + 2 * j + seed) % 3 == 0 else "white"
@@ -1142,37 +1199,32 @@ def b_index():
 	m.box((8.5, 0.2, 1.6), (0, 0.36, 10.7), "gold")
 	m.hoop(1.15, (0, 0.9, 13.0), 0.34, "gold", n=14)
 	m.gem((0, 0.9, 13.0), 0.5, 0.75, 0.75, "g_cyan", 6)
-	# floating tomes
-	for i, (x, y, z, yaw) in enumerate(((-5.6, -2.6, 6.2, 20), (-7.4, -2.4, 8.1, -15), (5.4, -2.4, 7.2, -20), (7.6, -2.2, 5.2, 18))):
-		old = m.local
-		m.local = Matrix.Translation((x, y, z)) @ Matrix.Rotation(math.radians(yaw), 4, "Z") @ Matrix.Rotation(math.radians(-55), 4, "X")
-		for sx in (-1, 1):
-			m.box((0.95, 1.3, 0.2), (sx * 0.46, 0, 0), "paper", R3(sx * -16, "Y"))
-			m.box((1.02, 1.4, 0.12), (sx * 0.47, 0, -0.14), ("verm", "silk", "teal", "indigo")[i], R3(sx * -16, "Y"))
-		m.local = old
+	# tomes stacked on the base, a reading stand on the right
+	for i, (x, w_, mt) in enumerate(((5.4, 1.9, "verm"), (5.5, 1.7, "teal"), (5.35, 1.8, "silk"))):
+		m.box((w_, 1.3, 0.36), (x, -2.9, 0.9 + 0.4 * i), mt, R3(8 * i - 8, "Z"))
+		m.box((w_ - 0.1, 1.2, 0.22), (x, -2.96, 0.9 + 0.4 * i), "paper", R3(8 * i - 8, "Z"))
 	# lectern
-	m.cyl(0.9, 0.5, (-5.6, -4.2, 0.2), "basalt3", n=6)
-	m.cyl(0.4, 2.3, (-5.6, -4.2, 0.6), "basalt2", n=6)
+	m.cyl(0.9, 0.5, (-5.6, -4.2, 0.2), "stele", n=6)
+	m.cyl(0.4, 2.3, (-5.6, -4.2, 0.6), "stele2", n=6)
 	m.box((2.2, 1.5, 0.25), (-5.6, -4.2, 3.0), "verm", R3(18, "X"))
-	m.crystal((-5.6, -3.4, 3.1), (0, 0, 1), 0.2, 0.8, "g_cyan")
+	for sx in (-1, 1):
+		m.box((0.8, 1.0, 0.14), (-5.6 + sx * 0.4, -4.3, 3.25), "paper", R3(18, "X"))
 	return m, merchant("B_Index", bp.INDEX, bp.INDEX_FACE, (-3.0, -4.0, 0.62), yaw=-10, height=5.4)
 
 
 def b_sensei():
-	"""Rift dais: a cracked stone disc with a lit road of ten waystones rising round the elder's back."""
+	"""Rift dais: a cracked stone disc with a lit road of ten square milestones rising round the elder's back."""
 	m = K("B_Sensei", bp.place(*bp.SENSEI, bp.TOP, bp.SENSEI_FACE))
 	rift_base(m, 4, 4, n=8, h=0.6)
-	pts = []
+	# ten square milestones standing on the dais, each taller than the last: the tracks in order
 	for i in range(10):
-		a = math.radians(205 - 230 * i / 9)
-		pts.append(Vector((3.2 * math.cos(a), 1.7, 2.7 + 2.9 * math.sin(a))))
-	for a, b in zip(pts, pts[1:]):
-		m.beam(a, b, 0.14, "g_cyan")
-	for i, p in enumerate(pts):
-		m.blob(0.44, p, "basalt2" if i < 9 else "gold", squash=1.15, jitter=0.2)
-		m.gem((p.x, p.y - 0.42, p.z), 0.2, 0.36, 0.36, "g_cyan" if i < 9 else "g_amber", 5)
-	for sx in (-1, 1):
-		m.cyl(0.6, 0.7, (sx * 2.9, 1.7, 0.5), "basalt3", n=6, r2=0.4)
+		t = i / 9
+		a = math.radians(200 - 220 * t)
+		x, y, h = 3.2 * math.cos(a), 0.2 + 2.6 * max(math.sin(a), -0.2), 1.5 + 4.0 * t
+		rot = R3(-math.degrees(math.atan2(x, y + 1.5)), "Z")
+		m.box((0.8, 0.6, h), (x, y, 0.55 + h / 2), "slate" if i % 2 else "basalt2", rot)
+		m.box((0.9, 0.7, 0.2), (x, y, 0.55 + h), "gold" if i == 9 else "basalt3", rot)
+		m.box((0.2, 0.64, h * 0.5), (x, y, 0.75 + h * 0.6), "g_amber" if i == 9 else "g_cyan", rot)
 	return m, merchant("B_Sensei", bp.SENSEI, bp.SENSEI_FACE, (0, -0.5, 0.62), height=5.0)
 
 
@@ -1198,9 +1250,21 @@ def mtris(m):
 	return sum(len(f) - 2 for f in m.f)
 
 
+MAX_TRIS = {  # the first reviewed draft (7068e5a6): a revision may not cost more
+	"A_Shop": 3582, "A_Potions": 3663, "A_Market": 2996, "A_Index": 3282, "A_Sensei": 711, "B_Shop": 2352, "B_Potions": 3153,
+	"B_Market": 3852, "B_Index": 2605, "B_Sensei": 1120, "A_Shop_Merchant": 876, "A_Potions_Merchant": 712,
+	"A_Market_Merchant": 699, "A_Index_Merchant": 800, "A_Sensei_Merchant": 634, "B_Shop_Merchant": 940,
+	"B_Potions_Merchant": 763, "B_Market_Merchant": 768, "B_Index_Merchant": 740, "B_Sensei_Merchant": 684,
+}
+
+
 def check(m, key, top):
 	"""The fixed limits: floor edge, header height, sky loop ribbon and posts."""
 	bad = []
+	if mtris(m) > MAX_TRIS[key]:
+		bad.append(f"{mtris(m)} tris over {MAX_TRIS[key]}")
+	if "Sensei" in key and max(v.z for v in m.v) > 6.2:
+		bad.append(f"Sensei height {max(v.z for v in m.v):.2f} over 6.2")
 	hi = max(v.z for v in m.v) + bp.TOP
 	if hi > top + 0.001:
 		bad.append(f"top y {hi:.2f} over today's {top}")
