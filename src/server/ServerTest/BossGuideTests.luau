@@ -63,8 +63,8 @@ function Tests.boss_guide()
 		flag("prompt_name", p.Name == "TalkBossGuide", p.Name, "TalkBossGuide")
 		flag("prompt_text", p.ActionText == "Talk" and p.ObjectText == "Gojio", p.ActionText, "Talk")
 		flag("prompt_key_e", p.KeyboardKeyCode == Enum.KeyCode.E)
-		flag("prompt_hold", p.HoldDuration == Config.HOLD, p.HoldDuration, Config.HOLD)
-		flag("prompt_distance", p.MaxActivationDistance == Config.PROMPT_DISTANCE)
+		flag("prompt_hold", p.HoldDuration == 0, p.HoldDuration, 0)
+		flag("prompt_distance", p.MaxActivationDistance == 8)
 		flag("prompt_always_on", p.Enabled ~= false) -- usable whether the gate is open or closed
 	end
 	local moving, solid = 0, 0
@@ -88,7 +88,7 @@ function Tests.boss_guide()
 	local moved = Guide.CFrame(start).Position - world.Position
 	Config.GATE_POS = saved
 	-- the facing turns with the spot, so the shift is near, not exactly, the same
-	flag("follows_gate_pos", (moved - Vector3.new(-5, 0, -3)).Magnitude < 4, moved.Magnitude)
+	flag("follows_gate_pos", (moved - Vector3.new(-5, 0, -3)).Magnitude < 1.6, moved.Magnitude)
 	local area = SpawnArea.Bounds(start).Area
 	local at = world.Position
 	flag("on_plaza", at.X > area.Min.X and at.X < area.Max.X and at.Z > area.Min.Z and at.Z < area.Max.Z)
@@ -115,12 +115,15 @@ function Tests.boss_guide()
 			flag("lines_short_" .. label, #long == 0, words(long), "")
 			flag("no_real_names_" .. label, #real == 0, words(real), "")
 			local all = string.lower(words(text))
-			flag("no_odds_or_prices_" .. label, not string.find(all, "0%.0") and not string.find(all, "robux"))
+			flag("no_odds_or_prices_" .. label, not string.find(all, "%d%.%d") and not string.find(all, "robux"))
 			flag("says_sidekick_" .. label, string.find(all, "sidekick", 1, true) ~= nil)
 			local every = ("every %d minutes"):format(Boss.IntervalSeconds / 60)
 			flag("interval_from_config_" .. label, string.find(all, every, 1, true) ~= nil, every)
 			local share = ("%d%%"):format(Boss.MinDamageShare * 100)
 			flag("share_from_config_" .. label, string.find(all, share, 1, true) ~= nil, share)
+			local rewards = pages[5].Text
+			flag("defeat_only_" .. label, string.find(rewards, "Only a defeat pays", 1, true) ~= nil)
+			flag("share_is_per_phase_" .. label, string.find(rewards, "that phase's HP", 1, true) ~= nil)
 			local last = pages[#pages].Text
 			local early = rebirth < Sidekick.HudFromRebirth
 			flag(
@@ -155,7 +158,8 @@ function Tests.boss_guide()
 	for _, child in workspace:GetChildren() do
 		built += child.Name == "BossGuide" and 1 or 0
 	end
-	local live = workspace:FindFirstChild("SpawnArea") ~= nil
+	local live = Config.LIVE and workspace:FindFirstChild("SpawnArea") ~= nil
+	flag("off_until_the_gate_is_built", Config.LIVE == false)
 	flag("live_one_guide", built == (live and 1 or 0), built, live and 1 or 0)
 	model:Destroy()
 	return r

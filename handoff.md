@@ -1,3 +1,8 @@
+## RESUME HERE (2026-11-25, agent-2): boss gate guide on feature/alex/boss-guide (local, not merged, not pushed)
+- Gojio's E prompt and text-only conversation: docs/BOSS_GUIDE_SPEC.md, Shared/BossGuideConfig, Server/BossGuide, Client/BossGuideUi. `LIVE` = false until the gate is built and the owner picks its spot.
+- Offline: `boss_guide` 88/0 in both worlds, stylua 0, selene 0/19, both places build. NOT run: Studio (`ui_boss_guide`, the clicks, look, model load). Audit of 65536d0e FAIL (3): Rewards line and missing gate fixed; not re-audited. Open: 4.24 / 4.37 bodies have no gate or guide rule (change log only), wording, spot, talk below rebirth 1, title kanji.
+- tools/lune/server_scenarios now fixes lune's reversed `CFrame.lookAt`.
+
 ## RESUME HERE (2026-11-25, agent-3): origin/main merged into the World 2 branch on feature/alex/agent-3 (offline only)
 - origin/main 5ef219ed (PR #29) merged; `Client/HudPlaque` and every option A branch are gone. Main's old HUD code; World 2 keeps the fourth slot and its spacing, WorldLabel's dark pill, the Awakening bar, the welcome popup. UiBossEvent, UiResponsive, UiScenarios, UiSpec, UiTeam are the World 2 side unchanged (the stricter one); UiWorld2 changed in comments only.
 - Run: stylua 0, selene 0 errors / 19 warnings, both places build, `world2_cast` 109/0 (also 109/0 on cee205ee before the merge; 121 was measured on agent-1's branch), `world2_rewards` 21/0. NOT run: Studio (no UI suite), the biome harness, the rest of the server suite, the rules audit.

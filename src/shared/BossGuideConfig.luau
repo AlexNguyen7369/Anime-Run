@@ -7,6 +7,7 @@ local SidekickConfig = require(script.Parent.SidekickConfig)
 
 local BossGuideConfig = {}
 
+BossGuideConfig.LIVE = false -- he is built only once the boss gate and its owner-chosen spot are in the game
 BossGuideConfig.ID = "jk_strongest" -- owner 2026-11-25
 -- The boss gate's world (x, z): the one value to change when the owner picks a spot (proposed: draft spot S4).
 BossGuideConfig.GATE_POS = Vector2.new(2.5, 94.8)
@@ -26,8 +27,9 @@ end
 function BossGuideConfig.Pages(gateOpen, rebirth)
 	local gate
 	if rebirth < SidekickConfig.HudFromRebirth then
-		gate = ("The gate and the Bosses button open up to you at Rebirth %d. Come back then."):format(
-			SidekickConfig.HudFromRebirth
+		gate = ("The Bosses button shows from Rebirth %d, and Sidekicks unlock at Rebirth %d. Come back then."):format(
+			SidekickConfig.HudFromRebirth,
+			SidekickConfig.UnlockRebirth
 		)
 	elseif gateOpen then
 		gate = "The gate is open: a boss event is running. Walk up to the gate, or press Bosses."
@@ -55,7 +57,7 @@ function BossGuideConfig.Pages(gateOpen, rebirth)
 		},
 		{
 			Id = "Rewards",
-			Text = ("Beat the boss and deal at least %d%% of its HP for its chest: one Relic, and a tiny chance of its Sidekick. Odds are in Details."):format(
+			Text = ("Only a defeat pays, if you dealt at least %d%% of that phase's HP. A chest holds one Relic and a tiny chance of the boss's Sidekick. Odds are in Details."):format(
 				BossEventConfig.MinDamageShare * 100
 			),
 		},

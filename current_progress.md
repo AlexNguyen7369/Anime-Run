@@ -273,6 +273,7 @@
 223. 2026-11-23 — Alex Nguyen — Reverted HUD option A (owner: too blocky and cluttered): HudChrome, TeamHud, Bosses/Team buttons, Turbo bar and Money/Gems back to the 4.40 look, HudPlaque removed, HUD tests restored; every panel and popup keeps the 4.46 Scroll Dojo look.
 267. 2026-11-25 — Alex Nguyen — Merged origin/main (5ef219ed, PR #29) into the World 2 branch on feature/alex/agent-3: HudPlaque and its option A branches removed, World 2's differences and the stricter HUD tests kept (offline checks only, no Studio).
 268. 2026-11-25 — Alex Nguyen — Built the boss gate guide on feature/alex/boss-guide (Gojio, one E prompt, text-only conversation, spec draft and tests; offline checks only, position and wording proposed).
+269. 2026-11-25 — Alex Nguyen — Fixed the boss gate guide after its rules audit: Rewards line per phase, guide off until the gate is built, tests tightened.
 
 ## What's next
 **Bring the owner the full ground-ownership count (props and heroes of all ten World 2 tracks).**
