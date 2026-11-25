@@ -273,6 +273,7 @@
 223. 2026-11-23 — Alex Nguyen — Reverted HUD option A (owner: too blocky and cluttered): HudChrome, TeamHud, Bosses/Team buttons, Turbo bar and Money/Gems back to the 4.40 look, HudPlaque removed, HUD tests restored; every panel and popup keeps the 4.46 Scroll Dojo look.
 267. 2026-11-25 — Alex Nguyen — Merged origin/main (5ef219ed, PR #29) into the World 2 branch on feature/alex/agent-3: HudPlaque and its option A branches removed, World 2's differences and the stricter HUD tests kept (offline checks only, no Studio).
 268. 2026-11-25 — Alex Nguyen — Wrote docs/PLAZA_BUILD_PLAN.md, the draft-to-game plan for the approved spawn pieces (nothing built or uploaded).
+269. 2026-11-25 — Alex Nguyen — Wrote the red tests for the approved spawn pieces (plaza_build, spawn_area RING and statue rows, moved headers) and gave the offline scenario runner Roblox's lookAt.
 
 ## What's next
 **Build the approved spawn layout and plain stand-ins (docs/PLAZA_BUILD_PLAN.md, order step 2), after the spec's section 4 ring spots are updated.**

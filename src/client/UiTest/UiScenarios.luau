@@ -7620,6 +7620,14 @@ local function billboardsAtHub(res)
 		"Pedestal.CharacterMount",
 		mount ~= nil and bestStats ~= nil and bestStats:IsA("BillboardGui") and bestStats.Adornee == mount
 	)
+	-- WORLD_REDESIGN_SPEC 4.2 (owner 2026-11-25, fuller layout): the moved Index and Team altar keep their floating
+	-- headers over them (Client/PlazaWayfinding). World (x, z); 8 studs: a header may hang over its building's front.
+	for key, at in { Index = Vector2.new(76.7, -34.2), Team = Vector2.new(-35.0, 76.4) } do
+		local anchor = Workspace.Terrain:FindFirstChild("Wayfinding_" .. key)
+		local p = anchor and anchor.WorldPosition
+		local off = p and (Vector2.new(p.X, p.Z) - at).Magnitude or -1
+		check(res, "header_" .. key .. "_over_moved_building", off, 8, p ~= nil and off <= 8)
+	end
 end
 
 function S.ui_billboards(res)
