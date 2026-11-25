@@ -16,7 +16,7 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local MODEL_SIZE = 7 -- placeholder: studs, the model's largest extent; fits inside the halo (radius 5)
 local TURN_SPEED = math.rad(30) -- placeholder: radians per second
 local TURN_DISTANCE = 250 -- placeholder: studs; farther away the model holds still
-local LOCKED_COLOR = Color3.fromRGB(24, 22, 30) -- placeholder: the locked silhouette
+local LOCKED_COLOR = Color3.fromRGB(74, 66, 92) -- placeholder: the locked silhouette (24, 22, 30 read near-black in the lotus)
 local LOCKED_TRANSPARENCY = 0.25 -- placeholder
 
 local player = Players.LocalPlayer

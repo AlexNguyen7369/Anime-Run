@@ -282,6 +282,7 @@
 272. 2026-11-25 — Alex Nguyen — Merged world2-place into feature/alex/boss-guide, fixed the guide's stale wording from its re-audit and drew popup layout B as a mock-up proposal (not coded).
 273. 2026-11-25 — Alex Nguyen — Fixed the boss guide's audit items and gave the boss gate an off switch (BossGateConfig.LIVE, the guide needs both switches) with tests for both states and the closed-gate prompt (offline checks only).
 274. 2026-11-25 — Alex Nguyen — Made ui_boss_guide run with auto-roll and racing off and a quiet baseline before grants_nothing, and reworded plaza_build's sensei check (offline checks only, branch feature/alex/boss-guide-tests).
+275. 2026-11-25 — Alex Nguyen — Built the export scripts and GLBs of the approved spawn pieces (gates, altars, market set B, sky loop), checked against the drafts; nothing uploaded.
 
 ## What's next
 **Land the Track 1 and 6 swap: round 7 restores Track 6's office towers, then its score, audit and merge.**
