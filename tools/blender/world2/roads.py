@@ -7,6 +7,9 @@ import math
 import chain
 import numpy as np
 
+# Layout options of the swapped tracks that are only rendered, never exported: "castle_052", "turned" (biomes/ElvenPlains.py).
+# Only game_shots.py sets this; it lives here because build_track.run reloads the biome modules.
+OPTIONS = frozenset()
 CLEAR = 25.0  # studs: the 24-stud rule and a margin
 PLAZA = (94.0, 110.0)  # SpawnArea.FLOOR_SIZE / 2 at the world origin
 PLAZA_CLEAR = 16.0  # BiomeDressing.CLEARANCE (8), grown boxes of turned props and a margin

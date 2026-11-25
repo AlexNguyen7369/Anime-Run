@@ -18,8 +18,8 @@ Everything in-house, parts only; no crest, text or numerals (design doc 5). Prop
 render set (design doc 4.46). Budget (BIOME_ENVIRONMENT_SPEC 4.5): 12 meshes, 2 hero (Town, RuinedCastle)."""
 
 import math
-import os
 
+import roads
 from roads import Roads
 
 # (prop, world x, z, scale) behind the finish: the spots beside the 0.9 axis free of Track 2's ruins, which fill the axis itself
@@ -572,11 +572,11 @@ def build(k):
 	tx, tz = 620.0, -3220.0
 	k.place("Town", (tx, -1.0, tz), math.atan2(-(sp.x - tx), -(sp.z - tz)), TS)
 	# Landmark 2: the ruined castle, at its approved 1.5 beside the town on the horizon (no gap on this track's ground holds
-	# it). CASTLE_052=1 in the environment builds the owner's option instead: 0.52, dead ahead at the end of the start straight
-	option = os.environ.get("CASTLE_052") == "1"
-	# RANK_TURNED=1: the other option for the owner, not exported: the statues and ranks turned to the runner, with one more
+	# it). game_shots.py --castle-052 builds the owner's option instead: 0.52, dead ahead at the end of the start straight
+	option = "castle_052" in roads.OPTIONS
+	# game_shots.py --turned: the other option for the owner, not exported: the statues and ranks turned to the runner, with one more
 	# of each than the approved rules allow where they stand (default: statue square to the road, rank toward the town)
-	turned = os.environ.get("RANK_TURNED") == "1"
+	turned = "turned" in roads.OPTIONS
 	best = None
 	for x in range(-190, -90, 4) if option else ():
 		for z in range(-310, -220, 4):
