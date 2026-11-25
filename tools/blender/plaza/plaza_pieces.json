@@ -27,6 +27,13 @@
   "Lane": "B",
   "Tris": 8012
  },
+ "BossGateClosed": {
+  "Asset": "125398438490160",
+  "Hash": "e8db904463781341",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 11030
+ },
  "BossGateOpen": {
   "Asset": "85973554587379",
   "Hash": "5858dd43d22d12d1",
