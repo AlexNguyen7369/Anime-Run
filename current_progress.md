@@ -292,6 +292,7 @@
 279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
 280. 2026-11-25 — Alex Nguyen — Merged the Track 5 kaiju fill "A with 12" into the World 2 branch as a draft (Blender tools and renders only; not exported to the game, nothing uploaded).
 281. 2026-11-25 — Alex Nguyen — Bounded the admin group-rank lookup (failed lookups hold briefly, concurrent checks share one), test red first; found why World 2 Track 10 shows a blue sky (no World 2 skybox) and proposed gradient skies for the owner.
+282. 2026-11-25 — Alex Nguyen — Admin rank audit fixes: the arrival recheck test asks for real again, the hold is pinned under the recheck, and a killed lookup no longer leaves later checks waiting forever.
 
 ## What's next
 **Merge the white-mesh and grass fix once its audit passes, after running `biome_runtime` in Studio.**

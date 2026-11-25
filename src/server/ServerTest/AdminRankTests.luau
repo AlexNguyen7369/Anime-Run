@@ -13,7 +13,22 @@ local UID = 990302000
 function Tests.admin_rank()
 	local r, flag = H.report("admin_rank")
 	local admin, config = require(Server.AdminService), require(Server.AdminConfig)
-	local saved = { admin.GroupOf, admin.RankOf, admin.RANK_WAIT, admin.AllowStudio, admin.RANK_RETRY_AFTER }
+	local saved = {
+		admin.GroupOf,
+		admin.RankOf,
+		admin.RANK_WAIT,
+		admin.AllowStudio,
+		admin.RANK_RETRY_AFTER,
+		admin.RANK_LOOK_TIMEOUT,
+	}
+	-- the real values: a hold shorter than the arrival's recheck, so each recheck asks again
+	local travel = require(Server.WorldTravel)
+	flag(
+		"hold_under_arrival_recheck",
+		type(admin.RANK_RETRY_AFTER) == "number" and admin.RANK_RETRY_AFTER < travel.ADMIN_RECHECK,
+		tostring(admin.RANK_RETRY_AFTER),
+		tostring(travel.ADMIN_RECHECK)
+	)
 	local cleanup = {}
 	local ok, err = xpcall(function()
 		local calls, rank = 0, nil
@@ -79,8 +94,45 @@ function Tests.admin_rank()
 		rank, calls = nil, 0
 		flag("listed_admin_no_lookup", admin.IsAdmin(listed) == true and calls == 0, calls, 0)
 		table.remove(config.UserIds, table.find(config.UserIds, UID + 4))
+
+		-- a lookup whose thread is killed mid-lookup: the next checks wait at most RANK_LOOK_TIMEOUT, answer "unknown"
+		-- (no admin), and a check after that looks again
+		admin.RANK_LOOK_TIMEOUT = 0.3
+		local stuck = H.player(cleanup, UID + 5)
+		admin.RankOf = function()
+			calls += 1
+			task.wait(100)
+		end
+		calls = 0
+		local thread = task.spawn(admin.IsAdmin, stuck)
+		task.wait(0.05)
+		task.cancel(thread)
+		local waited = { done = false }
+		task.spawn(function()
+			waited.result = { admin.IsAdmin(stuck) }
+			waited.done = true
+		end)
+		local until_ = os.clock() + 2
+		while not waited.done and os.clock() < until_ do
+			task.wait(0.05)
+		end
+		flag("killed_lookup_waiter_returns", waited.done == true)
+		flag(
+			"killed_lookup_fails_closed",
+			waited.done and waited.result[1] == false and waited.result[2] == "unknown",
+			waited.done and tostring(waited.result[2]) or "still waiting",
+			"unknown"
+		)
+		rank = 0
+		admin.RankOf = function()
+			calls += 1
+			return rank
+		end
+		calls = 0
+		flag("after_timeout_looks_again", admin.IsAdmin(stuck) == false and calls == 1, calls, 1)
 	end, debug.traceback)
-	admin.GroupOf, admin.RankOf, admin.RANK_WAIT, admin.AllowStudio, admin.RANK_RETRY_AFTER = table.unpack(saved, 1, 5)
+	admin.GroupOf, admin.RankOf, admin.RANK_WAIT, admin.AllowStudio = saved[1], saved[2], saved[3], saved[4]
+	admin.RANK_RETRY_AFTER, admin.RANK_LOOK_TIMEOUT = saved[5], saved[6]
 	for _, instance in cleanup do
 		instance:Destroy()
 	end

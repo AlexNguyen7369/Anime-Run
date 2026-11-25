@@ -928,7 +928,7 @@ function Tests.make(helpers)
 		for i, k in keys do
 			saved[i] = travel[k]
 		end
-		local savedAdmin = { admin.GroupOf, admin.RankOf, admin.RANK_WAIT, admin.AllowStudio }
+		local savedAdmin = { admin.GroupOf, admin.RankOf, admin.RANK_WAIT, admin.AllowStudio, admin.RANK_RETRY_AFTER }
 		local savedDuel = { duel and duel.PlayerLeft, runner and runner.SetAutoRace, boss and boss.Leave }
 		local savedWorld = { WorldConfig.Id, WorldConfig.GATE_OPEN }
 		local cleanup = {}
@@ -1127,10 +1127,12 @@ function Tests.make(helpers)
 			flag("review_rank_unknown", isAdmin == false and state == "unknown", tostring(state))
 			flag("review_rank_tried", calls == admin.RANK_TRIES, calls, admin.RANK_TRIES)
 			travel.ADMIN_RECHECK = 0.1
+			admin.RANK_RETRY_AFTER = 0.05 -- a failed lookup's hold stays under the recheck, as with the real values
 			reset()
 			local okArr = travel.Arrived(member)
 			flag("review_rank_unknown_arrival_waits", okArr == false and teleports == 0, teleports, 0)
 			rank = 0
+			calls = 0
 			flag(
 				"review_rank_known_arrival_goes",
 				waitUntil(function()
@@ -1139,6 +1141,7 @@ function Tests.make(helpers)
 				teleports,
 				1
 			)
+			flag("review_rank_recheck_looked_up", calls > 0, calls, 1) -- the recheck asked, not the hold
 			local leaver = player()
 			calls = 0
 			rank = nil
@@ -1149,6 +1152,7 @@ function Tests.make(helpers)
 			end
 			flag("review_rank_left_during_wait", admin.IsAdmin(leaver) == false and calls == 1, calls, 1)
 			admin.GroupOf, admin.RankOf, admin.RANK_WAIT = savedAdmin[1], savedAdmin[2], savedAdmin[3]
+			admin.RANK_RETRY_AFTER = savedAdmin[5]
 
 			-- 6. Depart (the real one) calls DuelService.PlayerLeft as a traveller, stops auto racing, leaves the event
 			if duel and runner and boss then
@@ -1464,6 +1468,7 @@ function Tests.make(helpers)
 			travel[k] = saved[i]
 		end
 		admin.GroupOf, admin.RankOf, admin.RANK_WAIT, admin.AllowStudio = table.unpack(savedAdmin, 1, 4)
+		admin.RANK_RETRY_AFTER = savedAdmin[5]
 		if duel and runner and boss then
 			duel.PlayerLeft, runner.SetAutoRace, boss.Leave = savedDuel[1], savedDuel[2], savedDuel[3]
 		end

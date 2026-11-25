@@ -76,6 +76,10 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   release save and a kick. If every release save failed, the kick leaves the session lock until `LOCK_TIMEOUT`
   (120 s): the next join waits for it. An admin check that fails ("unknown") is asked again up to `ADMIN_RECHECKS`
   times, then the player counts as no admin.
+- Group rank lookups (`AdminService`, docs/BUGS.md admin-ranklookup-yield): a lookup that failed every try holds for
+  `RANK_RETRY_AFTER` (placeholder 5 s, kept below `ADMIN_RECHECK` so each recheck asks again); checks in that time
+  answer "unknown" at once. Checks at the same time share one lookup and wait for it at most `RANK_LOOK_TIMEOUT`
+  (placeholder 10 s), then answer "unknown". Unknown is never an admin.
 ### Gate
 - `SpawnArea.WorldGate`, hub-local (194, -176) on the plaza's south-east corner, facing the spawn: draft B, the
   shrine gatehouse (owner 2026-11-25; `docs/WORLD_REDESIGN_SPEC.md` 4.2 has its look, label and touch box). In World 1 it is locked:
