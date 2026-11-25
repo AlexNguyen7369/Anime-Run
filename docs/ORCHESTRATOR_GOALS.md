@@ -364,7 +364,7 @@ Deliverables:
 Out of scope: the Summon page (preserved), team rules (SetTeam, 3 members), new stats (level, power, new bonus kinds) until the owner rules on them.
 
 ## ui-scroll: Every GUI in the Scroll Dojo look, center-out handscroll open (owner 2026-11-20)
-Status: active (Stage 2: build; references approved 2026-11-20)
+Status: done (merged into main 2026-11-23, PR #27, 6a36029)
 Owner-confirmed: 2026-11-20 (plan approved: full redesign of current GUI from the Summon and Team pages' look, center-out scroll open, references for approval first; Summon and Team not redesigned; unroll ~0.45 s with input live; HUD and boss UI in scope, HUD shippable separately)
 Branch: feature/alex/ui-scroll-redesign (from audit-fixes 3abadda; origin/main merged in 643a8d8 after PR #24)
 Spec: design doc 4.46, docs/UI_SCROLL_SPEC.md

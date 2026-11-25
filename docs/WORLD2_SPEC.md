@@ -65,8 +65,7 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 ### World HUD
 - HUD look (owner 2026-11-24, design doc 4.46 "HUD look" and 4.47): World 2's HUD is World 1's, and both keep the
   always-on HUD's look from before the Scroll Dojo redesign (4.40, main at `6a36029^1`); every panel, popup and the
-  boss event UI keep the 4.46 look. One switch, `Client/HudPlaque.Old` (true in both worlds), read by HudChrome,
-  BossEventUi (Bosses and Team column), RacerUiController (Money, Gems, Turbo bar), TeamHud and WorldHud. Positions
+  boss event UI keep the 4.46 look. No switch (`Client/HudPlaque` is removed, main PR #29). Positions
   and behaviour are unchanged. World 2 differs only by the fourth team slot.
 - World label: `Client/WorldHud` shows "World N" (`WorldConfig.Id`) under the top-right pills, as wide as and
   right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales): the old top-right

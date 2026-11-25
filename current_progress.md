@@ -268,6 +268,10 @@
 264. 2026-11-25 — Alex Nguyen — Put the always-on HUD back to its old look: PR #29 merged into main (5ef219ed) after a fresh review, and the World 2 branch merged the same look with a PASS rules audit and World 2 Studio UI checks.
 265. 2026-11-25 — Alex Nguyen — Added Blender drafts (renders only, nothing in game) for the world gate, a bigger Summon altar with research notes, and the plaza's markets and merchants, each reviewed blind and audited; ground-ownership count and kaiju dry run saved under docs/proposals.
 266. 2026-11-25 — Alex Nguyen — Added drafts (renders only) for the boss gate with three spots and two spawn layouts, the revised World 1 lotus altar with World 2's altar at dusk, and roster merchants in the approved stalls; each reviewed blind, audited, with owner questions recorded.
+221. 2026-11-23 — Alex Nguyen — Merged the Scroll Dojo UI redesign (goal ui-scroll, PR #27) into main after a fresh merge review approved it and its one player-visible note was fixed.
+222. 2026-11-23 — Alex Nguyen — Full UiTestRun on main 6a36029 in Studio: 75 pass, 2 fail (ui_run_visual needs a focused Studio window; ui_layout's Daily claimed-day seal fixed by dropping its UIAspectRatioConstraint, rerun ui_layout 891/0 and ui_daily_boosts 13/0); ui_boss_king_arena and ui_character_icons green.
+223. 2026-11-23 — Alex Nguyen — Reverted HUD option A (owner: too blocky and cluttered): HudChrome, TeamHud, Bosses/Team buttons, Turbo bar and Money/Gems back to the 4.40 look, HudPlaque removed, HUD tests restored; every panel and popup keeps the 4.46 Scroll Dojo look.
+267. 2026-11-25 — Alex Nguyen — Merged origin/main (5ef219ed, PR #29) into the World 2 branch on feature/alex/agent-3: HudPlaque and its option A branches removed, World 2's differences and the stricter HUD tests kept (offline checks only, no Studio).
 
 ## What's next
 **Bring the owner the full ground-ownership count (props and heroes of all ten World 2 tracks).**

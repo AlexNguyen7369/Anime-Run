@@ -1,3 +1,8 @@
+## RESUME HERE (2026-11-25, agent-3): origin/main merged into the World 2 branch on feature/alex/agent-3 (offline only)
+- origin/main 5ef219ed (PR #29) merged; `Client/HudPlaque` and every option A branch are gone. Main's old HUD code; World 2 keeps the fourth slot and its spacing, WorldLabel's dark pill, the Awakening bar, the welcome popup. UiBossEvent, UiResponsive, UiScenarios, UiSpec, UiTeam are the World 2 side unchanged (the stricter one); UiWorld2 changed in comments only.
+- Run: stylua 0, selene 0 errors / 19 warnings, both places build, `world2_cast` 109/0 (also 109/0 on cee205ee before the merge; 121 was measured on agent-1's branch), `world2_rewards` 21/0. NOT run: Studio (no UI suite), the biome harness, the rest of the server suite, the rules audit.
+- `current_progress.md`: main's entries 221 to 223 collide with World 2's; both kept, main's block sits after 264. Not pushed.
+
 ## RESUME HERE (2026-11-25 nightly run, devbox): HUD back, swap round 6 queued, three spawn drafts running
 - HUD: PR #29 merged into main (5ef219ed, fresh reviewer approved). World 2 branch: `HudPlaque.Old = true` (merge of orch/world2/hud-old via w2-hud2); Studio World 2: `ui_hud_look_by_world` 18/18, `ui_hud` 17/17, `ui_layout` 891/891, `ui_boss` 486/486, `ui_team` 70/72 at rebirth 0 (Bosses button hidden) and 71/72 at rebirth 2 (tutorial overlay), every check green in one of the two; rules audit PASS. World 2 window holds the 7 changed HUD scripts (not saved; 5 comment-only files not synced).
 - A merge of main into world2-place will conflict (main deleted `HudPlaque`; also BossEventUi, HudChrome, TeamHud, RacerUiController, docs). Not done: decide whether to take main's removal (cleaner) before the World 2 PR.
@@ -162,6 +167,19 @@
 - NOT verified in Studio yet: queue slot 2 behind scroll-dojo-ui-redesign, held by animerun-cf (restore Studio to e579995 and hash-check after use; no save, no publish, no focus steal).
 - Blocked on owner: (1) approve or mark the 10 tracks and the gate; (2) create the World 2 place in universe 10773557968 and put its id in `WorldConfig.PLACES[2]`; (3) the Blender MCP addon update (`uvx mcp-for-blender install-addon`) was denied by auto mode; the MCP works on protocol 15.
 - Next after approval: write game BiomeThemes from the approved biome data, export and upload the props under the ledger rules, Studio screenshots in World 2 mode.
+
+## RESUME HERE (2026-11-23 nightly, ui-scroll): main all green except ui_run_visual (focus)
+- Full UiTestRun on main 6a36029 (Studio synced on e579995, run started from the Server datamodel, no Client execute_luau during it): `[UITEST] END pass=75 fail=2`. ui_boss_king_arena and ui_character_icons now green (the earlier arena red was my Client polling resetting the camera).
+- Reds: ui_run_visual (window throttled; the owner's no-focus rule, peer animerun-cf declined a one-time focus); ui_layout (Daily claimed-day seal's UIAspectRatioConstraint, unsupported by the layout model) fixed in f12e5ef, rerun ui_layout 891/0, ui_daily_boosts 13/0.
+- Studio restored to e579995 and hash-checked, peer told. world-2-build-plan session was waiting for Studio after me.
+- Owner question: may a run bring Studio to the front once, so ui_run_visual can pass?
+
+## RESUME HERE (2026-11-23, ui-scroll): DONE, merged into main (PR #27, 6a36029)
+- Fresh merge review APPROVE; its note 1 (a part hidden by its panel mid-unroll came back) fixed: DojoHandscroll ink-in hides unreached blocks by transparency + Interactable and never writes Visible (Studio ui_handscroll 21/0, ui_index 10/0, ui_panel_focus 57/0). Main (PR #26) merged in first, both sides kept.
+- Full UiTestRun on the branch (before the fix): 74/3. ui_run_visual: throttled window. ui_boss_king_arena: red here, green in #26's run; likely my Client execute_luau polling during the run (the MCP resets the camera to Scriptable after each call). ui_character_icons: test moved to the 4.46 portrait 0.86 x 0.53, not re-run. Server run stopped early (no server/shared changes).
+- Non-blocking review notes left open: reduced-effects close fades only the scroll frames (content drops at the end); scroll close no longer sets Interactable false (input live per 4.20).
+- Bookkeeping commit 309b418 sits on feature/alex/ui-scroll-redesign, not in main yet (goes with the next PR).
+- Next: one full UiTestRun on main with Studio focused (owner present), no execute_luau polling on the Client during it.
 
 ## RESUME HERE (2026-11-22, ui-scroll): t1-t5 merged; full harness and PR left
 - Integration branch `feature/alex/ui-scroll-redesign` at 311af3c (merge of orch/ui-scroll/test-all = t3 panels, t4 popups, t5 HUD option A, Studio-run fixes 85c0b3e), pushed. Rules audit PASS. Task worktrees and branches t3/t4/t5/test-all removed.
