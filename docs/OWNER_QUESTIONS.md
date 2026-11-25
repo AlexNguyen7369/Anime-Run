@@ -269,5 +269,6 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 3. Devil Hunter HQ on Track 6 fits at scale 1.0 but its box overlaps 11 other-track props. Part of the overlap question.
 4. Kaiju site fill: 169 of 185 added props overlap other tracks' draft props (counted before the swap); the kaiju's own
    box overlaps 19 and 25. Cut to the clear ones (about 16, apron bare again) or keep them?
+   Answered by the owner 2026-11-25: cut to the clear props; round 5 of the kaiju approved.
 5. Kaiju references: `build/world2/refs/KaijuBase` is only on the Mac, the linked wiki refuses automated access; no
    image comparison is done.

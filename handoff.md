@@ -1,7 +1,7 @@
 ## RESUME HERE (2026-11-25, devbox, lead orchestrator with peer sessions agent-1 to 3): track swap and kaiju rework in review
 - Plan (owner-approved): `~/.claude/plans/composed-twirling-lovelace-of-9f188bdc-ca05-4d6b-8731-72e93a20bb65.md`. Rules commits b2bfac13, 2812cbc5 (local, not pushed).
 - agent-1 (`feature/alex/agent-1`, worktree `Anime-Run.worktrees/feature-alex-agent-1`): swap cb6d716e; `world2_cast` 121/0 and `world2_rewards` 21/0 re-run by the lead; other counts are agent-1's. Independent score 6/10 both tracks; rules audit FAIL (castle and Town scale, loosened Dropped pins). Round 2 in progress: game-true renders, buildable backdrop, approved scales. NOT merged.
-- agent-2 (`feature/alex/agent-2`): kaiju rounds 1 to 4 (1dfbb3d0, 331e6e5c, befd419f, 2ea29bd1), scores 6, 7, 7, 7; round 5 (eye, jaw wreck, snout outline, ground close-ups) in progress, then owner approval. No export.
+- agent-2 (`feature/alex/agent-2`): kaiju rounds 1 to 4 (1dfbb3d0, 331e6e5c, befd419f, 2ea29bd1), scores 6, 7, 7, 7; round 5 (1bc5e9f7, score 8) APPROVED by the owner 2026-11-25; agent-2 is cutting the site fill to the props clear of other tracks' scenery. No export.
 - agent-3: independent read-only reviewer.
 - Owner page (private): https://claude.ai/artifact/5eHFJvwbXwRuw3nC452Pnx. Open questions: `docs/OWNER_QUESTIONS.md` 2026-11-25.
 - Baseline before the swap: full WORLD=2 harness exit 1, ROAD 46/11 (unplaced heroes), TRANSFORM 10644/0, PIN 11/0 warn 212, CHAIN PARITY pass.

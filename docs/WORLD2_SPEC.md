@@ -176,6 +176,9 @@ written before the swap.
   stay; fix the lead's four faults (crushed walls look like flat cutouts, visible ground edge around the body, soft feet
   and claws and an eye that barely reads, bare road-side bank) in review rounds against the references. This is not the
   approval of the reference renders.
+- Approved by the owner 2026-11-25: Track 5's dead kaiju, round 5 (1bc5e9f7), frozen; its added surroundings are cut to
+  the props that overlap no other track's scenery ("approve round 5, cut to the clear props"). Export, ledger, upload
+  and placement in game still need the Track 5 re-export hold lifted and the owner's upload word.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
