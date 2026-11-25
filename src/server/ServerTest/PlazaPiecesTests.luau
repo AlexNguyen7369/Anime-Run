@@ -353,8 +353,8 @@ function Tests.plaza_pieces()
 					for limb, at in LIMB_ENDS[name] or {} do
 						local part = rig:FindFirstChild(limb)
 						local tip = part.CFrame * Vector3.new(0, -row.Scale, 0) -- half of the built limb's 2 studs
-						local off = (frame:PointToObjectSpace(tip) - at * row.Scale).Magnitude
-						flag(w .. "merchant_" .. name .. "_" .. limb, off < 0.01, off, 0.01)
+						local away = (frame:PointToObjectSpace(tip) - at * row.Scale).Magnitude
+						flag(w .. "merchant_" .. name .. "_" .. limb, away < 0.01, away, 0.01)
 					end
 					local label = rig:FindFirstChild("NameLabel")
 					local hidden = label ~= nil and label.Enabled == false

@@ -1,6 +1,6 @@
 --!nonstrict
 -- The merchants (WORLD_REDESIGN_SPEC 4.2, Shared/PlazaMerchants): a static roster rig at each MerchantSpot whose new stall is
--- uploaded, behind one switch (PlazaPieces.MERCHANTS_LIVE, off). No poses yet. Scenery: anchored, no collision, touch or query.
+-- uploaded, in its pose, behind one switch (PlazaPieces.MERCHANTS_LIVE, off). Scenery: anchored, no collision, touch or query.
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local PlazaMerchants = require(Shared.PlazaMerchants)
 local PlazaPieces = require(Shared.PlazaPieces)
@@ -26,6 +26,26 @@ local function still(part)
 	end
 end
 
+-- Turns the rig's limbs about their joints, the rig standing at `root` (its Torso's frame) at model scale `scale`. A limb's later mesh takes
+-- its CFrame over (RunnerFactory.Restyle).
+local OFFSETS = {}
+for _, row in RunnerFactory.PARTS do
+	OFFSETS[row[1]] = row[3]
+end
+local function pose(rig, root, scale, limbs)
+	for name, turn in limbs do
+		local limb = rig:FindFirstChild(name)
+		if limb and limb:IsA("BasePart") then
+			local joint = Vector3.new(0, (name == "Head" and -0.65 or 1) * RunnerFactory.SCALE * scale, 0)
+			-- the draft's x, y, z are this frame's -X, Z, Y
+			local spin = CFrame.Angles(0, math.rad(turn[3]), 0)
+				* CFrame.Angles(0, 0, math.rad(turn[2]))
+				* CFrame.Angles(math.rad(-turn[1]), 0, 0)
+			limb.CFrame = root * CFrame.new(OFFSETS[name] * scale + joint) * spin * CFrame.new(-joint)
+		end
+	end
+end
+
 function PlazaMerchantRigs.Stand(spawnArea)
 	if not PlazaPieces.MERCHANTS_LIVE then
 		return
@@ -44,7 +64,12 @@ function PlazaMerchantRigs.Stand(spawnArea)
 		rig.DescendantAdded:Connect(still) -- the model's meshes arrive later
 		local scale = row.Scale / RunnerFactory.SCALE
 		rig:ScaleTo(scale)
-		rig:PivotTo(spot.WorldCFrame * CFrame.new(0, RunnerFactory.HIP_HEIGHT * scale, 0))
+		local root = spot.WorldCFrame
+			* CFrame.Angles(0, math.rad(row.Yaw or 0), 0)
+			* CFrame.new(0, RunnerFactory.HIP_HEIGHT * scale, 0)
+		rig:PivotTo(root)
+		pose(rig, root, scale, row.Pose)
+		rig.NameLabel.Enabled = not row.HideName
 		rig.Parent = service
 		local dummy = service:FindFirstChild("Rig") -- the sensei's
 		if dummy then

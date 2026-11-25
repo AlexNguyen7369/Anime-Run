@@ -56,7 +56,7 @@ pads reach 33 studs: check them against the sky-loop post and the boss gate (14.
 | left pillar cut on the join view | 88% of the gate is in view on join (report.json); turning or moving it more than the tolerance is a layout change | yes |
 | statue over RACE START, shadow on the spawn pad | spot is approved: lower pedestal, smaller rig, or a shadow-free statue | yes for spot or size |
 | World 2 rock behind the horns | move that island in `PlazaLook.Islands` (placeholder values) | no |
-| locked altar B statue near-black | `SidekickAltarView` LOCKED_COLOR lighter, with the altar mesh step (it recolours today's altar) | no |
+| locked altar B statue near-black | done: `PlazaPieces.LockedLook`, per altar (proposed values, spec 4.2); not seen in Studio | no |
 | Index keeper's arm through staff | pose values in PlazaMerchants | no |
 | locked label readability | altar lock label size and spot | no |
 
