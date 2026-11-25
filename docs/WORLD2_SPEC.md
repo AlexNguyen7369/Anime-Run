@@ -172,6 +172,10 @@ written before the swap.
   (b) Track 5's dead kaiju (`GiantCorpse`) and its site (ground, crushed buildings, rubble and crew around it), sized to
   fit a legal spot, earlier form rulings dropped; reference renders need the owner's approval before export, upload or
   placement. The rest of Track 5 stays frozen. Every other track stays on the re-export hold.
+- Owner 2026-11-25 on the dead kaiju's first draft: shape, size (about 311 x 150 studs, 116 tall) and colour are good and
+  stay; fix the lead's four faults (crushed walls look like flat cutouts, visible ground edge around the body, soft feet
+  and claws and an eye that barely reads, bare road-side bank) in review rounds against the references. This is not the
+  approval of the reference renders.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
