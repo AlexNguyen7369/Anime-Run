@@ -155,6 +155,57 @@ def fit(k):
 			print("SEARCH site %d best scale %.2f at (along local +X, across local +Z, turn) %s" % (i + 1, best[0] * sc[0], best[1]), flush=True)
 
 
+def budget(k):
+	"""Track 5's placed parts against BiomeDressing's budget, and the site fill against the other tracks' draft props."""
+	import clearance
+	import export_props as ep
+	import numpy as np
+	from biomes import KaijuBase
+
+	number, (origin, yaw) = 5, ep.origins()[5]
+	corr = clearance.corridors(build_track.load_chain().values())
+	names = [n for n in k.props if n not in ep.ROAD]
+	centres = {}
+	for n in names:
+		lo, hi = ep.bounds(k.props[n].data)
+		centres[n] = ((lo[0] + hi[0]) / 2, lo[1], (lo[2] + hi[2]) / 2)
+	local = {n: ep.local_tris(k.props[n].data, centres[n]) for n in names}
+	parts = {n: len(k.rec["parts"].get(n, [])) for n in names}
+	only = {n for n in names if 0 < parts[n] <= 2 and all(q[0] == "box" for q in k.rec["parts"][n])}
+	(glo, ghi) = ep.ground_rect(number)
+	kept, off = {}, 0
+	for name, pos, rot, sc in ep.placements(k, names, origin, yaw, centres):
+		if np.linalg.det(np.array(rot)) < 0:
+			rot = [[-r[0], r[1], r[2]] for r in rot]
+		if clearance.intrudes(ep.game_tris(local[name], origin, yaw, pos, ep.euler_yxz(rot), sc), corr, (number,) if name in KaijuBase.CLEAR_EXEMPT else ()):
+			continue
+		if not (glo[0] <= pos[0] <= ghi[0] and glo[1] <= pos[2] <= ghi[1]):
+			off += 1
+			continue
+		kept.setdefault(name, []).append((pos, rot, sc))
+	cap = {n: 24 if n in KaijuBase.MODEL_SHOTS and len(v) <= ep.HERO_MAX else 6 for n, v in kept.items()}
+	fb = {n: parts[n] if n in only else min(parts[n], cap[n]) for n in kept}
+	mesh = sum(len(v) * (parts[n] if n in only else 1) + (0 if n in only else fb[n] - 1) for n, v in kept.items())
+	print("BUDGET", int(1200 * max(1, k.length / 3000)), "placed", sum(len(v) for v in kept.values()), "parts if every mesh loads (first of each costed as its fallback)", mesh, "parts if no mesh loads", sum(len(v) * fb[n] for n, v in kept.items()), "off the ground rect", off, {n: len(v) for n, v in kept.items()})
+	ctx = ep.hero_ctx(number, corr)
+	fill = {(round(f[0]), round(f[1])) for f in KaijuBase.FILL}
+	by, hit, n_ = {}, 0, 0
+	for name, v in kept.items():
+		for pos, rot, sc in v:
+			w = ep.to_world(origin, yaw, pos)
+			if not any(abs(w[0] - a) < 25 and abs(w[2] - b) < 25 and name == q for a, b, q in KaijuBase.FILL):
+				continue
+			n_ += 1
+			c, R, h = ep.hero_box(local[name], origin, yaw, pos, ep.euler_yxz(rot), sc)
+			ext, own = np.abs(R) @ h, set()
+			for bc, bR, bh, tn, pn in ctx["props"]:
+				if np.all(np.abs(c - bc) < ext + np.abs(bR) @ bh) and ep.obb_overlap(c, R, h, bc, bR, bh):
+					own.add(tn)
+					by[tn] = by.get(tn, 0) + 1
+			hit += bool(own)
+	print("FILL", n_, "kept fill props (within 25 studs of a fill spot, same prop),", hit, "overlap another track's draft prop; pairs by track", dict(sorted(by.items())), "fill spots", len(fill))
+
+
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :]
 	scratch = [a for a in argv if not a.startswith("--")][0]
@@ -168,6 +219,7 @@ def main():
 	k = build_track.run(5, fast="--fast" in argv, render=False)
 	if "--fit" in argv:
 		fit(k)
+		budget(k)
 		return
 	os.makedirs(OUT, exist_ok=True)
 	cam = bpy.context.scene.camera

@@ -234,3 +234,6 @@ Replaces the corpse described in the table and in rounds 13 to 16:
   jaw; wrecks with uneven slipped floors, broken corners, dust, scorch and buried bases, a slab folded at the belly; a
   ragged earth edge in the ground colour; ropes follow the skin and end on a sweeper, a hook sling or a weight; crew and
   cars stand on the sampled ground; Apartments and Rubble fill the apron wherever every track's corridor allows.
+- Round 4: one closed-lid crease in a hide-toned lid; the dent ahead of the eye filled; blunt horn tips; clefts of the hind
+  foot closed up; wrecks with a broken corner and debris at the foot; broken asphalt over the earth's edge; fill mixes
+  Office and Apartment, fronts to the road. The body alone is 292.4 long (first draft 292.3).
