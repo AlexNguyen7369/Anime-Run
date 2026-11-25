@@ -272,3 +272,8 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
    Answered by the owner 2026-11-25: cut to the clear props; round 5 of the kaiju approved.
 5. Kaiju references: `build/world2/refs/KaijuBase` is only on the Mac, the linked wiki refuses automated access; no
    image comparison is done.
+6. Kaiju rework, rules audit of 55f74eed (NEEDS OWNER): all 8 frozen SweeperVans moved along the road to stand by the new
+   sites. Are the vans part of the reopened site, and do the new spots stand? (Approved round 5 shows them moved, but the
+   move was not pointed out to the owner.)
+7. The kaiju's own box overlaps 17 and 24 other-track props (against cb6d716e), most of them Track 6's. Leave them, or
+   reopen those layouts to remove them?
