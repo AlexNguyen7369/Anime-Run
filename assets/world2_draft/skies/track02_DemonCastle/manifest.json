@@ -1,0 +1,52 @@
+{
+ "faces": {
+  "Bk": "W2_DemonCastle_SkyBk.png",
+  "Dn": "W2_DemonCastle_SkyDn.png",
+  "Ft": "W2_DemonCastle_SkyFt.png",
+  "Lf": "W2_DemonCastle_SkyLf.png",
+  "Rt": "W2_DemonCastle_SkyRt.png",
+  "Up": "W2_DemonCastle_SkyUp.png"
+ },
+ "ground": "2E2232",
+ "key": "DemonCastle",
+ "ledger_key": "W2_DemonCastle_Sky",
+ "note": "Bk, Ft, Lf and Rt are the same image. Not uploaded; renders go to the owner first (owner 2026-11-25).",
+ "sha256": {
+  "Bk": "268398b5a00dd8dfbf88cb035b1a97724ddd5683655af20df5c8947671fbe669",
+  "Dn": "7977d15f0db784c36d78d485327b32ea61d1e80c163c2a748f1e69ebc75b55ae",
+  "Ft": "268398b5a00dd8dfbf88cb035b1a97724ddd5683655af20df5c8947671fbe669",
+  "Lf": "268398b5a00dd8dfbf88cb035b1a97724ddd5683655af20df5c8947671fbe669",
+  "Rt": "268398b5a00dd8dfbf88cb035b1a97724ddd5683655af20df5c8947671fbe669",
+  "Up": "905cbb6506bfe1e5666f13d36f343785245cd0e8b44f24ee977c407848c8789e"
+ },
+ "size": 512,
+ "source": "src/shared/BiomeThemes/World2/DemonCastleDraft.luau Sky",
+ "stops": [
+  [
+   -0.012,
+   "2E2232"
+  ],
+  [
+   0.0,
+   "FF7A2A"
+  ],
+  [
+   0.04,
+   "C0442A"
+  ],
+  [
+   0.12,
+   "6A2038"
+  ],
+  [
+   0.3,
+   "2A0E2E"
+  ],
+  [
+   1.0,
+   "08040C"
+  ]
+ ],
+ "strength": 0.9,
+ "track": 2
+}

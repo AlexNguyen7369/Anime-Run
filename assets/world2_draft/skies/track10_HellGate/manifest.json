@@ -1,0 +1,48 @@
+{
+ "faces": {
+  "Bk": "W2_HellGate_SkyBk.png",
+  "Dn": "W2_HellGate_SkyDn.png",
+  "Ft": "W2_HellGate_SkyFt.png",
+  "Lf": "W2_HellGate_SkyLf.png",
+  "Rt": "W2_HellGate_SkyRt.png",
+  "Up": "W2_HellGate_SkyUp.png"
+ },
+ "ground": "B8AA8C",
+ "key": "HellGate",
+ "ledger_key": "W2_HellGate_Sky",
+ "note": "Bk, Ft, Lf and Rt are the same image. Not uploaded; renders go to the owner first (owner 2026-11-25).",
+ "sha256": {
+  "Bk": "13b8d2261838311d8f3d9352576870fe5c5a3175a843bafaafd2b553860acb86",
+  "Dn": "6ab8db1a8c98dd273d3ec88b49fad08a6faab1101d1ca179afbdc66603020cbd",
+  "Ft": "13b8d2261838311d8f3d9352576870fe5c5a3175a843bafaafd2b553860acb86",
+  "Lf": "13b8d2261838311d8f3d9352576870fe5c5a3175a843bafaafd2b553860acb86",
+  "Rt": "13b8d2261838311d8f3d9352576870fe5c5a3175a843bafaafd2b553860acb86",
+  "Up": "457a6f7c53f1912bde5632c77f7e3522d0791f65166bff892d81f14966596cad"
+ },
+ "size": 512,
+ "source": "src/shared/BiomeThemes/World2/HellGateDraft.luau Sky",
+ "stops": [
+  [
+   0.0,
+   "FF8A4A"
+  ],
+  [
+   0.06,
+   "F0602E"
+  ],
+  [
+   0.22,
+   "C02018"
+  ],
+  [
+   0.55,
+   "820A12"
+  ],
+  [
+   1.0,
+   "3A0208"
+  ]
+ ],
+ "strength": 1.0,
+ "track": 10
+}

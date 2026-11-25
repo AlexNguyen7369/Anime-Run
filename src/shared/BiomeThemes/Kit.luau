@@ -467,7 +467,7 @@ end
 -- are the draft's largest kit parts and whose Mesh is "W2_<key>_<Prop>" (a ledger row, spec 4.2 / 4.4), except
 -- PartsOnly props (1-2 parts, built exactly). The draft's placements and lamps go to BiomeDressing's Placed layer; the
 -- procedural layers stay empty. Sky and sun map to an Atmosphere profile (spec 5.2; every mapped number is a
--- placeholder). o = { Assets, Gate, Terrain, Audio, Particles?, Atmosphere? (overrides) }
+-- placeholder). o = { Assets, Gate, Terrain, Audio, Particles?, Skybox? (a ledger key), Atmosphere? (overrides) }
 -- Low ground clutter a draft repeats hundreds of times casts no shadow (BIOME_ENVIRONMENT_SPEC 8: shadow casters):
 -- grass tufts (2.6 studs tall), flower patches (1.8), flagstone strips (0.9) and crowd figures (21). Everything else,
 -- heroes and the larger repeated props (Cedar, SkyDoor, Pine, Brush, Tree, Wagon) included, keeps its shadow until the
@@ -538,6 +538,9 @@ local function fromDraft(key, draft, o)
 			MoonAngularSize = 11,
 		},
 	})
+	-- An in-house gradient skybox drawn from these same stops (docs/WORLD2_SPEC.md "Track skies", owner 2026-11-25): its
+	-- ledger row key. Shown only once the row has real ids, is reviewed and Shared/TrackSkyConfig.LIVE is on (BiomeEnvironment.Row).
+	profile.Sky.Skybox = o.Skybox
 	for group, values in o.Atmosphere or {} do
 		profile[group] = profile[group] or {}
 		for k, value in values do
@@ -570,9 +573,31 @@ local function draftMesh(tris, id, reviewed, prompt, notes)
 	return { Kind = "Mesh", Lane = "B", Tris = tris, Id = id, Reviewed = reviewed, Prompt = prompt, Notes = notes }
 end
 
+-- The ledger row (spec 4.4 Faces form) of a World 2 track sky (docs/WORLD2_SPEC.md "Track skies"): six faces from three
+-- images drawn by tools/blender/world2/track_sky.py (one Side image on Bk, Ft, Lf and Rt, plus Up and Dn). ids = { Side, Up,
+-- Dn } asset numbers, 0 until uploaded; a 0 id is never shown (BiomeEnvironment.Row), nor is any row of this kind while
+-- Shared/TrackSkyConfig.LIVE is off. Reviewed by the rules audit, as every row.
+local function draftSky(ids, reviewed, notes)
+	local function id(n)
+		return "rbxassetid://" .. string.format("%d", n or 0)
+	end
+	local side = id(ids.Side)
+	return {
+		Kind = "Skybox",
+		Lane = "A", -- as the plaza's SkyGolden: drawn in-house by code, nothing generated
+		Id = side,
+		Faces = { Bk = side, Ft = side, Lf = side, Rt = side, Up = id(ids.Up), Dn = id(ids.Dn) },
+		Reviewed = reviewed,
+		Prompt = "none: in-house python vertical gradient from the approved draft's sky stops, no text, symbols or shapes",
+		Notes = notes,
+		TrackSky = true,
+	}
+end
+
 return {
 	fromDraft = fromDraft,
 	draftMesh = draftMesh,
+	draftSky = draftSky,
 	M = M,
 	hex = hex,
 	rgb = rgb,

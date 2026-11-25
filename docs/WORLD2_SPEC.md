@@ -31,22 +31,36 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   most 0.22 and no Haze; the others Brightness at least 1.4, Ambient at least 0.36, OutdoorAmbient at least 0.6. Fog
   colours are lifted to 0.3 so the distance never fades to black. The horizon colour is the first sky stop at or over 0.
 - A theme's own `Atmosphere` overrides still win (Track 4's moon size).
-- Track skies: **open question for the owner** (docs/BUGS.md w2-hell-sky, found 2026-11-25 by reading code). The approved
-  drafts' skies (`<Key>Draft.Sky.Stops`) are rendered in Blender only. In game no World 2 profile sets
-  `Sky.Skybox` (BIOME_ENVIRONMENT_SPEC 5.2) and no theme has a Skybox row, so the place's default Roblox sky shows on every
-  track: blue by day. Only the fog colour (`Atmosphere.Color`, the horizon stop) carries the draft hue. The look was never
-  defined, so nothing is coded. By reading, the profile is applied in zone 10 (`BiomeEnvironment.Profile` gives
-  HellGate's `Atmosphere`; no override found).
-  The pale ground is the draft's (`Ground` B8AA8C, Sand: "a pale plain under a red sky"), not a fault.
-  **Proposed**: one in-house gradient skybox per World 2 day track whose draft sky is not a plain daylight blue, drawn
-  as the plaza's (`tools/blender/plaza/plaza_sky.py`, Lane A, no prompt): a vertical gradient by true elevation from the
-  draft's stops (stop value x 90 degrees; below 0 the first stop), one Side image on Bk/Ft/Lf/Rt plus Up and Dn, row key
-  `W2_<Key>_Sky` in the theme's Assets, set as the theme's `Atmosphere.Sky.Skybox`; `CelestialBodiesShown` stays on.
-  Tracks it would cover: 10 HellGate (FF8A4A at the horizon to 3A0208 overhead) first, then 3 DemonCastle, 9 GoldenCity
-  and 7 AntIsland (warm skies). The blue-sky day tracks (ElvenPlains, KaijuBase, RuinedCityZ) and the night tracks
-  (DevilTokyo, HauntedTunnel, MonsterDen: ClockTime 0, Roblox's night sky) would keep the default. Needs: the owner's word
-  on the look (and which tracks), an upload and a rules review of each image; Track 10's layout and meshes stay frozen
-  (a skybox touches neither).
+- Track skies. Owner 2026-11-25 (owner question 33, design doc change log): "Four tracks": Hell's Gate first, then Demon
+  Castle, Golden City and Ant Island get in-house gradient skies made from their approved drafts' sky colours; the other
+  tracks keep the default sky; renders to the owner before upload. (Found as docs/BUGS.md w2-hell-sky: no World 2
+  profile had a `Sky.Skybox`, so the place's default blue sky showed on every track; the pale Track 10 ground is the
+  draft's `Ground` B8AA8C, Sand, not a fault.) Tracks: 10 HellGate, 2 DemonCastle (agent-1's proposal said 3), 9
+  GoldenCity, 7 AntIsland. ElvenPlains, KaijuBase, RuinedCityZ, DevilTokyo, HauntedTunnel and MonsterDen keep the default.
+  Everything below is **proposed**:
+  - Drawing (`tools/blender/world2/track_sky.py`, offline, no network, deterministic, `--self-test`): a plain vertical
+    gradient by true elevation, read from the draft's `<Key>Draft.Sky` (stops and Strength) and drawn exactly as the
+    draft's Blender world: a stop at p sits at elevation asin(p) (the draft ramp runs on the view direction's height; the
+    first proposal's p x 90 degrees was not the draft's look), linear-light mixing, times Strength, sRGB (Standard),
+    clipped at 1; below the first stop that stop's colour. No text, symbols, logos or shapes; the sun disc is the
+    engine's (`CelestialBodiesShown` stays on). 512 px, one Side image on Bk, Ft, Lf and Rt plus Up and Dn (three
+    uploads per track), as the plaza's SkyGolden. Files: `assets/world2_draft/skies/trackNN_<Key>/W2_<Key>_Sky*.png`,
+    `manifest.json` (stops, sha256). Checked against a Cycles panorama of each draft's own world
+    (`track_sky_preview.py`): mean difference under 1 level of 255 (Demon Castle's horizon row up to 120 where its
+    stops jump within one pixel row).
+  - Previews for the owner (`track_sky_preview.py`, Blender, offline): `preview.png` per track, the Studio picture of
+    2026-11-25 (`assets/world2_draft/audit/lighting_2026-11-25/T<N>_road.jpg`) beside the same picture with its blue sky
+    pixels replaced by the new sky (approximate: no haze or fog redone), the draft's run render and the panorama. Track 2
+    has no Studio picture: a level view over flat draft-coloured ground instead.
+  - Game: `Kit.fromDraft` takes the theme's `Skybox = "W2_<Key>_Sky"` as the profile's `Sky.Skybox`; the row is
+    `Kit.draftSky` (Kind Skybox, Lane A as the plaza's, Faces form, `TrackSky = true`) with ids
+    `rbxassetid://0` until uploaded and Reviewed empty until the rules audit signs it. `BiomeEnvironment.Row` never uses a
+    row with any id 0 (the whole set or nothing), nor a `TrackSky` row while `Shared/TrackSkyConfig.LIVE` is false
+    (off until the four sets are approved by the owner, uploaded under the owner's account and reviewed,
+    BIOME_ENVIRONMENT_SPEC 4.1). Until then every track shows today's default sky. Once on, a track's six faces apply in
+    its zone only (`BiomeEnvironment.SkyboxFace`; the client writes the place's own faces back on leaving), swapped
+    under the blend's haze (BIOME_ENVIRONMENT_SPEC 5.3); fog and lighting are unchanged (still `Kit.fromDraft`'s floors).
+    Tests: `world2_skies` (both worlds). Track 10's layout and meshes stay frozen (a skybox touches neither).
 
 ## Save
 - `Shared/WorldConfig.Id` comes from `ReplicatedStorage.WorldId` (the World 2 place only); a client waits for `game.Loaded`

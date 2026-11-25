@@ -7,7 +7,7 @@
 -- placeholders.
 local Kit = require(script.Parent.Parent.Kit)
 
-local M, hex, gate, draftMesh = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh
+local M, hex, gate, draftMesh, draftSky = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh, Kit.draftSky
 
 return Kit.fromDraft("DemonCastle", require(script.Parent.DemonCastleDraft), {
 	DisplayName = "Demon King's Castle",
@@ -19,10 +19,17 @@ return Kit.fromDraft("DemonCastle", require(script.Parent.DemonCastleDraft), {
 		Materials = { Corridor = M.Slate, Ridge = M.Basalt, Cliff = M.Rock, Bed = M.Basalt },
 		CliffSlope = 0.9,
 	},
+	-- In-house gradient sky from the draft's stops (owner 2026-11-25, question 33; docs/WORLD2_SPEC.md "Track skies")
+	Skybox = "W2_DemonCastle_Sky",
 	Audio = { Volume = 0.35 }, -- no sounds yet
-	-- Asset ledger (spec 4.4): one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
+	-- Asset ledger (spec 4.4): the track sky's row (Kit.draftSky), then one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {
+		W2_DemonCastle_Sky = draftSky(
+			{ Side = 0, Up = 0, Dn = 0 }, -- ids: not uploaded (renders go to the owner first)
+			nil, -- Reviewed: the rules audit
+			"assets/world2_draft/skies/track02_DemonCastle (tools/blender/world2/track_sky.py)"
+		),
 		W2_DemonCastle_Gate = draftMesh(
 			2760,
 			"rbxassetid://79874342576678", -- Id: tools/blender/world2/upload_props.py
