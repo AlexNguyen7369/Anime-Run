@@ -1,0 +1,866 @@
+{
+ "limits": {
+  "slot": [
+   57.2,
+   61.6
+  ],
+  "sky_loop_post_centre": [
+   43.84,
+   43.84
+  ],
+  "round_limit_radius": {
+   "sky_loop_post": 20.46,
+   "floor_edge_x94": 36.84,
+   "floor_edge_z110": 48.45,
+   "sky_loop_deck (only above y 28)": 19.5,
+   "best_roll_edge": 55.29,
+   "team_altar_edge": 57.79,
+   "terrace_edge": 58,
+   "path_edge": 76.8,
+   "great_sakura (any height)": 39.56
+  },
+  "spawn_view": {
+   "sky_loop_hides_y_at_altar": [
+    35.9,
+    38.9
+   ],
+   "saitamo_top_y": 14.2,
+   "saitamo_hides_below_y_at_altar": 37.0,
+   "saitamo_width_at_altar_if_4_wide": 19.7
+  }
+ },
+ "concepts": [
+  {
+   "concept": "A",
+   "name": "twin_roof_stage",
+   "state": "unlocked",
+   "tris": {
+    "A_Body": 8562,
+    "A_Float": 272
+   },
+   "materials": {
+    "A_Body": 24,
+    "A_Float": 3
+   },
+   "tris_total": 8834,
+   "mesh_parts": 8,
+   "size_w_d_h": [
+    68.6,
+    38.6,
+    65.7
+   ],
+   "local_min_max": [
+    [
+     -34.2,
+     -19.3,
+     0.0
+    ],
+    [
+     34.4,
+     19.4,
+     65.7
+    ]
+   ],
+   "model_spot_roblox": [
+    56.8,
+    16.8,
+    61.2
+   ],
+   "clearance_studs": {
+    "SkyLoop": [
+     1.08,
+     [
+      45.8,
+      1.1,
+      45.8
+     ]
+    ],
+    "N_BestRoll": [
+     22.07,
+     [
+      74.5,
+      2.3,
+      32.7
+     ]
+    ],
+    "N_TeamAltar": [
+     24.86,
+     [
+      27.1,
+      2.2,
+      76.7
+     ]
+    ],
+    "GreatSakura": [
+     22.73,
+     [
+      54.9,
+      29.5,
+      82.7
+     ]
+    ],
+    "Showpiece": [
+     38.76,
+     [
+      44.9,
+      1.2,
+      46.6
+     ]
+    ],
+    "MainPath": [
+     59.53,
+     [
+      27.5,
+      2.0,
+      65.4
+     ]
+    ],
+    "IndexBoard": [
+     78.63,
+     [
+      65.7,
+      2.4,
+      32.4
+     ]
+    ],
+    "HeroTorii": [
+     100.74,
+     [
+      27.1,
+      2.0,
+      76.7
+     ]
+    ],
+    "N_StartPad": [
+     103.09,
+     [
+      27.1,
+      2.0,
+      76.7
+     ]
+    ],
+    "N_WorldGate": [
+     112.61,
+     [
+      73.7,
+      2.0,
+      32.7
+     ]
+    ],
+    "MarketStall": [
+     119.18,
+     [
+      63.2,
+      2.4,
+      32.3
+     ]
+    ],
+    "sky_loop_runner_envelope": [
+     16.2
+    ],
+    "floor_edge_x94": [
+     3.01
+    ],
+    "floor_edge_z110": [
+     15.52
+    ]
+   },
+   "below_floor": 0.0
+  },
+  {
+   "concept": "A",
+   "name": "twin_roof_stage",
+   "state": "locked",
+   "tris": {
+    "A_Body": 9374,
+    "A_Float": 176
+   },
+   "materials": {
+    "A_Body": 17,
+    "A_Float": 2
+   },
+   "tris_total": 9550,
+   "mesh_parts": 2,
+   "size_w_d_h": [
+    68.6,
+    38.6,
+    65.7
+   ],
+   "local_min_max": [
+    [
+     -34.2,
+     -19.3,
+     0.0
+    ],
+    [
+     34.4,
+     19.4,
+     65.7
+    ]
+   ],
+   "model_spot_roblox": [
+    56.8,
+    16.8,
+    61.2
+   ],
+   "clearance_studs": {
+    "SkyLoop": [
+     1.08,
+     [
+      45.8,
+      1.1,
+      45.8
+     ]
+    ],
+    "N_BestRoll": [
+     22.07,
+     [
+      74.5,
+      2.3,
+      32.7
+     ]
+    ],
+    "N_TeamAltar": [
+     24.86,
+     [
+      27.1,
+      2.2,
+      76.7
+     ]
+    ],
+    "GreatSakura": [
+     22.73,
+     [
+      54.9,
+      29.5,
+      82.7
+     ]
+    ],
+    "Showpiece": [
+     38.76,
+     [
+      44.9,
+      1.2,
+      46.6
+     ]
+    ],
+    "MainPath": [
+     59.53,
+     [
+      27.5,
+      2.0,
+      65.4
+     ]
+    ],
+    "IndexBoard": [
+     78.63,
+     [
+      65.7,
+      2.4,
+      32.4
+     ]
+    ],
+    "HeroTorii": [
+     100.74,
+     [
+      27.1,
+      2.0,
+      76.7
+     ]
+    ],
+    "N_StartPad": [
+     103.09,
+     [
+      27.1,
+      2.0,
+      76.7
+     ]
+    ],
+    "N_WorldGate": [
+     112.61,
+     [
+      73.7,
+      2.0,
+      32.7
+     ]
+    ],
+    "MarketStall": [
+     119.18,
+     [
+      63.2,
+      2.4,
+      32.3
+     ]
+    ],
+    "sky_loop_runner_envelope": [
+     16.38
+    ],
+    "floor_edge_x94": [
+     3.01
+    ],
+    "floor_edge_z110": [
+     15.52
+    ]
+   },
+   "below_floor": 0.0
+  },
+  {
+   "concept": "B",
+   "name": "great_lotus",
+   "state": "unlocked",
+   "tris": {
+    "B_Body": 4656,
+    "B_Petals": 5760,
+    "B_Float": 704
+   },
+   "materials": {
+    "B_Body": 13,
+    "B_Petals": 7,
+    "B_Float": 3
+   },
+   "tris_total": 11120,
+   "mesh_parts": 9,
+   "size_w_d_h": [
+    66.2,
+    46.0,
+    64.6
+   ],
+   "local_min_max": [
+    [
+     -33.1,
+     -18.6,
+     0.0
+    ],
+    [
+     33.1,
+     27.4,
+     64.6
+    ]
+   ],
+   "model_spot_roblox": [
+    57.2,
+    17.7,
+    61.6
+   ],
+   "clearance_studs": {
+    "SkyLoop": [
+     1.75,
+     [
+      46.3,
+      1.1,
+      46.3
+     ]
+    ],
+    "N_BestRoll": [
+     25.02,
+     [
+      71.1,
+      1.5,
+      34.5
+     ]
+    ],
+    "N_TeamAltar": [
+     27.91,
+     [
+      29.2,
+      1.5,
+      73.5
+     ]
+    ],
+    "GreatSakura": [
+     15.11,
+     [
+      68.2,
+      22.1,
+      84.1
+     ]
+    ],
+    "Showpiece": [
+     39.42,
+     [
+      45.4,
+      1.2,
+      47.1
+     ]
+    ],
+    "MainPath": [
+     61.27,
+     [
+      33.8,
+      4.0,
+      60.6
+     ]
+    ],
+    "IndexBoard": [
+     80.79,
+     [
+      69.3,
+      1.5,
+      34.5
+     ]
+    ],
+    "HeroTorii": [
+     103.19,
+     [
+      29.2,
+      1.0,
+      73.5
+     ]
+    ],
+    "N_StartPad": [
+     105.18,
+     [
+      29.2,
+      1.3,
+      73.5
+     ]
+    ],
+    "N_WorldGate": [
+     114.61,
+     [
+      71.1,
+      1.5,
+      34.5
+     ]
+    ],
+    "MarketStall": [
+     122.59,
+     [
+      58.0,
+      4.0,
+      38.2
+     ]
+    ],
+    "sky_loop_runner_envelope": [
+     9.59
+    ],
+    "floor_edge_x94": [
+     9.7
+    ],
+    "floor_edge_z110": [
+     21.66
+    ]
+   },
+   "below_floor": 0.0
+  },
+  {
+   "concept": "B",
+   "name": "great_lotus",
+   "state": "locked",
+   "tris": {
+    "B_Body": 8348,
+    "B_Petals": 5440
+   },
+   "materials": {
+    "B_Body": 11,
+    "B_Petals": 5
+   },
+   "tris_total": 13788,
+   "mesh_parts": 2,
+   "size_w_d_h": [
+    66.2,
+    41.9,
+    53.9
+   ],
+   "local_min_max": [
+    [
+     -33.1,
+     -18.6,
+     0.0
+    ],
+    [
+     33.1,
+     23.3,
+     53.9
+    ]
+   ],
+   "model_spot_roblox": [
+    57.2,
+    17.7,
+    61.6
+   ],
+   "clearance_studs": {
+    "SkyLoop": [
+     1.75,
+     [
+      46.3,
+      1.1,
+      46.3
+     ]
+    ],
+    "N_BestRoll": [
+     25.02,
+     [
+      71.1,
+      1.5,
+      34.5
+     ]
+    ],
+    "N_TeamAltar": [
+     27.91,
+     [
+      29.2,
+      1.5,
+      73.5
+     ]
+    ],
+    "GreatSakura": [
+     27.61,
+     [
+      65.3,
+      4.0,
+      83.4
+     ]
+    ],
+    "Showpiece": [
+     39.42,
+     [
+      45.4,
+      1.2,
+      47.1
+     ]
+    ],
+    "MainPath": [
+     61.27,
+     [
+      33.8,
+      4.0,
+      60.6
+     ]
+    ],
+    "IndexBoard": [
+     80.79,
+     [
+      69.3,
+      1.5,
+      34.5
+     ]
+    ],
+    "HeroTorii": [
+     103.19,
+     [
+      29.2,
+      1.0,
+      73.5
+     ]
+    ],
+    "N_StartPad": [
+     105.18,
+     [
+      29.2,
+      1.3,
+      73.5
+     ]
+    ],
+    "N_WorldGate": [
+     114.61,
+     [
+      71.1,
+      1.5,
+      34.5
+     ]
+    ],
+    "MarketStall": [
+     122.59,
+     [
+      58.0,
+      4.0,
+      38.2
+     ]
+    ],
+    "sky_loop_runner_envelope": [
+     15.75
+    ],
+    "floor_edge_x94": [
+     10.94
+    ],
+    "floor_edge_z110": [
+     24.06
+    ]
+   },
+   "below_floor": 0.0
+  },
+  {
+   "concept": "C",
+   "name": "astral_orrery",
+   "state": "unlocked",
+   "tris": {
+    "C_Body": 1980,
+    "C_Island": 908,
+    "C_Rings": 3084,
+    "C_Float": 1048
+   },
+   "materials": {
+    "C_Body": 7,
+    "C_Island": 10,
+    "C_Rings": 5,
+    "C_Float": 5
+   },
+   "tris_total": 7020,
+   "mesh_parts": 15,
+   "size_w_d_h": [
+    65.5,
+    37.2,
+    65.5
+   ],
+   "local_min_max": [
+    [
+     -32.7,
+     -19.2,
+     0.0
+    ],
+    [
+     32.7,
+     18.0,
+     65.5
+    ]
+   ],
+   "model_spot_roblox": [
+    58.5,
+    22.9,
+    63.0
+   ],
+   "clearance_studs": {
+    "SkyLoop": [
+     1.14,
+     [
+      45.9,
+      1.1,
+      45.8
+     ]
+    ],
+    "N_BestRoll": [
+     26.75,
+     [
+      80.5,
+      2.4,
+      38.6
+     ]
+    ],
+    "N_TeamAltar": [
+     29.22,
+     [
+      32.6,
+      2.4,
+      83.2
+     ]
+    ],
+    "GreatSakura": [
+     22.87,
+     [
+      55.5,
+      28.0,
+      82.0
+     ]
+    ],
+    "Showpiece": [
+     38.81,
+     [
+      45.0,
+      1.2,
+      46.6
+     ]
+    ],
+    "MainPath": [
+     61.72,
+     [
+      40.4,
+      1.1,
+      50.9
+     ]
+    ],
+    "IndexBoard": [
+     84.92,
+     [
+      75.8,
+      2.4,
+      38.5
+     ]
+    ],
+    "HeroTorii": [
+     105.75,
+     [
+      32.6,
+      1.0,
+      83.2
+     ]
+    ],
+    "N_StartPad": [
+     108.58,
+     [
+      32.6,
+      1.4,
+      83.2
+     ]
+    ],
+    "N_WorldGate": [
+     118.36,
+     [
+      75.8,
+      2.2,
+      38.5
+     ]
+    ],
+    "MarketStall": [
+     125.04,
+     [
+      50.4,
+      2.3,
+      43.3
+     ]
+    ],
+    "sky_loop_runner_envelope": [
+     11.33
+    ],
+    "floor_edge_x94": [
+     10.22
+    ],
+    "floor_edge_z110": [
+     23.16
+    ]
+   },
+   "below_floor": 0.0
+  },
+  {
+   "concept": "C",
+   "name": "astral_orrery",
+   "state": "locked",
+   "tris": {
+    "C_Body": 3296,
+    "C_Island": 908,
+    "C_Rings": 2784,
+    "C_Float": 1048
+   },
+   "materials": {
+    "C_Body": 7,
+    "C_Island": 8,
+    "C_Rings": 3,
+    "C_Float": 4
+   },
+   "tris_total": 8036,
+   "mesh_parts": 4,
+   "size_w_d_h": [
+    65.5,
+    40.0,
+    61.6
+   ],
+   "local_min_max": [
+    [
+     -32.7,
+     -19.2,
+     -0.6
+    ],
+    [
+     32.7,
+     20.8,
+     61.0
+    ]
+   ],
+   "model_spot_roblox": [
+    58.5,
+    20.4,
+    63.0
+   ],
+   "clearance_studs": {
+    "SkyLoop": [
+     1.14,
+     [
+      45.9,
+      1.1,
+      45.8
+     ]
+    ],
+    "N_BestRoll": [
+     26.75,
+     [
+      80.5,
+      2.4,
+      38.6
+     ]
+    ],
+    "N_TeamAltar": [
+     29.22,
+     [
+      32.6,
+      2.4,
+      83.2
+     ]
+    ],
+    "GreatSakura": [
+     20.18,
+     [
+      52.0,
+      27.3,
+      90.4
+     ]
+    ],
+    "Showpiece": [
+     38.81,
+     [
+      45.0,
+      1.2,
+      46.6
+     ]
+    ],
+    "MainPath": [
+     61.72,
+     [
+      40.4,
+      1.1,
+      50.9
+     ]
+    ],
+    "IndexBoard": [
+     84.92,
+     [
+      75.8,
+      2.4,
+      38.5
+     ]
+    ],
+    "HeroTorii": [
+     105.75,
+     [
+      32.6,
+      1.0,
+      83.2
+     ]
+    ],
+    "N_StartPad": [
+     108.58,
+     [
+      32.6,
+      1.4,
+      83.2
+     ]
+    ],
+    "N_WorldGate": [
+     118.36,
+     [
+      75.8,
+      2.2,
+      38.5
+     ]
+    ],
+    "MarketStall": [
+     125.04,
+     [
+      50.4,
+      2.3,
+      43.3
+     ]
+    ],
+    "sky_loop_runner_envelope": [
+     11.33
+    ],
+    "floor_edge_x94": [
+     6.32
+    ],
+    "floor_edge_z110": [
+     18.37
+    ]
+   },
+   "below_floor": -0.61
+  }
+ ]
+}
