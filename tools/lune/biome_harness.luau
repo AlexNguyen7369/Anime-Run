@@ -1016,6 +1016,54 @@ for _, m in models do
 	table.insert(clear, m:FindFirstChild("WinPad", true))
 end
 TS.Prepare(entries, clear, { spawnArea })
+-- docs/BUGS.md w2-grass-through-road: the engine grows grass blades on Grass terrain taller than the 2 studs between the
+-- corridor's top and the road's, so no column under a road, its walls or a clear slab (checkpoint apron, WinPad, plaza
+-- floor) is Grass. Every waypoint, across the road and its walls every 4 studs.
+do
+	local gpass, gfail, first = 0, 0, {}
+	local function column(where, x, z)
+		local _, _, material = TS.Column(x, z)
+		if material == R.Enum.Material.Grass then
+			gfail += 1
+			first[where] = (first[where] or 0) + 1
+		else
+			gpass += 1
+		end
+	end
+	for _, e in entries do
+		local wps = e.Layout.WorldWaypoints
+		for j = 1, #wps - 1 do
+			local a, b = wps[j], wps[j + 1]
+			local d = R.Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+			if d.Magnitude > 1e-6 then
+				local side = R.Vector3.new(-d.Unit.Z, 0, d.Unit.X)
+				for o = -22, 22, 4 do
+					column("track " .. e.Number, a.X + side.X * o, a.Z + side.Z * o)
+				end
+			end
+		end
+	end
+	for _, root in { spawnArea, table.unpack(clear) } do
+		local parts = root:IsA("BasePart") and { root } or root:GetDescendants()
+		for _, part in parts do
+			if part:IsA("BasePart") then
+				for _, sx in { -0.5, 0, 0.5 } do
+					for _, sz in { -0.5, 0, 0.5 } do
+						local p = part.CFrame * R.Vector3.new(part.Size.X * sx, 0, part.Size.Z * sz)
+						column("clear slab", p.X, p.Z)
+					end
+				end
+			end
+		end
+	end
+	for where, n in first do
+		print(string.format("GRASS FAIL %s %d columns", where, n))
+	end
+	print(string.format("GRASS CHECKS pass %d fail %d", gpass, gfail))
+	if process.env.GRASSONLY then -- stop here: this block alone
+		process.exit(gfail > 0 and 1 or 0)
+	end
+end
 local function corridor(x, z)
 	local _, _, _, _, limit = TS.Column(x, z)
 	return limit == nil
