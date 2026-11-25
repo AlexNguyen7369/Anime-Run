@@ -286,3 +286,7 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
     60 (35), Konbini 65 (16), Retro 2 (1). Accept? Second HQ is now out; the one HQ overlaps 9 other-track props (item 8).
     Track 1 options rendered, not exported: castle at 0.52; statues and Ranks turned to the runner (6 Ranks).
     FarWood and RoofTile are not built on either track. Review page: https://claude.ai/artifact/Ng3id1ML1KNxWoYP1xoZ4E
+11. Swap round 4 (2d0d07a9; scores T1 7, T6 7; rules audit: no violations): the four Ranks overlap 6, 1, 1 and 2 (agent-1's
+    count; the audit's table lists 1 for the last) other-track props. The finish Rank at (364, 399) stands about 13 studs
+    from Track 2's RuinB and nearer Track 2's road than Track 1's. Keep it, or leave it out (the finish goes emptier)?
+    Item 8's Rank and statue counts are back to the old 4 and 2; its second HQ is out.
