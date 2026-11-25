@@ -7,7 +7,7 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 ## Place
 - One source tree, two places. `default.project.json` builds World 1; `world2.project.json` is the same tree plus
   `ReplicatedStorage.WorldId` (IntValue 2). Keep the two files in step when the tree changes.
-- `Shared/WorldConfig`: `Id`, `PLACES` (World 1 = 102957063656302; World 2 = nil until the owner creates the place in
+- `Shared/WorldConfig`: `Id`, `PLACES` (World 1 = 102957063656302; World 2 = 79352569024576, in
   universe 10773557968), `GATE_OPEN = false`, `PROGRESS_KEYS`.
 - `Shared/TrackRegistry` loads `Shared/Tracks/World2/` in World 2.
 
@@ -100,7 +100,7 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 
 The "Based on" names stay in docs and never ship (design doc 5).
 
-Track swap (owner 2026-11-25): Tracks 1 and 6 exchanged biomes. Moves with the biome: track id, name, palette, scenery,
+Track swap (owner 2026-11-25; **not built yet**: the code still has DevilTokyo at 1 and ElvenPlains at 6 until the swap branch merges): Tracks 1 and 6 exchange biomes. Moves with the biome: track id, name, palette, scenery,
 lighting, card blurb, enemy name and model. Stays with the number: road segments and length, pay, Gems, `BestTrack` /
 `Checkpoint` / `RaceBestTimes`, enemy speed (Track 6: 190). Approvals and hero moves below that name Track 1 or 6 were
 written before the swap.
