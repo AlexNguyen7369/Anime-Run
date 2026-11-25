@@ -2174,7 +2174,7 @@ Model.HudChrome = {
 	Bar = "HudChrome/TopRight",
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the bottom pair shrinks about its anchor until its cell
 	-- (Cell x k, anchored at (1 | 0, IconMid)) clears every visible Blocker; steps of Step x base, floor Floor x base.
-	Cell = Vector2.new(84, 94), -- HudChrome CELL (design doc 4.40; 4.46 option A: ICON 60 at ICON_TOP 6, LABEL 24)
+	Cell = Vector2.new(84, 94), -- HudChrome CELL = (ICON + 12, ICON + LABEL), ICON 72, LABEL 22 (design doc 4.40, 4.46 "HUD look")
 	IconMid = 36 / 94, -- ICON_MID = ICON / 2 / CELL.Y
 	Step = 0.02,
 	Floor = 0.3,

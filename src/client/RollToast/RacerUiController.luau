@@ -65,7 +65,7 @@ hud.MoneyPlate:Destroy()
 hud.Unbanked:Destroy()
 UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
--- World 2 (HudPlaque.Old, design doc 4.47): the 4.40 read-outs, Fredoka gradient numbers with no plate, blue Gems.
+-- HudPlaque.Old (both worlds, design doc 4.46 "HUD look"): the 4.40 read-outs, Fredoka gradient numbers with no plate, blue Gems.
 local OLD_HUD = HudPlaque.Old
 if not OLD_HUD then
 	HudPlaque.Font(hud.MoneyValue, HudPlaque.Heading) -- option A (design doc 4.46): Permanent Marker on the lacquer plate
@@ -112,7 +112,7 @@ gemsValue.Parent = gemsPlate
 -- Owner 2026-11-20 (design doc 4.40, 4.46 option A): Money and Gems each sit on a lacquer counter plate (dark, gold
 -- rim) fitted to the shown number; the Money coin overlaps the plate's left end. Behind the text (ZIndex 2), never input.
 local PLATE_PAD = 12 -- px past the number's end (proposed)
-local moneyLacquer, gemsLacquer -- nil in World 2 (no plates there)
+local moneyLacquer, gemsLacquer -- nil in the old HUD look (no plates there)
 if not OLD_HUD then
 	moneyLacquer = HudPlaque.Lacquer(Instance.new("Frame"))
 	moneyLacquer.Name = "MoneyLacquer" -- not MoneyPlate: that generated part stays retired (UiSpec.Hud.RetiredMoneyParts)
@@ -1641,7 +1641,7 @@ hud.TurboLabel.ZIndex = 5
 -- Owner 2026-11-22 (design doc 4.40, 4.46 HUD option A, drafts/hud_a.html): a wooden bar with a vermilion fill. Only
 -- colours change: the Face is the dark well the fill runs in (so the fill's share of the bar is unchanged), its rim
 -- the wood frame, the Shadow the dark wood edge under it. Size, position, names and behaviour stay.
-if not OLD_HUD then -- World 2 keeps the generated bar (design doc 4.47)
+if not OLD_HUD then -- the old HUD look keeps the generated bar (design doc 4.46 "HUD look")
 	local wood = UiTheme.Scroll.Skins.Parchment
 	local face, shadow = hud.Turbo, hud.Turbo.Parent:FindFirstChild("Shadow")
 	local well = face:FindFirstChildOfClass("UIGradient")

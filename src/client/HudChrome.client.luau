@@ -44,7 +44,7 @@ end)
 local RED = UiTheme.Palette.Danger
 -- Design doc 4.46 HUD option A "wood plaques" (replaces 4.40's Tab tilt look; positions and cells stay 4.40's): each
 -- button is a cream wood plaque (Client/HudPlaque) with its icon art, a brush label under it and a vermilion key-letter
--- seal. Sizes are proposed. World 2 (HudPlaque.Old, design doc 4.47) keeps 4.40's look: no tile frame, the Tab tilt
+-- seal. Sizes are proposed. HudPlaque.Old (both worlds, design doc 4.46 "HUD look") keeps 4.40's look: no tile frame, the Tab tilt
 -- icon (72 px at the cell's top) with its white outlined label under it.
 local OLD = HudPlaque.Old
 local CELL = Vector2.new(84, 94) -- one button (4.40's cell, unchanged)
@@ -328,7 +328,7 @@ make("UIListLayout", "Layout", bar, {
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	Padding = UDim.new(0, 8),
 })
-local PILL_COLOR = Color3.fromRGB(18, 18, 21) -- World 2's 4.40 pills
+local PILL_COLOR = Color3.fromRGB(18, 18, 21) -- the old HUD's 4.40 pills
 local PILL_TRANSPARENCY = 0.12 -- placeholder: nearly solid, so the see-through world signs do not read as HUD
 local DAILY_WIDTH = 146 -- px, placeholder: fits "23:59:59", so the countdown never resizes the row
 local function pill(name, order, caption)
