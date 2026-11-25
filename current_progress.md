@@ -258,8 +258,9 @@
 254. 2026-11-25 — Alex Nguyen — World 2 rules recorded: Tracks 1 and 6 swap biomes (roads, pay and saves stay with the number) and Track 5's dead kaiju and its site reopened for a rework (b2bfac13; docs only).
 255. 2026-11-25 — Alex Nguyen — Owner's ruling on the dead kaiju's first draft recorded: shape, size and colour stay, four blending and detail faults go through review rounds (2812cbc5; docs only).
 256. 2026-11-25 — Alex Nguyen — Handoff and owner questions updated for the World 2 track swap (audit FAIL, round 2 running) and the kaiju rework (rounds 1 to 4 reviewed) (6d39eef5; docs only).
+257. 2026-11-25 — Alex Nguyen — Owner approved the reworked dead kaiju of World 2 Track 5 (round 5, 1bc5e9f7) and ruled its site fill is cut to the clear props (bda2943c; docs only, kaiju branch not merged).
 
 ## What's next
-**Build the World 2 Track 1 and 6 swap (config and re-placed scenery) and render the reworked Track 5 dead kaiju for the owner's approval.**
+**Finish the World 2 Track 1 and 6 swap (game-true renders, approved scales, fresh rules audit) and cut the kaiju's site fill to the props clear of other tracks' scenery.**
 
-**Why this is next:** the owner put both first on 2026-11-25; the Studio suites for World 2 would otherwise run on a track order that is about to change.
+**Why this is next:** which fill props are clear depends on the swapped Track 1 and 6 scenery, and neither branch can merge before its audit.
