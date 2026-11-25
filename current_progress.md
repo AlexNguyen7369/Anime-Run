@@ -284,8 +284,9 @@
 274. 2026-11-25 — Alex Nguyen — Made ui_boss_guide run with auto-roll and racing off and a quiet baseline before grants_nothing, and reworded plaza_build's sensei check (offline checks only, branch feature/alex/boss-guide-tests).
 275. 2026-11-25 — Alex Nguyen — Coded the boss gate guide's popup layout B, split plaza_build into guards and plaza_build_pending, and widened grants_nothing to the Money stat and Relics (offline checks only).
 276. 2026-11-25 — Alex Nguyen — Merged the World 2 Track 1 and 6 swap (round 8, HQ left out) into the World 2 branch; offline tests green in both worlds, harness fails only on heroes with no spot; 14 spawn piece models uploaded, not reviewed and not used in game.
+277. 2026-11-25 — Alex Nguyen — Proposed moving the frozen tracks' pieces off Track 1's World 2 ground (7 moved, 27 out, one-eyed monster kept) with before and after renders; drafts patched in place, not merged.
 
 ## What's next
-**Run the swap and the white-mesh fix in Studio, then land the fixes and pieces behind their audits.**
+**Show the owner the Track 1 neighbour renders (docs/proposals/world2_t1_neighbours) and merge orch/world2/w2-t1-neighbours on approval, then run the swap and white-mesh fix in Studio.**
 
-**Why this is next:** the World 2 branch should be checked in Studio before its next PR into main.
+**Why this is next:** the frozen tracks' layout edits and Track 1's clean sightline wait on the owner's look, and the World 2 PR into main waits on the Studio check.
