@@ -53,7 +53,7 @@ ALT_PAL = {
 }
 ALT_GLOW = {
 	"g_gold": ("#FFC04A", 1.5), "g_pink": ("#FF6FB0", 1.5), "g_cyan": ("#35D6E6", 1.5), "g_white": ("#FFF3DC", 1.3), "g_vio": ("#A070FF", 1.5),
-	"g_paper": ("#FFD89A", 1.0), "g_dim": ("#C98A46", 0.45), "g_cream": ("#FFE9C8", 0.7),
+"g_ember": ("#B84F80", 0.6), "g_paper": ("#FFD89A", 1.0), "g_dim": ("#C98A46", 0.45), "g_cream": ("#FFE9C8", 0.7),
 }
 bp.PAL.update(ALT_PAL)
 bp.GLOW.update(ALT_GLOW)
@@ -392,7 +392,7 @@ def concept_b(locked):
 	D = 3.6
 	bp.ring_band(m, 13.4, 15.2, 2.35, 2.52, "g_cyan")  # water light ring
 	# seed pod pedestal, taller than round 5's so the Mythic stands clear of the front petals
-	for r0, r1, z0, h, col in ((6.6, 4.8, D, 1.6, "jade2"), (4.8, 6.6, D + 1.6, 4.2, "jade"), (6.9, 6.9, D + 5.8, 0.5, "gold"), (6.2, 6.0, D + 6.3, 0.4, "g_gold")):
+	for r0, r1, z0, h, col in ((6.6, 4.8, D, 1.6, "jade2"), (4.8, 6.6, D + 1.6, 4.2, "jade"), (6.9, 6.9, D + 5.8, 0.5, "gold"), (6.2, 6.0, D + 6.3, 0.4, "g_ember" if locked else "g_gold")):
 		m.cyl(r0, h, (0, 0, z0), col, n=16, r2=r1)
 	for k in range(12):
 		a = k / 12 * tau + 0.13
@@ -409,29 +409,27 @@ def concept_b(locked):
 		h = 8.5 + (k % 3)
 		pts = [(cos(a) * r, sin(a) * r, zz) for r, zz in ((6.9, D), (7.3, D + h * 0.5), (7.3 + 0.8 * lean, D + h))]
 		m.tube(pts, 0.4, "gold", 5, r1=0.24)
-		m.orb(pts[-1], 0.75, "g_gold", 8, 5)
+		m.orb(pts[-1], 0.75, "g_ember" if locked else "g_gold", 8, 5)
 	if not locked:
-		# outer, splayed; toward the front they lie nearly flat, so every approach sees the whole Mythic
+		# outer, splayed; toward the front they lie low, so every approach sees the whole Mythic. Every second petal lies lower,
+		# under its neighbours, so the hems overlap cleanly and nothing cuts through.
 		for k in range(13):
 			a = front + math.pi / 13 + k / 13 * tau
 			dl = delta(a)
 			if dl < rad(42):
 				continue
-			low = dl < rad(100)
-			pet.lotus(a, 13.2, 16.5 if low else 17.8, 12.6, 52 if low else 36, 24 if low else 44, 2.3, 1, 5.5, tip=-30 if low else 0)
-		for k in range(11):  # middle
-			a = front + k / 11 * tau
-			dl = delta(a)
-			if dl < rad(60):
-				continue
-			low = dl < rad(102)
-			pet.lotus(a, 11.4, (11.0 if dl < rad(80) else 18.0) if low else 24.0, 11.6 if low else 12.8, 46 if low else 26, 20 if low else 32, D - 0.4, 0.5, 5, tip=-16 if low else 0)
+			low, under = dl < rad(100), min(k, 12 - k) % 2
+			pet.lotus(a, (13.8 if under else 12.8) if low else 14.4, 11.6 if low else 12.4, (11.0 if low else 12.0) - 0.8 * under, (52 if low else 42) + 13 * under, 24 if low else 34, 2.3 - 0.3 * under, 1, 5.5, tip=-30 if low else 0, cup=0.16)
+		for da, L, w, lean, r in ((-53, 25, 10.5, 24, 13.4), (53, 25, 10.5, 24, 13.4), (-19, 27, 11, 15, 13.9), (19, 27, 11, 15, 13.9)):  # the back's second row
+			pet.lotus(math.pi / 2 + rad(da), r, L, w, lean, 22, 2.3, 1.4, 5, cup=0.14)
+		for da, L, w, lean in ((-92, 18, 8.4, 46), (92, 18, 8.4, 46), (-124, 10.5, 6.6, 46), (124, 10.5, 6.6, 46)):  # middle
+			pet.lotus(math.pi / 2 + rad(da), 11.2, L, w, lean, 20, D - 0.4, 0.5, 5, tip=-14, cup=0.18)
 		# a deep plum row behind the crown: the dark edge that cuts it out of the sky and the Great Sakura
-		for da, L, w in ((-52, 38, 13), (52, 38, 13), (-19, 52, 15), (19, 52, 15)):
-			pet.lotus(math.pi / 2 + rad(da), 13.0, L, w, 8 if abs(da) > 50 else 5, 18, D - 0.4, 4.2, 6.6)
-		# the crown that frames the model: pale behind it, deep at the tips
-		for da, L, w in ((-66, 34, 13), (66, 34, 13), (-36, 44, 14.5), (36, 44, 14.5), (0, 58, 17.5)):
-			pet.lotus(math.pi / 2 + rad(da), 10.4, L, w, (2, 6, 19)[(abs(da) > 20) + (abs(da) > 50)], 15.5, D - 0.4, 0, 5.4, seg=9)
+		for da, L, w, lean in ((-51, 38, 10.6, 12), (51, 38, 10.6, 12), (-19.5, 52, 10.8, 6), (19.5, 52, 10.8, 6)):
+			pet.lotus(math.pi / 2 + rad(da), 13.8, L, w, lean, 15, D - 0.4, 4.2, 6.6, cup=0.14)
+		# the crown that frames the model: pale behind it, deep at the tips; the second pair stands outside the centre and the third
+		for da, L, w, lean, r in ((-71, 34, 11.2, 17, 10.2), (71, 34, 11.2, 17, 10.2), (-35, 44, 12.6, 8, 12.2), (35, 44, 12.6, 8, 12.2), (0, 58, 16.5, 2, 10.4)):
+			pet.lotus(math.pi / 2 + rad(da), r, L, w, lean, 15.5, D - 0.4, 0, 5.4, seg=9, cup=0.2)
 		# the halo: one hoop set into the crown on two stems from the pod, not hung in the air
 		hz, hy, hr = spot[2] + 1.6, 6.5, 9.7
 		m.ring3((0, hy, hz), hr, 0.42, "gold", n=36, sides=6)
@@ -444,14 +442,14 @@ def concept_b(locked):
 	else:
 		# the same lotus asleep: a full closed bud as broad as the flower's heart, parted only at the front. The parted lip is
 		# short, so the dark Mythic shows from the front and from both sides.
-		for da, L, w in ((-72, 54, 17), (72, 54, 17), (-37, 57, 18), (37, 57, 18), (0, 60, 19)):
-			pet.lotus(math.pi / 2 + rad(da), 11.6, L, w, 36, -100, D - 0.4, 0.6, 5.0, seg=9, cup=0.34, tip=6)
-		for da, L, w in ((-54, 36, 15), (54, 36, 15), (-18, 40, 16), (18, 40, 16)):
-			pet.lotus(math.pi / 2 + rad(da), 13.6, L, w, 37, -66, 2.0, 1.4, 5.2, seg=7, cup=0.36, tip=16)
-		for da, L in ((-104, 12.5), (104, 12.5), (-82, 18), (82, 18)):
-			pet.lotus(math.pi / 2 + rad(da), 13.6, L, 11.5, 36, -46, 2.3, 2.0, 4.6, seg=5, cup=0.36)
-		for da in (-128, 128):
-			pet.lotus(math.pi / 2 + rad(da), 11.0, 6.5, 8.0, 28, -40, D - 0.4, 2.0, 4.0, seg=4, cup=0.36)
+		bp.ring_band(m, 7.6, 8.6, D, D + 0.14, "g_ember")  # a low ember of light round the pod's foot
+		# every second petal stands outside its neighbours, so hems overlap cleanly and nothing cuts through
+		for da, L, w, r in ((-74, 54, 17, 10.9), (74, 54, 17, 10.9), (-37, 57, 18, 12.9), (37, 57, 18, 12.9), (0, 60, 17, 10.4)):
+			pet.lotus(math.pi / 2 + rad(da), r, L, w, 36, -100 + 2.0 * (r > 12), D - 0.4, 0.6, 5.0, seg=9, cup=0.24, tip=6)
+		for da, L, w in ((-56, 28, 10.5), (56, 28, 10.5), (-18.5, 30, 10.5), (18.5, 30, 10.5)):
+			pet.lotus(math.pi / 2 + rad(da), 14.4, L, w, 37, -52, 2.0, 1.4, 5.2, seg=7, cup=0.14, tip=8)
+		for da, L in ((-96, 13), (96, 13)):
+			pet.lotus(math.pi / 2 + rad(da), 13.8, L, 10.0, 40, -46, 2.3, 2.0, 4.6, seg=5, cup=0.24)
 	# sepals under the outer layer
 	for k in range(16):
 		a = front + k / 16 * tau
@@ -468,7 +466,7 @@ def concept_b(locked):
 			for k in range(6):
 				m.lotus(k / 6 * tau, 0.7, r * 1.1, r * 0.8, 22 if not locked else 4, 24 if not locked else -26, 2.4, 2, 5, seg=3, thick=0.2, band=0.14)
 			m.local = Matrix.Identity(4)
-			m.orb((s * lx, ly, 4.0), 0.9, "g_pink", 6, 4)
+			m.orb((s * lx, ly, 4.0), 0.9, "g_ember" if locked else "g_pink", 6, 4)
 		# two bollards beside the stairs: the locked chain hangs from them
 		m.cyl(0.95, 3.6, (s * 8.2, -11.4, 2.4), "burg", n=8, r2=0.75)
 		m.cyl(1.2, 0.7, (s * 8.2, -11.4, 6.0), "gold", n=8, r2=0.7)
@@ -476,7 +474,7 @@ def concept_b(locked):
 		for s in (-1, 1):
 			m.chain((s * 8.0, -11.9, 5.7), (s * 1.3, -13.6, 5.1), 0.9, "iron2", 1.5, 0.27)
 		m.padlock((0, -13.6, 3.6), 0.75)
-	return [body, pet, fx], spot, size, dict(beam=((0, 7.9, D + 6.2), 110, 4.0, 2.4, "g_pink"), key=0.3, label=(0, -12.8, 9.4))
+	return [body, pet, fx], spot, size, dict(beam=((0, 7.9, D + 6.2), 110, 4.0, 2.4, "g_pink"), key=0.3, ember=2600, label=(0, -13.4, 8.9), toward=13.4)
 
 
 # --- C: Astral orrery ------------------------------------------------------------------------------------------------------
@@ -705,6 +703,7 @@ def text(col, body, pos_local, size, colour, name, face_cam=False):
 	cu.materials.append(plain("T_" + colour, colour, True))
 	ob = bpy.data.objects.new(name, cu)
 	ob.matrix_world = MAT @ Matrix.Translation(pos_local) @ (Matrix.Identity(4) if face_cam else Matrix.Rotation(math.pi / 2, 4, "X"))
+	ob.visible_shadow = False  # stands in for a label
 	col.objects.link(ob)
 	return ob
 
@@ -783,6 +782,7 @@ def add_concept(key, locked):
 			b = bp.M(f"FX_Beam{i}", MAT)
 			b.cyl(r1 * f, h - bz, (bx, by, bz), "g_pink", n=20, r2=r0 * f)
 			ob = b.build(col)
+			ob.visible_shadow = False
 			ob.data.materials.clear()
 			ob.data.materials.append(beam_mat(f"Beam{i}", colr if i == 0 else "#FFF0F6", 1.4, a))
 		lt = bpy.data.objects.new("FX_Light", bpy.data.lights.new("FX_Light", "POINT"))
@@ -805,10 +805,15 @@ def add_concept(key, locked):
 			p = Vector((rr * cos(a), 2 + rr * sin(a) * 0.8, rnd.uniform(5, 34)))
 			s = rnd.uniform(0.18, 0.4)
 			pm.gem(p, s, s * 2.6, rnd.choice(("g_pink", "g_white", "g_gold")), n=4)
-		pm.build(col)
+		pm.build(col).visible_shadow = False  # particles cast no shadow in the game
 	else:
+		if info.get("ember"):
+			e = bpy.data.objects.new("FX_Ember", bpy.data.lights.new("FX_Ember", "POINT"))  # one faint light in the bud's heart
+			e.data.energy, e.data.color, e.data.shadow_soft_size, e.data.use_shadow = info["ember"], (1.0, 0.35, 0.62), 2.0, False
+			e.matrix_world = MAT @ Matrix.Translation((0, 9.5, 14))
+			col.objects.link(e)
 		# stand-in for the game's existing "Rebirth 2" BillboardGui (Client/SidekickAltarView): not part of any mesh
-		text(col, "Rebirth 2\n(game label)", info.get("label", (spot[0], spot[1] - 9.5, spot[2] - half - 1.4)), 1.7 if "label" in info else 2.4, "#FFFFFF", "UI_RebirthLabel")
+		text(col, "Rebirth 2\n(game label)", info.get("label", (spot[0], spot[1] - 9.5, spot[2] - half - 1.4)), 0.95 if "toward" in info else 1.7 if "label" in info else 2.4, "#FFFFFF", "UI_RebirthLabel")["toward"] = info.get("toward", 0.0)
 	return col, obs, spot, info
 
 
@@ -853,6 +858,10 @@ def view(cam, name, key):
 	cam.data.angle_y = rad(fov)
 	if "UI_RebirthLabel" in scene.objects:  # a billboard faces the camera
 		o = scene.objects["UI_RebirthLabel"]
+		if o["toward"]:  # offset toward the camera round the pod (BillboardGui StudsOffset), so it covers the pod only
+			c = MAT @ Vector((0, 0, 8.9))
+			f = Vector((e.x - c.x, e.y - c.y, 0)).normalized()
+			o.matrix_world.translation = c + f * o["toward"]
 		o.matrix_world = Matrix.Translation(o.matrix_world.translation) @ cam.rotation_euler.to_matrix().to_4x4()
 
 
@@ -907,6 +916,27 @@ def statue_option(cam, gone=False):
 	bpy.context.scene.collection.objects.link(t)
 	out.append((t, None))
 	return out
+
+
+def option_light(col, locked):
+	"""RENDER-LIGHT OPTION for A in dusk, no mesh change. Locked: a cool rim on the dark Mythic. Unlocked: the fan lit from below."""
+	sp = Vector((0, -0.8, 21.0))
+	if locked:
+		specs = [((s * 24, 5, 33), sp, 280000, (0.72, 0.62, 1.0), 60) for s in (-1, 1)]
+	else:
+		specs = [((s * 9, 5, 27), (s * 10, 16.4, 43), 26000, (1.0, 0.72, 0.5), 80) for s in (-1, 1)]
+	for i, (at, to, e, c, size) in enumerate(specs):
+		o = bpy.data.objects.new(f"OPT_{i}", bpy.data.lights.new(f"OPT_{i}", "SPOT"))
+		o.data.energy, o.data.color, o.data.spot_size, o.data.spot_blend, o.data.use_shadow = e, c, rad(size), 0.6, False
+		a, b = MAT @ Vector(at), MAT @ Vector(to)
+		o.matrix_world = Matrix.Translation(a) @ (b - a).to_track_quat("-Z", "Y").to_matrix().to_4x4()
+		col.objects.link(o)
+		if locked:  # lights only the silhouette; in the game a Highlight or a paler silhouette would stand in for it
+			only = bpy.data.collections.new(f"OPT_only{i}")
+			for m in col.objects:
+				if m.type == "MESH" and m.data.materials and m.data.materials[0] and m.data.materials[0].name.startswith("Silhouette"):
+					only.objects.link(m)
+			o.light_linking.receiver_collection = only
 
 
 # --- Clearances ----------------------------------------------------------------------------------------------------------
@@ -998,14 +1028,17 @@ def main():
 		with open(os.path.join(OUT, "report.json"), "w") as f:
 			json.dump({"limits": limits, "concepts": rows}, f, indent=1)
 		return
+	option = "_option_light" if "option" in argv else ""
 	top_marks(scene)
 	for k in keys:
 		for st in states:
 			col, *_ = add_concept(k, st == "locked")
+			if option:
+				option_light(col, st == "locked")
 			for v in views:
 				view(cam, v, k)
 				extra = statue_option(cam, v == "spawn_nostatue") if v in ("option_statue8", "spawn_nostatue") else []
-				scene.render.filepath = os.path.join(OUT, f"{k}_{NAMES[k]}_{st}_{v}{dusk}.jpg")
+				scene.render.filepath = os.path.join(OUT, f"{k}_{NAMES[k]}_{st}_{v}{dusk}{option}.jpg")
 				bpy.ops.render.render(write_still=True)
 				print("SHOT", scene.render.filepath, flush=True)
 				for o, mw in extra:
