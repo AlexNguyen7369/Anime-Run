@@ -213,3 +213,15 @@ rail top and end cleanly on the deck; the band speckle is dense, medium-small, o
   with a slight hang, plus the 16 ridge ropes: about twice the old count.
 - Tail (the red slab in run shot 02): now a round tapering tail that curls away from the road, with pale crags along its
   top, so it no longer reads as a wall.
+
+Rework (owner 2026-11-25: only the dead kaiju and its site reopened; earlier form rulings dropped). Not approved yet,
+reference renders only (`assets/world2_draft/track05_KaijuBase/reference/`, made by `tools/blender/world2/kaiju_reference.py`).
+Replaces the corpse described in the table and in rounds 13 to 16:
+- An invented generic beast, whole and unwounded, not the source's kaiju: one continuous body meshed from a distance
+  field (no balls, boxes, plates or cups): ribs under the hide, shoulder and hip, jointed limbs with digits, a head rolled
+  on its cheek with a closed eye, hung jaw and tongue, keels down the back, a tail wrapped round the front.
+- It lies in churned, cracked earth that runs out below the ground (no oval, nothing far under the ground) among the
+  building corners it crushed; two lighter teal gantries, a few ropes, crew at human scale.
+- Two legal pockets on the left of the road, d 1049 and 2683, 94 off the centre line, scale 1.00.
+- The city closes up round both (`corpse_sites`, its own random stream): the frozen instances keep their places, except 8
+  rubble heaps under the bodies and the 8 vans, which moved up the road from the new spots.
