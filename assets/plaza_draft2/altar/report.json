@@ -307,21 +307,19 @@
    "name": "great_lotus",
    "state": "unlocked",
    "tris": {
-    "B_Body": 4656,
-    "B_Petals": 5760,
-    "B_Float": 704
+    "B_Body": 5564,
+    "B_Petals": 4088
    },
    "materials": {
-    "B_Body": 13,
-    "B_Petals": 7,
-    "B_Float": 3
+    "B_Body": 23,
+    "B_Petals": 18
    },
-   "tris_total": 11120,
-   "mesh_parts": 9,
+   "tris_total": 9652,
+   "mesh_parts": 5,
    "size_w_d_h": [
     66.2,
-    46.0,
-    64.6
+    43.2,
+    60.3
    ],
    "local_min_max": [
     [
@@ -331,13 +329,13 @@
     ],
     [
      33.1,
-     27.4,
-     64.6
+     24.6,
+     60.3
     ]
    ],
    "model_spot_roblox": [
     57.2,
-    17.7,
+    20.0,
     61.6
    ],
    "clearance_studs": {
@@ -366,11 +364,11 @@
      ]
     ],
     "GreatSakura": [
-     15.11,
+     14.57,
      [
-      68.2,
-      22.1,
-      84.1
+      67.3,
+      27.7,
+      84.5
      ]
     ],
     "Showpiece": [
@@ -430,13 +428,13 @@
      ]
     ],
     "sky_loop_runner_envelope": [
-     9.59
+     21.48
     ],
     "floor_edge_x94": [
-     9.7
+     9.84
     ],
     "floor_edge_z110": [
-     21.66
+     21.71
     ]
    },
    "below_floor": 0.0
@@ -446,19 +444,19 @@
    "name": "great_lotus",
    "state": "locked",
    "tris": {
-    "B_Body": 8280,
-    "B_Petals": 5440
+    "B_Body": 5428,
+    "B_Petals": 2500
    },
    "materials": {
-    "B_Body": 11,
-    "B_Petals": 5
+    "B_Body": 20,
+    "B_Petals": 15
    },
-   "tris_total": 13720,
-   "mesh_parts": 2,
+   "tris_total": 7928,
+   "mesh_parts": 3,
    "size_w_d_h": [
     66.2,
     41.9,
-    53.9
+    56.1
    ],
    "local_min_max": [
     [
@@ -469,12 +467,12 @@
     [
      33.1,
      23.3,
-     53.9
+     56.1
     ]
    ],
    "model_spot_roblox": [
     57.2,
-    17.7,
+    20.0,
     61.6
    ],
    "clearance_studs": {
@@ -503,11 +501,11 @@
      ]
     ],
     "GreatSakura": [
-     27.61,
+     16.76,
      [
-      65.3,
-      4.0,
-      83.4
+      66.6,
+      26.3,
+      82.3
      ]
     ],
     "Showpiece": [
@@ -567,7 +565,7 @@
      ]
     ],
     "sky_loop_runner_envelope": [
-     15.75
+     18.14
     ],
     "floor_edge_x94": [
      10.94
