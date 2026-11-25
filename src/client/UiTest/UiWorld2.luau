@@ -9,7 +9,7 @@
 --   setting it again the same session does not reopen it. The attribute is set locally; the once-per-save rule is the
 --   server's (ServerTest world2_welcome).
 -- ui_hud_look_by_world (design doc 4.46 "HUD look" and 4.40, owner 2026-11-24, both worlds): the always-on HUD
---   has its look from before the Scroll Dojo redesign, no option A dressing (Client/HudPlaque.Old): no "Plaque" frame,
+--   has its look from before the Scroll Dojo redesign, no option A dressing: no "Plaque" frame,
 --   no tilted vermilion Key seal, no kit fonts, no Money / Gems lacquer plate (gradient game-font numbers, blue Gems),
 --   the generated Turbo bar, dark team circles with the team ring. The panels keep the Scroll Dojo frame (a
 --   DojoHandscroll "Handscroll" inside each).
@@ -161,7 +161,7 @@ function Module.Build(h)
 				if d.Name == "Plaque" and d:IsA("Frame") then
 					table.insert(plaques, d:GetFullName())
 				elseif d.Name == "Key" and d:IsA("TextLabel") then
-					-- HudPlaque.Seal: a tilted vermilion square; the 4.40 letter stands straight on no background
+					-- Option A seal: a tilted vermilion square; the 4.40 letter stands straight on no background
 					if d.Rotation ~= 0 or d.BackgroundTransparency < 1 or not same(d.TextColor3, WHITE) then
 						table.insert(seals, d:GetFullName())
 					end

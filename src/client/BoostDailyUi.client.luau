@@ -43,6 +43,7 @@ local BURGUNDY_TOP, BURGUNDY_BOTTOM = Color3.fromRGB(90, 30, 42), Color3.fromRGB
 local PINK = Color3.fromRGB(244, 145, 171) -- #F491AB, the prize card's rim
 local DONE_TOP, DONE_BOTTOM = Color3.fromRGB(227, 216, 194), Color3.fromRGB(207, 192, 162) -- #E3D8C2, #CFC0A2
 local DONE_RIM = Color3.fromRGB(154, 138, 116) -- #9A8A74
+local SEAL = 36 -- design units, a claimed day's seal (proposed)
 
 local function make(class, name, parent, props)
 	local instance = Instance.new(class)
@@ -445,15 +446,12 @@ local function dailyCard(parent, day, reward, done, featured)
 		TextScaled = true,
 	})
 	if done then
+		-- placeCard sizes it (a square in design units: the UI layout model solves no UIAspectRatioConstraint)
 		local seal = make("Frame", "Seal", card, {
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -8, 0, 8),
-			Size = UDim2.fromScale(0.2, 0.2),
 			Rotation = -4,
 			ZIndex = 3,
 			Active = false,
 		})
-		make("UIAspectRatioConstraint", "Square", seal, {})
 		Dojo.Fill(seal, Dojo.Colors.VermLight, Dojo.Colors.VermDeep)
 		Dojo.Rim(seal, Dojo.Colors.VermDeep, 2)
 		Dojo.Corner(seal, 4)
@@ -489,6 +487,10 @@ local function placeCard(card, h)
 	end
 	card.RewardText.Position = UDim2.new(0, px(U.Pad), 1, -px(U.Pad + size.Caption))
 	card.RewardText.Size = UDim2.new(1, -px(2 * U.Pad), 0, px(size.Caption))
+	local seal = card:FindFirstChild("Seal") -- a claimed day's 済 seal, 8 in from the top-right corner
+	if seal then
+		seal.Position, seal.Size = UDim2.new(1, -px(8 + SEAL), 0, px(8)), at(SEAL, SEAL)
+	end
 	anime.Role(card.Label, "Item")
 	anime.Role(card.RewardText, "Caption")
 end
