@@ -283,6 +283,7 @@
 273. 2026-11-25 — Alex Nguyen — Fixed the boss guide's audit items and gave the boss gate an off switch (BossGateConfig.LIVE, the guide needs both switches) with tests for both states and the closed-gate prompt (offline checks only).
 274. 2026-11-25 — Alex Nguyen — Made ui_boss_guide run with auto-roll and racing off and a quiet baseline before grants_nothing, and reworded plaza_build's sensei check (offline checks only, branch feature/alex/boss-guide-tests).
 275. 2026-11-25 — Alex Nguyen — Coded the boss gate guide's popup layout B, split plaza_build into guards and plaza_build_pending, and widened grants_nothing to the Money stat and Relics (offline checks only).
+276. 2026-11-25 — Alex Nguyen — Wrote the spawn pieces' game code behind empty upload ids (Shared/PlazaPieces), so the plaza stays as it is until the meshes are uploaded; offline checks only.
 
 ## What's next
 **Land the Track 1 and 6 swap: round 7 restores Track 6's office towers, then its score, audit and merge.**

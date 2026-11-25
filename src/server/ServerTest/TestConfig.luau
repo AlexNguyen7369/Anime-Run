@@ -102,9 +102,8 @@ return {
 	--   ReplicatedStorage:SetAttribute("ServerTestOnly", "speed_probe"); ReplicatedStorage:SetAttribute("ServerTestRun", true)
 	-- ServerTestOnly (comma-separated names) runs only those scenarios; clear it (nil) for the full suite again.
 	OnDemand = {
-		-- 23 checks of WORLD_REDESIGN_SPEC 4.2 PENDING, red by design (PlazaBuildTests.PENDING; owner 2026-11-25): 13 wait for the
-		-- uploads, 8 for the world gate's build, 1 for the altar's build, 1 for the merchants (passes offline). As work lands,
-		-- rows leave PENDING and this count; at 0 the entry goes.
+		-- 8 checks of WORLD_REDESIGN_SPEC 4.2 PENDING, red by design (PlazaBuildTests.PENDING; owner 2026-11-25): 7 wait for the
+		-- uploads, 1 for the merchants (passes offline). As work lands, rows leave PENDING and this count; at 0 the entry goes.
 		"plaza_build_pending",
 		"speed_probe", -- docs/WORLDS_SPEC.md section 1: highest green cruise speed for RaceConfig.MAX_CRUISE
 		-- docs/BIOME_ENVIRONMENT_SPEC.md section 10 (dev tool, no full-harness gate; each waits for TerrainReady):

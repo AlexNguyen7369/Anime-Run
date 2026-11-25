@@ -74,13 +74,6 @@ function Tests.plaza_pieces()
 		WorldConfig.Id, WorldConfig.GATE_OPEN, Boss.LIVE = oldWorld, oldOpen, oldLive
 		Pieces.MERCHANTS_LIVE = oldMerchants
 	end
-	local function parts(model)
-		local n = 0
-		for _, d in model and model:GetDescendants() or {} do
-			n += d:IsA("BasePart") and 1 or 0
-		end
-		return n
-	end
 	local ok, err = xpcall(function()
 		for _, key in KEYS do
 			local row = Pieces.Assets[key]
@@ -121,9 +114,6 @@ function Tests.plaza_pieces()
 				gate.Portal.Shape == Enum.PartType.Cylinder and find(gate, "Part", "Ring") ~= nil
 			)
 			flag(w .. "off_no_merchant", find(area, "Model", "Merchant") == nil)
-			local offParts =
-				{ parts(altar), parts(gate), parts(area.ShopStall), parts(area.Marketplace), parts(area.IndexBoard) }
-
 			-- A gate off and ids there: still no boss gate
 			fill(1)
 			local silent = Pieces.Plan(Layout, false)
@@ -211,10 +201,13 @@ function Tests.plaza_pieces()
 			end
 			flag(w .. "on_altar_tiers_collide", tiers >= 3 and widest >= (world == 1 and 36.7 or 60), widest)
 			flag(w .. "on_gate_not_the_ring", find(on.WorldGate, "Part", "Ring") == nil)
-			for i, name in { "SidekickAltar", "WorldGate", "ShopStall", "Marketplace", "IndexBoard" } do
+			for name, old in
+				{ ShopStall = "Curtain", PotionsStall = "Curtain", Marketplace = "Curtain", IndexBoard = "Post" }
+			do
+				local model = on:FindFirstChild(name)
 				flag(
 					w .. "on_new_stand_in_" .. name,
-					parts(on:FindFirstChild(name)) ~= offParts[i] or name == "IndexBoard"
+					model:FindFirstChild("Deck") ~= nil and model:FindFirstChild(old) == nil
 				)
 			end
 			for stall, prompt in

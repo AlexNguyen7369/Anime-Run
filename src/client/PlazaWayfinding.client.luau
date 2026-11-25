@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Layout = require(Shared:WaitForChild("PlazaAssets"))
 local PlazaHeader = require(Shared:WaitForChild("PlazaHeader"))
+local PlazaPieces = require(Shared:WaitForChild("PlazaPieces"))
 local SidekickConfig = require(Shared:WaitForChild("SidekickConfig"))
 
 local MAX_DISTANCE = 260
@@ -92,6 +93,14 @@ local LABELS = {
 		HideWithin = ROW_HIDE_WITHIN,
 	},
 }
+
+-- The new altar is taller than today's: its header stands over the crest
+local altar = PlazaPieces.Altar()
+for _, spec in LABELS do
+	if altar and spec.Key == "Sidekicks" then
+		spec.At = Vector3.new(spec.At.X, altar.HeaderY, spec.At.Z)
+	end
+end
 
 local player = Players.LocalPlayer
 local shown = {}

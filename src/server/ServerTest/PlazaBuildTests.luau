@@ -3,7 +3,7 @@
 -- fuller layout), written red before the build.
 --   gate_*: the world gate as gate draft B (tools/blender/plaza/draft_gate.py concept_b). Place, facing, destination and
 --     lock rule unchanged; a touch part that is no disc and fills B's doorway; the label over B's roof; a locked and an
---     open mesh in Shared/PlazaAssets, inside today's gate footprint.
+--     open mesh in Shared/PlazaPieces, inside today's gate footprint.
 --   boss_gate_*: draft A (draft_boss_gate.py) at S4 facing the spawn, whole on the floor, its own prompt, a closed and an
 --     open mesh, and the guide with a prompt of its own; its off switch (boss_gate_off_*), look and prompt rule.
 --   altar_*: World 1 the great lotus (draft B), World 2 the twin-roof stage (draft A), a locked and an unlocked mesh of
@@ -144,31 +144,17 @@ local function bounds(asset)
 	return hi.X >= lo.X and hi - lo or nil, lo.Y
 end
 
--- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 23 checks. When a
+-- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 8 checks. The gate's and the
+-- altar's geometry is judged as if the pieces were uploaded (Shared/PlazaPieces; plaza_pieces has the state before). When a
 -- row's work lands, take the row out here: the check is then a guard of plaza_build. Keep the count in TestConfig's comment.
 local PENDING = {
 	layout_loop_posts = "upload",
 	boss_gate_mesh_BossGateClosed = "upload",
-	boss_gate_mesh_BossGateClosed_on_plaza = "upload",
 	boss_gate_mesh_BossGateOpen = "upload",
-	boss_gate_mesh_BossGateOpen_on_plaza = "upload",
 	gate_mesh_WorldGateLocked = "upload",
-	gate_mesh_WorldGateLocked_footprint = "upload",
-	gate_mesh_WorldGateLocked_on_floor = "upload",
 	gate_mesh_WorldGateOpen = "upload",
-	gate_mesh_WorldGateOpen_footprint = "upload",
-	gate_mesh_WorldGateOpen_on_floor = "upload",
 	altar_mesh_Locked = "upload",
 	altar_mesh_Unlocked = "upload",
-	altar_look_of_this_world = "altar build",
-	gate_locked_touch_not_a_disc = "gate build",
-	gate_locked_touch_fits_doorway = "gate build",
-	gate_locked_touch_at_runner_height = "gate build",
-	gate_locked_label_over_roof = "gate build",
-	gate_open_touch_not_a_disc = "gate build",
-	gate_open_touch_fits_doorway = "gate build",
-	gate_open_touch_at_runner_height = "gate build",
-	gate_open_label_over_roof = "gate build",
 	merchant_sensei_replaces_the_dummy = "merchants", -- red only on a server: offline has no rig to build
 }
 
@@ -184,15 +170,15 @@ local function run(scenario, pending)
 	local WorldConfig, SpawnArea = require(Shared.WorldConfig), require(Shared.SpawnArea)
 	local PlazaAssets, Catalog = require(Shared.PlazaAssets), require(Shared.CharacterCatalog)
 	local Pieces = H.module(Shared, "PlazaPieces")
-	local rows = Pieces and Pieces.Assets or {}
+	local pieceRows = Pieces and Pieces.Assets or {}
 	-- Runs fn as if the spawn pieces were uploaded (made-up ids, put back)
 	local function uploaded(fn)
 		local ids = {}
-		for key, row in rows do
+		for key, row in pieceRows do
 			ids[key], row.Asset = row.Asset, 1
 		end
 		local okRun, result = pcall(fn)
-		for key, row in rows do
+		for key, row in pieceRows do
 			row.Asset = ids[key]
 		end
 		if not okRun then
@@ -304,7 +290,7 @@ local function run(scenario, pending)
 		local toSpawn = bossAt and bossLook:Dot((HUB - bossAt).Unit) or -1
 		flag("boss_gate_faces_spawn", toSpawn >= 0.98, toSpawn, 0.98)
 		for _, key in { "BossGateClosed", "BossGateOpen" } do
-			local asset = rows[key]
+			local asset = pieceRows[key]
 			flag(
 				"boss_gate_mesh_" .. key,
 				asset ~= nil and asset.Asset ~= 0,
@@ -532,7 +518,7 @@ local function run(scenario, pending)
 			flag(key .. "_label_text", state2 ~= nil and state2.Text == want, text(state2 and state2.Text), want)
 		end
 		for _, key in { "WorldGateLocked", "WorldGateOpen" } do
-			local asset = rows[key]
+			local asset = pieceRows[key]
 			flag("gate_mesh_" .. key, asset ~= nil and asset.Asset ~= 0, asset and asset.Asset or "no row", "an id")
 			local size, low = bounds(asset)
 			local m = GATE.MeshMax
@@ -556,8 +542,8 @@ local function run(scenario, pending)
 			local key = "Altar" .. wantLook .. state
 			flag(
 				"altar_mesh_" .. state,
-				rows[key] ~= nil and rows[key].Asset ~= 0,
-				rows[key] and rows[key].Asset or "no row",
+				pieceRows[key] ~= nil and pieceRows[key].Asset ~= 0,
+				pieceRows[key] and pieceRows[key].Asset or "no row",
 				"an id"
 			)
 		end
