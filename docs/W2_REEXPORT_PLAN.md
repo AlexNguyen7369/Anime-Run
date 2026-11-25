@@ -11,7 +11,7 @@ The white-mesh fix must be in the game first: without it the new meshes land at 
 - 6 do not: Mountain_p1 and _p2 (Track 1), Hound, Wyvern (2), Nest, Ant (7). Same tris, and stable here. DemonCastle.py and AntIsland.py have not
   changed since the upload; ElvenPlains.py has (the swap moved its Mountain placements, and the cut follows the placed scale), though not its mesh
   functions. Cause not proved. They cannot be applied without the Studio comparison below.
-- 17 have no recorded hash (12 uploaded but unplaced, 5 never uploaded); the uploaded ones need the same comparison.
+- 17 have no recorded hash (12 uploaded but unplaced, 5 never uploaded); the uploaded ones need the same comparison. FarWood and RoofTile are unplaced too, but their hashes match.
 
 ## Uploads: 100, and 12 that can wait
 | Batch | Track | Meshes | Tris | KB |
@@ -38,8 +38,10 @@ A batch is one track (8 to 12), so a batch is checked on one road. Left out: Cha
    After the reply, its operation is logged and a crash resumes it. One model per mesh hash. One run at a time.
 2. Moderation: wait until every Model of the batch loads. A refused one stops the batch; the game still has the old ids.
 3. Studio: InsertService:LoadAsset each Model, read the MeshPart's MeshId, `mesh <key> <MeshId>` (an id another key holds is refused; a changed
-   one drops its review, check and comparison). Where needed (the six, and every unplaced mesh): `compare-script N` prints a snippet for
-   the command bar; save its output and `compare <file>`. At most 0.001 studs and equal tris, or the key cannot be applied. The snippet
+   one drops its review, check and comparison). Where needed (the six, and the uploaded meshes with no recorded hash: every
+   unplaced one but FarWood and RoofTile, whose files are proved by hash): `compare-script N` prints a snippet for
+   the command bar; save its output and `compare <file>`. At most 0.001 (mesh-native units: the mesh's own size, before a
+   placement's Size scales it) and equal tris, or the key cannot be applied. The snippet
    uses EditableMesh and has not been run in Studio yet.
 4. Review (BIOME_ENVIRONMENT_SPEC 4.1 step 3): the auditor looks at a screenshot of each loaded Model beside the old one, `review N "date who"`.
 5. Studio check, old and new side by side on the track, all white: the new ones match a SmoothPlastic part in the kit's colour; same size and shape; no

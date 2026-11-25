@@ -28,7 +28,7 @@ FOLDER = os.path.join(up.ROOT, "build", "world2", "reexport")
 LEDGER = os.path.join(HERE, "reexport_assets.json")
 TSV = os.path.join(HERE, "uploaded_assets.tsv")
 BATCH = 15
-MAX_DIFFERENCE = 0.001  # studs: the Studio comparison of old and new vertices
+MAX_DIFFERENCE = 0.001  # mesh-native units: the Studio comparison of old and new vertices
 # left out of the batches: a mesh that keeps its file, and Track 5's reopened kaiju (its own export)
 SKIP = {"W2_KaijuBase_GiantCorpse": "reopened (WORLD2_SPEC 2026-11-25): its rework exports it"}
 
@@ -199,8 +199,8 @@ def send(m, ledger, key, path):
 		ledger.get(key, {}).pop("Sending", None)
 		return op, model
 	if ledger.get(key, {}).get("Sending"):
-		raise SystemExit("%s was being sent (%s) and its reply is lost: look on the Creator dashboard, then `clear`" % (key, ledger[key]["Sending"]))
-	ledger.setdefault(key, {})["Sending"] = datetime.datetime.now().isoformat(timespec="seconds")
+		raise SystemExit("%s was being sent (%s) and its reply is lost: look on the Creator dashboard, then `clear`" % (key, ledger[key]["Sending"]["At"]))
+	ledger.setdefault(key, {})["Sending"] = {"At": datetime.datetime.now().isoformat(timespec="seconds"), "Hash": m[key]["Hash"]}
 	save(ledger)
 	op = up.start(m[key]["Biome"], key, path)
 	ledger[key].pop("Sending")
@@ -231,30 +231,49 @@ def upload(m, ledger, keys):
 		print("UPLOADED", k, model, flush=True)
 
 
+def is_id(text):
+	return re.fullmatch(r"[1-9][0-9]*", text) is not None
+
+
+def taken(m, ledger, key):
+	"""id -> whose it is: every old Model and MeshId, and the new ones but `key`'s own MeshId."""
+	out = {}
+	for k, a in m.items():
+		out[a.get("OldMesh")], out[a.get("OldModel")] = k + "'s old MeshId", k + "'s old Model"
+	for k, r in ledger.items():
+		out[r.get("Model")] = k + "'s Model"
+		if k != key:
+			out[r.get("Mesh")] = k + "'s MeshId"
+	return out
+
+
 def clear(m, ledger, key, found):
-	"""A person looked after a lost reply: `found` is the Model id that did arrive, or "none"."""
-	if not ledger.get(key, {}).get("Sending") or not (found == "none" or found.isdigit()):
+	"""A person looked after a lost reply: `found` is the Model id that did arrive, or "none". It is the mesh that was sent: refused
+	when the build has changed since."""
+	sending = ledger.get(key, {}).get("Sending")
+	if not sending or not (found == "none" or is_id(found)):
 		raise SystemExit("clear <a key being sent> <Model id | none>")
 	if found == "none":
 		ledger[key].pop("Sending")
-	else:
-		ledger[key] = {"Hash": m[key]["Hash"], "Model": found, "Old": ledger[key].get("Old") or old_of(m, key)}
+		return save(ledger)
+	if sending["Hash"] != m[key]["Hash"]:
+		raise SystemExit("%s was sent as %s and is built as %s: `clear %s none`, the arrived Model is not this build" % (key, sending["Hash"][:12], m[key]["Hash"][:12], key))
+	ids = taken(m, ledger, key)
+	if found in ids:
+		raise SystemExit("%s is %s" % (found, ids[found]))
+	ledger[key] = {"Hash": sending["Hash"], "Model": found, "Old": ledger[key].get("Old") or old_of(m, key)}
 	save(ledger)
 
 
 def set_mesh(m, ledger, key, mesh):
 	row = ledger.get(key, {})
-	if not row.get("Model") or not mesh.isdigit():
+	if not row.get("Model") or not is_id(mesh):
 		raise SystemExit("mesh <uploaded key> <MeshId>")
 	if row.get("Applied"):
 		raise SystemExit("%s is applied; roll its batch back first" % key)
-	taken = {a["OldMesh"]: k for k, a in m.items() if a["OldMesh"]}
-	for k, r in ledger.items():
-		taken[r.get("Model")] = k + "'s Model"
-		if k != key:
-			taken[r.get("Mesh")] = k
-	if mesh in taken:
-		raise SystemExit("%s is already %s" % (mesh, taken[mesh]))
+	ids = taken(m, ledger, key)
+	if mesh in ids:
+		raise SystemExit("%s is %s" % (mesh, ids[mesh]))
 	row["Mesh"] = mesh
 	for signed in ("Reviewed", "Checked", "Compared"):  # they were about another mesh
 		row.pop(signed, None)
@@ -262,8 +281,11 @@ def set_mesh(m, ledger, key, mesh):
 
 
 def sign(m, ledger, keys, field, text):
-	if not re.match(r"\d{4}-\d\d-\d\d \S", text):
-		raise SystemExit('sign as "<YYYY-MM-DD> <who>"')
+	if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2} [^\s\"\\][^\"\\\x00-\x1f\x7f]*", text):  # it goes into a Luau string
+		raise SystemExit('sign as "<YYYY-MM-DD> <who>", without quotes, backslashes or line breaks')
+	applied = [k for k in keys if ledger.get(k, {}).get("Applied")]
+	if applied:
+		raise SystemExit("applied; roll back first: " + " ".join(applied))
 	gaps = [k for k in keys if not ledger.get(k, {}).get("Mesh") or ledger[k].get("Hash") != m[k]["Hash"]]
 	if gaps:
 		raise SystemExit("no MeshId yet: " + " ".join(gaps))
@@ -417,6 +439,14 @@ def self_test():
 			assert refused(sign, m, l3, ["W2_B_A"], field, "me")
 			sign(m, l3, ["W2_B_A"], field, "2026-11-25 me")
 			assert l3["W2_B_A"][field]
+			for bad in ('2026-11-25 me"', "2026-11-25 me\\", "2026-11-25 me\nx", "2026-11-25 me\n", "2026-11-25 \r"):
+				assert refused(sign, m, l3, ["W2_B_A"], field, bad), repr(bad)
+			l3["W2_B_A"]["Applied"] = True
+			assert refused(sign, m, l3, ["W2_B_A"], field, "2026-11-25 you") and l3["W2_B_A"][field] == "2026-11-25 me"
+		for bad in ("0777", "0", "\u0667\u0667", "7 ", "7\n", "-7", "1", "14"):  # 1: an OldModel of the manifest
+			m3 = {**m, "W2_B_C": dict(m["W2_B_C"], OldModel="14")}
+			l3 = json.loads(json.dumps(led))
+			assert refused(set_mesh, {**m3, "W2_B_A": dict(m["W2_B_A"], OldModel="1")}, l3, "W2_B_A", bad), repr(bad)
 		# the Studio comparison: needed where the old file is not proved, and about these two meshes
 		for up_hash in ("other", ""):
 			m2 = {**m, "W2_B_A": dict(m["W2_B_A"], UploadedHash=up_hash)}
@@ -458,7 +488,14 @@ def self_test():
 				upload(m, load(), keys)
 			except (RuntimeError, SystemExit):
 				pass
-		assert posts == ["W2_B_A"] and load()["W2_B_A"]["Sending"], posts
+		assert posts == ["W2_B_A"] and load()["W2_B_A"]["Sending"]["Hash"] == "n", posts
+		later = {**m, "W2_B_A": dict(m["W2_B_A"], Hash="n2", OldModel="61"), "W2_B_C": dict(m["W2_B_C"], OldModel="62")}
+		assert refused(clear, later, load(), "W2_B_A", "555")  # what arrived was the hash that was sent, not today's build
+		both = {**later, "W2_B_A": dict(m["W2_B_A"], OldModel="61")}
+		l3 = load()
+		l3["W2_B_C"] = {"Hash": "n", "Model": "444", "Mesh": "445"}
+		for bad in ("61", "62", "444", "445", "11", "12", "0555", "\u0665", "maybe"):  # an old or another key's id
+			assert refused(clear, both, l3, "W2_B_A", bad), repr(bad)
 		assert refused(clear, m, load(), "W2_B_C", "none") and refused(clear, m, load(), "W2_B_A", "maybe")
 		clear(m, load(), "W2_B_A", "none")
 		up.start, up.poll = sent, stuck
@@ -475,14 +512,14 @@ def self_test():
 		assert len(posts) == 3  # sent once per mesh
 		# killed after the operation is logged, before the ledger is: still not sent again
 		l3 = load()
-		l3["W2_B_C"] = {"Sending": "t"}
+		l3["W2_B_C"] = {"Sending": {"At": "t", "Hash": "n"}}
 		save(l3)
 		upload(m, load(), keys)
 		assert len(posts) == 3 and load()["W2_B_C"]["Model"]
 		l3 = load()
-		l3["W2_B_C"] = {"Sending": "t"}
+		l3["W2_B_C"] = {"Sending": {"At": "t", "Hash": "n"}}
 		clear(m, l3, "W2_B_C", "555")
-		assert load()["W2_B_C"]["Model"] == "555" and load()["W2_B_C"]["Old"]["Mesh"] == "12"
+		assert load()["W2_B_C"]["Hash"] == "n" and load()["W2_B_C"]["Model"] == "555" and load()["W2_B_C"]["Old"]["Mesh"] == "12"
 		l3 = load()
 		l3["W2_B_A"]["Applied"] = True  # its files hold the old id again, by hand: the ledger alone refuses
 		n_posts = len(posts)
