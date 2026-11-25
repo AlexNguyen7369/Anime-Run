@@ -130,11 +130,16 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
 - Summon altar: World 1 draft B (great lotus), World 2 draft A (twin-roof stage). The only difference between the worlds'
   pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged, but the Mythic's size on
   the new altars: 17.5 studs (World 1), 25 (World 2); the floating header stands over the crest (owner 2026-11-25).
+  Locked, the Mythic is a silhouette of colour (74, 66, 92) on the lotus and (132, 120, 152) on the dark roof stage (owner 2026-11-25), kept after the Studio
+  pictures with no contrast limit (owner 2026-11-25, question 31: "keep colours, drop the limit"; measured worst 1.51 on the lotus and
+  1.03 on the roof stage, `tools/blender/plaza/locked_backdrop.py`, for reference only). **Proposed**: it is opaque, and today's
+  altar keeps (24, 22, 30) at 25% clear.
 - Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds. The cyber accents stay on them (owner 2026-11-25).
 - Merchants (owner 2026-11-25, "approved merchant casts"): existing roster models, the same in both worlds: Shop
   `sea_navigator` (Nammi), Potions `leaf_medic` (Sakara), Market `ds_flame` (Rengoko), Index `fr_mage` (Frierin), Sensei
   `leaf_copycat` (Kakashe), display names the tweaked ones (design doc 5). Static. Owner 2026-11-25: Kakashe is the
-  smaller one (draft 0.75, the Sensei header stays), and Frierin may load in World 1 (her rig there loads her, 4.47 "Models").
+  smaller one (draft 0.75, the Sensei header stays), and Frierin may load in World 1 (her rig there loads her, 4.47 "Models"). Each shows the rig's floating name but Kakashe,
+  who stands under the Sensei header (owner 2026-11-25). **Proposed**: they hold the approved draft's poses (static turns of the existing rigs' limbs, no animation).
 - Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
   start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
   the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed (not below rebirth 1, owner 2026-11-25); names and

@@ -302,6 +302,10 @@
 282. 2026-11-25 — Alex Nguyen — Admin rank audit fixes: the arrival recheck test asks for real again, the hold is pinned under the recheck, and a killed lookup no longer leaves later checks waiting forever.
 280. 2026-11-25 — Alex Nguyen — Narrowed World 2's bare ground round finish slabs and the plaza to 2 studs past their own footprint (was up to 7.2 from the CLEARANCE-grown boxes), with a harness collar check written red first; offline only, World 1 hashes unchanged.
 281. 2026-11-25 — Alex Nguyen — Tightened the harness collar check after audit: it tests the drawn strip (red with SLAB_BARE 3), fails any clear slab not facing a multiple of 90 degrees, and checks the VFX floor too.
+284. 2026-11-25 — Alex Nguyen — Built the merchants' poses behind their off switch and a readable locked Mythic per altar; exporter names its parts without numbers (offline checks only).
+285. 2026-11-25 — Alex Nguyen — Recorded the owner's approval of the locked Mythic colours and the merchants' names.
+286. 2026-11-25 — Alex Nguyen — Fixed the merchant-poses re-audit wording, pinned the approved locked colours in a test and added the script that measures what stands behind the locked Mythic.
+287. 2026-11-25 — Alex Nguyen — Dropped the locked Mythic's contrast check per the owner's answer to question 31 (colours kept, no limit); the plaza now has one waiting check.
 
 ## What's next
 **Audit the white-mesh and grass fix (with the narrowed slab collar), run `biome_runtime` in Studio and look at the grass by the plaza and a finish slab, then merge it into the World 2 branch.**

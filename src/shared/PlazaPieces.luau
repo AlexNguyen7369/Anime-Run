@@ -10,11 +10,14 @@ local PlazaPieces = {}
 
 PlazaPieces.Assets = require(script.Parent.PlazaPieceAssets)
 local TODAYS_MODEL_SIZE = 7 -- studs, the turning Mythic's largest extent in today's altar
--- The merchants' switch, off: their poses are not built. The owner's rulings are in (2026-11-25: Frierin may load in World 1, Kakashe
--- is the smaller one). The Sensei dummy stays while off.
+-- The merchants' switch, off until the owner approves turning it on: cast, poses and rulings are in (owner 2026-11-25: Frierin may load in World 1,
+-- Kakashe is the smaller one). The Sensei dummy stays while off.
 PlazaPieces.MERCHANTS_LIVE = false
 PlazaPieces.ALTAR_TAGS = { Locked = "PlazaAltarLocked", Unlocked = "PlazaAltarUnlocked" } -- Shared/PlazaPieceLook, per player
 
+-- The locked Mythic's silhouette. Today's altar: placeholder. Per new altar (below): the colours are the owner's (2026-11-25); opaque is
+-- **proposed** (WORLD_REDESIGN_SPEC 4.2).
+local TODAYS_LOCKED = { Color = Color3.fromRGB(24, 22, 30), Transparency = 0.25 } -- placeholders
 -- Per world: the altar's look, what its model stands on over the floor (studs, and studs ahead of the centre), its lock label's
 -- spot (altar frame) and the height of its floating header (over the crest, owner 2026-11-25)
 local ALTARS = {
@@ -24,6 +27,7 @@ local ALTARS = {
 		Stand = 10.3,
 		Ahead = 0,
 		Lock = Vector3.new(0, 8.9, -13.4),
+		Locked = { Color = Color3.fromRGB(74, 66, 92), Transparency = 0 },
 		HeaderY = 66,
 	},
 	{
@@ -32,6 +36,7 @@ local ALTARS = {
 		Stand = 8.55,
 		Ahead = 0.8,
 		Lock = Vector3.new(0, 8, -17.2),
+		Locked = { Color = Color3.fromRGB(132, 120, 152), Transparency = 0 },
 		HeaderY = 80,
 	},
 }
@@ -71,6 +76,12 @@ end
 function PlazaPieces.AltarModelSize()
 	local altar = PlazaPieces.Altar()
 	return altar and altar.ModelSize or TODAYS_MODEL_SIZE
+end
+
+-- How the Mythic looks on the altar that stands here while it is locked: { Color, Transparency }.
+function PlazaPieces.LockedLook()
+	local altar = PlazaPieces.Altar()
+	return altar and altar.Locked or TODAYS_LOCKED
 end
 
 -- A mesh's name without the number Blender adds to a repeated one ("Body.001"): the key of the table's Parts.
