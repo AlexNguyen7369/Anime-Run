@@ -5,7 +5,7 @@
 -- Sensei header as it is (owner 2026-11-25; 0.75 is the draft's). Feet are draft set B's (tools/blender/plaza/draft_merchants.py CAST), proposed.
 -- Pose: limb -> degrees { x, y, z } about its top (the head about its bottom), as the draft turns it (draft_merchants.py turn(): its own axes, x
 -- right to the keeper's left, y to the back, z up); arms that rest on a counter hold the angle the draft solved. Yaw: degrees. Static poses on the
--- existing rigs, proposed. HideName: no floating name, the Sensei header is there (proposed).
+-- existing rigs, proposed. HideName: no floating name, the Sensei header is there (owner 2026-11-25).
 return {
 	ShopStall = {
 		Id = "sea_navigator",

@@ -16,7 +16,7 @@ PlazaPieces.MERCHANTS_LIVE = false
 PlazaPieces.ALTAR_TAGS = { Locked = "PlazaAltarLocked", Unlocked = "PlazaAltarUnlocked" } -- Shared/PlazaPieceLook, per player
 
 -- The locked Mythic's silhouette: today's altar's, and per new altar (below) a colour that reads against what is behind the model there, opaque
--- (**proposed**, WORLD_REDESIGN_SPEC 4.2; Backdrop is the draft's colour behind it: draft_altar.py ld6, burg2)
+-- (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2; Backdrop is the draft's colour behind it: draft_altar.py ld6, burg2)
 local TODAYS_LOCKED = { Color = Color3.fromRGB(24, 22, 30), Transparency = 0.25 }
 -- Per world: the altar's look, what its model stands on over the floor (studs, and studs ahead of the centre), its lock label's
 -- spot (altar frame) and the height of its floating header (over the crest, owner 2026-11-25)

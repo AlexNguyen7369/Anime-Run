@@ -288,6 +288,7 @@
 276. 2026-11-25 — Alex Nguyen — Made Gojio silent below rebirth 1 (owner): no prompt and no conversation, rule recorded in the design doc and specs (offline checks only).
 275. 2026-11-25 — Alex Nguyen — Built the export scripts and GLBs of the approved spawn pieces (gates, altars, market set B, sky loop), checked against the drafts; nothing uploaded.
 277. 2026-11-25 — Alex Nguyen — Built the merchants' poses behind their off switch and a readable locked Mythic per altar; exporter names its parts without numbers (offline checks only).
+278. 2026-11-25 — Alex Nguyen — Recorded the owner's approval of the locked Mythic colours and the merchants' names.
 
 ## What's next
 **Run the swap and the white-mesh fix in Studio, then land the fixes and pieces behind their audits.**
