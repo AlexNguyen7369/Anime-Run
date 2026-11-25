@@ -5,4 +5,5 @@ committed file and a scratch `export_props.py -- 5 --no-glb`: only the GiantCorp
 - Dropped, standing inside a body (`measure.json`, share of vertices under the body >= 0.5): Rubble rows 184, 249, 264, 287 (0.81, 0.92, 0.89,
   1.00). Their slots hold the 2 GiantCorpses, one Office and one Apartment; the other 10 new rows are 589 to 598.
 - The ledger row (`KaijuBase.luau` W2_KaijuBase_GiantCorpse) still names the OLD mesh id: this file must not ship before the new upload.
-- The new GiantCorpse parts fallback is 24 parts of colour 010203 (KaijuBase.STANDIN): near-black blobs while the mesh loads. The old one was brown.
+- Parts fallback: the exporter gives KaijuBase's stand-in parts (STANDIN 010203) its approved HIDE 86402F (`export_props.stand_in_colours`, fallback only):
+  all 24 GiantCorpse fallback parts are 86402F. The GLB is unchanged: geometry hash 7f2f942a...1c651137, 19,889 tris, 33,294 vertices, 1,185,820 bytes, before and after.
