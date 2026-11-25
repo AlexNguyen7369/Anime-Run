@@ -16,6 +16,9 @@ TerrainShape.SEAM = 32 -- placeholder: height blend band between zones
 -- placeholder: studs from a centre line (W/2 + wall 2 + half a voxel) whose Grass columns are Ground instead: the
 -- engine grows blades on Grass, taller than the 2 studs from the corridor's top to the road's (docs/BUGS.md)
 TerrainShape.BARE = 24
+-- proposed: studs past a clear slab's own footprint whose Grass columns are Ground (half a voxel, as BARE has past the
+-- walls): the drawn strip ends at most 4 studs out (owner 2026-11-25, 2 to 4) and no Grass column's square is inside
+TerrainShape.SLAB_BARE = 2
 TerrainShape.CELL = 8 -- placeholder: grid cell (studs)
 TerrainShape.STAMP = 120 -- placeholder: stamp radius (studs)
 TerrainShape.COARSE = 64 -- studs per coarse cell for nodes past the stamp radius
@@ -107,7 +110,7 @@ local function offer(buf, k, n, d, y, sec, p)
 	end
 end
 
--- XZ boxes { Min = Vector2, Max = Vector2 } from Instances (every BasePart's world box) or boxes as given
+-- XZ boxes { Min = Vector2, Max = Vector2, and the part's CFrame and Size when known } from Instances (every BasePart's world box) or boxes as given
 local function boxesOf(roots)
 	local boxes = {}
 	local function add(p)
@@ -116,10 +119,12 @@ local function boxesOf(roots)
 			+ (cf.UpVector * size.Y):Abs() / 2
 			+ (cf.LookVector * size.Z):Abs() / 2
 		local c = cf.Position
-		table.insert(
-			boxes,
-			{ Min = Vector2.new(c.X - half.X, c.Z - half.Z), Max = Vector2.new(c.X + half.X, c.Z + half.Z) }
-		)
+		table.insert(boxes, {
+			Min = Vector2.new(c.X - half.X, c.Z - half.Z),
+			Max = Vector2.new(c.X + half.X, c.Z + half.Z),
+			CFrame = cf,
+			Size = p.Size,
+		})
 	end
 	for _, root in roots or {} do
 		if typeof(root) == "Instance" then
@@ -136,6 +141,58 @@ local function boxesOf(roots)
 		end
 	end
 	return boxes
+end
+
+-- Clear boxes as footprints turned with their part (a world box of a turned slab is wider than the slab), bucketed by
+-- PAD_BUCKET like the pads, largest first so a column on the plaza floor stops at the floor
+local function slabsOf(boxes)
+	local slabs, buckets = {}, {}
+	for _, b in boxes do
+		local c, h = (b.Min + b.Max) / 2, (b.Max - b.Min) / 2
+		local l = Vector2.new(0, -1)
+		if b.CFrame then
+			local cf, size = b.CFrame, b.Size
+			local look = Vector2.new(cf.LookVector.X, cf.LookVector.Z)
+			l = look.Magnitude > 1e-4 and look.Unit or l
+			local r = Vector2.new(-l.Y, l.X)
+			local function extent(axis)
+				local function along(v, s)
+					return math.abs(v.X * axis.X + v.Z * axis.Y) * s / 2
+				end
+				return along(cf.RightVector, size.X) + along(cf.UpVector, size.Y) + along(cf.LookVector, size.Z)
+			end
+			h = Vector2.new(extent(r), extent(l))
+		end
+		table.insert(slabs, { C = c, L = l, HX = h.X, HZ = h.Y, Min = b.Min, Max = b.Max })
+	end
+	table.sort(slabs, function(a, b)
+		return a.HX * a.HZ > b.HX * b.HZ
+	end)
+	local B, m = TerrainShape.PAD_BUCKET, TerrainShape.SLAB_BARE
+	for _, s in slabs do
+		for i = math.floor((s.Min.X - m) / B), math.floor((s.Max.X + m) / B) do
+			for j = math.floor((s.Min.Y - m) / B), math.floor((s.Max.Y + m) / B) do
+				local key = i * 65536 + j
+				buckets[key] = buckets[key] or {}
+				table.insert(buckets[key], s)
+			end
+		end
+	end
+	return buckets
+end
+
+-- Is (x, z) within SLAB_BARE of a clear slab's footprint?
+local function bySlab(x, z)
+	local B, m = TerrainShape.PAD_BUCKET, TerrainShape.SLAB_BARE
+	for _, s in state.Slabs[math.floor(x / B) * 65536 + math.floor(z / B)] or {} do
+		local dx, dz, l = x - s.C.X, z - s.C.Y, s.L
+		local ex = math.max(math.abs(dz * l.X - dx * l.Y) - s.HX, 0)
+		local ez = math.max(math.abs(dx * l.X + dz * l.Y) - s.HZ, 0)
+		if ex * ex + ez * ez <= m * m then
+			return true
+		end
+	end
+	return false
 end
 
 -- Track n's centre line resampled every POLY_STEP studs (XZ), first and last waypoints included
@@ -399,6 +456,7 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 		Sec = sec,
 		Sections = sections,
 		Pits = {},
+		Slabs = slabsOf(clear),
 		X0 = x0,
 		Z0 = z0,
 		NX = nx,
@@ -868,7 +926,7 @@ function TerrainShape.Column(x, z)
 	local own = sec and sec.Material -- a section's Material is its corridor and ridge material
 	if band == "Corridor" then
 		local m = own or mats.Corridor or DEFAULT_MATERIALS.Corridor
-		if m == M.Grass and (math.min(dA, dB) <= TerrainShape.BARE or dc <= 0) then
+		if m == M.Grass and (math.min(dA, dB) <= TerrainShape.BARE or bySlab(x, z)) then
 			m = M.Ground -- under a road, its walls or a clear slab nothing may grow through
 		end
 		return y, nil, m, nil, nil, lo, hi
@@ -883,6 +941,9 @@ function TerrainShape.Column(x, z)
 		or own
 		or mats.Ridge
 		or DEFAULT_MATERIALS.Ridge
+	if surface == M.Grass and mats.Corridor == M.Grass and bySlab(x, z) then
+		surface = M.Ground -- the grid's clear-box distance can read over 0 (so Ridge) inside the grown box's edge cells
+	end
 	return y, waterY, surface, mats.Cliff or DEFAULT_MATERIALS.Cliff, prof.CliffSlope or 0.9, lo, hi
 end
 

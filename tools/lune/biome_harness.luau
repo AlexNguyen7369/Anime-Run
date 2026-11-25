@@ -1060,6 +1060,131 @@ do
 		print(string.format("GRASS FAIL %s %d columns", where, n))
 	end
 	print(string.format("GRASS CHECKS pass %d fail %d", gpass, gfail))
+	-- The collar (owner 2026-11-25, item 3: a brown strip of 2 to 4 studs): bare ground round a clear slab stays within
+	-- COLLAR_MAX of its real footprint (turned with it, not its world box), and no Grass column is nearer than
+	-- COLLAR_MIN (half a voxel: a Grass voxel's square starts outside the slab). On the 4-stud columns TerrainBuilder
+	-- writes. `raw` is the same Column with the Grass corridors swapped for Plastic, so bared columns can be told apart.
+	local COLLAR_MAX, COLLAR_MIN = 4, 2
+	local Material = R.Enum.Material
+	local slabs = {}
+	for _, root in { spawnArea, table.unpack(clear) } do
+		for _, part in root:IsA("BasePart") and { root } or root:GetDescendants() do
+			if part:IsA("BasePart") then
+				local cf, half = part.CFrame, part.Size / 2
+				local look = R.Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z)
+				look = look.Magnitude > 1e-4 and look.Unit or R.Vector3.new(0, 0, -1)
+				local right = R.Vector3.new(-look.Z, 0, look.X)
+				local function extent(axis)
+					return math.abs(cf.RightVector:Dot(axis)) * half.X
+						+ math.abs(cf.UpVector:Dot(axis)) * half.Y
+						+ math.abs(cf.LookVector:Dot(axis)) * half.Z
+				end
+				table.insert(slabs, {
+					Part = part,
+					P = cf.Position,
+					R = right,
+					L = look,
+					HX = extent(right),
+					HZ = extent(look),
+				})
+			end
+		end
+	end
+	local function past(s, x, z) -- studs from the footprint (0 inside)
+		local d = R.Vector3.new(x - s.P.X, 0, z - s.P.Z)
+		local ex = math.max(math.abs(d:Dot(s.R)) - s.HX, 0)
+		local ez = math.max(math.abs(d:Dot(s.L)) - s.HZ, 0)
+		return math.sqrt(ex * ex + ez * ez)
+	end
+	local cells = {} -- "x,z" -> { x, z, distance to the nearest slab, that slab }
+	for _, s in slabs do
+		local reach = math.sqrt(s.HX * s.HX + s.HZ * s.HZ) + 24
+		for x = math.floor((s.P.X - reach) / 4) * 4 + 2, s.P.X + reach, 4 do
+			for z = math.floor((s.P.Z - reach) / 4) * 4 + 2, s.P.Z + reach, 4 do
+				local key, d = x .. "," .. z, past(s, x, z)
+				local c = cells[key]
+				if d <= 24 and (not c or d < c[3]) then
+					cells[key] = { x, z, d, s }
+				end
+			end
+		end
+	end
+	local function eachGrassCorridor(f)
+		for _, e in entries do
+			local mats = TS.Profile(e.Number).Materials
+			if mats and (mats.Corridor == Material.Grass or mats.Corridor == Material.Plastic) then
+				f(mats)
+			end
+		end
+	end
+	local drawn = {}
+	for key, c in cells do
+		local _, _, m = TS.Column(c[1], c[2])
+		drawn[key] = m
+	end
+	eachGrassCorridor(function(mats)
+		mats.Corridor = Material.Plastic
+	end)
+	local wide, near, cpass, widest, closest, bands = 0, 0, 0, 0, math.huge, {}
+	for key, c in cells do
+		local x, z, d, m = c[1], c[2], c[3], drawn[key]
+		local road = math.huge
+		for _, e in entries do
+			local _, away = TS.Owner(x, z, e.Number)
+			road = math.min(road, away)
+		end
+		local _, _, raw = TS.Column(x, z)
+		local grassy = raw == Material.Plastic or raw == Material.Grass
+		if grassy and road > TS.BARE then
+			local bare = m ~= Material.Grass
+			if bare and d > COLLAR_MAX then
+				wide += 1
+			elseif not bare and d <= COLLAR_MIN then
+				near += 1
+			else
+				cpass += 1
+			end
+			if bare then
+				widest = math.max(widest, d)
+			else
+				closest = math.min(closest, d)
+			end
+			if d > 0 and d <= 14 then
+				local b = math.ceil(d)
+				bands[b] = bands[b] or { 0, 0 }
+				bands[b][bare and 1 or 2] += 1
+			end
+		end
+	end
+	eachGrassCorridor(function(mats)
+		mats.Corridor = Material.Grass
+	end)
+	for b = 1, 14 do
+		if bands[b] then
+			print(string.format("GRASS COLLAR %d-%d studs past: bare %d grass %d", b - 1, b, bands[b][1], bands[b][2]))
+		end
+	end
+	if process.env.COLLARYAW then
+		for _, s in slabs do
+			print("slab", s.Part.Name, math.deg(math.atan2(s.L.X, s.L.Z)), s.HX, s.HZ, s.P.X, s.P.Z)
+		end
+	end
+	print(
+		string.format(
+			"GRASS COLLAR pass %d, bare past %d studs %d, grass within %d studs %d; farthest bare column %.2f, nearest grass column %.2f",
+			cpass,
+			COLLAR_MAX,
+			wide,
+			COLLAR_MIN,
+			near,
+			widest,
+			closest
+		)
+	)
+	if wide + near > 0 then
+		print("GRASS COLLAR FAIL")
+		gfail += wide + near
+	end
 	if process.env.GRASSONLY then -- stop here: this block alone
 		process.exit(gfail > 0 and 1 or 0)
 	end

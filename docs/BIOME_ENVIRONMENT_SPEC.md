@@ -68,9 +68,12 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   `Embank = false`: overpasses stay on their supports.
 - Clear areas get flat terrain at `GROUND_TOP`: the plaza, checkpoint areas and WinPads, each footprint plus
   `BiomeDressing.CLEARANCE`. These are the same roots `BiomeDressing.Prune` already excludes.
-- A Grass corridor is Ground within 24 studs (placeholder) of a centre line and in clear areas, so no grass blade grows through a road
-  or slab (owner 2026-11-25, the brown strip of 2 to 4 studs on World 2). World 1 has no Grass corridor; a future World 1 theme
-  with one would be changed too.
+- Owner 2026-11-25 ("yes to all" item 3): grass off the road on World 2, with a brown strip of 2 to 4 studs. How it is built
+  (**proposed**): in a biome whose corridor is Grass, Grass is Ground within 24 studs of a centre line (`TerrainShape.BARE`)
+  and within 2 studs of a clear area's own footprint, turned with its part and without `CLEARANCE`
+  (`TerrainShape.SLAB_BARE`: the 4-stud voxels draw it up to about 4). The same strip round finish slabs, the plaza and the
+  VFX floor is our reading; the owner named the road. World 1 has no Grass corridor; a future World 1 theme with one would
+  be changed too.
 
 ### 2.3 Where zones meet
 - The seam between zones n and m lies on the gap midline (equal distance). Heights blend linearly across a 32-stud

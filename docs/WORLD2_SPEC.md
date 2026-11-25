@@ -16,8 +16,10 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   `assets/world2_draft/audit/lighting_2026-11-25`): all ten tracks' live Lighting values meet the floors below (T8
   OutdoorAmbient read 0.6176 mid-blend); roads and rails read on Tracks 6 to 10 and 1, 4, 8; a placed runner reads on
   night Tracks 1, 4 and 8, and on 4 and 8 in an iPhone 17 Pro emulation. Not seen: real phones, a real run, Tracks 2, 3 and
-  5 in pictures, high or low quality settings. Flaws found, not fixed (docs/BUGS.md): grass through the road on Tracks 6
-  and 7, near-black scenery props on 1, 4, 6, 7, 8 and 10.
+  5 in pictures, high or low quality settings. Flaws found (docs/BUGS.md): grass through the road on Tracks 6
+  and 7 (fixed in code and checked offline, not seen in Studio); near-black scenery props on 1, 4, 6, 7, 8 and 10 (the
+  grey tint is fixed in code, previewed in Studio on live meshes only, the code itself not seen there; the export colours
+  need the re-export and uploads, not done).
 - Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed; the road-and-runner rule below is
   met as seen above, owner 2026-11-25 "approved all continue the merge"). Seen in Studio before the fix:
   Track 1, 4 and 8 were close to black (Ambient under 30 of 255, Track 8's OutdoorAmbient 15), and Track 2's

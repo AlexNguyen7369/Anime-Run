@@ -6,7 +6,7 @@ preview and the colour test of three re-exported meshes (color_test.jpg); the gr
 ## Note for the owner
 | Fix | What it does | Before | After | Upload | Risk |
 |---|---|---|---|---|---|
-| Grass | bare ground under roads and slabs | blades through Track 6 and 7 roads (Track 1 after the swap) | none by the offline check | no | brown strip of about 2 to 4 studs by the walls, 8 round finish slabs |
+| Grass | bare ground under roads and slabs | blades through Track 6 and 7 roads (Track 1 after the swap) | none by the offline check (102,933 road and slab columns, 4,735 collar columns) | no | brown strip of about 2 to 4 studs by the walls, up to 4 round finish slabs and the plaza |
 | White meshes | stops the default grey darkening World 2 props | door 1C0A04 | door 2D1106 | no | pale props (hands, walls) are 56% brighter than you have seen them; dark ones stay near black |
 | Colour export | ships the approved colours | door 2D1106 | door 74482C, as approved | up to 115 meshes, saved in both places | proved on three meshes in Studio; the rest are not re-exported |
 
@@ -21,9 +21,13 @@ colours (2026-11-25); the grass fix is not seen yet.
 - World 1: not affected. No World 1 theme has a Grass corridor; 103,077 road and slab columns checked, 0 Grass.
 - After the Track 1/6 swap Track 1 has the same fault, and the plaza floor and finish slabs near Grass (80 sampled columns).
 - Patch: in `TerrainShape.Column`, a Grass corridor column within `BARE` (24 studs, proposed: W/2 + wall 2 + half a voxel) of
-  a road, or inside a clear box, is Ground. Heights, props and World 1 are identical (harness hashes); only the material
-  hash of World 2 changes. Cost: a brown (`Ground` A07B52) strip of about 2 to 4 studs outside each wall, and an 8-stud collar
-  round finish slabs (and the plaza after the swap).
+  a road, or within `SLAB_BARE` (2 studs, proposed: half a voxel) of a clear slab's own footprint (turned with its part;
+  `TrackBuilder.CheckpointBox` now carries the CFrame and Size), is Ground; in those biomes a Grass Ridge column that near is
+  Ground too (the grid's distance can put a column by a slab edge in the Ridge band). Heights, props and World 1 are identical (harness hashes); only the material
+  hash of World 2 changes. Cost: a brown (`Ground` A07B52) strip of about 2 to 4 studs outside each wall, and up to 4 studs
+  round finish slabs and the plaza (offline: bare columns at most 2.00 studs past a footprint,
+  none Grass nearer; drawn strip 2 at the plaza, 0 to 4 round finish slabs by where the voxel grid falls; before, bare
+  columns reached 7.21 studs, 43 past 4: it used the clear boxes grown by `CLEARANCE`).
 - Not chosen: LeafyGrass (no blades, but its global colour is teal), Corridor = Ground for the whole biome (44 studs a side:
   changes the approved look), turning Decoration off (a place setting, all worlds).
 
@@ -48,7 +52,7 @@ colours (2026-11-25); the grass fix is not seen yet.
 - Second cause, seen in Studio by the lead (2026-11-25): all 10,360 placed World 2 meshes have no texture and the default
   grey Color (0.639, 0.635, 0.647), and the same mesh in white is clearly lighter. It tints on top of the curve above.
 - Grey patch (on this branch, code only): `BiomeAssets` makes a textureless template white in World 2. World 1 and textured
-  meshes keep the colour they were loaded with (`biome_mesh_color`, offline 13/0 in each world, was 11/2).
+  meshes keep the colour they were loaded with (`biome_mesh_color`, offline 17/0 in each world, 15/2 without the patch).
 - Numbers, per channel as drawn (grey 0.64 multiplies): white is +56% on every mesh.
 
 | Prop colour | Approved | Today (grey, linear) | White only | Re-export only (grey) | Both |
