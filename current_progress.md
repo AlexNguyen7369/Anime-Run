@@ -263,8 +263,9 @@
 259. 2026-11-25 — Alex Nguyen — Owner questions recorded from the swap round 2 audit (hero turns and counts, two HQs) and the kaiju van test (b67dcf41; docs only).
 260. 2026-11-25 — Alex Nguyen — Owner questions recorded for swap round 3 (close-up model counts, Track 1 options) with the review page (42e85715; docs only).
 261. 2026-11-25 — Alex Nguyen — World 2 swap round 4 (2d0d07a9, not merged) reviewed at 7 on both tracks, audited with no violations and re-tested offline; handoff and owner questions updated (6b87b2f6).
+262. 2026-11-25 — Alex Nguyen — World 2 overlap across tracks recorded from renders with all ten tracks drawn (swap round 5, 5747dda6, not merged) (30127f74; docs only).
 
 ## What's next
-**Merge the World 2 Track 1 and 6 swap once the owner approves the layouts, then re-run the kaiju's site cut on the merged scenery.**
+**Get the owner's ruling on which track owns which ground in World 2 (the overlap question), before the Track 1 and 6 swap and the kaiju are approved for the game.**
 
-**Why this is next:** the kaiju cut and its overlap counts depend on the final Track 1 and 6 scenery, and the Studio checks need the merged branch.
+**Why this is next:** every track's scenery stands in other tracks' views, so layouts and the kaiju's surroundings cannot be judged or merged until that rule exists.
