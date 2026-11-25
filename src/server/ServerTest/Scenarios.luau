@@ -12272,6 +12272,8 @@ Scenarios.scrap = require(script.Parent.RunnerTests).scrap
 -- docs/WORLD_REDESIGN_SPEC.md 4.2 "Redrafted spawn pieces" (owner 2026-11-25): guards, and what waits on demand
 Scenarios.plaza_build = require(script.Parent.PlazaBuildTests).plaza_build
 Scenarios.plaza_build_pending = require(script.Parent.PlazaBuildTests).plaza_build_pending
+-- docs/BUGS.md admin-ranklookup-yield: a failed group rank lookup holds, checks at once share one lookup
+Scenarios.admin_rank = require(script.Parent.AdminRankTests).admin_rank
 -- the spawn pieces' code: nothing new before their upload, each piece once after it
 Scenarios.plaza_pieces = require(script.Parent.PlazaPiecesTests).plaza_pieces
 -- docs/WORLD_REDESIGN_SPEC.md sections 3, 5 and 7: the world layout (Dojos removed, design doc 4.43)
