@@ -14,13 +14,18 @@ local Layout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Pl
 
 local TOP = 1 -- SpawnArea.TOP_Y
 
--- Warm, in the HUD's gold and navy family (4.40); pink only as a small accent (proposed)
-local GOLD = Color3.fromRGB(255, 196, 70)
-local AMBER = Color3.fromRGB(255, 150, 56)
-local PAPER = Color3.fromRGB(255, 212, 150)
-local PINK = Color3.fromRGB(255, 120, 180)
+-- World 2's colours and set pieces (design doc 4.47 "Rift Shrine", placeholders in Shared/PlazaLook); empty in World 1
+local Look = require(ReplicatedStorage.Shared.PlazaLook)
+
+-- Warm, in the HUD's gold and navy family (4.40); pink only as a small accent (proposed). World 2 swaps them for cyan.
+local ACCENT = Look.Accent or {}
+local GOLD = ACCENT.Gold or Color3.fromRGB(255, 196, 70)
+local AMBER = ACCENT.Amber or Color3.fromRGB(255, 150, 56)
+local PAPER = ACCENT.Paper or Color3.fromRGB(255, 212, 150)
+local PINK = ACCENT.Pink or Color3.fromRGB(255, 120, 180)
 local SCREEN = Color3.fromRGB(34, 26, 34)
 local STEEL = Color3.fromRGB(104, 96, 92) -- warm steel
+local AMBER_LAMP = Color3.fromHex("FFB765") -- the plaza lanterns' glow (PlazaAssets Glow_lamp)
 
 -- Stall keys: eave trim (the lower roof's front eave in Blender local y and z, its width) and the wall screen on the
 -- back wall's inner face (Blender local x, y, z of its centre, width, height). From build_plaza.py stall/market_stall.
@@ -156,6 +161,117 @@ local function drone(parent, position, i)
 	CollectionService:AddTag(m, "BiomeBob")
 end
 
+-- World 2's rift (design doc 4.47, plaza_w2.py rift()): a blue disc with two violet spiral arms that turns slowly in its
+-- own plane on near clients (BiomeSpin turns about the pivot's Y, here the disc's normal), a cyan rim and a ring of
+-- floating stones. The glowing pieces are BiomeDetail (REDUCED EFFECTS hides them far away and stops the disc). 64 parts,
+-- no lights.
+local function bar(parent, name, a, b, width, normal, color)
+	return part(
+		parent,
+		name,
+		Vector3.new(width, 0.3, (b - a).Magnitude + 0.2),
+		CFrame.lookAt((a + b) / 2, b, normal),
+		color,
+		true
+	)
+end
+
+local function rift(parent, spec)
+	local R = spec.Radius
+	local pivot = CFrame.fromMatrix(spec.Centre, Vector3.yAxis, spec.Face) -- local Y faces the spawn
+	local function onDisc(angle, r, off)
+		return pivot:PointToWorldSpace(Vector3.new(r * math.cos(angle), off, r * math.sin(angle)))
+	end
+	local disc = Instance.new("Model")
+	disc.Name = "RiftDisc"
+	local d = 2 * (R - 4.5)
+	part(disc, "Disc", Vector3.new(0.4, d, d), pivot * CFrame.Angles(0, 0, math.pi / 2), spec.Blue, true).Shape =
+		Enum.PartType.Cylinder
+	for arm = 0, 1 do
+		for k = 1, 8 do
+			local a0, a1 = arm * math.pi + (k - 1) * 0.55, arm * math.pi + k * 0.55
+			local r0, r1 = (R - 5) * (k - 1) / 8, (R - 5) * k / 8
+			bar(disc, "Arm", onDisc(a0, r0, 0.35), onDisc(a1, r1, 0.35), 1 + r1 * 0.12, spec.Face, spec.Violet)
+		end
+	end
+	part(disc, "Eye", Vector3.new(5, 5, 5), CFrame.new(onDisc(0, 0, 0.5)), spec.Rim, true).Shape = Enum.PartType.Ball
+	disc.WorldPivot = pivot
+	disc:SetAttribute("BasePivot", pivot)
+	disc.Parent = parent
+	disc:SetAttribute("ReducedStill", true) -- Client/BiomeAmbience holds it at rest under REDUCED EFFECTS
+	CollectionService:AddTag(disc, "BiomeSpin")
+	CollectionService:AddTag(disc, "BiomeDetail")
+
+	local rim = Instance.new("Model")
+	rim.Name = "RiftRim"
+	for k = 0, 23 do
+		bar(
+			rim,
+			"Rim",
+			onDisc(k / 24 * 2 * math.pi, R - 3.5, 0),
+			onDisc((k + 1) / 24 * 2 * math.pi, R - 3.5, 0),
+			1.6,
+			spec.Face,
+			spec.Rim
+		)
+	end
+	rim.Parent = parent
+	CollectionService:AddTag(rim, "BiomeDetail")
+
+	local stones = Instance.new("Model")
+	stones.Name = "RiftStones"
+	local rng = Random.new(7)
+	for k = 0, spec.Stones - 1 do
+		local size = rng:NextNumber(4.4, 7.2)
+		local stone = part(
+			stones,
+			"Stone",
+			Vector3.new(size, size * rng:NextNumber(0.7, 1), size),
+			CFrame.new(onDisc(k / spec.Stones * 2 * math.pi, R + rng:NextNumber(-1, 2), rng:NextNumber(-1.5, 1.5))),
+			spec.Rock,
+			false
+		)
+		stone.Shape = Enum.PartType.Ball
+		stone.Material = Enum.Material.Slate
+	end
+	stones.Parent = parent
+end
+
+-- World 2's floating rock islands (plaza_w2.py islands()): a tapering rock under a slab and a grass top, a sakura bush,
+-- a lantern on every second one. 6 or 8 parts each, no lights.
+local function island(parent, row, i, colors)
+	local x, z, y, r = table.unpack(row)
+	local m = Instance.new("Model")
+	m.Name = "Island"
+	local up = CFrame.Angles(0, 0, math.pi / 2) -- a cylinder's axis is its X
+	local function disc(name, h, radius, cy, color, material)
+		local p = part(m, name, Vector3.new(h, radius * 2, radius * 2), CFrame.new(x, cy, z) * up, color, false)
+		p.Shape = Enum.PartType.Cylinder
+		p.Material = material
+	end
+	for k, f in { 0.9, 0.6, 0.3 } do
+		disc("Rock", r * 0.5, r * f, y - r * 0.25 - (k - 1) * r * 0.5, colors.Rock, Enum.Material.Slate)
+	end
+	disc("Slab", 0.4, r, y + 0.2, colors.Slab, Enum.Material.Slate)
+	disc("Grass", 0.9, r * 0.96, y + 0.85, colors.Grass, Enum.Material.Grass)
+	local bush = part(
+		m,
+		"Bloom",
+		Vector3.new(r * 0.6, r * 0.5, r * 0.6),
+		CFrame.new(x + r * 0.2, y + 1.3 + r * 0.2, z + r * 0.1),
+		colors.Bloom,
+		false
+	)
+	bush.Shape = Enum.PartType.Ball
+	if i % 2 == 1 then
+		local lx, lz = x - r * 0.45, z - r * 0.3
+		part(m, "LanternPost", Vector3.new(0.6, 2, 0.6), CFrame.new(lx, y + 2.3, lz), colors.Slab, false)
+		part(m, "LanternLamp", Vector3.new(0.9, 0.9, 0.9), CFrame.new(lx, y + 3.7, lz), AMBER_LAMP, true)
+	end
+	m.Parent = parent
+	CollectionService:AddTag(m, "BiomeDetail")
+end
+
 function PlazaAccents.Build()
 	local folder = Instance.new("Folder")
 	folder.Name = "PlazaAccents"
@@ -174,6 +290,12 @@ function PlazaAccents.Build()
 		if DRONE_HEIGHTS[i] then
 			drone(folder, Vector3.new(row.Pos.X, TOP + DRONE_HEIGHTS[i], row.Pos.Z), i)
 		end
+	end
+	if Look.Rift then
+		rift(folder, Look.Rift)
+	end
+	for i, row in Look.Islands or {} do
+		island(folder, row, i, Look.IslandColors)
 	end
 	folder.Parent = Workspace
 	return folder

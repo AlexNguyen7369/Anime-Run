@@ -82,8 +82,12 @@ for _, spec in chain do
 	origin = TrackBuilder.EndCFrame(layout, origin)
 end
 
+local BUILD_DEBUG = game:GetService("RunService"):IsStudio() -- os.clock timing prints of each track build
 local function buildTrack(entry)
 	local spec = entry.Spec
+	local t0 = os.clock()
+	BiomeDressing.Assets.Preload({ spec.Biome }) -- no-op when the join preload below already started its meshes
+	local t1 = os.clock()
 	local model, layout = TrackBuilder.Build(spec, entry.Origin)
 	model.Name = spec.Name
 	-- an enclosed tunnel over the road when the biome has one (docs/BIOME_ENVIRONMENT_SPEC.md 3.5), before Prune
@@ -93,8 +97,19 @@ local function buildTrack(entry)
 	end
 	model.Parent = folder
 	entry.Layout, entry.Model = layout, model
+	if BUILD_DEBUG then
+		print(string.format("[BUILD] %s: meshes %.2f s, build %.2f s", spec.Name, t1 - t0, os.clock() - t1))
+	end
 end
 
+-- Every mesh of the join tracks loads in parallel first (each up to BiomeAssets.TIMEOUT), not one by one in the build
+do
+	local biomes = {}
+	for i = 1, math.min(JOIN_TRACKS, #entries) do
+		table.insert(biomes, entries[i].Biome)
+	end
+	BiomeDressing.Assets.Preload(biomes)
+end
 for i = 1, math.min(JOIN_TRACKS, #entries) do
 	buildTrack(entries[i])
 	task.wait() -- ~98k studs of road: one track per frame keeps Studio under its unyielding-script limit
@@ -104,6 +119,13 @@ end
 local track1Start = entries[1].Model:FindFirstChild("Start", true).CFrame
 local spawnArea = SpawnArea.Build(track1Start)
 spawnArea.Parent = Workspace
+do -- the open world gate and the World 2 arrival check (design doc 4.47)
+	local WorldTravel = require(script.Parent.WorldTravel)
+	WorldTravel.IsAdmin = AdminService.IsAdmin
+	WorldTravel.Start()
+	local WorldWelcome = require(script.Parent.WorldWelcome) -- World 2's first-arrival welcome
+	WorldWelcome.Start()
+end
 local trackModels = {} -- the built models; late tracks join it, so TerrainBuilder's final pass reaches them too
 for _, entry in entries do
 	if entry.Model then

@@ -282,8 +282,9 @@ function DuelService.Tick()
 	end
 end
 
--- A player left: a pending request is cancelled, a countdown or race is forfeited.
-function DuelService.PlayerLeft(player)
+-- A player left: a pending request is cancelled, a countdown or race is forfeited. `travelling` (Server/WorldTravel's
+-- Depart): the player may stay if the trip fails, so the request cooldown is kept.
+function DuelService.PlayerLeft(player, travelling)
 	local duel = duelOf[player]
 	if duel then
 		if duel.Phase == "Picking" or duel.Phase == "Invited" then
@@ -293,8 +294,10 @@ function DuelService.PlayerLeft(player)
 			tickDuel(duel, clock())
 		end
 	end
-	lastRequest[player] = nil
-	lastMessage[player] = nil
+	if not travelling then
+		lastRequest[player] = nil
+		lastMessage[player] = nil
+	end
 end
 
 -- The "Duel" prompt on a character's root: only shown while its owner is on foot.

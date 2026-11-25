@@ -1,5 +1,6 @@
 # Sidekick attacks' in-betweens (design doc 4.37, SIDEKICK_SPEC, BOSS_EVENT_SPEC "Boss and attacks"; owner approved the 12 attacks'
 # keys, and side_king's and side_mage's on 2026-11-11 with their bosses' key frames).
+# The 12 World 2 rows (side_box .. side_dark) were baked 2026-11-24; the owner approved their poses in session the same day.
 #   python3 tools/blender/bake_sidekick_attacks.py     writes src/late/SidekickAttacks.luau, then self-checks against the limits of
 #                                                      src/server/ServerTest/SidekickAttackTests.luau. Run stylua on it after.
 #   Blender -b --factory-startup --python tools/blender/bake_sidekick_attacks.py -- rig <folder holding <id>/<id>.blend> [<id> ...]
@@ -15,7 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 RIGS = os.path.join(HERE, "sidekicks", "rigs.json")
 LUAU = os.path.join(ROOT, "src", "late", "SidekickAttacks.luau")
-IDS = "side_chain side_wyvern side_knight side_pig side_crow side_reindeer side_dogs side_ant side_reaper side_fist side_curse side_fox side_king side_mage".split()
+IDS = "side_chain side_wyvern side_knight side_pig side_crow side_reindeer side_dogs side_ant side_reaper side_fist side_curse side_fox side_king side_mage side_box side_cat side_lucky side_tiger side_bird side_hound side_shaman side_acrobat side_brawler side_general side_dragon side_dark".split()
 RATE = 120  # samples a second before thinning
 MAX_GAP = 1 / 15  # s between baked keys at most
 TOLERANCE, ROOT_TOLERANCE = 0.2, 0.002  # degrees and units a thinned key may be off the curve
@@ -23,7 +24,7 @@ FRAME = 1 / 60
 DEGREE_SLACK, OFFSET_SLACK = 1, 0.01  # SidekickAttackTests: a frame may move twice the fastest linear segment plus this
 CAP = 0.85  # of that limit, for an ease's peak
 # Keys that land a blow: the snap goes into them and they hold a beat. All other keys are passed through softly.
-STRIKES = {"Release", "Second slash", "Third slash", "Left straight", "Both fists", "Second bite"}
+STRIKES = {"Release", "Second slash", "Third slash", "Left straight", "Both fists", "Second bite", "Second swipe"}
 EXTRA_RELEASE = {"side_dogs": ("Second bite",)}  # owner: the second dog fires at its own bite
 HOLD = 0.03  # s of hit stop on a strike
 SETTLE_CARRY, RECOVER_CARRY = 0.12, 0.07  # overshoot past a key, as a share of the segment before

@@ -1,0 +1,4 @@
+{
+	"portrait": {"show": ["Base", "Lid", "Tongue"], "frame": ["Base", "Lid", "Tongue"], "cut": -1.0, "turn": 24},
+	"head": {"show": ["Base", "Lid", "Tongue"], "frame": ["Base", "Lid", "Tongue"], "cut": 0.6, "turn": 10}
+}

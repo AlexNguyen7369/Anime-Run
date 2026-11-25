@@ -1,0 +1,255 @@
+{
+	"movement": "Walk",
+	"title": "Rovar: energy blast (proposed)",
+	"end": 1.4,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.35,
+			"desc": "Plants wide, head drawn back, jaw shut",
+			"root": {
+				"Body": [
+					0,
+					0.5,
+					0
+				]
+			},
+			"parts": {
+				"Body": [
+					-8,
+					0,
+					0
+				],
+				"Head": [
+					-20,
+					0,
+					0
+				],
+				"HeadJaw": [
+					-4,
+					0,
+					0
+				],
+				"Tail": [
+					-26,
+					0,
+					0
+				],
+				"LegFrontLeft": [
+					-20,
+					-10,
+					0
+				],
+				"LegFrontRight": [
+					-20,
+					10,
+					0
+				],
+				"LegBackLeft": [
+					14,
+					0,
+					0
+				],
+				"LegBackRight": [
+					14,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Charge",
+			"t": 0.65,
+			"desc": "Head low, jaw opening, shoulders hunched",
+			"root": {
+				"Body": [
+					0,
+					0.35,
+					0
+				]
+			},
+			"parts": {
+				"Body": [
+					10,
+					0,
+					0
+				],
+				"Head": [
+					12,
+					0,
+					0
+				],
+				"HeadJaw": [
+					22,
+					0,
+					0
+				],
+				"Tail": [
+					-44,
+					0,
+					14
+				],
+				"LegFrontLeft": [
+					-34,
+					-12,
+					0
+				],
+				"LegFrontRight": [
+					-34,
+					12,
+					0
+				],
+				"LegBackLeft": [
+					-6,
+					0,
+					0
+				],
+				"LegBackRight": [
+					-6,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.85,
+			"desc": "Head snaps up level, jaw wide, blast fires",
+			"root": {
+				"Body": [
+					0,
+					0.2,
+					0
+				]
+			},
+			"parts": {
+				"Body": [
+					-6,
+					0,
+					0
+				],
+				"Head": [
+					-10,
+					0,
+					0
+				],
+				"HeadJaw": [
+					40,
+					0,
+					0
+				],
+				"Tail": [
+					22,
+					0,
+					0
+				],
+				"LegFrontLeft": [
+					-26,
+					-14,
+					0
+				],
+				"LegFrontRight": [
+					-26,
+					14,
+					0
+				],
+				"LegBackLeft": [
+					20,
+					0,
+					0
+				],
+				"LegBackRight": [
+					20,
+					0,
+					0
+				]
+			},
+			"markers": [
+				{
+					"label": "energy blast",
+					"shape": "disc",
+					"at": [
+						0,
+						-6.6,
+						3.6
+					],
+					"r": 1.3,
+					"rgb": [
+						1,
+						0.2,
+						0.35
+					]
+				},
+				{
+					"label": "",
+					"shape": "burst",
+					"at": [
+						0,
+						-4.6,
+						3.5
+					],
+					"r": 0.8,
+					"rgb": [
+						1,
+						0.6,
+						0.5
+					]
+				}
+			]
+		},
+		{
+			"name": "Recovery",
+			"t": 1.15,
+			"desc": "Recoils, jaw half shut, shakes its head",
+			"root": {
+				"Body": [
+					0,
+					0.35,
+					0
+				]
+			},
+			"parts": {
+				"Body": [
+					-4,
+					0,
+					0
+				],
+				"Head": [
+					6,
+					0,
+					-18
+				],
+				"HeadJaw": [
+					8,
+					0,
+					0
+				],
+				"Tail": [
+					0,
+					0,
+					-14
+				],
+				"LegFrontLeft": [
+					-8,
+					0,
+					0
+				],
+				"LegFrontRight": [
+					-4,
+					0,
+					0
+				],
+				"LegBackLeft": [
+					6,
+					0,
+					0
+				],
+				"LegBackRight": [
+					6,
+					0,
+					0
+				]
+			}
+		}
+	]
+}

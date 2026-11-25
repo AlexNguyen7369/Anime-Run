@@ -170,7 +170,7 @@ end
 
 local function bestRolledCharacter()
 	local best
-	for _, spec in catalog.All() do
+	for _, spec in catalog.Everything() do
 		if data and data:FindFirstChild(spec.Id) and (not best or (spec.Chance or 0) > (best.Chance or 0)) then
 			best = spec
 		end
@@ -706,6 +706,10 @@ end)
 local function refreshIndex()
 	local team = string.split(player:GetAttribute("Team") or "", ",")
 	local count = 0
+	local shared = 0 -- every world's discoveries: they earn the points together (design doc 4.47)
+	for _, spec in catalog.Everything() do
+		shared += data:FindFirstChild(spec.Id) and 1 or 0
+	end
 	for id, tile in pairs(tiles) do
 		local owned = data:FindFirstChild(id) ~= nil
 		tile.Frame:SetAttribute("Owned", owned)
@@ -749,7 +753,7 @@ local function refreshIndex()
 		"%d / %d DISCOVERED · NEXT POINT IN %d",
 		count,
 		#catalog.All(),
-		config.DISCOVERIES_PER_POINT - count % config.DISCOVERIES_PER_POINT
+		config.DISCOVERIES_PER_POINT - shared % config.DISCOVERIES_PER_POINT
 	)
 end
 local EQUIP_ANSWER_SECONDS = 3 -- placeholder: a press the server has not answered by then was refused

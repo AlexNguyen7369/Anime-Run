@@ -515,7 +515,7 @@ function Tests.duel()
 	end
 	local strict = M.Targets.lap.MinUpYStrict
 	local maxDev = M.Targets.race.MaxPathDeviation
-	local FAST_ID = "ds_sister" -- an Epic Balanced, about the old HALF_STAT cruise (design doc 4.13)
+	local FAST_ID = require(script.Parent.AcceptanceSupport).worldChar("ds_sister") -- an Epic Balanced, about the old HALF_STAT cruise (design doc 4.13)
 
 	local fakes = {}
 	local sent = {} -- every message the service sent, in order: { Player, Message }
@@ -860,6 +860,8 @@ function Tests.duel()
 
 		-- REQUEST_COOLDOWN since A's last request (the refused ones never count)
 		refused("cooldown_after_1s", A, B, "Cooldown")
+		service.PlayerLeft(A.Player, true) -- Server/WorldTravel's Depart: a trip that fails keeps the cooldown
+		refused("cooldown_kept_after_travel_depart", A, B, "Cooldown")
 		now = t0 + NUMBERS.REQUEST_COOLDOWN - 0.01
 		refused("cooldown_just_before_10s", A, B, "Cooldown")
 		flag("duel_cooldown_refusal_changes_no_state", both(A, B, "None"), tostring(state(A)), "None")

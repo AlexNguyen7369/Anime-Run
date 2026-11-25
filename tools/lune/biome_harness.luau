@@ -2,7 +2,7 @@
 -- Biome harness (docs/BIOME_ENVIRONMENT_SPEC.md 3.2): runs the real TrackBuilder, BiomeThemes, BiomeDressing.Prune,
 -- TerrainShape.Prepare and BiomeDressing.SnapToTerrain on the track chain in Lune, Instances from @lune/roblox.
 -- Run from the repo root: `lune run tools/lune/biome_harness.luau`. Env: ROOT (repo root, default cwd), N (tracks,
--- default 10), NOFIGHT=1 (no fight scenes, fw7), NOTUNNEL=1 (no biome has a Tunnel, fw8: the framework's identity
+-- default 10), WORLD=2 (World 2's tracks and themes), NOFIGHT=1 (no fight scenes, fw7), NOTUNNEL=1 (no biome has a Tunnel, fw8: the framework's identity
 -- check), SIGNED=1 (every ledger row counts as reviewed), ONLY=1 (print every padded prop over 1 stud), NOMESH=1 (fallback parts instead of one part per mesh),
 -- TUNNEL=1 (give Track 7 the spec 3.5 example Tunnel and a pinned test hero outside the bays, and check it: no terrain in the
 -- box, ceiling >= 12 studs, every prop inside the walls or on a bay platform, pinned heroes in their bays, the gate
@@ -13,8 +13,15 @@
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
 local process = require("@lune/process")
+local serde = require("@lune/serde")
 local R = require("@lune/roblox")
 local ROOT = process.env.ROOT or process.cwd
+local failed = false -- any printed FAIL line makes the process exit 1 at the end
+local rawPrint = print
+print = function(...)
+	failed = failed or string.find(tostring((...)), "FAIL", 1, true) ~= nil
+	rawPrint(...)
+end
 
 -- Model methods Lune lacks: bounding box oriented like the first part (props are yaw-only, all parts share it)
 local function parts(m)
@@ -124,7 +131,7 @@ function Node:WaitForChild(k)
 	return assert(self:FindFirstChild(k), "no child " .. k .. " in " .. self._path)
 end
 function Node:IsA(c)
-	return c == "ModuleScript"
+	return c == (FILES[self._path] and "ModuleScript" or "Folder") -- a directory without init.luau is a Folder
 end
 function Node:GetChildren()
 	local o = {}
@@ -150,6 +157,18 @@ local game = {
 	GetService = function(_, s)
 		if s == "CollectionService" then
 			return CS
+		end
+		if s == "ReplicatedStorage" and process.env.WORLD == "2" then -- Shared/WorldConfig reads WorldId
+			return {
+				FindFirstChild = function(_, name)
+					if name == "WorldId" then
+						local id = R.Instance.new("IntValue")
+						id.Value = 2
+						return id
+					end
+					return nil
+				end,
+			}
 		end
 		return setmetatable({}, {
 			__index = function()
@@ -286,8 +305,11 @@ function World.build(count)
 	return entries, models
 end
 
--- The spec 3.5 example (Track 7, section 7 values) for TUNNEL=1; the biome module owns the real one
-if process.env.TUNNEL then
+-- The spec 3.5 example (Track 7, section 7 values) for TUNNEL=1; the biome module owns the real one. World 1 only:
+-- WORLD=2 loads no Desert theme, so the example is skipped there (its own tunnels are still checked)
+if process.env.TUNNEL and not req(Shared.BiomeThemes).Desert then
+	print("INFO TUNNEL=1: no Desert theme in this world, the spec 3.5 example Tunnel is skipped")
+elseif process.env.TUNNEL then
 	req(Shared.BiomeThemes).Desert.Tunnel = {
 		Width = 120, -- fw8 (owner 2026-11-01): the target width, narrowed per side near other tracks
 		Height = 26,
@@ -336,6 +358,169 @@ if process.env.SIGNED then
 	end
 end
 
+-- WORLD=2: the approved World 2 themes (docs/WORLD2_SPEC.md "Blender first", BIOME_ENVIRONMENT_SPEC 4.2-4.5, design doc
+-- 5). Prints "W2 FAIL <check>" per problem and "W2 CHECKS pass=<n> fail=<n>"; LEDGER=1 stops after these checks.
+local W2_APPROVED = {
+	"DevilTokyo",
+	"DemonCastle",
+	"RuinedCityZ",
+	"HauntedTunnel",
+	"KaijuBase",
+	"ElvenPlains",
+	"AntIsland",
+	"MonsterDen",
+	"GoldenCity",
+	"HellGate",
+}
+-- A prop cut into pieces for the 2048-stud limit (WORLD2_SPEC 2026-11-24) is <Prop>_p<i>: the designed prop's name
+local function designed(name)
+	return string.match(name, "^(.-)_p%d+$") or name
+end
+if process.env.WORLD == "2" then
+	-- realNameIn from the server tests' own source, so the hashed name list stays in one place
+	local cat = fs.readFile(ROOT .. "/src/server/ServerTest/CatalogTests.luau")
+	local from, to = cat:find("local REAL_NAME_HASHES", 1, true), cat:find("function Tests.catalog", 1, true)
+	local realNameIn = luau.load(cat:sub(from, to - 1) .. "\nreturn realNameIn", { debugName = "realNameIn" })()
+	local Themes = req(Shared.BiomeThemes)
+	local pass, fail = 0, 0
+	local function check(ok, name)
+		if ok then
+			pass += 1
+		else
+			fail += 1
+			print("W2 FAIL " .. name)
+		end
+	end
+	local function strings(t, out, seen)
+		if type(t) == "string" then
+			table.insert(out, t)
+		elseif type(t) == "table" and not seen[t] then
+			seen[t] = true
+			for k, v in t do
+				strings(k, out, seen)
+				strings(v, out, seen)
+			end
+		end
+		return out
+	end
+	for _, key in W2_APPROVED do
+		local t = Themes[key]
+		check(t ~= nil and t.Placed ~= nil and #t.Placed > 0, key .. " has its own draft theme")
+		t = t or {}
+		check(
+			type(t.Terrain) == "table"
+				and type(t.Atmosphere) == "table"
+				and type(t.Atmosphere.Lighting.ClockTime) == "number"
+				and type(t.Audio) == "table"
+				and type(t.Assets) == "table",
+			key .. " sections"
+		)
+		local hit
+		for _, text in strings(t, {}, {}) do
+			hit = hit or realNameIn((string.gsub(string.lower(text), "[^%w]+", "_")))
+		end
+		check(hit == nil, key .. " no real names")
+		local used, meshes, seenProp = {}, 0, {}
+		for name, def in t.Props or {} do
+			check(#def.Parts > 0, key .. "/" .. name .. " has a parts fallback")
+			if def.Mesh then
+				-- the 12-mesh cap counts designed props; a prop's pieces are one (ledger Notes list them)
+				meshes += seenProp[designed(name)] and 0 or 1
+				seenProp[designed(name)] = true
+				used[def.Mesh] = true
+				local row = t.Assets[def.Mesh]
+				check(
+					type(row) == "table"
+						and row.Kind == "Mesh"
+						and row.Lane == "B"
+						and type(row.Tris) == "number"
+						and type(row.Prompt) == "string"
+						and row.Prompt ~= ""
+						and (row.Id == nil or string.match(row.Id, "^rbxassetid://%d+$") ~= nil)
+						and (row.Reviewed == nil or string.match(row.Reviewed, "^%d%d%d%d%-%d%d%-%d%d %S") ~= nil),
+					key .. "/" .. def.Mesh .. " ledger row"
+				)
+				check(string.sub(def.Mesh, 1, #key + 4) == "W2_" .. key .. "_", def.Mesh .. " key uses the biome key")
+			end
+		end
+		for asset in t.Assets or {} do
+			check(used[asset] == true, key .. "/" .. asset .. " ledger row is used")
+		end
+		check(meshes <= 12, key .. " unique meshes " .. meshes .. " <= 12")
+		local unknown = 0
+		for _, e in t.Placed or {} do
+			unknown += (t.Props[e[1]] and 0 or 1)
+		end
+		check(unknown == 0, key .. " placements name known props")
+		-- A placed prop's mesh (def.Size times its Scale or Stretch, BiomeDressing.placed) and every fallback part
+		-- must fit Roblox's 2048-stud part limit per axis, or the engine clamps it and the art changes shape
+		for i, e in t.Placed or {} do
+			local def, k = t.Props[e[1]], e[9] or e[6]
+			if def then
+				local big = def.Size * k
+				for _, p in def.Parts do
+					big = big:Max(p.Size * k)
+				end
+				local axis = math.max(big.X, big.Y, big.Z)
+				check(
+					axis <= 2048,
+					string.format("%s Placed_%d %s fits 2048 (%.0f x %.0f x %.0f)", key, i, e[1], big.X, big.Y, big.Z)
+				)
+			end
+		end
+	end
+	print(string.format("W2 CHECKS pass=%d fail=%d", pass, fail))
+	if process.env.LEDGER then
+		process.exit(fail == 0 and 0 or 1)
+	end
+end
+
+-- Spawn plaza look per world (design doc 4.47 "Moonlit Dojo"): in World 2 the plaza profile and colours come from
+-- Shared/PlazaLook's World 2 table; World 1 has none and keeps its golden hour. Prints "PLAZA FAIL <check>" per problem
+-- and "PLAZA CHECKS pass=<n> fail=<n>".
+do
+	local Look = req(Shared.PlazaLook)
+	local p = req(Shared.BiomeEnvironment).Profile(0)
+	local hex = R.Color3.fromHex
+	local pass, fail = 0, 0
+	local function check(ok, name)
+		if ok then
+			pass += 1
+		else
+			fail += 1
+			print("PLAZA FAIL " .. name)
+		end
+	end
+	if process.env.WORLD == "2" then
+		local a = Look.Atmosphere
+		check(
+			a ~= nil and Look.Glow ~= nil and Look.Accent ~= nil and Look.Rift ~= nil and Look.Sakura == nil,
+			"World 2 table"
+		)
+		a = a or { Lighting = {}, Atmosphere = {}, Sky = {} }
+		for _, key in { "ClockTime", "Ambient", "OutdoorAmbient", "Brightness" } do
+			check(p.Lighting[key] == a.Lighting[key], "Lighting." .. key .. " from the table")
+		end
+		check(
+			p.Atmosphere.Density == a.Atmosphere.Density and p.Atmosphere.Color == a.Atmosphere.Color,
+			"fog from the table"
+		)
+		check(p.Sky.Skybox == nil and p.Sky.SunAngularSize == a.Sky.SunAngularSize, "dusk sky from the table")
+		check(p.Particles[1].Texture == "PlazaPetal" and p.Particles[1].Color == hex("FFFFFF"), "World 1 petals kept")
+		check(p.Lighting.ClockTime > 16 and p.Lighting.ClockTime < 19, "dusk clock")
+		check(#(Look.Islands or {}) == 5, "five islands")
+		for i, isle in Look.Islands or {} do -- outside the plaza floor (x +-94, z +-110)
+			check(math.abs(isle[1]) > 94 or math.abs(isle[2]) > 110, "island " .. i .. " outside the floor")
+		end
+	else
+		check(next(Look) == nil, "World 1 has no plaza overrides")
+		check(p.Lighting.ClockTime == 16.6 and p.Lighting.OutdoorAmbient == hex("B09A88"), "golden hour kept")
+		check(p.Atmosphere.Density == 0.18 and p.Sky.Skybox == "SkyGolden", "golden fog and sky kept")
+		check(p.Particles[1].Color == hex("FFFFFF"), "white petals kept")
+	end
+	print(string.format("PLAZA CHECKS pass=%d fail=%d", pass, fail))
+end
+
 -- Measure
 local BD = req(Shared.BiomeDressing)
 if not process.env.NOMESH then
@@ -354,7 +539,477 @@ local spawnArea = R.Instance.new("Part") -- the plaza floor (SpawnArea.FLOOR_SIZ
 spawnArea.Size = R.Vector3.new(188, 1, 220)
 spawnArea.CFrame = R.CFrame.new(0, -1, 0)
 spawnArea.Position = spawnArea.CFrame.Position
+local function placedCount(m) -- WORLD=2: draft placements standing in a track's Environment
+	local n = 0
+	for _, c in m.Environment:GetChildren() do
+		n += string.match(c.Name, "^Placed_") and 1 or 0
+	end
+	return n
+end
+local built, plaza, finish = {}, {}, {}
+local builtHeroes = {} -- track -> designed prop name -> built (before any Prune), for the hero check's message
+for i, m in models do
+	built[i] = placedCount(m)
+	builtHeroes[i] = {}
+	local theme = process.env.WORLD == "2" and req(Shared.BiomeThemes)[entries[i].Biome]
+	for _, c in m.Environment:GetChildren() do
+		local k = theme and theme.Placed and tonumber(string.match(c.Name, "^Placed_(%d+)$"))
+		if k then
+			builtHeroes[i][designed(theme.Placed[k][1])] = true
+		end
+	end
+end
+if process.env.WORLD == "2" then -- first what the other tracks and the spawn area remove, then the own finish pieces
+	for i, m in models do
+		local others = table.clone(models)
+		table.remove(others, i)
+		BD.Prune(others, { spawnArea }, { m })
+		plaza[i] = placedCount(m)
+		local stub = R.Instance.new("Model") -- the own Checkpoint (finish area and WinPad) without the Road and Walls
+		m.Checkpoint:Clone().Parent = stub
+		BD.Prune({ stub }, nil, { m })
+		finish[i] = placedCount(m)
+	end
+end
 BD.Prune(models, { spawnArea })
+local w2Hits = {} -- WORLD=2: box road hits, one key per placement (biome, Placed_<k>, prop, track, rounded draft position)
+-- A fresh copy of a biome's generated draft, not the table Kit.fromDraft was handed, so nothing Kit or BiomeDressing does
+-- to the rows or sizes can reach what the built props are compared against.
+local function freshDraft(biome)
+	local node = Shared:FindFirstChild("BiomeThemes"):FindFirstChild("World2"):FindFirstChild(biome .. "Draft")
+	local saved = cache[node._path]
+	cache[node._path] = nil
+	local raw = req(node)
+	cache[node._path] = saved
+	return raw
+end
+-- (c) A placed prop stands where its draft row says (the transform the exporter road-tested): its mesh part has the
+-- row's CFrame (origin * (X, Y, Z) * YXZ(RX, Yaw, RZ), up by half its height) and Size (the draft Size times Scale or
+-- Stretch); without a mesh (NOMESH, PartsOnly, parts fallback) every fallback part <Name><i> has its centre at
+-- base * (Pos * Scale) and the draft part's size, up to the axis swap Kit.fromDraft makes for a cylinder (the only
+-- change Kit may make: part shapes, mesh names and shadows; never a size or a placement). Stretched rows check the
+-- part centres only. Returns ok, why.
+local function placedOk(origin, row, def, prop, name)
+	local s = row[9] or row[6]
+	local base = origin
+		* R.CFrame.new(row[2], row[3], row[4])
+		* R.CFrame.fromEulerAnglesYXZ(row[7] or 0, row[5], row[8] or 0)
+	local mesh = prop:FindFirstChild(name)
+	if mesh then
+		local size = def.Size * s
+		local want, got = base * R.CFrame.new(0, size.Y / 2, 0), mesh.CFrame
+		if
+			(got.Position - want.Position).Magnitude < 0.01
+			and (mesh.Size - size).Magnitude < 0.01
+			and got.RightVector:Dot(want.RightVector) > 0.99999
+			and got.UpVector:Dot(want.UpVector) > 0.99999
+		then
+			return true
+		end
+		return false,
+			string.format(
+				"mesh at %s size %s, draft row says %s size %s",
+				tostring(got.Position),
+				tostring(mesh.Size),
+				tostring(want.Position),
+				tostring(size)
+			)
+	end
+	for j, q in def.Parts do
+		local part = prop:FindFirstChild(name .. j)
+		if not part then
+			return false, "neither its mesh part nor fallback part " .. j .. " is built"
+		end
+		local want, size = base * ((q.Pos or q[2]) * s), (q.Size or q[1]) * s
+		local a, b = { part.Size.X, part.Size.Y, part.Size.Z }, { size.X, size.Y, size.Z }
+		table.sort(a)
+		table.sort(b)
+		local sizeOk = type(s) ~= "number"
+			or math.abs(a[1] - b[1]) + math.abs(a[2] - b[2]) + math.abs(a[3] - b[3]) < 0.03
+		if (part.CFrame.Position - want).Magnitude > 0.01 or not sizeOk then
+			return false,
+				string.format(
+					"fallback part %d at %s size %s, draft row says %s size %s",
+					j,
+					tostring(part.CFrame.Position),
+					tostring(part.Size),
+					tostring(want),
+					tostring(size)
+				)
+		end
+	end
+	return true
+end
+if process.env.WORLD == "2" then -- draft placements kept by the budget and own-ground rule (built), then by Prune (kept)
+	local Themes = req(Shared.BiomeThemes)
+	-- WORLD2_SPEC 2026-11-24: draft props are road-tested at export against every track (export_props.py, real
+	-- triangles), so in the built result (a) every hero of each approved biome (its draft's Heroes, MODEL_SHOTS) has a
+	-- kept placement, and (b) no kept Placed_ prop intrudes on another track's corridor. (b) approximates the exporter's
+	-- triangle test: each part's box centre (a mesh is one box here) within 24 studs of another track's centre line and
+	-- from its road top to 14 over it. A box is coarser than the triangles and every draft placement already passed the
+	-- exporter's test, so each (b) hit goes to w2Hits, judged against tools/lune/w2_road_warn_pins.json after
+	-- SnapToTerrain (the PIN block, with (c): placedOk). Prints "W2 ROAD FAIL <check>" and "W2 ROAD CHECKS pass fail".
+	do
+		local rpass, rfail = 0, 0
+		local function rcheck(ok, name)
+			if ok then
+				rpass += 1
+			else
+				rfail += 1
+				print("W2 ROAD FAIL " .. name)
+			end
+		end
+		-- Each centre-line segment as clearance.py's corridor box: along it (2 studs past each end), 24 to each side,
+		-- from its road top to 14 over its higher end. A part's oriented box against them (separating axes), every
+		-- track, its own too unless the prop is in its biome's CLEAR_EXEMPT.
+		local CELL = 64
+		local grid = {}
+		for i, e in entries do
+			local wps = e.Layout.WorldWaypoints
+			for j = 1, #wps - 1 do
+				local a, b = wps[j], wps[j + 1]
+				local d = R.Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+				if d.Magnitude > 1e-6 then
+					local u = d.Unit
+					local lo, hi = math.min(a.Y, b.Y) + 0.05, math.max(a.Y, b.Y) + 14
+					local box = {
+						i,
+						R.CFrame.fromMatrix(
+							R.Vector3.new((a.X + b.X) / 2, (lo + hi) / 2, (a.Z + b.Z) / 2),
+							R.Vector3.new(-u.Z, 0, u.X),
+							R.Vector3.yAxis
+						),
+						R.Vector3.new(24, (hi - lo) / 2, d.Magnitude / 2 + 2),
+					}
+					local r = d.Magnitude / 2 + 2 + 24
+					local cx, cz = (a.X + b.X) / 2, (a.Z + b.Z) / 2
+					for gx = math.floor((cx - r) / CELL), math.floor((cx + r) / CELL) do
+						for gz = math.floor((cz - r) / CELL), math.floor((cz + r) / CELL) do
+							local k = gx .. "," .. gz
+							grid[k] = grid[k] or {}
+							table.insert(grid[k], box)
+						end
+					end
+				end
+			end
+		end
+		local function sat(ca, ha, cb, hb)
+			local A = { ca.RightVector, ca.UpVector, ca.LookVector }
+			local B = { cb.RightVector, cb.UpVector, cb.LookVector }
+			local la, lb = { ha.X, ha.Y, ha.Z }, { hb.X, hb.Y, hb.Z }
+			local t = cb.Position - ca.Position
+			local axes = { A[1], A[2], A[3], B[1], B[2], B[3] }
+			for x = 1, 3 do
+				for y = 1, 3 do
+					table.insert(axes, A[x]:Cross(B[y]))
+				end
+			end
+			for _, ax in axes do
+				if ax.Magnitude > 1e-6 then
+					ax = ax.Unit
+					local ra, rb = 0, 0
+					for k = 1, 3 do
+						ra += math.abs(A[k]:Dot(ax)) * la[k]
+						rb += math.abs(B[k]:Dot(ax)) * lb[k]
+					end
+					if math.abs(t:Dot(ax)) >= ra + rb then
+						return false
+					end
+				end
+			end
+			return true
+		end
+		for i, e in entries do
+			if table.find(W2_APPROVED, e.Biome) then
+				local draftModule =
+					Shared:FindFirstChild("BiomeThemes"):FindFirstChild("World2"):FindFirstChild(e.Biome .. "Draft")
+				local heroes = draftModule and req(draftModule).Heroes
+				rcheck(heroes ~= nil, e.Biome .. " draft lists its Heroes")
+				local py = fs.readFile(ROOT .. "/tools/blender/world2/biomes/" .. e.Biome .. ".py")
+				local exempt = {}
+				for n in string.gmatch(string.match(py, "\nCLEAR_EXEMPT = {([^}]*)}") or "", '"(%w+)"') do
+					exempt[n] = true
+				end
+				local kept, bad = {}, {}
+				for _, prop in models[i].Environment:GetChildren() do
+					local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+					local name = k and Themes[e.Biome].Placed[k][1]
+					local ps = name and parts(prop) or {}
+					if #ps > 0 then -- a hero counts only with something built (a mesh or its fallback parts)
+						kept[designed(name)] = (kept[designed(name)] or 0) + 1
+					end
+					for _, part in ps do
+						local half = part.Size / 2
+						local cf = part.CFrame
+						local ext = R.Vector3.new(
+							math.abs(cf.RightVector.X) * half.X
+								+ math.abs(cf.UpVector.X) * half.Y
+								+ math.abs(cf.LookVector.X) * half.Z,
+							0,
+							math.abs(cf.RightVector.Z) * half.X
+								+ math.abs(cf.UpVector.Z) * half.Y
+								+ math.abs(cf.LookVector.Z) * half.Z
+						)
+						local seen = {}
+						for gx = math.floor((cf.X - ext.X) / CELL), math.floor((cf.X + ext.X) / CELL) do
+							for gz = math.floor((cf.Z - ext.Z) / CELL), math.floor((cf.Z + ext.Z) / CELL) do
+								for _, box in grid[gx .. "," .. gz] or {} do
+									if not seen[box] and not (box[1] == i and exempt[designed(name)]) then
+										seen[box] = true
+										if sat(cf, half, box[2], box[3]) then
+											local row = Themes[e.Biome].Placed[k]
+											bad[string.format(
+												"%s %s %s track %d at %d,%d,%d",
+												e.Biome,
+												prop.Name,
+												name,
+												box[1],
+												math.round(row[2]),
+												math.round(row[3]),
+												math.round(row[4])
+											)] =
+												true
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+				for _, hero in heroes or {} do
+					local inDraft = false
+					for _, pe in Themes[e.Biome].Placed do
+						inDraft = inDraft or designed(pe[1]) == hero
+					end
+					rcheck(
+						kept[hero] ~= nil,
+						string.format(
+							"%s hero %s has a kept placement (%s)",
+							e.Biome,
+							hero,
+							not inDraft and "dropped at export"
+								or builtHeroes[i][hero] and "built, then removed by Prune"
+								or "in the draft, not built: budget or own-ground rule"
+						)
+					)
+				end
+				for key in bad do
+					w2Hits[key] = true
+				end
+			end
+		end
+		print(string.format("W2 ROAD CHECKS pass=%d fail=%d", rpass, rfail))
+	end
+	do -- a cut prop's pieces (Group, Whole) are built, skipped and pruned together: a synthetic two-piece group on Track 1
+		local gpass, gfail = 0, 0
+		local function gcheck(ok, name)
+			if ok then
+				gpass += 1
+			else
+				gfail += 1
+				print("W2 GROUP FAIL " .. name)
+			end
+		end
+		local TB, base = req(Shared.TrackBuilder), Themes[entries[1].Biome]
+		local piece = table.clone(base.Props[base.Placed[1][1]])
+		piece.Mesh, piece.Hero = nil, nil
+		local function build(whole, p2)
+			local theme = table.clone(base)
+			theme.Props = { Piece_p1 = piece, Piece_p2 = piece }
+			theme.Lights, theme.Heroes = {}, {}
+			theme.Placed = {
+				{ "Piece_p1", 0, -1, -150, 0, 1, Group = 1, Whole = whole },
+				{ "Piece_p2", p2.X, -1, p2.Z, 0, 1, Group = 1, Whole = whole },
+			}
+			Themes.W2GroupTest = theme
+			local spec = table.clone(entries[1].Spec or req(Shared.TrackRegistry).Chain()[1])
+			spec.Biome = "W2GroupTest"
+			local model = TB.Build(spec, entries[1].Origin)
+			Themes.W2GroupTest = nil
+			local env = model:FindFirstChild("Environment")
+			return model, env and env:FindFirstChild("Placed_1"), env and env:FindFirstChild("Placed_2")
+		end
+		-- piece 2's own base is far off the ground; the whole prop's base is on it: both build
+		local model, p1, p2 = build(R.Vector3.new(0, -1, -150), R.Vector3.new(99999, 0, 99999))
+		gcheck(p1 ~= nil and p2 ~= nil, "both pieces build when the whole prop's base is on the ground")
+		for n, pc in { p1, p2 } do
+			local row = n == 1 and { "Piece_p1", 0, -1, -150, 0, 1 } or { "Piece_p2", 99999, -1, 99999, 0, 1 }
+			local ok, why = placedOk(entries[1].Origin, row, piece, pc, piece.Name)
+			gcheck(ok, "piece " .. n .. " stands where its row says: " .. (why or ""))
+		end
+		gcheck(
+			p1 and p1:GetAttribute("PlacedGroup") == 1 and p2 and p2:GetAttribute("PlacedGroup") == 1,
+			"pieces carry PlacedGroup"
+		)
+		if p1 and p2 then -- a blocker over piece 1 only: Prune removes both
+			local block = R.Instance.new("Part")
+			block.Size = R.Vector3.new(4, 4, 4)
+			block.CFrame = parts(p1)[1].CFrame
+			block.Position = block.CFrame.Position
+			BD.Prune({}, { block }, { model })
+			gcheck(model.Environment:FindFirstChild("Placed_1") == nil, "Prune removes the blocked piece")
+			gcheck(model.Environment:FindFirstChild("Placed_2") == nil, "Prune removes its sibling piece with it")
+		end
+		-- both pieces' own bases on the ground, the whole prop's base off it: neither builds
+		local _, q1, q2 = build(R.Vector3.new(99999, -1, 99999), R.Vector3.new(20, 0, -150))
+		gcheck(q1 == nil and q2 == nil, "neither piece builds when the whole prop's base is off the ground")
+		print(string.format("W2 GROUP CHECKS pass=%d fail=%d", gpass, gfail))
+	end
+	for i, e in entries do -- shadow casters among the kept draft props (Kit.fromDraft's NO_SHADOW)
+		local casters = 0
+		for _, prop in models[i].Environment:GetChildren() do
+			if string.match(prop.Name, "^Placed_") then
+				for _, part in parts(prop) do
+					if part.CastShadow and part.Transparency < 1 then
+						casters += 1
+						break
+					end
+				end
+			end
+		end
+		print(string.format("W2 SHADOW %s casters %d", e.Biome, casters))
+	end
+	for i, e in entries do
+		local total = Themes[e.Biome].Placed and #Themes[e.Biome].Placed or 0
+		print(
+			string.format(
+				"W2 PLACED %s total %d built %d clear of other tracks and the plaza %d kept %d",
+				e.Biome,
+				total,
+				built[i],
+				plaza[i],
+				placedCount(models[i])
+			)
+		)
+	end
+	-- Owner 2026-11-23 (WORLD2_SPEC "Render set approvals"): an approved draft's placements keep the draft's own
+	-- clearance, so their own track's Road and Walls remove none of them in Prune (other tracks' roads, the spawn area
+	-- and the own finish pieces still do, counted before the test). WARN only: the placements (but the draft's CLEAR_EXEMPT spans / supports, read from
+	-- tools/blender/world2/biomes/<Key>.py) whose footprint comes within 24 studs of their track's centre line, counting
+	-- only parts reaching the band from the road top to 14 studs over it. The footprint is each part's box (a mesh is one
+	-- box here); clearance.py's vertex test is the authority (WORLD2_SPEC).
+	local pass, fail = 0, 0
+	for i, e in entries do
+		if table.find(W2_APPROVED, e.Biome) then
+			print(
+				string.format("INFO W2 %s own finish area removed %d draft placements", e.Biome, plaza[i] - finish[i])
+			)
+			local removed = finish[i] - placedCount(models[i])
+			if removed == 0 then
+				pass += 1
+			else
+				fail += 1
+				print(
+					string.format(
+						"W2 FAIL %s Prune removed %d draft placements for their own Road or Walls",
+						e.Biome,
+						removed
+					)
+				)
+			end
+			local py = fs.readFile(ROOT .. "/tools/blender/world2/biomes/" .. e.Biome .. ".py")
+			local exempt = {}
+			for name in string.gmatch(string.match(py, "\nCLEAR_EXEMPT = {([^}]*)}") or "", '"(%w+)"') do
+				exempt[name] = true
+			end
+			local wps = e.Layout.WorldWaypoints
+			local close = {}
+			local function seen(d, name)
+				if d < 24 then
+					close[name] = math.min(close[name] or d, d)
+				end
+			end
+			for _, prop in models[i].Environment:GetChildren() do
+				local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+				local key = k and Themes[e.Biome].Placed[k][1]
+				local name = key and prop.Name .. " " .. key
+				for _, part in key and not exempt[key] and parts(prop) or {} do
+					local h = part.Size / 2
+					local lo, hi, road, best = math.huge, -math.huge, nil, math.huge
+					for _, c in
+						{
+							{ 1, 1, 1 },
+							{ 1, 1, -1 },
+							{ 1, -1, 1 },
+							{ 1, -1, -1 },
+							{ -1, 1, 1 },
+							{ -1, 1, -1 },
+							{ -1, -1, 1 },
+							{ -1, -1, -1 },
+						}
+					do
+						local y = part.CFrame:PointToWorldSpace(R.Vector3.new(c[1] * h.X, c[2] * h.Y, c[3] * h.Z)).Y
+						lo, hi = math.min(lo, y), math.max(hi, y)
+					end
+					for _, w in wps do
+						local d = (w.X - part.Position.X) ^ 2 + (w.Z - part.Position.Z) ^ 2
+						if d < best then
+							best, road = d, w.Y
+						end
+					end
+					if hi <= road or lo >= road + 14 then
+						continue -- under the road top, or 14+ overhead
+					end
+					for _, w in wps do -- the road running through the footprint
+						local q = part.CFrame:PointToObjectSpace(R.Vector3.new(w.X, part.Position.Y, w.Z))
+						if math.abs(q.X) <= h.X and math.abs(q.Z) <= h.Z then
+							seen(0, name)
+						end
+					end
+					for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+						for _, y in { 1, -1 } do
+							local p = part.CFrame:PointToWorldSpace(R.Vector3.new(c[1] * h.X, y * h.Y, c[2] * h.Z))
+							for j = 1, #wps - 1 do
+								local a, b = wps[j], wps[j + 1]
+								local ab = R.Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+								local ap = R.Vector3.new(p.X - a.X, 0, p.Z - a.Z)
+								local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-9), 0, 1)
+								seen((ap - ab * t).Magnitude, name)
+							end
+						end
+					end
+				end
+			end
+			local near = {}
+			for name, d in close do
+				table.insert(near, { name, d })
+			end
+			table.sort(near, function(a, b)
+				return a[2] < b[2]
+			end)
+			for j, n in near do
+				near[j] = string.format("%s %.1f", n[1], n[2])
+			end
+			if #near > 0 then
+				print(string.format("WARN W2 %s box footprint < 24 studs: %s", e.Biome, table.concat(near, ", ")))
+			end
+		end
+	end
+	print(string.format("W2 DRAFT CLEARANCE pass=%d fail=%d", pass, fail))
+	-- tools/blender/world2/chain.py (the drafts' and the exporter's road) against the game's chain: its committed sample
+	-- tools/blender/world2/chain_check.json (each track's waypoint count, every Step-th world waypoint and the last;
+	-- python3 tools/blender/world2/chain.py rewrites it) within 0.05 studs of TrackBuilder's. Missing file: FAIL.
+	local ok, text = pcall(fs.readFile, ROOT .. "/tools/blender/world2/chain_check.json")
+	local chain, worst = ok and serde.decode("json", text) or {}, 0
+	local same = ok and #chain == 10
+	for i, e in entries do
+		local wps, c = e.Layout.WorldWaypoints, chain[i] or { Count = -1, Step = 1, Points = {} }
+		local want = math.floor((c.Count - 1) / c.Step) + 1 + ((c.Count - 1) % c.Step ~= 0 and 1 or 0)
+		same = same and #wps == c.Count and #c.Points > 0 and #c.Points == want
+		for n, p in c.Points do
+			local w = wps[math.min((n - 1) * c.Step + 1, #wps)]
+			worst = math.max(worst, math.abs(w.X - p[1]), math.abs(w.Y - p[2]), math.abs(w.Z - p[3]))
+		end
+	end
+	print(
+		string.format(
+			"W2 CHAIN PARITY %s worst %.3f studs%s",
+			same and worst <= 0.05 and "pass" or "FAIL",
+			worst,
+			ok and "" or " (no tools/blender/world2/chain_check.json: run chain.py)"
+		)
+	)
+end
 local clear = {}
 for _, m in models do
 	table.insert(clear, m:FindFirstChild("Checkpoint"))
@@ -379,6 +1034,126 @@ end
 local t0 = os.clock()
 local moved, dropped = BD.SnapToTerrain(models)
 print(string.format("snap %.1fs moved %d dropped %d", os.clock() - t0, moved, dropped))
+if process.env.WORLD == "2" then
+	-- After SnapToTerrain, the props as the game ships them: (c) every kept draft placement stands where its raw draft
+	-- row says (placedOk), and the pins (tools/lune/w2_road_warn_pins.json): Hits, one key per box road hit the
+	-- exporter's triangle test cleared (a hit not on it is a FAIL, a pin no longer hit is STALE: a FAIL with
+	-- PINSTRICT=1), and Dropped, per track the draft rows not kept (more is a FAIL, fewer is STALE). PIN=write
+	-- rewrites the pins from this build, only when all 10 tracks ran; rerun it after any placement change.
+	local tpass, tfail, ppass, pfail, pwarn = 0, 0, 0, 0, 0
+	local function pcheck(ok, name)
+		if ok then
+			ppass += 1
+		else
+			pfail += 1
+			print("W2 PIN FAIL " .. name)
+		end
+	end
+	local nDropped, ran = {}, {}
+	for i, e in entries do
+		if table.find(W2_APPROVED, e.Biome) then
+			ran[e.Biome] = true
+			local raw, kept = freshDraft(e.Biome), 0
+			for _, prop in models[i].Environment:GetChildren() do
+				local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+				if k then
+					kept += 1
+					local row = raw.Placed[k]
+					local ok, why = placedOk(e.Origin, row, raw.Props[row[1]], prop, row[1])
+					if ok then
+						tpass += 1
+					else
+						tfail += 1
+						print(string.format("W2 TRANSFORM FAIL %s %s %s: %s", e.Biome, prop.Name, row[1], why))
+					end
+				end
+			end
+			nDropped[tostring(i)] = #raw.Placed - kept
+		end
+	end
+	local PINS = ROOT .. "/tools/lune/w2_road_warn_pins.json"
+	local okPins, pinText = pcall(fs.readFile, PINS)
+	local pins = okPins and serde.decode("json", pinText) or {}
+	pins.Hits, pins.Dropped = pins.Hits or {}, pins.Dropped or {}
+	local keys = {}
+	for key in w2Hits do
+		table.insert(keys, key)
+	end
+	table.sort(keys)
+	if process.env.PIN == "write" then
+		if #entries ~= 10 then
+			pcheck(false, string.format("PIN=write refused: %d of 10 tracks ran", #entries))
+		else
+			local old, now = {}, {}
+			for _, key in pins.Hits do
+				old[key] = true
+			end
+			for _, key in keys do
+				now[key] = true
+				if not old[key] then
+					print("W2 PIN added " .. key)
+				end
+			end
+			for _, key in pins.Hits do
+				if not now[key] then
+					print("W2 PIN removed " .. key)
+				end
+			end
+			local quoted, drops = {}, {}
+			for _, key in keys do
+				table.insert(quoted, string.format("%q", key))
+			end
+			for t = 1, 10 do
+				if nDropped[tostring(t)] then
+					table.insert(drops, string.format('"%d": %d', t, nDropped[tostring(t)]))
+				end
+			end
+			fs.writeFile(
+				PINS,
+				'{\n\t"Dropped": { '
+					.. table.concat(drops, ", ")
+					.. ' },\n\t"Hits": [\n\t\t'
+					.. table.concat(quoted, ",\n\t\t")
+					.. "\n\t]\n}\n"
+			)
+			print("W2 PIN written " .. PINS)
+			okPins, pins = true, { Hits = keys, Dropped = nDropped }
+		end
+	end
+	pcheck(okPins, "pins file exists (tools/lune/w2_road_warn_pins.json; PIN=write makes it)")
+	local pinned = {}
+	for _, key in pins.Hits do
+		pinned[key] = true
+	end
+	for _, key in keys do
+		if pinned[key] then
+			pwarn += 1
+			print("W2 ROAD WARN pinned box hit " .. key)
+		else
+			pcheck(false, "box hit not pinned (the exporter's triangle test did not see it): " .. key)
+		end
+	end
+	for _, key in pins.Hits do
+		local track = tonumber(string.match(key, " track (%d+) at "))
+		if ran[string.match(key, "^%S+")] and track and track <= #entries and not w2Hits[key] then
+			print("W2 PIN STALE " .. key)
+			pcheck(not process.env.PINSTRICT, "stale pin (PINSTRICT=1): " .. key)
+		end
+	end
+	for t, n in nDropped do
+		local pin = pins.Dropped[t]
+		pcheck(
+			pin ~= nil and n <= pin,
+			string.format("track %s drops %d draft placements, pinned %s", t, n, tostring(pin))
+		)
+		if pin and n < pin then
+			print(string.format("W2 PIN STALE track %s drops %d, pinned %d", t, n, pin))
+			pcheck(not process.env.PINSTRICT, "stale Dropped pin (PINSTRICT=1) for track " .. t)
+		end
+	end
+	print(string.format("W2 TRANSFORM CHECKS pass=%d fail=%d", tpass, tfail))
+	print(string.format("W2 PIN CHECKS pass=%d fail=%d warn=%d", ppass, pfail, pwarn))
+end
 local changed = 0
 for k, h in corr do
 	local x, z = k:match("(.-),(.*)")
@@ -1325,3 +2100,4 @@ do
 		end
 	end
 end
+process.exit(failed and 1 or 0)

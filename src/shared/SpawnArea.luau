@@ -18,6 +18,7 @@ local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
 local PlazaHeader = require(script.Parent.PlazaHeader)
 local UiTheme = require(script.Parent.UiTheme)
+local WorldConfig = require(script.Parent.WorldConfig)
 
 local SpawnArea = {}
 
@@ -500,6 +501,126 @@ local function teamAltar(startCFrame)
 	return m
 end
 
+-- The world gate (design doc 4.47, docs/WORLD2_SPEC.md "Gate"): an original rift ring on the plaza's south-east corner,
+-- clear of the ring of stalls, facing the spawn. In World 1 it leads to World 2 and is locked (chains, a padlock plate, a
+-- solid barrier, "COMING SOON") until WorldConfig.GATE_OPEN; admins use /world2. In World 2 it is open and leads back to
+-- World 1: its Portal part (tag WorldGate, attribute TargetWorld) sends a runner on touch (Server/WorldTravel). Sizes and
+-- colours proposed.
+SpawnArea.WORLD_GATE_POS = Vector2.new(194, -176) -- hub-local (x, z)
+SpawnArea.WORLD_GATE_TAG = "WorldGate"
+local RING_RADIUS = 11
+local RING_SEGMENTS = 16
+
+local function worldGate(startCFrame)
+	local target = WorldConfig.Id == 1 and 2 or 1
+	local locked = target == 2 and not WorldConfig.GATE_OPEN
+	local swirl = target == 2 and Color3.fromRGB(150, 70, 255) or Color3.fromRGB(70, 210, 255)
+	local m = Instance.new("Model")
+	m.Name = "WorldGate"
+	local pos = SpawnArea.WORLD_GATE_POS
+	local f = facing(startCFrame, pos.X, pos.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y)
+	local centre = f * CFrame.new(0, RING_RADIUS + 3, 0)
+	-- Dais and two leaning obsidian monoliths
+	SpawnArea.Octagon(m, "Dais", 30, 1.2, f * CFrame.new(0, 0.6, 0), STONE, Enum.Material.Slate)
+	for _, side in { -1, 1 } do
+		block(
+			m,
+			"Monolith",
+			Vector3.new(3.4, RING_RADIUS * 2 + 8, 4),
+			f * CFrame.new(side * (RING_RADIUS + 3.5), RING_RADIUS + 4, 0) * CFrame.Angles(0, 0, math.rad(side * 6)),
+			BLACK,
+			Enum.Material.Basalt
+		)
+	end
+	-- The ring: stone segments with a neon inner lip
+	for i = 0, RING_SEGMENTS - 1 do
+		local a = i / RING_SEGMENTS * math.pi * 2
+		local seg = centre * CFrame.Angles(0, 0, a) * CFrame.new(0, RING_RADIUS, 0)
+		local len = 2 * math.pi * RING_RADIUS / RING_SEGMENTS + 0.6
+		block(m, "Ring", Vector3.new(len, 2.4, 3), seg, Color3.fromRGB(70, 64, 80), Enum.Material.Slate, false)
+		block(m, "RingGlow", Vector3.new(len, 0.4, 3.2), seg * CFrame.new(0, -1.3, 0), swirl, Enum.Material.Neon, false)
+	end
+	-- The portal face
+	local portal = block(
+		m,
+		"Portal",
+		Vector3.new(0.4, RING_RADIUS * 2 - 1.5, RING_RADIUS * 2 - 1.5),
+		centre * CFrame.Angles(0, math.rad(90), 0),
+		swirl,
+		Enum.Material.Neon,
+		false
+	)
+	portal.Shape = Enum.PartType.Cylinder
+	portal.Transparency = locked and 0 or 0.25
+	if locked then
+		portal.Color = Color3.fromRGB(74, 34, 144) -- dim, sealed: the chains read in front of it (Blender draft)
+		portal.Material = Enum.Material.SmoothPlastic
+	end
+	portal:SetAttribute("TargetWorld", target)
+	portal:SetAttribute("Locked", locked)
+	if not locked then
+		portal.CanTouch = true
+		CollectionService:AddTag(portal, SpawnArea.WORLD_GATE_TAG)
+	end
+	if locked then
+		-- Crossed chains and a padlock plate; an invisible wall so nobody walks into the ring
+		for _, tilt in { 40, -40 } do
+			block(
+				m,
+				"Chain",
+				Vector3.new(RING_RADIUS * 2.1, 1.4, 1.4),
+				centre * CFrame.new(0, 0, -1.2) * CFrame.Angles(0, 0, math.rad(tilt)),
+				Color3.fromRGB(120, 116, 110),
+				Enum.Material.DiamondPlate,
+				false
+			)
+		end
+		local lock = block(
+			m,
+			"Padlock",
+			Vector3.new(5, 5.6, 1.8),
+			centre * CFrame.new(0, -0.8, -2.2),
+			Color3.fromRGB(214, 168, 60),
+			Enum.Material.Metal,
+			false
+		)
+		block(
+			m,
+			"Shackle",
+			Vector3.new(3.2, 3, 1),
+			lock.CFrame * CFrame.new(0, 3.8, 0),
+			Color3.fromRGB(150, 150, 150),
+			Enum.Material.Metal,
+			false
+		)
+		local wall = block(
+			m,
+			"Barrier",
+			Vector3.new(RING_RADIUS * 2 + 4, RING_RADIUS * 2 + 6, 1),
+			f * CFrame.new(0, RING_RADIUS + 3, 0),
+			BLACK
+		)
+		wall.Transparency = 1
+		-- touching it tells the player why (Server/WorldTravel: "COMING SOON")
+		wall:SetAttribute("TargetWorld", target)
+		wall:SetAttribute("Locked", true)
+		CollectionService:AddTag(wall, SpawnArea.WORLD_GATE_TAG)
+	end
+	local light = Instance.new("PointLight")
+	light.Color = swirl
+	light.Brightness = 2
+	light.Range = 24
+	light.Shadows = false
+	light.Parent = portal
+	billboard(portal, "Label", {
+		{ "Title", target == 2 and "WORLD 2" or "WORLD 1", Color3.fromRGB(235, 220, 255) },
+		{ "State", locked and "COMING SOON" or "ENTER", Color3.fromRGB(255, 214, 90) },
+	}, UDim2.fromOffset(220, 70), RING_RADIUS + 6, LABEL_DISTANCE)
+	m.PrimaryPart = portal
+	return m
+end
+SpawnArea.WorldGate = worldGate
+
 function SpawnArea.Build(startCFrame)
 	local model = Instance.new("Model")
 	model.Name = "SpawnArea"
@@ -569,6 +690,7 @@ function SpawnArea.Build(startCFrame)
 	)
 	glow(pad, 18)
 	torii(startCFrame).Parent = model
+	worldGate(startCFrame).Parent = model
 
 	-- The ring (same panels and remotes as before): each stand-in's origin is its mesh's origin (Shared/PlazaAssets).
 	-- The Sidekicks stall became the summon altar (design doc 4.36).

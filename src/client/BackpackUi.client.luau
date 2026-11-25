@@ -34,6 +34,8 @@ local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local ItemMenu = require(script.Parent:WaitForChild("ItemMenu"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local AwakeningConfig = require(shared:WaitForChild("AwakeningConfig"))
+local AWAKENING = require(shared:WaitForChild("WorldConfig")).Id == 2 -- World 2 only (docs/WORLD2_SPEC.md "Awakening")
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
@@ -194,6 +196,14 @@ local sellSpares = make("TextButton", "SellSpares", panel, {
 	ZIndex = 8,
 	Visible = false,
 })
+-- Awakening the chosen character (World 2 only): a bar on the Characters tab's row above the footer.
+local awaken = make("TextButton", "Awaken", panel, {
+	BackgroundColor3 = PALETTE.Muted,
+	Text = "",
+	AutoButtonColor = false,
+	ZIndex = 8,
+	Visible = false,
+})
 local empty = caption("Empty", panel, { Text = "", Visible = false, TextXAlignment = Enum.TextXAlignment.Left })
 local pickSlot -- set below
 local slots = SlotPicker.new("Slots", panel, { Visible = false }, function(...)
@@ -251,6 +261,7 @@ local relicOf = {} -- character id -> the Relic row it wears (filled per render)
 local selecting = false -- select mode: a card marks itself for the mass sale
 local selected = {} -- character id -> true
 local render -- set below
+local refreshBag -- set below
 
 -- Cells fill the width, and the visible height holds whole rows only (no card cut at the frame, design doc 4.42).
 -- w, h: the grid's size in units.
@@ -277,7 +288,7 @@ local renderedK = nil
 local function layout()
 	local c = g.Content
 	local characters = current == "Characters"
-	local cosmetic = current == "Trails" or current == "Auras" or selecting
+	local cosmetic = current == "Trails" or current == "Auras" or selecting or (AWAKENING and characters)
 	local row, gap = U.Button, U.Gap
 	for _, refs in tabs do
 		local label = refs.Button.Label
@@ -307,6 +318,7 @@ local function layout()
 	local sparesW = math.min(SPARES_WIDTH, right - math.ceil(g.W * 615 / 920) - gap)
 	g.Place(sellSpares, right - sparesW, g.H - 60 + 14 - row / 2, sparesW, row)
 	g.Place(massBar, c.X, rowY, c.W, row)
+	g.Place(awaken, c.X, rowY, c.W, row)
 	local gapPx = g.px(gap)
 	massLayout.Padding = UDim.new(0, gapPx)
 	massAll.Size, massCancel.Size = UDim2.new(0.25, -gapPx / 2, 1, 0), UDim2.new(0.25, -gapPx / 2, 1, 0)
@@ -320,7 +332,7 @@ local function layout()
 	-- Button captions keep 12 units off the edges.
 	sortLabel.Position, sortLabel.Size = g.at(U.Pad, 0), UDim2.new(1, -g.px(2 * U.Pad), 1, 0)
 	g.Role(sortLabel, "Item")
-	for _, button in { massSell, sellSpares, massAll, massGo, massCancel } do
+	for _, button in { massSell, sellSpares, awaken, massAll, massGo, massCancel } do
 		local pad = button:FindFirstChild("AnimePad") or make("UIPadding", "AnimePad", button, {})
 		pad.PaddingLeft, pad.PaddingRight = UDim.new(0, g.px(U.Pad)), UDim.new(0, g.px(U.Pad))
 		g.Role(button, "Item")
@@ -333,7 +345,51 @@ local function layout()
 	end
 end
 
-local function refreshBag()
+-- The server's answer for a character at its stars (Remotes.AwakenPreview): { Next = the next star raises its capped
+-- cruise, Now = its stars give cruise now }; nil until it answers. A refused or failed request is not kept, and the
+-- answers are dropped each time the Backpack opens, so a Speed change since is asked again then.
+local previews = {}
+local retried = {} -- key -> true once a refused answer was asked again (one delayed re-ask per opening, no polling)
+local PREVIEW_RETRY = 0.3 -- s, past the server's 0.15 s rate limit (GachaService.REMOTE_COOLDOWN)
+local function preview(id, stars)
+	local key = id .. ":" .. stars
+	if previews[key] == nil then
+		previews[key] = "asking"
+		task.spawn(function()
+			local ok, nextGains, nowGives = pcall(function()
+				return remotes:WaitForChild("AwakenPreview"):InvokeServer(id)
+			end)
+			if previews[key] ~= "asking" then
+				return -- dropped by a reopen meanwhile
+			end
+			if ok and type(nextGains) == "boolean" and type(nowGives) == "boolean" then
+				previews[key] = { Next = nextGains, Now = nowGives }
+				refreshBag()
+			else
+				previews[key] = nil -- asked again at the next refresh
+				if not retried[key] then
+					retried[key] = true
+					task.delay(PREVIEW_RETRY, function()
+						if panel.Visible then
+							refreshBag()
+						end
+					end)
+				end
+			end
+		end)
+	end
+	local answer = previews[key]
+	return type(answer) == "table" and answer or nil
+end
+
+-- The gain words: cruise only when the server said it counts; unknown (no answer yet) promises stamina only.
+local function gainWords(range, cruise)
+	return cruise == true and range .. " CRUISE & STAMINA"
+		or cruise == false and range .. " STAMINA · CRUISE AT MAX"
+		or range .. " STAMINA"
+end
+
+function refreshBag()
 	local used, cap = player:GetAttribute("BagUsed") or 0, player:GetAttribute("BagCap") or 0
 	local onCharacters = current == "Characters"
 	if onCharacters then
@@ -348,7 +404,51 @@ local function refreshBag()
 	if sellSpares.Visible then
 		sellSpares.Text = "SELL " .. spares .. " SPARE" .. (spares == 1 and "" or "S")
 	end
+	-- The server's numbers: the entry's Stars and Copies, and whether the next star still raises the capped cruise
+	-- (Remotes.AwakenPreview); the rule's costs and +% (display only)
+	awaken.Visible = AWAKENING and onCharacters and not selecting and entry ~= nil
+	if awaken.Visible then
+		local stars = AwakeningConfig.Clean(entry:GetAttribute("Stars"))
+		local cost = AwakeningConfig.NextCost(stars)
+		local now = math.round(AwakeningConfig.CRUISE_PER_STAR * 100 * stars)
+		local ready = cost ~= nil and spares >= cost
+		local answer = preview(chosenCharacter, stars)
+		local after = math.round(AwakeningConfig.STAMINA_PER_STAR * 100 * (stars + 1))
+		awaken.Text = cost
+				and string.format(
+					"AWAKEN %d/%d · NEXT STAR %d COPIES (HAVE %d) · %s",
+					stars,
+					AwakeningConfig.MAX_STARS,
+					cost,
+					spares,
+					gainWords(string.format("+%d%% TO +%d%%", now, after), answer and answer.Next)
+				)
+			or string.format(
+				"FULLY AWAKENED %d/%d · %s",
+				stars,
+				stars,
+				gainWords(string.format("+%d%%", now), answer and answer.Now)
+			)
+		awaken:SetAttribute("Ready", ready)
+		awaken:SetAttribute("Reason", not cost and "Fully awakened" or not ready and "Not enough Copies" or nil)
+		g.Button(awaken, ready and "Go" or "Idle")
+	end
 end
+awaken.Activated:Connect(function()
+	local spec = chosenCharacter and CharacterCatalog.Get(chosenCharacter)
+	if not spec or awaken:GetAttribute("Ready") ~= true then
+		UiFeedback.Play("Denied", awaken)
+		setHint(awaken:GetAttribute("Reason") or "")
+		return
+	end
+	ItemMenu.Confirm({ Label = "Awaken", Text = "Awaken " .. spec.Name .. "? " .. awaken.Text }, function()
+		local ok = ItemMenu.Ask("Awaken", awaken, "UpgradeBought", spec.Id)
+		if ok then
+			render()
+		end
+		return ok
+	end)
+end)
 sellSpares.Activated:Connect(function()
 	local data = player:FindFirstChild("GachaData")
 	local entry = data and chosenCharacter and data:FindFirstChild(chosenCharacter)
@@ -942,6 +1042,8 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible then
 		hintText = ""
 		entering = true
+		table.clear(retried)
+		table.clear(previews) -- the Awaken bar asks the server again (a Speed change since may move the cap)
 		leaveSelect()
 		render()
 	else
@@ -1020,7 +1122,7 @@ local function refreshUnlocks()
 end
 player:GetAttributeChangedSignal("RebirthLevel"):Connect(refreshUnlocks)
 refreshUnlocks()
-for _, button in { sortButton, massSell, sellSpares, massAll, massGo, massCancel } do
+for _, button in { sortButton, massSell, sellSpares, awaken, massAll, massGo, massCancel } do
 	button.BorderSizePixel = 0
 	-- Mass sell and Sell spares: vermilion tiles (drafts/backpack.html); the select-mode Sell keeps its Danger rim.
 	g.Button(button, (button == massSell or button == sellSpares) and "Go" or button == massGo and "Danger" or "Idle")

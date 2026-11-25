@@ -48,10 +48,33 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Catalog = require(Shared:WaitForChild("CharacterCatalog"))
+local SIZE = require(Shared:WaitForChild("StaminaConfig")).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
 local Portraits = require(Shared:WaitForChild("CharacterPortraits"))
 local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local SidekickView = require(script.Parent.Parent:WaitForChild("SidekickView"))
 local Spec = require(script.Parent.UiSpec)
+-- The button's label sits under its icon. Design doc 4.40, and 4.46 "HUD look" (owner 2026-11-24: the HUD from
+-- before the Scroll Dojo redesign, in both worlds): the button's own text is the label, shown, at the cell's bottom,
+-- under the icon at the cell's top. No option A dressing: no child "Label" drawn over a wood "Plaque". The drawn
+-- text (TextBounds tall, bottom-aligned in the button's rect) starts at or below the icon's bottom, 1 px tolerance.
+local function labelUnderIcon(b, icon)
+	if
+		not (
+			b ~= nil
+			and b:IsA("TextButton")
+			and icon ~= nil
+			and b.TextTransparency < 1
+			and b.TextYAlignment == Enum.TextYAlignment.Bottom
+			and icon.Position.Y.Scale == 0
+			and b:FindFirstChild("Label") == nil
+			and b:FindFirstChild("Plaque") == nil
+		)
+	then
+		return false
+	end
+	local textTop = b.AbsolutePosition.Y + b.AbsoluteSize.Y - b.TextBounds.Y
+	return b.TextBounds.Y > 0 and textTop >= icon.AbsolutePosition.Y + icon.AbsoluteSize.Y - 1
+end
 
 local T = Spec.Team
 local BOSS_BUTTON = "RacerSecondColumn/BossButton"
@@ -147,7 +170,7 @@ function Module.Build(h)
 	-- (owner 2026-11-19, 4.45 T2: the member's name shows in its ledger row, not on the altar).
 	local function draftShown()
 		local out = {}
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			local r = row(n)
 			local name = r and shown(r:FindFirstChild("Name")) and textOf(r:FindFirstChild("Name"))
 			if name and name ~= T.AddText and name ~= "" then
@@ -166,7 +189,7 @@ function Module.Build(h)
 	-- What the altars and ledger rows show against the draft `ids` (slot n empty when ids[n] is nil).
 	local function altarProblems(ids)
 		local wrong = {}
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			local a, tag = altar(n), "Altar" .. n
 			if not (a and a:IsA("TextButton")) then
 				table.insert(wrong, tag .. " missing (TextButton)")
@@ -259,7 +282,7 @@ function Module.Build(h)
 	-- Footer, Dots and Deploy for a draft of `count` members; `status` the Footer/Status text it must show.
 	local function footerProblems(ids, status, deployOn)
 		local wrong, count = {}, 0
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			count += ids[n] and 1 or 0
 		end
 		local function want(path, text)
@@ -273,10 +296,10 @@ function Module.Build(h)
 		want(T.Footer .. "/Count", T.CountText:format(count))
 		local fill = h.find(T.Footer .. "/Progress/Fill")
 		local scale = fill and fill:IsA("GuiObject") and fill.Size.X.Scale
-		if not (scale and math.abs(scale - count / 3) <= FILL_TOL) then
-			table.insert(wrong, ("Progress/Fill Size.X.Scale %s, want %.2f"):format(tostring(scale), count / 3))
+		if not (scale and math.abs(scale - count / SIZE) <= FILL_TOL) then
+			table.insert(wrong, ("Progress/Fill Size.X.Scale %s, want %.2f"):format(tostring(scale), count / SIZE))
 		end
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			local dot = h.find(T.Dots .. "/Dot" .. n)
 			local filled = dot and dot:IsA("GuiObject") and dot.BackgroundTransparency < DOT_FILLED
 			if not dot then
@@ -373,16 +396,7 @@ function Module.Build(h)
 			"HudIcons.Team " .. tostring(want),
 			type(want) == "string" and want ~= "" and icon ~= nil and icon:IsA("ImageLabel") and icon.Image == want
 		)
-		check(
-			res,
-			"team_button_label_under_icon",
-			b ~= nil
-				and b:IsA("TextButton")
-				and b.TextYAlignment == Enum.TextYAlignment.Bottom
-				and icon ~= nil
-				and icon.Position.Y.Scale == 0,
-			true
-		)
+		check(res, "team_button_label_under_icon", labelUnderIcon(b, icon), true)
 		checkColumnSizes(res, b, icon)
 		-- Design doc 4.40: the keybind letter (T, proposed) in the top-right quarter, as the column buttons show theirs
 		local key = b and b:FindFirstChild("Key", true)
@@ -574,7 +588,7 @@ function Module.Build(h)
 		-- Three altars apart, Altar2 left of Altar1 left of Altar3 (design doc 4.45 "Team Select night dojo": slot 1
 		-- centre and in front, bigger; slots 2 and 3 at X -9.37 / 10.26 further back, so the rows differ in Y)
 		local rects, wrong = {}, {}
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			local a = altar(n)
 			if shown(a) then
 				rects[n] = h.rect(a)
@@ -582,20 +596,32 @@ function Module.Build(h)
 				table.insert(wrong, "Altar" .. n .. " missing or hidden")
 			end
 		end
-		for _, pair in { { 2, 1 }, { 1, 3 } } do
+		local order = SIZE == 4 and { { 2, 1 }, { 1, 3 }, { 3, 4 } } or { { 2, 1 }, { 1, 3 } } -- World 2: slot 4 right of 3
+		for _, pair in order do
 			local a, b = rects[pair[1]], rects[pair[2]]
 			if a and b and a.x + a.w / 2 >= b.x + b.w / 2 then
 				table.insert(wrong, ("Altar%d not left of Altar%d"):format(pair[1], pair[2]))
 			end
 		end
-		for n = 1, 2 do
-			for m = n + 1, 3 do
+		for n = 1, SIZE - 1 do
+			for m = n + 1, SIZE do
 				if rects[n] and rects[m] and overlaps(rects[n], rects[m]) then
 					table.insert(wrong, ("Altar%d overlaps Altar%d"):format(n, m))
 				end
 			end
 		end
 		h.checkList(res, "team_altars_in_a_row", wrong)
+		-- Every altar (World 2: slot 4 too) is inside the panel on screen and clear of the left scroll, so it can be tapped
+		local page, scroll = h.find(T.Panel), h.find(T.Panel .. "/Ledger/Paper")
+		local box, edge = page and h.rect(page), scroll and h.rect(scroll)
+		local outside = {}
+		for n = 1, SIZE do
+			local r = rects[n]
+			if r and box and not (inside(box, r) and (not edge or r.x >= edge.x + edge.w - TOL)) then
+				table.insert(outside, ("Altar%d at x %d..%d"):format(n, r.x, r.x + r.w))
+			end
+		end
+		h.checkList(res, "team_altars_inside_panel", outside)
 	end
 
 	-- The roster: one card per owned catalog character; draft members carry the green TEAM n badge, the others none.
@@ -710,7 +736,7 @@ function Module.Build(h)
 		end
 		-- A member's gear sits on its nameplate (4.45 night dojo: name, rarity, relic and Sidekick icons on the plate
 		-- over each member; TeamUi Altar<n>/Nameplate/Face/Gear), judged inside the plate's right half
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			local a = altar(n)
 			local plate = a and a:FindFirstChild("Nameplate")
 			if ids[n] and plate then
@@ -725,7 +751,7 @@ function Module.Build(h)
 		-- 112999f: an altar's gear icons sit right of the seal, GEAR_CLEAR px clear of its SlotLabel (the eye check
 		-- runs it at 4:3, where it is tightest)
 		local crowded = {}
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			local a = altar(n)
 			local gear = ids[n] and a and a:FindFirstChild("Gear", true)
 			local label = a and a:FindFirstChild("SlotLabel", true)
@@ -749,7 +775,8 @@ function Module.Build(h)
 		local restore = h.setPanels({ T.Panel })
 		checkPanel(res)
 		-- The altars, footer and roster show the Team the server set (A, B; altar 3 empty), unchanged: Ready, Deploy off
-		if setup(res, "team_states") then
+		local applied = setup(res, "team_states")
+		if applied then
 			local ids = fixtureIds()
 			local ab = ids[1] and ids[2] and (ids[1] .. "," .. ids[2]) or "?"
 			check(res, "team_fixture_set", waitIs(team, ab), ab)
@@ -770,7 +797,7 @@ function Module.Build(h)
 				end
 			end
 			check(res, "team_first_focus_is_altar1", table.concat(firstFocus, ","), "Altar1")
-			for n = 1, 3 do
+			for n = 1, SIZE do
 				local a = altar(n)
 				check(
 					res,
@@ -784,9 +811,13 @@ function Module.Build(h)
 				checkGear(res, { ids[1], ids[2] })
 				setup(res, "restore:relic_states")
 			end
-			setup(res, "team_states_clear")
 		end
 		restore()
+		-- After the close: put back while the page is open, the saved Team would differ from its A, B draft, and the
+		-- close would stop on ConfirmClose (the panel stays open for the next scenario)
+		if applied then
+			setup(res, "team_states_clear")
+		end
 	end
 
 	-- Entry points (design doc 4.45). The presses themselves are clicks (open_summon, summon_key_g, open_team_minibar).
@@ -897,7 +928,7 @@ function Module.Build(h)
 	end
 	function after.team_altar3_selected(res)
 		local wrong = {}
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			local a = altar(n)
 			if (a and a:GetAttribute("Selected") == true) ~= (n == 3) then
 				table.insert(wrong, "Altar" .. n .. " Selected " .. tostring(a and a:GetAttribute("Selected")))
@@ -958,7 +989,7 @@ function Module.Build(h)
 			table.insert(wrong, ("Altar1 %s, want %s kept"):format(tostring(d[1]), tostring(a)))
 		end
 		local seen, data = {}, player:FindFirstChild("GachaData")
-		for n = 1, 3 do
+		for n = 1, SIZE do
 			local id = d[n]
 			if id and seen[id] then
 				table.insert(wrong, "duplicate " .. id)

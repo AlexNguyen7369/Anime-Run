@@ -8,6 +8,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local GachaConfig = require(script.Parent.GachaConfig)
@@ -134,6 +135,9 @@ function RunnerFactory.build(characterId, options)
 	local model = Instance.new("Model")
 	model.Name = "Runner"
 	model:SetAttribute("CharacterId", characterId)
+	if RunService:IsClient() then
+		model:SetAttribute("ClientRig", true) -- Client/LateModels re-skins these; the server re-skins its own
+	end
 	CollectionService:AddTag(model, RunnerFactory.RIG_TAG)
 	local byPart = {
 		Torso = colors.Body,

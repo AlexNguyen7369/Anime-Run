@@ -15,6 +15,8 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RebirthConfig = require(Shared:WaitForChild("RebirthConfig"))
 local PayoutCurve = require(Shared:WaitForChild("PayoutCurve"))
+local WorldConfig = require(Shared:WaitForChild("WorldConfig"))
+local WorldSave = require(Shared:WaitForChild("WorldSave"))
 local MoneyService = require(script.Parent.MoneyService)
 local GachaService = require(script.Parent.GachaService)
 local UpgradeService = require(script.Parent.UpgradeService)
@@ -28,6 +30,7 @@ local GiftMailbox = require(script.Parent.GiftMailbox)
 local RaceTimeService = require(script.Parent.RaceTimeService)
 local SidekickService = require(script.Parent.SidekickService)
 local RelicService = require(script.Parent.RelicService)
+local ShadowStore = require(script.Parent.ShadowStore)
 
 local PlayerData = {}
 
@@ -90,8 +93,10 @@ local function lockedElsewhere(record, at)
 		and at - lock.At < PlayerData.LOCK_TIMEOUT
 end
 
+local isolated = nil -- the in-memory store, once a test harness has started in this session
+
 function PlayerData.SetStore(newStore)
-	store = newStore
+	store = newStore or isolated -- nil after IsolateForTests goes back to the copy, never to the DataStore
 end
 
 local function getStore()
@@ -104,6 +109,25 @@ local function getStore()
 		end
 	end
 	return store
+end
+
+-- Studio only (design doc 4.24 "Harness saves"): from this call on, this session's saves go to an in-memory copy of
+-- the save (Server/ShadowStore: each key read once from the store in use, nothing written back). There is no way
+-- back in the same session. Called by every test harness before it changes a player. Waits for a save already in
+-- flight, which still carries the state from before the tests. Returns true when the session is isolated. Yields.
+function PlayerData.IsolateForTests()
+	if not RunService:IsStudio() then
+		return false
+	end
+	if not isolated then
+		isolated = ShadowStore.new(getStore())
+		store = isolated
+		PlayerData.Isolated = true
+	end
+	while next(saving) do
+		task.wait()
+	end
+	return true
 end
 
 -- Studio only: ReplicatedStorage attribute TestSaveKey = "<name>", set in Edit, plays this server on a separate test save, so
@@ -191,6 +215,8 @@ function PlayerData.Load(player, userId)
 		player:SetAttribute("MoneyEarned", cleanInt(data.MoneyEarned, 0, MAX_MONEY, 0))
 		player:SetAttribute("DuelWins", cleanInt(data.DuelWins, 0, MAX_DUEL_WINS, 0))
 		player:SetAttribute("Checkpoint", cleanInt(data.Checkpoint, 1, MAX_DUEL_WINS, 1)) -- design doc 4.15
+		-- World 2's first-arrival welcome was given (Worlds.W2.Welcomed via WorldSave.View; older saves have none)
+		player:SetAttribute("World2Welcomed", data.Welcomed == true or nil)
 	end
 
 	-- One UpdateAsync per attempt takes the lock. Nothing in the transform yields. A store error is retried
@@ -265,7 +291,10 @@ function PlayerData.Load(player, userId)
 		player:SetAttribute("DataReadOnly", true)
 		warn("PlayerData: save version " .. tostring(updated.Version) .. " is newer than " .. VERSION .. ", read-only")
 	end
-	apply(updated)
+	apply(WorldSave.View(updated, WorldConfig.Id)) -- World 2 reads its own track progress (design doc 4.47)
+	-- Read-only mirror of World 1's BestTrack (top level of the save) for the World 2 gate rule (Server/WorldTravel
+	-- .CanEnter, design doc 4.47); never saved.
+	player:SetAttribute("World1BestTrack", math.max(0, math.floor(tonumber(updated.BestTrack) or 0)))
 	player:SetAttribute("DataFailed", nil)
 	player:SetAttribute("DataLoaded", true)
 	-- The mailbox was persisted even if the recipient was offline. Claim through the same
@@ -332,11 +361,15 @@ end
 
 -- Returns true if the stats were written. Never writes for a player whose load failed or has not finished, or
 -- when another server took the session lock. `release` (leave, shutdown) writes the record without a lock.
-local function save(player, userId, release)
+-- `frozen` (Server/WorldTravel's release save): the caller turned DataLoaded off to freeze a loaded player first.
+local function save(player, userId, release, frozen)
 	userId = userId or player.UserId
 	-- Never write before the load finished: a leaving player whose GetAsync is still pending would
 	-- otherwise overwrite their real save with defaults.
-	if player:GetAttribute("DataFailed") or not player:GetAttribute("DataLoaded") then
+	if
+		player:GetAttribute("DataFailed")
+		or not (player:GetAttribute("DataLoaded") or frozen and player:GetAttribute("Travelling"))
+	then
 		return false
 	end
 	local dataStore = getStore()
@@ -370,6 +403,7 @@ local function save(player, userId, release)
 		Copies = gacha.Copies,
 		Team = gacha.Team,
 		Equipped = gacha.Equipped,
+		Awakening = gacha.Awakening, -- World 2 only; WorldSave.Fold moves it under Worlds.W2
 		Rolls = gacha.Rolls,
 		StatAlloc = gacha.StatAlloc,
 		AutoSell = gacha.AutoSell,
@@ -397,6 +431,7 @@ local function save(player, userId, release)
 		Codes = shop.Codes,
 		Checkpoint = cleanInt(player:GetAttribute("Checkpoint"), 1, MAX_DUEL_WINS, 1),
 		RaceBestTimes = RaceTimeService.Snapshot(player),
+		Welcomed = player:GetAttribute("World2Welcomed") == true or nil, -- WorldSave.Fold keeps it in Worlds.W2
 		OfflineAt = clock(),
 		Version = VERSION,
 	}
@@ -419,7 +454,8 @@ local function save(player, userId, release)
 			end
 			-- Start from the stored record so keys this version does not know are kept, then overlay ours.
 			local merged = table.clone(current)
-			for key, value in GiftMailbox.Merge(table.clone(payload), current, known) do
+			local worldPayload = WorldSave.Fold(payload, current, WorldConfig.Id) -- design doc 4.47
+			for key, value in GiftMailbox.Merge(table.clone(worldPayload), current, known) do
 				merged[key] = value
 			end
 			for _, key in DROPPED_KEYS do
@@ -432,7 +468,8 @@ local function save(player, userId, release)
 	end)
 	if readOnly then
 		player:SetAttribute("DataReadOnly", true)
-		return false -- the lock is kept, nothing of this session is written
+		-- nothing of this session is written; the lock moved (released on a release save), so a trip needs no save
+		return false, ok == true
 	end
 	if ok and not refused and type(result) == "table" then
 		-- Preserve any legitimate potion changes made while UpdateAsync yielded.
@@ -449,18 +486,23 @@ local function save(player, userId, release)
 	return false
 end
 
-function PlayerData.Save(player, userId, release)
+-- `present`: only if the player is still in the server once the queue reaches this save (Server/WorldTravel's lock
+-- retake: a player who left meanwhile was given the leave save, and a retake now would hold the lock for nobody).
+function PlayerData.Save(player, userId, release, frozen, present)
 	while saving[player] do
 		task.wait()
 	end
+	if present and not player.Parent then
+		return false, false
+	end
 	saving[player] = true
-	local ok, result = pcall(save, player, userId, release)
+	local ok, result, readOnly = pcall(save, player, userId, release, frozen)
 	saving[player] = nil
 	if not ok then
 		warn("PlayerData save failed: " .. tostring(result))
 		return false
 	end
-	return result
+	return result, readOnly == true
 end
 
 -- Admin /newplayer: replaces the save with an empty record and stops this session's saves, so the next load is a brand

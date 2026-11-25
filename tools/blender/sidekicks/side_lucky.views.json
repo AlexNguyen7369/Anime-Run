@@ -1,0 +1,4 @@
+{
+	"portrait": {"show": ["Head", "Body", "LeftArm", "RightArm", "LeftLeg", "RightLeg", "Tail"], "frame": ["Head", "Body", "LeftArm", "RightArm", "LeftLeg", "RightLeg"], "cut": -1.0, "turn": 18},
+	"head": {"show": ["Head"], "frame": ["Head"], "cut": 1.95, "turn": 12}
+}

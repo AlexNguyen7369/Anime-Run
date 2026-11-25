@@ -27,6 +27,7 @@ local RelicConfig = require(Shared.RelicConfig)
 local RelicService = require(script.Parent.RelicService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local WeatherService = require(script.Parent.WeatherService)
+local WorldTravel = require(script.Parent.WorldTravel)
 
 local AdminService = {}
 
@@ -53,6 +54,20 @@ local function userIdOf(player)
 	return ok and type(id) == "number" and id or nil
 end
 
+AdminService.RANK_TRIES = 3 -- placeholder: GetRankInGroup tries per check before the check reports "unknown"
+AdminService.RANK_WAIT = 1 -- placeholder: seconds between those tries
+
+-- Test seams: the owning group of `player`'s check (nil: not a group game, or not a real Player) and their rank in it.
+AdminService.GroupOf = function(player)
+	local group = game.CreatorId ~= 0 and game.CreatorType == Enum.CreatorType.Group and player:IsA("Player")
+	return group and game.CreatorId or nil
+end
+AdminService.RankOf = function(player, groupId)
+	return player:GetRankInGroup(groupId)
+end
+
+-- Returns true for an admin. false, "unknown": a group rank lookup failed every try (Server/WorldTravel's arrival
+-- check waits and asks again instead of taking them for a guest).
 function AdminService.IsAdmin(player)
 	if typeof(player) ~= "Instance" or player.Parent == nil then
 		return false -- nil, or a player that left / a destroyed stand-in
@@ -62,18 +77,31 @@ function AdminService.IsAdmin(player)
 		if table.find(AdminConfig.UserIds, id) then
 			return true
 		end
-		if game.CreatorId ~= 0 then
-			if game.CreatorType == Enum.CreatorType.User and id == game.CreatorId then
+		if game.CreatorId ~= 0 and game.CreatorType == Enum.CreatorType.User and id == game.CreatorId then
+			return true
+		end
+		local groupId = AdminService.GroupOf(player)
+		if groupId then
+			-- a failed lookup is not cached: tried again here and on the next check
+			for try = 1, AdminService.RANK_TRIES do
+				if groupRank[player] ~= nil then
+					break
+				end
+				local ok, rank = pcall(AdminService.RankOf, player, groupId)
+				if ok and type(rank) == "number" then
+					groupRank[player] = rank
+				elseif try < AdminService.RANK_TRIES then
+					task.wait(AdminService.RANK_WAIT)
+					if player.Parent == nil then
+						return false -- left during the wait
+					end
+				end
+			end
+			if (groupRank[player] or 0) >= AdminConfig.GROUP_MIN_RANK then
 				return true
 			end
-			if game.CreatorType == Enum.CreatorType.Group and player:IsA("Player") then
-				if groupRank[player] == nil then
-					local ok, rank = pcall(player.GetRankInGroup, player, game.CreatorId)
-					groupRank[player] = ok and rank or 0
-				end
-				if groupRank[player] >= AdminConfig.GROUP_MIN_RANK then
-					return true
-				end
+			if groupRank[player] == nil and not (AdminService.AllowStudio == true and RunService:IsStudio()) then
+				return false, "unknown"
 			end
 		end
 	end
@@ -486,14 +514,21 @@ AdminService.Commands = {
 			return n and n == math.floor(n) and n >= 1 and n <= AdminConfig.MAX_ROLLS and n or nil
 		end,
 		Apply = function(p, n)
-			local got = {}
+			local got, rolled = {}, 0
 			for _ = 1, n do
 				local id, isNew = GachaService.Roll(p)
+				if id == nil then
+					break -- refused (not loaded, travelling, no room): GachaService.Roll returns nil
+				end
+				rolled += 1
 				if isNew then
 					table.insert(got, id)
 				end
 			end
-			return true, ("rolled %d; new: %s"):format(n, #got > 0 and table.concat(got, ", ") or "none")
+			if rolled == 0 then
+				return false, p.Name .. " cannot roll now"
+			end
+			return true, ("rolled %d; new: %s"):format(rolled, #got > 0 and table.concat(got, ", ") or "none")
 		end,
 	},
 	wipe = {
@@ -544,6 +579,31 @@ AdminService.Commands = {
 			-- deferred so the command's reply goes out first
 			task.defer(p.Kick, p, "Save erased. Rejoin (in Studio: Stop, then Play) to start as a new player.")
 			return true, "save erased"
+		end,
+	},
+	-- World travel (design doc 4.47): the World 2 gate is locked, so admins go by command.
+	world1 = {
+		Usage = "/world1 [player]",
+		Help = "send to the World 1 place",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return 1
+		end,
+		Apply = function(p, id)
+			return WorldTravel.Go(p, id)
+		end,
+	},
+	world2 = {
+		Usage = "/world2 [player]",
+		Help = "send to the World 2 place (its gate is locked for everyone else)",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return 2
+		end,
+		Apply = function(p, id)
+			return WorldTravel.Go(p, id)
 		end,
 	},
 	tp = {
@@ -607,6 +667,8 @@ local ORDER = {
 	"wipe",
 	"newplayer",
 	"tp",
+	"world1",
+	"world2",
 }
 
 local function helpText()
@@ -662,7 +724,13 @@ local function execute(sender, text)
 
 	local anyOk, lastMessage = false, ""
 	for _, target in targets do
-		local ok, message = cmd.Apply(target, value)
+		local ok, message
+		if target:GetAttribute("Travelling") == true then
+			-- Server/WorldTravel's freeze: the release save is written, so a change now would be lost
+			ok, message = false, target.Name .. " is travelling"
+		else
+			ok, message = cmd.Apply(target, value)
+		end
 		anyOk = anyOk or ok
 		lastMessage = (#targets > 1 and (target.Name .. ": ") or "") .. message
 	end

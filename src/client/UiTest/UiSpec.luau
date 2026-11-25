@@ -15,6 +15,7 @@
 local UiSpec = {}
 
 local MarketConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("MarketConfig"))
+local TEAM_SIZE = require(game:GetService("ReplicatedStorage").Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4
 -- A MarketConfig item's Name (a readable placeholder when the id is gone, so the spec still loads and the click fails)
 local function marketName(kind, id)
 	local item = MarketConfig.Get(kind, id)
@@ -565,7 +566,8 @@ UiSpec.Hud = {
 	Cell = Vector2.new(84, 94), -- one button before its holder's UIScale: a 72 px icon + 12, the icon + a 22 px label
 	-- retired: GridColumns / GridGap (the 2-column block) and GoldTiles (the gold-frame tile art), owner 2026-11-10
 	-- Design doc 4.40 "Icon style": every column button and the Auto / Upgrade pair are a transparent ImageButton
-	-- (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows the HudIcons entry of the button's name
+	-- (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows the HudIcons entry of the button's name. No
+	-- option A wood (a child Frame "Plaque", design doc 4.46) in either world: 4.46 "HUD look", owner 2026-11-24
 	IconButtons = {
 		"HudChrome/Grid/Index",
 		"HudChrome/Grid/Items",
@@ -603,10 +605,22 @@ UiSpec.Hud = {
 	Money = "RacerHud/Money",
 	MoneyValue = "RacerHud/Money/MoneyValue",
 	-- Owner 2026-11-10 (design doc 4.40): no box or border behind Money or Gems, no UNBANKED line (the run bank is
-	-- gone); the Gems row sits directly under MoneyValue, inside Money. Retired paths must stay absent.
+	-- gone); the Gems row sits directly under MoneyValue, inside Money. Retired paths must stay absent. Owner 2026-11-24
+	-- (design doc 4.46 "HUD look", both worlds): option A's lacquer plates (MoneyLacquer, GemsLacquer, 4.46)
+	-- are retired with it, so nothing inside Money draws a box.
 	Gems = "RacerHud/Money/Gems",
 	GemsValue = "RacerHud/Money/Gems/GemsValue",
-	RetiredMoneyParts = { "RacerHud/Money/MoneyPlate", "RacerHud/Money/Unbanked", "RacerHud/Gems" },
+	RetiredMoneyParts = {
+		"RacerHud/Money/MoneyPlate",
+		"RacerHud/Money/Unbanked",
+		"RacerHud/Gems",
+		"RacerHud/Money/MoneyLacquer",
+		"RacerHud/Money/Gems/GemsLacquer",
+	},
+	-- The 4.40 read-outs: the game font (no kit font: not Permanent Marker, not Kalam) and a blue Gems gradient, top
+	-- to bottom (option A's was gold).
+	ReadoutFont = Enum.Font.FredokaOne, -- UiTheme.Font
+	GemsGradient = { Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255) },
 	RetiredMoneyText = "UNBANKED", -- no HUD label starts with it
 	GemsUnderGap = 16, -- px: most the Gems row's top may sit below MoneyValue's bottom
 	GemsLeftTolerance = 8, -- px: Gems row's left edge vs MoneyValue's left edge
@@ -1243,6 +1257,7 @@ UiSpec.RollAnim = {
 			Legendary = 1.5,
 			Mythic = 2.5,
 			Secret = 4,
+			Eternal = 5, -- design doc 4.47
 		},
 		REEL_CARS = 16,
 		LAND_POP = 1.15,
@@ -3536,7 +3551,7 @@ UiSpec.Backpack = {
 	},
 	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
-	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
+	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" },
 	PhoneMaxHeight = 500,
 	MaxDecimals = 6, -- digits after the point in a tile's cruise "<n> studs/s" (no float noise)
 	ModelWait = 5, -- s for a tile's ViewportFrame to receive its runner rig
@@ -3606,12 +3621,13 @@ UiSpec.Team = {
 	SummonPanel = "RacerSidekicks/Canvas",
 	Gone = { "BestTeam" }, -- no descendant of Panel has this name (Quick Setup replaced it, 4.45)
 	GoneDirect = { "Slots", "Bonus" }, -- layout A's parts: no child of Panel has these names any more
-	SlotLabels = { "SLOT 1", "SLOT 2", "SLOT 3" }, -- owner 2026-11-17 (4.45)
+	-- owner 2026-11-17 (4.45); World 2's team of 4 adds slot 4 (4.47)
+	SlotLabels = TEAM_SIZE == 4 and { "SLOT 1", "SLOT 2", "SLOT 3", "SLOT 4" } or { "SLOT 1", "SLOT 2", "SLOT 3" },
 	FullScreenTol = 2, -- px: Panel AbsoluteSize against its ScreenGui's
 	TeamName = "Team 1",
 	Ready = "Ready",
 	Unsaved = "Unsaved changes",
-	CountText = "%d / 3", -- owner 2026-11-19 (4.45 T2)
+	CountText = "%d / " .. TEAM_SIZE, -- owner 2026-11-19 (4.45 T2); World 2: "/ 4" (4.47)
 	PlusText = "+",
 	AddText = "Add Character",
 	RemoveText = "Remove",
@@ -5155,6 +5171,43 @@ do
 		NeedSetup = { "spy", "boss_rewards_open" },
 		Expect = { Remote = false, After = { "boss_rewards_closed" } },
 	})
+end
+
+-- World awareness (docs/WORLD2_SPEC.md "World HUD", "Welcome"; UiWorld2 judges both). WorldHud/WorldLabel is display
+-- only and placed from HudChrome's live rects, so it is not AlwaysOn (the viewport solver can not model it).
+UiSpec.Guis.WorldHud = { Source = "Client/WorldHud", Buttons = {}, NonInteractive = true }
+-- World2Welcome exists only in World 2 (Client/World2Welcome builds nothing in World 1), so it is declared there only.
+-- Its Panel is an Active face over the IndexFrame chrome (PanelBodies). The harness dismisses the real arrival welcome
+-- before a run (UiScenarios.DismissWelcome), as a player would; these clicks reopen it (Before) and press Close / OK.
+if require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id == 2 then
+	UiSpec.Guis.World2Welcome = {
+		Source = "Client/World2Welcome",
+		Buttons = { { Path = "Panel/CloseButton", Does = "local" }, { Path = "Panel/OK", Does = "local" } },
+	}
+	UiSpec.Hitbox.PanelBodies["World2Welcome/Panel"] = true
+	local function openWelcome()
+		local player = game:GetService("Players").LocalPlayer
+		local gui = player.PlayerGui:FindFirstChild("World2Welcome")
+		local before = player:GetAttribute("World2WelcomeShow")
+		if gui then
+			gui:SetAttribute("Done", nil) -- test seam (UiWorld2): shows again this session
+		end
+		player:SetAttribute("World2WelcomeShow", true)
+		return function()
+			player:SetAttribute("World2WelcomeShow", before)
+		end
+	end
+	for _, c in { { "world2_welcome_close", "Panel/CloseButton" }, { "world2_welcome_ok", "Panel/OK" } } do
+		local prepare = only()
+		prepare.Before, prepare.WaitSeconds = openWelcome, 1 -- the 0.45 s unroll has finished
+		table.insert(UiSpec.Clicks, {
+			Id = c[1],
+			Gui = "World2Welcome",
+			Path = c[2],
+			Prepare = prepare,
+			Expect = { Remote = false, After = { "world2_welcome_closed" } },
+		})
+	end
 end
 
 return UiSpec

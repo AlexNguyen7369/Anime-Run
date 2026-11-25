@@ -84,8 +84,26 @@ function Tests.make(helpers)
 			gacha.FillTeam(a, second)
 			local full = want .. "," .. second
 			flag("fill_third_slot", a:GetAttribute("Team") == full, a:GetAttribute("Team"), full)
+			-- World 2's fourth slot fills the same way (design doc 4.47)
+			local TEAM_SIZE = require(game:GetService("ReplicatedStorage").Shared.StaminaConfig).TEAM_SIZE
+			local used = { [STARTER] = true, [tostring(first)] = true, [second] = true }
+			local function spare()
+				for _, spec in rollable do
+					if not used[spec.Id] then
+						used[spec.Id] = true
+						return spec.Id
+					end
+				end
+			end
+			for _ = 4, TEAM_SIZE do
+				local more = spare()
+				gacha.Grant(a, more)
+				gacha.FillTeam(a, more)
+				full ..= "," .. more
+			end
+			flag("fill_every_slot", a:GetAttribute("Team") == full, a:GetAttribute("Team"), full)
 			-- A full Team never changes
-			local third = rollable[4].Id
+			local third = spare()
 			gacha.Grant(a, third)
 			gacha.FillTeam(a, third)
 			flag("fill_full_team_kept", a:GetAttribute("Team") == full, a:GetAttribute("Team"), full)

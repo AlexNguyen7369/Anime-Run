@@ -41,7 +41,9 @@ local function stateFor(player)
 end
 
 local function loaded(player)
-	return player:GetAttribute("DataLoaded") == true and not player:GetAttribute("DataFailed")
+	return player:GetAttribute("DataLoaded") == true
+		and not player:GetAttribute("DataFailed")
+		and player:GetAttribute("Travelling") ~= true -- Server/WorldTravel: a receipt waits for the next session
 end
 
 local function playerData()

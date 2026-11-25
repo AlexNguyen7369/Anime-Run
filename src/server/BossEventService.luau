@@ -437,6 +437,7 @@ local function publishTeam(player, team)
 							staminaMulti
 								* SidekickService.StaminaMulti(player, id)
 								* RelicService.Multi(player, id, "Stamina")
+								* GachaService.AwakenStamina(player, id)
 						) * 10
 					) / 10
 				or nil

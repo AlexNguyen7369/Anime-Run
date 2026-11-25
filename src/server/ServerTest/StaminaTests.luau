@@ -40,6 +40,8 @@ local SPEED_TOL = 1e-6 -- swap cruise: fixed per character (design doc 4.13)
 local SLOW_NPC = 0.001 -- studs/s: the NPC never wins
 local FAST_NPC = 1e7 -- studs/s: the NPC always wins
 local OLD_VERSION = 12 -- the save VERSION before Team (PlayerData)
+local TEAM_SIZE = require(Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47, World2TeamTests)
+local UNOWNED = TEAM_SIZE + 2 -- ids[UNOWNED] is never granted; ids 1..TEAM_SIZE + 1 are owned (one past the size)
 local UID = 991400000
 
 local Tests = {}
@@ -68,7 +70,7 @@ local function rollableIds(catalog, count)
 	return ids
 end
 
--- Quick Setup checks (team_quick_pick_*), run inside Tests.team. `ids[5]` is never granted (unowned).
+-- Quick Setup checks (team_quick_pick_*), run inside Tests.team. `ids[UNOWNED]` is never granted (unowned).
 local function quickPick(flag, mods, cleanup, ids, store)
 	local gacha, catalog = mods.gacha, mods.catalog
 	local RaceConfig = H.module(Shared, "RaceConfig")
@@ -82,7 +84,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 		return
 	end
 	local p, uid = fakePlayer(cleanup, mods, "Quick")
-	for i = 1, 4 do
+	for i = 1, TEAM_SIZE + 1 do
 		gacha.Grant(p, ids[i])
 	end
 	gacha.SetTeam(p, { ids[1] })
@@ -124,7 +126,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 			return order[a.Id] < order[b.Id]
 		end)
 		for _, spec in pool do
-			if #out < 3 then
+			if #out < TEAM_SIZE then
 				table.insert(out, spec.Id)
 			end
 		end
@@ -135,7 +137,7 @@ local function quickPick(flag, mods, cleanup, ids, store)
 		if type(got) ~= "table" then
 			return { "ids not a table" }
 		end
-		if #got > 3 then
+		if #got > TEAM_SIZE then
 			table.insert(wrong, #got .. " ids")
 		end
 		for i, id in got do
@@ -173,9 +175,9 @@ local function quickPick(flag, mods, cleanup, ids, store)
 	end
 	local rejects = {
 		not_table = ids[1],
-		four_ids = { ids[1], ids[2], ids[3], ids[4] },
+		four_ids = table.move(ids, 1, TEAM_SIZE + 1, 1, {}), -- one past the size, all owned
 		not_string = { ids[1], 7 },
-		unowned = { ids[5] },
+		unowned = { ids[UNOWNED] },
 		duplicate = { ids[1], ids[1] },
 	}
 	for name, value in rejects do
@@ -223,13 +225,14 @@ function Tests.team()
 	flag("team_remote_exists", remote ~= nil and (remote:IsA("RemoteFunction") or remote:IsA("RemoteEvent")))
 
 	local gacha, data, STARTER = mods.gacha, mods.data, mods.catalog.STARTER_ID
-	local ids = rollableIds(mods.catalog, 5) -- ids[5] is never granted: unowned
+	local ids = rollableIds(mods.catalog, UNOWNED) -- ids[UNOWNED] is never granted: unowned
+	local WorldSave, WORLD = require(Shared.WorldSave), require(Shared.WorldConfig).Id
 	local cleanup = {}
 	local ok, err = pcall(function()
 		-- 1. SetTeam validation
 		local p = fakePlayer(cleanup, mods, "Validate")
 		flag("team_new_player_is_starter", p:GetAttribute("Team") == STARTER, tostring(p:GetAttribute("Team")), STARTER)
-		for i = 1, 4 do
+		for i = 1, TEAM_SIZE + 1 do
 			gacha.Grant(p, ids[i])
 		end
 		flag("team_set_one_ok", gacha.SetTeam(p, { ids[1] }) == true and p:GetAttribute("Team") == ids[1])
@@ -242,9 +245,9 @@ function Tests.team()
 		)
 		local rejects = {
 			empty = {},
-			four_ids = { ids[1], ids[2], ids[3], ids[4] },
+			four_ids = table.move(ids, 1, TEAM_SIZE + 1, 1, {}), -- one past the size, all owned
 			duplicate = { ids[1], ids[1] },
-			unowned = { ids[1], ids[5] },
+			unowned = { ids[1], ids[UNOWNED] },
 			unknown_id = { "cartest_no_such_character" },
 			not_table = ids[1],
 			not_string = { ids[1], 7 },
@@ -271,12 +274,16 @@ function Tests.team()
 			{ Name = "fresh", Record = nil, Want = STARTER },
 			{
 				Name = "unowned_removed",
-				Record = { Version = OLD_VERSION + 1, Cars = { ids[1], ids[2] }, Team = { ids[1], ids[5], ids[2] } },
+				Record = {
+					Version = OLD_VERSION + 1,
+					Cars = { ids[1], ids[2] },
+					Team = { ids[1], ids[UNOWNED], ids[2] },
+				},
 				Want = ids[1] .. "," .. ids[2],
 			},
 			{
 				Name = "all_unowned_starter",
-				Record = { Version = OLD_VERSION + 1, Cars = { ids[1] }, Team = { ids[5] } },
+				Record = { Version = OLD_VERSION + 1, Cars = { ids[1] }, Team = { ids[UNOWNED] } },
 				Want = STARTER,
 			},
 			{
@@ -286,7 +293,7 @@ function Tests.team()
 			},
 			{
 				Name = "old_equipped_unowned",
-				Record = { Version = OLD_VERSION, Cars = { ids[1] }, Equipped = ids[5] },
+				Record = { Version = OLD_VERSION, Cars = { ids[1] }, Equipped = ids[UNOWNED] },
 				Want = STARTER,
 			},
 			{ Name = "round_trip", Record = nil, Want = STARTER },
@@ -296,7 +303,7 @@ function Tests.team()
 			case.Uid = base + i
 			if case.Record then
 				case.Record.Money, case.Record.Speed = 10, 1000
-				records[data.KeyFor(case.Uid)] = case.Record
+				records[data.KeyFor(case.Uid)] = WorldSave.Fold(case.Record, nil, WORLD) -- this place's own Team (4.47)
 			end
 		end
 		local store = H.store(records)
@@ -322,7 +329,7 @@ function Tests.team()
 		end
 		gacha.SetTeam(rp, { ids[2], ids[3], ids[1] })
 		flag("team_save_ok", data.Save(rp, rid, true) == true)
-		local rec = store.data[data.KeyFor(rid)]
+		local rec = WorldSave.View(store.data[data.KeyFor(rid)], WORLD)
 		flag("team_saved_in_order", type(rec) == "table" and H.same(rec.Team, { ids[2], ids[3], ids[1] }))
 		flag(
 			"team_save_version_bumped",
@@ -344,7 +351,7 @@ function Tests.team()
 		)
 		local old = players.old_equipped
 		data.Save(old, cases[4].Uid, true)
-		local oldRec = store.data[data.KeyFor(cases[4].Uid)]
+		local oldRec = WorldSave.View(store.data[data.KeyFor(cases[4].Uid)], WORLD)
 		flag("team_old_save_migrates_on_save", type(oldRec) == "table" and H.same(oldRec.Team, { ids[2] }))
 
 		-- 4. Quick Setup (design doc 4.45, docs/team_setup_contract.md): GachaService.QuickPick(player, draft) -> true, ids:
@@ -442,7 +449,7 @@ function Tests.team_bonus()
 	-- 2. A same-series trio that is not the preset: Series; a mixed trio: none
 	local first = series.List[1]
 	local others = {}
-	for _, spec in catalog.All() do
+	for _, spec in catalog.All(1) do
 		if spec.Series == first.Id and not table.find(first.Preset.Members, spec.Id) then
 			table.insert(others, spec.Id)
 		end
@@ -460,7 +467,7 @@ function Tests.team_bonus()
 		and bonus({ m[1] }) == nil
 		and bonus({}) == nil
 		and bonus({ m[1], m[1], m[2] }) == nil
-		and bonus({ m[1], m[2], m[3], others[1] }) == nil
+		and (TEAM_SIZE > 3 or bonus({ m[1], m[2], m[3], others[1] }) == nil) -- World 2's 4: World2TeamTests
 		and bonus(nil) == nil
 	flag("team_bonus_needs_3_members", small)
 
@@ -552,8 +559,8 @@ function Tests.team_bonus()
 	end
 	flag(
 		"team_bonus_secret_preset_capped",
-		secret ~= nil and rc.Cruise(secret, rc.SpeedMulti(0, 2, true)) == rc.MAX_CRUISE,
-		secret and rc.Cruise(secret, rc.SpeedMulti(0, 2, true)) or -1,
+		secret ~= nil and rc.Cruise(secret, rc.SpeedMulti(0, 2, true), 1) == rc.MAX_CRUISE,
+		secret and rc.Cruise(secret, rc.SpeedMulti(0, 2, true), 1) or -1,
 		rc.MAX_CRUISE
 	)
 	return r

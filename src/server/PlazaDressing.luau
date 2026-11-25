@@ -3,6 +3,7 @@
 -- Runs in the background after the world is built. SpawnArea still builds the gameplay parts:
 -- prompts, pads, zones and collision stay on them. A loaded mesh only turns its stand-in invisible, so a failed
 -- load leaves the plain stand-in working. ReplicatedStorage attribute PlazaReady turns true when done.
+local CollectionService = game:GetService("CollectionService")
 local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -11,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Layout = require(Shared.PlazaAssets)
 local UiTheme = require(Shared.UiTheme)
+local Look = require(Shared.PlazaLook) -- World 2's colours and lights (design doc 4.47); empty in World 1
 
 local PlazaDressing = {}
 
@@ -63,8 +65,17 @@ local function loadAsset(key, row)
 			if spec.Glow then
 				d.Material = Enum.Material.Neon
 				d.TextureID = ""
-				d.Color = Color3.fromHex(spec.Glow)
+				d.Color = Color3.fromHex(Look.Glow and Look.Glow[d.Name] or spec.Glow)
 				d.CastShadow = false
+				if Look.LampLight and d.Name == "Glow_lamp" then -- lit lanterns (World 2)
+					local light = Instance.new("PointLight")
+					light.Color = Look.LampLight.Color
+					light.Brightness = Look.LampLight.Brightness
+					light.Range = Look.LampLight.Range
+					light.Shadows = false
+					light.Parent = d
+					CollectionService:AddTag(light, "BiomeEffect") -- off under REDUCED EFFECTS (Client/BiomeEnvironment)
+				end
 			else
 				d.Material = Enum.Material.SmoothPlastic
 			end

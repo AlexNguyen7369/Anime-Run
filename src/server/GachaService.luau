@@ -22,6 +22,8 @@ local RebirthConfig = require(Shared.RebirthConfig)
 local RollAnimConfig = require(Shared.RollAnimConfig)
 local SeriesCatalog = require(Shared.SeriesCatalog)
 local StaminaConfig = require(Shared.StaminaConfig)
+local AwakeningConfig = require(Shared.AwakeningConfig)
+local WorldConfig = require(Shared.WorldConfig)
 local UpgradeService = require(script.Parent.UpgradeService)
 local PassService = require(script.Parent.PassService)
 
@@ -33,7 +35,7 @@ GachaService.TEAM_COOLDOWN = 0.5 -- seconds between accepted SetTeam requests (T
 
 local MAX_COUNT = 1e9
 local STARTER = CharacterCatalog.STARTER_ID
-local TEAM_SIZE = 3
+local TEAM_SIZE = StaminaConfig.TEAM_SIZE -- 3, World 2: 4 (design doc 4.47: slot 4 open from the first entry; nothing saved)
 local EXCLUSIVE_PASS = "exclusive_runner"
 
 local rng = Random.new()
@@ -207,6 +209,54 @@ function GachaService.Copies(player, id)
 	return entry and cleanCopies(entry:GetAttribute("Copies")) or 0
 end
 
+-- Awakening stars of character `id` (design doc 4.47, docs/WORLD2_SPEC.md "Awakening"): its GachaData entry's Stars
+-- attribute in World 2, always 0 in World 1.
+function GachaService.Stars(player, id)
+	if WorldConfig.Id ~= 2 then
+		return 0
+	end
+	local data = player:FindFirstChild("GachaData")
+	local entry = data and type(id) == "string" and data:FindFirstChild(id)
+	return entry and AwakeningConfig.Clean(entry:GetAttribute("Stars")) or 0
+end
+
+-- Character `id`'s stamina multi from its stars (exactly 1 in World 1).
+function GachaService.AwakenStamina(player, id)
+	return AwakeningConfig.StaminaMulti(GachaService.Stars(player, id))
+end
+
+-- Buys character `id`'s next star with its own Copies (World 2 only). Returns ok, message.
+function GachaService.Awaken(player, id)
+	if player:GetAttribute("DataLoaded") ~= true or player:GetAttribute("DataFailed") then
+		return false, "Data not loaded"
+	end
+	if player:GetAttribute("Travelling") == true then
+		return false, "Travelling" -- Server/WorldTravel's freeze: the change would be left out of the release save
+	end
+	if WorldConfig.Id ~= 2 then
+		return false, "World 2 only"
+	end
+	local data = player:FindFirstChild("GachaData")
+	local entry = data and type(id) == "string" and CharacterCatalog.Get(id) and data:FindFirstChild(id)
+	if not entry then
+		return false, "Not owned"
+	end
+	local stars = AwakeningConfig.Clean(entry:GetAttribute("Stars"))
+	local cost = AwakeningConfig.NextCost(stars)
+	if not cost then
+		return false, "Fully awakened"
+	end
+	local copies = cleanCopies(entry:GetAttribute("Copies"))
+	if copies < cost then
+		return false, "Need " .. cost .. " Copies"
+	end
+	entry:SetAttribute("Copies", copies - cost)
+	entry:SetAttribute("Stars", stars + 1)
+	GachaService.RefreshBag(player)
+	GachaService.RefreshTeam(player)
+	return true, "Awakened to " .. (stars + 1) .. " stars"
+end
+
 local function owns(player, id)
 	if id == STARTER then
 		return true
@@ -332,6 +382,9 @@ end
 -- `bagLimited` (auto roll): at a full bag only a roll auto sell takes happens (design doc 4.41); any other returns nil, with
 -- Rolls and Turbo unmoved.
 local function rollOnce(player, roller, bagLimited)
+	if player:GetAttribute("Travelling") == true then
+		return nil -- Server/WorldTravel's freeze: a roll now would be left out of the release save
+	end
 	GachaService.Setup(player)
 	local full = bagLimited and GachaService.BagFull(player)
 	if full and player:GetAttribute("AutoSell") ~= true then
@@ -398,6 +451,9 @@ end
 -- The fifth return value is what auto sell paid for this roll (0 when it was kept).
 function GachaService.Roll(player, roller)
 	local roll = rollOnce(player, roller)
+	if not roll then
+		return nil -- refused (Server/WorldTravel's freeze)
+	end
 	playRoll(player, roll)
 	return roll.Id, roll.IsNew, roll.Turbo, roll.Emphasized, roll.SoldFor, roll.Luck
 end
@@ -469,7 +525,7 @@ function GachaService.SellSparesMany(player, ids)
 	if player:GetAttribute("DataLoaded") ~= true or player:GetAttribute("DataFailed") then
 		return false, "Data not loaded"
 	end
-	if type(ids) ~= "table" or #ids > #CharacterCatalog.All() then
+	if type(ids) ~= "table" or #ids > #CharacterCatalog.Everything() then
 		return false, "Invalid list"
 	end
 	local data = player:FindFirstChild("GachaData")
@@ -567,6 +623,9 @@ end
 -- A save with no rolls has auto-roll off until Client/AutoRollTutorial has the player turn it on; a brand new save also
 -- opens the starter popup (design doc 4.21). Called once a real save has loaded.
 function GachaService.CheckStarter(player)
+	if WorldConfig.Id ~= 1 then
+		return -- design doc 4.47 (owner 2026-11-24): World 2 never asks for a starter or the roll tutorial
+	end
 	if cleanCount(player:GetAttribute("Rolls")) == 0 then
 		player:SetAttribute("AutoRoll", false)
 		if #folder(player):GetChildren() == 0 then
@@ -581,7 +640,11 @@ local STARTER_ROLL_HOLD = 5 -- seconds (proposed)
 local rollHoldUntil = setmetatable({}, { __mode = "k" })
 
 function GachaService.PickStarter(player, id)
-	if player:GetAttribute("NeedsStarter") ~= true or not table.find(CharacterCatalog.STARTER_PICKS, id) then
+	if
+		player:GetAttribute("NeedsStarter") ~= true
+		or player:GetAttribute("Travelling") == true -- Server/WorldTravel's freeze: the next session picks
+		or not table.find(CharacterCatalog.STARTER_PICKS, id)
+	then
 		return false
 	end
 	addEntry(folder(player), id)
@@ -592,7 +655,7 @@ function GachaService.PickStarter(player, id)
 	return true
 end
 
--- Sets the Team (docs/TEAM_AND_STAMINA_SPEC.md "Team"): 1-3 distinct owned string ids, on foot only. Anything else changes nothing. Returns ok, reason.
+-- Sets the Team (docs/TEAM_AND_STAMINA_SPEC.md "Team"): 1-TEAM_SIZE (3; World 2: 4) distinct owned string ids, on foot only. Anything else changes nothing. Returns ok, reason.
 function GachaService.SetTeam(player, ids)
 	if player:GetAttribute("AutoRacing") == true then
 		return false, "Stop running to change your Team"
@@ -620,7 +683,7 @@ function GachaService.SetTeam(player, ids)
 	return true, "Team updated"
 end
 
--- Quick Setup (design doc 4.45, TEAM_AND_STAMINA_SPEC "Team Setup page"): `draft` (the client's unsent Team, 0-3 distinct
+-- Quick Setup (design doc 4.45, TEAM_AND_STAMINA_SPEC "Team Setup page"): `draft` (the client's unsent Team, 0-TEAM_SIZE distinct
 -- owned ids) with its empty slots filled by owned characters not in it, highest cruise first, ties to the rarer, then
 -- catalog order. Read-only: nothing is set or saved. Returns ok, ids or ok=false, reason.
 function GachaService.QuickPick(player, draft)
@@ -748,8 +811,8 @@ end
 -- Cruise of character `id` on team slot `slot` (default 1), studs/s (design doc 4.13): fixed by rarity x category,
 -- times the speed multi (Speed points + upgrade tree Speed tiers + rebirth level, active Speed potion, preset team bonus, that slot's
 -- damped aura and trail, that character's Sidekick and Relic), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
--- not own runs as the starter.
-function GachaService.CruiseFor(player, id, slot, team)
+-- not own runs as the starter. `stars` (optional) replaces the character's Awakening stars (GachaService.AwakenPreview).
+function GachaService.CruiseFor(player, id, slot, team, stars)
 	slot = slot or 1
 	local spec = type(id) == "string" and owns(player, id) and CharacterCatalog.Get(id) or CharacterCatalog.Get(STARTER)
 	local multi = RaceConfig.SpeedMulti(
@@ -763,6 +826,7 @@ function GachaService.CruiseFor(player, id, slot, team)
 	-- late: SidekickService, RelicService -> GachaService
 	local gear = require(script.Parent.SidekickService).CruiseMulti(player, spec.Id)
 		* require(script.Parent.RelicService).Multi(player, spec.Id, "Speed")
+		* AwakeningConfig.CruiseMulti(stars or GachaService.Stars(player, spec.Id)) -- World 2 stars (1 in World 1)
 	return RaceConfig.Cruise(spec, multi * gear)
 end
 
@@ -772,7 +836,7 @@ function GachaService.Cruise(player, slot)
 end
 
 -- Replicates what the team row shows (server numbers, display only): TeamBonus ("Preset:<id>", "Series:<id>" or
--- ""), TeamCruise1..3 (studs/s) and TeamStamina1..3 (seconds) per slot, and Cruise while on foot (a run sets its own).
+-- ""), TeamCruise1..TEAM_SIZE (studs/s) and TeamStamina1..TEAM_SIZE (seconds) per slot, and Cruise while on foot (a run sets its own).
 function GachaService.RefreshTeam(player)
 	local team = GachaService.TeamList(player)
 	local kind, series = GachaService.TeamBonus(player)
@@ -792,6 +856,7 @@ function GachaService.RefreshTeam(player)
 							staminaMulti
 								* gear.StaminaMulti(player, team[slot])
 								* relics.Multi(player, team[slot], "Stamina")
+								* GachaService.AwakenStamina(player, team[slot])
 						) * 10
 					) / 10
 				or nil
@@ -830,7 +895,7 @@ end
 
 -- The save format: { Cars = { id, ... } (sorted), Copies = { [id] = n }, Team = { id, ... },
 -- Equipped = id (Team[1], kept for old readers),
--- Rolls = n, StatAlloc = { [stat] = n } }.
+-- Rolls = n, StatAlloc = { [stat] = n }, Awakening = { [id] = stars } (World 2 only, nil when none) }.
 function GachaService.Snapshot(player)
 	local characters = {}
 	local data = player:FindFirstChild("GachaData")
@@ -847,6 +912,14 @@ function GachaService.Snapshot(player)
 			copies[id] = n
 		end
 	end
+	local awakening = nil -- World 2 only (GachaService.Stars is 0 in World 1); WorldSave.Fold moves it under Worlds.W2
+	for _, id in characters do
+		local stars = GachaService.Stars(player, id)
+		if stars > 0 then
+			awakening = awakening or {}
+			awakening[id] = stars
+		end
+	end
 	local team = {}
 	for _, id in GachaService.TeamList(player) do
 		if id ~= CharacterCatalog.KAMI_ID then -- Kami is session-only
@@ -861,6 +934,7 @@ function GachaService.Snapshot(player)
 		Copies = copies,
 		Team = team,
 		Equipped = team[1],
+		Awakening = awakening,
 		Rolls = cleanCount(player:GetAttribute("Rolls")),
 		StatAlloc = alloc(player),
 		AutoSell = player:GetAttribute("AutoSell") == true,
@@ -895,6 +969,15 @@ function GachaService.Apply(player, saved)
 			local entry = type(id) == "string" and data:FindFirstChild(id)
 			if entry and cleanCopies(n) > 0 then
 				entry:SetAttribute("Copies", cleanCopies(n))
+			end
+		end
+	end
+	-- Awakening stars (World 2 only, Worlds.W2.Awakening via WorldSave.View): an old save has none (0 stars)
+	if WorldConfig.Id == 2 and type(saved.Awakening) == "table" then
+		for id, stars in saved.Awakening do
+			local entry = type(id) == "string" and data:FindFirstChild(id)
+			if entry and AwakeningConfig.Clean(stars) > 0 then
+				entry:SetAttribute("Stars", AwakeningConfig.Clean(stars))
 			end
 		end
 	end
@@ -986,6 +1069,7 @@ function GachaService.StartAutoRoll(player, roller)
 				and player:GetAttribute("AutoRoll") ~= false
 				and player:GetAttribute("NeedsStarter") ~= true
 				and player:GetAttribute("BossEvent") ~= true
+				and player:GetAttribute("Travelling") ~= true
 				and os.clock() >= (rollHoldUntil[player] or 0)
 			then
 				local roll = GachaService.RollTick(player, roller)
@@ -1020,6 +1104,29 @@ end
 -- (Studio without API access) plays on unsaved.
 local function loading(player)
 	return player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+end
+
+-- What Remotes.Awaken does: rate-limited like SellSpares.
+function GachaService.RequestAwaken(player, id)
+	if not accept(player) then
+		return false, "Please wait"
+	end
+	return GachaService.Awaken(player, id)
+end
+
+-- What Remotes.AwakenPreview answers (display only): whether character `id`'s next star still raises its cruise
+-- (false when MAX_CRUISE already caps it, at 5 stars, or in World 1), and whether its stars now give any cruise.
+-- Its team slot's aura and trail count, else slot 1.
+function GachaService.AwakenPreview(player, id)
+	if WorldConfig.Id ~= 2 or type(id) ~= "string" or not owns(player, id) then
+		return false, false
+	end
+	local stars = GachaService.Stars(player, id)
+	local slot = table.find(GachaService.TeamList(player), id) or 1
+	local cruise = GachaService.CruiseFor(player, id, slot)
+	local nextGains = AwakeningConfig.NextCost(stars) ~= nil
+		and GachaService.CruiseFor(player, id, slot, nil, stars + 1) > cruise
+	return nextGains, stars > 0 and cruise > GachaService.CruiseFor(player, id, slot, nil, 0)
 end
 
 -- What Remotes.SetAutoRoll does: rate-limited like AllocateStat, booleans only. Returns true if applied.
@@ -1075,6 +1182,22 @@ function GachaService.Start()
 			return false, "Please wait"
 		end
 		return GachaService.SellSparesMany(player, ids)
+	end
+	local awakenRemote = remotes:FindFirstChild("Awaken") or Instance.new("RemoteFunction")
+	awakenRemote.Name = "Awaken" -- docs/WORLD2_SPEC.md "Awakening"
+	awakenRemote.Parent = remotes
+	local previewRemote = remotes:FindFirstChild("AwakenPreview") or Instance.new("RemoteFunction")
+	previewRemote.Name = "AwakenPreview"
+	previewRemote.Parent = remotes
+	local lastPreview = setmetatable({}, { __mode = "k" })
+	awakenRemote.OnServerInvoke = GachaService.RequestAwaken
+	previewRemote.OnServerInvoke = function(player, id)
+		local now = os.clock()
+		if lastPreview[player] and now - lastPreview[player] < GachaService.REMOTE_COOLDOWN then
+			return nil -- rate limited: the Backpack asks once more after REMOTE_COOLDOWN
+		end
+		lastPreview[player] = now
+		return GachaService.AwakenPreview(player, id)
 	end
 	-- Read-only: what the Details list shows (design doc 6). The numbers are the same ones a roll uses.
 	local luckRemote = remotes:FindFirstChild("GetRollLuck") or Instance.new("RemoteFunction")

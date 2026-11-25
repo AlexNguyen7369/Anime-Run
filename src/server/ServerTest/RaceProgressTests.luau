@@ -445,12 +445,19 @@ function Tests.race_progress_map()
 		table.insert(cleanup, module)
 		local data = require(module)
 		local oldId, id = 990088001, 990088002
+		-- Best times are per world (design doc 4.47): World 1 keeps them at the top of the save, World 2 under
+		-- Worlds.W2. The record is written and read through Shared/WorldSave, as PlayerData does.
+		local WorldSave = require(game:GetService("ReplicatedStorage").Shared.WorldSave)
+		local WORLD = require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id
+		local function bestOf(record)
+			return WorldSave.View(record, WORLD).RaceBestTimes
+		end
 		local fake = support.store({
 			[data.KeyFor(oldId)] = { Version = 10, Money = 123, Speed = 456 },
-			[data.KeyFor(id)] = {
+			[data.KeyFor(id)] = WorldSave.Fold({
 				Version = 11,
 				RaceBestTimes = { ["1"] = 80.25, ["2"] = 90, ["01"] = 1, ["999"] = 1, ["3"] = -1 },
-			},
+			}, {}, WORLD),
 		})
 		fake.retry = true -- exercises retried UpdateAsync transforms as well.
 		data.SetStore(fake)
@@ -463,30 +470,30 @@ function Tests.race_progress_map()
 		flag("v10_pb_defaults_empty", next(times.Snapshot(old)) == nil)
 		-- the Speed half is retired: saved Speed is never read (design doc 4.13, owner 2026-11-01)
 		flag("v10_existing_stats_preserved", old.leaderstats.Money.Value == 123)
-		flag("v10_upgrades_on_save", data.Save(old, oldId, true))
+		flag("v10_upgrades_on_save", (data.Save(old, oldId, true)))
 		local upgraded = fake.data[data.KeyFor(oldId)]
 		flag(
 			"v10_saved_as_version11_empty_pb",
-			upgraded.Version == 19 and type(upgraded.RaceBestTimes) == "table" and next(upgraded.RaceBestTimes) == nil
+			upgraded.Version == 19 and type(bestOf(upgraded)) == "table" and next(bestOf(upgraded)) == nil
 		)
 		local player = support.player(cleanup, id)
 		flag("v11_loads", data.Load(player, id))
 		flag("v11_load_sanitizes_pb", same(times.Snapshot(player), { ["1"] = 80.25, ["2"] = 90 }))
 		times.Record(player, 1, 75.125)
-		flag("v11_atomic_save", data.Save(player, id, true))
+		flag("v11_atomic_save", (data.Save(player, id, true)))
 		local saved = fake.data[data.KeyFor(id)]
 		flag(
 			"v11_payload_and_release",
-			saved.Version == 19 and saved.Lock == nil and same(saved.RaceBestTimes, { ["1"] = 75.125, ["2"] = 90 })
+			saved.Version == 19 and saved.Lock == nil and same(bestOf(saved), { ["1"] = 75.125, ["2"] = 90 })
 		)
 		local rejoined = support.player(cleanup, id)
 		flag("v11_rejoin_loads", data.Load(rejoined, id))
-		flag("v11_roundtrip_keeps_per_track_pb", same(times.Snapshot(rejoined), saved.RaceBestTimes))
+		flag("v11_roundtrip_keeps_per_track_pb", same(times.Snapshot(rejoined), bestOf(saved)))
 		local snapshot = times.Snapshot(rejoined)
 		snapshot["1"] = 1
 		flag(
 			"v11_snapshot_cannot_mutate_store",
-			fake.data[data.KeyFor(id)].RaceBestTimes["1"] == 75.125 and times.Best(rejoined, 1) == 75.125
+			bestOf(fake.data[data.KeyFor(id)])["1"] == 75.125 and times.Best(rejoined, 1) == 75.125
 		)
 		-- owner ruling 2026-11-04: best times are readable as RaceBest<track> attributes (design doc 4.29)
 		flag(

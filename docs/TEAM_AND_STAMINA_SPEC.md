@@ -4,6 +4,10 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
 
 ## Team
 
+- World 2 amendment (2026-11-24, design doc 4.47): in World 2 the Team has up to **4** slots (slot 4 is open from the
+  first entry; nothing extra is saved, the World 2 Team lives in `Worlds.W2.Team`), and a team bonus needs **any 3**
+  matching members: the preset trio among the members, else 3 of one Series. The number of slots is
+  `StaminaConfig.TEAM_SIZE` (3 in World 1, 4 in World 2); every team count of 3 below is that number in World 2. World 1 is unchanged.
 - `Team` is an ordered list of up to 3 owned character ids, saved in `PlayerData` (`Team = { id1, id2, id3 }`).
 - New players start with `Team = { "starter" }`.
 - Remote `SetTeam(ids)` (client -> server). The server rejects it unless:
@@ -56,6 +60,7 @@ Sizes, timings and colours **proposed**. Approved walkthrough, condensed:
 | Legendary | 24 |
 | Mythic | 27 |
 | Secret | 30 (owner 2026-11-02) |
+| Eternal (World 2) | 32 (owner 2026-11-24) |
 
 - Effective stamina, fixed for the whole run when it starts (all multipliers placeholders, in `Shared/StaminaConfig`):
 
@@ -149,7 +154,7 @@ Stamina = Base(rarity or override)
 ## Speed (owner 2026-11-01, design doc 4.13)
 
 - Cruise of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, capped at `MAX_CRUISE` (800).
-  RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
+  RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700; Eternal 780 (World 2, owner 2026-11-24).
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
   trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
 - Fixed for the whole run at run start (like stamina); no Speed stat, no gain. Exception: a Speed power-up's 1 s

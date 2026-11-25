@@ -462,7 +462,7 @@ function Tests.runner()
 	end
 
 	-- an Epic Balanced (about the old HALF_STAT cruise) and a Secret Balanced, as the race scenario uses
-	for _, case in { { "normal", "ds_sister" }, { "max", "db_hero" } } do
+	for _, case in { { "normal", H.worldChar("ds_sister") }, { "max", H.worldChar("db_hero") } } do
 		local label, id = case[1], case[2]
 		local st = runAs(id)
 		local pre = "runner_" .. label .. "_"

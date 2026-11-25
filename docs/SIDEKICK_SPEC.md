@@ -147,3 +147,29 @@ In the style common to anime tower defense games: all effects original, no copie
 | The Golden King (`side_king`, owner 2026-11-11) | Walk: short armoured stride, arms folded when still | A small Gate volley: 2 or 3 tiny ripple portals fire weapon projectiles | Gold ripples, straight gold trails, clink flash at impact |
 
 Owner presentation update 2026-11-14: summon controls use warm wood/burgundy gradients, cream type, gold outlines and blossom stamps. The clean backdrop and native foreground move with the viewport camera so the painted and physical floor remain screen-locked; character idle poses and subtle parallax remain independent. HybridPresentationVersion=2; HybridFloorScreenLocked=true.
+
+## World 2 set (owner 2026-11-24 asked for a set rotation of its own; everything else **proposed**)
+- World 2 summons only these 12, through the same 30 minute rotation (1 Mythic, 2 Legendaries, 2 Rares, all Commons, 1 Secret); World 1
+  draws only from its own 12, as before. Featured Mythic: Belleon. Costs, unlock, pity and its shared counts are unchanged.
+- Listed odds, gains, hits and sell values are World 1's row of the same rarity; the listed odds and every slot's shown odds sum to 100%.
+- `SidekickConfig.Lists[world]`; `List` is this place's set; `Get` finds every world's and the boss drops, so any owned Sidekick works in
+  both worlds. The Index's Sidekicks page lists this place's set and the boss drops.
+- A Mythic, Legendary or Rare with no uploaded model stays out of the rotation. Commons and Secrets are summonable without one, as in World 1:
+  they show their name, no follower and, until their attack is baked, a shot with no pose.
+- Follow trots, boss effects and summon auras (World 1 templates, tinted) are **proposed**.
+- Pity never pays, and Details never shows, a tier the rotation holds no Sidekick of (`SidekickConfig.DueTier`, server and client).
+
+| Id | Based on | Name | Rarity | Listed odds | Movement | Boss effect |
+|---|---|---|---|---|---|---|
+| `side_box` | the Mimic chest | Mimik | Common | 24.166% | Walk | SnapBite |
+| `side_cat` | Meowy | Meowee | Common | 24.166% | Walk | DoubleSwipe |
+| `side_lucky` | Turbo Granny, lucky cat doll | Turbo Nyan | Common | 24.166% | Walk | CoinDash |
+| `side_tiger` | Bakko | Bakku | Rare | 12% | Walk | TigerRoar |
+| `side_bird` | Stille | Stilla | Rare | 12% | Fly | StreakDive |
+| `side_hound` | Overgrown Rover | Rovar | Legendary | 1% | Walk | EnergyBlast |
+| `side_shaman` | Tusk | Toskar | Legendary | 1% | Walk | HymnOfFire |
+| `side_acrobat` | Acrobatic Silky | Acro Silka | Mythic | 0.5% | Walk | HairWhip |
+| `side_brawler` | Kaiju No. 10 | Kaijo No. 10 | Mythic | 0.5% | Walk | HammerFists |
+| `side_general` | Bellion | Belleon | Mythic | 0.5% | Walk | WhipSword |
+| `side_dragon` | Solar Dragon | Solara Dragon | Secret | 0.001% | Fly | SolarBreath |
+| `side_dark` | Darkness Devil | Darknez Devill | Secret | 0.001% | Fly | SilentCut |
