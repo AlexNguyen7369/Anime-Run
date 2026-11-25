@@ -15,6 +15,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local BiomeEnvironment = require(ReplicatedStorage:WaitForChild("Shared").BiomeEnvironment)
 local Themes = require(ReplicatedStorage.Shared.BiomeThemes)
+local WorldConfig = require(ReplicatedStorage.Shared.WorldConfig)
 
 local BiomeAssets = {}
 BiomeAssets.TAG = "BiomeAsset" -- every placed mesh: the client turns its CastShadow off under REDUCED EFFECTS
@@ -60,6 +61,9 @@ local function start(id, biome, key)
 			local texture = row.Texture and BiomeAssets.Row(biome, row.Texture, "Texture")
 			if texture then
 				template.TextureContent = Content.fromUri(texture.Id)
+			elseif WorldConfig.Id == 2 and not row.Texture and template.TextureID == "" then
+				-- a draft mesh shows its vertex colours: the part's default grey would tint them (docs/BUGS.md w2-dark-props)
+				template.Color = Color3.new(1, 1, 1)
 			end
 			template.Anchored = true
 			template.CanCollide = false

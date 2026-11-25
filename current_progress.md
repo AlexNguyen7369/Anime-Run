@@ -284,6 +284,7 @@
 274. 2026-11-25 — Alex Nguyen — Made ui_boss_guide run with auto-roll and racing off and a quiet baseline before grants_nothing, and reworded plaza_build's sensei check (offline checks only, branch feature/alex/boss-guide-tests).
 275. 2026-11-25 — Alex Nguyen — Found the causes of the World 2 grass-through-road and dark-prop bugs, with red tests and patch drafts (docs/W2_VISUAL_BUGS.md; offline only, nothing uploaded).
 276. 2026-11-25 — Alex Nguyen — Wrote the red test for grey-tinted World 2 meshes (biome_mesh_color) and moved the vertex-colour export patch to its own branch feature/alex/w2-color-export.
+277. 2026-11-25 — Alex Nguyen — Made textureless World 2 meshes white instead of the default grey and wrote the owner's note on the three visual fixes (offline checks only, no Studio).
 
 ## What's next
 **Land the Track 1 and 6 swap: round 7 restores Track 6's office towers, then its score, audit and merge.**
