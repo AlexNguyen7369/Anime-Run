@@ -127,8 +127,14 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Positions, prompts a
 - Summon altar: World 1 draft B (great lotus), World 2 draft A (twin-roof stage). The only difference between the worlds'
   pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged.
 - Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds.
-- Merchants: figures at the stalls are existing roster character models, not the draft's own figures; **proposed** one per
-  piece, the same in both worlds, display names the tweaked ones (design doc 5). Static until the owner asks for motion.
+- Merchants (owner 2026-11-25, "approved merchant casts"): existing roster models, the same in both worlds: Shop
+  `sea_navigator` (Nammi), Potions `leaf_medic` (Sakara), Market `ds_flame` (Rengoko), Index `fr_mage` (Frierin), Sensei
+  `leaf_copycat` (Kakashe), display names the tweaked ones (design doc 5). Static. **Open**: Kakashe's size under the
+  Sensei header (proposed: full size with the header 1.9 studs higher); which models "every world shows" covers (4.47).
+- Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
+  start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
+  the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed; names and
+  wording in the tweaked forms; the E prompt is separate from the gate's own prompt so both can be reached.
 
 ## 5. Player plots: removed (owner 2026-11-11, design doc 4.43)
 
