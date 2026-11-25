@@ -261,3 +261,13 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
    or count only the current world's discoveries in each world? Blocks nothing; the tests hold the rule as written.
 2. In the World 2 report the checks `service_roll_new_secret_emphasized` and the auto-roll pause run on the place's
    rarest character, an Eternal (hold 5 s, 4.47), under their old names. Rename them, or leave?
+
+## 2026-11-25 Track 1 and 6 swap, dead kaiju rework (open; nothing merged, exported to the ledger or uploaded)
+1. Elven RuinedCastle on Track 1: no legal spot at the approved scale 1.5 so far; it fits at 0.52. Default: not built at
+   1.5's rule. Keep it at 0.52, or leave it out? (Audit of cb6d716e: 0.52 without a ruling is a FAIL.)
+2. Elven hill Town: no legal spot on Track 1 either (it had none on Track 6). Accept?
+3. Devil Hunter HQ on Track 6 fits at scale 1.0 but its box overlaps 11 other-track props. Part of the overlap question.
+4. Kaiju site fill: 169 of 185 added props overlap other tracks' draft props (counted before the swap); the kaiju's own
+   box overlaps 19 and 25. Cut to the clear ones (about 16, apron bare again) or keep them?
+5. Kaiju references: `build/world2/refs/KaijuBase` is only on the Mac, the linked wiki refuses automated access; no
+   image comparison is done.

@@ -1,3 +1,12 @@
+## RESUME HERE (2026-11-25, devbox, lead orchestrator with peer sessions agent-1 to 3): track swap and kaiju rework in review
+- Plan (owner-approved): `~/.claude/plans/composed-twirling-lovelace-of-9f188bdc-ca05-4d6b-8731-72e93a20bb65.md`. Rules commits b2bfac13, 2812cbc5 (local, not pushed).
+- agent-1 (`feature/alex/agent-1`, worktree `Anime-Run.worktrees/feature-alex-agent-1`): swap cb6d716e; `world2_cast` 121/0 and `world2_rewards` 21/0 re-run by the lead; other counts are agent-1's. Independent score 6/10 both tracks; rules audit FAIL (castle and Town scale, loosened Dropped pins). Round 2 in progress: game-true renders, buildable backdrop, approved scales. NOT merged.
+- agent-2 (`feature/alex/agent-2`): kaiju rounds 1 to 4 (1dfbb3d0, 331e6e5c, befd419f, 2ea29bd1), scores 6, 7, 7, 7; round 5 (eye, jaw wreck, snout outline, ground close-ups) in progress, then owner approval. No export.
+- agent-3: independent read-only reviewer.
+- Owner page (private): https://claude.ai/artifact/5eHFJvwbXwRuw3nC452Pnx. Open questions: `docs/OWNER_QUESTIONS.md` 2026-11-25.
+- Baseline before the swap: full WORLD=2 harness exit 1, ROAD 46/11 (unplaced heroes), TRANSFORM 10644/0, PIN 11/0 warn 212, CHAIN PARITY pass.
+- Studio and Mac Blender MCP disconnected (Mac closed): no Studio check has been run. Owed: `world_layout`, `runner`, `world2_cast`, Track 1 and 6 lighting, join time. Never run an export of any track but 1 and 6; always `--no-glb`.
+
 ## RESUME HERE (2026-11-24 later, devbox, orchestrator tick): roll_anim runs in World 2 (offline only); Studio MCP was down
 - This session could not reach Studio or Blender: both MCP servers failed to connect ("Connection closed") although `ssh mac echo ok` answered; `animerun-bridge status` showed rojo1 / rojo2 running on the devbox and no Mac forward. Owner: `/mcp` reconnect, restart the Rojo forward from the Mac. Nothing was run in Studio this tick.
 - Landed e9d7cfad (task branch orch/world2/w2-roll-anim, 7a64561a, merged and removed): `roll_anim` takes its reel, 4.40 emphasis and auto-roll fixtures from the place's expected cast (World 1 `CatalogTests.CAST`, World 2 `World2CastTests.SPEC` / `CAST_BY_RARITY`); `TestConfig.World1Only.roll_anim` removed (only `environment` and the track tests still skip in World 2). New check `roll_anim_world_fixtures` pins World 1 to the old typed fixtures. Test files only.
