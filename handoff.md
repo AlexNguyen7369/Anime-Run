@@ -1,3 +1,14 @@
+## RESUME HERE (2026-11-25 late, devbox): spawn pieces on in the World 2 branch; kaiju A with 12; re-export tool ready, nothing uploaded from it
+- World 2 branch (feature/alex/world2-place, pushed, not in main): track swap round 8, 14 reviewed spawn pieces ON (boss gate, Gojio and merchants still off by switch), Gojio silent below rebirth 1. Studio: World 2 `spawn_area` 188/188, `plaza_build` 165/165, `plaza_pieces` 194/194, `world2_cast` 121/121, `world2_rewards` 21/21 after the loader fix; World 1 `spawn_area` 188/188, `plaza_build` 165/165, `plaza_pieces` 190/190, `character_models` 5/5 before it (pieces seen loading after it, tests not rerun). `ui_*`, gamepad and phone not run on this build.
+- 7 of 14 uploads have numbered part names ("Body.001"); PlazaPieces.PartName handles it. A piece missing a part keeps its stand-in. Studio tests pass without the meshes, so look at the spawn after any piece change.
+- BakedModels copies of the 14 in both places; saved World 1 v915, World 2 v90. NOT published; both hold unreleased code. Do not publish without the owner.
+- Open in Studio pictures: grass through roads and spawn floor, near-black props (fix: feature/alex/w2-visual-bugs 2a55017b, audit running; run `biome_runtime` in Studio before merging).
+- Owner "A with 12" for the kaiju fill (design log): agent-2 on feature/alex/kaiju-final (no van moves by the option's description; overlaps 21 / 27 shown, not ruled on). Drafts: kaiju-merge 33531fef, kaiju-fill-a b76c38e4, kaiju-fill-b 3f1ea1a6. Page: "Kaiju Fill Choice".
+- Re-export: feature/alex/w2-reexport e881c688 (tool audited PASS; not merged; changes export_props' default colours, so no GLB export until a batch is applied). Order: white-mesh merge, kaiju and frozen-track decisions, then batch 1 (Studio compare snippet unrun; EditableMesh opens the old meshes). 100 uploads in 10 batches, 12 optional.
+- Frozen tracks' pieces on Track 1's ground: proposal running in /home/dev/AnimeRun-orch/w2-t1-neighbours (orch/world2/w2-t1-neighbours); renders go to the owner before any merge; agent-3 scores.
+- agent-1: feature/alex/merchant-poses (LOCKED_COLOR home, merchants' poses behind MERCHANTS_LIVE false).
+- Blocked on the owner: publishing, kaiju overlaps, the gate's left pillar on the join view, the statue over RACE START.
+
 ## RESUME HERE (2026-11-25 night, devbox): yes to all; boss models saved; uploads next
 - PR #31 in main (533ea015). World 2 branch ahead with boss gate and guide (off), spawn moves, owner's eight "yes to all" answers (change log).
 - Both places saved by the lead on the owner's word: World 2 version 84, World 1 version 909 (not published; they hold the branch code with the moved Index, Team altar and statue). Boss models in BakedModels of both, `boss_models_placed` 14/14 each.
