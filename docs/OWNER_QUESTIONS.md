@@ -282,3 +282,7 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
    other-track props (item 3's "11" is replaced): both, the second only, or neither?
 9. Kaiju vans (item 6): 5 of 8 can return to their frozen spots (bb93b6c4 scratch test); 3 would stand inside the kaiju.
    Kaiju overlaps with exempt props counted: 21 and 28 (item 7's 17 and 24 left them out).
+10. Swap round 3 (c45275d7): close-up model counts on Track 6's longer road (2.95 times Track 1's): Mansion 95 (48), Apaato
+    60 (35), Konbini 65 (16), Retro 2 (1). Accept? Second HQ is now out; the one HQ overlaps 9 other-track props (item 8).
+    Track 1 options rendered, not exported: castle at 0.52; statues and Ranks turned to the runner (6 Ranks).
+    FarWood and RoofTile are not built on either track. Review page: https://claude.ai/artifact/Ng3id1ML1KNxWoYP1xoZ4E
