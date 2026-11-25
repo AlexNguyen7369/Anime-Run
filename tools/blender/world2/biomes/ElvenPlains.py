@@ -25,6 +25,10 @@ from roads import Roads
 # (prop, world x, z, scale) behind the finish: the spots beside the 0.9 axis free of Track 2's ruins, which fill the axis itself
 BEHIND_FINISH = [("RuinWall", 306, 425, 1.0), ("Pine", 322, 410, 1.3), ("Pine", 310, 408, 1.2), ("Pine", 325, 420, 1.3), ("Pine", 405, 402, 1.3), ("Pine", 418, 395, 1.3), ("Pine", 412, 410, 1.3), ("Pine", 420, 406, 1.2)]
 
+# (world x, z, turn off the town's direction) of the army's ranks, one in each run view (0.06, 0.33, 0.62, 0.9): each passes
+# export_props.rules_ok (exact triangles and parts fallback against every road, pads, plaza, own ground)
+RANKS = [(-26, -275, 0.0), (85.5, 277.9, 0.0), (-149.4, -412.4, 0.24), (364, 399, 0.0)]
+
 MODEL_SHOTS = ["Town", "RuinedCastle", "Rank", "HeroStatue", "Cottage"]  # hero close-ups (build_track.model_shots); Rank is the headless army
 
 GRASS, GRASS2, GRASS3 = "86BC62", "6FA656", "9CCB72"
@@ -640,6 +644,14 @@ def build(k):
 		taken.append((pos[0], pos[2], rad))
 		return True
 
+	if not turned:
+		for x, z, sh in RANKS:
+			if option and x == -26:  # the castle stands there: the next free spot east of it
+				any(stand_rank(x2, -276) for x2 in range(0, 120, 4))
+				continue
+			k.place("Rank", (x, -1.0, z), math.atan2(-(tx - x), -(tz - z)) + sh)
+			taken.append((x, z, 50))
+			see({-26: 0.06, 85.5: 0.33, -149.4: 0.62, 364: 0.9}[x], x, z)
 	# Landmark 3: villages along the first lap and the last straight; the hero's statue on the green of two of them
 	# The hero's statue where the 0.06 run camera sees it, left of the castle, and one by the finish for the 0.9 camera
 	for d, off in ((228, -46), (222, -50), (216, -44), (235, -44), (205, -50), (200, -58)):
@@ -658,7 +670,8 @@ def build(k):
 			if free(x, z, 18) and r.fits(x, z, yaw, 41 * sc, 21 * sc):
 				k.place("RuinWall", (x, -1.0, z), yaw, sc)
 				taken.append((x, z, 24))
-		any(stand_rank(x, -276) for x in range(-56, 40, 6))
+		if turned:
+			any(stand_rank(x, -276) for x in range(-56, 40, 6))
 	# Finish: the statue and a ruin group beside the last straight, a rank of the army across it
 	for d, off in ((2800, 42), (2790, 42), (2770, 42)):
 		if put("HeroStatue", d, off, 0.9 if turned else 0.0, size=(24, 24), rad=18):
@@ -698,7 +711,7 @@ def build(k):
 		done = False
 		for d in range(*dd, 10):
 			for o in (-66, -70, -74, -62, 66, 70, 74):
-				if not done and n < (6 if turned else 4):
+				if turned and not done and n < 6:
 					pos, yaw = facing(k, d, o)
 					if stand_rank(pos[0], pos[2], yaw if turned else None):
 						n, done = n + 1, True
@@ -715,8 +728,11 @@ def build(k):
 			d += every
 
 	# low mounds and dark conifer bands outside the road (the horizon from the runner's eye), ruins in uneven groups
-	for d in range(250, int(k.length) - 60, 140):
-		put("Mound", d, outer(d) * 70, 0.0, 0.8, rad=52)
+	d, j = 250, 0
+	while d < k.length - 60:  # sizes, turns and spacing vary
+		sc = (0.8, 0.92, 0.84)[j % 3]
+		put("Mound", d, outer(d) * (52 * sc + 27), (0.0, math.pi, 0.1, math.pi - 0.1)[j % 4], sc, rad=52 * sc + 10)
+		d, j = d + (110, 175, 140, 205)[j % 4], j + 1
 	for d, off, turn, sc in ((300, 58, 0.2, 1.1), (345, 60, -0.5, 1.0), (690, 58, 0.0, 1.2), (1010, 56, 0.7, 1.0), (1050, 66, -0.2, 1.2), (1600, 60, 0.4, 1.1), (1640, 62, -0.3, 1.0), (1675, 58, 0.1, 1.2), (2250, 58, 0.3, 1.0)):
 		put("RuinWall", d, off, turn, sc)
 	for o in (70, 104, 136):  # up to three deep where the gap to the next road is wide
