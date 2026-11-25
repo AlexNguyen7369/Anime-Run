@@ -25,9 +25,9 @@ from roads import Roads
 # (prop, world x, z, scale) behind the finish: the spots beside the 0.9 axis free of Track 2's ruins, which fill the axis itself
 BEHIND_FINISH = [("RuinWall", 306, 425, 1.0), ("Pine", 322, 410, 1.3), ("Pine", 310, 408, 1.2), ("Pine", 325, 420, 1.3), ("Pine", 405, 402, 1.3), ("Pine", 418, 395, 1.3), ("Pine", 412, 410, 1.3), ("Pine", 420, 406, 1.2)]
 
-# (world x, z, turn off the town's direction) of the army's ranks, one in each run view (0.06, 0.33, 0.62, 0.9): each passes
+# (world x, z, turn off the town's direction) of the army's ranks, one in each of three run views (0.06, 0.33, 0.62): each passes
 # export_props.rules_ok (exact triangles and parts fallback against every road, pads, plaza, own ground)
-RANKS = [(-26, -275, 0.0), (85.5, 277.9, 0.0), (-149.4, -412.4, 0.24), (268.9, 198.97, -0.25)]
+RANKS = [(-26, -275, 0.0), (85.5, 277.9, 0.0), (-149.4, -412.4, 0.24)]
 
 # (world x, z, yaw) of the 4 low mounds (the approved draft's count), at 0.8: found by search over this track's own ground
 # (off every road, standing in no other track's prop)
@@ -655,9 +655,7 @@ def build(k):
 				continue
 			k.place("Rank", (x, -1.0, z), math.atan2(-(tx - x), -(tz - z)) + sh)
 			taken.append((x, z, 50))
-			see({-26: 0.06, 85.5: 0.33, -149.4: 0.62, 268.9: 0.9}[x], x, z)
-	see(0.9, 243, 199)  # the finish rank's two halves
-	see(0.9, 295, 199)
+			see({-26: 0.06, 85.5: 0.33, -149.4: 0.62}[x], x, z)
 	for x, z, yaw in MOUNDS:
 		k.place("Mound", (x, -1.0, z), yaw, 0.8)
 		taken.append((x, z, 56))
@@ -689,7 +687,7 @@ def build(k):
 	for d, off in ((2790, -68), (2780, -70), (2770, -68), (2760, -66)) if turned else ():
 		if put("Rank", d, off, 0.0, size=(104, 66), rad=52):
 			break
-	for d, off, turn, sc in ((2745, 62, -0.4, 1.0), (2700, 66, 0.2, 1.2), (2846, -50, 0.3, 1.0)):
+	for d, off, turn, sc in ((2838, 58, 0.5, 1.1), (2745, 62, -0.4, 1.0), (2700, 66, 0.2, 1.2), (2846, -50, 0.3, 1.0)):
 		put("RuinWall", d, off, turn, sc)
 	for f, statue, houses in (
 		(0.045, False, ((-60, -58, 0.0), (-26, -62, 0.1), (46, -58, -0.1), (80, -64, 0.2), (-44, -98, 0.3), (-4, -100, -0.2), (36, -98, 0.1))),

@@ -33,7 +33,10 @@ import roads  # noqa: E402
 
 PATH = os.path.join(HERE, "cross_track.json")
 CACHE = os.path.join(bt.BUILD, "cross_mesh")  # the frozen drafts' meshes, rebuilt when a module is newer
-LIMIT, KIT_LIMIT = 0.05, 0.15  # proposed: share of sampled points inside the other mesh
+# PROPOSED, not ruled by the owner and in no doc: a prop stands in another when more than 5% (StreetKit: 15%) of its sampled
+# surface points are inside it. CrossWire is exempt from this test (wires over the road; it only goes when a pole is out).
+LIMIT, KIT_LIMIT = 0.05, 0.15
+TIE = 1.0  # studs, proposed: nearer than this to even between two roads is no one's ground, and ours stay off it
 MOVE, STEP = 40, 4  # studs: how far a prop may move, and the search grid
 SAMPLES = 400
 KEEP = {"HQ", "HeroStatue", "Rank", "Retro", "Town", "RuinedCastle", "Mountain"}
@@ -45,7 +48,8 @@ BOX = {
 	"HeroStatue": (24, 24), "Rank": (104, 66), "Mansion": (74, 36), "Apaato": (50, 34), "ShopHouse": (30, 24),
 	"Konbini": (50, 26), "StreetKit": (48, 8), "LowBlock": (100, 100), "Retro": (32, 30), "Office": (46, 46), "HQ": (192, 130),
 }  # fmt: skip
-TALL = {"Pine", "Forest", "Mound", "Cottage", "RuinWall", "Mansion", "ShopHouse", "Office"}  # may hide a landmark (the layout's `hidden`)
+TALL = {"Pine", "Forest", "Mound", "Mansion", "ShopHouse", "Office"}  # may hide a landmark (the layout's `hidden`)
+TOWER = (0.36, 0.55)  # the approved draft's Office scales
 BLOCK = ep.blockers()  # the game takes a neighbour that meets these (BiomeDressing.Prune); still treated as standing here
 
 
@@ -61,6 +65,20 @@ def woods(count, name, scale, gap, seed):
 			yield lay.make(name, x, z, turn if name in FREE else lay.road_yaw(x, z), sc)
 
 	return {"what": name, "count": count, "spots": spots}
+
+
+def towers(count, gap, seed):
+	"""The skyline's offices beside the road, seeded, at least `gap` studs apart (the old draft's spacing), big ones first."""
+
+	def spots(lay):
+		rng = np.random.default_rng(seed)
+		draws = sorted(((rng.uniform(*TOWER), rng.uniform(20, lay.k.length - 70), rng.choice((-1, 1)) * rng.uniform(36, 80), rng.uniform(0, math.tau)) for _ in range(9000)), reverse=True)
+		for sc, d, off, turn in draws:
+			(x, _, z), _ = lay.k.beside(d, off)
+			if all(q.name != "Office" or math.hypot(q.pos[0] - x, q.pos[2] - z) >= gap for q in lay.kept):
+				yield lay.make("Office", x, z, turn, sc)
+
+	return {"what": "Office", "count": count, "spots": spots}
 
 
 def fronts(names, offs, count, seed):
@@ -98,7 +116,7 @@ FILL = {
 		woods(80, "Pine", (0.9, 1.5), 12, 7),
 		woods(20, "Flowers", (1.0, 1.5), 30, 9),
 	],
-	"DevilTokyo": [fronts(("ShopHouse", "Apaato", "Konbini"), (40, 46, 54, 62), 80, 8)],
+	"DevilTokyo": [fronts(("ShopHouse", "Apaato", "Konbini"), (40, 46, 54, 62), 80, 8), towers(41, 70, 5)],
 }
 
 
@@ -259,13 +277,17 @@ class Layout:
 		self.a, self.ab = w[:-1], np.diff(w, axis=0)
 
 	def make(self, name, x, z, yaw, scale, y=None):
-		y = roads.GROUND_Y[self.biome] + self.base[name] * scale if y is None else y
+		y = roads.PROP_Y.get(name, roads.GROUND_Y[self.biome]) + self.base[name] * scale if y is None else y
 		p = Placed(name, self.shape[name], (x, y, z), yaw_mat(yaw), (scale,) * 3, self.number)
 		p.yaw, p.scale = yaw, scale
 		return p
 
 	def owned(self, x, z):
-		return int(self.r.nearest([(x, z)])[1][0]) == self.number
+		"""Our road is the nearest, by more than TIE."""
+		r = self.r
+		t = np.clip((((x, z) - r.a) * r.ab).sum(1) / r.ab2, 0, 1)
+		d = np.sqrt((((x, z) - r.a - t[:, None] * r.ab) ** 2).sum(1))
+		return d[r.own == self.number].min() + TIE < d[r.own != self.number].min()
 
 	def road_yaw(self, x, z):
 		"""The turn that faces -Z to the nearest point of our road."""
@@ -326,6 +348,8 @@ class Layout:
 		w, d = BOX[p.name]
 		x, z = p.pos[0], p.pos[2]
 		if not (np.all((x, z) >= self.glo + 2) and np.all((x, z) <= self.ghi - 2)):
+			return False
+		if not self.owned(x, z):
 			return False
 		clear = 24.2 if p.name == "LowBlock" else 24.5
 		if not self.r.fits(x, z, p.yaw, w * p.scale, d * p.scale, clear=clear):

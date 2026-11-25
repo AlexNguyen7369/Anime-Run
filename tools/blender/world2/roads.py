@@ -11,7 +11,8 @@ import numpy as np
 # Only game_shots.py sets this; it lives here because build_track.run reloads the biome modules.
 OPTIONS = frozenset()
 RAW = False  # only cross_track.py sets it: the layout before cross_track.json
-GROUND_Y = {"ElvenPlains": -1.0, "DevilTokyo": 0.0}  # the base height of a placed prop
+GROUND_Y = {"ElvenPlains": -1.0, "DevilTokyo": 0.0}  # the height of a placed prop
+PROP_Y = {"Office": -1.0}  # where a prop type differs
 CLEAR = 25.0  # studs: the 24-stud rule and a margin
 PLAZA = (94.0, 110.0)  # SpawnArea.FLOOR_SIZE / 2 at the world origin
 PLAZA_CLEAR = 16.0  # BiomeDressing.CLEARANCE (8), grown boxes of turned props and a margin
@@ -158,6 +159,6 @@ def apply_cross_track(k, path=None):
 		else:
 			put(hit[3], name, nx, nz, yaw)
 	for name, x, z, yaw, scale in data["add"]:
-		ob = k.place(name, (x, GROUND_Y[k.biome], z), yaw, scale)
+		ob = k.place(name, (x, PROP_Y.get(name, GROUND_Y[k.biome]), z), yaw, scale)
 		put(ob, name, x, z, yaw)
 	print("CROSS_TRACK", k.biome, "fix", len(data["fix"]), "add", len(data["add"]))

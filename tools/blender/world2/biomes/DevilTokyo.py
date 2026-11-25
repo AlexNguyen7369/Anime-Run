@@ -648,7 +648,7 @@ def hexcol(h):
 
 
 # (d, side, studs off the centre line) of the low blocks: off every road, on this track's ground, in no other track's prop
-LOWBLOCKS = [(830, 1, 80), (4720, 1, 80), (6300, 1, 74.6)]
+LOWBLOCKS = [(830, 1, 80), (2650, 1, 80), (4720, 1, 80)]
 
 LOW = ("Apaato", "Konbini", "Apaato")  # under 21 studs: allowed where a taller front would hide an HQ
 
@@ -818,28 +818,9 @@ def build(k):
 	# behind the fronts is Track 5's and Track 7's side of the gap)
 	street(k, r, -1, ["ShopHouse", "Mansion", "Konbini", "Apaato", "Mansion"], 40, 20, end, (2, 8), avoid, sight, flip=0.5)
 	street(k, r, 1, ["ShopHouse", "Apaato", "Mansion", "Mansion", "Konbini"], 40, 20, end, (2, 8), avoid, sight, flip=0.5)
-	(lox, loz), (hix, hiz) = r.ground(4)
 	for side in (-1, 1):
 		street(k, r, side, ["Mansion", "ShopHouse"], 80, 0, end, (4, 10), avoid, sight, near=near)
-	# Skyline: office towers inside this track's own ground (a prop off it is not built), clear of every road, of other
-	# tracks' props and of this one's; lower than the HQ. Nearest the road first seen: spread by a minimum spacing.
-	mine = []
-	for ob in k.col.objects:
-		if ob.type == "MESH" and any(ob.data.name.endswith("_" + n) for n in ("Mansion", "Apaato", "ShopHouse", "Konbini", "LowBlock", "HQ", "Retro")):
-			mine.append((ob.location.x, -ob.location.y, max(ob.dimensions.x, ob.dimensions.y) / 2))
-	towers = []
-	for _ in range(6000):
-		if len(towers) >= 90:
-			break
-		x, z, sc = k.rng.uniform(lox, hix), k.rng.uniform(loz, hiz), k.rng.uniform(0.45, 0.55)
-		w = 46 * sc
-		if all(math.hypot(x - a, z - b) > 70 for a, b in towers) and all(math.hypot(x - a, z - b) > rad + w * 0.75 for a, b, rad in mine + sight):
-			d, _ = r.nearest([(x, z)])
-			if d[0] > w / 2 + 30 and min((q.x - x) ** 2 + (q.z - z) ** 2 for q in k.wps[::4]) < 420**2:
-				if r.fits(x, z, 0.0, w, w) and not r.overlaps(near, x, z, 0.0, w, w):
-					k.place("Office", (x, -1.0, z), k.rng.choice((0.0, math.pi / 2)), sc)
-					towers.append((x, z))
-	print("OFFICES", len(towers))
+	# Skyline: the office towers are placed last, by cross_track.py (FILL), in the gaps left on this track's own ground
 	# Wires over the street: one set per 48 studs from the left kits' second pole, only on straights
 	# where a kit's pole takes the far end
 	have = {(kd, s) for kd, s, _ in kits}
