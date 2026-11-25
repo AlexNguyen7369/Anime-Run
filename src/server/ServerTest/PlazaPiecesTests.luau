@@ -154,7 +154,7 @@ function Tests.plaza_pieces()
 			Pieces.Complete({ Parts = { Body = 1, Glow_a = 1 } }, { Glow_a = {} }) == false
 		)
 		flag("parts_all_complete", Pieces.Complete({ Parts = { Body = 1 } }, { Body = {} }))
-		flag("merchants_off_by_default", oldMerchants == false)
+		flag("merchants_on", oldMerchants == true) -- owner 2026-11-25: "merchants can be added already to merge"
 
 		for _, world in { 1, 2 } do
 			WorldConfig.Id = world
@@ -306,10 +306,10 @@ function Tests.plaza_pieces()
 			local Merchants = H.module(script.Parent.Parent, "PlazaMerchantRigs")
 			flag(w .. "merchant_service", Merchants ~= nil)
 			if Merchants then
-				Pieces.MERCHANTS_LIVE = false
+				Pieces.MERCHANTS_LIVE = false -- the switch off, for this check only
 				Merchants.Stand(on)
 				flag(w .. "merchants_off_none", find(on, "Model", "Merchant") == nil)
-				Pieces.MERCHANTS_LIVE = true
+				Pieces.MERCHANTS_LIVE = oldMerchants -- as shipped
 				fill(0)
 				Merchants.Stand(on)
 				flag(w .. "merchants_need_the_stalls", find(on, "Model", "Merchant") == nil)
@@ -348,6 +348,18 @@ function Tests.plaza_pieces()
 						continue
 					end
 					flag(w .. "merchant_posed_" .. name, next(row.Pose or {}) ~= nil)
+					-- on: it stands at its marker. Every posed limb is over the marker's floor, within the rig's reach (3 studs a
+					-- scale) and above it (offline PivotTo moves nothing, but the pose sets each posed limb from the marker)
+					local feet = marker.WorldCFrame * CFrame.Angles(0, math.rad(row.Yaw or 0), 0)
+					local worst, limbs = 0, 0
+					for limb in row.Pose or {} do
+						local part = rig:FindFirstChild(limb)
+						local at = part and feet:PointToObjectSpace(part.CFrame.Position)
+						limbs += 1
+						worst = math.max(worst, at and at.Y > 0 and Vector2.new(at.X, at.Z).Magnitude or math.huge)
+					end
+					flag(w .. "on_merchant_stands_" .. name, limbs > 0 and worst <= 3 * row.Scale, worst, 3 * row.Scale)
+					flag(w .. "on_merchant_in_its_service_" .. name, rig.Parent == service)
 					local frame = marker.WorldCFrame * CFrame.Angles(0, math.rad(row.Yaw or 0), 0)
 					for limb, at in LIMB_ENDS[name] or {} do
 						local part = rig:FindFirstChild(limb)
@@ -360,7 +372,6 @@ function Tests.plaza_pieces()
 					flag(w .. "merchant_label_" .. name, hidden == (name == "CheckpointNpc"))
 				end
 				flag(w .. "merchants_dummy_gone", on.CheckpointNpc:FindFirstChild("Rig") == nil)
-				Pieces.MERCHANTS_LIVE = false
 			end
 		end
 
