@@ -1,4 +1,4 @@
-# World 2 Track 6 `ElvenPlains`: source references
+# World 2 Track 1 `ElvenPlains`: source references
 
 Source: *Frieren: Beyond Journey's End*, Aura the Guillotine arc (manga ch. 14-23, anime ep. 7-11), plus the hero
 statues seen across the series. Reference images are look-only: they sit in `build/world2/refs/ElvenPlains/`

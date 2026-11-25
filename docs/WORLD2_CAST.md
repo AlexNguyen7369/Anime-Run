@@ -38,12 +38,12 @@ One Punch: `punch_void` (Eternal).
 ## New villains (9)
 | Id | Name | Based on | World 2 Track |
 |---|---|---|---|
-| `saw_katana` | Katanah Man | Katana Man, hybrid form | 1 |
+| `saw_katana` | Katanah Man | Katana Man, hybrid form | 6 |
 | `solo_flame` | Barran | Baran, Demon King | 2 |
 | `punch_monster` | Garoo | Garou, half-monster | 3 |
 | `dan_granny` | Turbo Grammy | Turbo Granny | 4 |
 | `kaiju_nine` | Kaijo No. 9 | Kaiju No. 9 | 5 |
-| `fr_scales` | Ora | Aura the Guillotine | 6 |
+| `fr_scales` | Ora | Aura the Guillotine | 1 |
 | `solo_ant` | Berru | Beru, Ant King | 7 |
 | `punch_serpent` | Orochy | Orochi | 8 |
 | `fr_gold` | Makto | Macht of El Dorado | 9 |

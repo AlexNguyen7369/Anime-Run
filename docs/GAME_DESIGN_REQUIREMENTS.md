@@ -795,8 +795,8 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   no Money cost, nothing resets.
 - Shared across worlds: Money, Gems, Rebirth, stat points, Index, Copies, Sidekicks, Relics, passes. Per world: `BestTrack`,
   `Checkpoint`, `RaceBestTimes` (World 2 saves them under `Worlds.W2`; World 1's layout is unchanged) and the team.
-- 10 tracks, one per new series first, then classic arcs: Saw Man, Solo Levelup, One Punch, Dandadan, Kaiju No. 8,
-  Frieren, then Solo Levelup, One Punch, Frieren, Saw Man (names and enemies **proposed**, `WORLD2_SPEC`). Routes reuse
+- 10 tracks, one per new series first, then classic arcs: Frieren, Solo Levelup, One Punch, Dandadan, Kaiju No. 8,
+  Saw Man (owner 2026-11-25: Tracks 1 and 6 swapped), then Solo Levelup, One Punch, Frieren, Saw Man (names and enemies **proposed**, `WORLD2_SPEC`). Routes reuse
   World 1's validated track routes; biomes are new.
 - World 2 spawn plaza (owner 2026-11-24: "rift shrine approved"): "Rift Shrine": World 1's plaza layout, footprint,
   spawn and services unchanged; dusk sky; cyber accents and the plaza sky loop cyan instead of World 1's colour; a
@@ -930,6 +930,8 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-25: owner: "switch elven lands with tokyo track (track 1) within world 2" (4.47, WORLD2_SPEC "Tracks"): Elven Ruin Plains is Track 1, Devil Hunter City Track 6. The biome, its name, lighting, card and enemy move; the road, pay, Gems, saved progress and enemy speed stay with the track number (plan approved by the owner the same day).
+- 2026-11-25: owner: rework the dead kaiju of World 2 Track 5 (4.47, WORLD2_SPEC "Render set approvals"): the kaiju and its site are reopened, the rest of Track 5 stays frozen; sized to fit a legal spot; earlier form rulings may be dropped; reference renders need the owner's approval before export or placement.
 - 2026-11-24: owner: "UI and GUI should stay exactly the same with world 1 with the exception of a 4th team slot" (4.47): World 2's always-on HUD goes back to the 4.46 look; replaces the same day's "old hud" ruling.
 - 2026-11-24: owner: "fix lighting in tracks" (4.47, WORLD2_SPEC "Track lighting"): World 2 track lighting keeps each draft sky's hue but has brightness floors so the road and the runner read on every track; numbers proposed.
 - 2026-11-24: owner: "world 2 should not reset character so they dont need to go through tutorial again or choose starter" (4.47): a first entry to World 2 keeps the World 1 team; World 2 never opens the starter choice, the roll tutorial or the first-join flow. Replaces "a fresh World 2 team is the starter".

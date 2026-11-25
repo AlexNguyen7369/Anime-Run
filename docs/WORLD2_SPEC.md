@@ -17,7 +17,7 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   OutdoorAmbient was taken from the draft's below-horizon stop (32, 23, 35) instead of its orange skyline.
 - Rule: a track's lighting keeps the hue of its approved draft sky, but the road and the runner must read on every
   track. `Kit.fromDraft` builds each profile from the draft's sky stops and sun with floors (`Kit` `LIGHT_FLOOR`, all
-  **proposed**): night tracks (draft sun energy under 2: Tracks 1, 4, 8) get a moon of Brightness at least 2, Ambient
+  **proposed**): night tracks (draft sun energy under 2: Tracks 4, 6, 8; Track 1 until the 2026-11-25 swap) get a moon of Brightness at least 2, Ambient
   at least 0.5, OutdoorAmbient at least 0.62 (largest colour channel, 0-1; a lifted colour is also mixed 35% toward grey), ExposureCompensation 1.1, fog Density at
   most 0.22 and no Haze; the others Brightness at least 1.4, Ambient at least 0.36, OutdoorAmbient at least 0.6. Fog
   colours are lifted to 0.3 so the distance never fades to black. The horizon colour is the first sky stop at or over 0.
@@ -88,18 +88,23 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 
 | Track | Id | Biome key | Series | Biome (working name) | Enemy (based on) |
 |---|---|---|---|---|---|
-| 1 | W2DevilTokyo | DevilTokyo | Saw Man | Devil Hunter City | Katanah Man (Katana Man) |
+| 1 | W2ElvenPlains | ElvenPlains | Frieren | Elven Ruin Plains | Ora (Aura the Guillotine) |
 | 2 | W2DemonCastle | DemonCastle | Solo Levelup | Demon King's Castle | Barran (Baran) |
 | 3 | W2RuinedCityZ | RuinedCityZ | One Punch | Ruined City Zed | Garoo (Garou) |
 | 4 | W2HauntedTunnel | HauntedTunnel | Dandadan | Haunted Tunnel Road | Turbo Grammy (Turbo Granny) |
 | 5 | W2KaijuBase | KaijuBase | Kaiju No. 8 | Wrecked Kaiju Base | Kaijo No. 9 (Kaiju No. 9) |
-| 6 | W2ElvenPlains | ElvenPlains | Frieren | Elven Ruin Plains | Ora (Aura the Guillotine) |
+| 6 | W2DevilTokyo | DevilTokyo | Saw Man | Devil Hunter City | Katanah Man (Katana Man) |
 | 7 | W2AntIsland | AntIsland | Solo Levelup | Ant Island | Berru (Beru) |
 | 8 | W2MonsterDen | MonsterDen | One Punch | Monster Den | Orochy (Orochi) |
 | 9 | W2GoldenCity | GoldenCity | Frieren | Golden City | Makto (Macht) |
 | 10 | W2HellGate | HellGate | Saw Man | Hell's Gate | Makina (Makima) |
 
 The "Based on" names stay in docs and never ship (design doc 5).
+
+Track swap (owner 2026-11-25): Tracks 1 and 6 exchanged biomes. Moves with the biome: track id, name, palette, scenery,
+lighting, card blurb, enemy name and model. Stays with the number: road segments and length, pay, Gems, `BestTrack` /
+`Checkpoint` / `RaceBestTimes`, enemy speed (Track 6: 190). Approvals and hero moves below that name Track 1 or 6 were
+written before the swap.
 
 ### Rewards (design doc 4.47, owner 2026-11-24; written 2026-11-24)
 - Money: every Money amount a track pays (the finish, the exhaustion share by distance, the checkpoint bonus) is a
@@ -162,6 +167,11 @@ The "Based on" names stay in docs and never ship (design doc 5).
 - A mesh larger than 2048 studs on an axis at its placed scale is exported as several pieces under that size (same
   shape, same look), each its own asset.
 - Approved by the owner 2026-11-23 after rework: Track 5 KaijuBase (round 16, c96b876). Frozen.
+- Reopened by the owner 2026-11-25: (a) the scenery layouts of DevilTokyo and ElvenPlains, for the track swap only (hero
+  meshes unchanged; re-export of these two lifted from the hold, `--no-glb`; new renders need the owner's approval);
+  (b) Track 5's dead kaiju (`GiantCorpse`) and its site (ground, crushed buildings, rubble and crew around it), sized to
+  fit a legal spot, earlier form rulings dropped; reference renders need the owner's approval before export, upload or
+  placement. The rest of Track 5 stays frozen. Every other track stays on the re-export hold.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its

@@ -1,4 +1,4 @@
-# Track 1 DevilTokyo: source references
+# Track 6 DevilTokyo: source references
 
 Source: Chainsaw Man (anime season 1 and the Reze arc film), the night streets of Tokyo where the Public Safety devil
 hunters work. The game uses the tweaked name Saw Man. Reference images are look-only. They sit in
