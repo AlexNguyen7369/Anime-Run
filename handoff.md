@@ -1,3 +1,8 @@
+## RESUME HERE (2026-11-25 night, devbox): yes to all; boss models saved; uploads next
+- PR #31 in main (533ea015). World 2 branch ahead with boss gate and guide (off), spawn moves, owner's eight "yes to all" answers (change log).
+- Both places saved by the lead on the owner's word: World 2 version 84, World 1 version 909 (not published; they hold the branch code with the moved Index, Team altar and statue). Boss models in BakedModels of both, `boss_models_placed` 14/14 each.
+- Running: round 8 of the swap (HQ out, a18140ebec4f2bd8f), agent-1 exports (colour test mesh first), agent-2 plaza test split and layout B then the kaiju, audit of the white-mesh and grass fixes. Rojo connected on 34881 / 34882. Uploads run on the Mac with the key from ~/.zshrc.
+
 ## RESUME HERE (2026-11-25, agent-2): boss gate guide, merged locally (not pushed); test fix on feature/alex/boss-guide-tests
 - Gojio's E prompt and text-only conversation: docs/BOSS_GUIDE_SPEC.md, design doc 4.37. Position and reach from Shared/BossGateConfig (agent-1's 2468a9a6 is merged in). Off switches: `BossGateConfig.LIVE` (gate model, prompt, attribute) and `BossGuideConfig.LIVE`, both false; Gojio needs both (`IsLive`). The moved Index, Team altar and statue do not depend on them.
 - Offline, both worlds: `boss_guide` 100/0, `plaza_build` 145/22 (the same 22 as before: uploads and unbuilt pieces), `world2_cast` 109/0, `world2_rewards` 21/0. NOT run: Studio (`ui_boss_guide`, `ui_boss_gate`, clicks, look, touch, model load, `spawn_area`'s live rows). Audit of 42566847 FAIL on 4 small items, fixed since; the fixes are not audited.
