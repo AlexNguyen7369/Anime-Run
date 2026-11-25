@@ -12,7 +12,22 @@ local OPEN_WAIT, CLOSE_WAIT = 1, 0.6 -- s: the unroll and the roll-up have finis
 
 local QUIET = 5 -- s without a change before the talk: longer than one auto-roll interval
 local SETTLE = 20 -- s at most for that (a run's last payout, a roll already going)
-local WATCHED = { "Money", "Gems", "Rolls", "RebirthLevel", "BossCredit", "BossTeam", "SidekickBag", "Relics" }
+local WATCHED = {
+	"Money",
+	"Gems",
+	"Rolls",
+	"RebirthLevel",
+	"BossCredit",
+	"BossTeam",
+	"SidekickBag",
+	"Relics",
+	"RelicBag",
+	"RelicGear",
+}
+
+local NAMES = table.clone(WATCHED)
+table.insert(NAMES, "leaderstats.Money")
+local EXIST = { "leaderstats.Money", "Gems", "Rolls", "RelicBag", "RelicGear" } -- set on every loaded player
 
 local Module = {}
 
@@ -20,6 +35,7 @@ function Module.Build(h)
 	local scenarios, after = {}, {}
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
+	local AnimeSkin = require(player.PlayerScripts.Client.AnimeSkin)
 	local PanelSwitch = require(player.PlayerScripts.Client.PanelSwitch)
 	local function parts()
 		local gui = playerGui:FindFirstChild("BossGuideUi")
@@ -53,12 +69,14 @@ function Module.Build(h)
 			for _, name in WATCHED do
 				values[name] = player:GetAttribute(name)
 			end
+			local money = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Money")
+			values["leaderstats.Money"] = money and money.Value
 			return values
 		end
 		local function differences(from)
-			local changed = {}
-			for _, name in WATCHED do
-				if player:GetAttribute(name) ~= from[name] then
+			local changed, now = {}, watched()
+			for _, name in NAMES do
+				if now[name] ~= from[name] then
 					table.insert(changed, name)
 				end
 			end
@@ -74,12 +92,34 @@ function Module.Build(h)
 		end
 		h.check(res, "quiet_without_the_talk", noise, "quiet for " .. QUIET .. " s", os.clock() - since >= QUIET)
 		local before = watched()
+		local absent = {}
+		for _, name in EXIST do
+			if before[name] == nil then
+				table.insert(absent, name)
+			end
+		end
+		h.check(res, "watched_values_exist", table.concat(absent, ","), "", #absent == 0)
 		local wasInEvent = player:GetAttribute("BossEvent")
 		ok(res, "starts_closed", not panel.Visible)
 		local open = gui:FindFirstChild("Open")
 		open:Fire()
 		task.wait(OPEN_WAIT)
 		ok(res, "opens", PanelSwitch.IsOpen("BossGuide"))
+		-- Popup layout B, as drawn on this screen
+		local g = AnimeSkin.Frames[panel]
+		local card, slip = panel:FindFirstChild("Card"), panel:FindFirstChild("Slip")
+		local text = panel:FindFirstChild("Line", true)
+		ok(res, "layout_b_parts", g ~= nil and card ~= nil and slip ~= nil)
+		if g and card and slip then
+			h.check(res, "layout_b_frame", g.H, g.Small and 420 or 520, g.H == (g.Small and 420 or 520))
+			ok(res, "layout_b_slip_shown", slip.Visible == not g.Small)
+			local limit = text:FindFirstChildOfClass("UITextSizeConstraint")
+			local want = g.px(g.Small and 34 or 48)
+			h.check(res, "layout_b_text", limit and limit.MaxTextSize, want, limit ~= nil and limit.MaxTextSize == want)
+			local kanji, sub = panel:FindFirstChild("Kanji"), panel:FindFirstChild("Sub")
+			ok(res, "title_kanji", kanji ~= nil and kanji.Visible and kanji.Text == "案\n内")
+			ok(res, "title_sub_line", sub ~= nil and sub.Text == "Boss gate guide")
+		end
 		open:Fire() -- a second press keeps the one conversation, on its page
 		task.wait(0.1)
 		ok(res, "second_press_keeps_it", PanelSwitch.IsOpen("BossGuide"))
