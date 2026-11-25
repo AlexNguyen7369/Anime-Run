@@ -73,6 +73,21 @@ function PlazaPieces.AltarModelSize()
 	return altar and altar.ModelSize or TODAYS_MODEL_SIZE
 end
 
+-- A mesh's name without the number Blender adds to a repeated one ("Body.001"): the key of the table's Parts.
+function PlazaPieces.PartName(name)
+	return (string.gsub(name, "%.%d+$", ""))
+end
+
+-- True when every part of the row is in `parts`: a piece with a part missing counts as not loaded, so its stand-in stays.
+function PlazaPieces.Complete(row, parts)
+	for name in row.Parts do
+		if not parts[name] then
+			return false
+		end
+	end
+	return true
+end
+
 -- True when every key of `needs` is in `loaded`.
 function PlazaPieces.Loaded(needs, loaded)
 	for _, key in needs or {} do

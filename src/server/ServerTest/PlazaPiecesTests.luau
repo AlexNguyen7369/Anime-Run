@@ -94,6 +94,17 @@ function Tests.plaza_pieces()
 		local posts = Pieces.Assets.SkyLoop.Posts -- measured on the mesh (build_loop.py), written with the table
 		local degrees = posts and table.concat(posts, " ") or "missing"
 		flag("sky_loop_posts", degrees == "19 75 200 250 322", degrees, "19 75 200 250 322")
+		-- the uploads carry Blender's number on repeated names (seen in Studio 2026-11-25: "Body.001", "Glow_g_cyan.003")
+		flag(
+			"part_name_number",
+			Pieces.PartName("Body.001") == "Body" and Pieces.PartName("Glow_g_cyan.003") == "Glow_g_cyan"
+		)
+		flag("part_name_plain", Pieces.PartName("Body") == "Body" and Pieces.PartName("Glow_e1") == "Glow_e1")
+		flag(
+			"part_missing_not_complete",
+			Pieces.Complete({ Parts = { Body = 1, Glow_a = 1 } }, { Glow_a = {} }) == false
+		)
+		flag("parts_all_complete", Pieces.Complete({ Parts = { Body = 1 } }, { Body = {} }))
 		flag("merchants_off_by_default", oldMerchants == false)
 
 		for _, world in { 1, 2 } do
