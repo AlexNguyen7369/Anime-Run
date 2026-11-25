@@ -290,3 +290,8 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
     count; the audit's table lists 1 for the last) other-track props. The finish Rank at (364, 399) stands about 13 studs
     from Track 2's RuinB and nearer Track 2's road than Track 1's. Keep it, or leave it out (the finish goes emptier)?
     Item 8's Rank and statue counts are back to the old 4 and 2; its second HQ is out.
+12. Scenery overlap across tracks (the open overlap question, now seen in renders with all ten tracks drawn, 5747dda6
+    track01_ElvenPlains/context and track06_DevilTokyo/context): other tracks' scenery fills Track 1's views, and the
+    old layouts intersected too. agent-1's mesh test, props of ours touching another track's: old slot 1 154 of 338,
+    old slot 6 240 of 652; round 5 Track 1 21 of 255, Track 6 95 of 746 (Track 6 lost 88 props for it). The finish Rank of
+    item 11 was inside Track 2's RuinB and is removed. A rule for which track owns which ground is needed first.
