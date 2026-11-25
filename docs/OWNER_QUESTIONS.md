@@ -262,7 +262,7 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 2. In the World 2 report the checks `service_roll_new_secret_emphasized` and the auto-roll pause run on the place's
    rarest character, an Eternal (hold 5 s, 4.47), under their old names. Rename them, or leave?
 
-## 2026-11-25 Track 1 and 6 swap, dead kaiju rework (open; nothing merged, exported to the ledger or uploaded)
+## 2026-11-25 Track 1 and 6 swap, dead kaiju rework (swap layouts of round 7 approved by the owner 2026-11-25, HQ left out for now; kaiju items open; nothing in the ledger or uploaded)
 1. Elven RuinedCastle on Track 1: no legal spot at the approved scale 1.5 so far; it fits at 0.52. Default: not built at
    1.5's rule. Keep it at 0.52, or leave it out? (Audit of cb6d716e: 0.52 without a ruling is a FAIL.)
 2. Elven hill Town: no legal spot on Track 1 either (it had none on Track 6). Accept?

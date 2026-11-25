@@ -163,8 +163,6 @@ TOUCH DevilTokyo on its ground: T5 Rubble (-795, 800) LowBlock x1
 TOUCH DevilTokyo on its ground: T5 Rubble (-212, -999) ShopHouse x1
 TOUCH DevilTokyo on its ground: T5 SweeperVan (-884, -787) LowBlock x1
 TOUCH DevilTokyo on its ground: T5 SweeperVan (-217, 857) ShopHouse x1
-TOUCH DevilTokyo on its ground: T7 Brush (-1197, 878) HQ x1
-TOUCH DevilTokyo on its ground: T7 Brush (-1186, 919) HQ x1
 TOUCH DevilTokyo on its ground: T7 Brush (-1117, 229) Mansion x1
 TOUCH DevilTokyo on its ground: T7 Brush (-1117, 266) Office x1
 TOUCH DevilTokyo on its ground: T7 Brush (-1111, 693) Office x1
@@ -184,10 +182,8 @@ TOUCH DevilTokyo on its ground: T7 Camp (-124, 1204) Apaato x1, Konbini x1, Offi
 TOUCH DevilTokyo on its ground: T7 Camp (772, 1208) Mansion x1
 TOUCH DevilTokyo on its ground: T7 Camp (1189, -196) Konbini x1, Office x1, ShopHouse x2
 TOUCH DevilTokyo on its ground: T7 Camp (1189, 697) Mansion x1, Office x1
-TOUCH DevilTokyo on its ground: T7 Ruin (-1204, 1046) HQ x1
 TOUCH DevilTokyo on its ground: T7 Ruin (-1079, 844) Apaato x1
 TOUCH DevilTokyo on its ground: T7 Ruin (-732, -1180) Mansion x1
-TOUCH DevilTokyo on its ground: T7 ThatchHouse (-1219, 881) HQ IN x1
 TOUCH DevilTokyo on its ground: T7 ThatchHouse (-1103, -621) Mansion x1
 TOUCH DevilTokyo on its ground: T7 ThatchHouse (-1098, -51) Mansion x1
 TOUCH DevilTokyo on its ground: T7 ThatchHouse (-1076, -928) Office x1
@@ -196,7 +192,6 @@ TOUCH DevilTokyo on its ground: T7 ThatchHouse (517, 1232) ShopHouse x1
 TOUCH DevilTokyo on its ground: T7 ThatchHouse (601, -1185) Mansion x1
 TOUCH DevilTokyo on its ground: T7 ThatchHouse (895, -1165) Office x1, ShopHouse x1
 TOUCH DevilTokyo on its ground: T7 ThatchHouse (1196, 83) Konbini x1, Mansion x1
-TOUCH DevilTokyo on its ground: T8 FleshWall (-1328, 857) HQ x1
 TOUCH DevilTokyo on its ground: T8 RockPillar (-718, 1207) (pruned in game) Office x1
 TOUCH DevilTokyo on its ground: T8 RockPillar (-516, 1209) Office x1
 TOUCH DevilTokyo on its ground: T8 RockPillar (619, -1185) Apaato x1, Mansion x1
@@ -207,5 +202,4 @@ TOUCH DevilTokyo on its ground: T8 RockPillar (1187, 225) Office x1
 TOUCH DevilTokyo on its ground: T8 RockPillar (1189, -848) Mansion x1
 TOUCH DevilTokyo on its ground: T8 RockPillar (1193, -615) Mansion x1, Office x1
 TOUCH DevilTokyo on its ground: T8 RockPillar (1205, -449) ShopHouse x1
-TOUCH DevilTokyo on its ground: T9 CityBlock (-1321, 938) HQ IN x1
 TOUCH DevilTokyo on its ground: T9 Square (1198, -71) Apaato x1, Mansion x1, StreetKit x1

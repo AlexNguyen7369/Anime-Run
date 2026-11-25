@@ -48,7 +48,9 @@ BOX = {
 	"HeroStatue": (24, 24), "Rank": (104, 66), "Mansion": (74, 36), "Apaato": (50, 34), "ShopHouse": (30, 24),
 	"Konbini": (50, 26), "StreetKit": (48, 8), "LowBlock": (100, 100), "Retro": (32, 30), "Office": (46, 46), "HQ": (192, 130),
 }  # fmt: skip
+# Cottage and RuinWall are not checked (they were while a finish Rank stood behind them; that Rank is out)
 TALL = {"Pine", "Forest", "Mound", "Mansion", "ShopHouse", "Office"}  # may hide a landmark (the layout's `hidden`)
+TURN = {(1184.0, -341.9): 0.0}  # the near tower of the 0.62 view: its two lit faces to the runner
 TOWER = (0.36, 0.55)  # the approved draft's Office scales
 BLOCK = ep.blockers()  # the game takes a neighbour that meets these (BiomeDressing.Prune); still treated as standing here
 
@@ -67,6 +69,11 @@ def woods(count, name, scale, gap, seed):
 	return {"what": name, "count": count, "spots": spots}
 
 
+def at(name, x, z):
+	"""One prop at a set spot, its front to the road."""
+	return {"what": "%s at (%.0f, %.0f)" % (name, x, z), "count": 1, "spots": lambda lay: [lay.make(name, x, z, lay.road_yaw(x, z), 1.0)]}
+
+
 def towers(count, gap, seed):
 	"""The skyline's offices beside the road, seeded, at least `gap` studs apart (the old draft's spacing), big ones first."""
 
@@ -76,7 +83,7 @@ def towers(count, gap, seed):
 		for sc, d, off, turn in draws:
 			(x, _, z), _ = lay.k.beside(d, off)
 			if all(q.name != "Office" or math.hypot(q.pos[0] - x, q.pos[2] - z) >= gap for q in lay.kept):
-				yield lay.make("Office", x, z, turn, sc)
+				yield lay.make("Office", x, z, TURN.get((round(x, 1), round(z, 1)), turn), sc)
 
 	return {"what": "Office", "count": count, "spots": spots}
 
@@ -116,7 +123,7 @@ FILL = {
 		woods(80, "Pine", (0.9, 1.5), 12, 7),
 		woods(20, "Flowers", (1.0, 1.5), 30, 9),
 	],
-	"DevilTokyo": [fronts(("ShopHouse", "Apaato", "Konbini"), (40, 46, 54, 62), 80, 8), towers(41, 70, 5)],
+	"DevilTokyo": [fronts(("ShopHouse", "Apaato", "Konbini"), (40, 46, 54, 62), 80, 8), towers(41, 70, 5), at("Konbini", 1183.6, -381.5)],
 }
 
 

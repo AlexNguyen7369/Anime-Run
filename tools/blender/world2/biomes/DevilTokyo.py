@@ -2,7 +2,7 @@
 anime's street scenes (refs and landmark list: docs/world2_refs/DevilTokyo.md):
 - the hunters' headquarters: the tallest mass in town, a pale grey stepped government block with deep horizontal slabs
   (Kasumigaseki style), sparse lit offices, a lit forecourt and a large changed emblem (ring and diamond, not the real
-  mark) on the roof edge, standing at the end of a street axis the runner looks down;
+  mark) on the roof edge (not placed: no legal spot on own ground, owner 2026-11-25);
 - the partners' apartment: a 7-storey mansion block with balconies on one face and the open corridor face (walkway,
   railing, row of steel doors, lit stair slits) on the other; some face the road with the corridor;
 - a 2-storey wooden apartment with an open steel corridor, outside stairs and a vending cluster at its end;
@@ -723,7 +723,7 @@ def build(k):
 				head = p + right * (off - s * 5.5)  # the lamp head, inside the kit's box: the game keeps a lamp with its prop
 				kits.append((d, s, (head.x, 17.5, head.z)))
 		d += 48
-	# Hero landmark: one HQ at the end of the street axis past the first corner (0.06 run camera). A second on the 0.9
+	# HQ plot (the HQ is left out, below): at the end of the street axis past the first corner (0.06 run camera). A second on the 0.9
 	# camera's axis is tried below; no legal spot exists there, so none is placed.
 	near = r.neighbours(own_ground=True)
 	near_all = r.neighbours()
@@ -736,17 +736,14 @@ def build(k):
 			for yaw in yaws:
 				if not r.fits(x, z, yaw, 192, 130, own=False, clear=24.5):
 					continue
-				fx, fz = -math.sin(yaw), -math.cos(yaw)  # the front (-Z)
-				k.place("HQ", (x - fx * 19, 0.0, z - fz * 19), yaw)  # x, z is its box's centre: the forecourt runs out in front
+				# Not placed (owner 2026-11-25, "yes to all": left out for now): no legal spot on this track's own ground. The
+				# spot's plot and sight line stay free, so the approved layout does not change; the mesh and its Props entry stay.
 				avoid.append((x, z, 120))
 				hq_at.append((x, z))
 				ahead = math.hypot(x - eye.x, z - eye.z)
 				for j in range(200, int(ahead) - 100, 30):  # the axis stays low, so the runner sees it from the straight
 					sight.append((eye.x + (x - eye.x) * j / ahead, eye.z + (z - eye.z) * j / ahead, 12 + 60 * j / ahead))
-				for side in (-1, 1):  # floodlights washing the pale front
-					at = (x + fx * 60 + fz * side * 40, 30, z + fz * 60 - fx * side * 40)
-					k.light(at, "E8F0FF", energy=100000, radius=10).data.use_shadow = False
-				print("HQ at", f, round(x), round(z), "overlaps", len(r.overlaps(near_all, x, z, yaw, 190, 128)))
+				print("HQ plot (left out) at", f, round(x), round(z), "overlaps", len(r.overlaps(near_all, x, z, yaw, 190, 128)))
 				return
 
 	p, right, t = k.at(L * 0.06)
@@ -830,7 +827,7 @@ def build(k):
 			pos, yaw = k.beside(kd, -35)
 			k.place("CrossWire", pos, yaw - math.pi / 2)
 	# Night: teal-blue ambient for cool shadows, warm sodium point lights at the lamp heads. The game keeps the 48 brightest
-	# of a track (BiomeDressing.PLACED_LIGHTS): the HQ's 2 floodlights and 46 lamps (44 with a second HQ) spread evenly along the whole road
+	# of a track (BiomeDressing.PLACED_LIGHTS): 46 lamps (44 with a second HQ plot) spread evenly along the whole road
 	# (sides alternating); the rest are dimmer and only light the draft.
 	k.sky([(0.0, "3A4A5A"), (0.06, "22344A"), (0.25, "122236"), (1.0, "060C18")], strength=1.0, sun=(0.6, "6FA8C0", 35, 140))
 	main = set()
