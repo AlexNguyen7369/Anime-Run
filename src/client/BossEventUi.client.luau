@@ -1491,15 +1491,34 @@ decline.Activated:Connect(function()
 	declinedStart = ReplicatedStorage:GetAttribute("BossEventStart")
 end)
 -- Only opens the popup, in every state: teleporting and spawning are its action's job (owner 2026-11-05).
-bossButton.Activated:Connect(function()
-	bossesOpen = not bossesOpen
-	if bossesOpen then
-		detailsFor = nil -- opens on the cards
-		bossesClosing = false
-		bossesPanel.Visible = not PanelSwitch.AnyOpen()
-		DojoHandscroll.Open(bossesPanel) -- design doc 4.46: unrolls from its centre, input live
+do -- its own scope: this file is at Luau's limit of locals
+	local BossGateConfig = require(shared:WaitForChild("BossGateConfig"))
+	local function toggleBosses()
+		bossesOpen = not bossesOpen
+		if bossesOpen then
+			detailsFor = nil -- opens on the cards
+			bossesClosing = false
+			bossesPanel.Visible = not PanelSwitch.AnyOpen()
+			DojoHandscroll.Open(bossesPanel) -- design doc 4.46: unrolls from its centre, input live
+		end
 	end
-end)
+	bossButton.Activated:Connect(toggleBosses)
+	local function gatePressed(prompt)
+		if
+			BossGateConfig.PromptOpens(
+				prompt,
+				bossButton.Visible,
+				PanelSwitch.AnyOpen(),
+				ReplicatedStorage:GetAttribute(BossGateConfig.OPEN_ATTRIBUTE),
+				player:GetAttribute("RebirthLevel")
+			)
+		then
+			toggleBosses()
+		end
+	end
+	game:GetService("ProximityPromptService").PromptTriggered:Connect(gatePressed)
+	make("BindableEvent", "GatePrompt", root, {}).Event:Connect(gatePressed) -- test seam (UiBossGate): the press
+end
 bossesClose.Activated:Connect(function()
 	bossesOpen = false
 end)
