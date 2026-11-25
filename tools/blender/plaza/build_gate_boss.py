@@ -1,5 +1,5 @@
 """Boss gate A (draft_boss_gate.py gate), full size at Shared/BossGateConfig's place: BossGateClosed, BossGateOpen. Two faults of
-the blind review mended on the closed one: the light sliver round the shut doors (a dark rim behind the joint) and the plain
+the blind review mended on the closed one (BossGateClosedDraft is it unmended, the approved draft): the light sliver round the shut doors (a dark rim behind the joint) and the plain
 back of the seal (a gold plate, studs and a point, as the front's).
 Headless: blender -b --factory-startup --python tools/blender/plaza/build_gate_boss.py -- [--check]
 """
@@ -22,9 +22,9 @@ _r = math.hypot(*SPOT)
 POS = (SPOT[0] * (1 - SHIFT / _r), SPOT[1] * (1 - SHIFT / _r))
 
 
-def gate(closed):
+def gate(closed, mended=True):
 	m = db.gate(closed, bp.place(*POS, bp.TOP, bp.to_spawn(*POS)), 1.0, "BossGate")
-	if closed:
+	if closed and mended:
 		db.annulus(m, db.RI - 0.7, db.RI + 0.6, 1.6, 2.7, "d2", "d2")
 		c = db.C
 		dg.prism(m, [(2.6 * math.cos(k / 8 * math.tau + math.pi / 8), c + 2.6 * math.sin(k / 8 * math.tau + math.pi / 8)) for k in range(8)], 4.05, 4.5, "gd2", "gd2", 0.2, "gd1")
@@ -39,4 +39,4 @@ def gate(closed):
 
 
 if __name__ == "__main__":
-	piece_export.run("gate_boss", [("BossGateClosed", gate(True)), ("BossGateOpen", gate(False))])
+	piece_export.run("gate_boss", [("BossGateClosed", gate(True)), ("BossGateOpen", gate(False)), ("BossGateClosedDraft", gate(True, False))])

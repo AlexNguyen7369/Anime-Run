@@ -3,13 +3,9 @@
 # tools/blender/plaza/plaza_assets.json (re-uploads a key when its geometry hash changed; a stale id is orphaned) and
 # writes the generated src/shared/PlazaAssets.luau. ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required.
 #   python3 tools/blender/plaza/upload_plaza.py        Run build_plaza.py -- --export first.
-#   ... --pieces   also the spawn pieces of build/plaza/pieces (build_gate_*, build_altar_*, build_market_*); a piece with an
-#                  old asset's key replaces it, and MarketSign goes (its board is in the new MarketStall)
-#   ... --dry      lists what would upload, writes nothing
 import json
 import os
 import subprocess
-import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,7 +24,7 @@ def curl(*args):
 	return json.loads(r.stdout)
 
 
-def upload(key, folder):
+def upload(key, folder=os.path.join(BUILD, "glb")):
 	req = {
 		"assetType": "Model",
 		"displayName": "AnimeRun_Plaza_" + key,
@@ -84,7 +80,6 @@ def write_registry(layout, ledger):
 	out.append("\t},")
 	out.append("\tLoopRadius = %g," % layout["LoopRadius"])
 	out.append("\tLoopHeight = %g," % layout["LoopHeight"])
-	out.append("\tLoopPosts = { %s }," % ", ".join("%g" % d for d in layout["LoopPosts"]))
 	out.append("}\n")
 	with open(os.path.join(REPO, "src", "shared", "PlazaAssets.luau"), "w") as f:
 		f.write("\n".join(out))
@@ -93,26 +88,12 @@ def write_registry(layout, ledger):
 def main():
 	layout = json.load(open(os.path.join(BUILD, "layout.json")))
 	ledger = json.load(open(LEDGER)) if os.path.exists(LEDGER) else {}
-	for a in layout["Assets"].values():
-		a["File"] = os.path.join(BUILD, "glb")
-	if "--pieces" in sys.argv:
-		folder = os.path.join(BUILD, "pieces")
-		for name in sorted(f for f in os.listdir(folder) if f.endswith(".json")):
-			for key, a in json.load(open(os.path.join(folder, name))).items():
-				layout["Assets"][key] = dict(a, File=folder)
-		layout["Assets"].pop("MarketSign", None)
-		layout["Placed"] = [row for row in layout["Placed"] if row["Key"] != "MarketSign"]
-	if "--dry" in sys.argv:
-		for key, a in sorted(layout["Assets"].items()):
-			new = ledger.get(key, {}).get("Hash") != a["Hash"]
-			print("UPLOAD" if new else "same  ", key, os.path.getsize(os.path.join(a["File"], key + ".glb")), "bytes", sum(p["Tris"] for p in a["Parts"].values()), "tris")
-		return
 	for key, a in sorted(layout["Assets"].items()):
 		if ledger.get(key, {}).get("Hash") == a["Hash"]:
 			continue
 		tris = sum(p["Tris"] for p in a["Parts"].values())
 		# A changed mesh loses its signature: the rules auditor reviews it again (BIOME_ENVIRONMENT_SPEC 4.1)
-		ledger[key] = {"Hash": a["Hash"], "Asset": upload(key, a["File"]), "Lane": "B", "Kind": "Mesh", "Tris": tris}
+		ledger[key] = {"Hash": a["Hash"], "Asset": upload(key), "Lane": "B", "Kind": "Mesh", "Tris": tris}
 		with open(LEDGER, "w") as f:
 			json.dump(ledger, f, indent=1, sort_keys=True)
 		print("UPLOADED", key, ledger[key]["Asset"], flush=True)

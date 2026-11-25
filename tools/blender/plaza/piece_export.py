@@ -1,7 +1,7 @@
 """Exports the approved spawn pieces (WORLD_REDESIGN_SPEC 4.2, docs/PLAZA_BUILD_PLAN.md) for build_gate_*, build_altar_* and
 build_market_*: each script builds the approved draft's own geometry (draft_*.py, imported, never edited) and calls run().
 One 64-colour palette per set, made from the colours its meshes use; a Body mesh over VERT_MAX corners is cut into Body, Body2.
-Writes only build/plaza/pieces/<key>.glb and <set>.json (Hash, Parts, Pos, Face); no upload. upload_plaza.py reads them.
+Writes only build/plaza/pieces/<key>.glb and <set>.json (Hash, Parts, Pos, Face); no upload. upload_pieces.py reads them.
   -- --check   also re-imports every GLB and renders it beside the draft mesh into build/plaza/pieces/check/
 """
 
@@ -213,6 +213,26 @@ def check(m, key, parts):
 	return float(np.abs(draft - got).mean()), holes * 100
 
 
+def clear(m):
+	"""What of a piece, at its place, leaves the floor or meets the sky loop's ribbon or its posts (LOOP_POSTS); [] when clear."""
+	posts = [(62 * math.cos(math.radians(d)), 62 * math.sin(math.radians(d))) for d in bp.LOOP_POSTS]
+	bad, gap, edge = set(), 1e9, 1e9
+	for v in m.v:
+		p = m.matrix @ v
+		x, z, y = p.x, -p.y, p.z
+		edge = min(edge, 94 - abs(x), 110 - abs(z))
+		r = math.hypot(x, z)
+		if 59.4 < r < 64.6 and 28 < y < 31:
+			bad.add("sky loop ribbon")
+		if y < 30:
+			gap = min(gap, min(math.hypot(x - a, z - b) for a, b in posts) - 1.7)
+	if gap < 0:
+		bad.add("loop post")
+	if edge < 0:
+		bad.add("floor edge")
+	return sorted(bad), gap, edge
+
+
 def run(name, pieces):
 	"""pieces: [(key, M)] of one set. `name`: the set."""
 	os.makedirs(OUT, exist_ok=True)
@@ -233,6 +253,8 @@ def run(name, pieces):
 		xs, ys, zs = zip(*m.v)
 		dims = "%.1f x %.1f x %.1f" % (max(xs) - min(xs), max(ys) - min(ys), max(zs) - min(zs))
 		line = "PIECE %s copied %d faces, tris %d corners %s box %s z %.2f..%.2f %d KB hash %s" % (key, sides, sum(q["Tris"] for q in parts.values()), {k: q["Verts"] for k, q in parts.items()}, dims, min(zs), max(zs), size // 1024, out[key]["Hash"])
+		if key != "SkyLoop":
+			line += " | clear %s, nearest loop post %.1f, floor edge %.1f" % clear(m)
 		if "--check" in sys.argv:
 			line += " | render diff %.2f of 255, back faces seen %.2f%% of pixels" % check(m, key, parts)
 		print(line, flush=True)

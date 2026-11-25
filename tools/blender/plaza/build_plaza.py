@@ -21,7 +21,8 @@ BLEND = os.path.join(ROOT, "build", "plaza", "plaza_draft.blend")
 CHARS = os.path.join(ROOT, "assets", "characters_avatar")
 TOP = 1.0  # floor top = road top (SpawnArea.TOP_Y)
 rng = random.Random(7)
-LOOP_POSTS = (19, 75, 200, 250, 322)  # degrees: the fuller layout (WORLD_REDESIGN_SPEC 4.2, owner 2026-11-25)
+LOOP_POSTS_OLD = (45, 100, 200, 250, 315)  # degrees, as uploaded; 200, not 190: clear of the MARKET sign seen from the spawn
+LOOP_POSTS = (19, 75, 200, 250, 322)  # the fuller layout (WORLD_REDESIGN_SPEC 4.2, owner 2026-11-25): build_loop.py's piece
 LOOP_H = 30  # sky loop height: clears the gate top from the spawn view (proposed)
 
 # Fixed by the game (read from the live place 2026-11-03)
@@ -553,7 +554,7 @@ def path():
 	return m
 
 
-def sky_loop():
+def sky_loop(posts=LOOP_POSTS_OLD):
 	m = M("SkyLoop", place(0, 0, 0))
 	r, h, w, n = 62, LOOP_H, 5, 72
 	def col(a):
@@ -569,7 +570,7 @@ def sky_loop():
 		m.face([pt(a0, ri, h - 0.45), pt(a0, ri, h), pt(a1, ri, h), pt(a1, ri, h - 0.45)], col((a0 + a1) / 2))
 		for rr in (ri + 0.2, ro - 0.2):  # glowing rails
 			m.face([pt(a0, rr - 0.25, h + 0.04), pt(a0, rr + 0.25, h + 0.04), pt(a1, rr + 0.25, h + 0.04), pt(a1, rr - 0.25, h + 0.04)][::-1], col((a0 + a1) / 2))
-	for deg in LOOP_POSTS:
+	for deg in posts:
 		a = math.radians(deg)
 		x, z = r * math.cos(a), r * math.sin(a)
 		pos = rb(x, TOP, z)
@@ -959,7 +960,7 @@ def export_all():
 		placed.append({"Key": key, "Pos": [p.x, p.z, -p.y], "Face": [front.x, -front.y]})
 	cid, x, z, _ = EXCLUSIVE
 	exclusive = {"Id": cid, "Pos": [x, PEDESTAL[2] + 2.6, z], "Face": list(EXCLUSIVE_FACE)}
-	layout = {"Assets": assets, "Placed": placed, "Exclusive": exclusive, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "LoopPosts": list(LOOP_POSTS), "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [MARKET_STALL[0], 50, MARKET_STALL[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
+	layout = {"Assets": assets, "Placed": placed, "Exclusive": exclusive, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [MARKET_STALL[0], 50, MARKET_STALL[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
 	with open(os.path.join(ROOT, "build", "plaza", "layout.json"), "w") as f:
 		json.dump(layout, f, indent=1)
 	print("EXPORT", len(assets), "assets", sum(p["Tris"] for a in assets.values() for p in a["Parts"].values()), "unique tris")
