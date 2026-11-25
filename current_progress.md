@@ -266,6 +266,7 @@
 262. 2026-11-25 — Alex Nguyen — World 2 overlap across tracks recorded from renders with all ten tracks drawn (swap round 5, 5747dda6, not merged) (30127f74; docs only).
 263. 2026-11-25 — Alex Nguyen — Recorded the owner's World 2 ground ruling (nearest road owns the ground), swap round 5 scores of 6 and 6, and World 2 Studio results: roll_anim 77/77, world2_summon 21/21, boss_models_placed 8/14 red with three boss models not saved in the place (8bd795cd).
 264. 2026-11-25 — Alex Nguyen — Put the always-on HUD back to its old look: PR #29 merged into main (5ef219ed) after a fresh review, and the World 2 branch merged the same look with a PASS rules audit and World 2 Studio UI checks.
+265. 2026-11-25 — Alex Nguyen — Added Blender drafts (renders only, nothing in game) for the world gate, a bigger Summon altar with research notes, and the plaza's markets and merchants, each reviewed blind and audited; ground-ownership count and kaiju dry run saved under docs/proposals.
 
 ## What's next
 **Bring the owner the full ground-ownership count (props and heroes of all ten World 2 tracks).**
