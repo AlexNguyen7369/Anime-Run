@@ -8,3 +8,4 @@ committed file and a scratch `export_props.py -- 5 --no-glb`: only the GiantCorp
 - The ledger row (`KaijuBase.luau` W2_KaijuBase_GiantCorpse) still names the OLD mesh id: this file must not ship before the new upload.
 - Parts fallback: the exporter gives KaijuBase's stand-in parts (STANDIN 010203) its approved HIDE 86402F (`export_props.stand_in_colours`, fallback only):
   all 24 GiantCorpse fallback parts are 86402F. The GLB is unchanged: geometry hash 7f2f942a...1c651137, 19,889 tris, 33,294 vertices, 1,185,820 bytes, before and after.
+- Landed 2026-11-25 on orch/world2/kaiju-land after the upload and review: the ledger row and `uploaded_assets.tsv` row 39 now carry the new ids (Model 130671695538312, MeshId 120871855895739), so the note above about the old id no longer applies.
