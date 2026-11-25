@@ -191,6 +191,11 @@ written before the swap.
   changes, a full count (props and heroes per track) goes to the owner; the freezes and the re-export hold stand until
   then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
   legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
+- Track 6 lit landmark (owner 2026-11-25, "lit landmark approved"; renders go to the owner before any merge): at the bend
+  (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
+  centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,
+  and one more Office tower (scale 0.55, the approved top) with its lit face to the finish axis. The spots are
+  **proposed** (`tools/blender/world2/cross_track.py` LANDMARK); the HQ stays out.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
