@@ -5,7 +5,8 @@ Not touched: KEEP (the one-eyed monster), and what the game already prunes (the 
 A prop moves to the nearest legal spot within MOVE studs, its turn, height and scale unchanged, or is left out; a hero
 (MODEL_SHOTS) is searched within HERO_MOVE, the smoke column within SIGHT_MOVE. Legal: its own track's Ground and own ground by more than TIE,
 every vertex 24+ studs from its own centre line (clearance.py), its real triangles off every corridor (the export's test), off the plaza and checkpoints (Prune), and not standing in any
-built prop of any track (cross_track.Placed, LIMIT) nor touching one of Tracks 1 and 6 (but Flowers). SIGHT props must also leave Track 1's 6% view.
+built prop of any track (cross_track.Placed, LIMIT) nor touching one (but Flowers), and seen in no run view of Track 1 or of its own track it was
+not seen in before (frame only, no occlusion); a hero or the smoke column first tries spots out of every Track 1 view. SIGHT props must also leave Track 1's 6% view.
 Run it on the drafts before its own rows (it drops them from cross_track.json first), then with --patch, once.
 Headless: Blender -b --factory-startup --python tools/blender/world2/t1_neighbours.py
 Import-safe: main() runs only as a script.
@@ -84,12 +85,6 @@ def flat_gap(p, rn):
 	return best
 
 
-def in_view(kit1, p, f):
-	"""Any point of p's mesh in the frame of Track 1's run view `f` (no occlusion)."""
-	pts = p.world(p.shape.tris.reshape(-1, 3))
-	return f in ep.seen_by(kit1, pts)
-
-
 def main():
 	data = json.load(open(ct.PATH))
 	for b in [b for b in data if b not in ("ElvenPlains", "DevilTokyo")]:
@@ -112,6 +107,8 @@ def main():
 			jobs.append(p)
 			gone.add(id(p))
 	stand = [p for p in every if id(p) not in gone]
+	kits = {n: bt.run(n, render=False, fast=True) for n in sorted({p.track for p in jobs})}  # the run views (road data only)
+	seen = lambda k, q: set(ep.seen_by(k, q.world(q.shape.tris.reshape(-1, 3))))  # noqa: E731
 	heroes, rects, exempt, rows, rn_of = {}, {}, {}, {}, {}
 	for p in sorted(jobs, key=lambda q: -np.prod((q.hi - q.lo)[[0, 2]])):
 		n = p.track
@@ -124,13 +121,17 @@ def main():
 			rects[n] = [np.array(v) for v in rn.ground()]
 		hero = p.name in heroes[n]
 		lim = HERO_MOVE if hero else SIGHT_MOVE if (n, p.name) in SIGHT else MOVE
+		t1_old, own_old = set(views[id(p)]), seen(kits[n], p)
+		if (n, p.name) in SIGHT:
+			t1_old.discard(0.06)
 		ring = sorted(((i, j) for i in range(-lim, lim + 1, STEP) for j in range(-lim, lim + 1, STEP) if 0 < math.hypot(i, j) <= lim), key=lambda q: math.hypot(*q))
 		new, why = None, {}
 
 		def no(rule, why=why):
 			why[rule] = why.get(rule, 0) + 1
 
-		for i, j in ring:
+		spots = [(i, j, strict) for strict in ((True, False) if hero or (n, p.name) in SIGHT else (False,)) for i, j in ring]
+		for i, j, strict in spots:
 			x, z = p.pos[0] + i, p.pos[2] + j
 			if not (np.all((x, z) >= rects[n][0] + 2) and np.all((x, z) <= rects[n][1] - 2)) or owner_of(r, x, z) != n:
 				no("ground")
@@ -142,16 +143,20 @@ def main():
 				no("own road (clearance.py)")
 			elif clearance.intrudes(q.world(q.shape.tris.reshape(-1, 3)).reshape(-1, 3, 3), corr, (n,) if p.name in exempt[n] else ()):
 				no("corridor")
-			elif standing(q, stand) or any(o.track in (1, 6) and o.name != "Flowers" and np.all(q.lo < o.hi) and np.all(q.hi > o.lo) and q.touches(o) for o in stand):
-				no("stands in")
-			elif (n, p.name) in SIGHT and in_view(k1, q, 0.06):
-				no("in Track 1's 6% view")
+			elif standing(q, stand) or any(o.name not in VAST and o.name != "Flowers" and np.all(q.lo < o.hi) and np.all(q.hi > o.lo) and q.touches(o) for o in stand):
+				no("stands in or touches")
+			elif not seen(k1, q) <= (set() if strict else t1_old):
+				no("new Track 1 view" if not strict else "a Track 1 view (first pass)")
+			elif not seen(kits[n], q) <= own_old:
+				no("new own-track view")
 			else:
 				new = q
 				break
 		if new is not None:
 			stand.append(new)
 		rows.setdefault(n, []).append((p, new))
+		if new is not None:
+			print("SEEN T%d %s own views %s -> %s" % (n, p.name, sorted(own_old), sorted(seen(kits[n], new))))
 		print(
 			"PLAN T%d %s (%.1f, %.1f) %s %s in T1 views %s%s"
 			% (

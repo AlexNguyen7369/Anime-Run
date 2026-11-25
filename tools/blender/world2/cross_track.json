@@ -5,9 +5,9 @@
 ["Crag", -231.036, 141.149, null, null, null],
 ["Crag", 2.453, 171.864, null, null, null],
 ["Crag", 101.455, -315.896, null, null, null],
-["Crag", 218.279, 220.758, 272.279, 226.758, null],
+["Crag", 218.279, 220.758, 236.279, 268.758, null],
 ["Crag", 273.678, -225.241, null, null, null],
-["Hound", 133.385, 276.0, 247.385, 264.0, null],
+["Hound", 133.385, 276.0, null, null, null],
 ["RuinB", -334.346, 196.279, null, null, null],
 ["RuinB", -325.894, -119.802, null, null, null],
 ["RuinB", -320.761, 69.59, null, null, null],
@@ -15,10 +15,10 @@
 ["RuinB", -32.6, -423.099, null, null, null],
 ["RuinB", 41.793, -424.704, null, null, null],
 ["RuinB", 164.87, -424.876, null, null, null],
-["RuinB", 236.11, 250.286, 236.11, 292.286, null],
+["RuinB", 236.11, 250.286, null, null, null],
 ["RuinB", 263.586, 222.694, null, null, null],
-["RuinB", 280.524, -400.498, 328.524, -448.498, null],
-["RuinB", 408.543, -329.537, 378.543, -425.537, null],
+["RuinB", 280.524, -400.498, null, null, null],
+["RuinB", 408.543, -329.537, null, null, null],
 ["Wyvern", -309.009, -364.34, -315.009, -364.34, null]
 ],
 "add": [
@@ -362,7 +362,7 @@
 ["Apartment", -336.325, -222.317, null, null, null],
 ["Apartment", -183.101, -73.011, null, null, null],
 ["Apartment", 426.856, -144.899, null, null, null],
-["Smoke", -67.574, -262.749, -771.574, 599.251, null]
+["Smoke", -67.574, -262.749, null, null, null]
 ],
 "add": [
 

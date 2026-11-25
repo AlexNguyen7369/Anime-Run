@@ -192,7 +192,7 @@ written before the swap.
   then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
   legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
   Reopened by the owner 2026-11-25 ("Go ahead"): the frozen tracks' pieces standing on Track 1's ground and the smoke column
-  on its sightline. **Proposed**, renders to the owner before any merge: 7 moved, 27 out, the one-eyed monster (Track 8
+  on its sightline. **Proposed**, renders to the owner before any merge: 3 moved, 31 out (one of four Track 2 Hounds among them), the one-eyed monster (Track 8
   FleshWall) and the pieces the game prunes kept (docs/proposals/world2_t1_neighbours, tools/blender/world2/t1_neighbours.py).
   The drafts are patched in place, not re-exported: a re-export of those tracks today also brings unrelated changes.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
