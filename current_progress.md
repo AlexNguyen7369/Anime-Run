@@ -264,8 +264,9 @@
 260. 2026-11-25 — Alex Nguyen — Owner questions recorded for swap round 3 (close-up model counts, Track 1 options) with the review page (42e85715; docs only).
 261. 2026-11-25 — Alex Nguyen — World 2 swap round 4 (2d0d07a9, not merged) reviewed at 7 on both tracks, audited with no violations and re-tested offline; handoff and owner questions updated (6b87b2f6).
 262. 2026-11-25 — Alex Nguyen — World 2 overlap across tracks recorded from renders with all ten tracks drawn (swap round 5, 5747dda6, not merged) (30127f74; docs only).
+263. 2026-11-25 — Alex Nguyen — Recorded the owner's World 2 ground ruling (nearest road owns the ground), swap round 5 scores of 6 and 6, and World 2 Studio results: roll_anim 77/77, world2_summon 21/21, boss_models_placed 8/14 red with three boss models not saved in the place (8bd795cd).
 
 ## What's next
-**Get the owner's ruling on which track owns which ground in World 2 (the overlap question), before the Track 1 and 6 swap and the kaiju are approved for the game.**
+**Bring the owner the full ground-ownership count (props and heroes of all ten World 2 tracks).**
 
-**Why this is next:** every track's scenery stands in other tracks' views, so layouts and the kaiju's surroundings cannot be judged or merged until that rule exists.
+**Why this is next:** the owner wants it before any frozen track changes, and swap round 6, the swap merge and the kaiju re-cut depend on it.
