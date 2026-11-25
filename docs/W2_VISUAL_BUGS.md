@@ -1,15 +1,17 @@
 # World 2 visual bugs: findings and patch drafts (2026-11-25, offline only)
 
-Pictures: `assets/world2_draft/audit/lighting_2026-11-25`. Nothing here has been seen in Studio after the patch.
+Pictures: `assets/world2_draft/audit/lighting_2026-11-25`. Seen in Studio by the lead: the white-mesh
+preview and the colour test of three re-exported meshes (color_test.jpg); the grass patch and the merged patches are not.
 
 ## Note for the owner
 | Fix | What it does | Before | After | Upload | Risk |
 |---|---|---|---|---|---|
 | Grass | bare ground under roads and slabs | blades through Track 6 and 7 roads (Track 1 after the swap) | none by the offline check | no | brown strip of about 2 to 4 studs by the walls, 8 round finish slabs |
 | White meshes | stops the default grey darkening World 2 props | door 1C0A04 | door 2D1106 | no | pale props (hands, walls) are 56% brighter than you have seen them; dark ones stay near black |
-| Colour export | ships the approved colours | door 2D1106 | door 74482C, as approved | up to 115 meshes, saved in both places | the cause is a strong inference: compare one mesh first |
+| Colour export | ships the approved colours | door 2D1106 | door 74482C, as approved | up to 115 meshes, saved in both places | proved on three meshes in Studio; the rest are not re-exported |
 
-The colour export needs the white fix under it, or it lands at 64%. World 1 is untouched by all three. None is seen in Studio yet.
+The colour export needs the white fix under it, or it lands at 64%. World 1 is untouched by all three. In Studio the white meshes were previewed and three re-exported meshes matched the approved
+colours (2026-11-25); the grass fix is not seen yet.
 
 ## w2-grass-through-road
 - Cause: ElvenPlains and AntIsland set `Materials.Corridor = M.Grass`, and the corridor runs under the road. `TerrainBuilder`
@@ -41,7 +43,8 @@ The colour export needs the white fix under it, or it lands at 64%. World 1 is u
   over-saturated (the orange city).
 - Ruled out: normals are in the GLBs; meshes have no textures; the floors only scale light, so they cannot undo a per-colour
   curve. Parts-only props and parts fallbacks use the hex colour and are right.
-- Strong, not proved: one re-uploaded mesh side by side in Studio proves it.
+- Proved 2026-11-25: the uploaded files' hashes equal the old exporter's, and re-exported SkyDoor, Brush and DoorClosed match the
+  approved colours beside the old near-black ones in Studio.
 - Second cause, seen in Studio by the lead (2026-11-25): all 10,360 placed World 2 meshes have no texture and the default
   grey Color (0.639, 0.635, 0.647), and the same mesh in white is clearly lighter. It tints on top of the curve above.
 - Grey patch (on this branch, code only): `BiomeAssets` makes a textureless template white in World 2. World 1 and textured

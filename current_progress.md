@@ -286,6 +286,7 @@
 276. 2026-11-25 — Alex Nguyen — Found the causes of the World 2 grass-through-road and dark-prop bugs, with red tests and patch drafts (docs/W2_VISUAL_BUGS.md; offline only, nothing uploaded).
 277. 2026-11-25 — Alex Nguyen — Wrote the red test for grey-tinted World 2 meshes (biome_mesh_color) and moved the vertex-colour export patch to its own branch feature/alex/w2-color-export.
 278. 2026-11-25 — Alex Nguyen — Made textureless World 2 meshes white instead of the default grey and wrote the owner's note on the three visual fixes (offline checks only, no Studio).
+279. 2026-11-25 — Alex Nguyen — Fixed the white-mesh audit violation (only MeshParts are read), wrote both approved World 2 scenery fixes into BIOME_ENVIRONMENT_SPEC and merged world2-place.
 
 ## What's next
 **Land the Track 1 and 6 swap: round 7 restores Track 6's office towers, then its score, audit and merge.**

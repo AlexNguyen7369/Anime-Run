@@ -68,6 +68,9 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   `Embank = false`: overpasses stay on their supports.
 - Clear areas get flat terrain at `GROUND_TOP`: the plaza, checkpoint areas and WinPads, each footprint plus
   `BiomeDressing.CLEARANCE`. These are the same roots `BiomeDressing.Prune` already excludes.
+- A Grass corridor is Ground within 24 studs (placeholder) of a centre line and in clear areas, so no grass blade grows through a road
+  or slab (owner 2026-11-25, the brown strip of 2 to 4 studs on World 2). World 1 has no Grass corridor; a future World 1 theme
+  with one would be changed too.
 
 ### 2.3 Where zones meet
 - The seam between zones n and m lies on the gap midline (equal distance). Heights blend linearly across a 32-stud
@@ -338,7 +341,8 @@ Owner 2026-10-31: Track 7 runs inside a tunnel for its whole length. The biome m
 - When the dressing reads a prop def with `Mesh = "<AssetKey>"`, the registry loads the asset with
   `AssetService:CreateMeshPartAsync(Content.fromUri(id))` (pcall) on first use. It caches one template per key and
   clones it per placement. It applies `TextureContent` from the ledger, sizes the clone to the def's `Size` and
-  anchors it. `CanCollide`, `CanTouch` and `CanQuery` are off.
+  anchors it. `CanCollide`, `CanTouch` and `CanQuery` are off. A World 2 template with no texture is white, so its vertex colours
+  are not tinted by the default grey (owner 2026-11-25); World 1 and textured templates keep the colour they load with.
 - Baked copies (owner 2026-11-06): a copy saved in the place at `ServerStorage.BakedModels/<asset id>` is used before
   `CreateMeshPartAsync`, so collaborators in Studio see the mesh (`CHARACTER_GACHA_SPEC` "Avatar pipeline").
 - A load failure, or an unreviewed asset, builds the def's `Parts` instead. Every mesh def keeps a parts fallback, so

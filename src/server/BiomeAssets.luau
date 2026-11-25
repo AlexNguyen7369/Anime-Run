@@ -61,7 +61,12 @@ local function start(id, biome, key)
 			local texture = row.Texture and BiomeAssets.Row(biome, row.Texture, "Texture")
 			if texture then
 				template.TextureContent = Content.fromUri(texture.Id)
-			elseif WorldConfig.Id == 2 and not row.Texture and template.TextureID == "" then
+			elseif
+				WorldConfig.Id == 2
+				and not row.Texture
+				and template:IsA("MeshPart")
+				and template.TextureID == ""
+			then
 				-- a draft mesh shows its vertex colours: the part's default grey would tint them (docs/BUGS.md w2-dark-props)
 				template.Color = Color3.new(1, 1, 1)
 			end
