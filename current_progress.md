@@ -278,6 +278,7 @@
 269. 2026-11-25 — Alex Nguyen — Wrote the red tests for the approved spawn pieces (plaza_build, spawn_area RING and statue rows, moved headers) and gave the offline scenario runner Roblox's lookAt.
 270. 2026-11-25 — Alex Nguyen — Built the upload-free part of the approved spawn layout: Index, Team altar and statue moved with their headers, the boss gate as a Parts stand-in with its state and prompt, merchant markers (offline checks only, no Studio).
 271. 2026-11-25 — Alex Nguyen — Merged the boss gate build (2468a9a6) into feature/alex/boss-guide: the guide reads Shared/BossGateConfig, with a popup mock-up, text-fit numbers and touch targets (offline checks only).
+272. 2026-11-25 — Alex Nguyen — Merged world2-place into feature/alex/boss-guide, fixed the guide's stale wording from its re-audit and drew popup layout B as a mock-up proposal (not coded).
 
 ## What's next
 **Check the boss gate and guide prompts, the guide's popup and the moved buildings in Studio.**

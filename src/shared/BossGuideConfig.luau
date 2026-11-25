@@ -1,13 +1,14 @@
 --!nonstrict
 -- The boss gate guide (WORLD_REDESIGN_SPEC 4.2, docs/BOSS_GUIDE_SPEC.md): what Gojio says (words proposed). Where he
--- stands and his prompt's reach are Shared/BossGateConfig's. Numbers in the lines come from the configs that rule them, so a line never drifts from the game.
+-- stands and his prompt's reach are Shared/BossGateConfig's. Numbers in the lines come from the configs that rule them, so a
+-- line never drifts from the game.
 local BossEventConfig = require(script.Parent.BossEventConfig)
 local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local SidekickConfig = require(script.Parent.SidekickConfig)
 
 local BossGuideConfig = {}
 
-BossGuideConfig.LIVE = false -- he is built only once the boss gate and its owner-chosen spot are in the game
+BossGuideConfig.LIVE = false -- he is built only once the boss gate is in the game; the lead turns him on
 BossGuideConfig.ID = "jk_strongest" -- owner 2026-11-25
 BossGuideConfig.HOLD = 0 -- as every plaza prompt
 

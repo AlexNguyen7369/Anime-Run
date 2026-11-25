@@ -7,12 +7,19 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 ## Place
 - One source tree, two places. `default.project.json` builds World 1; `world2.project.json` is the same tree plus
   `ReplicatedStorage.WorldId` (IntValue 2). Keep the two files in step when the tree changes.
-- `Shared/WorldConfig`: `Id`, `PLACES` (World 1 = 102957063656302; World 2 = nil until the owner creates the place in
+- `Shared/WorldConfig`: `Id`, `PLACES` (World 1 = 102957063656302; World 2 = 79352569024576, in
   universe 10773557968), `GATE_OPEN = false`, `PROGRESS_KEYS`.
 - `Shared/TrackRegistry` loads `Shared/Tracks/World2/` in World 2.
 
 ## Track lighting
-- Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed). Seen in Studio before the fix:
+- Seen in Studio 2026-11-25 (World 2 place, merged code 1a3e5795 plus docs, pictures in
+  `assets/world2_draft/audit/lighting_2026-11-25`): all ten tracks' live Lighting values meet the floors below (T8
+  OutdoorAmbient read 0.6176 mid-blend); roads and rails read on Tracks 6 to 10 and 1, 4, 8; a placed runner reads on
+  night Tracks 1, 4 and 8, and on 4 and 8 in an iPhone 17 Pro emulation. Not seen: real phones, a real run, Tracks 2, 3 and
+  5 in pictures, high or low quality settings. Flaws found, not fixed (docs/BUGS.md): grass through the road on Tracks 6
+  and 7, near-black scenery props on 1, 4, 6, 7, 8 and 10.
+- Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed; the road-and-runner rule below is
+  met as seen above, owner 2026-11-25 "approved all continue the merge"). Seen in Studio before the fix:
   Track 1, 4 and 8 were close to black (Ambient under 30 of 255, Track 8's OutdoorAmbient 15), and Track 2's
   OutdoorAmbient was taken from the draft's below-horizon stop (32, 23, 35) instead of its orange skyline.
 - Rule: a track's lighting keeps the hue of its approved draft sky, but the road and the runner must read on every
@@ -100,7 +107,7 @@ Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tr
 
 The "Based on" names stay in docs and never ship (design doc 5).
 
-Track swap (owner 2026-11-25): Tracks 1 and 6 exchanged biomes. Moves with the biome: track id, name, palette, scenery,
+Track swap (owner 2026-11-25; **not built yet**: the code still has DevilTokyo at 1 and ElvenPlains at 6 until the swap branch merges): Tracks 1 and 6 exchange biomes. Moves with the biome: track id, name, palette, scenery,
 lighting, card blurb, enemy name and model. Stays with the number: road segments and length, pay, Gems, `BestTrack` /
 `Checkpoint` / `RaceBestTimes`, enemy speed (Track 6: 190). Approvals and hero moves below that name Track 1 or 6 were
 written before the swap.
