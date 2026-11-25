@@ -29,6 +29,22 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   most 0.22 and no Haze; the others Brightness at least 1.4, Ambient at least 0.36, OutdoorAmbient at least 0.6. Fog
   colours are lifted to 0.3 so the distance never fades to black. The horizon colour is the first sky stop at or over 0.
 - A theme's own `Atmosphere` overrides still win (Track 4's moon size).
+- Track skies: **open question for the owner** (docs/BUGS.md w2-hell-sky, found 2026-11-25 by reading code). The approved
+  drafts' skies (`<Key>Draft.Sky.Stops`) are rendered in Blender only. In game no World 2 profile sets
+  `Sky.Skybox` (BIOME_ENVIRONMENT_SPEC 5.2) and no theme has a Skybox row, so the place's default Roblox sky shows on every
+  track: blue by day. Only the fog colour (`Atmosphere.Color`, the horizon stop) carries the draft hue. The look was never
+  defined, so nothing is coded. By reading, the profile is applied in zone 10 (`BiomeEnvironment.Profile` gives
+  HellGate's `Atmosphere`; no override found).
+  The pale ground is the draft's (`Ground` B8AA8C, Sand: "a pale plain under a red sky"), not a fault.
+  **Proposed**: one in-house gradient skybox per World 2 day track whose draft sky is not a plain daylight blue, drawn
+  as the plaza's (`tools/blender/plaza/plaza_sky.py`, Lane A, no prompt): a vertical gradient by true elevation from the
+  draft's stops (stop value x 90 degrees; below 0 the first stop), one Side image on Bk/Ft/Lf/Rt plus Up and Dn, row key
+  `W2_<Key>_Sky` in the theme's Assets, set as the theme's `Atmosphere.Sky.Skybox`; `CelestialBodiesShown` stays on.
+  Tracks it would cover: 10 HellGate (FF8A4A at the horizon to 3A0208 overhead) first, then 3 DemonCastle, 9 GoldenCity
+  and 7 AntIsland (warm skies). The blue-sky day tracks (ElvenPlains, KaijuBase, RuinedCityZ) and the night tracks
+  (DevilTokyo, HauntedTunnel, MonsterDen: ClockTime 0, Roblox's night sky) would keep the default. Needs: the owner's word
+  on the look (and which tracks), an upload and a rules review of each image; Track 10's layout and meshes stay frozen
+  (a skybox touches neither).
 
 ## Save
 - `Shared/WorldConfig.Id` comes from `ReplicatedStorage.WorldId` (the World 2 place only); a client waits for `game.Loaded`
@@ -68,6 +84,10 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   release save and a kick. If every release save failed, the kick leaves the session lock until `LOCK_TIMEOUT`
   (120 s): the next join waits for it. An admin check that fails ("unknown") is asked again up to `ADMIN_RECHECKS`
   times, then the player counts as no admin.
+- Group rank lookups (`AdminService`, docs/BUGS.md admin-ranklookup-yield): a lookup that failed every try holds for
+  `RANK_RETRY_AFTER` (placeholder 5 s, kept below `ADMIN_RECHECK` so each recheck asks again); checks in that time
+  answer "unknown" at once. Checks at the same time share one lookup and wait for it at most `RANK_LOOK_TIMEOUT`
+  (placeholder 10 s), then answer "unknown". Unknown is never an admin.
 ### Gate
 - `SpawnArea.WorldGate`, hub-local (194, -176) on the plaza's south-east corner, facing the spawn: draft B, the
   shrine gatehouse (owner 2026-11-25; `docs/WORLD_REDESIGN_SPEC.md` 4.2 has its look, label and touch box). In World 1 it is locked:

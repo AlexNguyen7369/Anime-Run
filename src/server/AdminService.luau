@@ -37,6 +37,8 @@ local MAX_MONEY = 1e30 -- same cap as PlayerData MAX_MONEY
 local SUFFIX = { k = 1e3, m = 1e6, b = 1e9, t = 1e12 }
 
 local groupRank = setmetatable({}, { __mode = "k" }) -- player -> rank in the owning group (cached)
+local rankFailedAt = setmetatable({}, { __mode = "k" }) -- player -> os.clock() of their last lookup that failed every try
+local rankLooking = setmetatable({}, { __mode = "k" }) -- player -> os.clock() its running lookup began (others wait for it)
 local replyRemote = nil -- Remotes.AdminMessage, made by Start()
 
 -- The race run a /tp moves. Tests may swap this out.
@@ -56,6 +58,12 @@ end
 
 AdminService.RANK_TRIES = 3 -- placeholder: GetRankInGroup tries per check before the check reports "unknown"
 AdminService.RANK_WAIT = 1 -- placeholder: seconds between those tries
+-- placeholder: seconds a lookup that failed every try holds: checks then answer "unknown" at once, without a request
+-- (docs/BUGS.md admin-ranklookup-yield). Under WorldTravel.ADMIN_RECHECK, so each arrival recheck looks again.
+AdminService.RANK_RETRY_AFTER = 5
+-- placeholder: seconds a check waits for another check's running lookup. Longer (the lookup's thread was killed or hangs):
+-- "unknown" (no admin), and the lookup counts as gone, so the next check looks again.
+AdminService.RANK_LOOK_TIMEOUT = 10
 
 -- Test seams: the owning group of `player`'s check (nil: not a group game, or not a real Player) and their rank in it.
 AdminService.GroupOf = function(player)
@@ -82,20 +90,36 @@ function AdminService.IsAdmin(player)
 		end
 		local groupId = AdminService.GroupOf(player)
 		if groupId then
-			-- a failed lookup is not cached: tried again here and on the next check
-			for try = 1, AdminService.RANK_TRIES do
-				if groupRank[player] ~= nil then
-					break
-				end
-				local ok, rank = pcall(AdminService.RankOf, player, groupId)
-				if ok and type(rank) == "number" then
-					groupRank[player] = rank
-				elseif try < AdminService.RANK_TRIES then
-					task.wait(AdminService.RANK_WAIT)
-					if player.Parent == nil then
-						return false -- left during the wait
+			while rankLooking[player] and os.clock() - rankLooking[player] < AdminService.RANK_LOOK_TIMEOUT do
+				task.wait(0.05) -- one lookup per player at a time: wait for the running one
+			end
+			if rankLooking[player] then
+				rankLooking[player] = nil -- killed or hung: the next check looks again
+				return false, "unknown"
+			end
+			local failedAt = rankFailedAt[player]
+			local held = failedAt ~= nil and os.clock() - failedAt < AdminService.RANK_RETRY_AFTER
+			if groupRank[player] == nil and not held then
+				-- a failed lookup is kept only for RANK_RETRY_AFTER: tried again on a check after that
+				rankLooking[player] = os.clock()
+				for try = 1, AdminService.RANK_TRIES do
+					local ok, rank = pcall(AdminService.RankOf, player, groupId)
+					if ok and type(rank) == "number" then
+						groupRank[player] = rank
+						break
+					elseif try < AdminService.RANK_TRIES then
+						task.wait(AdminService.RANK_WAIT)
+						if player.Parent == nil then
+							rankLooking[player] = nil
+							return false -- left during the wait
+						end
 					end
 				end
+				rankLooking[player] = nil
+				rankFailedAt[player] = if groupRank[player] == nil then os.clock() else nil
+			end
+			if player.Parent == nil then
+				return false
 			end
 			if (groupRank[player] or 0) >= AdminConfig.GROUP_MIN_RANK then
 				return true
