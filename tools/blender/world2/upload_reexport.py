@@ -5,13 +5,17 @@ whole batch is uploaded, read in Studio, reviewed and checked; `apply` then writ
   python3 tools/blender/world2/upload_reexport.py plan                        the batches
   ... dry <batch | key ...>                                                   what would be sent
   ... upload <batch | key ...>                                                sends (ROBLOX_OPEN_CLOUD_KEY, ROBLOX_CREATOR_ID)
+  ... clear <key> <Model id | none>                                           after a lost reply: what a person found on the Creator dashboard
   ... mesh <key> <MeshId>                                                     the MeshId read in Studio from the uploaded Model
+  ... compare-script <batch | key ...>   ... compare <file>                   the Studio vertex comparison and its results
   ... review <batch> "<date> <who>"     ... check <batch> "<date> <who>"      signed by the auditor / after the Studio look
-  ... apply <batch>   ... rollback <batch>   ... --self-test (no network)
-A model is sent once per mesh hash; every operation is logged before polling, so a crash resumes it. Everything a command needs is checked
-before it sends or writes anything.
+  ... apply <batch>   ... rollback <batch>   ... recover (after a crash between their files)   ... --self-test (no network)
+A send is written down before its POST: if the reply is lost, the key is not sent again until `clear`. Once the reply is in, its operation is
+logged and a crash resumes it. One run at a time (lock). Everything a command needs is checked before it sends or writes anything.
 """
 
+import datetime
+import fcntl
 import json
 import os
 import re
@@ -24,6 +28,7 @@ FOLDER = os.path.join(up.ROOT, "build", "world2", "reexport")
 LEDGER = os.path.join(HERE, "reexport_assets.json")
 TSV = os.path.join(HERE, "uploaded_assets.tsv")
 BATCH = 15
+MAX_DIFFERENCE = 0.001  # studs: the Studio comparison of old and new vertices
 # left out of the batches: a mesh that keeps its file, and Track 5's reopened kaiju (its own export)
 SKIP = {"W2_KaijuBase_GiantCorpse": "reopened (WORLD2_SPEC 2026-11-25): its rework exports it"}
 
@@ -58,11 +63,32 @@ def load():
 	return json.load(open(LEDGER)) if os.path.exists(LEDGER) else {}
 
 
-def save(ledger):
-	tmp = LEDGER + ".tmp"
+def put(path, text):
+	"""Replaces a file whole: a crash leaves the old text or the new."""
+	tmp = path + ".tmp"
 	with open(tmp, "w") as f:
-		json.dump(ledger, f, indent=1, sort_keys=True)
-	os.replace(tmp, LEDGER)
+		f.write(text)
+		f.flush()
+		os.fsync(f.fileno())
+	os.replace(tmp, path)
+
+
+def save(ledger):
+	put(LEDGER, json.dumps(ledger, indent=1, sort_keys=True))
+
+
+def journal():
+	return LEDGER + ".journal"
+
+
+def lock():
+	"""Held until the process ends (a crash frees it); a second run stops."""
+	f = open(LEDGER + ".lock", "w")
+	try:
+		fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+	except OSError:
+		raise SystemExit("another upload_reexport run holds the lock") from None
+	return f
 
 
 def select(m, names):
@@ -108,6 +134,16 @@ def set_tsv(text, key, old_mesh, row):
 	return "\n".join(lines)
 
 
+def needs_compare(a):
+	"""A mesh whose re-made old file is not the uploaded one by hash (or has no hash recorded): its shape must be compared in Studio."""
+	return a["OldHash"] != a["UploadedHash"]
+
+
+def compared(a, row):
+	c = row.get("Compared") or {}
+	return c.get("Old") == a["OldMesh"] and c.get("New") == row.get("Mesh") and c.get("Max", 1) <= MAX_DIFFERENCE and c.get("TrisOld") == c.get("TrisNew") == a["Tris"]
+
+
 def ready(m, ledger, keys):
 	"""Why `keys` may not be applied yet: [] when they may."""
 	out = []
@@ -117,6 +153,10 @@ def ready(m, ledger, keys):
 			out.append("%s: not uploaded as built" % k)
 			continue
 		out += ["%s: no %s" % (k, need) for need in ("Model", "Mesh", "Reviewed", "Checked") if not row.get(need)]
+		if row.get("Applied"):
+			out.append("%s: already applied" % k)
+		if needs_compare(m[k]) and not compared(m[k], row):
+			out.append("%s: no passing Studio comparison of its old and new vertices" % k)
 	return out
 
 
@@ -144,19 +184,46 @@ def old_of(m, key):
 	raise SystemExit("%s: not in uploaded_assets.tsv" % key)
 
 
+def holds_old(m, keys):
+	"""Raises when a key's theme row or tsv line does not hold its OldMesh."""
+	tsv = open(TSV).read()
+	for k in keys:
+		set_row(open(theme_path(m[k]["Biome"])).read(), k, m[k]["OldMesh"], "0", "")
+		set_tsv(tsv, k, m[k]["OldMesh"], [])
+
+
+def send(m, ledger, key, path):
+	"""One key's operation path and Model id ("" until polled). A send whose reply was lost stays "Sending" and is refused."""
+	op, model = up.resumable(up.read_ops(), key, path)
+	if op:
+		ledger.get(key, {}).pop("Sending", None)
+		return op, model
+	if ledger.get(key, {}).get("Sending"):
+		raise SystemExit("%s was being sent (%s) and its reply is lost: look on the Creator dashboard, then `clear`" % (key, ledger[key]["Sending"]))
+	ledger.setdefault(key, {})["Sending"] = datetime.datetime.now().isoformat(timespec="seconds")
+	save(ledger)
+	op = up.start(m[key]["Biome"], key, path)
+	ledger[key].pop("Sending")
+	save(ledger)
+	return op, ""
+
+
 def upload(m, ledger, keys):
 	todo = unsent(m, ledger, keys)
+	applied = [k for k in todo if ledger.get(k, {}).get("Applied")]
+	if applied:
+		raise SystemExit("%s: applied; roll its batch back first" % " ".join(applied))
+	holds_old(m, todo)
 	olds = {k: old_of(m, k) for k in todo}
 	for name in ("ROBLOX_OPEN_CLOUD_KEY", "ROBLOX_CREATOR_ID"):
 		if not os.environ.get(name):
 			raise SystemExit(name + " is not set")
-	up.OPS = os.path.join(FOLDER, "ops.tsv")
+	up.OPS = LEDGER + ".ops.tsv"  # beside the ledger, not in build/: a lost build folder sends nothing twice
 	save(ledger)  # the ledger can be written
 	for k in todo:
 		path = os.path.join(FOLDER, k + ".glb")
-		op, model = up.resumable(up.read_ops(), k, path)
+		op, model = send(m, ledger, k, path)
 		if not model:
-			op = op or up.start(m[k]["Biome"], k, path)
 			model = up.poll(m[k]["Biome"], k, op)
 			up.log_op(m[k]["Biome"], k, op, model, up.sha256(path))
 		ledger[k] = {"Hash": m[k]["Hash"], "Model": str(model), "Old": ledger.get(k, {}).get("Old") or olds[k]}
@@ -164,11 +231,98 @@ def upload(m, ledger, keys):
 		print("UPLOADED", k, model, flush=True)
 
 
+def clear(m, ledger, key, found):
+	"""A person looked after a lost reply: `found` is the Model id that did arrive, or "none"."""
+	if not ledger.get(key, {}).get("Sending") or not (found == "none" or found.isdigit()):
+		raise SystemExit("clear <a key being sent> <Model id | none>")
+	if found == "none":
+		ledger[key].pop("Sending")
+	else:
+		ledger[key] = {"Hash": m[key]["Hash"], "Model": found, "Old": ledger[key].get("Old") or old_of(m, key)}
+	save(ledger)
+
+
+def set_mesh(m, ledger, key, mesh):
+	row = ledger.get(key, {})
+	if not row.get("Model") or not mesh.isdigit():
+		raise SystemExit("mesh <uploaded key> <MeshId>")
+	if row.get("Applied"):
+		raise SystemExit("%s is applied; roll its batch back first" % key)
+	taken = {a["OldMesh"]: k for k, a in m.items() if a["OldMesh"]}
+	for k, r in ledger.items():
+		taken[r.get("Model")] = k + "'s Model"
+		if k != key:
+			taken[r.get("Mesh")] = k
+	if mesh in taken:
+		raise SystemExit("%s is already %s" % (mesh, taken[mesh]))
+	row["Mesh"] = mesh
+	for signed in ("Reviewed", "Checked", "Compared"):  # they were about another mesh
+		row.pop(signed, None)
+	save(ledger)
+
+
+def sign(m, ledger, keys, field, text):
+	if not re.match(r"\d{4}-\d\d-\d\d \S", text):
+		raise SystemExit('sign as "<YYYY-MM-DD> <who>"')
+	gaps = [k for k in keys if not ledger.get(k, {}).get("Mesh") or ledger[k].get("Hash") != m[k]["Hash"]]
+	if gaps:
+		raise SystemExit("no MeshId yet: " + " ".join(gaps))
+	for k in keys:
+		ledger[k][field] = text
+	save(ledger)
+
+
+def compare_script(m, ledger, keys):
+	todo = [k for k in keys if ledger.get(k, {}).get("Mesh") and needs_compare(m[k])]
+	rows = "".join('\n\t{ "%s", "%s", "%s" },' % (k, m[k]["OldMesh"], ledger[k]["Mesh"]) for k in todo)
+	src = open(os.path.join(HERE, "reexport_compare.luau")).read()
+	assert src.count("local ROWS = {} --ROWS") == 1
+	return src.replace("local ROWS = {} --ROWS", "local ROWS = {%s\n}" % rows)
+
+
+def take_compare(m, ledger, text):
+	"""Stores the REEXPORT_COMPARE lines of a Studio output; raises on one that is about other meshes or none at all."""
+	got = [json.loads(x) for x in re.findall(r"REEXPORT_COMPARE (\{[^}]*\})", text)]
+	if not got:
+		raise SystemExit("no REEXPORT_COMPARE line")
+	for c in got:
+		row = ledger.get(c.get("Key"), {})
+		if not row.get("Mesh") or c["Old"] != m[c["Key"]]["OldMesh"] or c["New"] != row["Mesh"]:
+			raise SystemExit("%s: compared %s with %s, not its old and new mesh" % (c.get("Key"), c.get("Old"), c.get("New")))
+	for c in got:
+		ledger[c["Key"]]["Compared"] = dict(c, At=datetime.date.today().isoformat())
+		print("%-40s max %.6f tris %d / %d %s" % (c["Key"], c["Max"], c["TrisOld"], c["TrisNew"], "ok" if compared(m[c["Key"]], ledger[c["Key"]]) else "FAILS"))
+	save(ledger)
+
+
+def commit(files, ledger, keys, applied):
+	"""Writes an apply or rollback: first the whole of it into the journal, then each file, then the ledger. A crash anywhere after the
+	journal is finished by recover()."""
+	for path in files:
+		if not os.access(path, os.W_OK) or not os.access(os.path.dirname(path), os.W_OK):
+			raise SystemExit("cannot write " + path)
+	put(journal(), json.dumps({"Files": {p: {"Old": open(p).read(), "New": t} for p, t in files.items()}, "Keys": keys, "Applied": applied}))
+	recover(ledger)
+
+
+def recover(ledger):
+	j = json.load(open(journal()))
+	for path, t in j["Files"].items():
+		if open(path).read() not in (t["Old"], t["New"]):
+			raise SystemExit("%s was edited since: neither the old text nor the new; nothing written" % path)
+	for path, t in j["Files"].items():
+		put(path, t["New"])
+	for k in j["Keys"]:
+		ledger[k]["Applied"] = j["Applied"]
+	save(ledger)
+	os.remove(journal())
+
+
 def self_test():
 	import tempfile
 
-	global TSV, LEDGER, FOLDER
-	row = {"Track": 1, "Biome": "B", "Placed": 1, "Hash": "n", "OldHash": "o", "OldMesh": "11", "OldReviewed": "then", "Tris": 1}
+	global TSV, LEDGER, FOLDER, put
+	row = {"Track": 1, "Biome": "B", "Placed": 1, "Hash": "n", "OldHash": "o", "UploadedHash": "o", "OldMesh": "11", "OldReviewed": "then", "Tris": 1}
 	m = {"W2_B_A": dict(row), "W2_B_C": dict(row, OldMesh="12"), "W2_B_U": dict(row, Placed=0, OldMesh="13"), "W2_B_Nil": dict(row, OldMesh=""), "W2_B_Same": dict(row, Hash="o")}
 	m["W2_KaijuBase_GiantCorpse"] = dict(row, Track=5)
 	assert batches(m) == [["W2_B_A", "W2_B_C"], ["W2_B_U"]], batches(m)  # no id, unchanged and held meshes stay out
@@ -211,6 +365,151 @@ def self_test():
 			open(path, "w").write(text)
 		back = switch(m, led, keys, True)
 		assert back[theme_path("B")] == theme and back[TSV] == tsv  # rollback is the old text to the byte
+		# apply is whole or recoverable: a crash after any number of file writes
+		real = put
+		for crash_at in range(1, 6):
+			open(theme_path("B"), "w").write(theme)
+			open(TSV, "w").write(tsv)
+			l2 = json.loads(json.dumps(led))
+			save(l2)
+
+			def crashing(path, text):
+				writes[0] += 1
+				if writes[0] == crash_at:
+					raise KeyboardInterrupt
+				real(path, text)
+
+			writes = [0]
+			put = crashing
+			try:
+				commit(switch(m, l2, keys, False), l2, keys, True)
+				crashed = False
+			except KeyboardInterrupt:
+				crashed = True
+			put = real
+			if os.path.exists(journal()):
+				recover(load())
+			now = open(theme_path("B")).read(), open(TSV).read(), [bool(load()[k].get("Applied")) for k in keys]
+			old_state = (theme, tsv, [False, False])
+			new_state = (files[theme_path("B")], files[TSV], [True, True])
+			assert now == (old_state if crash_at == 1 else new_state), (crash_at, now[2])  # before the journal: nothing; after: all
+			assert crashed == (crash_at <= 4) and not os.path.exists(journal())
+		# an applied key: no mesh, no upload, no second apply; rollback frees it
+		l2 = load()
+		assert ready(m, l2, keys) and refused(set_mesh, m, l2, "W2_B_A", "77") and refused(upload, {**m, "W2_B_A": dict(m["W2_B_A"], Hash="n2")}, l2, ["W2_B_A"])
+		commit(switch(m, l2, keys, True), l2, keys, False)
+		assert open(theme_path("B")).read() == theme and open(TSV).read() == tsv and ready(m, load(), keys) == []
+		put(journal(), json.dumps({"Files": {TSV: {"Old": "x", "New": "y"}}, "Keys": [], "Applied": True}))
+		assert refused(recover, load()) and open(TSV).read() == tsv  # someone edited the file in between
+		os.remove(journal())
+		# mesh: clears what was signed, and takes no id that is another's
+		l2 = json.loads(json.dumps(led))
+		for bad in ("12", "32", "21", "x", "11"):
+			assert refused(set_mesh, m, l2, "W2_B_A", bad), bad
+		l2["W2_B_A"]["Compared"] = {"Max": 0}
+		set_mesh(m, l2, "W2_B_A", "888")
+		assert not any(f in l2["W2_B_A"] for f in ("Reviewed", "Checked", "Compared")) and ready(m, l2, keys)
+		assert refused(set_mesh, m, {}, "W2_B_A", "5")
+		for field in ("Reviewed", "Checked"):
+			l3 = {"W2_B_A": {"Hash": "n", "Model": "1"}}
+			assert refused(sign, m, l3, ["W2_B_A"], field, "2026-11-25 me") and field not in l3["W2_B_A"]
+			l3["W2_B_A"]["Mesh"] = "5"
+			assert refused(sign, m, l3, ["W2_B_A"], field, "me")
+			sign(m, l3, ["W2_B_A"], field, "2026-11-25 me")
+			assert l3["W2_B_A"][field]
+		# the Studio comparison: needed where the old file is not proved, and about these two meshes
+		for up_hash in ("other", ""):
+			m2 = {**m, "W2_B_A": dict(m["W2_B_A"], UploadedHash=up_hash)}
+			l3 = json.loads(json.dumps(led))
+			assert len(ready(m2, l3, keys)) == 1
+			line = 'x REEXPORT_COMPARE {"Key": "W2_B_A", "Old": "%s", "New": "%s", "Max": %s, "TrisOld": %d, "TrisNew": %d}\n'
+			assert refused(take_compare, m2, l3, "nothing") and refused(take_compare, m2, l3, line % ("11", "99", "0", 1, 1)) and refused(take_compare, m2, l3, line % ("9", "31", "0", 1, 1))
+			for bad in (("11", "31", "0.0011", 1, 1), ("11", "31", "0", 1, 2), ("11", "31", "0", 2, 2)):
+				take_compare(m2, l3, line % bad)
+				assert ready(m2, l3, keys), bad
+			take_compare(m2, l3, line % ("11", "31", "0.0009", 1, 1))
+			assert ready(m2, l3, keys) == []
+			assert '{ "W2_B_A", "11", "31" }' in compare_script(m2, l3, keys) and "W2_B_C" not in compare_script(m2, l3, keys)
+		# sending: a lost reply is never sent twice; a logged operation resumes
+		FOLDER_WAS, OPS_WAS, start_was, poll_was = FOLDER, up.OPS, up.start, up.poll
+		FOLDER = d
+		posts = []
+		for k in keys:
+			open(os.path.join(d, k + ".glb"), "wb").write(b"mesh " + k.encode())
+		env = {n: os.environ.get(n) for n in ("ROBLOX_OPEN_CLOUD_KEY", "ROBLOX_CREATOR_ID")}
+		os.environ.update(ROBLOX_OPEN_CLOUD_KEY="k", ROBLOX_CREATOR_ID="1")
+
+		def lost(biome, key, path):
+			posts.append(key)
+			raise RuntimeError("reply lost")
+
+		def sent(biome, key, path):
+			posts.append(key)
+			up.log_op(biome, key, "operations/" + key, "", up.sha256(path))
+			return "operations/" + key
+
+		def stuck(biome, key, op):
+			raise RuntimeError("timed out")
+
+		up.start = lost
+		save({})
+		for _ in range(2):
+			try:
+				upload(m, load(), keys)
+			except (RuntimeError, SystemExit):
+				pass
+		assert posts == ["W2_B_A"] and load()["W2_B_A"]["Sending"], posts
+		assert refused(clear, m, load(), "W2_B_C", "none") and refused(clear, m, load(), "W2_B_A", "maybe")
+		clear(m, load(), "W2_B_A", "none")
+		up.start, up.poll = sent, stuck
+		for _ in range(2):  # the poll dies: the same operation is resumed, not sent again
+			try:
+				upload(m, load(), keys)
+			except RuntimeError:
+				pass
+		assert posts == ["W2_B_A", "W2_B_A"] and not load()["W2_B_A"].get("Sending")
+		up.poll = lambda biome, key, op: "9" + str(len(key))
+		upload(m, load(), keys)
+		assert posts == ["W2_B_A", "W2_B_A", "W2_B_C"] and all(load()[k]["Model"] for k in keys)
+		upload(m, load(), keys)
+		assert len(posts) == 3  # sent once per mesh
+		# killed after the operation is logged, before the ledger is: still not sent again
+		l3 = load()
+		l3["W2_B_C"] = {"Sending": "t"}
+		save(l3)
+		upload(m, load(), keys)
+		assert len(posts) == 3 and load()["W2_B_C"]["Model"]
+		l3 = load()
+		l3["W2_B_C"] = {"Sending": "t"}
+		clear(m, l3, "W2_B_C", "555")
+		assert load()["W2_B_C"]["Model"] == "555" and load()["W2_B_C"]["Old"]["Mesh"] == "12"
+		l3 = load()
+		l3["W2_B_A"]["Applied"] = True  # its files hold the old id again, by hand: the ledger alone refuses
+		n_posts = len(posts)
+		os.environ.pop("ROBLOX_OPEN_CLOUD_KEY")
+		try:
+			upload({**m, "W2_B_A": dict(m["W2_B_A"], Hash="n2")}, l3, ["W2_B_A"])
+			raise AssertionError("an applied key was sent")
+		except SystemExit as e:
+			assert "applied" in str(e), e
+		os.environ["ROBLOX_OPEN_CLOUD_KEY"] = "k"
+		assert len(posts) == n_posts
+		# the first upload looks at the game's files
+		save({})
+		open(theme_path("B"), "w").write(theme.replace("rbxassetid://12", "rbxassetid://99"))
+		assert refused(upload, m, load(), keys) and len(posts) == 3
+		open(theme_path("B"), "w").write(theme)
+		open(TSV, "w").write(tsv.replace("\t11\t", "\t98\t"))
+		assert refused(upload, m, load(), keys) and len(posts) == 3
+		first = lock()
+		assert refused(lock)  # a second run
+		first.close()
+		lock().close()
+		FOLDER, up.OPS, up.start, up.poll = FOLDER_WAS, OPS_WAS, start_was, poll_was
+		for n, v in env.items():
+			os.environ.pop(n)
+			if v is not None:
+				os.environ[n] = v
 		TSV, up.THEMES, LEDGER = saved
 	print("SELF-TEST ok")
 
@@ -222,40 +521,39 @@ def main():
 	if not argv:
 		raise SystemExit(__doc__)
 	cmd, rest = argv[0], argv[1:]
+	held = None if cmd in ("plan", "dry", "compare-script") else lock()  # noqa: F841 (until the process ends)
 	m, ledger = manifest(files=cmd in ("dry", "upload")), load()
 	if cmd == "plan":
 		for i, keys in enumerate(batches(m), start=1):
 			print("BATCH %d: %d meshes, %d tris, %d KB, placed rows %d | %s" % (i, len(keys), sum(m[k]["Tris"] for k in keys), sum(m[k]["Bytes"] for k in keys) // 1024, sum(m[k]["Placed"] for k in keys), " ".join(keys)))
 		left = [k for k in sorted(m) if not any(k in b for b in batches(m))]
 		return print("LEFT OUT:", ", ".join("%s (%s)" % (k, SKIP.get(k) or ("no id, not in game" if not m[k]["OldMesh"] else "unchanged")) for k in left))
-	if cmd in ("dry", "upload"):
-		keys = select(m, rest)
-		for k in unsent(m, ledger, keys):
-			print("SEND", k, m[k]["Tris"], "tris", m[k]["Bytes"], "bytes")
-		return upload(m, ledger, keys) if cmd == "upload" else None
-	if cmd == "mesh":
-		key, mesh = rest
-		if key not in ledger or not mesh.isdigit() or mesh in (m[key]["OldMesh"], ledger[key]["Model"]):
-			raise SystemExit("mesh <uploaded key> <its MeshId: not the Model id, not the old one>")
-		ledger[key]["Mesh"] = mesh
-		return save(ledger)
+	if cmd == "dry":
+		for k in unsent(m, ledger, select(m, rest)):
+			print("SEND", k, m[k]["Tris"], "tris", m[k]["Bytes"], "bytes", "(SENDING, reply lost)" if ledger.get(k, {}).get("Sending") else "")
+		return None
+	if cmd == "compare-script":
+		return print(compare_script(m, ledger, select(m, rest)))
+	if cmd == "recover":
+		return recover(ledger) if os.path.exists(journal()) else print("nothing to recover")
+	if os.path.exists(journal()):
+		raise SystemExit("an apply or rollback was cut off: run `recover` first")
+	if cmd == "upload":
+		return upload(m, ledger, select(m, rest))
+	if cmd == "compare":
+		return take_compare(m, ledger, open(rest[0]).read())
+	if cmd in ("mesh", "clear"):
+		if len(rest) != 2 or rest[0] not in m:
+			raise SystemExit("%s <key> <id>" % cmd)
+		return (set_mesh if cmd == "mesh" else clear)(m, ledger, *rest)
 	keys = select(m, rest[:1])
 	if cmd in ("review", "check"):
-		if len(rest) != 2 or not re.match(r"\d{4}-\d\d-\d\d \S", rest[1]) or any(k not in ledger for k in keys):
-			raise SystemExit('%s <uploaded batch> "<YYYY-MM-DD> <who>"' % cmd)
-		for k in keys:
-			ledger[k]["Reviewed" if cmd == "review" else "Checked"] = rest[1]
-		return save(ledger)
+		return sign(m, ledger, keys, "Reviewed" if cmd == "review" else "Checked", rest[1] if len(rest) == 2 else "")
 	if cmd in ("apply", "rollback"):
-		gaps = ready(m, ledger, keys) if cmd == "apply" else [k for k in keys if not ledger.get(k, {}).get("Applied")]
+		gaps = ready(m, ledger, keys) if cmd == "apply" else [k + ": not applied" for k in keys if not ledger.get(k, {}).get("Applied")]
 		if gaps:
 			raise SystemExit("not yet:\n" + "\n".join(gaps))
-		for path, text in switch(m, ledger, keys, cmd == "rollback").items():
-			with open(path, "w") as f:
-				f.write(text)
-		for k in keys:
-			ledger[k]["Applied"] = cmd == "apply"
-		return save(ledger)
+		return commit(switch(m, ledger, keys, cmd == "rollback"), ledger, keys, cmd == "apply")
 	raise SystemExit("unknown command " + cmd)
 
 
