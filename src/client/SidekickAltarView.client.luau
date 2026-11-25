@@ -19,7 +19,7 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local MODEL_SIZE = PlazaPieces.AltarModelSize() -- studs, the model's largest extent
 local TURN_SPEED = math.rad(30) -- placeholder: radians per second
 local TURN_DISTANCE = 250 -- placeholder: studs; farther away the model holds still
-local LOCKED = PlazaPieces.LockedLook() -- the locked silhouette (owner 2026-11-25)
+local LOCKED = PlazaPieces.LockedLook() -- the locked silhouette (placeholders but for the new altars' colours)
 
 local player = Players.LocalPlayer
 local area = Workspace:WaitForChild("SpawnArea")

@@ -35,6 +35,14 @@ local LIMB_ENDS = {
 		RightArm = Vector3.new(1.895, 2.889, -1.588),
 		LeftArm = Vector3.new(-1.602, 2.852, -1.625),
 	},
+	PotionsStall = {
+		RightArm = Vector3.new(1.439, 2.883, -1.658),
+		LeftArm = Vector3.new(-1.439, 2.883, -1.658),
+	},
+	Marketplace = {
+		RightArm = Vector3.new(1.718, 2.892, -1.635),
+		LeftArm = Vector3.new(-1.718, 2.892, -1.635),
+	},
 	IndexBoard = {
 		LeftArm = Vector3.new(-1.472, 2.973, -1.715),
 		RightArm = Vector3.new(1.538, 2.024, -0.278),
@@ -46,20 +54,6 @@ local LIMB_ENDS = {
 		LeftLeg = Vector3.new(-0.709, 0.011, 0),
 	},
 }
-
--- WCAG contrast of two colours
-local function contrast(a, b)
-	local function light(c)
-		local y = 0
-		for channel, weight in { R = 0.2126, G = 0.7152, B = 0.0722 } do
-			local x = c[channel]
-			y += weight * (if x <= 0.04045 then x / 12.92 else ((x + 0.055) / 1.055) ^ 2.4)
-		end
-		return y
-	end
-	local x, y = light(a), light(b)
-	return (math.max(x, y) + 0.05) / (math.min(x, y) + 0.05)
-end
 
 local function find(root, class, name)
 	for _, d in root and root:GetDescendants() or {} do
@@ -124,7 +118,8 @@ function Tests.plaza_pieces()
 			local want = name == "CheckpointNpc" and 0.75 or 1
 			flag("merchant_scale_" .. name, row.Scale == want, row.Scale or -1, want)
 		end
-		-- the locked Mythic reads against the altar behind it (proposed: contrast 2.5); today's altar keeps its look
+		-- the locked Mythic is not near-black any more; today's altar keeps its look. Whether it reads against what is behind it:
+		-- plaza_build_pending, altar_locked_reads
 		for world = 1, 2 do
 			WorldConfig.Id = world
 			fill(0)
@@ -135,9 +130,7 @@ function Tests.plaza_pieces()
 			)
 			fill(1)
 			local new = Pieces.LockedLook and Pieces.LockedLook()
-			local ratio = new and contrast(new.Color:Lerp(new.Backdrop, new.Transparency), new.Backdrop) or 0
-			flag("locked_look_reads_w" .. world, ratio >= 2.5, ratio, 2.5)
-			local dark = new and contrast(Color3.fromRGB(24, 22, 30), new.Color) or 0
+			local dark = new and H.contrast(Color3.fromRGB(24, 22, 30), new.Color) or 0
 			flag("locked_look_not_near_black_w" .. world, dark >= 1.5, dark, 1.5)
 		end
 		WorldConfig.Id = oldWorld

@@ -144,11 +144,34 @@ local function bounds(asset)
 	return hi.X >= lo.X and hi - lo or nil, lo.Y
 end
 
--- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 1 check. The gate's and the
+-- What stands behind the locked Mythic, at least 2% of the rays from a player's eye (the spawn, 40, 25 and 18 studs off, from the front and 25
+-- degrees to each side) through the model on to the locked altar of the approved draft (draft_altar.py concept_b / concept_a, its own colours;
+-- measured 2026-11-25): hex -> share in percent. The sky, behind the roof stage's edges in 14%, is left out.
+local BEHIND_LOCKED = {
+	{ -- great lotus: petal steps ld4 to ld9, the gold hems
+		["987083"] = 26.6,
+		["A1798A"] = 26.0,
+		["8E677B"] = 17.5,
+		["AA8292"] = 11.5,
+		["855F73"] = 8.5,
+		["B07F22"] = 5.1,
+		["7A566A"] = 2.6,
+	},
+	{ -- twin-roof stage: the disc, its gold ring, the crest's grey, the fan
+		["4A1222"] = 65.7,
+		["B07F22"] = 9.7,
+		["6C6674"] = 3.7,
+		["755466"] = 3.7,
+		["8F7482"] = 2.7,
+	},
+}
+
+-- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 2 checks. The gate's and the
 -- altar's geometry is judged as if the pieces were uploaded (Shared/PlazaPieces; plaza_pieces has the state before). When a
 -- row's work lands, take the row out here: the check is then a guard of plaza_build. Keep the count in TestConfig's comment.
 local PENDING = {
 	merchant_sensei_replaces_the_dummy = "merchants", -- red only on a server: offline has no rig to build
+	altar_locked_reads = "owner", -- the approved locked colours against the worst surface behind the model
 }
 
 local function run(scenario, pending)
@@ -554,6 +577,16 @@ local function run(scenario, pending)
 				"an id"
 			)
 		end
+		local lockedLook = uploaded(Pieces.LockedLook)
+		local least, worst = math.huge, "none"
+		for hex in BEHIND_LOCKED[world] do
+			local back = Color3.fromHex(hex)
+			local ratio = H.contrast(lockedLook.Color:Lerp(back, lockedLook.Transparency), back)
+			if ratio < least then
+				least, worst = ratio, hex
+			end
+		end
+		flag("altar_locked_reads", least >= 2.5, ("%.2f on %s"):format(least, worst), "2.5 (proposed)")
 		local spot = find(altar, "Attachment", "ModelSpot")
 		flag("altar_model_spot", spot ~= nil)
 		if spot then

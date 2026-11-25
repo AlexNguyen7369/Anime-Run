@@ -132,12 +132,15 @@ def export_mesh(m, key, pal_mat, cells):
 	bpy.ops.object.select_all(action="DESELECT")
 	for ob in obs:
 		ob.select_set(True)
-	path = os.path.join(OUT, key + ".glb")
-	bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_yup=True, use_selection=True, export_apply=True, export_animations=False)
-	data = open(path, "rb").read()
+	path, new = os.path.join(OUT, key + ".glb"), os.path.join(OUT, key + "_new.glb")
+	bpy.ops.export_scene.gltf(filepath=new, export_format="GLB", export_yup=True, use_selection=True, export_apply=True, export_animations=False)
+	data = open(new, "rb").read()
 	gl = json.loads(data[20 : 20 + int.from_bytes(data[12:16], "little")])
 	names = sorted(n["name"] for n in gl["nodes"] if "mesh" in n)
-	assert names == sorted(parts) == sorted(n["name"] for n in gl["meshes"]), (key, names)
+	if not names == sorted(parts) == sorted(n["name"] for n in gl["meshes"]):
+		os.remove(new)  # the last good GLB stays
+		raise AssertionError((key, names))
+	os.replace(new, path)
 	for ob in obs:
 		me = ob.data
 		bpy.data.objects.remove(ob)

@@ -15,9 +15,9 @@ local TODAYS_MODEL_SIZE = 7 -- studs, the turning Mythic's largest extent in tod
 PlazaPieces.MERCHANTS_LIVE = false
 PlazaPieces.ALTAR_TAGS = { Locked = "PlazaAltarLocked", Unlocked = "PlazaAltarUnlocked" } -- Shared/PlazaPieceLook, per player
 
--- The locked Mythic's silhouette: today's altar's, and per new altar (below) a colour that reads against what is behind the model there, opaque
--- (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2; Backdrop is the draft's colour behind it: draft_altar.py ld6, burg2)
-local TODAYS_LOCKED = { Color = Color3.fromRGB(24, 22, 30), Transparency = 0.25 }
+-- The locked Mythic's silhouette. Today's altar: placeholder. Per new altar (below): the colours are the owner's (2026-11-25); opaque is
+-- **proposed** (WORLD_REDESIGN_SPEC 4.2).
+local TODAYS_LOCKED = { Color = Color3.fromRGB(24, 22, 30), Transparency = 0.25 } -- placeholders
 -- Per world: the altar's look, what its model stands on over the floor (studs, and studs ahead of the centre), its lock label's
 -- spot (altar frame) and the height of its floating header (over the crest, owner 2026-11-25)
 local ALTARS = {
@@ -27,7 +27,7 @@ local ALTARS = {
 		Stand = 10.3,
 		Ahead = 0,
 		Lock = Vector3.new(0, 8.9, -13.4),
-		Locked = { Color = Color3.fromRGB(74, 66, 92), Transparency = 0, Backdrop = Color3.fromHex("AA8292") },
+		Locked = { Color = Color3.fromRGB(74, 66, 92), Transparency = 0 },
 		HeaderY = 66,
 	},
 	{
@@ -36,7 +36,7 @@ local ALTARS = {
 		Stand = 8.55,
 		Ahead = 0.8,
 		Lock = Vector3.new(0, 8, -17.2),
-		Locked = { Color = Color3.fromRGB(132, 120, 152), Transparency = 0, Backdrop = Color3.fromHex("4A1222") },
+		Locked = { Color = Color3.fromRGB(132, 120, 152), Transparency = 0 },
 		HeaderY = 80,
 	},
 }
