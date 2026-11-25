@@ -647,6 +647,9 @@ def hexcol(h):
 	return (lin[0], lin[1], lin[2], 1.0)
 
 
+# (d, side, studs off the centre line) of the low blocks: off every road, on this track's ground, in no other track's prop
+LOWBLOCKS = [(830, 1, 80), (4720, 1, 80), (6300, 1, 74.6)]
+
 LOW = ("Apaato", "Konbini", "Apaato")  # under 21 studs: allowed where a taller front would hide an HQ
 
 
@@ -666,7 +669,7 @@ def street(k, r, side, names, front, start, end, gap, avoid, sight=(), flip=0.0,
 				continue
 			if not clear(avoid) or (name not in LOW and not clear(sight)):
 				continue
-			if not r.fits(pos[0], pos[2], yaw, w, dep + 2, own=False, clear=24.5):
+			if not r.fits(pos[0], pos[2], yaw, w, dep + 2, clear=24.5):
 				continue
 			if near is not None and r.overlaps(near, pos[0], pos[2], yaw, w, dep):
 				continue
@@ -722,7 +725,8 @@ def build(k):
 		d += 48
 	# Hero landmark: one HQ at the end of the street axis past the first corner (0.06 run camera). A second on the 0.9
 	# camera's axis is tried below; no legal spot exists there, so none is placed.
-	near = r.neighbours()
+	near = r.neighbours(own_ground=True)
+	near_all = r.neighbours()
 	avoid, sight, hq_at = [], [], []
 
 	def stand_hq(f, spots):
@@ -742,7 +746,7 @@ def build(k):
 				for side in (-1, 1):  # floodlights washing the pale front
 					at = (x + fx * 60 + fz * side * 40, 30, z + fz * 60 - fx * side * 40)
 					k.light(at, "E8F0FF", energy=100000, radius=10).data.use_shadow = False
-				print("HQ at", f, round(x), round(z), "overlaps", len(r.overlaps(near, x, z, yaw, 190, 128)))
+				print("HQ at", f, round(x), round(z), "overlaps", len(r.overlaps(near_all, x, z, yaw, 190, 128)))
 				return
 
 	p, right, t = k.at(L * 0.06)
@@ -760,7 +764,7 @@ def build(k):
 			along = (x - ex) * t.x + (z - ez) * t.z
 			if along < 300 or abs((x - ex) * t.z - (z - ez) * t.x) > along * 1.2:
 				continue  # out of view
-			if r.nearest([(x, z)])[0][0] > 85 and r.fits(x, z, back, 192, 130, own=False, clear=24.5) and len(r.overlaps(near, x, z, back, 190, 128)) <= 3:
+			if r.nearest([(x, z)])[0][0] > 85 and r.fits(x, z, back, 192, 130, own=False, clear=24.5) and len(r.overlaps(near_all, x, z, back, 190, 128)) <= 3:
 				spots.append((abs((x - ex) * t.z - (z - ez) * t.x) / along, x, z))
 	print("HQ 0.9 legal spots, approved turn, at most 3 overlaps:", len(spots))
 	stand_hq(0.9, [(x, z, (back,)) for _, x, z in sorted(spots)[:1]])
@@ -788,7 +792,7 @@ def build(k):
 				for front in (40, 46, 52, 60, 70):
 					pos, yaw = k.beside(d + w / 2, side * (front + dep / 2))
 					yaw += side * math.pi / 2
-					if all(math.hypot(pos[0] - x, pos[2] - z) > rad + w / 2 for x, z, rad in avoid + (sight if name not in LOW else [])) and r.fits(pos[0], pos[2], yaw, w, dep + 2, own=False, clear=24.5):
+					if all(math.hypot(pos[0] - x, pos[2] - z) > rad + w / 2 for x, z, rad in avoid + (sight if name not in LOW else [])) and r.fits(pos[0], pos[2], yaw, w, dep + 2, clear=24.5):
 						k.place(name, pos, yaw)
 						avoid.append((pos[0], pos[2], w / 2))
 						print("FILL", name, round(d), side * front)
@@ -803,20 +807,13 @@ def build(k):
 	fill(L * 0.62 + 40, L * 0.62 + 190, -1, ("ShopHouse",))
 	fill(L * 0.62 + 4, L * 0.62 + 190, 1, ("Mansion", "ShopHouse", "Apaato"))
 	fill(L * 0.9 + 4, L * 0.9 + 110, -1, ("ShopHouse", "Apaato"))
-	# Back streets: low blocks filling the gap to the next road where it is wide enough, breaking up the street fronts
-	last = -1e9
-	for d in range(300, int(end), 10):
-		for side in (-1, 1):
-			if d - last < 900:
-				continue
-			pos, yaw = k.beside(d, side * 74.6)
-			yaw += side * math.pi / 2
-			if all(math.hypot(pos[0] - x, pos[2] - z) > rad + 60 for x, z, rad in avoid) and r.fits(pos[0], pos[2], yaw, 100, 100, own=False, clear=24.2):
-				k.place("LowBlock", pos, yaw)
-				# under the street lamps' energy: the game keeps the 48 brightest lamps
-				k.light((pos[0], 20, pos[2]), SODIUM, energy=24000, radius=8).data.use_shadow = False
-				avoid.append((pos[0], pos[2], 52))
-				last = d
+	# Back streets: the 3 low blocks (the approved draft's count), breaking up the street fronts
+	for d, side, off in LOWBLOCKS:
+		pos, yaw = k.beside(d, side * off)
+		k.place("LowBlock", pos, yaw + side * math.pi / 2)
+		# under the street lamps' energy: the game keeps the 48 brightest lamps
+		k.light((pos[0], 20, pos[2]), SODIUM, energy=24000, radius=8).data.use_shadow = False
+		avoid.append((pos[0], pos[2], 52))
 	# Street fronts both sides, then a second row and towers behind them, only where no other track's prop stands (the land
 	# behind the fronts is Track 5's and Track 7's side of the gap)
 	street(k, r, -1, ["ShopHouse", "Mansion", "Konbini", "Apaato", "Mansion"], 40, 20, end, (2, 8), avoid, sight, flip=0.5)
@@ -839,7 +836,7 @@ def build(k):
 		if all(math.hypot(x - a, z - b) > 70 for a, b in towers) and all(math.hypot(x - a, z - b) > rad + w * 0.75 for a, b, rad in mine + sight):
 			d, _ = r.nearest([(x, z)])
 			if d[0] > w / 2 + 30 and min((q.x - x) ** 2 + (q.z - z) ** 2 for q in k.wps[::4]) < 420**2:
-				if r.fits(x, z, 0.0, w, w, own=False) and not r.overlaps(near, x, z, 0.0, w, w):
+				if r.fits(x, z, 0.0, w, w) and not r.overlaps(near, x, z, 0.0, w, w):
 					k.place("Office", (x, -1.0, z), k.rng.choice((0.0, math.pi / 2)), sc)
 					towers.append((x, z))
 	print("OFFICES", len(towers))
@@ -867,4 +864,5 @@ def build(k):
 		elif (int(kd / 48) + (s > 0)) % 2 == 0:
 			k.light(pos, SODIUM, energy=18000, radius=4).data.use_shadow = False
 	print("LAMPS", len(main), "KITS", len(kits))
+	k.hidden = lambda x, z, w: any(math.hypot(x - a, z - b) < rad + w / 2 for a, b, rad in sight)  # cross_track.py
 	roads.apply_cross_track(k)

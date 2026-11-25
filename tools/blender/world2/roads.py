@@ -10,6 +10,8 @@ import numpy as np
 # Layout options of the swapped tracks that are only rendered, never exported: "castle_052", "turned" (biomes/ElvenPlains.py).
 # Only game_shots.py sets this; it lives here because build_track.run reloads the biome modules.
 OPTIONS = frozenset()
+RAW = False  # only cross_track.py sets it: the layout before cross_track.json
+GROUND_Y = {"ElvenPlains": -1.0, "DevilTokyo": 0.0}  # the base height of a placed prop
 CLEAR = 25.0  # studs: the 24-stud rule and a margin
 PLAZA = (94.0, 110.0)  # SpawnArea.FLOOR_SIZE / 2 at the world origin
 PLAZA_CLEAR = 16.0  # BiomeDressing.CLEARANCE (8), grown boxes of turned props and a margin
@@ -64,10 +66,11 @@ class Roads:
 		ps = [ep.to_world(origin, yaw, (x, 0, z)) for x in (a[0] + pad, b[0] - pad) for z in (a[1] + pad, b[1] - pad)]
 		return (min(p[0] for p in ps), min(p[2] for p in ps)), (max(p[0] for p in ps), max(p[2] for p in ps))
 
-	def neighbours(self, skip=(1, 6)):
+	def neighbours(self, skip=(1, 6), own_ground=False):
 		"""The footprints (centre x z, half size along its axes, axis) of the props the game builds on the other tracks
 		(their exported Placed rows on their own ground). Tracks in `skip` are left out: the two swapped layouts read
-		each other's export otherwise, and a second run would not be stable."""
+		each other's export otherwise, and a second run would not be stable. own_ground: not the props whose base
+		centre stands on this track's ground (nearest road, owner 2026-11-25): they are the ones to go."""
 		import os
 		import re
 
@@ -93,6 +96,9 @@ class Roads:
 				R = np.array(ep.yaw_rot(yaw)) @ np.array(ep.from_euler_yxz(n[5] if len(n) > 5 else 0, n[3], n[6] if len(n) > 6 else 0))
 				c = np.array(ep.to_world(origin, yaw, n[:3])) + R @ np.array([0, size[1] / 2, 0])
 				e = np.abs(R) @ (size / 2)
+				base = ep.to_world(origin, yaw, whole)
+				if own_ground and self.nearest([(base[0], base[2])])[1][0] == self.number:
+					continue
 				out.append((c[0], c[2], e[0], e[2], number, m.group(1)))
 		return out
 
@@ -103,41 +109,55 @@ class Roads:
 		return [(n[4], n[5]) for n in near if abs(n[0] - x) < n[2] + ex and abs(n[1] - z) < n[3] + ez]
 
 
+def base_centre(me):
+	"""The Blender-local centre (x, y) of a mesh's box: its base centre is what the exporter calls the prop's place."""
+	xs, ys = [v.co.x for v in me.vertices], [v.co.y for v in me.vertices]
+	return (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+
+
 def apply_cross_track(k, path=None):
-	"""cross_track.json: the props of a swapped layout whose mesh stood in another track's built prop, as
-	[prop, base centre world x, z, dx, dz] (moved by dx, dz) or [prop, x, z, null, null] (left out). Heroes are never in
-	it. Run last in build()."""
+	"""cross_track.json (written by cross_track.py), run last in build(). Per biome: "fix", rows [prop, base centre world
+	x, z, new x, new z, yaw] (moved and turned) or [prop, x, z, null, null, null] (left out); "add", rows [prop, base
+	centre x, z, yaw, scale]. HQ, HeroStatue, Rank and Retro are never in it. A row that finds no prop raises: the layout
+	changed under the file, which must then be written again. Skipped while RAW is set (cross_track.py) and under a
+	not exported layout option (whose layout is another one)."""
 	import json
 	import os
 
 	import bpy
 	from mathutils import Vector
 
-	path = path or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cross_track.json")
-	rows = json.load(open(path)).get(k.biome, []) if os.path.exists(path) else []
-	if not rows:
+	if RAW or OPTIONS:
 		return
+	path = path or os.path.join(os.path.dirname(os.path.abspath(__file__)), "cross_track.json")
+	data = json.load(open(path)).get(k.biome, {"fix": [], "add": []})
 	bpy.context.view_layer.update()
-	by = {}
-	for name, ob in k.props.items():
-		xs, ys = [v.co.x for v in ob.data.vertices], [v.co.y for v in ob.data.vertices]
-		by[ob.data.name] = (name, Vector(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, 0)))
+	centre = {name: base_centre(ob.data) for name, ob in k.props.items()}
+	mesh = {ob.data.name: name for name, ob in k.props.items()}
 	obs = []
 	for ob in list(k.col.objects):
-		if ob.type == "MESH" and ob.data.name in by:
-			name, c = by[ob.data.name]
-			w = ob.matrix_world @ c
+		if ob.type == "MESH" and ob.data.name in mesh:
+			name = mesh[ob.data.name]
+			w = ob.matrix_world @ Vector((*centre[name], 0))
 			obs.append((name, w.x, -w.y, ob))
-	done = 0
-	for name, x, z, dx, dz in rows:
+
+	def put(ob, name, x, z, yaw):
+		"""Turns `ob` to `yaw` and moves it so its base centre stands at world x, z."""
+		ob.rotation_euler[2] = yaw
+		cx, cy = centre[name][0] * ob.scale[0], centre[name][1] * ob.scale[1]
+		ob.location.x = x - (cx * math.cos(yaw) - cy * math.sin(yaw))
+		ob.location.y = -z - (cx * math.sin(yaw) + cy * math.cos(yaw))
+
+	for name, x, z, nx, nz, yaw in data["fix"]:
 		hit = min((q for q in obs if q[0] == name), key=lambda q: math.hypot(q[1] - x, q[2] - z), default=None)
-		if hit is None or math.hypot(hit[1] - x, hit[2] - z) > 0.2:
-			continue
+		if hit is None or math.hypot(hit[1] - x, hit[2] - z) > 0.05:
+			raise SystemExit("cross_track.json: no %s %s at (%.3f, %.3f): write it again (cross_track.py)" % (k.biome, name, x, z))
 		obs.remove(hit)
-		done += 1
-		if dx is None:
+		if nx is None:
 			bpy.data.objects.remove(hit[3])
 		else:
-			hit[3].location.x += dx
-			hit[3].location.y -= dz
-	print("CROSS_TRACK", k.biome, done, "of", len(rows))
+			put(hit[3], name, nx, nz, yaw)
+	for name, x, z, yaw, scale in data["add"]:
+		ob = k.place(name, (x, GROUND_Y[k.biome], z), yaw, scale)
+		put(ob, name, x, z, yaw)
+	print("CROSS_TRACK", k.biome, "fix", len(data["fix"]), "add", len(data["add"]))

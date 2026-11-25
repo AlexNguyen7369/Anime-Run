@@ -25,9 +25,13 @@ from roads import Roads
 # (prop, world x, z, scale) behind the finish: the spots beside the 0.9 axis free of Track 2's ruins, which fill the axis itself
 BEHIND_FINISH = [("RuinWall", 306, 425, 1.0), ("Pine", 322, 410, 1.3), ("Pine", 310, 408, 1.2), ("Pine", 325, 420, 1.3), ("Pine", 405, 402, 1.3), ("Pine", 418, 395, 1.3), ("Pine", 412, 410, 1.3), ("Pine", 420, 406, 1.2)]
 
-# (world x, z, turn off the town's direction) of the army's ranks, one in each of three run views (0.06, 0.33, 0.62): each passes
+# (world x, z, turn off the town's direction) of the army's ranks, one in each run view (0.06, 0.33, 0.62, 0.9): each passes
 # export_props.rules_ok (exact triangles and parts fallback against every road, pads, plaza, own ground)
-RANKS = [(-26, -275, 0.0), (85.5, 277.9, 0.0), (-149.4, -412.4, 0.24)]
+RANKS = [(-26, -275, 0.0), (85.5, 277.9, 0.0), (-149.4, -412.4, 0.24), (268.9, 198.97, -0.25)]
+
+# (world x, z, yaw) of the 4 low mounds (the approved draft's count), at 0.8: found by search over this track's own ground
+# (off every road, standing in no other track's prop)
+MOUNDS = [(-296, -354, -2.26), (152, -266, 2.98), (-188, 30, -1.57), (-252, 262, 2.67)]
 
 MODEL_SHOTS = ["Town", "RuinedCastle", "Rank", "HeroStatue", "Cottage"]  # hero close-ups (build_track.model_shots); Rank is the headless army
 
@@ -651,7 +655,12 @@ def build(k):
 				continue
 			k.place("Rank", (x, -1.0, z), math.atan2(-(tx - x), -(tz - z)) + sh)
 			taken.append((x, z, 50))
-			see({-26: 0.06, 85.5: 0.33, -149.4: 0.62}[x], x, z)
+			see({-26: 0.06, 85.5: 0.33, -149.4: 0.62, 268.9: 0.9}[x], x, z)
+	see(0.9, 243, 199)  # the finish rank's two halves
+	see(0.9, 295, 199)
+	for x, z, yaw in MOUNDS:
+		k.place("Mound", (x, -1.0, z), yaw, 0.8)
+		taken.append((x, z, 56))
 	# Landmark 3: villages along the first lap and the last straight; the hero's statue on the green of two of them
 	# The hero's statue where the 0.06 run camera sees it, left of the castle, and one by the finish for the 0.9 camera
 	for d, off in ((228, -46), (222, -50), (216, -44), (235, -44), (205, -50), (200, -58)):
@@ -680,7 +689,7 @@ def build(k):
 	for d, off in ((2790, -68), (2780, -70), (2770, -68), (2760, -66)) if turned else ():
 		if put("Rank", d, off, 0.0, size=(104, 66), rad=52):
 			break
-	for d, off, turn, sc in ((2838, 58, 0.5, 1.1), (2745, 62, -0.4, 1.0), (2700, 66, 0.2, 1.2), (2846, -50, 0.3, 1.0)):
+	for d, off, turn, sc in ((2745, 62, -0.4, 1.0), (2700, 66, 0.2, 1.2), (2846, -50, 0.3, 1.0)):
 		put("RuinWall", d, off, turn, sc)
 	for f, statue, houses in (
 		(0.045, False, ((-60, -58, 0.0), (-26, -62, 0.1), (46, -58, -0.1), (80, -64, 0.2), (-44, -98, 0.3), (-4, -100, -0.2), (36, -98, 0.1))),
@@ -698,10 +707,10 @@ def build(k):
 		p, right, _ = k.at(d)
 		return 1 if (p.x + right.x - cx) ** 2 + (p.z + right.z - cz) ** 2 > (p.x - cx) ** 2 + (p.z - cz) ** 2 else -1
 
-	# the 0.62 view: a conifer band and a mound outside the bend ahead of it
-	for d, name, sc in ((2005, "Forest", 1.0), (2070, "Forest", 1.05), (2150, "Mound", 0.8), (2235, "Forest", 1.0), (2300, "Forest", 1.05)):
+	# the 0.62 view: a conifer band outside the bend ahead of it
+	for d, name, sc in ((2005, "Forest", 1.0), (2070, "Forest", 1.05), (2150, "Forest", 1.0), (2235, "Forest", 1.0), (2300, "Forest", 1.05)):
 		for shift in (0, 8, -8, 16, -16):
-			if any(put(name, d + shift, outer(d) * o, 0.0, sc, rad=46 if name == "Mound" else 34) for o in (70, 66, 74)):
+			if any(put(name, d + shift, outer(d) * o, 0.0, sc, rad=34) for o in (70, 66, 74)):
 				break
 	# Landmark 4: the headless army massed on mounds among pines along the second lap, facing the road
 	# ahead of the 0.33 run camera outside the road, then outside the bend the 0.62 camera looks into, then anywhere on the
@@ -727,12 +736,7 @@ def build(k):
 				put(name, d + k.rng.uniform(-jitter, jitter), o, 0.0, k.rng.uniform(*scale), faces=faces)
 			d += every
 
-	# low mounds and dark conifer bands outside the road (the horizon from the runner's eye), ruins in uneven groups
-	d, j = 250, 0
-	while d < k.length - 60:  # sizes, turns and spacing vary
-		sc = (0.8, 0.92, 0.84)[j % 3]
-		put("Mound", d, outer(d) * (52 * sc + 27), (0.0, math.pi, 0.1, math.pi - 0.1)[j % 4], sc, rad=52 * sc + 10)
-		d, j = d + (110, 175, 140, 205)[j % 4], j + 1
+	# dark conifer bands outside the road (the horizon from the runner's eye), ruins in uneven groups
 	for d, off, turn, sc in ((300, 58, 0.2, 1.1), (345, 60, -0.5, 1.0), (690, 58, 0.0, 1.2), (1010, 56, 0.7, 1.0), (1050, 66, -0.2, 1.2), (1600, 60, 0.4, 1.1), (1640, 62, -0.3, 1.0), (1675, 58, 0.1, 1.2), (2250, 58, 0.3, 1.0)):
 		put("RuinWall", d, off, turn, sc)
 	for o in (70, 104, 136):  # up to three deep where the gap to the next road is wide
@@ -753,19 +757,18 @@ def build(k):
 			for dd, do in ((0, 0), (13, 8), (-12, 7), (5, -9), (20, -6)):
 				put("Pine", d + dd + (40 if off > 0 else 0), off + do, 0.0, k.rng.uniform(0.9, 1.4), rad=7, faces=False)
 
-	def scatter(count, names, rad, scale, pad, own=True):
+	def scatter(count, names, rad, scale, pad):
 		placed = tries = 0
 		while placed < count and tries < count * 60:
 			tries += 1
 			x, z = k.rng.uniform(k.lo.x - pad, k.hi.x + pad), k.rng.uniform(k.lo.z - pad, k.hi.z + pad)
 			name, sc, yaw = k.rng.choice(names), k.rng.uniform(*scale), k.rng.uniform(0, math.tau)
 			w, dep = BOX[name]
-			if not (name in ("Pine", "Forest") and hidden(x, z, w * sc)) and free(x, z, rad) and r.fits(x, z, yaw, w * sc, dep * sc, own=own):
+			if not (name in ("Pine", "Forest") and hidden(x, z, w * sc)) and free(x, z, rad) and r.fits(x, z, yaw, w * sc, dep * sc):
 				k.place(name, (x, -1.0, z), yaw, sc)
 				taken.append((x, z, rad))
 				placed += 1
 
-	scatter(14, ["Mound"], 52, (0.8, 0.95), 220)
 	scatter(50, ["Forest"], 30, (0.9, 1.1), 220)
 	scatter(110, ["Flowers"], 8, (1.2, 1.5), 180)
 	scatter(40, ["Pine"], 7, (0.9, 1.5), 220)
@@ -773,15 +776,15 @@ def build(k):
 	# this track's own ground, so not built (docs/WORLD2_SPEC.md). Scale over 1.26 keeps the exported mesh in its 3 pieces.
 	k.place("Mountain", (700, -1.0, -5150), 0.0, 1.35)
 	# More woods that fit this track's own land, none over another track's props
-	near = r.neighbours()
+	near = r.neighbours(own_ground=True)
 	(lox, loz), (hix, hiz) = r.ground(4)
 	n = 0
 	for _ in range(5000):
 		x, z = k.rng.uniform(lox, hix), k.rng.uniform(loz, hiz)
-		name, sc = k.rng.choice((("Mound", 0.8), ("Forest", 1.0), ("Pine", 1.5), ("Pine", 1.2)))
+		name, sc = k.rng.choice((("Forest", 1.0), ("Pine", 1.5), ("Pine", 1.2)))
 		w, dep = {"FarWood": (248, 180)}.get(name, BOX.get(name))
 		yaw = k.rng.choice((0.0, math.pi / 2))
-		if free(x, z, w * sc / 2) and r.fits(x, z, yaw, w * sc, dep * sc, own=False) and not r.overlaps(near, x, z, yaw, w * sc, dep * sc):
+		if free(x, z, w * sc / 2) and r.fits(x, z, yaw, w * sc, dep * sc) and not r.overlaps(near, x, z, yaw, w * sc, dep * sc):
 			k.place(name, (x, -1.0, z), yaw, sc)
 			taken.append((x, z, w * sc / 2))
 			n += 1
@@ -789,7 +792,7 @@ def build(k):
 	# Behind the finish, on the 0.9 view's axis
 	for name, x, z, sc in BEHIND_FINISH:
 		w, dep = BOX[name]
-		if free(x, z, 6) and r.fits(x, z, 0.0, w * sc, dep * sc, own=False):
+		if free(x, z, 6) and r.fits(x, z, 0.0, w * sc, dep * sc):
 			k.place(name, (x, -1.0, z), 0.0, sc)
 			taken.append((x, z, 8))
 	if option:  # pines at the mound's foot, under its overhanging corner towers (a fault of the mesh)
@@ -804,4 +807,5 @@ def build(k):
 					break
 	# Bright hazy day: cyan overhead fading to near-white haze at the horizon (no fog: it blacked out the render)
 	k.sky([(0.0, "F6FAF8"), (0.04, "E6F2F4"), (0.12, "C4E4EE"), (0.35, "8ACCE6"), (1.0, "4AA8D6")], strength=0.85, sun=(3.4, "FFF6E6", 48, 150))
+	k.hidden = hidden  # cross_track.py: where a tall prop hides a landmark
 	roads.apply_cross_track(k)
