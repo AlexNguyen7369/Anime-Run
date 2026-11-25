@@ -13,6 +13,9 @@ TerrainShape.SHOULDER = 60 -- placeholder: end of the shoulder rise
 TerrainShape.MIDLINE = 77 -- placeholder: about the gap midline
 TerrainShape.FAR_BLEND = 20 -- placeholder: studs past MIDLINE over which the last track's ridge turns into its Far shape
 TerrainShape.SEAM = 32 -- placeholder: height blend band between zones
+-- placeholder: studs from a centre line (W/2 + wall 2 + half a voxel) whose Grass columns are Ground instead: the
+-- engine grows blades on Grass, taller than the 2 studs from the corridor's top to the road's (docs/BUGS.md)
+TerrainShape.BARE = 24
 TerrainShape.CELL = 8 -- placeholder: grid cell (studs)
 TerrainShape.STAMP = 120 -- placeholder: stamp radius (studs)
 TerrainShape.COARSE = 64 -- studs per coarse cell for nodes past the stamp radius
@@ -864,7 +867,11 @@ function TerrainShape.Column(x, z)
 	local mats = prof.Materials or DEFAULT_MATERIALS
 	local own = sec and sec.Material -- a section's Material is its corridor and ridge material
 	if band == "Corridor" then
-		return y, nil, own or mats.Corridor or DEFAULT_MATERIALS.Corridor, nil, nil, lo, hi
+		local m = own or mats.Corridor or DEFAULT_MATERIALS.Corridor
+		if m == M.Grass and (math.min(dA, dB) <= TerrainShape.BARE or dc <= 0) then
+			m = M.Ground -- under a road, its walls or a clear slab nothing may grow through
+		end
+		return y, nil, m, nil, nil, lo, hi
 	end
 	local water = sec and sec.Water or prof.Water
 	local wet = shape == "Water" or (water and water.Where == band)
