@@ -116,11 +116,11 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Positions, prompts a
 - World gate: gate draft B (shrine gatehouse). Position, lock rule and destination unchanged. Proposed: the label moves up,
   a non-disc touch part, a locked and an open mesh.
 - Boss gate (new): gate draft A (stone ring). Owner 2026-11-25: stands next to the Summon altar (read of "spawn altar";
-  exact spot chosen by the owner from three proposals), does the same as clicking the Bosses button (opens the Bosses
+  spot S4 (2.5, 94.8) facing the spawn, full size, owner 2026-11-25 "approved all", orchestrator's reading), does the same as clicking the Bosses button (opens the Bosses
   popup), closed while no boss event is active and open while one is. **Proposed**: closed, its prompt does nothing; it
   changes no boss rule, timing or reward; below the rebirth level that hides the Bosses button it stays closed.
 - Layout (owner 2026-11-25): the Saitamo statue and the Index board may move so they block nothing (the world gate, the
-  Summon altar and the boss gate from the spawn). New positions **proposed**, the owner approves them from renders. The
+  Summon altar and the boss gate from the spawn). Fuller layout approved (owner 2026-11-25, same words and reading): statue (-16.5, 4.4), Index (76.7, -34.2), Team altar (-35.0, 76.4), loop posts 45 to 19, 100 to 75, 315 to 322 degrees; to fix while building: the gate's left pillar cut on the join view, the statue over the RACE START sign. The
   Index keeps its prompt, panel and header. The sky loop and its posts stay in that
   layout. Owner, same day: "propose new format of spawn if needed": a fuller new layout may also be proposed; nothing
   moves until the owner approves it.
