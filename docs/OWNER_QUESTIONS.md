@@ -295,3 +295,7 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
     old layouts intersected too. agent-1's mesh test, props of ours touching another track's: old slot 1 154 of 338,
     old slot 6 240 of 652; round 5 Track 1 21 of 255, Track 6 95 of 746 (Track 6 lost 88 props for it). The finish Rank of
     item 11 was inside Track 2's RuinB and is removed. A rule for which track owns which ground is needed first.
+    Ruled by the owner 2026-11-25: nearest road owns the ground (WORLD2_SPEC "Ground ownership"); full count first.
+13. Ground ownership, details the ruling does not give: the plaza's ground; centre or whole footprint of a prop; heroes
+    that fit no spot under the rule (leave out, shrink or move far). Asked with the full count.
+14. Swap round 5 (5747dda6) scored T1 6, T6 6 (bar 7) on its own scenery; round 6 waits for the ownership count.

@@ -930,6 +930,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-25: owner: World 2 ground ownership (4.47, WORLD2_SPEC "Ground ownership"): where two tracks' scenery meets, a spot belongs to the track whose road is nearest; other tracks' props there are moved or removed. A full count goes to the owner before any frozen track changes.
 - 2026-11-25: owner: "switch elven lands with tokyo track (track 1) within world 2" (4.47, WORLD2_SPEC "Tracks"): Elven Ruin Plains is Track 1, Devil Hunter City Track 6. The biome, its name, lighting, card and enemy move; the road, pay, Gems, saved progress and enemy speed stay with the track number (plan approved by the owner the same day).
 - 2026-11-25: owner: rework the dead kaiju of World 2 Track 5 (4.47, WORLD2_SPEC "Render set approvals"): the kaiju and its site are reopened, the rest of Track 5 stays frozen; sized to fit a legal spot; earlier form rulings may be dropped; reference renders need the owner's approval before export or placement.
 - 2026-11-24: owner: "UI and GUI should stay exactly the same with world 1 with the exception of a 4th team slot" (4.47): World 2's always-on HUD goes back to the 4.46 look; replaces the same day's "old hud" ruling.

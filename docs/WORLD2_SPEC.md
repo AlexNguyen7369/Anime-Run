@@ -179,6 +179,11 @@ written before the swap.
 - Approved by the owner 2026-11-25: Track 5's dead kaiju, round 5 (1bc5e9f7), frozen; its added surroundings are cut to
   the props that overlap no other track's scenery ("approve round 5, cut to the clear props"). Export, ledger, upload
   and placement in game still need the Track 5 re-export hold lifted and the owner's upload word.
+- Ground ownership (owner 2026-11-25, the overlap question): where two tracks' scenery meets, a spot belongs to the track
+  whose road (nearest centre line) is nearest; other tracks' props there are moved or removed. Before any frozen track
+  changes, a full count (props and heroes per track) goes to the owner; the freezes and the re-export hold stand until
+  then. **Open question**: the plaza's ground, whether a prop is judged by its centre or its whole footprint, and heroes
+  with no spot under the rule.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
