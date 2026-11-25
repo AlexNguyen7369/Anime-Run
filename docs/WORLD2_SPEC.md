@@ -12,7 +12,14 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 - `Shared/TrackRegistry` loads `Shared/Tracks/World2/` in World 2.
 
 ## Track lighting
-- Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed). Seen in Studio before the fix:
+- Seen in Studio 2026-11-25 (World 2 place, merged code 1a3e5795 plus docs, pictures in
+  `assets/world2_draft/audit/lighting_2026-11-25`): all ten tracks' live Lighting values meet the floors below (T8
+  OutdoorAmbient read 0.6176 mid-blend); roads and rails read on Tracks 6 to 10 and 1, 4, 8; a placed runner reads on
+  night Tracks 1, 4 and 8, and on 4 and 8 in an iPhone 17 Pro emulation. Not seen: real phones, a real run, Tracks 2, 3 and
+  5 in pictures, high or low quality settings. Flaws found, not fixed (docs/BUGS.md): grass through the road on Tracks 6
+  and 7, near-black scenery props on 1, 4, 6, 7, 8 and 10.
+- Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed; the road-and-runner rule below is
+  met as seen above, owner 2026-11-25 "approved all continue the merge"). Seen in Studio before the fix:
   Track 1, 4 and 8 were close to black (Ambient under 30 of 255, Track 8's OutdoorAmbient 15), and Track 2's
   OutdoorAmbient was taken from the draft's below-horizon stop (32, 23, 35) instead of its orange skyline.
 - Rule: a track's lighting keeps the hue of its approved draft sky, but the road and the runner must read on every
