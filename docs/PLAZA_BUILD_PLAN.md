@@ -2,7 +2,7 @@
 
 A plan, not a rule: the spec and the design doc win. Built so far (offline only, no Studio): the Index, Team altar and
 statue moves with their headers, the boss gate's Parts stand-in, state and prompt, the merchant markers, and the guide. Gate and
-guide are off (`BossGateConfig.LIVE`, `BossGuideConfig.LIVE` = false). No mesh is uploaded, no place saved. Numbers are measured from the
+guide are off (`BossGateConfig.LIVE`, `BossGuideConfig.LIVE` = false). Since then (2026-11-25): the 14 piece meshes are uploaded, reviewed and on in both worlds, with copies in both places' BakedModels (places saved, not published); the merchants are on (owner). Numbers are measured from the
 draft scripts at 03148343 (headless Blender); "proposed" where no owner word exists. Guards: `plaza_build`; no waiting checks since the merchants are on (owner 2026-11-25: "merchants can be added already to merge"; `PlazaBuildTests.PENDING` empty, `plaza_build_pending` left out of TestConfig),
 `spawn_area` RING rows and EXCLUSIVE_XZ, `ui_billboards` headers.
 
