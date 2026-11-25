@@ -14,9 +14,11 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local BossGateConfig = require(script.Parent.BossGateConfig)
 local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
 local PlazaHeader = require(script.Parent.PlazaHeader)
+local PlazaMerchants = require(script.Parent.PlazaMerchants)
 local UiTheme = require(script.Parent.UiTheme)
 local WorldConfig = require(script.Parent.WorldConfig)
 
@@ -54,7 +56,7 @@ local LANTERN_GLOW = Color3.fromRGB(255, 196, 120)
 local SHOP_POS = Vector2.new(34.058, -83.109) -- world (-83.9, -3.1)
 local POTIONS_POS = Vector2.new(60.842, -141.555) -- world (-57.2, -61.6)
 local MARKET_POS = Vector2.new(121.109, -163.942) -- world (3.1, -83.9)
-local INDEX_POS = Vector2.new(179.555, -137.158) -- world (61.6, -57.2)
+local INDEX_POS = Vector2.new(194.7, -114.2) -- world (76.7, -34.2), the fuller layout (WORLD_REDESIGN_SPEC 4.2)
 local ALTAR_POS = Vector2.new(175.158, -18.445) -- world (57.2, 61.6)
 -- The terrace under the spawn (4.43): step radii bottom up, each TERRACE_STEP tall; the SpawnLocation and the walk spawn
 -- sit on the top step. Server/PlazaDressing lays the Showpiece mesh (spawn disc, moat, lanterns) over these plain steps.
@@ -74,9 +76,9 @@ local ALTAR_STONE = Color3.fromRGB(176, 170, 160)
 local ALTAR_DARK = Color3.fromRGB(46, 42, 52)
 local ALTAR_GOLD = Color3.fromRGB(232, 178, 60)
 local ALTAR_NEON = Color3.fromRGB(46, 200, 208)
--- The Team altar (design doc 4.45, owner 2026-11-17): a small stacked octagonal shrine in the ring slot before the gate
--- axis, world (-3.1, 83.9), facing the spawn. Sizes and colours proposed.
-local TEAM_ALTAR_POS = Vector2.new(114.891, 3.942) -- world (-3.109, 83.942): opposite the Market across the spawn
+-- The Team altar (design doc 4.45, owner 2026-11-17): a small stacked octagonal shrine facing the spawn, at the fuller
+-- layout's spot (WORLD_REDESIGN_SPEC 4.2, owner 2026-11-25). Sizes and colours proposed.
+local TEAM_ALTAR_POS = Vector2.new(83, -3.6) -- world (-35.0, 76.4)
 local TEAM_ALTAR_WIDTH = 12 -- one octagonal slab across the flats (owner 2026-11-17: one slab, sakura emblem)
 local TEAM_ALTAR_HEIGHT = 1.6
 local TEAM_ALTAR_PINK = Color3.fromRGB(255, 150, 190)
@@ -325,6 +327,16 @@ local function prompt(parent, cframe, name, action, object, distance)
 	return addPrompt(anchor, name, action, object, distance)
 end
 
+-- Where a merchant will stand (Shared/PlazaMerchants): an empty marker on `part`, in the service's frame.
+local function merchantSpot(model, part, frame)
+	local row = PlazaMerchants[model.Name]
+	local spot = Instance.new("Attachment")
+	spot.Name = "MerchantSpot"
+	spot:SetAttribute("CharacterId", row.Id)
+	spot.Parent = part
+	spot.WorldCFrame = frame * CFrame.new(row.Feet)
+end
+
 -- A wooden market stall on the ring, facing the spawn: counter (with the prompt), posts, a tiled roof, a cloth curtain
 -- with its sign.
 local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, action)
@@ -358,6 +370,7 @@ local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, 
 	)
 	UiTheme.Stroke(surfaceText(curtain, Enum.NormalId.Front, "Sign", title, Color3.new(1, 1, 1), 25), 2)
 	m.PrimaryPart = addPrompt(counter, promptName, action, title, 10)
+	merchantSpot(m, counter, f)
 	m.Parent = parent
 	return m
 end
@@ -621,6 +634,97 @@ local function worldGate(startCFrame)
 end
 SpawnArea.WorldGate = worldGate
 
+-- The boss gate's plain stand-in (WORLD_REDESIGN_SPEC 4.2; place, prompt and mesh slots in Shared/BossGateConfig): a stepped
+-- dais, two spires and a stone ring round shut doors (closed) or a fire (open), in draft A's box. Built closed. Nobody walks
+-- through: its prompt opens the Bosses popup (Client/BossEventUi). Sizes and colours proposed.
+local BOSS_STONE, BOSS_RING = Color3.fromRGB(112, 96, 93), Color3.fromRGB(138, 58, 50)
+local BOSS_DARK, BOSS_FIRE = Color3.fromRGB(46, 40, 41), Color3.fromRGB(255, 122, 30)
+local BOSS_CENTRE, BOSS_OPENING = 13.4, 8.8 -- the opening's centre height and radius (draft_boss_gate.py C, RI)
+
+local function bossGate(startCFrame)
+	local m = Instance.new("Model")
+	m.Name = "BossGate"
+	local c, pos, size = SpawnArea.CENTRE, BossGateConfig.POS, BossGateConfig.SIZE
+	local f = facing(startCFrame, pos.X + c.X, pos.Y + c.Y, c.X, c.Y)
+	-- Four steps a runner climbs, the widest the draft's whole base
+	local steps, rise = 4, 1.1
+	for i = 1, steps do
+		local depth = size.Z - (i - 1) * 4
+		local width = i == 1 and size.X or 34 - (i - 1) * 2
+		block(
+			m,
+			"Step",
+			Vector3.new(width, rise, depth),
+			f * CFrame.new(0, (i - 0.5) * rise, 0),
+			BOSS_STONE,
+			Enum.Material.Slate
+		)
+	end
+	for _, side in { -1, 1 } do
+		block(
+			m,
+			"Spire",
+			Vector3.new(4, 26, 5),
+			f * CFrame.new(side * 13.4, 15, 0) * CFrame.Angles(0, 0, math.rad(side * 3)),
+			BOSS_DARK,
+			Enum.Material.Basalt
+		)
+	end
+	local centre = f * CFrame.new(0, BOSS_CENTRE, 0)
+	local segments, ringRadius = 16, BOSS_OPENING + 1.5
+	for i = 0, segments - 1 do
+		block(
+			m,
+			"Ring",
+			Vector3.new(2 * ringRadius * math.tan(math.pi / segments) + 0.8, 3, 4),
+			centre * CFrame.Angles(0, 0, i / segments * 2 * math.pi) * CFrame.new(0, ringRadius, 0),
+			BOSS_RING,
+			Enum.Material.Slate,
+			i == 0 or i > segments / 2 -- the top half is out of reach
+		)
+	end
+	for _, side in { -1, 1 } do
+		local door = block(
+			m,
+			"Door",
+			Vector3.new(BOSS_OPENING, BOSS_OPENING * 2, 1.6),
+			centre * CFrame.new(side * BOSS_OPENING / 2, 0, 0),
+			BOSS_DARK,
+			Enum.Material.Metal
+		)
+		CollectionService:AddTag(door, BossGateConfig.CLOSED_TAG)
+	end
+	local fire = block(
+		m,
+		"Fire",
+		Vector3.new(1.4, BOSS_OPENING * 2, BOSS_OPENING * 2),
+		centre * CFrame.Angles(0, math.rad(90), 0),
+		BOSS_FIRE,
+		Enum.Material.Neon,
+		false
+	)
+	fire.Shape = Enum.PartType.Cylinder
+	fire.Transparency = 1
+	fire.CastShadow = false
+	CollectionService:AddTag(fire, BossGateConfig.OPEN_TAG)
+	-- The model's frame, at the spot's centre on the floor; the prompt stands in front of the gate
+	local root = block(m, "Root", Vector3.one, f * CFrame.new(0, 0.5, 0), BOSS_STONE, nil, false)
+	root.Transparency = 1
+	root.CastShadow = false
+	m.PrimaryPart = root
+	local at = BossGateConfig.PROMPT_OFFSET
+	prompt(
+		m,
+		f * CFrame.new(at.X, 3 + (steps - 1) * rise, -at.Y),
+		BossGateConfig.PROMPT,
+		"Bosses",
+		"BOSS GATE",
+		BossGateConfig.PROMPT_DISTANCE
+	)
+	return m
+end
+SpawnArea.BossGate = bossGate
+
 function SpawnArea.Build(startCFrame)
 	local model = Instance.new("Model")
 	model.Name = "SpawnArea"
@@ -696,6 +800,9 @@ function SpawnArea.Build(startCFrame)
 	-- The Sidekicks stall became the summon altar (design doc 4.36).
 	altar(startCFrame).Parent = model
 	teamAltar(startCFrame).Parent = model
+	if BossGateConfig.LIVE then
+		bossGate(startCFrame).Parent = model
+	end
 	stall(
 		model,
 		startCFrame,
@@ -780,6 +887,7 @@ function SpawnArea.Build(startCFrame)
 	)
 	UiTheme.Stroke(surfaceText(marketCurtain, Enum.NormalId.Front, "Sign", "MARKET", Color3.new(1, 1, 1), 25), 2)
 	marketplace.PrimaryPart = addPrompt(marketCounter, "OpenMarket", "Browse Market", "Market", 8)
+	merchantSpot(marketplace, marketCounter, mf)
 	CollectionService:AddTag(marketCounter, "MarketPad") -- after the prompt: Server/MarketService reads it when tagged
 	marketplace.Parent = model
 
@@ -812,6 +920,7 @@ function SpawnArea.Build(startCFrame)
 		text.Parent = sgui
 	end
 	index.PrimaryPart = addPrompt(scroll, "OpenIndex", "Open Index", "Runner Index", 12)
+	merchantSpot(index, scroll, xf)
 	index.Parent = model
 
 	-- Leaderboard banners removed (design doc 4.16, owner 2026-11-01); their data stores are left untouched.
@@ -940,6 +1049,7 @@ function SpawnArea.Build(startCFrame)
 	)
 	title.StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0)
 	npc.PrimaryPart = anchor
+	merchantSpot(npc, anchor, stand)
 	npc.Parent = model
 
 	-- Decoration: Server/PlazaDressing places the meshes (design doc 4.24).

@@ -62,7 +62,8 @@ POTIONS, POTIONS_FACE = ring_spot(2)  # (-57.2, -61.6)
 MARKET_STALL, MARKET_FACE = ring_spot(3)  # (3.1, -83.9); stall origin: the deck front is 5.5 ahead
 MARKET = (MARKET_STALL[0] + MARKET_FACE[0] * 3.8, MARKET_STALL[1] + MARKET_FACE[1] * 3.8)  # the sign's plane, on the lower roof
 MARKET_SIGN_Y = 11.7  # board centre above the floor
-INDEX, INDEX_FACE = ring_spot(4)  # (61.6, -57.2)
+INDEX = (76.7, -34.2)  # the fuller layout (WORLD_REDESIGN_SPEC 4.2, owner 2026-11-25), off its ring slot
+INDEX_FACE = to_spawn(*INDEX)
 BEST_ROLL = ring_spot(5)[0]  # (83.9, 3.1); built from Parts in SpawnArea, no mesh
 SIDEKICK_ALTAR, ALTAR_FACE = ring_spot(6)  # (57.2, 61.6); built from Parts in SpawnArea, no mesh
 SENSEI = _on_path(98, -12)  # (-80.0, 57.9), beside the gate, facing the path
@@ -71,7 +72,7 @@ SENSEI_FACE = PERP
 # on the middle one; 8 small lanterns ring the petal moat.
 TERRACE = ((26, TOP + 0.8), (20, TOP + 1.6), (14, TOP + 2.4))
 SPAWN_TOP = TERRACE[-1][1]
-PEDESTAL = (11.6, 12.5, TERRACE[1][1])
+PEDESTAL = (-16.5, 4.4, TERRACE[1][1])  # the fuller layout
 
 
 def rb(x, y, z):

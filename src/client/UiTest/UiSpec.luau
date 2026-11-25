@@ -5173,6 +5173,34 @@ do
 	})
 end
 
+-- Gojio's conversation at the boss gate (docs/BOSS_GUIDE_SPEC.md; UiBossGuide). A PanelSwitch panel: one at a time with the rest.
+UiSpec.Guis.BossGuideUi = {
+	Source = "Client/BossGuideUi",
+	Panels = { "Panel" },
+	Buttons = {
+		{ Path = "Panel/CloseButton", Does = "close_panel", Panel = "BossGuideUi/Panel" },
+		{ Path = "Panel/Next", Does = "local" },
+	},
+}
+UiSpec.PanelSwitch.Names["BossGuideUi/Panel"] = "BossGuide"
+UiSpec.Hitbox.PanelBodies["BossGuideUi/Panel"] = true
+table.insert(CLOSED, "BossGuideUi/Panel")
+for _, c in
+	{
+		{ "boss_guide_close", "Panel/CloseButton", false, "boss_guide_closed" },
+		{ "boss_guide_next", "Panel/Next", true, "boss_guide_advanced" },
+	}
+do
+	table.insert(UiSpec.Clicks, {
+		Id = c[1],
+		Gui = "BossGuideUi",
+		Path = c[2],
+		Prepare = only("BossGuideUi/Panel"),
+		NeedSetup = { "spy" },
+		Expect = { Panels = { ["BossGuideUi/Panel"] = c[3] }, Remote = false, After = { c[4] } },
+	})
+end
+
 -- World awareness (docs/WORLD2_SPEC.md "World HUD", "Welcome"; UiWorld2 judges both). WorldHud/WorldLabel is display
 -- only and placed from HudChrome's live rects, so it is not AlwaysOn (the viewport solver can not model it).
 UiSpec.Guis.WorldHud = { Source = "Client/WorldHud", Buttons = {}, NonInteractive = true }
