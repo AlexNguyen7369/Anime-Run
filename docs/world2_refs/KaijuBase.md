@@ -241,6 +241,6 @@ Replaces the corpse described in the table and in rounds 13 to 16:
   between brow and snout is back in the outline; the jaw wreck is low, tilted and dull; the earth is level with the plain
   at the road side and both ends.
 - The site fill is cut to the props clear of every other track's scenery, CLEAR_EXEMPT props included, box against box
-  (owner 2026-11-25; `cut_fill`, tested by code against the Draft files on disk). 10 stay against the files on disk; 6 (4
-  Apartment, 1 Office, 1 Rubble) stay when the Track 1/6 swap's Draft files of cb6d716e are tested too
-  (`kaiju_reference.py --extra`, which only that script takes). Re-run after the swap lands.
+  (owner 2026-11-25; `cut_fill`, tested by code against the Draft files on disk). On the merged swap
+  (2026-11-25) 14 stay; the owner chose "A with 12": Apartments (-471.8, 875.3) and (-613.6, 876.6), each touching a van as
+  placed, are left out (`LEFT_OUT`), so 12 stay (9 Apartment, 3 Office), none touching a van.
