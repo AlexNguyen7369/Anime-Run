@@ -31,13 +31,21 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 - A theme's own `Atmosphere` overrides still win (Track 4's moon size).
 
 ## Save
+- `Shared/WorldConfig.Id` comes from `ReplicatedStorage.WorldId` (the World 2 place only); a client waits for `game.Loaded`
+  before reading it, since ReplicatedFirst may require the module first (docs/BUGS.md w2-worldid-race).
 - One save per player (`PlayerStats_v2`, VERSION unchanged at 19 so live World 1 servers never go read-only).
 - `Shared/WorldSave.View` swaps `BestTrack`, `Checkpoint`, `RaceBestTimes`, `Team` and `Equipped` (`WorldConfig.PROGRESS_KEYS`)
   for the world's own on load. First entry (owner 2026-11-24, design doc 4.47): while `Worlds.W2` holds no team, or only
   the placeholder starter, `View` gives World 1's `Team` and `Equipped`, so the team carries over; the first World 2 save
   writes it to `Worlds.W2`. `GachaService.CheckStarter` does nothing in World 2 (no starter choice, auto-roll not turned
   off for the roll tutorial) and `Client/ArrivalState.IsNew` is false there;
-  `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys.
+  `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys. An arrival not (yet) allowed to
+  stay (Travel and gate: arrival check refused it, or its admin check is unknown and waits for a recheck) keeps
+  `Worlds.W2.Team` and `Worlds.W2.Equipped` as stored (even if the player put another character first: an Equipped
+  alone would give a later first entry a one-member team), so a later real first entry still takes World 1's whole team
+  of that day (docs/BUGS.md w2-sendback-stale-team). Every other key, per world and
+  shared, is written together as before (`Fold` `keep`, while the player's runtime attribute `SendingBack` is on; not
+  saved). Once it may stay the attribute is cleared and it saves as before.
 - `Worlds.W2.Welcomed` (true once World 2's welcome was given; absent = not yet): a one-way flag
   (`WorldSave.FLAG_KEYS`), never cleared by a save without it. VERSION unchanged: an older save has none and is
   welcomed once; World 1 servers (old and new) keep `Worlds` whole as they keep every unknown key. `Fold` keeps the
