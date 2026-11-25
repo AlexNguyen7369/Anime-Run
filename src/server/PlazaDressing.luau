@@ -58,7 +58,8 @@ local function loadAsset(key, row)
 	end
 	local parts = {}
 	for _, d in asset:GetDescendants() do
-		local spec = d:IsA("MeshPart") and row.Parts[d.Name]
+		local name = PlazaPieces.PartName(d.Name)
+		local spec = d:IsA("MeshPart") and row.Parts[name]
 		if spec then
 			d.Anchored = true
 			d.CanCollide = false
@@ -68,9 +69,9 @@ local function loadAsset(key, row)
 			if spec.Glow then
 				d.Material = Enum.Material.Neon
 				d.TextureID = ""
-				d.Color = Color3.fromHex(Look.Glow and Look.Glow[d.Name] or spec.Glow)
+				d.Color = Color3.fromHex(Look.Glow and Look.Glow[name] or spec.Glow)
 				d.CastShadow = false
-				if Look.LampLight and d.Name == "Glow_lamp" then -- lit lanterns (World 2)
+				if Look.LampLight and name == "Glow_lamp" then -- lit lanterns (World 2)
 					local light = Instance.new("PointLight")
 					light.Color = Look.LampLight.Color
 					light.Brightness = Look.LampLight.Brightness
@@ -82,12 +83,15 @@ local function loadAsset(key, row)
 			else
 				d.Material = Enum.Material.SmoothPlastic
 			end
+			d.Name = name
 			d.Parent = nil
-			parts[d.Name] = { Part = d, Center = spec.Center }
+			parts[name] = { Part = d, Center = spec.Center }
 		end
 	end
 	asset:Destroy()
-	if next(parts) then
+	if row == PlazaPieces.Assets[key] and not PlazaPieces.Complete(row, parts) then
+		warn("[PlazaDressing] " .. key .. " misses a part, keeping the stand-in")
+	elseif next(parts) then
 		templates[key] = parts
 	end
 end

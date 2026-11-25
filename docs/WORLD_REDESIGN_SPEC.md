@@ -111,9 +111,10 @@ positions are **proposed**; warm gold, amber and paper, one pink accent, matchin
 - Total 39 parts, 4 lights. No new client script, asset or sound.
 
 
-### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; code and models in place, not turned on)
+### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; on in both worlds, except the boss gate, its guide and the merchants, which have their own switches)
 The same in both worlds unless a line says otherwise (owner: "consistent with world"); replaces "services unchanged" in
 WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels stay; positions stay except those the fuller layout below replaces; every size **proposed**.
+- **Proposed**: a piece with any of its parts missing after loading counts as not loaded, so its stand-in stays (the sky loop has none and is absent).
 - World gate: gate draft B (shrine gatehouse). Position, lock rule and destination unchanged. Proposed: the label moves up,
   a non-disc touch part, a locked and an open mesh.
 - Boss gate (new): gate draft A (stone ring). Owner 2026-11-25: stands next to the Summon altar (read of "spawn altar";

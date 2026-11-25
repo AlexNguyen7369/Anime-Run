@@ -6,32 +6,27 @@ guide are off (`BossGateConfig.LIVE`, `BossGuideConfig.LIVE` = false). No mesh i
 draft scripts at 03148343 (headless Blender); "proposed" where no owner word exists. Guards: `plaza_build`; 8 waiting checks: `plaza_build_pending` (on demand, `PlazaBuildTests.PENDING`),
 `spawn_area` RING rows and EXCLUSIVE_XZ, `ui_billboards` headers.
 
-## 1. Pieces (studs, y up; tris)
-| Piece | Keys (proposed) | Tris | Size, top | Body colours, glow names |
+## 1. Pieces (studs, y up; tris as exported, with the reversed copies of faces whose back shows)
+| Piece | Keys | Tris | Box, top | Palette colours, glow names |
 |---|---|---|---|---|
-| World gate B | WorldGateLocked, WorldGateOpen | 10,060 / 8,148 | 35.5 x 29.6, 36.5 | 31, 2 |
-| Boss gate A | BossGateClosed, BossGateOpen | 10,662 / 9,970 | 35.3 x 29.6, 34.7 / 37.0 | count at export, 0 / 5 |
-| Altar B (World 1) | AltarGreatLotusLocked, Unlocked | 7,928 / 9,652 | 66 wide (lily pads), 56.1 / 60.3 | 41, 4 |
-| Altar A (World 2) | AltarTwinRoofLocked, Unlocked | 8,884 / 7,468 | 67 wide, 74.5 | 22, 4 |
-| Markets B | SHOPStall, POTIONSStall, MarketStall, IndexBoard, SenseiDais | 1,856 / 3,145 / 3,462 / 2,592 / 432 | tops 13.0, 14.0, 15.4, 13.7, 6.2 | 45, 7 (with the draft figures, which do not ship) |
-| SkyLoop, LegendPedestal | same keys | as today | posts at 19, 75, 200, 250, 322 | as today |
+| World gate B | WorldGateLocked, WorldGateOpen | 10,306 / 8,403 | 35.5 x 29.6, 36.5 | 27, 6 |
+| Boss gate A | BossGateClosed, BossGateOpen | 11,030 / 10,189 | 35.3 x 29.6, 34.7 / 37.0 | 25, 5 (open) |
+| Altar B (World 1) | AltarGreatLotusLocked, Unlocked | 8,450 / 10,380 | 66.2 wide, 56.1 / 60.3 | 41, 4 |
+| Altar A (World 2) | AltarTwinRoofLocked, Unlocked | 9,572 / 8,012 | 67.1 wide, 74.5 | 22, 4 |
+| Markets B | SHOPStall, POTIONSStall, MarketStall, IndexBoard, SenseiDais | 2,198 / 3,865 / 3,980 / 2,700 / 504 | tops 13.0, 14.0, 15.5, 13.7, 6.2 | 33, 7 |
+| Sky loop | SkyLoop | 1,996 | posts at 19, 75, 200, 250, 322 | its own set |
 
-- Mesh parts are one Body plus one per glow colour (`export_asset`). A lone locked/open pair costs two assets, one shown at a time.
-- The altar's two worlds need four assets; a server loads two (its own world's). Both states are loaded: locked is per player.
-- Palette: `build_plaza.palette()` holds 64 colours (8 x 8) and asserts. Today's PAL plus the four drafts' is past 64, and a
-  changed palette changes no geometry hash, so `upload_plaza.py` would not notice. Proposed: one 64-colour palette per set
-  (plaza as today, gates, altar A, altar B, markets); each fits by the counts above. Draft names collide between sets
-  (`k1`, `c1`, `gd1`), so sets stay separate namespaces. Glow colours are part colours, not palette cells.
-- Two worlds: gate B's glow is violet in World 1 (to World 2), cyan in World 2 (to World 1): `PlazaLook.Glow`, no second mesh.
-  Both states are only needed in World 1: World 2's gate is always open.
+- Parts: Body (Body2 over 20,000 corners) and one per glow colour. A palette of at most 64 colours per set; glow is part colour.
+- The closed boss gate is the approved draft as it was (owner 2026-11-25).
+- World 2 shows WorldGateOpen with its glow in cyan (`PlazaLook.Glow`), no second mesh.
+- Clear of the loop's new posts and ribbon (least 12.3 studs, the roof altar) and inside the floor (least 1.7, the boss gate), but the world
+  gate: its box reaches 2.4 past the floor edge (eaves and dais; today's dais passes it too).
 
 ## 2. Build scripts
-1. `build_plaza.py`: INDEX, Team altar, PEDESTAL and the posts to the fuller layout; `LoopPosts` in layout.json; drop the old
-   stalls and index from SHIP. `upload_plaza.py` writes `LoopPosts`.
-2. New `build_spawn_pieces.py`: the shipped functions lifted out of the draft_* files (gate concept_b, boss gate, altar
-   concept_a and _b, b_shop to b_sensei), each set with its own PAL; no figures, context, cameras or renders. Draft files stay.
-3. Its export joins `export_all`'s SHIP with a palette per set and states as separate keys; only some keys are Placed.
-4. The sensei's dais and the merchant step behind a counter (draft_merchants.py stall()) are part of the stall meshes.
+`piece_export.py` (palettes, splitting, reversed copies, `--check` renders), `build_gate_world.py`, `build_gate_boss.py`,
+`build_altar_pieces.py`, `build_market_pieces.py`, `build_loop.py`: they reuse the approved drafts' geometry. `upload_pieces.py` has its own
+ledger (`plaza_pieces.json`) and writes `Shared/PlazaPieceAssets`; it checks everything before the first upload, takes key names, `--dry`
+and `--registry`. `upload_plaza.py` and its ledger do not know the pieces, so a plain run never sends an old stall over a new one.
 
 ## 3. Game code
 | File | Change |
@@ -61,7 +56,7 @@ pads reach 33 studs: check them against the sky-loop post and the boss gate (14.
 | left pillar cut on the join view | 88% of the gate is in view on join (report.json); turning or moving it more than the tolerance is a layout change | yes |
 | statue over RACE START, shadow on the spawn pad | spot is approved: lower pedestal, smaller rig, or a shadow-free statue | yes for spot or size |
 | World 2 rock behind the horns | move that island in `PlazaLook.Islands` (placeholder values) | no |
-| locked altar B statue near-black | `SidekickAltarView` LOCKED_COLOR and a light (placeholder values) | no |
+| locked altar B statue near-black | `SidekickAltarView` LOCKED_COLOR lighter, with the altar mesh step (it recolours today's altar) | no |
 | Index keeper's arm through staff | pose values in PlazaMerchants | no |
 | locked label readability | altar lock label size and spot | no |
 

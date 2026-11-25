@@ -3,7 +3,7 @@
 -- game keeps today's plaza there (Shared/PlazaPieces). Part Center / Size are studs in the piece's frame, Pos and Face its place.
 return {
 	AltarGreatLotusLocked = {
-		Asset = 0,
+		Asset = 117771915492153,
 		Hash = "3df41d93729506b1",
 		Pos = Vector3.new(57.158, 1.000, 61.555),
 		Face = Vector3.new(-0.6804, 0, -0.7328),
@@ -17,7 +17,7 @@ return {
 		},
 	},
 	AltarGreatLotusUnlocked = {
-		Asset = 0,
+		Asset = 105330697943341,
 		Hash = "1bc9f43f871b9768",
 		Pos = Vector3.new(57.158, 1.000, 61.555),
 		Face = Vector3.new(-0.6804, 0, -0.7328),
@@ -41,7 +41,7 @@ return {
 		},
 	},
 	AltarTwinRoofLocked = {
-		Asset = 0,
+		Asset = 131215160423062,
 		Hash = "b6e916dd15f34eb4",
 		Pos = Vector3.new(57.158, 1.000, 61.555),
 		Face = Vector3.new(-0.6804, 0, -0.7328),
@@ -50,7 +50,7 @@ return {
 		},
 	},
 	AltarTwinRoofUnlocked = {
-		Asset = 0,
+		Asset = 102388779723807,
 		Hash = "7ab221d89d68127d",
 		Pos = Vector3.new(57.158, 1.000, 61.555),
 		Face = Vector3.new(-0.6804, 0, -0.7328),
@@ -79,7 +79,7 @@ return {
 		},
 	},
 	BossGateClosed = {
-		Asset = 0,
+		Asset = 125398438490160,
 		Hash = "e8db904463781341",
 		Pos = Vector3.new(2.460, 1.000, 93.301),
 		Face = Vector3.new(-0.0264, 0, -0.9997),
@@ -89,7 +89,7 @@ return {
 		},
 	},
 	BossGateOpen = {
-		Asset = 0,
+		Asset = 85973554587379,
 		Hash = "5858dd43d22d12d1",
 		Pos = Vector3.new(2.460, 1.000, 93.301),
 		Face = Vector3.new(-0.0264, 0, -0.9997),
@@ -123,7 +123,7 @@ return {
 		},
 	},
 	IndexBoard = {
-		Asset = 0,
+		Asset = 115075746119130,
 		Hash = "2bea49dc5fb8adce",
 		Pos = Vector3.new(76.700, 1.000, -34.200),
 		Face = Vector3.new(-0.9133, 0, 0.4072),
@@ -137,7 +137,7 @@ return {
 		},
 	},
 	MarketStall = {
-		Asset = 0,
+		Asset = 129542940134303,
 		Hash = "a7050ed71d413496",
 		Pos = Vector3.new(3.109, 1.000, -83.942),
 		Face = Vector3.new(-0.0370, 0, 0.9993),
@@ -166,7 +166,7 @@ return {
 		},
 	},
 	POTIONSStall = {
-		Asset = 0,
+		Asset = 123264526991461,
 		Hash = "68b124bae448e7c4",
 		Pos = Vector3.new(-57.158, 1.000, -61.555),
 		Face = Vector3.new(0.6804, 0, 0.7328),
@@ -195,7 +195,7 @@ return {
 		},
 	},
 	SHOPStall = {
-		Asset = 0,
+		Asset = 98958521572101,
 		Hash = "a44856a05d768bbe",
 		Pos = Vector3.new(-83.942, 1.000, -3.109),
 		Face = Vector3.new(0.9993, 0, 0.0370),
@@ -214,7 +214,7 @@ return {
 		},
 	},
 	SenseiDais = {
-		Asset = 0,
+		Asset = 79274925542688,
 		Hash = "06c57bf37d8be459",
 		Pos = Vector3.new(-79.979, 1.000, 57.891),
 		Face = Vector3.new(0.6805, 0, 0.7328),
@@ -233,7 +233,7 @@ return {
 		},
 	},
 	SkyLoop = {
-		Asset = 0,
+		Asset = 71711181500455,
 		Hash = "e8b4b0b42f351141",
 		Pos = Vector3.new(0.000, 0.000, -0.000),
 		Face = Vector3.new(0.0000, 0, 1.0000),
@@ -258,7 +258,7 @@ return {
 		},
 	},
 	WorldGateLocked = {
-		Asset = 0,
+		Asset = 91447572769944,
 		Hash = "ef4e146f35366463",
 		Pos = Vector3.new(76.000, 1.000, -96.000),
 		Face = Vector3.new(-0.6207, 0, 0.7840),
@@ -297,7 +297,7 @@ return {
 		},
 	},
 	WorldGateOpen = {
-		Asset = 0,
+		Asset = 80093484789171,
 		Hash = "76c8f25b433c9163",
 		Pos = Vector3.new(76.000, 1.000, -96.000),
 		Face = Vector3.new(-0.6207, 0, 0.7840),

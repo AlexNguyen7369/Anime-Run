@@ -144,17 +144,10 @@ local function bounds(asset)
 	return hi.X >= lo.X and hi - lo or nil, lo.Y
 end
 
--- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 8 checks. The gate's and the
+-- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 1 check. The gate's and the
 -- altar's geometry is judged as if the pieces were uploaded (Shared/PlazaPieces; plaza_pieces has the state before). When a
 -- row's work lands, take the row out here: the check is then a guard of plaza_build. Keep the count in TestConfig's comment.
 local PENDING = {
-	layout_loop_posts = "upload",
-	boss_gate_mesh_BossGateClosed = "upload",
-	boss_gate_mesh_BossGateOpen = "upload",
-	gate_mesh_WorldGateLocked = "upload",
-	gate_mesh_WorldGateOpen = "upload",
-	altar_mesh_Locked = "upload",
-	altar_mesh_Unlocked = "upload",
 	merchant_sensei_replaces_the_dummy = "merchants", -- red only on a server: offline has no rig to build
 }
 

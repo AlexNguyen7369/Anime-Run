@@ -286,8 +286,10 @@
 276. 2026-11-25 — Alex Nguyen — Merged the World 2 Track 1 and 6 swap (round 8, HQ left out) into the World 2 branch; offline tests green in both worlds, harness fails only on heroes with no spot; 14 spawn piece models uploaded, not reviewed and not used in game.
 276. 2026-11-25 — Alex Nguyen — Wrote the spawn pieces' game code behind empty upload ids (Shared/PlazaPieces), so the plaza stays as it is until the meshes are uploaded; offline checks only.
 276. 2026-11-25 — Alex Nguyen — Made Gojio silent below rebirth 1 (owner): no prompt and no conversation, rule recorded in the design doc and specs (offline checks only).
+275. 2026-11-25 — Alex Nguyen — Built the export scripts and GLBs of the approved spawn pieces (gates, altars, market set B, sky loop), checked against the drafts; nothing uploaded.
 277. 2026-11-25 — Alex Nguyen — Built the World 2 colour re-export (119 meshes baked, batch plan and upload tool with rollback); nothing uploaded or changed in the game.
 278. 2026-11-25 — Alex Nguyen — Fixed the re-export tool after its audit (lost replies, lock, journaled apply, Studio vertex comparison) and recorded the lifted re-export hold; nothing uploaded.
+279. 2026-11-25 — Alex Nguyen — Tightened the re-export tool after its re-audit (signatures, ids, clear) and merged world2-place; nothing uploaded.
 
 ## What's next
 **Run the swap and the white-mesh fix in Studio, then land the fixes and pieces behind their audits.**
