@@ -1,0 +1,44 @@
+# Boss gate guide: spec (draft)
+
+Relies on `docs/WORLD_REDESIGN_SPEC.md` 4.2 (owner 2026-11-25), design doc 4.37, 4.36, 4.20, 4.42, 4.46, 4.47 and section 5, and
+`docs/BOSS_EVENT_SPEC.md`. Owner rules: Gojio (`jk_strongest`) stands at the boss gate; a player who walks up presses E to start a
+conversation that gives info about the boss gate. Everything else here is **proposed**.
+
+## Where he stands
+- One value, `Shared/BossGuideConfig.GATE_POS`, the gate's world (x, z): (2.5, 94.8), draft spot S4, not chosen by the owner yet.
+- He stands 21 studs to the gate's right and 6 toward the spawn (`OFFSET`), facing the spawn: about (23.3, 88.2). The draft gate is 35.3
+  wide, so he is outside its frame, on the side away from the Team altar.
+- Static model, no collision, name label. World 2 loads his model because the rig wears it (4.47 "Models").
+- The gate itself is not built here. At S4 the draft gate overlaps today's Team altar (-3.1, 83.9), which only the fuller layout moves.
+
+## How it shows
+- One ProximityPrompt `TalkBossGuide`: E, "Talk", "Gojio", `HoldDuration` 0 like every plaza prompt, 8 studs, gamepad X and touch by the
+  engine's default. On whether the gate is open or closed. `OnePerButton`: the engine shows one E prompt at a time, and 21.8 studs to
+  the gate's centre is more than two prompt ranges.
+- The prompt opens one handscroll (4.46), the game's popup style: his portrait, one line, Next (Done on the last), the page count in the footer.
+  Closed by Done, its X, a click outside, gamepad B or Escape. A press while it is open does nothing.
+- It is a `PanelSwitch` panel: one at a time with every panel, gamepad focus on Next. A teleport into the event closes it. Text is set when
+  it opens; an event starting meanwhile shows on the next talk.
+- Text only: no remote, nothing granted, no boss rule, timing or reward touched.
+
+## Below rebirth 1
+The Bosses button is hidden (4.36) and the gate stays closed (4.2, proposed). He still talks; only the last line differs.
+
+## Lines
+Numbers come from `BossEventConfig` and `SidekickConfig`; the 30 minutes and 5% are owner rules. No odds, prices or placeholder numbers.
+
+| Page | Line |
+|---|---|
+| Intro | I'm Gojio. Curious about the boss gate? I'll keep it short. |
+| What | A boss is one huge enemy for the whole server. Your runners circle it while their Sidekicks attack. |
+| When | A boss event starts every 30 minutes, with one boss picked at random. The gate is open while one runs. |
+| Join | To join, press Go on the live boss in the Bosses popup before teleporting closes. You need a character wearing a Sidekick. |
+| Rewards | Beat the boss and deal at least 5% of its HP for its chest: one Relic, and a tiny chance of its Sidekick. Odds are in Details. |
+| Gate, closed | The gate is closed for now. The Bosses popup shows the time to the next event. |
+| Gate, open | The gate is open: a boss event is running. Walk up to the gate, or press Bosses. |
+| Gate, below rebirth 1 | The gate and the Bosses button open up to you at Rebirth 1. Come back then. |
+
+Left out on purpose: Money and Gems (amounts and which boss pays what are part **proposed**), the paid spawn, how long an event lasts.
+
+## Tests
+ServerTest `boss_guide` (`BossGuideTests`); UI `ui_boss_guide`, clicks `boss_guide_close` and `boss_guide_next` (`UiBossGuide`).

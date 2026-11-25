@@ -527,6 +527,14 @@ for name, value in roblox do
 		globals[name] = globals[name] or value
 	end
 end
+-- lune's CFrame.lookAt faces away from its target (-Z should look at it); Roblox's is right.
+globals.CFrame = setmetatable({
+	lookAt = function(at, target, up)
+		local back = (at - target).Unit
+		local right = (up or roblox.Vector3.yAxis):Cross(back).Unit
+		return roblox.CFrame.fromMatrix(at, right, back:Cross(right), back)
+	end,
+}, { __index = roblox.CFrame })
 globals.TweenInfo = globals.TweenInfo or {
 	new = function()
 		return {}

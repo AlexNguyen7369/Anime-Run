@@ -58,6 +58,7 @@ return {
 		"sidekick_rotation",
 		"world2_cast",
 		"world2_welcome", -- WORLD2_SPEC "Welcome": Worlds.W2.Welcomed, once, old saves and World 1 keep it
+		"boss_guide", -- docs/BOSS_GUIDE_SPEC.md: Gojio at the boss gate, text only
 		"world2_team",
 		"awakening", -- design doc 4.47: World 2 stars from Copies, World 1 unchanged
 		"world2_rewards", -- WORLD2_SPEC "Rewards": World 2 pad Cash, first-clear Gems per world

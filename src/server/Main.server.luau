@@ -119,6 +119,7 @@ end
 local track1Start = entries[1].Model:FindFirstChild("Start", true).CFrame
 local spawnArea = SpawnArea.Build(track1Start)
 spawnArea.Parent = Workspace
+require(script.Parent.BossGuide).Start(track1Start) -- Gojio at the boss gate (WORLD_REDESIGN_SPEC 4.2)
 do -- the open world gate and the World 2 arrival check (design doc 4.47)
 	local WorldTravel = require(script.Parent.WorldTravel)
 	WorldTravel.IsAdmin = AdminService.IsAdmin

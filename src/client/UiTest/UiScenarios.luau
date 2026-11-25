@@ -230,6 +230,7 @@ UiScenarios.Names = {
 	-- World label, travel toast and the World 2 welcome (UiWorld2; docs/WORLD2_SPEC.md "World HUD", "Welcome")
 	"ui_world_label",
 	"ui_world2_welcome",
+	"ui_boss_guide", -- Gojio's conversation at the boss gate (UiBossGuide; docs/BOSS_GUIDE_SPEC.md)
 	"ui_hud_look_by_world", -- both worlds: 4.40 HUD, no option A dressing; panels keep the handscroll (design doc 4.46 "HUD look")
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
 	"ui_remote_guards",
@@ -9146,6 +9147,14 @@ for name, fn in K.world2.Scenarios do
 	S[name] = fn
 end
 for cond, fn in K.world2.After do
+	access.After[cond] = fn
+end
+
+K.bossGuide = require(script.Parent.UiBossGuide).Build({ check = check })
+for name, fn in K.bossGuide.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossGuide.After do
 	access.After[cond] = fn
 end
 
