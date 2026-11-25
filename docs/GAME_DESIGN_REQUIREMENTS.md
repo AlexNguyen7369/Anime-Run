@@ -445,6 +445,11 @@ before any Studio work.
 - Boss Sidekicks (owner 2026-11-11): every boss drops a downsized Sidekick of itself from its own chest only (rule and odds in 4.37, 4.38). Rows `side_raga`, `side_mage`, `side_king` in `docs/SIDEKICK_SPEC.md`.
 
 ### 4.37 Boss events (owner 2026-11-04)
+- Boss gate and guide (owner 2026-11-25; WORLD_REDESIGN_SPEC 4.2): a boss gate stands next to the plaza's Summon altar, closed
+  while no boss event is active and open while one is; its prompt opens the same Bosses popup as the Bosses button and changes
+  no boss rule, timing or reward. `jk_strongest` (Gojio) stands at it; a player who walks up presses E to start a conversation
+  that gives information about the boss gate; text only, nothing granted. Wording, sizes, prompt range and the rebirth 1 case
+  **proposed** (`docs/BOSS_GUIDE_SPEC.md`).
 - Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked
   out. The event lasts 8 minutes in total (owner 2026-11-05), and Phase 2's start adds 2 fresh minutes (owner 2026-11-06):
   - 0:00-1:00, preparation: arrivals stand on the track with a team HUD of 3 slots. Only characters with a Sidekick can be slotted, and the HUD says so. A player with 1 or 2 such characters has a team of 1 or 2. The HUD opens on the team from the player's last event, when it is still valid, and shows the team's average stamina as a number (owner 2026-11-05). Its X closes it only with at least 1 character chosen; otherwise red text, gone in a moment, says to select a character. After closing, the team runs on the track as display only, each with its Sidekick, and an Edit Team button above the minibar reopens the HUD until the spawn (owner 2026-11-05).
@@ -937,6 +942,8 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-25: clarification of the owner's "approved all" (recorded above): where 4.43, 4.45 and WORLD_REDESIGN_SPEC 4 give older Index, Team altar, statue and loop-post spots, WORLD_REDESIGN_SPEC 4.2's fuller layout replaces them. The boss gate keeps its full size and may shift inward up to 2.5 studs of S4 (agent-1's proposed margin, **proposed**).
+- 2026-11-25: owner: "approved all continue the merge", answering the list "the swap, the kaiju, and building the spawn pieces" (4.47, WORLD_REDESIGN_SPEC 4.2). Orchestrator's reading: boss gate spot S4 with the fuller layout, the revised altar B, the small stall clip fixes, and Track 1/6 swap and kaiju go ahead once their checks and the 7 bar pass; the swap's round 6 renders were not seen by the owner yet, so they are sent with the result. Uploads, place saves and publishing are not covered by these words.
 - 2026-11-25: owner: "approved merchant casts, have gojo be at boss gate for to give players info on boss gate when walked up to. (they have to prss e to initiatie convo" (4.24, 4.37, WORLD_REDESIGN_SPEC 4.2): the drafted cast; Gojio (`jk_strongest`) is the boss gate guide, E starts the conversation.
 - 2026-11-25: owner: "have boss gate stand next spawn altar, still send me the three spots for proposal. It does the same as clicking boss button, closed gate if there are not active bosses, Open if there is. Can reformat so saitama statue and index board dont block anything" (4.24, 4.37, 4.43, WORLD_REDESIGN_SPEC 4.2): the Saitamo pedestal and the Index ring slot of 4.43 may move; everything else on the ring stays.
 - 2026-11-25: owner, on the spawn drafts (https://claude.ai/artifact/YQeWdGJUMrYyRH2MMGWyfp): "B gate approved, Have A gate be a boss spawn gate (closed if boss event inactive), A summon altar approved. B markets aproved", merchants take existing anime character models, "consistent with world"; "Only exception is world 1 summon altar is B summon altar instead. World 2 summon altar is A" (4.24, 4.36, 4.43, 4.47, WORLD_REDESIGN_SPEC 4.2). Looks approved as renders; nothing is in the game yet.
