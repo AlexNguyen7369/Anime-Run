@@ -28,6 +28,7 @@ return {
 		"hud",
 		"auto_toggle",
 		"spawn_area",
+		"plaza_pieces", -- WORLD_REDESIGN_SPEC 4.2: the pieces' code, off before the upload and on after
 		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: the guards; what waits is plaza_build_pending (OnDemand)
 		"gacha",
 		"catalog",

@@ -183,6 +183,23 @@ local function run(scenario, pending)
 	end
 	local WorldConfig, SpawnArea = require(Shared.WorldConfig), require(Shared.SpawnArea)
 	local PlazaAssets, Catalog = require(Shared.PlazaAssets), require(Shared.CharacterCatalog)
+	local Pieces = H.module(Shared, "PlazaPieces")
+	local rows = Pieces and Pieces.Assets or {}
+	-- Runs fn as if the spawn pieces were uploaded (made-up ids, put back)
+	local function uploaded(fn)
+		local ids = {}
+		for key, row in rows do
+			ids[key], row.Asset = row.Asset, 1
+		end
+		local okRun, result = pcall(fn)
+		for key, row in rows do
+			row.Asset = ids[key]
+		end
+		if not okRun then
+			error(result, 0)
+		end
+		return result
+	end
 	local world = WorldConfig.Id
 	local function text(v)
 		return v == nil and "missing" or tostring(v)
@@ -257,7 +274,7 @@ local function run(scenario, pending)
 		flag("layout_statue", moved <= LAYOUT.PosTol, moved, LAYOUT.PosTol)
 		local front = flat(exclusive.Face).Unit:Dot(-LAYOUT.Statue.Unit)
 		flag("layout_statue_faces_spawn", front >= 0.98, front, 0.98)
-		local posts = PlazaAssets.LoopPosts
+		local posts = Pieces and Pieces.Ready("SkyLoop") and Pieces.LOOP_POSTS
 		local same = type(posts) == "table" and #posts == #LAYOUT.Posts
 		for i, deg in LAYOUT.Posts do
 			same = same and posts[i] == deg
@@ -287,8 +304,13 @@ local function run(scenario, pending)
 		local toSpawn = bossAt and bossLook:Dot((HUB - bossAt).Unit) or -1
 		flag("boss_gate_faces_spawn", toSpawn >= 0.98, toSpawn, 0.98)
 		for _, key in { "BossGateClosed", "BossGateOpen" } do
-			local asset = PlazaAssets.Assets[key]
-			flag("boss_gate_mesh_" .. key, asset ~= nil, asset and 1 or "no PlazaAssets.Assets." .. key, 1)
+			local asset = rows[key]
+			flag(
+				"boss_gate_mesh_" .. key,
+				asset ~= nil and asset.Asset ~= 0,
+				asset and asset.Asset or "no row",
+				"an id"
+			)
 			-- every corner of its parts' boxes, stood at the gate's spot, is over the floor (an asset's front is its +Z)
 			local margin = nil
 			for _, p in bossAt and asset and asset.Parts or {} do
@@ -444,7 +466,9 @@ local function run(scenario, pending)
 		-- World gate B
 		local function gate(open)
 			WorldConfig.GATE_OPEN = open
-			local m = SpawnArea.WorldGate(CFrame.new())
+			local m = uploaded(function()
+				return SpawnArea.WorldGate(CFrame.new())
+			end)
 			WorldConfig.GATE_OPEN = oldOpen
 			return m
 		end
@@ -508,8 +532,8 @@ local function run(scenario, pending)
 			flag(key .. "_label_text", state2 ~= nil and state2.Text == want, text(state2 and state2.Text), want)
 		end
 		for _, key in { "WorldGateLocked", "WorldGateOpen" } do
-			local asset = PlazaAssets.Assets[key]
-			flag("gate_mesh_" .. key, asset ~= nil, asset and 1 or "no PlazaAssets.Assets." .. key, 1)
+			local asset = rows[key]
+			flag("gate_mesh_" .. key, asset ~= nil and asset.Asset ~= 0, asset and asset.Asset or "no row", "an id")
 			local size, low = bounds(asset)
 			local m = GATE.MeshMax
 			flag(
@@ -523,16 +547,18 @@ local function run(scenario, pending)
 
 		-- Summon altar per world
 		local altar = area:FindFirstChild("SidekickAltar")
-		local look = altar and altar:GetAttribute("Look")
+		local look = uploaded(function()
+			return SpawnArea.Build(CFrame.new()).SidekickAltar:GetAttribute("Look")
+		end)
 		local wantLook = world == 1 and "GreatLotus" or "TwinRoof"
 		flag("altar_look_of_this_world", look == wantLook, text(look), wantLook)
 		for _, state in { "Locked", "Unlocked" } do
 			local key = "Altar" .. wantLook .. state
 			flag(
 				"altar_mesh_" .. state,
-				PlazaAssets.Assets[key] ~= nil,
-				PlazaAssets.Assets[key] and 1 or "no PlazaAssets.Assets." .. key,
-				1
+				rows[key] ~= nil and rows[key].Asset ~= 0,
+				rows[key] and rows[key].Asset or "no row",
+				"an id"
 			)
 		end
 		local spot = find(altar, "Attachment", "ModelSpot")
