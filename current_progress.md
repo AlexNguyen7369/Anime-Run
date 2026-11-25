@@ -291,6 +291,7 @@
 278. 2026-11-25 — Alex Nguyen — Turned on the 14 reviewed spawn pieces in the World 2 branch, fixed the loader for uploads whose part names carry a number, and saved copies in both places (World 1 v915, World 2 v90, not published); Studio `spawn_area` 188/188 in both worlds, World 1's tests not rerun after the loader fix.
 279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
 280. 2026-11-25 — Alex Nguyen — Merged the Track 5 kaiju fill "A with 12" into the World 2 branch as a draft (Blender tools and renders only; not exported to the game, nothing uploaded).
+281. 2026-11-25 — Alex Nguyen — Fixed two World 2 bugs found by reading, each reproduced red offline first: a sent-back arrival no longer saves a stale World 2 team, and a client waits for the place to load before reading the world id.
 
 ## What's next
 **Merge the white-mesh and grass fix once its audit passes, after running `biome_runtime` in Studio.**

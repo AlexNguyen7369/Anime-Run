@@ -26,6 +26,11 @@ WorldConfig.GATE_OPEN = false
 WorldConfig.GATE_TRACK = 10
 WorldConfig.GATE_REBIRTH = 5
 
+-- A client may require this before the place's first replication is in (ReplicatedFirst's LoadingScreen): WorldId would not
+-- be there yet and the session would act as World 1 (docs/BUGS.md w2-worldid-race). game.Loaded means it has arrived.
+if game:GetService("RunService"):IsClient() and not game:IsLoaded() then
+	game.Loaded:Wait()
+end
 local value = ReplicatedStorage:FindFirstChild("WorldId")
 WorldConfig.Id = value and value:IsA("IntValue") and math.clamp(value.Value, 1, WorldConfig.COUNT) or 1
 

@@ -261,10 +261,13 @@ end
 -- again after ADMIN_RECHECK, up to ADMIN_RECHECKS times, then the player counts as no admin.
 local function sendBack(player)
 	local carry = { Loaded = player:GetAttribute("DataLoaded") == true, Released = false }
+	-- its saves write no World 2 progress until it may stay (PlayerData, WorldSave.Fold `keep`; docs/BUGS.md w2-sendback-stale-team)
+	player:SetAttribute("SendingBack", true)
 	for try = 1, WorldTravel.ARRIVAL_TRIES do
 		if try > 1 then
 			task.wait(WorldTravel.ARRIVAL_RETRY)
 			if player.Parent and WorldTravel.CanEnter(player, 2) then
+				player:SetAttribute("SendingBack", nil)
 				unfreeze(player, carry)
 				if carry.Released then
 					retake(player)
