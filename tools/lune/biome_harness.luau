@@ -1015,7 +1015,199 @@ for _, m in models do
 	table.insert(clear, m:FindFirstChild("Checkpoint"))
 	table.insert(clear, m:FindFirstChild("WinPad", true))
 end
+-- the VFX floor, cleared as an XZ box as Main does (it is built only on `/tp vfxarea`); a Part of the same box for the
+-- GRASS checks below
+local vfx = req(Shared.VfxArea)
+local vfxFloor = R.Instance.new("Part")
+vfxFloor.Size = vfx.FLOOR_SIZE
+vfxFloor.CFrame = R.CFrame.new(vfx.CENTER)
+local slabRoots = { spawnArea, vfxFloor, table.unpack(clear) }
+do
+	local half = R.Vector2.new(vfx.FLOOR_SIZE.X, vfx.FLOOR_SIZE.Z) / 2
+	local centre = R.Vector2.new(vfx.CENTER.X, vfx.CENTER.Z)
+	table.insert(clear, { Min = centre - half, Max = centre + half })
+end
 TS.Prepare(entries, clear, { spawnArea })
+-- docs/BUGS.md w2-grass-through-road: the engine grows grass blades on Grass terrain taller than the 2 studs between the
+-- corridor's top and the road's, so no column under a road, its walls or a clear slab (checkpoint apron, WinPad, plaza
+-- floor) is Grass. Every waypoint, across the road and its walls every 4 studs.
+do
+	local gpass, gfail, first = 0, 0, {}
+	local function column(where, x, z)
+		local _, _, material = TS.Column(x, z)
+		if material == R.Enum.Material.Grass then
+			gfail += 1
+			first[where] = (first[where] or 0) + 1
+		else
+			gpass += 1
+		end
+	end
+	for _, e in entries do
+		local wps = e.Layout.WorldWaypoints
+		for j = 1, #wps - 1 do
+			local a, b = wps[j], wps[j + 1]
+			local d = R.Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+			if d.Magnitude > 1e-6 then
+				local side = R.Vector3.new(-d.Unit.Z, 0, d.Unit.X)
+				for o = -22, 22, 4 do
+					column("track " .. e.Number, a.X + side.X * o, a.Z + side.Z * o)
+				end
+			end
+		end
+	end
+	for _, root in slabRoots do
+		local parts = root:IsA("BasePart") and { root } or root:GetDescendants()
+		for _, part in parts do
+			if part:IsA("BasePart") then
+				for _, sx in { -0.5, 0, 0.5 } do
+					for _, sz in { -0.5, 0, 0.5 } do
+						local p = part.CFrame * R.Vector3.new(part.Size.X * sx, 0, part.Size.Z * sz)
+						column("clear slab", p.X, p.Z)
+					end
+				end
+			end
+		end
+	end
+	for where, n in first do
+		print(string.format("GRASS FAIL %s %d columns", where, n))
+	end
+	print(string.format("GRASS CHECKS pass %d fail %d", gpass, gfail))
+	-- The collar (owner 2026-11-25, item 3: a brown strip of 2 to 4 studs): bare ground round a clear slab, as drawn
+	-- (a bare column's centre plus half a voxel), stays within COLLAR_MAX of its real footprint (turned with it, not its
+	-- world box), and no Grass column is nearer than COLLAR_MIN (half a voxel: a Grass voxel's square starts outside the
+	-- slab). On the 4-stud columns TerrainBuilder writes. `raw` is the same Column with the Grass corridors swapped for
+	-- Plastic, so bared columns can be told apart. Every slab must face a multiple of 90 degrees: on a turned slab a
+	-- voxel's corner reaches 2.83 studs from its centre, and no strip keeps both bounds (that slab FAILs).
+	local COLLAR_MAX, COLLAR_MIN, HALF_VOXEL = 4, 2, 2
+	local Material = R.Enum.Material
+	local slabs = {}
+	for _, root in slabRoots do
+		for _, part in root:IsA("BasePart") and { root } or root:GetDescendants() do
+			if part:IsA("BasePart") then
+				local cf, half = part.CFrame, part.Size / 2
+				local look = R.Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z)
+				look = look.Magnitude > 1e-4 and look.Unit or R.Vector3.new(0, 0, -1)
+				local yaw = math.deg(math.atan2(look.X, look.Z)) % 90
+				if math.min(yaw, 90 - yaw) > 0.01 then
+					print(string.format("GRASS COLLAR FAIL slab %s faces %.2f degrees off the grid", part.Name, yaw))
+					gfail += 1
+				end
+				local right = R.Vector3.new(-look.Z, 0, look.X)
+				local function extent(axis)
+					return math.abs(cf.RightVector:Dot(axis)) * half.X
+						+ math.abs(cf.UpVector:Dot(axis)) * half.Y
+						+ math.abs(cf.LookVector:Dot(axis)) * half.Z
+				end
+				table.insert(slabs, {
+					Part = part,
+					P = cf.Position,
+					R = right,
+					L = look,
+					HX = extent(right),
+					HZ = extent(look),
+				})
+			end
+		end
+	end
+	local function past(s, x, z) -- studs from the footprint (0 inside)
+		local d = R.Vector3.new(x - s.P.X, 0, z - s.P.Z)
+		local ex = math.max(math.abs(d:Dot(s.R)) - s.HX, 0)
+		local ez = math.max(math.abs(d:Dot(s.L)) - s.HZ, 0)
+		return math.sqrt(ex * ex + ez * ez)
+	end
+	local cells = {} -- "x,z" -> { x, z, distance to the nearest slab, that slab }
+	for _, s in slabs do
+		local reach = math.sqrt(s.HX * s.HX + s.HZ * s.HZ) + 24
+		for x = math.floor((s.P.X - reach) / 4) * 4 + 2, s.P.X + reach, 4 do
+			for z = math.floor((s.P.Z - reach) / 4) * 4 + 2, s.P.Z + reach, 4 do
+				local key, d = x .. "," .. z, past(s, x, z)
+				local c = cells[key]
+				if d <= 24 and (not c or d < c[3]) then
+					cells[key] = { x, z, d, s }
+				end
+			end
+		end
+	end
+	local function eachGrassCorridor(f)
+		for _, e in entries do
+			local mats = TS.Profile(e.Number).Materials
+			if mats and (mats.Corridor == Material.Grass or mats.Corridor == Material.Plastic) then
+				f(mats)
+			end
+		end
+	end
+	local drawn = {}
+	for key, c in cells do
+		local _, _, m = TS.Column(c[1], c[2])
+		drawn[key] = m
+	end
+	eachGrassCorridor(function(mats)
+		mats.Corridor = Material.Plastic
+	end)
+	local wide, near, cpass, widest, closest, bands = 0, 0, 0, 0, math.huge, {}
+	for key, c in cells do
+		local x, z, d, m = c[1], c[2], c[3], drawn[key]
+		local road = math.huge
+		for _, e in entries do
+			local _, away = TS.Owner(x, z, e.Number)
+			road = math.min(road, away)
+		end
+		local _, _, raw = TS.Column(x, z)
+		local grassy = raw == Material.Plastic or raw == Material.Grass
+		if grassy and road > TS.BARE then
+			local bare = m ~= Material.Grass
+			if bare and d + HALF_VOXEL > COLLAR_MAX + 1e-3 then
+				wide += 1
+			elseif not bare and d <= COLLAR_MIN then
+				near += 1
+			else
+				cpass += 1
+			end
+			if bare then
+				widest = math.max(widest, d)
+			else
+				closest = math.min(closest, d)
+			end
+			if d > 0 and d <= 14 then
+				local b = math.ceil(d)
+				bands[b] = bands[b] or { 0, 0 }
+				bands[b][bare and 1 or 2] += 1
+			end
+		end
+	end
+	eachGrassCorridor(function(mats)
+		mats.Corridor = Material.Grass
+	end)
+	for b = 1, 14 do
+		if bands[b] then
+			print(string.format("GRASS COLLAR %d-%d studs past: bare %d grass %d", b - 1, b, bands[b][1], bands[b][2]))
+		end
+	end
+	if process.env.COLLARYAW then
+		for _, s in slabs do
+			print("slab", s.Part.Name, math.deg(math.atan2(s.L.X, s.L.Z)), s.HX, s.HZ, s.P.X, s.P.Z)
+		end
+	end
+	print(
+		string.format(
+			"GRASS COLLAR pass %d, bare drawn past %d studs %d, grass within %d studs %d; farthest bare column %.2f, nearest grass column %.2f",
+			cpass,
+			COLLAR_MAX,
+			wide,
+			COLLAR_MIN,
+			near,
+			widest,
+			closest
+		)
+	)
+	if wide + near > 0 then
+		print("GRASS COLLAR FAIL")
+		gfail += wide + near
+	end
+	if process.env.GRASSONLY then -- stop here: this block alone
+		process.exit(gfail > 0 and 1 or 0)
+	end
+end
 local function corridor(x, z)
 	local _, _, _, _, limit = TS.Column(x, z)
 	return limit == nil
