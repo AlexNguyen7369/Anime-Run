@@ -146,7 +146,7 @@ end
 
 -- What stands behind the locked Mythic, at least 2% of the rays from a player's eye (the spawn, 40, 25 and 18 studs off, from the front and 25
 -- degrees to each side) through the model on to the locked altar of the approved draft (draft_altar.py concept_b / concept_a, its own colours;
--- measured 2026-11-25): hex -> share in percent. The sky, behind the roof stage's edges in 14%, is left out.
+-- measured 2026-11-25 by tools/blender/plaza/locked_backdrop.py): hex -> share in percent. The sky, behind the roof stage's edges in 14%, is left out.
 local BEHIND_LOCKED = {
 	{ -- great lotus: petal steps ld4 to ld9, the gold hems
 		["987083"] = 26.6,

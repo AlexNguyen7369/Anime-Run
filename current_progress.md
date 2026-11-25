@@ -292,6 +292,7 @@
 279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
 280. 2026-11-25 — Alex Nguyen — Built the merchants' poses behind their off switch and a readable locked Mythic per altar; exporter names its parts without numbers (offline checks only).
 281. 2026-11-25 — Alex Nguyen — Recorded the owner's approval of the locked Mythic colours and the merchants' names.
+282. 2026-11-25 — Alex Nguyen — Fixed the merchant-poses re-audit wording, pinned the approved locked colours in a test and added the script that measures what stands behind the locked Mythic.
 
 ## What's next
 **Merge the white-mesh and grass fix once its audit passes, after running `biome_runtime` in Studio.**

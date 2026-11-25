@@ -130,6 +130,13 @@ function Tests.plaza_pieces()
 			)
 			fill(1)
 			local new = Pieces.LockedLook and Pieces.LockedLook()
+			local approved = world == 1 and Color3.fromRGB(74, 66, 92) or Color3.fromRGB(132, 120, 152) -- owner 2026-11-25
+			flag(
+				"locked_colour_approved_w" .. world,
+				new ~= nil and new.Color == approved,
+				new and tostring(new.Color),
+				tostring(approved)
+			)
 			local dark = new and H.contrast(Color3.fromRGB(24, 22, 30), new.Color) or 0
 			flag("locked_look_not_near_black_w" .. world, dark >= 1.5, dark, 1.5)
 		end

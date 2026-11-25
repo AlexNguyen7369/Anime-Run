@@ -10,7 +10,7 @@ local PlazaPieces = {}
 
 PlazaPieces.Assets = require(script.Parent.PlazaPieceAssets)
 local TODAYS_MODEL_SIZE = 7 -- studs, the turning Mythic's largest extent in today's altar
--- The merchants' switch, off until the lead turns it on: cast, poses and rulings are in (owner 2026-11-25: Frierin may load in World 1,
+-- The merchants' switch, off until the owner approves turning it on: cast, poses and rulings are in (owner 2026-11-25: Frierin may load in World 1,
 -- Kakashe is the smaller one). The Sensei dummy stays while off.
 PlazaPieces.MERCHANTS_LIVE = false
 PlazaPieces.ALTAR_TAGS = { Locked = "PlazaAltarLocked", Unlocked = "PlazaAltarUnlocked" } -- Shared/PlazaPieceLook, per player
