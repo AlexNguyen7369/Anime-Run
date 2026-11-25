@@ -3,7 +3,8 @@
 committed file and a scratch `export_props.py -- 5 --no-glb`: only the GiantCorpse prop data, its 2 placements and the 12 fill rows (9 Apartment,
 3 Office) are new. DefenseHQ stays unplaced, Railgun, the 21 Piers, the vans and every other row keep their text and their Placed_<n>.
 - Dropped, standing inside a body (`measure.json`, share of vertices under the body >= 0.5): Rubble rows 184, 249, 264, 287 (0.81, 0.92, 0.89,
-  1.00). Their slots hold the 2 GiantCorpses, one Office and one Apartment; the other 10 new rows are 589 to 598.
+  1.00). Owner 2026-11-25 (question 32): the game vans in rows 226 and 228 are dropped too (`OWNER_DROP`), the frozen Rubble under the fill stays.
+  The 6 freed slots (184, 226, 228, 249, 264, 287) hold the 2 GiantCorpses, 2 Offices and 2 Apartments; the other 8 new rows are 589 to 596.
 - The ledger row (`KaijuBase.luau` W2_KaijuBase_GiantCorpse) still names the OLD mesh id: this file must not ship before the new upload.
 - Parts fallback: the exporter gives KaijuBase's stand-in parts (STANDIN 010203) its approved HIDE 86402F (`export_props.stand_in_colours`, fallback only):
   all 24 GiantCorpse fallback parts are 86402F. The GLB is unchanged: geometry hash 7f2f942a...1c651137, 19,889 tris, 33,294 vertices, 1,185,820 bytes, before and after.

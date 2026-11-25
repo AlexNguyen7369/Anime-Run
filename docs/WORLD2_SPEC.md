@@ -188,6 +188,9 @@ written before the swap.
 - Owner 2026-11-25, on the Track 5 fill over the merged swap: "A with 12". Draft A (round 5 fill props the swap freed come
   back) without Apartments (-471.8, 875.3) and (-613.6, 876.6): 12 props. The option was described as needing no van to move;
   no van is moved. **Open**: the vans' own spots, and the kaiju's overlaps with other tracks' props (shown, not ruled on).
+- Owner 2026-11-25, question 32 (the kaiju's game export): "drop two vans, keep the rubble under the fill, ok". The two game
+  SweeperVans that touch the kaiju at site 1 (Draft rows 226 and 228) are dropped; the frozen Rubble under the 12 fill props
+  stays; the 4 Rubble rows standing inside the bodies go (read as covered by "ok"). The other five vans stay where they are.
 - Spawn pieces (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2): gate, boss gate, stalls and merchants are World 1's; the Summon altar is draft A here and draft B in World 1.
 - Ground ownership (owner 2026-11-25, the overlap question): where two tracks' scenery meets, a spot belongs to the track
   whose road (nearest centre line) is nearest; other tracks' props there are moved or removed. Before any frozen track

@@ -22,6 +22,12 @@ DRAFT = os.path.join(ROOT, "src", "shared", "BiomeThemes", "World2", "KaijuBaseD
 HERO = "GiantCorpse"
 ADDED = {"GiantCorpse": 2, "Apartment": 9, "Office": 3}
 INSIDE = 0.5
+# Owner 2026-11-25, question 32 (a): "drop two vans", the game vans touching the kaiju at site 1 (measure.json). By row and its
+# exact text, so a changed file is refused rather than the wrong row dropped.
+OWNER_DROP = {
+	226: '{ "SweeperVan", 1597.434, -3.955, -1138.367, 2.802, 1.15 }',
+	228: '{ "SweeperVan", 1556.671, -3.955, -1152.202, 2.441, 1.15 }',
+}
 ROW = re.compile(r'^\t\t(\{ "(\w+)", .* \}),$')
 
 
@@ -44,8 +50,10 @@ def prop_block(text, name):
 	return m.span()
 
 
-def merge(old, fresh, inside, added=ADDED):
-	"""The committed text with the kaiju's data and rows from the fresh one. inside: indices (from 1) of the rows to drop."""
+def merge(old, fresh, inside, added=ADDED, owner=None):
+	"""The committed text with the kaiju's data and rows from the fresh one. inside: indices (from 1) of the rows to drop;
+	owner: {index: row text} the owner dropped by name (OWNER_DROP). Each dropped row's slot takes a new row."""
+	owner = OWNER_DROP if owner is None else owner
 	_, frows, _ = placed(fresh)
 	head, rows, tail = placed(old)
 	name = lambda line: ROW.match(line).group(2)  # noqa: E731
@@ -54,14 +62,18 @@ def merge(old, fresh, inside, added=ADDED):
 	got = collections.Counter(name(line) for line in new)
 	if got != collections.Counter(added):
 		raise SystemExit("the fresh export adds %s, not %s" % (dict(got), added))
-	if len(set(new)) != len(new) or len(set(inside)) != len(inside) or len(inside) > len(new):
+	drop = sorted(set(inside) | set(owner))
+	if len(set(new)) != len(new) or len(set(inside)) != len(inside) or set(inside) & set(owner) or len(drop) > len(new):
 		raise SystemExit("repeated or too many rows")
+	for i, text in owner.items():
+		if rows[i - 1].strip() != text + ",":
+			raise SystemExit("row %d is %s, not the owner's %s" % (i, rows[i - 1].strip(), text))
 	out = list(rows)
-	for n, i in enumerate(sorted(inside)):
-		if name(rows[i - 1]) in ("SweeperVan", "Pier", "Railgun", HERO):
+	for n, i in enumerate(drop):
+		if i not in owner and name(rows[i - 1]) in ("SweeperVan", "Pier", "Railgun", HERO):
 			raise SystemExit("row %d is a %s: not this filter's to drop" % (i, name(rows[i - 1])))
 		out[i - 1] = new[n]
-	out += new[len(inside) :]
+	out += new[len(drop) :]
 	a, b = prop_block(head, HERO)
 	fa, fb = prop_block(fresh, HERO)
 	head = head[:a] + fresh[fa:fb] + head[b:]
@@ -79,11 +91,13 @@ def self_test():
 	old = doc("9", [r("Railgun", 1), r("Pier", 2), r("Rubble", 3), r("SweeperVan", 4), r("Rubble", 5)])
 	fresh = doc("3", [r("DefenseHQ", 8), r("GiantCorpse", 1), r("Railgun", 1), r("Pier", 7), r("Apartment", 6), r("SweeperVan", 9), r("Rubble", 5)])
 	added = {"GiantCorpse": 1, "Apartment": 1}
-	out = merge(old, fresh, [3], added)
+	out = merge(old, fresh, [3], added, {})
 	assert placed(out)[1] == ["\t\t%s," % q for q in (r("Railgun", 1), r("Pier", 2), r("GiantCorpse", 1), r("SweeperVan", 4), r("Rubble", 5), r("Apartment", 6))], out
 	assert "Size = 3" in out and "Size = 1" in out and "Size = 9" not in out and "DefenseHQ" not in out
-	assert placed(merge(old, fresh, [], added))[1][:5] == placed(old)[1]
-	for bad in ((old, fresh, [4], added), (old, fresh, [2], added), (old, fresh, [1], added), (old, fresh, [3, 3], added), (old, fresh, [3], ADDED), (old, fresh, [3, 5, 1], added)):
+	assert placed(merge(old, fresh, [], added, {}))[1][:5] == placed(old)[1]
+	van = {4: r("SweeperVan", 4)}
+	assert placed(merge(old, fresh, [], added, van))[1] == ["\t\t%s," % q for q in (r("Railgun", 1), r("Pier", 2), r("Rubble", 3), r("GiantCorpse", 1), r("Rubble", 5), r("Apartment", 6))]
+	for bad in ((old, fresh, [4], added, {}), (old, fresh, [2], added, {}), (old, fresh, [1], added, {}), (old, fresh, [3, 3], added, {}), (old, fresh, [3], ADDED, {}), (old, fresh, [3, 5, 1], added, {}), (old, fresh, [], added, {4: r("SweeperVan", 9)}), (old, fresh, [4], added, van), (old, fresh, [3, 5], added, van)):
 		try:
 			merge(*bad)
 		except SystemExit:
@@ -172,4 +186,4 @@ if __name__ == "__main__":
 		drop = inside_rows(json.load(open(argv[2])))
 		text = merge(old, open(argv[1]).read(), drop)
 		open(DRAFT, "w").write(text)
-		print("dropped", [placed(old)[1][i - 1].strip() for i in drop])
+		print("dropped", [placed(old)[1][i - 1].strip() for i in sorted(drop + list(OWNER_DROP))])
