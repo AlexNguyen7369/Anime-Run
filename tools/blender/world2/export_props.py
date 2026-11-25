@@ -502,9 +502,7 @@ def fallback(parts, centre, keep):
 
 
 def bake_glb(src, centre, path):
-	"""One mesh, re-centred, with material base colours baked to a vertex colour layer, written as GLB. COLOR_0 holds the
-	sRGB numbers of the kit colour (glTF says linear): Roblox reads them as sRGB, so linear ones drew near-black
-	(docs/BUGS.md w2-dark-props, color_test.py)."""
+	"""One mesh, re-centred, with material base colours baked to a vertex colour layer, written as GLB."""
 	import bpy
 
 	me = src.data.copy()
@@ -518,8 +516,7 @@ def bake_glb(src, centre, path):
 	cols = []
 	for m in me.materials:
 		b = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None) if m and m.use_nodes else None
-		lin = tuple(b.inputs["Base Color"].default_value) if b else (0.5, 0.5, 0.5, 1.0)
-		cols.append(tuple(c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1 / 2.4) - 0.055 for c in lin[:3]) + (lin[3],))
+		cols.append(tuple(b.inputs["Base Color"].default_value) if b else (0.5, 0.5, 0.5, 1.0))
 	for poly in me.polygons:
 		c = cols[poly.material_index] if cols else (0.5, 0.5, 0.5, 1.0)
 		for li in poly.loop_indices:
