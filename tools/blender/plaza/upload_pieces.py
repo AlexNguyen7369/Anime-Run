@@ -5,6 +5,7 @@
 # it can never upload an old mesh over a piece or the reverse.
 #   python3 tools/blender/plaza/upload_pieces.py [key ...] [--dry] [--registry]
 # Keys: only those (default: all but *Draft). --dry lists; --registry writes the table without uploading.
+# An id enters the table only once its ledger row is Reviewed (BIOME_ENVIRONMENT_SPEC 4.1 step 3): sign plaza_pieces.json, then --registry.
 # Everything is read, checked and rendered to text before the first upload. A key whose hash is in the ledger is not sent
 # again. ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required to upload. Self-check (no network): --self-test
 import json
@@ -47,7 +48,7 @@ def table(pieces, ledger):
 		a = pieces[key]
 		row = ledger.get(key, {})
 		out.append("\t%s = {" % key)
-		out.append("\t\tAsset = %s," % (row["Asset"] if row.get("Hash") == a["Hash"] else 0))
+		out.append("\t\tAsset = %s," % (row["Asset"] if row.get("Hash") == a["Hash"] and row.get("Reviewed") else 0))
 		out.append('\t\tHash = "%s",' % a["Hash"])
 		out.append("\t\tPos = %s," % up.v3(a["Pos"]))
 		out.append("\t\tFace = Vector3.new(%.4f, 0, %.4f)," % tuple(a["Face"]))
@@ -74,8 +75,9 @@ def self_test():
 	assert wanted(pieces, {}, []) == ["A", "B"]
 	assert wanted(pieces, {"A": {"Hash": "h", "Asset": 7}}, []) == ["B"]
 	assert wanted(pieces, {}, ["CDraft"]) == ["CDraft"]
-	assert "Asset = 7," in table(pieces, {"A": {"Hash": "h", "Asset": 7}})
-	assert "Asset = 7," not in table(pieces, {"A": {"Hash": "old", "Asset": 7}}), "a stale id is never used"
+	assert "Asset = 7," in table(pieces, {"A": {"Hash": "h", "Asset": 7, "Reviewed": "x"}})
+	assert "Asset = 7," not in table(pieces, {"A": {"Hash": "h", "Asset": 7}}), "an unreviewed id is never used"
+	assert "Asset = 7," not in table(pieces, {"A": {"Hash": "old", "Asset": 7, "Reviewed": "x"}}), "a stale id is never used"
 	try:
 		wanted(pieces, {}, ["X"])
 	except SystemExit:
