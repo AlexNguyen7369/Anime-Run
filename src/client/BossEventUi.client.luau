@@ -58,7 +58,7 @@ local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle,
 -- Design doc 4.40 "Market pill and Bosses button" (owner 2026-11-11): the column buttons' exact cell, icon and label
 -- (Client/HudChrome CELL, ICON, label TextSize and outline), x BOSS_PHONE_SCALE on a phone as HudChrome's UIScale.
 local BOSS_CELL = Vector2.new(84, 94)
--- World 2 (HudPlaque.Old, design doc 4.47): the 4.40 look, as HudChrome's there: 72 px icon at the top, white label.
+-- HudPlaque.Old (both worlds, design doc 4.46 "HUD look"): the 4.40 look, as HudChrome's: 72 px icon at the top, white label.
 local OLD_HUD = HudPlaque.Old
 local BOSS_ICON = OLD_HUD and 72 or 60
 local BOSS_ICON_TOP = OLD_HUD and 0 or 6 -- px: HudChrome ICON_TOP (design doc 4.46 option A)
@@ -739,7 +739,7 @@ make("UIScale", "PulseScale", bossButton, {})
 bossButton.Parent = secondColumn
 -- Below it, Team (owner 2026-11-12): opens the Team panel (Client/TeamUi), as its key letter T does, as the column's.
 local teamButton, teamOutline = columnButton("TeamButton", "Team", Icons.Team.Image, "Outline")
--- HudChrome's key seal: 20 px, 3 px in from the top-right corner (World 2: its white outlined letter, 18 px, 2 px in).
+-- HudChrome's key seal: 20 px, 3 px in from the top-right corner (old HUD: its white outlined letter, 18 px, 2 px in).
 local teamLetter, teamLetterOutline
 if OLD_HUD then
 	teamLetter = make("TextLabel", "Key", teamButton, {

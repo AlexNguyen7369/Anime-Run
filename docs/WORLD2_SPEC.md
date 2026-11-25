@@ -63,14 +63,14 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 
 ## World HUD and welcome (proposed, design doc 4.47)
 ### World HUD
-- HUD look (owner 2026-11-24, design doc 4.47 "World 2 HUD look"): World 2's always-on HUD keeps its look from before
-  the Scroll Dojo redesign (4.40, main at `6a36029^1`); every panel, popup and the boss event UI keep the 4.46 look.
-  One switch, `Client/HudPlaque.Old` (`WorldConfig.Id == 2`), read by HudChrome, BossEventUi (Bosses and Team column),
-  RacerUiController (Money, Gems, Turbo bar), TeamHud and WorldHud. Positions and behaviour are unchanged.
+- HUD look (owner 2026-11-24, design doc 4.46 "HUD look" and 4.47): World 2's HUD is World 1's, and both keep the
+  always-on HUD's look from before the Scroll Dojo redesign (4.40, main at `6a36029^1`); every panel, popup and the
+  boss event UI keep the 4.46 look. One switch, `Client/HudPlaque.Old` (true in both worlds), read by HudChrome,
+  BossEventUi (Bosses and Team column), RacerUiController (Money, Gems, Turbo bar), TeamHud and WorldHud. Positions
+  and behaviour are unchanged. World 2 differs only by the fourth team slot.
 - World label: `Client/WorldHud` shows "World N" (`WorldConfig.Id`) under the top-right pills, as wide as and
-  right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales): a small lacquer plate in
-  World 1, the old top-right pills' dark round pill with white outlined text in World 2. Display only; shown in both
-  worlds.
+  right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales): the old top-right
+  pills' dark round pill with white outlined text, in both worlds. Display only; shown in both worlds.
 - Travel: while the server holds a trip (player attribute `Travelling`, `WorldTravel.Go`, gate or admin command alike),
   TeamToast shows "Travelling to World N..."; a failed trip shows TeamToast's "TRAVEL FAILED, TRY AGAIN". The locked
   gate looks unchanged.

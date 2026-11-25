@@ -563,11 +563,11 @@ UiSpec.Hud = {
 	ColumnSize = 3, -- buttons in the left column: NavButtons 1-3; the rest (4-6) are the right column
 	RightColumnSize = 3,
 	ColumnGap = 8, -- px between stacked buttons (each holder's UIListLayout Padding; a phone's UIScale only shrinks it)
-	Cell = Vector2.new(84, 94), -- one button before its holder's UIScale (4.46 option A: 60 px icon at top 6, 24 px label)
+	Cell = Vector2.new(84, 94), -- one button before its holder's UIScale: a 72 px icon + 12, the icon + a 22 px label
 	-- retired: GridColumns / GridGap (the 2-column block) and GoldTiles (the gold-frame tile art), owner 2026-11-10
 	-- Design doc 4.40 "Icon style": every column button and the Auto / Upgrade pair are a transparent ImageButton
-	-- (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows the HudIcons entry of the button's name; option A's
-	-- wood is a child Frame "Plaque" (design doc 4.46)
+	-- (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows the HudIcons entry of the button's name. No
+	-- option A wood (a child Frame "Plaque", design doc 4.46) in either world: 4.46 "HUD look", owner 2026-11-24
 	IconButtons = {
 		"HudChrome/Grid/Index",
 		"HudChrome/Grid/Items",
@@ -604,15 +604,23 @@ UiSpec.Hud = {
 	-- retired: Speed, SpeedIcon, SpeedDial, SpeedValue (the speedometer and cruise read-out, design doc 4.13, owner 2026-11-01)
 	Money = "RacerHud/Money",
 	MoneyValue = "RacerHud/Money/MoneyValue",
-	-- Owner 2026-11-10 (design doc 4.40): no UNBANKED line (the run bank is gone); the Gems row sits directly under
-	-- MoneyValue, inside Money. Retired paths must stay absent. Owner 2026-11-20 (4.40, 4.46 option A): Money and Gems
-	-- sit on these lacquer plates (opaque, gold Border rim); nothing else inside Money draws a box. World 2 has them
-	-- too (design doc 4.47, owner 2026-11-24: World 2's UI is World 1's except the fourth team slot).
-	MoneyPlates = { "RacerHud/Money/MoneyLacquer", "RacerHud/Money/Gems/GemsLacquer" },
-	MoneyPlateRim = Color3.fromRGB(255, 204, 72), -- UiTheme.Scroll.TagGold
+	-- Owner 2026-11-10 (design doc 4.40): no box or border behind Money or Gems, no UNBANKED line (the run bank is
+	-- gone); the Gems row sits directly under MoneyValue, inside Money. Retired paths must stay absent. Owner 2026-11-24
+	-- (design doc 4.46 "HUD look", both worlds): option A's lacquer plates (MoneyLacquer, GemsLacquer, 4.46)
+	-- are retired with it, so nothing inside Money draws a box.
 	Gems = "RacerHud/Money/Gems",
 	GemsValue = "RacerHud/Money/Gems/GemsValue",
-	RetiredMoneyParts = { "RacerHud/Money/MoneyPlate", "RacerHud/Money/Unbanked", "RacerHud/Gems" },
+	RetiredMoneyParts = {
+		"RacerHud/Money/MoneyPlate",
+		"RacerHud/Money/Unbanked",
+		"RacerHud/Gems",
+		"RacerHud/Money/MoneyLacquer",
+		"RacerHud/Money/Gems/GemsLacquer",
+	},
+	-- The 4.40 read-outs: the game font (no kit font: not Permanent Marker, not Kalam) and a blue Gems gradient, top
+	-- to bottom (option A's was gold).
+	ReadoutFont = Enum.Font.FredokaOne, -- UiTheme.Font
+	GemsGradient = { Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255) },
 	RetiredMoneyText = "UNBANKED", -- no HUD label starts with it
 	GemsUnderGap = 16, -- px: most the Gems row's top may sit below MoneyValue's bottom
 	GemsLeftTolerance = 8, -- px: Gems row's left edge vs MoneyValue's left edge

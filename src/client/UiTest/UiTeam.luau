@@ -53,20 +53,27 @@ local Portraits = require(Shared:WaitForChild("CharacterPortraits"))
 local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local SidekickView = require(script.Parent.Parent:WaitForChild("SidekickView"))
 local Spec = require(script.Parent.UiSpec)
--- The button's label sits under its icon. Design doc 4.46 HUD option A: the button's own text is hidden and its child
--- "Label" is the visible label, so that child's top must be at or below the icon's bottom (4.40: own text at the bottom).
+-- The button's label sits under its icon. Design doc 4.40, and 4.46 "HUD look" (owner 2026-11-24: the HUD from
+-- before the Scroll Dojo redesign, in both worlds): the button's own text is the label, shown, at the cell's bottom,
+-- under the icon at the cell's top. No option A dressing: no child "Label" drawn over a wood "Plaque". The drawn
+-- text (TextBounds tall, bottom-aligned in the button's rect) starts at or below the icon's bottom, 1 px tolerance.
 local function labelUnderIcon(b, icon)
-	if not (b and b:IsA("TextButton") and icon) then
+	if
+		not (
+			b ~= nil
+			and b:IsA("TextButton")
+			and icon ~= nil
+			and b.TextTransparency < 1
+			and b.TextYAlignment == Enum.TextYAlignment.Bottom
+			and icon.Position.Y.Scale == 0
+			and b:FindFirstChild("Label") == nil
+			and b:FindFirstChild("Plaque") == nil
+		)
+	then
 		return false
 	end
-	local label = b:FindFirstChild("Label")
-	if b.TextTransparency < 1 or not (label and label:IsA("TextLabel")) then
-		return b.TextYAlignment == Enum.TextYAlignment.Bottom and icon.Position.Y.Scale == 0
-	end
-	return label.Visible
-		and label.TextTransparency < 1
-		and label.Text == b.Text
-		and label.AbsolutePosition.Y >= icon.AbsolutePosition.Y + icon.AbsoluteSize.Y - 1
+	local textTop = b.AbsolutePosition.Y + b.AbsoluteSize.Y - b.TextBounds.Y
+	return b.TextBounds.Y > 0 and textTop >= icon.AbsolutePosition.Y + icon.AbsoluteSize.Y - 1
 end
 
 local T = Spec.Team
