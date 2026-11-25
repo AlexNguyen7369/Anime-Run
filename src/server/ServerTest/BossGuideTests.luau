@@ -66,7 +66,7 @@ function Tests.boss_guide()
 		flag("prompt_key_e", p.KeyboardKeyCode == Enum.KeyCode.E)
 		flag("prompt_hold", p.HoldDuration == 0, p.HoldDuration, 0)
 		flag("prompt_distance", p.MaxActivationDistance == 8)
-		flag("prompt_always_on", p.Enabled ~= false) -- usable whether the gate is open or closed
+		flag("prompt_built_off", p.Enabled == false) -- each client turns it on from rebirth 1 (owner 2026-11-25)
 	end
 	local moving, solid = 0, 0
 	for _, d in model:GetDescendants() do
@@ -149,49 +149,46 @@ function Tests.boss_guide()
 		end
 	end
 
-	-- The text table: every topic, both gate states, both rebirth states, short, tweaked names only.
+	-- The text table: every topic, both gate states, short, tweaked names only.
 	for _, gateOpen in { false, true } do
-		for _, rebirth in { 0, Sidekick.HudFromRebirth } do
-			local label = ("%s_r%d"):format(gateOpen and "open" or "closed", rebirth)
-			local pages = Config.Pages(gateOpen, rebirth)
-			flag("topics_" .. label, #pages == #TOPICS, #pages, #TOPICS)
-			local long, real, text = {}, {}, {}
-			for i, page in pages do
-				flag(("topic_%s_%d"):format(label, i), page.Id == TOPICS[i], page.Id, TOPICS[i])
-				table.insert(text, page.Text)
-				if #page.Text == 0 or #page.Text > LINE_MAX then
-					table.insert(long, page.Id .. " " .. #page.Text)
-				end
-				for _, name in REAL do
-					if string.find(string.lower(page.Text), name, 1, true) then
-						table.insert(real, name)
-					end
+		local label = gateOpen and "open" or "closed"
+		local pages = Config.Pages(gateOpen)
+		flag("topics_" .. label, #pages == #TOPICS, #pages, #TOPICS)
+		local long, real, text = {}, {}, {}
+		for i, page in pages do
+			flag(("topic_%s_%d"):format(label, i), page.Id == TOPICS[i], page.Id, TOPICS[i])
+			table.insert(text, page.Text)
+			if #page.Text == 0 or #page.Text > LINE_MAX then
+				table.insert(long, page.Id .. " " .. #page.Text)
+			end
+			for _, name in REAL do
+				if string.find(string.lower(page.Text), name, 1, true) then
+					table.insert(real, name)
 				end
 			end
-			flag("lines_short_" .. label, #long == 0, words(long), "")
-			flag("no_real_names_" .. label, #real == 0, words(real), "")
-			local all = string.lower(words(text))
-			flag("no_odds_or_prices_" .. label, not string.find(all, "%d%.%d") and not string.find(all, "robux"))
-			flag("says_sidekick_" .. label, string.find(all, "sidekick", 1, true) ~= nil)
-			local every = ("every %d minutes"):format(Boss.IntervalSeconds / 60)
-			flag("interval_from_config_" .. label, string.find(all, every, 1, true) ~= nil, every)
-			local share = ("%d%%"):format(Boss.MinDamageShare * 100)
-			flag("share_from_config_" .. label, string.find(all, share, 1, true) ~= nil, share)
-			local rewards = pages[5].Text
-			flag("defeat_only_" .. label, string.find(rewards, "Only a defeat pays", 1, true) ~= nil)
-			flag("share_is_per_phase_" .. label, string.find(rewards, "that phase's HP", 1, true) ~= nil)
-			local last = pages[#pages].Text
-			local early = rebirth < Sidekick.HudFromRebirth
-			flag(
-				"gate_line_" .. label,
-				string.find(last, early and ("Rebirth " .. Sidekick.HudFromRebirth) or gateOpen and "open" or "closed")
-					~= nil,
-				last
-			)
 		end
+		flag("lines_short_" .. label, #long == 0, words(long), "")
+		flag("no_real_names_" .. label, #real == 0, words(real), "")
+		local all = string.lower(words(text))
+		flag("no_odds_or_prices_" .. label, not string.find(all, "%d%.%d") and not string.find(all, "robux"))
+		flag("says_sidekick_" .. label, string.find(all, "sidekick", 1, true) ~= nil)
+		local every = ("every %d minutes"):format(Boss.IntervalSeconds / 60)
+		flag("interval_from_config_" .. label, string.find(all, every, 1, true) ~= nil, every)
+		local share = ("%d%%"):format(Boss.MinDamageShare * 100)
+		flag("share_from_config_" .. label, string.find(all, share, 1, true) ~= nil, share)
+		local rewards = pages[5].Text
+		flag("defeat_only_" .. label, string.find(rewards, "Only a defeat pays", 1, true) ~= nil)
+		flag("share_is_per_phase_" .. label, string.find(rewards, "that phase's HP", 1, true) ~= nil)
+		local last = pages[#pages].Text
+		flag("gate_line_" .. label, string.find(last, gateOpen and "open" or "closed", 1, true) ~= nil, last)
 	end
-	flag("open_and_closed_differ", Config.Pages(true, 1)[6].Text ~= Config.Pages(false, 1)[6].Text)
-	flag("early_same_open_or_closed", Config.Pages(true, 0)[6].Text == Config.Pages(false, 0)[6].Text)
+	flag("open_and_closed_differ", Config.Pages(true)[6].Text ~= Config.Pages(false)[6].Text)
+	-- Owner 2026-11-25: he does not talk to a player below rebirth 1.
+	local talks = type(Config.Talks) == "function" and Config.Talks
+	flag("talks_from_rebirth_1", talks and talks(Sidekick.HudFromRebirth) == true)
+	flag("talks_above", talks and talks(Sidekick.HudFromRebirth + 5) == true)
+	flag("silent_below_rebirth_1", talks and talks(Sidekick.HudFromRebirth - 1) == false)
+	flag("silent_without_a_level", talks and talks(nil) == false)
 
 	-- Text only: the module answers no remote, and the server half has no handler to grant anything from.
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")

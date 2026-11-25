@@ -287,8 +287,15 @@
 277. 2026-11-25 — Alex Nguyen — Wrote the red test for grey-tinted World 2 meshes (biome_mesh_color) and moved the vertex-colour export patch to its own branch feature/alex/w2-color-export.
 278. 2026-11-25 — Alex Nguyen — Made textureless World 2 meshes white instead of the default grey and wrote the owner's note on the three visual fixes (offline checks only, no Studio).
 279. 2026-11-25 — Alex Nguyen — Fixed the white-mesh audit violation (only MeshParts are read), wrote both approved World 2 scenery fixes into BIOME_ENVIRONMENT_SPEC and merged world2-place.
+276. 2026-11-25 — Alex Nguyen — Merged the World 2 Track 1 and 6 swap (round 8, HQ left out) into the World 2 branch; offline tests green in both worlds, harness fails only on heroes with no spot; 14 spawn piece models uploaded, not reviewed and not used in game.
+276. 2026-11-25 — Alex Nguyen — Wrote the spawn pieces' game code behind empty upload ids (Shared/PlazaPieces), so the plaza stays as it is until the meshes are uploaded; offline checks only.
+276. 2026-11-25 — Alex Nguyen — Made Gojio silent below rebirth 1 (owner): no prompt and no conversation, rule recorded in the design doc and specs (offline checks only).
+275. 2026-11-25 — Alex Nguyen — Built the export scripts and GLBs of the approved spawn pieces (gates, altars, market set B, sky loop), checked against the drafts; nothing uploaded.
+277. 2026-11-25 — Alex Nguyen — Merged the spawn pieces' code, the export tools and Gojio's rebirth rule into the World 2 branch (offline checks in both worlds).
+278. 2026-11-25 — Alex Nguyen — Turned on the 14 reviewed spawn pieces in the World 2 branch, fixed the loader for uploads whose part names carry a number, and saved copies in both places (World 1 v915, World 2 v90, not published); Studio `spawn_area` 188/188 in both worlds, World 1's tests not rerun after the loader fix.
+279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
 
 ## What's next
-**Land the Track 1 and 6 swap: round 7 restores Track 6's office towers, then its score, audit and merge.**
+**Merge the white-mesh and grass fix once its audit passes, after running `biome_runtime` in Studio.**
 
-**Why this is next:** the kaiju re-cut waits on it, and the owner approved the swap once it passes its checks.
+**Why this is next:** the World 2 colour re-export cannot start before it (new meshes would show at 64% brightness), and the next PR into main should carry it.

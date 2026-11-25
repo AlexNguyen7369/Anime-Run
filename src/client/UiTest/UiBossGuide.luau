@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("BossGuideConfig"))
 local Gate = require(Shared:WaitForChild("BossGateConfig"))
+local SidekickConfig = require(Shared:WaitForChild("SidekickConfig"))
 
 local OPEN_WAIT, CLOSE_WAIT = 1, 0.6 -- s: the unroll and the roll-up have finished
 
@@ -102,6 +103,35 @@ function Module.Build(h)
 		local wasInEvent = player:GetAttribute("BossEvent")
 		ok(res, "starts_closed", not panel.Visible)
 		local open = gui:FindFirstChild("Open")
+		-- Owner 2026-11-25: below rebirth 1 no prompt and no talk (local level; a stand-in while he is not built)
+		local level, need = player:GetAttribute("RebirthLevel"), SidekickConfig.HudFromRebirth
+		local standIn = nil
+		if not prompt then
+			standIn = Instance.new("Model")
+			standIn.Name = "BossGuide"
+			local anchor = Instance.new("Part")
+			anchor.Anchored = true
+			anchor.CFrame = CFrame.new(0, -200, 0) -- far under the map
+			anchor.Parent = standIn
+			prompt = Instance.new("ProximityPrompt")
+			prompt.Name = Gate.GUIDE_PROMPT
+			prompt.Enabled = false
+			prompt.Parent = anchor
+			standIn.Parent = workspace
+		end
+		player:SetAttribute("RebirthLevel", need - 1)
+		task.wait(0.2)
+		ok(res, "no_prompt_below_rebirth_1", not prompt.Enabled)
+		open:Fire()
+		task.wait(OPEN_WAIT)
+		ok(res, "no_talk_below_rebirth_1", not panel.Visible)
+		player:SetAttribute("RebirthLevel", need)
+		task.wait(0.2)
+		ok(res, "prompt_from_rebirth_1", prompt.Enabled)
+		player:SetAttribute("RebirthLevel", level)
+		if standIn then
+			standIn:Destroy()
+		end
 		open:Fire()
 		task.wait(OPEN_WAIT)
 		ok(res, "opens", PanelSwitch.IsOpen("BossGuide"))
@@ -123,10 +153,7 @@ function Module.Build(h)
 		open:Fire() -- a second press keeps the one conversation, on its page
 		task.wait(0.1)
 		ok(res, "second_press_keeps_it", PanelSwitch.IsOpen("BossGuide"))
-		local pages = Config.Pages(
-			ReplicatedStorage:GetAttribute(Gate.OPEN_ATTRIBUTE) == true,
-			player:GetAttribute("RebirthLevel") or 0
-		)
+		local pages = Config.Pages(ReplicatedStorage:GetAttribute(Gate.OPEN_ATTRIBUTE) == true)
 		local line, nextButton = panel:FindFirstChild("Line", true), panel:FindFirstChild("Next", true)
 		for i, page in pages do
 			h.check(res, "page_" .. page.Id, line.Text, page.Text, line.Text == page.Text)
@@ -169,7 +196,7 @@ function Module.Build(h)
 	function after.boss_guide_advanced(res)
 		local _, panel = parts()
 		local line = panel and panel:FindFirstChild("Line", true)
-		local want = Config.Pages(false, 0)[2].Text
+		local want = Config.Pages(false)[2].Text
 		h.check(res, "guide_next_page", line and line.Text, want, line ~= nil and line.Text == want)
 	end
 

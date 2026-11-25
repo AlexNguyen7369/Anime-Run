@@ -19,6 +19,7 @@ local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
 local PlazaHeader = require(script.Parent.PlazaHeader)
 local PlazaMerchants = require(script.Parent.PlazaMerchants)
+local PlazaPieces = require(script.Parent.PlazaPieces)
 local UiTheme = require(script.Parent.UiTheme)
 local WorldConfig = require(script.Parent.WorldConfig)
 
@@ -337,12 +338,63 @@ local function merchantSpot(model, part, frame)
 	spot.WorldCFrame = frame * CFrame.new(row.Feet)
 end
 
+-- The stand-ins of the uploaded stalls (Shared/PlazaPieces): plain blocks on the meshes' solid parts, read off their top views.
+-- { name, size, centre, colour }; the first holds the prompt. Proposed.
+local PIECE_STAND_INS = {
+	SHOPStall = {
+		{ "Counter", Vector3.new(9.6, 3.8, 2.6), Vector3.new(0, 1.9, -2.9), WOOD },
+		{ "Deck", Vector3.new(16, 0.7, 11.6), Vector3.new(0, 0.35, 0), STONE },
+		{ "BackWall", Vector3.new(12, 11, 1.4), Vector3.new(0, 5.5, 4.4), STONE },
+		{ "SideWall", Vector3.new(2, 8, 5), Vector3.new(-8, 4, 1.4), STONE },
+		{ "SideWall", Vector3.new(2, 8, 5), Vector3.new(8, 4, 1.4), STONE },
+	},
+	POTIONSStall = {
+		{ "Counter", Vector3.new(9, 3.8, 2.6), Vector3.new(0, 1.9, -3), WOOD },
+		{ "Deck", Vector3.new(14, 0.7, 10), Vector3.new(0, 0.35, 0), STONE },
+		{ "BackWall", Vector3.new(8, 8.4, 1), Vector3.new(0, 4.2, 4.6), STONE },
+		{ "Urn", Vector3.new(4, 5, 3.6), Vector3.new(-10.5, 2.5, -2.4), STONE },
+		{ "Urn", Vector3.new(4, 5, 3.6), Vector3.new(10.5, 2.5, -2.4), STONE },
+	},
+	MarketStall = {
+		{ "Counter", Vector3.new(12.6, 3.9, 2.6), Vector3.new(0, 1.95, -4), WOOD },
+		{ "Deck", Vector3.new(20.6, 0.7, 10.6), Vector3.new(0, 0.35, 0), STONE },
+		{ "BackWall", Vector3.new(19, 8.6, 0.6), Vector3.new(0, 4.3, 4.9), STONE },
+		{ "SideWall", Vector3.new(0.6, 8.6, 4.9), Vector3.new(-9.5, 4.3, 2.45), STONE },
+		{ "SideWall", Vector3.new(0.6, 8.6, 4.9), Vector3.new(9.5, 4.3, 2.45), STONE },
+	},
+	IndexBoard = {
+		{ "Scroll", Vector3.new(12.4, 12.6, 0.8), Vector3.new(0, 6.3, 0.1), PAPER },
+		{ "Deck", Vector3.new(24, 0.7, 6), Vector3.new(0, 0.35, -0.6), STONE },
+		{ "Wing", Vector3.new(6, 8, 0.8), Vector3.new(-8.8, 4, 0), STONE },
+		{ "Wing", Vector3.new(6, 8, 0.8), Vector3.new(8.8, 4, 0), STONE },
+	},
+}
+
+-- Builds piece `key`'s stand-in in `m` at the service's frame, with its prompt, or returns nil until the piece is uploaded.
+local function pieceStandIn(m, f, key, promptName, action, object, distance)
+	if not PlazaPieces.Ready(key) then
+		return nil
+	end
+	local first
+	for _, row in PIECE_STAND_INS[key] do
+		local part = block(m, row[1], row[2], f * CFrame.new(row[3]), row[4], Enum.Material.Slate)
+		first = first or part
+	end
+	m.PrimaryPart = addPrompt(first, promptName, action, object, distance)
+	merchantSpot(m, first, f)
+	return first
+end
+
 -- A wooden market stall on the ring, facing the spawn: counter (with the prompt), posts, a tiled roof, a cloth curtain
 -- with its sign.
-local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, action)
+local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, action, piece)
 	local m = Instance.new("Model")
 	m.Name = name
 	local f = facing(startCFrame, x, z, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y)
+	if pieceStandIn(m, f, piece, promptName, action, title, 10) then
+		m.Parent = parent
+		return m
+	end
 	local counter =
 		block(m, "Counter", Vector3.new(10, 3.6, 2), f * CFrame.new(0, 1.8, -2), WOOD, Enum.Material.WoodPlanks)
 	for _, px in { -4.8, 4.8 } do
@@ -405,10 +457,75 @@ end
 -- octagonal stone tiers with steps on the path side, 4 dark pillars with gold caps, a neon ring on the top tier and a
 -- vertical gold halo facing the path. Its prompt is the old stall's (Client/PlazaPrompts opens the summon page, which
 -- shows the rebirth lock); Client/SidekickAltarView shows the rotation's Mythic at the ModelSpot attachment.
+-- The uploaded altars' stand-ins (Shared/PlazaPieces): their tiers, steps and the stand the model is on, at the drafts' sizes
+-- (tools/blender/plaza/draft_altar.py); the meshes do not collide. `f`: the floor at its centre, -Z the front.
+local ALTAR_STAIRS = { GreatLotus = 11, TwinRoof = 18 } -- width
+local function pieceAltar(m, f, piece)
+	m:SetAttribute("Look", piece.Look)
+	local function disc(name, height, radius, y, z)
+		local p = block(
+			m,
+			name,
+			Vector3.new(height, radius * 2, radius * 2),
+			f * CFrame.new(0, y + height / 2, z or 0) * CFrame.Angles(0, 0, math.rad(90)),
+			ALTAR_STONE,
+			Enum.Material.Slate
+		)
+		p.Shape = Enum.PartType.Cylinder
+		return p
+	end
+	local function slab(name, size, x, y, z)
+		return block(m, name, size, f * CFrame.new(x, y + size.Y / 2, z), ALTAR_STONE, Enum.Material.Slate)
+	end
+	local rise, fronts, last
+	if piece.Look == "GreatLotus" then
+		rise, fronts = 1.2, { -18.4, -16, -12.6 }
+		for i, radius in { 18.4, 16, 12.6 } do
+			last = disc("Tier", rise, radius, (i - 1) * rise)
+		end
+		disc("Stand", piece.Stand - 3.6, 6, 3.6)
+	else
+		rise, fronts = 1.4, { -16, -13, -10.2 }
+		-- each deck: its full width between the cut corners, and the front strip between them
+		for i, row in { { 33.4, 19.2 }, { 32.2, 18.4 }, { 31, 17.6 } } do
+			local half, front, back = row[1], fronts[i], row[2]
+			local y = (i - 1) * rise
+			local from, to = front + 9, back - 6
+			last = slab("Tier", Vector3.new(half * 2, rise, to - from), 0, y, (from + to) / 2)
+			slab("Front", Vector3.new((half - 9) * 2, rise, 9), 0, y, front + 4.5)
+			slab("Back", Vector3.new((half - 6) * 2, rise, 6), 0, y, back - 3)
+		end
+		disc("Stand", piece.Stand - 4.2, 7, 4.2, -piece.Ahead)
+		for _, x in { -24, 24 } do -- the two pagodas
+			slab("Tower", Vector3.new(9, 12, 10), x, 4.2, 7.5)
+		end
+	end
+	for i, front in fronts do -- a half step before each tier's front
+		slab("Step", Vector3.new(ALTAR_STAIRS[piece.Look], rise / 2, 1.2), 0, (i - 1) * rise, front - 0.6)
+	end
+	local function spot(name, cf)
+		local at = Instance.new("Attachment")
+		at.Name = name
+		at.Parent = last
+		at.WorldCFrame = cf
+	end
+	spot("ModelSpot", f * CFrame.new(0, piece.Stand + piece.ModelSize / 2, -piece.Ahead))
+	spot("LockSpot", f * CFrame.new(piece.Lock))
+	glow(last, 20)
+	-- the prompt's own part, in front of the model's stand: within reach from the steps
+	m.PrimaryPart =
+		prompt(m, f * CFrame.new(0, piece.Stand, -4.9), "OpenSidekicks", "Summon", "SIDEKICKS", ALTAR_PROMPT_DISTANCE)
+	return m
+end
+
 local function altar(startCFrame)
 	local m = Instance.new("Model")
 	m.Name = "SidekickAltar"
 	local af = facing(startCFrame, ALTAR_POS.X, ALTAR_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y, 0)
+	local piece = PlazaPieces.Altar()
+	if piece then
+		return pieceAltar(m, af * CFrame.new(0, SpawnArea.TOP_Y, 0), piece)
+	end
 	local h, side = ALTAR_TIER_HEIGHT, math.tan(math.pi / 8)
 	local top = SpawnArea.TOP_Y
 	local topPart
@@ -524,6 +641,45 @@ SpawnArea.WORLD_GATE_TAG = "WorldGate"
 local RING_RADIUS = 11
 local RING_SEGMENTS = 16
 
+-- The uploaded gatehouse's stand-in (Shared/PlazaPieces, draft_gate.py B): dais, two jamb walls and a lintel round a doorway 17.2 wide
+-- and 24.2 high, its touch part filling the doorway from a runner's feet, the label over the roof (36.5).
+local function pieceGate(m, f, target, locked, swirl)
+	SpawnArea.Octagon(m, "Dais", 30, 1.2, f * CFrame.new(0, 0.6, 0), STONE, Enum.Material.Slate)
+	for _, side in { -1, 1 } do
+		block(m, "Jamb", Vector3.new(7.6, 26, 4), f * CFrame.new(side * 12.4, 13, 0), DARK_WOOD, Enum.Material.Wood)
+	end
+	block(m, "Lintel", Vector3.new(34, 4, 5), f * CFrame.new(0, 28, 0), ROOF_TILE, Enum.Material.Slate, false)
+	local portal =
+		block(m, "Portal", Vector3.new(16.6, 23, 1), f * CFrame.new(0, 12.7, 0), swirl, Enum.Material.Neon, false)
+	portal.Transparency = locked and 0 or 0.25
+	portal:SetAttribute("TargetWorld", target)
+	portal:SetAttribute("Locked", locked)
+	if locked then
+		portal.Color = Color3.fromRGB(74, 34, 144)
+		portal.Material = Enum.Material.SmoothPlastic
+		local wall = block(m, "Barrier", Vector3.new(17.2, 24.2, 1), f * CFrame.new(0, 12.1, -0.6), BLACK)
+		wall.Transparency = 1
+		wall:SetAttribute("TargetWorld", target)
+		wall:SetAttribute("Locked", true)
+		CollectionService:AddTag(wall, SpawnArea.WORLD_GATE_TAG)
+	else
+		portal.CanTouch = true
+		CollectionService:AddTag(portal, SpawnArea.WORLD_GATE_TAG)
+	end
+	local light = Instance.new("PointLight")
+	light.Color = swirl
+	light.Brightness = 2
+	light.Range = 24
+	light.Shadows = false
+	light.Parent = portal
+	billboard(portal, "Label", {
+		{ "Title", target == 2 and "WORLD 2" or "WORLD 1", Color3.fromRGB(235, 220, 255) },
+		{ "State", locked and "COMING SOON" or "ENTER", Color3.fromRGB(255, 214, 90) },
+	}, UDim2.fromOffset(220, 70), 27, LABEL_DISTANCE)
+	m.PrimaryPart = portal
+	return m
+end
+
 local function worldGate(startCFrame)
 	local target = WorldConfig.Id == 1 and 2 or 1
 	local locked = target == 2 and not WorldConfig.GATE_OPEN
@@ -532,6 +688,9 @@ local function worldGate(startCFrame)
 	m.Name = "WorldGate"
 	local pos = SpawnArea.WORLD_GATE_POS
 	local f = facing(startCFrame, pos.X, pos.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y)
+	if PlazaPieces.GateReady(locked) then
+		return pieceGate(m, f, target, locked, swirl)
+	end
 	local centre = f * CFrame.new(0, RING_RADIUS + 3, 0)
 	-- Dais and two leaning obsidian monoliths
 	SpawnArea.Octagon(m, "Dais", 30, 1.2, f * CFrame.new(0, 0.6, 0), STONE, Enum.Material.Slate)
@@ -812,7 +971,8 @@ function SpawnArea.Build(startCFrame)
 		Color3.fromRGB(40, 90, 170),
 		"SHOP",
 		"OpenShop",
-		"Open Shop"
+		"Open Shop",
+		"SHOPStall"
 	)
 	stall(
 		model,
@@ -823,71 +983,82 @@ function SpawnArea.Build(startCFrame)
 		Color3.fromRGB(120, 60, 160),
 		"POTIONS",
 		"OpenPotions",
-		"Potions"
+		"Potions",
+		"POTIONSStall"
 	)
 	-- The Market, sized to its MarketStall mesh (same origin; the deck front is 5.5 ahead). Deck, counter, front posts and
 	-- the closed rear collide; the curtains are cloth and the roof is out of reach.
 	local marketplace = Instance.new("Model")
 	marketplace.Name = "Marketplace"
 	local mf = facing(startCFrame, MARKET_POS.X, MARKET_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y)
-	block(marketplace, "Deck", Vector3.new(20, 0.5, 11), mf * CFrame.new(0, 0.25, 0), WOOD, Enum.Material.WoodPlanks)
-	local marketCounter = block(
-		marketplace,
-		"Counter",
-		Vector3.new(12.4, 3.9, 2.6),
-		mf * CFrame.new(0, 2.45, -3.8),
-		WOOD,
-		Enum.Material.WoodPlanks
-	)
-	for _, px in { -9.5, -6.6, 6.6, 9.5 } do
+	local marketCounter = pieceStandIn(marketplace, mf, "MarketStall", "OpenMarket", "Browse Market", "Market", 8)
+	if not marketCounter then
 		block(
 			marketplace,
-			"Post",
-			Vector3.new(0.9, 8.6, 0.9),
-			mf * CFrame.new(px, 4.6, -4.9),
+			"Deck",
+			Vector3.new(20, 0.5, 11),
+			mf * CFrame.new(0, 0.25, 0),
+			WOOD,
+			Enum.Material.WoodPlanks
+		)
+		marketCounter = block(
+			marketplace,
+			"Counter",
+			Vector3.new(12.4, 3.9, 2.6),
+			mf * CFrame.new(0, 2.45, -3.8),
+			WOOD,
+			Enum.Material.WoodPlanks
+		)
+		for _, px in { -9.5, -6.6, 6.6, 9.5 } do
+			block(
+				marketplace,
+				"Post",
+				Vector3.new(0.9, 8.6, 0.9),
+				mf * CFrame.new(px, 4.6, -4.9),
+				DARK_WOOD,
+				Enum.Material.Wood
+			)
+		end
+		block(
+			marketplace,
+			"BackWall",
+			Vector3.new(19, 8.6, 0.6),
+			mf * CFrame.new(0, 4.6, 4.9),
 			DARK_WOOD,
 			Enum.Material.Wood
 		)
-	end
-	block(
-		marketplace,
-		"BackWall",
-		Vector3.new(19, 8.6, 0.6),
-		mf * CFrame.new(0, 4.6, 4.9),
-		DARK_WOOD,
-		Enum.Material.Wood
-	)
-	for _, px in { -9.5, 9.5 } do
+		for _, px in { -9.5, 9.5 } do
+			block(
+				marketplace,
+				"SideWall",
+				Vector3.new(0.6, 8.6, 4.9),
+				mf * CFrame.new(px, 4.6, 2.45),
+				DARK_WOOD,
+				Enum.Material.Wood
+			)
+		end
 		block(
 			marketplace,
-			"SideWall",
-			Vector3.new(0.6, 8.6, 4.9),
-			mf * CFrame.new(px, 4.6, 2.45),
-			DARK_WOOD,
-			Enum.Material.Wood
+			"Roof",
+			Vector3.new(23, 0.6, 14),
+			mf * CFrame.new(0, 9.2, 0),
+			ROOF_TILE,
+			Enum.Material.Slate,
+			false
 		)
+		local marketCurtain = block(
+			marketplace,
+			"Curtain",
+			Vector3.new(12.2, 2.2, 0.2),
+			mf * CFrame.new(0, 7.6, -4.8),
+			Color3.fromRGB(122, 63, 184),
+			Enum.Material.Fabric,
+			false
+		)
+		UiTheme.Stroke(surfaceText(marketCurtain, Enum.NormalId.Front, "Sign", "MARKET", Color3.new(1, 1, 1), 25), 2)
+		marketplace.PrimaryPart = addPrompt(marketCounter, "OpenMarket", "Browse Market", "Market", 8)
+		merchantSpot(marketplace, marketCounter, mf)
 	end
-	block(
-		marketplace,
-		"Roof",
-		Vector3.new(23, 0.6, 14),
-		mf * CFrame.new(0, 9.2, 0),
-		ROOF_TILE,
-		Enum.Material.Slate,
-		false
-	)
-	local marketCurtain = block(
-		marketplace,
-		"Curtain",
-		Vector3.new(12.2, 2.2, 0.2),
-		mf * CFrame.new(0, 7.6, -4.8),
-		Color3.fromRGB(122, 63, 184),
-		Enum.Material.Fabric,
-		false
-	)
-	UiTheme.Stroke(surfaceText(marketCurtain, Enum.NormalId.Front, "Sign", "MARKET", Color3.new(1, 1, 1), 25), 2)
-	marketplace.PrimaryPart = addPrompt(marketCounter, "OpenMarket", "Browse Market", "Market", 8)
-	merchantSpot(marketplace, marketCounter, mf)
 	CollectionService:AddTag(marketCounter, "MarketPad") -- after the prompt: Server/MarketService reads it when tagged
 	marketplace.Parent = model
 
@@ -895,32 +1066,34 @@ function SpawnArea.Build(startCFrame)
 	local index = Instance.new("Model")
 	index.Name = "IndexBoard"
 	local xf = facing(startCFrame, INDEX_POS.X, INDEX_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y)
-	for _, px in { -10.5, 10.5 } do
-		block(index, "Post", Vector3.new(1, 11, 1), xf * CFrame.new(px, 5.5, 0), DARK_WOOD, Enum.Material.Wood)
+	if not pieceStandIn(index, xf, "IndexBoard", "OpenIndex", "Open Index", "Runner Index", 12) then
+		for _, px in { -10.5, 10.5 } do
+			block(index, "Post", Vector3.new(1, 11, 1), xf * CFrame.new(px, 5.5, 0), DARK_WOOD, Enum.Material.Wood)
+		end
+		local scroll =
+			block(index, "Scroll", Vector3.new(19, 8, 0.4), xf * CFrame.new(0, 6.4, 0), PAPER, Enum.Material.Fabric)
+		local sgui = Instance.new("SurfaceGui")
+		sgui.Name = "Scroll"
+		sgui.Face = Enum.NormalId.Front
+		sgui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		sgui.PixelsPerStud = 25
+		sgui.LightInfluence = 0
+		sgui.Parent = scroll
+		for i, line in { { "Title", "RUNNER INDEX", 0, 0.55 }, { "Sub", "Every runner you have met", 0.6, 0.3 } } do
+			local text = Instance.new("TextLabel")
+			text.Name = line[1]
+			text.BackgroundTransparency = 1
+			text.Position = UDim2.fromScale(0.05, line[3])
+			text.Size = UDim2.fromScale(0.9, line[4])
+			text.Font = UiTheme.Font
+			text.TextScaled = true
+			text.Text = line[2]
+			text.TextColor3 = i == 1 and Color3.fromRGB(150, 30, 30) or DARK_WOOD
+			text.Parent = sgui
+		end
+		index.PrimaryPart = addPrompt(scroll, "OpenIndex", "Open Index", "Runner Index", 12)
+		merchantSpot(index, scroll, xf)
 	end
-	local scroll =
-		block(index, "Scroll", Vector3.new(19, 8, 0.4), xf * CFrame.new(0, 6.4, 0), PAPER, Enum.Material.Fabric)
-	local sgui = Instance.new("SurfaceGui")
-	sgui.Name = "Scroll"
-	sgui.Face = Enum.NormalId.Front
-	sgui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	sgui.PixelsPerStud = 25
-	sgui.LightInfluence = 0
-	sgui.Parent = scroll
-	for i, line in { { "Title", "RUNNER INDEX", 0, 0.55 }, { "Sub", "Every runner you have met", 0.6, 0.3 } } do
-		local text = Instance.new("TextLabel")
-		text.Name = line[1]
-		text.BackgroundTransparency = 1
-		text.Position = UDim2.fromScale(0.05, line[3])
-		text.Size = UDim2.fromScale(0.9, line[4])
-		text.Font = UiTheme.Font
-		text.TextScaled = true
-		text.Text = line[2]
-		text.TextColor3 = i == 1 and Color3.fromRGB(150, 30, 30) or DARK_WOOD
-		text.Parent = sgui
-	end
-	index.PrimaryPart = addPrompt(scroll, "OpenIndex", "Open Index", "Runner Index", 12)
-	merchantSpot(index, scroll, xf)
 	index.Parent = model
 
 	-- Leaderboard banners removed (design doc 4.16, owner 2026-11-01); their data stores are left untouched.

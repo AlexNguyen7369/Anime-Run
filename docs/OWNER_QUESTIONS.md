@@ -262,7 +262,7 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 2. In the World 2 report the checks `service_roll_new_secret_emphasized` and the auto-roll pause run on the place's
    rarest character, an Eternal (hold 5 s, 4.47), under their old names. Rename them, or leave?
 
-## 2026-11-25 Track 1 and 6 swap, dead kaiju rework (open; nothing merged, exported to the ledger or uploaded)
+## 2026-11-25 Track 1 and 6 swap, dead kaiju rework (swap layouts of round 7 approved by the owner 2026-11-25, HQ left out for now; kaiju items open; nothing in the ledger or uploaded)
 1. Elven RuinedCastle on Track 1: no legal spot at the approved scale 1.5 so far; it fits at 0.52. Default: not built at
    1.5's rule. Keep it at 0.52, or leave it out? (Audit of cb6d716e: 0.52 without a ruling is a FAIL.)
 2. Elven hill Town: no legal spot on Track 1 either (it had none on Track 6). Accept?
@@ -339,3 +339,5 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 26. Owner 2026-11-25 "yes to all" answers items 22 to 25 and the round 7 questions: see the change log. Not covered: publishing a place; vans; kaiju fill 12 or 3; altar Mythic size; Frierin loading in World 1; the join-view and RACE START nudges.
 27. Colour test 2026-11-25: 3 re-exported test meshes (Model ids 102407104862477, 75494404082733, 102218522034315, test names, not used in game) beside the old ones and the approved colours in Studio: the new ones match, the old are near black (assets/world2_draft/audit/lighting_2026-11-25/color_test.jpg). The World 2 re-export hold is lifted by the owner's condition; the ROBLOX_OPEN_CLOUD_KEY in the Mac's zshrc is stale, ANIMERUN_OPEN_CLOUD_KEY works.
 28. Plaza exports (feature/alex/plaza-export 209f065e, audited: no violations). Owner: closed boss gate has two additions not in the approved draft (dark rim behind the door joint; gold plate, studs and point on the back of the seal): keep, or export the draft exactly? ("Closed Boss Gate Details", private page.) The other 13 pieces are not held; upload tool gets a key filter first.
+29. Answered by the owner in agent panes 2026-11-25 (verified from the pane text): altar Mythic 17.5 / 25, header over the crest, closed gate the approved draft, smaller Kakashe, Frierin may load in World 1, accents stay (agent-1's five questions); Gojio does not talk below rebirth 1 (items 18, 20, 21, 26 updated by this).
+30. Open. agent-3's blind score of swap round 8 (b6ae408f, merged): T1 game 7, T1 context 5, T6 game 7, T6 context 6 (below the bar of 7). With the HQ out (owner, "for now") Track 6 has no lit landmark: 01 and 04 end on other tracks' dark shapes. Options: another lit landmark at the 01 bend and the finish, built from pieces the track already has; or accept.

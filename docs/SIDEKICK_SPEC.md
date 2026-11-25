@@ -84,7 +84,7 @@ Every boss drops its own downsized Sidekick this way (owner 2026-11-11, design d
 ## Summon altar (owner 2026-11-10, design doc 4.36)
 - Replaces the Sidekicks stall. Its prompt opens this summon page; nothing else about summons changes.
 - The top shows the current rotation's Mythic as its actual 3D model, turning slowly; it swaps on each 30-minute rotation. The client reads the rotation the summon page already gets. Turn speed and model size are **placeholders**.
-- **Proposed**: three stone tiers about 32 studs across, a glowing ring and a halo around the model, a "SIDEKICKS" header like the economy wing's, a locked "Rebirth 2" look before the vendor unlocks. Plaza position: the showpiece ring at (57.2, 61.6), facing the spawn (`docs/WORLD_REDESIGN_SPEC.md` section 4, design doc 4.43; was the summon wing's middle (26.8, 40.6)).
+- **Proposed**: its look is the approved altar of its world (World 1 the great lotus B, World 2 the twin roof A, owner 2026-11-25, `docs/WORLD_REDESIGN_SPEC.md` 4.2), a "SIDEKICKS" header over the crest, a locked "Rebirth 2" look before the vendor unlocks. Plaza position: the showpiece ring at (57.2, 61.6), facing the spawn (`docs/WORLD_REDESIGN_SPEC.md` section 4, design doc 4.43; was the summon wing's middle (26.8, 40.6)).
 
 ## Sakura Dojo entry and transition (owner 2026-11-17, design doc 4.45)
 - The summon page also opens from a Summon button in the right column (key G, **proposed**); the altar prompt reads
