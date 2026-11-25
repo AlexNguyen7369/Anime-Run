@@ -72,11 +72,16 @@ class Roads:
 		(their exported Placed rows on their own ground). Tracks in `skip` are left out: the two swapped layouts read
 		each other's export otherwise, and a second run would not be stable. own_ground: not the props whose base
 		centre stands on this track's ground (nearest road, owner 2026-11-25): they are the ones to go."""
+		import json
 		import os
 		import re
 
 		import export_props as ep
 
+		moved = {}  # t1_neighbours.py moved these off Track 1's ground: Track 1's own layout reads them where they stood
+		if own_ground and self.number == 1:
+			data = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "cross_track.json")))
+			moved = {b: [(r[3], r[4]) for r in d["fix"] if r[3] is not None and r[5] is None] for b, d in data.items()}
 		out = []
 		for number, biome in ep.APPROVED.items():
 			if number in skip or number == self.number:
@@ -98,6 +103,8 @@ class Roads:
 				c = np.array(ep.to_world(origin, yaw, n[:3])) + R @ np.array([0, size[1] / 2, 0])
 				e = np.abs(R) @ (size / 2)
 				base = ep.to_world(origin, yaw, whole)
+				if any(math.hypot(base[0] - x, base[2] - z) < 0.05 for x, z in moved.get(biome, ())):
+					continue
 				if own_ground and self.nearest([(base[0], base[2])])[1][0] == self.number:
 					continue
 				out.append((c[0], c[2], e[0], e[2], number, m.group(1)))
@@ -118,7 +125,7 @@ def base_centre(me):
 
 def apply_cross_track(k, path=None):
 	"""cross_track.json (written by cross_track.py), run last in build(). Per biome: "fix", rows [prop, base centre world
-	x, z, new x, new z, yaw] (moved and turned) or [prop, x, z, null, null, null] (left out); "add", rows [prop, base
+	x, z, new x, new z, yaw] (moved and turned; yaw null: only moved) or [prop, x, z, null, null, null] (left out); "add", rows [prop, base
 	centre x, z, yaw, scale]. HQ, HeroStatue, Rank and Retro are never in it. A row that finds no prop raises: the layout
 	changed under the file, which must then be written again. Skipped while RAW is set (cross_track.py) and under a
 	not exported layout option (whose layout is another one)."""
@@ -156,6 +163,9 @@ def apply_cross_track(k, path=None):
 		obs.remove(hit)
 		if nx is None:
 			bpy.data.objects.remove(hit[3])
+		elif yaw is None:  # a frozen track's prop (t1_neighbours.py): its turn stays
+			hit[3].location.x += nx - x
+			hit[3].location.y -= nz - z
 		else:
 			put(hit[3], name, nx, nz, yaw)
 	for name, x, z, yaw, scale in data["add"]:

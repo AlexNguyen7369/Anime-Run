@@ -1009,3 +1009,6 @@ def build(k):
 			counts[key] = counts.get(key, 0) + 1
 	print("PERPROP", counts)
 	_clearance(k)
+	import roads
+
+	roads.apply_cross_track(k)  # the props off Track 1's ground (t1_neighbours.py)

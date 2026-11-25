@@ -1176,3 +1176,6 @@ def build(k):
 		poly.use_smooth = True
 	cl.data.materials.append(k.mat("FFFFFF", rough=1.0, emit=0.35))
 	k.col.objects.link(cl)
+	import roads
+
+	roads.apply_cross_track(k)  # the props off Track 1's ground (t1_neighbours.py)

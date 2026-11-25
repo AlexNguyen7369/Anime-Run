@@ -961,3 +961,6 @@ def build(k):
 			placed += 1
 	k.sky([(0.0, "E2DCCC"), (0.07, "C6CFD4"), (0.3, "8FB4D8"), (1.0, "3C74BE")], strength=1.0, sun=(4.0, "FFEED6", 46, 150))
 	_enforce_clearance(k)
+	import roads
+
+	roads.apply_cross_track(k)  # the props off Track 1's ground (t1_neighbours.py)

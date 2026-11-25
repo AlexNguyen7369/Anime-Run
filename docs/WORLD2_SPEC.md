@@ -191,6 +191,10 @@ written before the swap.
   changes, a full count (props and heroes per track) goes to the owner; the freezes and the re-export hold stand until
   then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
   legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
+  Reopened by the owner 2026-11-25 ("Go ahead"): the frozen tracks' pieces standing on Track 1's ground and the smoke column
+  on its sightline. **Proposed**, renders to the owner before any merge: 7 moved, 27 out, the one-eyed monster (Track 8
+  FleshWall) and the pieces the game prunes kept (docs/proposals/world2_t1_neighbours, tools/blender/world2/t1_neighbours.py).
+  The drafts are patched in place, not re-exported: a re-export of those tracks today also brings unrelated changes.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its

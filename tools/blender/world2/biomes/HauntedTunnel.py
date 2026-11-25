@@ -778,3 +778,6 @@ def build(k):
 	k.light(orig(2790, -100, 50)[0], WARM, energy=50000, radius=10)
 	k.light(orig(3730, -80, 60)[0], "6FA8FF", energy=160000, radius=20)
 	k.light(orig(510, -80, 50)[0], "B8C8E0", energy=9000, radius=12)  # soft cool fill, no glow on the stone
+	import roads
+
+	roads.apply_cross_track(k)  # the props off Track 1's ground (t1_neighbours.py)

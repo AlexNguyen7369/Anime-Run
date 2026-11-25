@@ -797,3 +797,6 @@ def build(k):
 	for dx, y, dz, col, e in ((300, 420, -420, "FFE0C0", 1e8), (-380, 200, -300, "B8C4E0", 4e7), (0, 300, 450, "FFB080", 3e7), (0, 160, 0, "E8E8F0", 3e7)):
 		k.light((400000 + dx, y, -400000 + dz), col, energy=e, radius=60)
 	_enforce_clearance(k)
+	import roads
+
+	roads.apply_cross_track(k)  # the props off Track 1's ground (t1_neighbours.py)

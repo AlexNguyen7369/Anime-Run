@@ -1,3 +1,10 @@
+## RESUME HERE (2026-11-25 late, subagent, orch/world2/w2-t1-neighbours): Track 1's neighbours PROPOSAL, not merged
+- Owner "Go ahead" on the frozen pieces standing on Track 1's ground and the smoke column. Planner tools/blender/world2/t1_neighbours.py; rows in cross_track.json (DemonCastle, RuinedCityZ, HauntedTunnel, KaijuBase, MonsterDen; `fix`, yaw null = moved only), applied at the end of those biomes' build(); exported drafts patched in place (`--patch`), NOT re-exported (a re-export of the frozen tracks today drifts: lowered Fill supports, hero_moves rewrites).
+- 7 moved (T2 Wyvern 6, Hound 115, RuinB x3, Crag x2; T5 Smoke 1113 to its own ground), 27 out (T2 RuinB x9 Crag x4, T3 HighRise, T4 Cedar x8, T5 Apartment x4, T8 LavaChasm). Kept: T8 FleshWall (one-eyed monster), 15 pieces the game prunes (plaza ground open). Table and before|after sheets: docs/proposals/world2_t1_neighbours.
+- roads.Roads.neighbours (Track 1 only) reads the moved pieces where they stood, so Track 1's own Blender layout is unchanged (checked object for object).
+- Checks: clearance own track CLEAR on 2/3/4/5/8, --all-tracks unchanged from before; WORLD=2 PINSTRICT harness only the 11 known unplaced-hero ROAD FAILs, pins 11/0 after PIN=write (only real pin changes: 7 Track 1 hits gone, moved Smoke box-hits Tracks 4 and 5 at local (211, -1026); the rest are Placed_N renumbering); world2_cast 121/0; stylua 0, selene 0/19.
+- Needs the owner's look at the renders before any merge.
+
 ## RESUME HERE (2026-11-25 night, devbox): yes to all; boss models saved; uploads next
 - PR #31 in main (533ea015). World 2 branch ahead with boss gate and guide (off), spawn moves, owner's eight "yes to all" answers (change log).
 - Both places saved by the lead on the owner's word: World 2 version 84, World 1 version 909 (not published; they hold the branch code with the moved Index, Team altar and statue). Boss models in BakedModels of both, `boss_models_placed` 14/14 each.

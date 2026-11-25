@@ -213,11 +213,11 @@ class Placed:
 		return bool(sides[0].overlap(sides[1]))
 
 
-def neighbours(number, lo, hi):
-	"""The props the game builds on the eight frozen tracks whose boxes reach the world box lo..hi."""
+def neighbours(number, lo, hi, skip=(1, 6)):
+	"""The props the game builds on the tracks not in `skip` (the eight frozen ones) whose boxes reach the world box lo..hi."""
 	out = []
 	for n, biome in ep.APPROVED.items():
-		if n in (1, 6):
+		if n in skip:
 			continue
 		shapes, (origin, yaw), (glo, ghi), done = {}, ep.origins()[n], ep.ground_rect(n), set()
 		ms = meshes(n)
@@ -441,6 +441,11 @@ class Layout:
 				print("TOUCH", self.biome, "on our ground:" if ours else "on its ground:", "T%d %s (%d, %d)%s" % key, ", ".join("%s x%d" % (n, v.count(n)) for n in sorted(set(v))))
 
 
+def dump(data):
+	"""cross_track.json's text."""
+	return "{\n" + ",\n".join('"%s": {\n"fix": [\n%s\n],\n"add": [\n%s\n]}' % (b, ",\n".join(json.dumps(r) for r in d["fix"]), ",\n".join(json.dumps(r) for r in d["add"])) for b, d in sorted(data.items())) + "\n}\n"
+
+
 def main():
 	argv = [int(a) for a in sys.argv[sys.argv.index("--") + 1 :]] or [1, 6]
 	data = json.load(open(PATH)) if os.path.exists(PATH) else {}
@@ -451,7 +456,7 @@ def main():
 		lay.report()
 		data[lay.biome] = {"fix": lay.rows, "add": lay.adds}
 	with open(PATH, "w") as f:
-		f.write("{\n" + ",\n".join('"%s": {\n"fix": [\n%s\n],\n"add": [\n%s\n]}' % (b, ",\n".join(json.dumps(r) for r in d["fix"]), ",\n".join(json.dumps(r) for r in d["add"])) for b, d in sorted(data.items())) + "\n}\n")
+		f.write(dump(data))
 
 
 if __name__ == "__main__":
