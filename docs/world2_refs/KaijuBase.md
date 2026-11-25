@@ -237,3 +237,6 @@ Replaces the corpse described in the table and in rounds 13 to 16:
 - Round 4: one closed-lid crease in a hide-toned lid; the dent ahead of the eye filled; blunt horn tips; clefts of the hind
   foot closed up; wrecks with a broken corner and debris at the foot; broken asphalt over the earth's edge; fill mixes
   Office and Apartment, fronts to the road. The body alone is 292.4 long (first draft 292.3).
+- Round 5: the closed eye is a lid cap in hide colour on a darker rim cap, square to the skin, with one crease; the dip
+  between brow and snout is back in the outline; the jaw wreck is low, tilted and dull; the earth is level with the plain
+  at the road side and both ends.

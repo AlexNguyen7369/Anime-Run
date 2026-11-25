@@ -440,13 +440,13 @@ def corpse_field():
 		F.ball(head_pt(2, v * 13, -4), (11, 6.5, 9), 4, head_axes())  # jaw muscle
 		F.cone(head_pt(21, v * 7.5, 10.5), head_pt(-3, v * 11.5, 16.5), 3.2, 5.0, 1.8)  # brow shelf
 		F.cone(head_pt(22, v * 6, 11), head_pt(38, v * 4.2, 7.6), 2.0, 2.0, 1.8)  # snout ridge to the nostril
-		sv = next((q / 4 for q in range(20, 100) if F.at(np.array([head_pt(12, v * q / 4, 7.6)]))[0] > 0), 12)
-		F.ball(head_pt(12, v * (sv + 0.9), 7.6), (4.6, 1.9, 3.2), 1.2, head_axes(), cut=True)  # eye socket, shallow
-		F.ball(head_pt(12, v * (sv - 2.2), 7.5), (4.8, 2.7, 3.4), 2.0, head_axes())  # the closed lid, grown from the skin
-		for q in range(14):  # its rim, a low fold of hide
-			a_ = q / 14 * math.tau
-			F.ball(head_pt(12 + 5.2 * math.cos(a_), v * (sv - 0.35), 7.6 + 3.7 * math.sin(a_)), (1.2, 1.0, 1.1), 1.2, head_axes())
-		F.ball(head_pt(24, v * 8.4, 8.4), (7, 2.8, 3.6), 3.5, head_axes(-0.1))  # fills the dent between brow and snout ridge
+		def sv(u, w):
+			return next((q / 4 for q in range(20, 100) if F.at(np.array([head_pt(u, v * q / 4, w)]))[0] > 0), 12)
+
+		F.ball(head_pt(23.5, v * 8.8, 7.0), (5.5, 2.0, 2.6), 2.0, head_axes(-0.1))  # softens the overhang on the cheek, below the outline
+		F.cone(head_pt(18.5, v * 10.0, 11.2), head_pt(5, v * 13.0, 12.4), 1.5, 1.9, 1.0)  # brow ridge over the lid
+		for a_, b_ in (((19, 2.4), (6, 1.4)), ((3, 7.5), (1, 0.5)), ((27, 4.6), (20, 3.0))):  # folds of the cheek
+			F.cone(head_pt(a_[0], v * (sv(*a_) + 0.2), a_[1]), head_pt(b_[0], v * (sv(*b_) + 0.2), b_[1]), 0.9, 0.9, 1.6, cut=True)
 		F.ball(head_pt(41.5, v * 4.6, 4.6), (2.8, 2.2, 2.0), 0.7, head_axes(), cut=True)  # nostril
 		F.cone(head_pt(-6, v * 11, 14), head_pt(-17, v * 19, 25), 5.2, 3.8, 2.0)  # horn, swept back
 		F.cone(head_pt(-17, v * 19, 25), head_pt(-29, v * 21.8, 32.4), 3.8, 2.4, 1.2)
@@ -615,8 +615,6 @@ def corpse_body(k):
 				ramp, light = ("4E4450", "655866"), 0.4 + 0.3 * n2[i]  # tongue, grey mauve
 			elif 0 < hu[i] < 46 and av < 10.5 and -13 < hw[i] < -1 and ao[i] < 0.62:
 				ramp, light = ("2A1814", "3A211C"), 0.3 + 0.4 * ao[i]  # inside of the mouth: dark, no gore
-			elif 7.2 < hu[i] < 16.8 and av > 8 and (hu[i] - 12) ** 2 / 23 + (hw[i] - 7.6) ** 2 / 12 < 1:
-				ramp, light = ("553A30", "5E4034", "664538"), 0.2 + 0.6 * ao[i]  # the closed lid, dull
 			elif hw[i] < -10:
 				ramp, light = BELLY_RAMP, 0.45 + 0.4 * (ao[i] - 0.6) + 0.15 * n2[i]
 		if z[i] < 2.4 + 1.6 * n1[i]:
@@ -652,6 +650,7 @@ def corpse_berm(k, F, rnd):
 		hgt = np.maximum(hgt, np.clip((58 - Y - 0.4 * rag) / 15, 0, 1) ** 1.6 * bh * np.exp(-(((X - bx_) ** 2 + ((Y - by_) * 1.5) ** 2) / br**2)) * (0.9 + 0.12 * nz))
 	crack = np.abs(np.sin(np.arctan2(Y, X * 0.5) * 11 + 1.6 * np.sin(d * 0.16) + nz)) < 0.1
 	crack &= (d > 4) & (t > 0.3)
+	hgt = hgt * np.clip((60 + 0.3 * rag - Y) / 14, 0, 1) ** 1.4 * np.clip((147 + 0.4 * rag - np.abs(X)) / 18, 0, 1) ** 1.4  # level with the plain at the road side and both ends
 	hgt = np.where(crack, hgt - 0.9, hgt)
 	fade = np.clip(t / 0.3, 0, 1)  # the outer band runs down through the ground, in the ground's own colour
 	hgt = hgt * fade**1.5 - 0.25 * (1 - fade) + 0.06 * fade
@@ -864,14 +863,25 @@ def kaiju_corpse(k):
 					continue
 				c = h[0] + up_ * (ln * 0.28 if low else -ln * 0.28)
 				kc.append(("cone", (1.5 + ln * 0.22, ln + 1.4, 1.5 + ln * 0.22), R_(c), "D8CDB0", {"seg": 5, "rot": ((0 if low else 180) + math.degrees(HEAD_ROLL) * 0.7, 0, 0)}))
-		pts = []
-		for q in range(6):  # the lid's dark slit, on the skin
-			u, w = 8.2 + q * 1.5, 7.5 - 0.35 * (q - 2.5) * 0.4
-			h = skin(head_pt(u, v * 30, w), head_pt(u, 0, w))
-			if h:
-				pts.append(R_(h[0] + h[1] * 0.1))
-		for a, b in zip(pts, pts[1:]):
-			cab(kc, a, b, "2E1E19", thick=0.42)
+		hits = [skin(head_pt(u, v * 30, w), head_pt(u, 0, w)) for u, w in ((12, 7.4), (8.5, 7.4), (15.5, 7.4), (12, 5), (12, 9.4))]
+		hits = [h for h in hits if h]
+		if hits:  # the closed eye: a lid cap in hide colour on a darker rim cap, both square to the skin, and its crease
+			c = hits[0][0]
+			n = sum((h[1] for h in hits), Vector()).normalized()
+			a = (Vector(hax[0]) - n * Vector(hax[0]).dot(n)).normalized()
+			w_ = a.cross(n) if a.cross(n).dot(Vector(hax[2])) > 0 else n.cross(a)
+			M = Matrix((a, w_.cross(a), w_)).transposed()
+			e = M.to_euler("YXZ")
+			rot = (math.degrees(e.x), math.degrees(e.z), -math.degrees(e.y))
+			kc.append(("ball", (11.0, 7.8, 3.4), R_(c - n * 0.75), "4A3028", {"subdiv": 2, "smooth": True, "rot": rot}))
+			kc.append(("ball", (9.4, 6.2, 5.2), R_(c - n * 1.0), "6E4A3B", {"subdiv": 2, "smooth": True, "rot": rot}))
+			pts = []
+			for q in range(8):
+				x_, y_ = -3.75 + q * 7.5 / 7, -0.5 - 0.5 * math.sin(q / 7 * math.pi)
+				z_ = 2.6 * math.sqrt(max(0.0, 1 - (x_ / 4.7) ** 2 - (y_ / 3.1) ** 2)) - 1.12
+				pts.append(R_(c + a * x_ + w_ * y_ + n * z_))
+			for p_, q_ in zip(pts, pts[1:]):
+				cab(kc, p_, q_, "2A1A16", thick=0.5)
 		kc.append(("ball", (3.6, 2.8, 2.4), R_(head_pt(39.4, v * 4.2, 4.8)), "20140F", {"subdiv": 1}))  # nostril
 	for name, js in LIMBS.items():
 		px, py, pz, pr = js[-1]
@@ -887,6 +897,10 @@ def kaiju_corpse(k):
 		(103, -41, 18, 13, 5, 20, 8, 20, -2, "D9D0BC"), (26, -49, 24, 12, 3, 4, 14, 32, -2, "AEB6BE"), (-34, -50, 22, 11, 3, -6, 12, -28, -2, "D9D0BC"),
 		(-103, -30, 24, 18, 5, -20, 12, -18, -4, "AEB6BE"), (-100, 48, 26, 15, 5, 12, -24, 10, -4, "AEB6BE"), (82, 41, 25, 17, 6, -18, -20, -10, -4, "D9D0BC"), (120, 8, 18, 16, 4, 30, -10, 24, -3, "AEB6BE"),
 	):
+		if x == 103:  # the jaw's: its own stream, so the rest of the site stays put
+			wreck([], rnd, x, z, w, dp, fl, yaw, pitch, roll, y, tone)
+			wreck(kc, random.Random(31), 102, -43, 20, 13, 4, 14, 10, 31, -2, "8E9296")
+			continue
 		wreck(kc, rnd, x, z, w, dp, fl, yaw, pitch, roll, y, tone)
 	for x0, yy in ((14, 20), (-70, 16)):  # facade slabs thrown up against the hide
 		h = skin((x0, 90, yy), (x0, -90, yy))
