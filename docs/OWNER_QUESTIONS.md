@@ -334,3 +334,4 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
   so the full suite stays red until then. Options: (a) keep it, red until the uploads; (b) the whole scenario on demand until
   then, which also takes its guards (stall spots and prompts, the gate switch) out of the full suite; (c) split it: the guards
   stay always on, the waiting checks go on demand as `plaza_build_pending`. Recommended: (c).
+24. Swap round 7 (ab8457cf, not merged): blind T1 game 7, context 5; T6 7 and 7; harness only the known 10; audit no violations, NEEDS OWNER: HQ exception, see the renders ("Track Swap Round 7", private page), base centre or footprint, counts. cross_track no longer checks that Cottage and RuinWall hide a landmark. T1 finish Rank left out.
