@@ -1,0 +1,270 @@
+"""Reference renders of World 2 Track 5's reworked dead kaiju (owner 2026-11-25; docs/WORLD2_SPEC.md "Render set
+approvals"). Never overwrites the approved shots: the build goes to a scratch folder and every image to
+assets/world2_draft/track05_KaijuBase/reference/. --fit also asks export_props's planner functions which placements pass
+the game's rules at which scale; it exports and writes nothing.
+Headless:  Blender -b --factory-startup --python tools/blender/world2/kaiju_reference.py -- <scratch folder> [--fast] [--fit] [--sites]
+           [--extra <drafts folder> <1=Biome,2=Biome,...>]
+Import-safe: main() runs only as a script.
+"""
+
+import math
+import os
+import sys
+
+import bpy
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+	sys.path.insert(0, HERE)
+
+import build_track  # noqa: E402
+import kit  # noqa: E402
+
+DRAFT = os.path.join(build_track.ROOT, "assets", "world2_draft", "track05_KaijuBase")
+OUT = os.path.join(DRAFT, "reference")
+# Close-ups of the model alone, Roblox local studs: name -> (eye, look, vertical field)
+MODEL = {
+	"front": ((0, 60, -330), (0, 38, 0), 45),
+	"back": ((-120, 110, 290), (0, 35, 0), 45),
+	"34": ((210, 95, -230), (10, 30, 0), 45),
+	"head": ((175, 32, -125), (118, 18, -42), 40),
+	"foot": ((112, 22, -100), (70, 6, -54), 40),
+	"wreck_mid": ((-70, 30, -120), (-40, 8, -48), 48),
+	"wreck_tail": ((-60, 34, -110), (-104, 12, -30), 48),
+	"wreck_back": ((110, 60, 140), (80, 14, 44), 48),
+	"eye": ((112, 34, -86), (116, 24, -34), 34),
+	"crew": ((112, 10, -66), (101, 7, -52), 40),
+	"crew_flank": ((30, 70, -80), (8, 60, -20), 45),
+	"top": ((0, 460, -30), (0, 0, 0), 40),
+}
+
+
+def model_shots(k, cam):
+	"""The corpse prop alone on ground of the track's own colour."""
+	src = k.props["KaijuCorpse"]
+	hidden = [o for o in bpy.context.scene.objects if o.type not in ("LIGHT", "CAMERA") and not o.hide_render]
+	for o in hidden:
+		o.hide_render = True
+	ob = bpy.data.objects.new(src.name + "_ref", src.data)
+	bpy.context.scene.collection.objects.link(ob)
+	bpy.ops.mesh.primitive_plane_add(size=3000, location=(0, 0, 0))
+	floor = bpy.context.object
+	floor.data.materials.append(k.mat("8C877C", 1.0))
+	for name, (eye, look, fov) in MODEL.items():
+		build_track.shoot(cam, eye, look, os.path.join(OUT, name + ".jpg"), fov)
+	bpy.data.objects.remove(ob)
+	bpy.data.objects.remove(floor)
+	for o in hidden:
+		o.hide_render = False
+
+
+def run_shot(k, cam, d, name, ahead=70, fov=70):
+	"""The runner's-eye camera of build_track.shots at distance d."""
+	p, right, t = k.at(d)
+	lane = p + right * 10
+	eye, look = lane - t * build_track.RUNNER_EYE[0], lane + t * ahead
+	build_track.shoot(cam, (eye.x, p.y + build_track.RUNNER_EYE[1], eye.z), (look.x, p.y + 4, look.z), os.path.join(OUT, name + ".jpg"), fov)
+
+
+def context_shots(k, cam, sites, approved=True):
+	if approved:
+		run_shot(k, cam, k.length * 0.06, "run_06_same_camera")
+		run_shot(k, cam, k.length * 0.33, "run_33_same_camera")
+	for i, (d, off, *_) in enumerate(sites, 1):
+		run_shot(k, cam, d - 260, "run_site%d_far" % i)
+		run_shot(k, cam, d - 150, "run_site%d_near" % i)
+		# the game's run camera turns a little to the sight: the same eye, looking at the body
+		p, right, t = k.at(d - 150)
+		eye = p + right * 10 - t * 14
+		q, r2, _ = k.at(d - 60)
+		look = q + r2 * off * 0.7
+		build_track.shoot(cam, (eye.x, p.y + 8, eye.z), (look.x, 22, look.z), os.path.join(OUT, "look_site%d.jpg" % i), 60)
+		# raised view of the whole site
+		p, right, t = k.at(d)
+		eye = p + right * 220 - t * 240
+		look = p + right * off
+		build_track.shoot(cam, (eye.x, 190, eye.z), (look.x, 20, look.z), os.path.join(OUT, "site%d.jpg" % i), 55)
+
+
+def sheet(pairs, path, w=960, h=540):
+	"""Old (left) beside new (right), one row per pair, from images on disk."""
+	import numpy as np
+
+	rows = []
+	for pair in pairs:
+		row = []
+		for f in pair:
+			img = bpy.data.images.load(f)
+			img.scale(w, h)
+			a = np.empty(w * h * 4, np.float32)
+			img.pixels.foreach_get(a)
+			row.append(a.reshape(h, w, 4))
+		rows.append(np.concatenate([row[0], np.ones((h, 12, 4), np.float32), row[1]], 1))
+		rows.append(np.ones((12, w * 2 + 12, 4), np.float32))
+	full = np.concatenate(rows[:-1][::-1], 0)
+	out = bpy.data.images.new("sheet", full.shape[1], full.shape[0])
+	out.pixels.foreach_set(full.ravel())
+	out.file_format = "JPEG"
+	out.filepath_raw = path
+	out.save()
+	print("SHOT", path)
+
+
+def fit(k):
+	"""Which placements pass every planner rule (export_props.rules_ok), and the largest scale that still does."""
+	import export_props as ep
+
+	import clearance
+	import numpy as np
+
+	number = 5
+	origin, yaw = ep.origins()[number]
+	lo, hi = ep.bounds(k.props["KaijuCorpse"].data)
+	centre = ((lo[0] + hi[0]) / 2, lo[1], (lo[2] + hi[2]) / 2)
+	local = ep.local_tris(k.props["KaijuCorpse"].data, centre)
+	ctx = ep.hero_ctx(number, clearance.corridors(build_track.load_chain().values()))
+	parts = ep.fallback(k.rec["parts"]["KaijuCorpse"], centre, len(k.rec["parts"]["KaijuCorpse"]))[: ep.FALLBACK_PARTS["hero"]]
+	local = np.concatenate([local, ep.parts_tris(parts)])  # what the game builds while the mesh has no Id, as export() tests it
+	lsize = [hi[j] - lo[j] for j in range(3)]
+	base = lambda pos, rot, sc, f: tuple(pos[j] - sum(rot[j][m] * centre[m] * sc[m] * (1 - f) for m in range(3)) for j in range(3))  # noqa: E731
+	for i, (name, pos, rot, sc) in enumerate(q for q in ep.placements(k, ["KaijuCorpse"], origin, yaw, {"KaijuCorpse": centre}) if q[0] == "KaijuCorpse"):
+		e = ep.euler_yxz(rot)
+		ok = lambda p, f, why=None: ep.rules_ok(local, origin, yaw, p, e, tuple(v * f for v in sc), ctx, False, why)  # noqa: E731
+		why = {}
+		as_drafted = ok(pos, 1.0, why)
+		top = max([f for f in [0.8 + 0.01 * n for n in range(51)] if ok(base(pos, rot, sc, f), f)] or [0.0])
+		n, big = ep.props_overlap(local, origin, yaw, pos, e, sc, ctx)
+		dist = np.sqrt(((ctx["line"] - (pos[0], pos[2])) ** 2).sum(1)).min()
+		c_, Rb, hb = ep.hero_box(local, origin, yaw, pos, e, sc)
+		over = {}
+		for bc, bR, bh, tn, pn in ctx["props"]:
+			if ep.obb_overlap(c_, Rb, hb, bc, bR, bh):
+				over["T%d %s" % (tn, pn)] = over.get("T%d %s" % (tn, pn), 0) + 1
+		print("FIT overlaps", over)
+		print("FIT site %d base centre (%.0f, %.0f) scale %.2f as drafted passes=%s %s size %s own road %.0f largest passing scale there %.2f other-track props %d (%s)" % (i + 1, pos[0], pos[2], sc[0], as_drafted, why, [round(lsize[j] * sc[j], 1) for j in range(3)], dist, top * sc[0], n, big), flush=True)
+		if "--search" in sys.argv:  # local search: along the road, across it and a turn
+			best = (0, 0)
+			for turn in (-6, -3, 0, 3, 6):
+				r2 = [[sum(rot[a][m] * ep.yaw_rot(math.radians(turn))[m][b] for m in range(3)) for b in range(3)] for a in range(3)]
+				e2 = ep.euler_yxz(r2)
+				for along in range(-40, 41, 8):
+					for across in range(-6, 7, 3):
+						p = [pos[j] + rot[j][0] * along + rot[j][2] * across for j in range(3)]
+						f = max(best[0], 0.9) + 0.01
+						while ep.rules_ok(local, origin, yaw, base(p, r2, sc, f), e2, tuple(v * f for v in sc), ctx, False):
+							best = (f, (along, across, turn))
+							f += 0.01
+			print("SEARCH site %d best scale %.2f at (along local +X, across local +Z, turn) %s" % (i + 1, best[0] * sc[0], best[1]), flush=True)
+
+
+def budget(k):
+	"""Track 5's placed parts against BiomeDressing's budget, and the site fill against the other tracks' draft props."""
+	import clearance
+	import export_props as ep
+	import numpy as np
+	from biomes import KaijuBase
+
+	number, (origin, yaw) = 5, ep.origins()[5]
+	corr = clearance.corridors(build_track.load_chain().values())
+	names = [n for n in k.props if n not in ep.ROAD]
+	centres = {}
+	for n in names:
+		lo, hi = ep.bounds(k.props[n].data)
+		centres[n] = ((lo[0] + hi[0]) / 2, lo[1], (lo[2] + hi[2]) / 2)
+	local = {n: ep.local_tris(k.props[n].data, centres[n]) for n in names}
+	parts = {n: len(k.rec["parts"].get(n, [])) for n in names}
+	only = {n for n in names if 0 < parts[n] <= 2 and all(q[0] == "box" for q in k.rec["parts"][n])}
+	(glo, ghi) = ep.ground_rect(number)
+	kept, off = {}, 0
+	for name, pos, rot, sc in ep.placements(k, names, origin, yaw, centres):
+		if np.linalg.det(np.array(rot)) < 0:
+			rot = [[-r[0], r[1], r[2]] for r in rot]
+		if clearance.intrudes(ep.game_tris(local[name], origin, yaw, pos, ep.euler_yxz(rot), sc), corr, (number,) if name in KaijuBase.CLEAR_EXEMPT else ()):
+			continue
+		if not (glo[0] <= pos[0] <= ghi[0] and glo[1] <= pos[2] <= ghi[1]):
+			off += 1
+			continue
+		kept.setdefault(name, []).append((pos, rot, sc))
+	cap = {n: 24 if n in KaijuBase.MODEL_SHOTS and len(v) <= ep.HERO_MAX else 6 for n, v in kept.items()}
+	fb = {n: parts[n] if n in only else min(parts[n], cap[n]) for n in kept}
+	mesh = sum(len(v) * (parts[n] if n in only else 1) + (0 if n in only else fb[n] - 1) for n, v in kept.items())
+	print("BUDGET", int(1200 * max(1, k.length / 3000)), "placed", sum(len(v) for v in kept.values()), "parts if every mesh loads (first of each costed as its fallback)", mesh, "parts if no mesh loads", sum(len(v) * fb[n] for n, v in kept.items()), "off the ground rect", off, {n: len(v) for n, v in kept.items()})
+	ctx = ep.hero_ctx(number, corr)
+	fill = {(round(f[0]), round(f[1])) for f in KaijuBase.FILL}
+	by, hit, n_ = {}, 0, 0
+	for name, v in kept.items():
+		for pos, rot, sc in v:
+			w = ep.to_world(origin, yaw, pos)
+			if not any(abs(w[0] - a) < 25 and abs(w[2] - b) < 25 and name == q for a, b, q in KaijuBase.FILL):
+				continue
+			n_ += 1
+			c, R, h = ep.hero_box(local[name], origin, yaw, pos, ep.euler_yxz(rot), sc)
+			ext, own = np.abs(R) @ h, set()
+			for bc, bR, bh, tn, pn in ctx["props"]:
+				if np.all(np.abs(c - bc) < ext + np.abs(bR) @ bh) and ep.obb_overlap(c, R, h, bc, bR, bh):
+					own.add(tn)
+					by[tn] = by.get(tn, 0) + 1
+			hit += bool(own)
+	print("FILL", n_, "kept fill props (within 25 studs of a fill spot, same prop),", hit, "overlap another track's draft prop; pairs by track", dict(sorted(by.items())), "fill spots", len(fill))
+
+
+def extra_drafts(argv):
+	"""--extra <folder> <1=Biome,2=Biome,...>: a second set of Draft files (a layout change not landed yet) with the full
+	table of the other tracks, as (folder, {track: biome}), or None. Only this script takes it: an export never does."""
+	if "--extra" not in argv:
+		return None
+	i = argv.index("--extra")
+	if len(argv) < i + 3:
+		raise SystemExit("--extra needs a folder and a track table")
+	return argv[i + 1], {int(a): b for a, b in (q.split("=") for q in argv[i + 2].split(","))}
+
+
+def kaiju_overlaps(k, sets):
+	"""The other tracks' draft props inside each corpse's box, per draft set."""
+	from biomes import KaijuBase
+
+	bpy.context.view_layer.update()
+	for ob in [o for o in k.col.objects if o.type == "MESH" and o.data.name.endswith("_KaijuCorpse")]:
+		box = KaijuBase.instance_box(ob)
+		for label, boxes in sets:
+			by = KaijuBase.overlapped(box, boxes)
+			print("KAIJU BOX at", tuple(round(v) for v in ob.location), label, sum(by.values()), dict(sorted(by.items())), flush=True)
+
+
+def main():
+	argv = sys.argv[sys.argv.index("--") + 1 :]
+	scratch = argv[0]
+	build_track.OUT, build_track.BUILD = os.path.join(scratch, "out"), os.path.join(scratch, "build")
+	if os.path.abspath(scratch).startswith(os.path.abspath(DRAFT)):
+		raise SystemExit("the scratch folder may not be the draft folder")
+	if "--fit" in argv:
+		import export_props
+
+		export_props.record()
+	extra = extra_drafts(argv)
+	k = build_track.run(5, fast="--fast" in argv, render=False)
+	from biomes import KaijuBase
+
+	sets = [("on disk", KaijuBase.other_draft_boxes())]
+	if extra:
+		sets.append(("extra", KaijuBase.other_draft_boxes("extra", *extra)))
+		KaijuBase.cut_fill(k, *sets[1])
+	if "--fit" in argv:
+		fit(k)
+		budget(k)
+		kaiju_overlaps(k, sets)
+		return
+	os.makedirs(OUT, exist_ok=True)
+	cam = bpy.context.scene.camera
+	if "--sites" in argv:  # only the shots the site fill shows in
+		context_shots(k, cam, KaijuBase.SITES, approved=False)
+		return
+	model_shots(k, cam)
+	context_shots(k, cam, KaijuBase.SITES)
+	old = lambda n: os.path.join(DRAFT, n + ".jpg")  # noqa: E731
+	new = lambda n: os.path.join(OUT, n + ".jpg")  # noqa: E731
+	sheet([(old("m_KaijuCorpse_front"), new("front")), (old("m_KaijuCorpse_34"), new("34")), (old("02_run_33"), new("run_site2_near")), (old("01_run_6"), new("look_site1"))], new("old_vs_new"))
+
+
+if __name__ == "__main__":
+	main()

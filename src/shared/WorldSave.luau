@@ -51,8 +51,12 @@ end
 
 -- The payload world `id` writes: its progress keys moved into Worlds[key] next to the stored record's other worlds, so
 -- World 1's top-level progress is never overwritten from World 2. Keys of Worlds[key] this version does not know are
--- kept, as PlayerData keeps unknown top-level keys.
-function WorldSave.Fold(payload, current, id)
+-- kept, as PlayerData keeps unknown top-level keys. `keep`: an arrival not yet allowed to stay (being sent back, or its admin
+-- check unknown; Server/WorldTravel, docs/BUGS.md w2-sendback-stale-team): Worlds[key].Team and .Equipped stay as stored
+-- (a changed Equipped too: alone it would make a later first entry a one-member team), so a later real first entry takes
+-- World 1's team of that day (design doc 4.47).
+-- Every other key is written as always, with the shared ones (Gems, Copies) in the same write.
+function WorldSave.Fold(payload, current, id, keep)
 	local key = WorldConfig.SaveKey(id)
 	if not key then
 		return payload
@@ -60,8 +64,13 @@ function WorldSave.Fold(payload, current, id)
 	local out = table.clone(payload)
 	local worlds = type(current) == "table" and type(current.Worlds) == "table" and table.clone(current.Worlds) or {}
 	local mine = type(worlds[key]) == "table" and table.clone(worlds[key]) or {}
+	local stored = type(worlds[key]) == "table" and worlds[key] or {}
 	for _, name in KEYS do
-		mine[name] = out[name]
+		if keep and (name == "Team" or name == "Equipped") then
+			mine[name] = stored[name]
+		else
+			mine[name] = out[name]
+		end
 		out[name] = nil
 	end
 	for _, name in WorldSave.FLAG_KEYS do

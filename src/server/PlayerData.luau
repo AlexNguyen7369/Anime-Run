@@ -454,7 +454,8 @@ local function save(player, userId, release, frozen)
 			end
 			-- Start from the stored record so keys this version does not know are kept, then overlay ours.
 			local merged = table.clone(current)
-			local worldPayload = WorldSave.Fold(payload, current, WorldConfig.Id) -- design doc 4.47
+			local worldPayload =
+				WorldSave.Fold(payload, current, WorldConfig.Id, player:GetAttribute("SendingBack") == true) -- design doc 4.47
 			for key, value in GiftMailbox.Merge(table.clone(worldPayload), current, known) do
 				merged[key] = value
 			end

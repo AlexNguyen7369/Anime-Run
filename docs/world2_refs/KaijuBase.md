@@ -213,3 +213,34 @@ rail top and end cleanly on the deck; the band speckle is dense, medium-small, o
   with a slight hang, plus the 16 ridge ropes: about twice the old count.
 - Tail (the red slab in run shot 02): now a round tapering tail that curls away from the road, with pale crags along its
   top, so it no longer reads as a wall.
+
+Rework (owner 2026-11-25: only the dead kaiju and its site reopened; earlier form rulings dropped). Approved by the owner
+2026-11-25 at round 5 (1bc5e9f7): 19,889 tris, body alone 292.4 long; mesh and both placements frozen; not exported. Renders (`assets/world2_draft/track05_KaijuBase/reference/`, made by `tools/blender/world2/kaiju_reference.py`).
+Replaces the corpse described in the table and in rounds 13 to 16:
+- An invented generic beast, whole and unwounded, not the source's kaiju: one continuous body meshed from a distance
+  field (no balls, boxes, plates or cups): ribs under the hide, shoulder and hip, jointed limbs with digits, a head rolled
+  on its cheek with a closed eye, hung jaw and tongue, keels down the back, a tail wrapped round the front.
+- It lies in churned, cracked earth that runs out below the ground (no oval, nothing far under the ground) among the
+  building corners it crushed; two lighter teal gantries, a few ropes, crew at human scale.
+- Two legal pockets on the left of the road, d 1057 and 2683, 92 and 91 off the centre line, scale 1.00.
+- The city closes up round both (`corpse_sites`, its own random stream): the frozen instances keep their places, except 9
+  rubble heaps under the bodies and the 8 vans, which moved up the road from the new spots.
+- Round 2: broken buildings in the city's own floor-plate and window-band language, pinned and tilted (no flat walls);
+  earth banks under chin, hands and tail that run out into the ground colour; separate toes with knuckles and clefts,
+  closed dull eye, nostrils, horn rings, lip and tongue groove; spike collars and low flank plates; stake line along the
+  back, sweepers on ropes, crushed cars, barriers and crew on the bank. The middle gantry is a one-sided mast with a
+  stayed jib, because the body fills the lane behind it. Site fill on any track's road corridor is not placed.
+- Round 3: the closed lid grows from the skin; the head's faces are even and calmly painted; teeth rooted by ray in each
+  jaw; wrecks with uneven slipped floors, broken corners, dust, scorch and buried bases, a slab folded at the belly; a
+  ragged earth edge in the ground colour; ropes follow the skin and end on a sweeper, a hook sling or a weight; crew and
+  cars stand on the sampled ground; Apartments and Rubble fill the apron wherever every track's corridor allows.
+- Round 4: one closed-lid crease in a hide-toned lid; the dent ahead of the eye filled; blunt horn tips; clefts of the hind
+  foot closed up; wrecks with a broken corner and debris at the foot; broken asphalt over the earth's edge; fill mixes
+  Office and Apartment, fronts to the road. The body alone is 292.4 long (first draft 292.3).
+- Round 5: the closed eye is a lid cap in hide colour on a darker rim cap, square to the skin, with one crease; the dip
+  between brow and snout is back in the outline; the jaw wreck is low, tilted and dull; the earth is level with the plain
+  at the road side and both ends.
+- The site fill is cut to the props clear of every other track's scenery, CLEAR_EXEMPT props included, box against box
+  (owner 2026-11-25; `cut_fill`, tested by code against the Draft files on disk). On the merged swap
+  (2026-11-25) 14 stay; the owner chose "A with 12": Apartments (-471.8, 875.3) and (-613.6, 876.6), each touching a van as
+  placed, are left out (`LEFT_OUT`), so 12 stay (9 Apartment, 3 Office), none touching a van.
