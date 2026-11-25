@@ -4,9 +4,11 @@ Three concepts against the current gate (SpawnArea.WorldGate), each standing at 
 (build_plaza, plaza_w2; imported, never edited): locked = the violet World 2 gate in World 1's golden hour, open = the cyan
 World 1 return gate in World 2's dusk Rift Shrine. Local axes: x right, -y front (toward the spawn), z up, floor top = 0.
   A  Rift Cairn:     a halo of floating boulders between two broken stone spires (the evolution of the current gate).
-  B  Moon Gate:      a tiled shrine gatehouse round a circular opening with two heavy lacquer door leaves.
+  B  Shrine Gate:    a tiled shrine gatehouse with an arched doorway and two-fold lattice doors (was Moon Gate).
   C  Split Monolith: one giant standing stone; locked it is banded shut, open its halves have slid apart on the rift.
 Footprint kept inside the current gate's 35.7 wide x 30 deep; heights are proposed.
+Owner option: -- --big renders the same gates enlarged 1.3x (<concept>_big_*.jpg, compare_big_*); -- --clear prints the gaps to
+the neighbours for both sizes.
 Headless: blender -b --factory-startup --python tools/blender/plaza/draft_gate.py -- [A B C current] [locked open w1open]
           [front 34 close spawn back] [--fast] [--out DIR]   |   -- --stats   (numbers only, no render)
 Renders to assets/plaza_draft2/gate/<concept>_<state>_<view>.jpg, plus compare_*.jpg (A, B / C, current).
@@ -48,8 +50,8 @@ PAL = {
 }
 # The portal colours: g1 bright edge, g2 mid, g3 deep, g4 core; v = World 2 violet, c = World 1 cyan (SpawnArea swirl colours)
 COLOURS = {
-	"violet": {"g1": ("#C98BFF", 1.15), "g2": ("#9646FF", 1.1), "g3": ("#5A1EC8", 1.0), "g4": ("#F0DCFF", 1.7), "gdim1": ("#4A2290", 0.8), "gdim2": ("#341566", 0.7)},
-	"cyan": {"g1": ("#7FE4FF", 1.0), "g2": ("#22A8EE", 0.95), "g3": ("#1A5CC4", 0.9), "g4": ("#EAFBFF", 1.2), "gdim1": ("#1C5A90", 0.8), "gdim2": ("#123F6E", 0.7)},
+	"violet": {"g1": ("#C98BFF", 1.15), "g2": ("#9646FF", 1.1), "g3": ("#5A1EC8", 1.0), "g4": ("#F0DCFF", 1.7), "gdim1": ("#4A2290", 0.8), "gdim2": ("#341566", 0.7), "gvoid": ("#1A0838", 0.6)},
+	"cyan": {"g1": ("#7FE4FF", 1.0), "g2": ("#22A8EE", 0.95), "g3": ("#1A5CC4", 0.9), "g4": ("#EAFBFF", 1.2), "gdim1": ("#1C5A90", 0.8), "gdim2": ("#123F6E", 0.7), "gvoid": ("#071A3C", 0.6)},
 }
 
 
@@ -221,31 +223,67 @@ def padlock(m, c, s=1.0, back=False):
 	tube(m, [xf @ Vector((x, 0, z)) for x, z in sh], 0.55 * s, "ir3", 8)
 
 
-def swirl(m, outline, cz, y, locked, rings=7, n=48, arms=6, twist=1.1, dish=1.6):
-	"""The portal: smooth spiral arms in a shallow dish (the core lies deeper) on both faces. outline(angle) -> radius."""
-	cols = ("gdim1", "gdim2", "gdim2", "gdim1") if locked else ("g1", "g2", "g3", "g2")
-	per = n // (arms * 4)
+def rift_sheet(m, outline, cz, y, locked, seeds=34, focus=(0.3, 0.26), bright=False):
+	"""The portal: a broken pane. Irregular shards (Voronoi cells), small round an off-centre dark hollow and long toward the
+	rim, with light in the cracks; no arms, rings or lit core. outline(angle) -> radius; both faces."""
+	rng = random.Random(41)
+	rmax = max(outline(k / 48 * math.tau) for k in range(48))
+	rad = lambda q: outline(math.atan2(q.y, q.x) % math.tau)
+	fx = Vector((focus[0] * outline(0), focus[1] * outline(math.pi / 2)))
+	pts = []
+	while len(pts) < seeds:
+		t = rng.random() ** 1.5
+		a = rng.uniform(0, math.tau)
+		q = fx + Vector((math.cos(a), math.sin(a))) * (0.05 + 1.45 * t) * rmax
+		if q.length < rad(q) * 0.98 and all((q - o).length > 1.3 + 1.4 * (q - fx).length / rmax for o in pts):
+			pts.append(q)
+		elif rng.random() < 0.002:
+			seeds -= 1
+	cells = []
+	for i, c in enumerate(pts):
+		poly = [Vector((sx, sz)) * rmax * 1.3 for sx, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+		for o in pts:
+			if o is c:
+				continue
+			mid, n = (c + o) / 2, o - c
+			n = Vector((n.x * 3.2 - n.y * 1.5, n.y * 1.1 - n.x * 1.5))  # a sheared metric: splinters along one diagonal
+			out = []
+			for u, v in zip(poly, poly[1:] + poly[:1]):
+				du, dv = (u - mid).dot(n), (v - mid).dot(n)
+				if du <= 0:
+					out.append(u)
+				if (du < 0) != (dv < 0) and abs(du - dv) > 1e-9:
+					out.append(u + (v - u) * (du / (du - dv)))
+			poly = out
+		fine = []
+		for u, v in zip(poly, poly[1:] + poly[:1]):
+			steps = max(1, round((v - u).length / 3.2)) if max(u.length - rad(u), v.length - rad(v)) > 0 else 1
+			fine += [u.lerp(v, k / steps) for k in range(steps)]
+		fine = [q * min(1, 0.955 * rad(q) / max(q.length, 1e-6)) for q in fine]
+		g = sum(fine, Vector((0, 0))) / len(fine)
+		d = (g - fx).length / rmax
+		if locked and not bright:
+			cols = rng.choice((("gdim1", "gdim2"), ("gdim2", "gdim2"), ("gdim1", "gdim1")))
+		elif d < 0.26:
+			cols = ("gvoid", "gdim2")
+		else:
+			cols = rng.choice((("g2", "g3"), ("g3", "g3"), ("g2", "g2"), ("g3", "gdim1"), ("g1", "g2")))
+		cells.append(([g + (q - g) * (0.985 - 0.1 * rng.random() ** 2) for q in fine], g, cols, rng.uniform(0.1, 0.6)))
+	crack = "g2" if locked and not bright else "g1"
 	for face in (-1, 1):
+		P = lambda q, dy: Vector((q.x, y + face * dy, cz + q.y))
 
-		def pt(i, k):
-			f = i / rings
-			a = k / n * math.tau + twist * (1 - f) ** 1.3 * 2.2 * -face
-			rad = outline(a) * f
-			return Vector((math.cos(a) * rad, y + face * (0.15 + dish * 0.5 * f * f), cz + math.sin(a) * rad))
+		def tri(x, z, w, colour):
+			m.face([x, z, w] if ((z - x).cross(w - x)).y * face > 0 else [x, w, z], colour)
 
-		for i in range(rings):
-			for k in range(n):
-				colour = cols[(k // per) % 4]
-				if i == rings - 1:
-					colour = "g2" if locked else "g1"
-				elif i == 0 and not locked:
-					colour = "g4"
-				q = [pt(i, k), pt(i + 1, k), pt(i + 1, k + 1), pt(i, k + 1)]
-				if i == 0:
-					q = [pt(0, 0), q[1], q[2]]
-				if face > 0:
-					q.reverse()
-				m.face(q, colour)
+		n = 72
+		for k in range(n):
+			e = [Vector((math.cos(t), math.sin(t))) * outline(t % math.tau) for t in (k / n * math.tau, (k + 1) / n * math.tau)]
+			tri(P(Vector((0, 0)), 0.1), P(e[0], 0.1), P(e[1], 0.1), crack)
+		for poly, g, cols, dy in cells:
+			for k, (u, v) in enumerate(zip(poly, poly[1:] + poly[:1])):
+				if (u - v).length > 0.02:
+					tri(P(g, 0.2 + dy), P(u, 0.2), P(v, 0.2), cols[k * 2 // len(poly) % 2])
 
 
 def octo(d, rot=math.pi / 8):
@@ -312,7 +350,7 @@ def concept_a(m, locked):
 		a0, a1 = i / 26 * math.tau, (i + (1 if locked else 0.8)) / 26 * math.tau
 		for yy in (-0.9, 0.9):
 			m.beam((9.35 * math.cos(a0), yy, CY + 0.4 + 9.35 * math.sin(a0)), (9.35 * math.cos(a1), yy, CY + 0.4 + 9.35 * math.sin(a1)), 0.5, "g2" if locked else "g1")
-	swirl(m, lambda t: 9.4, CY + 0.4, 0, locked)
+	rift_sheet(m, lambda t: 9.4, CY + 0.4, 0, locked)
 	for s in (-1, 1):  # the broken spires: stacked hewn blocks with lit seams, leaning in, the caps afloat
 		x, z = 15.4, 0.0
 		for i, (w, d, h) in enumerate(((4.2, 6.4, 8.4), (3.8, 5.4, 7.6), (3.3, 4.6, 6.6), (2.6, 3.6, 5.6))):
@@ -346,134 +384,163 @@ def concept_a(m, locked):
 		padlock(m, (0, 3.7, CY - 0.8), 1.2, True)
 
 
-def half_disc(r, s, n=12, gap=0.12):
-	"""CCW outline of a half disc on the s side, its straight edge at x = s * gap."""
-	if s > 0:
-		return [(gap, -r)] + [(r * math.cos(a), r * math.sin(a)) for a in (-math.pi / 2 + (k + 1) / n * math.pi for k in range(n - 1))] + [(gap, r)]
-	return [(-gap, r)] + [(-r * math.cos(a), r * math.sin(a)) for a in (math.pi / 2 - (k + 1) / n * math.pi for k in range(n - 1))] + [(-gap, -r)]
+AR, SPRING, SILL = 8.6, 15.6, 1.9  # B's doorway: half width and arch radius, springline, threshold top
+
+
+def panel(m, xf, s, u0, u1):
+	"""One fold of a door, u measured from the jamb toward the middle: lacquer base, open lattice over it, arched head. Built
+	in the round, so both faces are finished. xf places the hinge line (u = u0) at the origin; +x runs along the fold."""
+	top = lambda u: SPRING + math.sqrt(max(AR * AR - (AR - u) ** 2, 0)) - 0.25
+	X = lambda u, y, z: xf @ Vector((s * -(u - u0), y, z))
+	rot = xf.to_3x3()
+	w, mid = u1 - u0, (u0 + u1) / 2
+	for u, in ((u0 + 0.4,), (u1 - 0.4,)):  # stiles
+		h = top(u) - SILL - 0.1
+		cbox(m, (0.62, 0.95, h), X(u, 0, SILL + 0.1 + h / 2), "lq3", "lq1", rot, 0.16)
+	m.box((w - 0.8, 0.5, 4.6), X(mid, 0, SILL + 2.6), "lq1", rot)
+	for y in (-0.36, 0.36):  # raised field and gold corner mount on the base
+		cbox(m, (w - 1.9, 0.3, 3.2), X(mid, y, SILL + 2.6), "lq3", "lq1", rot, 0.14)
+		m.box((0.9, 0.34, 0.9), X(mid, y * 1.25, SILL + 2.6), "gd1", rot @ Matrix.Rotation(math.pi / 4, 3, "Y"))
+	for z in (SILL + 0.4, SILL + 5.1, 12.6):
+		cbox(m, (w - 0.6, 0.8, 0.8), X(mid, 0, z), "lq3", "lq1", rot, 0.16)
+	n = 3
+	pts = [X(u0 + 0.1 + (w - 0.2) * k / n, 0, top(u0 + 0.1 + (w - 0.2) * k / n)) for k in range(n + 1)]
+	tube(m, pts, 0.5, "gd2", 5)
+	for k in (1,):  # lattice bar
+		u = u0 + 0.4 + (w - 0.8) * k / 2
+		m.box((0.36, 0.4, top(u) - SILL - 5.1), X(u, 0, (top(u) + SILL + 5.1) / 2), "lq2", rot)
+	for z in (9.0, 18.4):
+		if z < top(mid) - 0.6:
+			m.box((w - 0.8, 0.4, 0.36), X(mid, 0, z), "lq2", rot)
 
 
 def leaf(m, s, locked):
-	"""One lacquer door leaf: half disc, iron rim and straps, gold studs, a lit half-moon cut."""
-	r = 9.6
-	hinge = Matrix.Translation(Vector((s * r, -1.0, CY)))
-	turn = Matrix.Rotation(0 if locked else s * math.radians(122), 4, "Z")
-	xf = hinge @ turn @ Matrix.Translation(Vector((-s * r, 0, 0)))
-	prism(m, half_disc(r, s), -0.7, 0.7, "lq1", "lq2", 0.2, "lq3", "lq1", xf)
-	T = lambda x, y, z: xf @ Vector((x, y, z))
-	pts = [(s * r * 0.97 * math.sin(k / 12 * math.pi), r * 0.97 * math.cos(k / 12 * math.pi)) for k in range(13)]
-	for y in (-0.8, 0.8):
-		tube(m, [T(x, y, z) for x, z in pts], 0.42, "gd2", 5)
-		tube(m, [T(s * 0.5, y, -r * 0.96), T(s * 0.5, y, r * 0.96)], 0.36, "gd2", 5)
-		inner = [(s * (1.2 + 5.2 * math.sin(k / 10 * math.pi)), 5.6 * math.cos(k / 10 * math.pi)) for k in range(11)]
-		tube(m, [T(x, y, z) for x, z in inner], 0.24, "gd1", 4)
-		for z in (-4.4, 4.4):
-			e = math.sqrt(r * r - z * z) * 0.95
-			cbox(m, (e - 0.8, 0.5, 1.15), T(s * (e + 0.8) / 2, y, z), "ir2", "ir3", (xf.to_3x3()), 0.12)
-			for k in range(4):
-				m.box((0.6, 0.5, 0.6), T(s * (1.6 + k * (e - 2.6) / 3), y * 1.4, z), "gd1", xf.to_3x3())
-		q = [T(s * 0.95, y, -3.2)] + [T(s * (0.95 + 3.2 * math.sin(k / 6 * math.pi)), y * 0.92, -3.2 * math.cos(k / 6 * math.pi)) for k in range(1, 6)] + [T(s * 0.95, y, 3.2)]
-		n = (q[1] - q[0]).cross(q[3] - q[0])
-		want = xf.to_3x3() @ Vector((0, y, 0))
-		m.face(q if n.dot(want) > 0 else q[::-1], "g2")
+	"""A two-fold door on one jamb: the first fold hinges on the jamb, the second on the first. Open, the first lies back
+	along the wall and the second folds in front of it, clear of the doorway."""
+	y0, w = -2.5, AR / 2
+	a1, a2 = (0, 0) if locked else (math.radians(170), math.radians(-170))
+	j = Matrix.Translation(Vector((s * AR, y0, 0)))
+	f1 = j @ Matrix.Rotation(s * a1, 4, "Z")
+	f2 = f1 @ Matrix.Translation(Vector((-s * w, 0.55, 0))) @ Matrix.Rotation(s * a2, 4, "Z") @ Matrix.Translation(Vector((0, -0.55, 0)))
+	panel(m, f1, s, 0.0, w - 0.06)
+	panel(m, f2, s, w, AR - 0.08)
+	for z in (4.0, 9.0, 14.2):  # hinge barrels, and the plates that hold them to the jamb
+		m.cyl(0.48, 1.7, (s * AR, y0, z - 0.85), "gd2", n=8)
+		m.box((1.5, 0.5, 1.2), (s * (AR + 0.7), y0 + 0.25, z), "gd1")
+		k = f1 @ Vector((-s * w, 0.55, z))
+		m.cyl(0.42, 1.5, (k.x, k.y, z - 0.75), "gd2", n=8)
+	for y in (-0.55, 0.55):  # a pull plate on the meeting stile, both faces
+		m.box((0.5, 0.3, 2.2), f2 @ Vector((-s * (w - 0.5), y, 10.8)), "gd1", f2.to_3x3())
 
 
 def concept_b(m, locked):
 	dais(m, locked)
-	# wall with the moon opening: a ring of wedge faces between the circle and the wall's rectangle
-	hw, z0, z1, d, n, ro = 13.2, DAIS, 26.2, 1.5, 32, 10.3
+	hw, z1, d, n = 13.2, 26.2, 1.5, 10
+	arc_ = [Vector((AR * math.cos(k / n * math.pi), 0, SPRING + AR * math.sin(k / n * math.pi))) for k in range(n + 1)]  # right to left
+	for f in (-1, 1):
+		Y = Vector((0, f * d, 0))
 
-	def edge(a):
-		c, s = math.cos(a), math.sin(a)
-		t = min(hw / abs(c) if abs(c) > 1e-6 else 1e9, ((z1 - CY) / s) if s > 1e-6 else 1e9, ((z0 - CY) / s) if s < -1e-6 else 1e9)
-		return Vector((c * t, 0, CY + s * t))
+		def quad(q, colour):
+			m.face([p + Y for p in (q if f < 0 else q[::-1])], colour)
 
-	angs = sorted(set([k / n * math.tau for k in range(n)] + [math.atan2(b - CY, a) % math.tau for a in (-hw, hw) for b in (z0, z1)]))
-	for i, a in enumerate(angs):
-		b = angs[(i + 1) % len(angs)]
-		ca, cb = (Vector((ro * math.cos(t), 0, CY + ro * math.sin(t))) for t in (a, b))
-		ea, eb = edge(a), edge(b)
-		for y, f in ((-d, False), (d, True)):
-			Y = Vector((0, y, 0))
-			q = [ca + Y, ea + Y, eb + Y, cb + Y]
-			m.face(q[::-1] if f else q, "pl1" if i % 3 else "pl2")
-		Y = Vector((0, d, 0))
-		m.face([ea - Y, ea + Y, eb + Y, eb - Y], "wd1")
-	hoopn = 32
-	for k in range(hoopn):  # the carved stone frame of the opening: alternating voussoirs, proud on both faces
-		a0, a1 = k / hoopn * math.tau, (k + 1) / hoopn * math.tau
-		r0, r1 = 9.75, 11.5 if k % 2 else 11.2
-		y = 2.3 if k % 2 else 2.1
-		P = lambda r, a, yy: Vector((r * math.cos(a), yy, CY + r * math.sin(a)))
-		sh = "k1" if k % 2 else "k3"
-		m.face([P(r0, a0, -y), P(r1, a0, -y), P(r1, a1, -y), P(r0, a1, -y)], sh)
-		m.face([P(r0, a0, y), P(r0, a1, y), P(r1, a1, y), P(r1, a0, y)], sh)
-		m.face([P(r1, a0, -y), P(r1, a0, y), P(r1, a1, y), P(r1, a1, -y)], "k2")
-		m.face([P(r0, a0, -y), P(r0, a1, -y), P(r0, a1, y), P(r0, a0, y)], "g2" if locked else "g1")
-	swirl(m, lambda t: 9.7, CY, 0.6, locked)
+		for s in (-1, 1):
+			q = [Vector((s * AR, 0, DAIS)), Vector((s * hw, 0, DAIS)), Vector((s * hw, 0, SPRING)), Vector((s * AR, 0, SPRING))]
+			quad(q if s > 0 else q[::-1], "pl1")
+		for p, q in zip(arc_, arc_[1:]):
+			quad([p, Vector((p.x, 0, z1)), Vector((q.x, 0, z1)), q], "pl1")
+		for s in (-1, 1):
+			q = [Vector((s * AR, 0, SPRING)), Vector((s * hw, 0, SPRING)), Vector((s * hw, 0, z1)), Vector((s * AR, 0, z1))]
+			quad(q if s > 0 else q[::-1], "pl2")
+	# stone frame: jamb blocks and arch blocks, proud on both faces; a lit lip inside
+	for s in (-1, 1):
+		for k in range(5):
+			h = (SPRING - DAIS) / 5
+			w = 1.7 if k % 2 else 1.4
+			cbox(m, (w, 4.0 if k % 2 else 3.8, h - 0.06), (s * (AR + 0.05 + w / 2), 0, DAIS + (k + 0.5) * h), "k1" if k % 2 else "k2", "k3", ch=0.2)
+		m.box((0.2, 1.2, SPRING - DAIS), (s * (AR - 0.02), 0.9, (SPRING + DAIS) / 2), "g2" if locked else "g1")
+	for k in range(n + 1):
+		a = (k + 0.5) / (n + 1) * math.pi
+		w = 1.9 if k == n // 2 else 1.5
+		r = AR + 0.05 + w / 2
+		cbox(m, (2.75, 4.6 if k == n // 2 else 4.0 if k % 2 else 3.8, w), (r * math.cos(a), 0, SPRING + r * math.sin(a)), "k1" if k % 2 else "k2", "k3", Matrix.Rotation(math.pi / 2 - a, 3, "Y"), 0.2)
+		rr = AR - 0.02
+		m.box((2.5, 1.2, 0.2), (rr * math.cos(a), 0.9, SPRING + rr * math.sin(a)), "g2" if locked else "g1", Matrix.Rotation(math.pi / 2 - a, 3, "Y"))
+	cz = 12.6
+
+	def outline(t):  # the doorway as a radius round (0, cz)
+		c, s_ = math.cos(t), math.sin(t)
+		best = 1e9
+		if abs(c) > 1e-6:
+			best = min(best, (AR - 0.1) / abs(c))
+		if s_ < -1e-6:
+			best = min(best, (cz - DAIS) / -s_)
+		if s_ > 0:
+			e = SPRING - cz
+			disc = (e * s_) ** 2 - e * e + (AR - 0.1) ** 2
+			if disc > 0 and best * s_ > e:
+				best = min(best, e * s_ + math.sqrt(disc))
+		return best
+
+	rift_sheet(m, outline, cz, 0.9, locked, seeds=40, focus=(0.28, 0.1), bright=True)
+	cbox(m, (26.4, 4.6, 1.5), (0, 0, DAIS - 0.05), "p2", "p3", ch=0.25)  # threshold
 	for s in (-1, 1):
 		leaf(m, s, locked)
-		for y in (-2.6, 2.6):  # pillars front and back on stone feet
-			m.cyl(1.25, 25.5, (s * 14.6, y, DAIS), "wd2", n=10, r2=1.1)
-			m.cyl(1.9, 1.4, (s * 14.6, y, 0.6), "p2", n=8, r2=1.6)
-			m.cyl(1.4, 0.7, (s * 14.6, y, 5), "gd2", n=10)
-			m.cyl(1.35, 0.7, (s * 14.6, y, 22), "gd2", n=10)
-		for z in (4.4, 12.6, 20.8):  # tie rails between the pillars, seen from the side
-			cbox(m, (1.0, 6.4, 1.2), (s * 14.6, 0, z), "wd3", "wd1")
-		cbox(m, (1.4, 2.6, 25), (s * 13.2, 0, DAIS + 12.5), "wd3", "wd1")
-		for y in (-1.85, 1.85):  # corner brackets of the wall panel
-			for z in (3.4, 24.4):
-				cbox(m, (3.4, 0.5, 1.0), (s * 11.2, y, z), "wd1", "wd2")
-		for y in (-3.6, 3.6):  # lanterns under the eaves
-			m.beam((s * 16.3, y, 25.2), (s * 16.3, y, 24), 0.2, "black")
-			m.cyl(0.6, 0.35, (s * 16.3, y, 23.7), "wd3", n=8)
-			m.cyl(0.8, 1.0, (s * 16.3, y, 22.7), "lamp", n=8, r2=0.6)
-			m.cyl(0.6, 1.0, (s * 16.3, y, 21.7), "lamp", n=8, r2=0.8)
-			m.cyl(0.6, 0.3, (s * 16.3, y, 21.4), "wd3", n=8)
-	for y in (-2.6, 2.6):  # head beams, bracket blocks
-		cbox(m, (34.2, 1.6, 1.8), (0, y, 26.4), "wd2", "wd1", ch=0.3)
-		for k in range(7):
-			x = -13.5 + k * 4.5
-			cbox(m, (1.4, 2.6, 0.9), (x, y * 1.25, 27.6), "wd1", "wd2", ch=0.15)
-			cbox(m, (2.2, 3.4, 0.7), (x, y * 1.25, 28.3), "gd2", "gd1", ch=0.12)
-	cbox(m, (33.6, 10, 0.8), (0, 0, 28.9), "wd3", "wd1")
-	m.roof(0, 0, 29.2, 35.2, 14, 5.2, "tileb", ridge=0.62, lift=1.5, trim="tl2")
+		for y in (-3.2, 3.2):  # pillars front and back on stone feet
+			m.cyl(1.25, 25.5, (s * 14.9, y, DAIS), "wd2", n=10, r2=1.1)
+			m.cyl(1.9, 1.4, (s * 14.9, y, 0.6), "p2", n=8, r2=1.6)
+			m.cyl(1.4, 0.7, (s * 14.9, y, 5), "gd2", n=10)
+		for z in (4.4, 20.8):  # tie rails
+			cbox(m, (1.0, 7.4, 1.2), (s * 14.9, 0, z), "wd3", "wd1")
+		cbox(m, (1.4, 2.6, 25), (s * 13.4, 0, DAIS + 12.5), "wd3", "wd1")
+		m.box((2.8, 0.5, 4.2), (s * 11.6, -1.7, DAIS + 2.6), "wd3")  # front: a boarded dado with a cap rail
+		cbox(m, (2.9, 0.9, 0.6), (s * 11.6, -1.75, DAIS + 5.0), "wd1", "wd2", ch=0.16)
+		y = 1.75  # the back wall's timber frame: post, rails, a brace and a latticed vent
+		cbox(m, (0.9, 0.7, 24.4), (s * 11.3, y, 13.6), "wd1", "wd2", ch=0.16)
+		for z in (7.0, 13.0, 19.4):
+			cbox(m, (3.6, 0.6, 0.8), (s * 11.6, y + 0.05, z), "wd1", "wd2", ch=0.16)
+		m.beam((s * 10.6, y, 19.6), (s * 13.0, y, 25.0), 0.7, "wd1")
+		for x in (10.4, 11.1, 11.8, 12.5):
+			m.box((0.3, 0.5, 5.0), (s * x, y, 10), "wd3")
+		cbox(m, (2.8, 1.2, 0.5), (s * 11.8, 2.2, 24.8), "gd2", "gd1", ch=0.15)
+		for y in (-3.2, 3.2):  # rift lanterns under the eaves
+			m.beam((s * 16.6, y, 25.2), (s * 16.6, y, 24), 0.2, "black")
+			m.cyl(0.6, 0.35, (s * 16.6, y, 23.7), "wd3", n=8)
+			m.cyl(0.8, 1.0, (s * 16.6, y, 22.7), "g1", n=8, r2=0.6)
+			m.cyl(0.6, 1.0, (s * 16.6, y, 21.7), "g1", n=8, r2=0.8)
+			m.cyl(0.6, 0.3, (s * 16.6, y, 21.4), "wd3", n=8)
+	cbox(m, (26.0, 0.7, 0.9), (0, -1.75, 25.1), "wd1", "wd2", ch=0.16)
+	for y in (-3.2, 3.2):  # head beams, bracket blocks
+		cbox(m, (34.2, 1.6, 1.8), (0, y, 26.6), "wd2", "wd1", ch=0.3)
+		for k in range(5):
+			x = -13.6 + k * 6.8
+			cbox(m, (2.0, 2.4, 0.9), (x, y * 1.15, 27.8), "wd1", "wd2", ch=0.16)
+	cbox(m, (33.6, 5.2, 1.0), (0, 0, 28.6), "wd3", "wd1")
+	for y in (-4.9, 4.9):  # purlins and rafters carry the eaves: what a player sees from below
+		cbox(m, (34.0, 0.8, 0.8), (0, y, 28.1), "wd2", "wd1", ch=0.16)
+	for k in range(15):
+		x = -16.1 + k * 2.3
+		m.box((0.7, 13.2, 0.55), (x, 0, 28.7), "wd2")
+		for y in (-6.65, 6.65):
+			m.box((0.8, 0.15, 0.65), (x, y, 28.7), "gd1")
+	m.roof(0, 0, 29.4, 35.2, 14, 5.2, "tileb", ridge=0.62, lift=1.5, trim="tl2")
 	for k in range(13):  # tile ribs down both slopes
 		x = -10.2 + k * 1.7
 		for s in (-1, 1):
-			m.beam((x * 1.45, s * 6.5, 29.5), (x * 1.15, s * 2.8, 31.1), 0.4, "tl1")
+			m.beam((x * 1.45, s * 6.5, 29.7), (x * 1.15, s * 2.8, 31.3), 0.4, "tl1")
 	for s in (-1, 1):  # gold ridge ends
-		cbox(m, (1.4, 1.8, 2.2), (s * 11.1, 0, 35.2), "gd2", "gd1", ch=0.4)
-	for sy in (-1, 1):  # the wall's timber grid and a stone sill, both faces
-		cbox(m, (26.4, 0.7, 1.1), (0, sy * 1.75, 25.2), "wd3", "wd1", ch=0.15)
-		cbox(m, (26.4, 1.4, 1.5), (0, sy * 2.0, DAIS + 0.6), "p2", "p3", ch=0.25)
-		for s in (-1, 1):
-			cbox(m, (0.8, 0.6, 21.5), (s * 12.2, sy * 1.75, 13.4), "wd3", "wd1", ch=0.12)
-			for z in (CY - 5.5, CY + 5.5):
-				cbox(m, (0.9, 0.6, 0.9), (s * 12.2, sy * 2.0, z), "gd2", "gd1", ch=0.15)
-	for i in range(3):  # rift stones adrift over the eaves: the shrine's own floating rock
-		for s in (-1, 1):
-			shard(m, (s * (12.6 + 1.6 * i), (-1) ** i * 1.6, 35.4 + 1.3 * ((i * 2) % 3)), (1.5 - 0.3 * i,) * 3, random.Random(i + 7 * s), K)
+		cbox(m, (1.4, 1.8, 2.2), (s * 11.1, 0, 35.4), "gd2", "gd1", ch=0.4)
 	if locked:
-		for s in (-1, 1):
-			cbox(m, (1.6, 1.4, 4.2), (s * 10.6, -3.0, CY), "ir2", "ir3")
-		cbox(m, (23.5, 1.2, 2.0), (0, -2.9, CY), "wd2", "wd1", ch=0.3)
-		for x in (-7, 7):
-			cbox(m, (1.1, 1.5, 2.4), (x, -2.9, CY), "gd2", "gd1", ch=0.15)
-		for s in (-1, 1):
-			chain(m, (s * 12.8, -3.0, 23.5), (s * 1.8, -3.7, CY + 3.2), 2.2, 0.3)
-			chain(m, (s * 12.8, -3.0, 5.2), (s * 1.8, -3.7, CY - 3.6), 2.2, 0.3)
-		padlock(m, (0, -4.6, CY - 0.6), 1.1)
-		padlock(m, (0, 4.4, CY - 0.6), 0.95, True)
-		for x in (-7.2, -4.8, -2.4, 0, 2.4, 4.8, 7.2):  # an iron grille closes the back
-			hh = math.sqrt(10.2**2 - x * x)
-			m.beam((x, 1.75, CY - hh), (x, 1.75, CY + hh), 0.75, "ir2", 6)
-		for z in (-5.2, 5.2):
-			hh = math.sqrt(10.2**2 - z * z)
-			m.box((hh * 2, 0.6, 1.0), (0, 2.1, CY + z), "ir1")
-		cbox(m, (23.5, 1.2, 2.0), (0, 2.9, CY), "wd2", "wd1", ch=0.3)
-		for s in (-1, 1):
-			cbox(m, (1.6, 1.4, 4.2), (s * 10.6, 3.0, CY), "ir2", "ir3")
+		for s in (-1, 1):  # one chain from jamb to jamb through the lock
+			chain(m, (s * 11.6, -3.0, 23.6), (s * 2.2, -3.9, 19.4), 2.4, 0.36, sag=0.5)
+			cbox(m, (1.6, 1.4, 1.6), (s * 11.8, -2.2, 23.8), "ir2", "ir3", ch=0.2)
+		padlock(m, (0, -4.2, 18.3), 1.05)  # its body spans z 15.4 to 21.4: over the Index roof from the spawn
+		for x in (-6.4, -3.2, 0, 3.2, 6.4):  # an iron grille shuts the back
+			hh = SPRING + math.sqrt(AR**2 - x * x)
+			m.beam((x, 1.95, DAIS), (x, 1.95, hh), 0.7, "ir2", 6)
+		for z in (6.5, 13, 19):
+			hh = AR if z < SPRING else math.sqrt(AR**2 - (z - SPRING) ** 2)
+			m.box((hh * 2, 0.5, 0.9), (0, 2.1, z), "ir1")
+		padlock(m, (0, 3.6, 13), 0.8, True)
 
 
 CRACK = [(0.5, 0.8), (-0.9, 5.2), (1.1, 9.6), (-0.6, 13.4), (1.4, 17.8), (-1.0, 22.4), (0.8, 26.4), (-0.3, 30.6)]  # x, z of the crack, bottom up
@@ -562,7 +629,7 @@ def concept_c(m, locked):
 					best = max(best, u)
 			return best
 
-		swirl(m, outline, c0.y, 0, False, rings=7, n=72, arms=6, twist=0.9, dish=1.2)
+		rift_sheet(m, outline, c0.y, 0, False, seeds=40)
 		for i in range(10):
 			z = 5 + i * 2.5
 			sc = rng.uniform(0.7, 1.6)
@@ -595,11 +662,16 @@ def concept_current(m, locked):
 CONCEPTS = {"A": concept_a, "B": concept_b, "C": concept_c, "current": concept_current}
 
 
-def gate(key, locked):
+BIG = 1.3  # the owner option: the same gate enlarged about its own position
+
+
+def gate(key, locked, scale=1.0):
 	global RNG
 	RNG = random.Random(3)
 	m = bp.M("Gate_" + key, MAT)
 	CONCEPTS[key](m, locked)
+	if scale != 1:
+		m.v = [p * scale for p in m.v]
 	return m
 
 
@@ -622,6 +694,8 @@ def scene_for(world, fast, context=True):
 	pw.reset(v)
 	bp.PAL.update(PAL)
 	bp.GLOW.update(COLOURS["cyan" if world == 2 else "violet"])
+	if world == 1:
+		bp.GLOW["gswirl"] = ("#9646FF", 2.5)  # the current gate leads to World 2 here: violet (SpawnArea swirl)
 	scene = bpy.context.scene
 	cam = bp.setup_world(scene)
 	scene.render.resolution_x, scene.render.resolution_y = (640, 360) if fast else (1280, 720)
@@ -638,6 +712,7 @@ def scene_for(world, fast, context=True):
 			m.build(col)
 		rx, rz = bp.along(bp.AXIS_LEN + 80)
 		pw.point(col, (rx, 70, rz), "#7A7CFF", 80000, 20)
+	figure("Scale_Gate_Big", MAT @ Matrix.Translation(Vector((-17.5, -17, 0)))).build(col).hide_render = True
 	figure("Scale_Gate", MAT @ Matrix.Translation(Vector((-14, -12.6, 0)))).build(col)
 	figure("Scale_Spawn", MAT @ Matrix.Translation(Vector((0, -SPAWN_D, bp.SPAWN_TOP - bp.TOP))) @ Matrix.Rotation(math.pi, 4, "Z")).build(col)
 	lo = bpy.data.objects.new("GateLight", bpy.data.lights.new("GateLight", "POINT"))
@@ -704,16 +779,109 @@ def sheet(out, name, files, crop=None):
 	print("SHEET", name, flush=True)
 
 
+def hull2(pts):
+	pts = sorted({(round(p[0], 3), round(p[1], 3)) for p in pts})
+	cr = lambda o, a, b: (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+	out = []
+	for seq in (pts, pts[::-1]):
+		h = []
+		for p in seq:
+			while len(h) >= 2 and cr(h[-2], h[-1], p) <= 0:
+				h.pop()
+			h.append(p)
+		out += h[:-1]
+	return [Vector(p) for p in out]
+
+
+def poly_gap(A, B):
+	"""Distance between two convex polygons (0 = touching or overlapping)."""
+	for P, Q in ((A, B), (B, A)):
+		for a, b in zip(P, P[1:] + P[:1]):
+			n = Vector(((b - a).y, -(b - a).x)).normalized()
+			if min((q - a).dot(n) for q in Q) > 0:
+				break
+		else:
+			continue
+		break
+	else:
+		return 0.0
+
+	def seg(p, a, b):
+		t = max(0, min(1, (p - a).dot(b - a) / max((b - a).length_squared, 1e-9)))
+		return (p - a - (b - a) * t).length
+
+	return min(min(seg(p, a, b) for p in P for a, b in zip(Q, Q[1:] + Q[:1])) for P, Q in ((A, B), (B, A)))
+
+
+def clearances():
+	"""Plan-view gaps from each gate's convex outline to its neighbours, from the plaza draft's own meshes. x, y in Blender."""
+	pw.reset({"pal": {}, "glow": {}})
+	bp.PAL.update(PAL)
+	bp.GLOW.update(COLOURS["violet"])
+	bp.setup_world(bpy.context.scene)
+	bp.build(bpy.context.scene)
+	spots = {"Index": bp.INDEX, "Market": bp.MARKET_STALL}
+	near = {}
+	for ob in bpy.data.objects:
+		if ob.type != "MESH" or ob.name.startswith(("Ctx_Ground", "Ctx_Backdrop", "Ctx_Petals", "PlazaFloor", "Trails", "Ctx_Trail")):
+			continue
+		W = [ob.matrix_world @ v.co for v in ob.data.vertices]
+		groups = {}
+		# whole-plaza meshes are split into loose parts, so a leg is its own footprint
+		parent = list(range(len(W)))
+
+		def find(i):
+			while parent[i] != i:
+				parent[i] = parent[parent[i]]
+				i = parent[i]
+			return i
+
+		if any(k in ob.name for k in ("SkyLoop", "Ctx_Roads", "Ctx_Kept")):
+			seen = {}
+			for i, p in enumerate(W):  # faces do not share vertices in the kit: weld by position
+				parent[i] = seen.setdefault(tuple(round(c, 2) for c in p), i)
+			for poly in ob.data.polygons:
+				for i in poly.vertices:
+					parent[find(i)] = find(poly.vertices[0])
+			for i, p in enumerate(W):
+				groups.setdefault(find(i), []).append(p)
+		else:
+			groups[0] = W
+		for g in groups.values():
+			near.setdefault(ob.name, []).append((hull2([(p.x, p.y) for p in g]), min(p.z for p in g), max(p.z for p in g)))
+	floor_lim = (94, 110)
+	for k in ("A", "B", "C", "current"):
+		for sc in (1.0, BIG):
+			best = {}
+			for locked in (True, False):
+				m = gate(k, locked, sc)
+				W = [MAT @ p for p in m.v]
+				top = max(p.z for p in W)
+				H = hull2([(p.x, p.y) for p in W])
+				over = max(max(p.x for p in W) - floor_lim[0], max(p.y for p in W) - floor_lim[1], 0)
+				for name, parts in near.items():
+					gap = min((poly_gap(H, h) for h, lo, hi in parts if lo < top), default=1e9)
+					best[name] = min(best.get(name, 1e9), gap)
+				best["_over"] = max(best.get("_over", 0), over)
+			nb = sorted((v, n) for n, v in best.items() if not n.startswith("_"))[:6]
+			print("CLEAR %s x%.1f floor overhang %.1f | %s" % (k, sc, best["_over"], ", ".join("%s %.1f" % (n, v) for v, n in nb)), flush=True)
+
+
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 	out = argv[argv.index("--out") + 1] if "--out" in argv else OUT
 	fast = "--fast" in argv
+	if "--clear" in argv:
+		clearances()
+		return
+	big = "--big" in argv
+	sc = BIG if big else 1.0
 	keys = [a for a in argv if a in CONCEPTS] or list(CONCEPTS)
-	states = [a for a in argv if a in ("locked", "open", "w1open")] or ["locked", "open", "w1open"]
+	states = [a for a in argv if a in ("locked", "open", "w1open")] or (["locked", "open"] if big else ["locked", "open", "w1open"])
 	views = [a for a in argv if a in VIEWS]
 	for k in keys:
 		for locked in (True, False):
-			stats(gate(k, locked), k + (" locked" if locked else " open"))
+			stats(gate(k, locked, sc), k + ("_big" if big else "") + (" locked" if locked else " open"))
 	if "--stats" in argv:
 		return
 	os.makedirs(out, exist_ok=True)
@@ -722,21 +890,31 @@ def main():
 		if not todo:
 			continue
 		cam, col = scene_for(world, fast)
+		if big:
+			bpy.data.objects["Scale_Gate"].hide_render, bpy.data.objects["Scale_Gate_Big"].hide_render = True, False
 		for state in todo:
 			for k in keys:
-				ob = gate(k, state == "locked").build(col)
+				ob = gate(k, state == "locked", sc).build(col)
 				for vname in views or VIEWS:
 					if state == "w1open" and vname != "front" :
 						continue
 					eye, look, fov = VIEWS[vname]
-					shoot(cam, eye, look, fov, os.path.join(out, "%s_%s_%s.jpg" % (k, state, vname)))
+					if big and vname == "front":
+						look, fov = (0, 0, 20), 82
+					elif big and vname != "spawn":
+						eye, look = tuple(c * (BIG if vname != "close" else 1.2) for c in eye), (0, 0, look[2] * BIG)
+						fov = fov + 4
+					shoot(cam, eye, look, fov, os.path.join(out, "%s_%s_%s.jpg" % (k + ("_big" if big else ""), state, vname)))
 				bpy.data.objects.remove(ob)
 	if not views and keys == list(CONCEPTS) and not fast:  # comparisons, only after a full render
+		tag = "_big" if big else ""
+		row = lambda st, v: ["%s_%s_%s.jpg" % (k + tag, st, v) for k in keys]
 		for st in states:
-			sheet(out, "compare_%s_front" % st, ["%s_%s_front.jpg" % (k, st) for k in keys])
+			sheet(out, "compare%s_%s_front" % (tag, st), row(st, "front"))
 			if st != "w1open":
-				sheet(out, "compare_%s_34" % st, ["%s_%s_34.jpg" % (k, st) for k in keys])
-				sheet(out, "compare_%s_spawn_zoom" % st, ["%s_%s_spawn.jpg" % (k, st) for k in keys], (320, 180, 640, 320))
+				sheet(out, "compare%s_%s_34" % (tag, st), row(st, "34"))
+				sheet(out, "compare%s_%s_back" % (tag, st), row(st, "back"))
+				sheet(out, "compare%s_%s_spawn_zoom" % (tag, st), row(st, "spawn"), (320, 180, 640, 310))
 
 
 if __name__ == "__main__":
