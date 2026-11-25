@@ -295,6 +295,7 @@
 278. 2026-11-25 — Alex Nguyen — Turned on the 14 reviewed spawn pieces in the World 2 branch, fixed the loader for uploads whose part names carry a number, and saved copies in both places (World 1 v915, World 2 v90, not published); Studio `spawn_area` 188/188 in both worlds, World 1's tests not rerun after the loader fix.
 279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
 280. 2026-11-25 — Alex Nguyen — Narrowed World 2's bare ground round finish slabs and the plaza to 2 studs past their own footprint (was up to 7.2 from the CLEARANCE-grown boxes), with a harness collar check written red first; offline only, World 1 hashes unchanged.
+281. 2026-11-25 — Alex Nguyen — Tightened the harness collar check after audit: it tests the drawn strip (red with SLAB_BARE 3), fails any clear slab not facing a multiple of 90 degrees, and checks the VFX floor too.
 
 ## What's next
 **Audit the white-mesh and grass fix (with the narrowed slab collar), run `biome_runtime` in Studio and look at the grass by the plaza and a finish slab, then merge it into the World 2 branch.**

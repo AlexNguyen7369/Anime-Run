@@ -1015,6 +1015,18 @@ for _, m in models do
 	table.insert(clear, m:FindFirstChild("Checkpoint"))
 	table.insert(clear, m:FindFirstChild("WinPad", true))
 end
+-- the VFX floor, cleared as an XZ box as Main does (it is built only on `/tp vfxarea`); a Part of the same box for the
+-- GRASS checks below
+local vfx = req(Shared.VfxArea)
+local vfxFloor = R.Instance.new("Part")
+vfxFloor.Size = vfx.FLOOR_SIZE
+vfxFloor.CFrame = R.CFrame.new(vfx.CENTER)
+local slabRoots = { spawnArea, vfxFloor, table.unpack(clear) }
+do
+	local half = R.Vector2.new(vfx.FLOOR_SIZE.X, vfx.FLOOR_SIZE.Z) / 2
+	local centre = R.Vector2.new(vfx.CENTER.X, vfx.CENTER.Z)
+	table.insert(clear, { Min = centre - half, Max = centre + half })
+end
 TS.Prepare(entries, clear, { spawnArea })
 -- docs/BUGS.md w2-grass-through-road: the engine grows grass blades on Grass terrain taller than the 2 studs between the
 -- corridor's top and the road's, so no column under a road, its walls or a clear slab (checkpoint apron, WinPad, plaza
@@ -1043,7 +1055,7 @@ do
 			end
 		end
 	end
-	for _, root in { spawnArea, table.unpack(clear) } do
+	for _, root in slabRoots do
 		local parts = root:IsA("BasePart") and { root } or root:GetDescendants()
 		for _, part in parts do
 			if part:IsA("BasePart") then
@@ -1060,19 +1072,26 @@ do
 		print(string.format("GRASS FAIL %s %d columns", where, n))
 	end
 	print(string.format("GRASS CHECKS pass %d fail %d", gpass, gfail))
-	-- The collar (owner 2026-11-25, item 3: a brown strip of 2 to 4 studs): bare ground round a clear slab stays within
-	-- COLLAR_MAX of its real footprint (turned with it, not its world box), and no Grass column is nearer than
-	-- COLLAR_MIN (half a voxel: a Grass voxel's square starts outside the slab). On the 4-stud columns TerrainBuilder
-	-- writes. `raw` is the same Column with the Grass corridors swapped for Plastic, so bared columns can be told apart.
-	local COLLAR_MAX, COLLAR_MIN = 4, 2
+	-- The collar (owner 2026-11-25, item 3: a brown strip of 2 to 4 studs): bare ground round a clear slab, as drawn
+	-- (a bare column's centre plus half a voxel), stays within COLLAR_MAX of its real footprint (turned with it, not its
+	-- world box), and no Grass column is nearer than COLLAR_MIN (half a voxel: a Grass voxel's square starts outside the
+	-- slab). On the 4-stud columns TerrainBuilder writes. `raw` is the same Column with the Grass corridors swapped for
+	-- Plastic, so bared columns can be told apart. Every slab must face a multiple of 90 degrees: on a turned slab a
+	-- voxel's corner reaches 2.83 studs from its centre, and no strip keeps both bounds (that slab FAILs).
+	local COLLAR_MAX, COLLAR_MIN, HALF_VOXEL = 4, 2, 2
 	local Material = R.Enum.Material
 	local slabs = {}
-	for _, root in { spawnArea, table.unpack(clear) } do
+	for _, root in slabRoots do
 		for _, part in root:IsA("BasePart") and { root } or root:GetDescendants() do
 			if part:IsA("BasePart") then
 				local cf, half = part.CFrame, part.Size / 2
 				local look = R.Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z)
 				look = look.Magnitude > 1e-4 and look.Unit or R.Vector3.new(0, 0, -1)
+				local yaw = math.deg(math.atan2(look.X, look.Z)) % 90
+				if math.min(yaw, 90 - yaw) > 0.01 then
+					print(string.format("GRASS COLLAR FAIL slab %s faces %.2f degrees off the grid", part.Name, yaw))
+					gfail += 1
+				end
 				local right = R.Vector3.new(-look.Z, 0, look.X)
 				local function extent(axis)
 					return math.abs(cf.RightVector:Dot(axis)) * half.X
@@ -1137,7 +1156,7 @@ do
 		local grassy = raw == Material.Plastic or raw == Material.Grass
 		if grassy and road > TS.BARE then
 			local bare = m ~= Material.Grass
-			if bare and d > COLLAR_MAX then
+			if bare and d + HALF_VOXEL > COLLAR_MAX + 1e-3 then
 				wide += 1
 			elseif not bare and d <= COLLAR_MIN then
 				near += 1
@@ -1171,7 +1190,7 @@ do
 	end
 	print(
 		string.format(
-			"GRASS COLLAR pass %d, bare past %d studs %d, grass within %d studs %d; farthest bare column %.2f, nearest grass column %.2f",
+			"GRASS COLLAR pass %d, bare drawn past %d studs %d, grass within %d studs %d; farthest bare column %.2f, nearest grass column %.2f",
 			cpass,
 			COLLAR_MAX,
 			wide,

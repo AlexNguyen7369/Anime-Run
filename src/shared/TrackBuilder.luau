@@ -5,7 +5,8 @@
 -- Build(spec, origin)  Layout + Parts (road, walls, start line, checkpoint + win pad, grass) under a Model.
 -- EndCFrame(layout, origin)  world pose of the finish; the next track is built from it.
 --
--- CheckpointBox(layout, origin)  XZ box { Min, Max } of the checkpoint area (it holds the finish line and win pad).
+-- CheckpointBox(layout, origin)  XZ box { Min, Max } of the checkpoint area (it holds the finish line and win pad),
+--                                and the area part's CFrame and Size.
 --
 -- Segment types:
 --   { Type = "Straight", Length }                  flat run at the current height
