@@ -10,6 +10,10 @@ local Gate = require(Shared:WaitForChild("BossGateConfig"))
 
 local OPEN_WAIT, CLOSE_WAIT = 1, 0.6 -- s: the unroll and the roll-up have finished
 
+local QUIET = 5 -- s without a change before the talk: longer than one auto-roll interval
+local SETTLE = 20 -- s at most for that (a run's last payout, a roll already going)
+local WATCHED = { "Money", "Gems", "Rolls", "RebirthLevel", "BossCredit", "BossTeam", "SidekickBag", "Relics" }
+
 local Module = {}
 
 function Module.Build(h)
@@ -34,7 +38,43 @@ function Module.Build(h)
 		if not panel then
 			return
 		end
-		local before = player:GetAttributes()
+		-- Server setup `quiet` (UiScenarios.Needs): what changes during the talk is then the talk's. Proved first, without it.
+		local replicated = os.clock() + 2 -- the setup's attributes may arrive after its answer
+		while
+			(player:GetAttribute("AutoRoll") ~= false or player:GetAttribute("AutoRacing") == true)
+			and os.clock() < replicated
+		do
+			task.wait(0.1)
+		end
+		ok(res, "quiet_auto_roll_off", player:GetAttribute("AutoRoll") == false)
+		ok(res, "quiet_not_racing", player:GetAttribute("AutoRacing") ~= true)
+		local function watched()
+			local values = {}
+			for _, name in WATCHED do
+				values[name] = player:GetAttribute(name)
+			end
+			return values
+		end
+		local function differences(from)
+			local changed = {}
+			for _, name in WATCHED do
+				if player:GetAttribute(name) ~= from[name] then
+					table.insert(changed, name)
+				end
+			end
+			return table.concat(changed, ",")
+		end
+		local started, since, base, noise = os.clock(), os.clock(), watched(), ""
+		while os.clock() - since < QUIET and os.clock() - started < SETTLE do
+			task.wait(0.1)
+			local changed = differences(base)
+			if changed ~= "" then
+				noise, base, since = changed, watched(), os.clock()
+			end
+		end
+		h.check(res, "quiet_without_the_talk", noise, "quiet for " .. QUIET .. " s", os.clock() - since >= QUIET)
+		local before = watched()
+		local wasInEvent = player:GetAttribute("BossEvent")
 		ok(res, "starts_closed", not panel.Visible)
 		local open = gui:FindFirstChild("Open")
 		open:Fire()
@@ -75,15 +115,10 @@ function Module.Build(h)
 		player:SetAttribute("BossEvent", true) -- local only: a teleport into the event closes it
 		task.wait(CLOSE_WAIT)
 		ok(res, "event_closes", not panel.Visible)
-		player:SetAttribute("BossEvent", before.BossEvent)
+		player:SetAttribute("BossEvent", wasInEvent)
 
-		local changed = {}
-		for _, name in { "Money", "Gems", "Rolls", "RebirthLevel", "BossCredit", "BossTeam", "SidekickBag", "Relics" } do
-			if player:GetAttribute(name) ~= before[name] then
-				table.insert(changed, name)
-			end
-		end
-		h.check(res, "grants_nothing", table.concat(changed, ","), "", #changed == 0)
+		local changed = differences(before)
+		h.check(res, "grants_nothing", changed, "", changed == "")
 	end
 
 	function after.boss_guide_closed(res)

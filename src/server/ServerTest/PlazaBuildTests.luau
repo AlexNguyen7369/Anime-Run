@@ -548,9 +548,14 @@ function Tests.plaza_build()
 			flag("merchant_" .. stall .. "_static", at ~= nil and moving == 0, at and moving or "no MerchantSpot", 0)
 		end
 		local npc = area:FindFirstChild("CheckpointNpc")
+		-- Waits for the merchants (PLAZA_BUILD_PLAN 6, step 4): the client view that stands them, then SpawnArea's dummy goes.
+		-- Passes offline without meaning it: only a server can build the dummy's rig.
+		local dummy = npc ~= nil and npc:FindFirstChild("Rig") ~= nil
 		flag(
 			"merchant_sensei_replaces_the_dummy",
-			npc ~= nil and npc:FindFirstChild("Rig") == nil and find(npc, "Attachment", "MerchantSpot") ~= nil
+			npc ~= nil and not dummy and find(npc, "Attachment", "MerchantSpot") ~= nil,
+			dummy and "the dummy still stands: waits for the merchants" or 1,
+			"no dummy"
 		)
 	end, debug.traceback)
 	WorldConfig.GATE_OPEN = oldOpen

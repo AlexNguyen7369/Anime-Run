@@ -28,7 +28,7 @@ return {
 		"hud",
 		"auto_toggle",
 		"spawn_area",
-		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: red until the approved spawn pieces are built
+		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: red by design (23 in Studio) until the uploads and merchants; OWNER_QUESTIONS
 		"gacha",
 		"catalog",
 		"index",

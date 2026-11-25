@@ -1377,6 +1377,34 @@ function setups.auto_roll_off(player)
 	setAutoRoll(player, false)
 end
 
+-- ui_boss_guide grants_nothing: no auto-roll and no run may move Rolls, Money or Gems while it watches. restore:quiet puts
+-- both back.
+local quietBefore = {} -- [Player] = { roll = AutoRoll before, racing = was auto racing }
+function setups.quiet(player)
+	local RunnerService = live("RunnerService")
+	if not quietBefore[player] then
+		quietBefore[player] = {
+			roll = player:GetAttribute("AutoRoll"),
+			racing = RunnerService.IsAutoRacing(player) == true,
+		}
+	end
+	setAutoRoll(player, false)
+	RunnerService.SetAutoRace(player, false)
+end
+function setups.quiet_restore(player)
+	local before = quietBefore[player]
+	if not before then
+		return
+	end
+	quietBefore[player] = nil
+	if before.roll ~= nil then
+		setAutoRoll(player, before.roll)
+	end
+	if before.racing then
+		live("RunnerService").SetAutoRace(player, true)
+	end
+end
+
 local function progressionSnapshot(player)
 	if not snapshots[player] then
 		error("snapshot required before progression fixtures ('restore' consumes it: take a fresh 'snapshot')")
@@ -1940,6 +1968,7 @@ local CLIENT_SETUPS = {
 	no_passes = true,
 	index_states = true, -- ui_index; restore:index_states puts the GachaData back
 	data_loading = true, -- ui_remote_guards
+	quiet = true, -- ui_boss_guide; restore:quiet puts AutoRoll and auto racing back
 	sidekick_tutorial_ready = true,
 	auto_racing = true,
 	auto_roll_on = true,
@@ -2104,6 +2133,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			end
 			before.auto_roll_on = nil
 			restoreBagRoom(player)
+		elseif restoreId == "quiet" then
+			setups.quiet_restore(player)
 		elseif restoreId == "sidekick_states" then
 			restoreSidekicks(player)
 		elseif restoreId == "sidekick_tutorial" or restoreId == "sidekick_tutorial_ready" then

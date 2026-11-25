@@ -328,3 +328,9 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 21. Boss guide (feature/alex/boss-guide 1bfdc8a1, off until the gate is built): approve the six lines in docs/BOSS_GUIDE_SPEC.md; below rebirth 1 shorten the talk or keep it; leave Money and Gems out of the rewards line; a kanji in its title. Render of the popup not made yet.
 22. Swap round 6 (017accdb): blind T1 game 7, context 5; T6 game 7, context 7. Audit: no violations, NEEDS OWNER 9. Office towers on Track 6 fell to 0 without notice (back in round 7). HQ stands inside two T7/T9 props (item 17). Finish Rank not readable from the finish view. T1 context stays 5 because neighbours' props stand in its views (ground rule (a)/(b)).
 23. Boss gate and guide audit (42566847: 4 small violations, fixing; nothing merged). Ship the Parts stand-in gate publicly before the real mesh is uploaded, and without Gojio? Until answered the gate gets an off switch. The loop posts still stand at 45/100/315 (mesh upload needed). Guide: 5% "of that phase's HP" is proposed.
+
+## 2026-11-25 `plaza_build` in the full suite (open; unchanged until ruled)
+- 23 of its 149 checks fail in Studio by design: 22 wait for the uploads and unbuilt pieces, 1 (the sensei's dummy) for the merchants. It is in the always-on list,
+  so the full suite stays red until then. Options: (a) keep it, red until the uploads; (b) the whole scenario on demand until
+  then, which also takes its guards (stall spots and prompts, the gate switch) out of the full suite; (c) split it: the guards
+  stay always on, the waiting checks go on demand as `plaza_build_pending`. Recommended: (c).
