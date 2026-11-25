@@ -22,6 +22,11 @@ conversation that gives info about the boss gate. Everything else here is **prop
   it opens; an event starting meanwhile shows on the next talk.
 - Text only: no remote, nothing granted, no boss rule, timing or reward touched.
 
+- Text fit, worked out from the real font file (Kalam Bold), not measured in Roblox: the line is 24 px in a 527 x 221 px box at 1024 x 768 and up, at
+  most 2 lines; 22 px at 667 x 375 and 19 px at 568 x 320, at most 4 lines. If Roblox draws the font at a full em, the longest line shrinks to 14 and 11 px on those phones.
+- Next draws 24 to 31 px tall, so it and the X take a 44 px hit area on touch (`Client/TouchTarget`).
+- Mock-up, drawn in Blender, not a game capture: `assets/ui/boss_guide_draft` (all eight lines on desktop, the longest on two phones).
+
 ## Below rebirth 1
 Open question: the Join, Rewards and When pages still name the popup and the open gate to a player who sees neither.
 The Bosses button is hidden (4.36) and the gate stays closed (4.2, proposed). He still talks; only the last line differs.

@@ -14,6 +14,7 @@ local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
+local TouchTarget = require(script.Parent:WaitForChild("TouchTarget"))
 
 local NAME = "BossGuide"
 local WIDTH = 640 * AnimeSkin.Units.W / 920 -- px at most, as Client/World2Welcome (placeholder)
@@ -128,6 +129,8 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 end)
 closeButton.Activated:Connect(close)
 nextButton.Activated:Connect(advance)
+TouchTarget.Add(nextButton, advance) -- the drawn button is 24 to 31 px tall
+TouchTarget.Add(closeButton, close)
 PanelFrame.CloseOnOutsideClick(panel, close)
 ProximityPromptService.PromptTriggered:Connect(function(prompt)
 	if prompt.Name == Config.PROMPT and prompt:IsDescendantOf(workspace) then
