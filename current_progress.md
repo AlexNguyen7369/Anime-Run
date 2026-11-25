@@ -274,8 +274,9 @@
 267. 2026-11-25 — Alex Nguyen — Merged origin/main (5ef219ed, PR #29) into the World 2 branch on feature/alex/agent-3: HudPlaque and its option A branches removed, World 2's differences and the stricter HUD tests kept (offline checks only, no Studio).
 268. 2026-11-25 — Alex Nguyen — Wrote docs/PLAZA_BUILD_PLAN.md, the draft-to-game plan for the approved spawn pieces (nothing built or uploaded).
 269. 2026-11-25 — Alex Nguyen — Wrote the red tests for the approved spawn pieces (plaza_build, spawn_area RING and statue rows, moved headers) and gave the offline scenario runner Roblox's lookAt.
+270. 2026-11-25 — Alex Nguyen — Built the upload-free part of the approved spawn layout: Index, Team altar and statue moved with their headers, the boss gate as a Parts stand-in with its state and prompt, merchant markers (offline checks only, no Studio).
 
 ## What's next
-**Build the approved spawn layout and plain stand-ins (docs/PLAZA_BUILD_PLAN.md, order step 2), after the spec's section 4 ring spots are updated.**
+**Merge the boss gate guide (feature/alex/boss-guide) onto the shared Shared/BossGateConfig, then check both prompts and the moved buildings in Studio.**
 
-**Why this is next:** it needs no upload, turns the layout part of the red plaza_build tests green, and the boss gate, merchants and mesh export build on it.
+**Why this is next:** the guide's four red plaza_build checks wait for that merge, and the mesh export and uploads should follow a layout seen in Studio.

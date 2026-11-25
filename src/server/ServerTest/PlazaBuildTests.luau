@@ -236,16 +236,83 @@ function Tests.plaza_build()
 			local wide = margin ~= nil and margin >= LAYOUT.FloorMargin
 			flag("boss_gate_mesh_" .. key .. "_on_plaza", wide, margin or "missing", LAYOUT.FloorMargin)
 		end
-		local talk = find(boss, "ProximityPrompt", "TalkBossGuide")
+		-- The guide is its own model (Server/BossGuide, feature/alex/boss-guide): red until that branch merges
+		local Guide = H.module(script.Parent.Parent, "BossGuide")
+		local guide = Guide and Guide.Build(CFrame.new())
+		local talk = find(guide, "ProximityPrompt", "TalkBossGuide")
 		flag("boss_guide_prompt", talk ~= nil and talk.KeyboardKeyCode == Enum.KeyCode.E, talk and 1 or "missing", 1)
-		local guide = find(boss, "Attachment", "MerchantSpot")
-		local guideId = guide and guide:GetAttribute("CharacterId")
+		local guideRig = guide and guide:FindFirstChild("Rig")
+		local guideId = guideRig and guideRig:GetAttribute("CharacterId")
 		flag("boss_guide_is_jk_strongest", guideId == "jk_strongest", text(guideId), "jk_strongest")
 		local apart = bossPrompt
 				and talk
 				and (bossPrompt.Parent.CFrame.Position - talk.Parent.CFrame.Position).Magnitude
 			or -1
 		flag("boss_gate_prompts_apart", apart >= LAYOUT.GuideApart, apart, LAYOUT.GuideApart)
+		local reach = bossPrompt and talk and bossPrompt.MaxActivationDistance + talk.MaxActivationDistance or math.huge
+		flag("boss_gate_prompts_never_both", apart > reach, apart, reach == math.huge and "missing" or reach)
+		-- The shared layout (Shared/BossGateConfig): the gate stands by it, and its two prompts' reaches never meet
+		local GateConfig = H.module(Shared, "BossGateConfig")
+		flag("boss_gate_config", GateConfig ~= nil)
+		if GateConfig then
+			local a, b = GateConfig.At(GateConfig.PROMPT_OFFSET), GateConfig.At(GateConfig.GUIDE_OFFSET)
+			local gap, both = (a - b).Magnitude, GateConfig.PROMPT_DISTANCE + GateConfig.GUIDE_PROMPT_DISTANCE
+			flag("boss_gate_config_reaches_apart", gap > both, gap, both)
+			local at = bossPrompt and flat(bossPrompt.Parent.CFrame.Position) - HUB
+			local off = at and (at - a).Magnitude or -1
+			flag("boss_gate_prompt_by_config", at ~= nil and off <= TOL, off, TOL)
+			local placed = bossAt and (bossAt - HUB - GateConfig.POS).Magnitude or -1
+			flag("boss_gate_by_config", bossAt ~= nil and placed <= TOL, placed, TOL)
+			-- a stand-in inside the mesh's box, on the floor with the same margin
+			local least = math.huge
+			for _, d in boss and boss:GetDescendants() or {} do
+				if d:IsA("BasePart") then
+					for _, sx in { -1, 1 } do
+						for _, sz in { -1, 1 } do
+							local w = d.CFrame * Vector3.new(sx * d.Size.X / 2, 0, sz * d.Size.Z / 2)
+							local gapX = LAYOUT.Floor.X - math.abs(w.X - HUB.X)
+							least = math.min(least, gapX, LAYOUT.Floor.Y - math.abs(w.Z - HUB.Y))
+						end
+					end
+				end
+			end
+			flag("boss_gate_stand_in_on_plaza", least >= LAYOUT.FloorMargin and least < math.huge, least, 1)
+			-- open only with an active event and past the rebirth that shows the Bosses button
+			local need = require(Shared.SidekickConfig).HudFromRebirth
+			flag(
+				"boss_gate_closed_without_event",
+				not GateConfig.IsOpen(false, need) and not GateConfig.IsOpen(nil, need)
+			)
+			flag(
+				"boss_gate_closed_below_rebirth",
+				not GateConfig.IsOpen(true, need - 1) and not GateConfig.IsOpen(true)
+			)
+			flag("boss_gate_open_in_event", GateConfig.IsOpen(true, need))
+			local built = { Closed = 0, Open = 0 }
+			local CollectionService = game:GetService("CollectionService")
+			for _, d in boss and boss:GetDescendants() or {} do
+				built.Closed += CollectionService:HasTag(d, GateConfig.CLOSED_TAG) and (d.Transparency or 0) == 0 and 1 or 0
+				built.Open += CollectionService:HasTag(d, GateConfig.OPEN_TAG) and d.Transparency == 1 and 1 or 0
+			end
+			flag("boss_gate_built_closed", built.Closed > 0 and built.Open > 0)
+		end
+		-- The server's state follows the attribute the Bosses panel reads
+		local Gate = H.module(script.Parent.Parent, "BossGate")
+		flag("boss_gate_service", Gate ~= nil)
+		if Gate and GateConfig and not workspace:FindFirstChild("SpawnArea") then -- never moves a live event's state
+			local before = ReplicatedStorage:GetAttribute("BossEventPhase")
+			ReplicatedStorage:SetAttribute("BossEventPhase", nil)
+			Gate.Start()
+			local key = GateConfig.OPEN_ATTRIBUTE
+			flag("boss_gate_state_closed", ReplicatedStorage:GetAttribute(key) == false)
+			for _, phase in { "Prep", "Fight" } do
+				ReplicatedStorage:SetAttribute("BossEventPhase", phase)
+				flag("boss_gate_state_open_" .. phase, ReplicatedStorage:GetAttribute(key) == true)
+			end
+			ReplicatedStorage:SetAttribute("BossEventPhase", nil)
+			flag("boss_gate_state_closes", ReplicatedStorage:GetAttribute(key) == false)
+			ReplicatedStorage:SetAttribute("BossEventPhase", before)
+		end
 
 		-- World gate B
 		local function gate(open)

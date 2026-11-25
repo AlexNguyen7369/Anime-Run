@@ -170,11 +170,11 @@ return {
 		{ Key = "SHOPStall", Pos = Vector3.new(-83.942, 1.000, -3.109), Face = Vector3.new(0.9993, 0, 0.0370) },
 		{ Key = "POTIONSStall", Pos = Vector3.new(-57.158, 1.000, -61.555), Face = Vector3.new(0.6804, 0, 0.7328) },
 		{ Key = "MarketStall", Pos = Vector3.new(3.109, 1.000, -83.942), Face = Vector3.new(-0.0370, 0, 0.9993) },
-		{ Key = "IndexBoard", Pos = Vector3.new(61.555, 1.000, -57.158), Face = Vector3.new(-0.7328, 0, 0.6804) },
+		{ Key = "IndexBoard", Pos = Vector3.new(76.700, 1.000, -34.200), Face = Vector3.new(-0.9133, 0, 0.4072) },
 		{ Key = "SkyLoop", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "LegendPedestal", Pos = Vector3.new(11.600, 2.600, 12.500), Face = Vector3.new(-0.6802, 0, -0.7330) },
+		{ Key = "LegendPedestal", Pos = Vector3.new(-16.500, 2.600, 4.400), Face = Vector3.new(0.9662, 0, -0.2577) },
 	},
-	Exclusive = { Id = "punch_hero", Pos = Vector3.new(11.600, 5.200, 12.500), Face = Vector3.new(-0.6802, 0, -0.7330) },
+	Exclusive = { Id = "punch_hero", Pos = Vector3.new(-16.500, 5.200, 4.400), Face = Vector3.new(0.9662, 0, -0.2577) },
 	Signs = {
 		{
 			Text = "SHOP",
@@ -192,8 +192,8 @@ return {
 		},
 		{
 			Text = "RUNNER INDEX",
-			Pos = Vector3.new(61.225, 11.600, -56.852),
-			Face = Vector3.new(-0.7328, 0, 0.6804),
+			Pos = Vector3.new(76.289, 11.600, -34.017),
+			Face = Vector3.new(-0.9133, 0, 0.4072),
 			Size = 0.85,
 			Color = "#A92617",
 		},

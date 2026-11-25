@@ -1491,15 +1491,35 @@ decline.Activated:Connect(function()
 	declinedStart = ReplicatedStorage:GetAttribute("BossEventStart")
 end)
 -- Only opens the popup, in every state: teleporting and spawning are its action's job (owner 2026-11-05).
-bossButton.Activated:Connect(function()
-	bossesOpen = not bossesOpen
-	if bossesOpen then
-		detailsFor = nil -- opens on the cards
-		bossesClosing = false
-		bossesPanel.Visible = not PanelSwitch.AnyOpen()
-		DojoHandscroll.Open(bossesPanel) -- design doc 4.46: unrolls from its centre, input live
+do -- its own scope: this file is at Luau's limit of locals
+	local BossGateConfig = require(shared:WaitForChild("BossGateConfig"))
+	local function toggleBosses()
+		bossesOpen = not bossesOpen
+		if bossesOpen then
+			detailsFor = nil -- opens on the cards
+			bossesClosing = false
+			bossesPanel.Visible = not PanelSwitch.AnyOpen()
+			DojoHandscroll.Open(bossesPanel) -- design doc 4.46: unrolls from its centre, input live
+		end
 	end
-end)
+	bossButton.Activated:Connect(toggleBosses)
+	-- The boss gate's prompt does what the button does, where the button shows and no panel covers the popup; a closed gate's
+	-- does nothing (WORLD_REDESIGN_SPEC 4.2)
+	game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt)
+		if
+			prompt.Name == BossGateConfig.PROMPT
+			and prompt:IsDescendantOf(workspace)
+			and bossButton.Visible
+			and not PanelSwitch.AnyOpen()
+			and BossGateConfig.IsOpen(
+				ReplicatedStorage:GetAttribute(BossGateConfig.OPEN_ATTRIBUTE),
+				player:GetAttribute("RebirthLevel")
+			)
+		then
+			toggleBosses()
+		end
+	end)
+end
 bossesClose.Activated:Connect(function()
 	bossesOpen = false
 end)
