@@ -311,3 +311,5 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 5. A reviewer says the orange and black runner model used as a scale dummy (repo model, not the altar) has a red swirl on its back close to a known ninja series emblem. Check it against design doc section 5.
 6. Markets and merchants (blind scores A dojo 7.3, B rift shrine 7.5, today's 3.5): which direction, and in which world? WORLD2_SPEC says World 2's services are unchanged from World 1, so B there needs a rule. Merchants at the stalls are new figures and need a design doc line before code. Likeness fixes from the review are in a revision round.
 7. Stalls are small from the spawn at today's sizes. Allow bigger ones? The sky-loop leg also hides the Index's middle.
+8. Altar A after its revision (f76bf1b5): blind 7.3, spawn view 5 (6.5 with the statue moved 8 studs, rendered as an option). Pick A, and move the statue?
+9. Two altar reviewers flag the models in the renders, not the altar: the Mythic in the pictures (side_general) has a moderate likeness to a known ninja series armoured giant, and the dummy runner a red spiral. Check both against design doc section 5.
