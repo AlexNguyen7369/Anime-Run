@@ -115,9 +115,13 @@ The same in both worlds unless a line says otherwise (owner: "consistent with wo
 WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Positions, prompts and panels stay; every size **proposed**.
 - World gate: gate draft B (shrine gatehouse). Position, lock rule and destination unchanged. Proposed: the label moves up,
   a non-disc touch part, a locked and an open mesh.
-- Boss gate (new): gate draft A (stone ring). Closed while no boss event is active, open while one is. **Open question**:
-  where it stands, and what it does. **Proposed** until the owner says: its prompt, when open, runs the Bosses panel's Go
-  under that rule's existing joining times and limits; closed, it does nothing; no change to boss rules or timing.
+- Boss gate (new): gate draft A (stone ring). Owner 2026-11-25: stands next to the Summon altar (read of "spawn altar";
+  exact spot chosen by the owner from three proposals), does the same as clicking the Bosses button (opens the Bosses
+  popup), closed while no boss event is active and open while one is. **Proposed**: closed, its prompt does nothing; it
+  changes no boss rule, timing or reward; below the rebirth level that hides the Bosses button it stays closed.
+- Layout (owner 2026-11-25): the Saitamo statue and the Index board may move so they block nothing (the world gate, the
+  Summon altar and the boss gate from the spawn). New positions **proposed**, the owner approves them from renders. The
+  Index keeps its prompt, panel and header. The sky loop and its posts were not mentioned: they stay.
 - Summon altar: World 1 draft B (great lotus), World 2 draft A (twin-roof stage). The only difference between the worlds'
   pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged.
 - Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds.
