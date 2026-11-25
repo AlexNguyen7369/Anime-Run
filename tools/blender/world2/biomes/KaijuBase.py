@@ -1080,25 +1080,44 @@ SITES = ((1057.0, -92.0, 1.0, -2.0), (2683.0, -91.0, 1.0, -1.0))  # d, off, scal
 FILL = []  # (x, z, prop) of the last build's added fill, for kaiju_reference.py
 
 
-def other_draft_boxes():
-	"""The other tracks' draft props as [(set name, export_props.draft_boxes(5))]: the committed drafts and, when
-	W2_EXTRA_DRAFTS is set ("<folder of <Biome>Draft.luau>|<track>=<Biome>,..."), also a second draft set (a layout change
-	not landed yet, with its track numbers)."""
+def other_draft_boxes(label="on disk", folder=None, tracks=None):
+	"""Every prop of the other tracks' Draft files as boxes shaped like export_props.draft_boxes rows (centre, rows, half
+	size, track, prop), CLEAR_EXEMPT props included (the owner's ruling for the fill: no other track's scenery at all).
+	Default: the Draft files on disk of this checkout, under export_props' track numbers. A caller may name another folder
+	and its full {track: biome} table; a missing folder, track or file stops the build. Prints the files used."""
+	import hashlib
 	import os
+	import re
 
 	import export_props as ep
+	import numpy as np
 
-	out = [("committed", ep.draft_boxes(5))]
-	extra = os.environ.get("W2_EXTRA_DRAFTS")
-	if extra:
-		folder, _, swaps = extra.partition("|")
-		themes, approved = ep.THEMES, ep.APPROVED
-		try:
-			ep.THEMES = folder
-			ep.APPROVED = {**approved, **{int(a): b for a, b in (q.split("=") for q in swaps.split(",") if q)}}
-			out.append(("extra", ep.draft_boxes(5)))
-		finally:
-			ep.THEMES, ep.APPROVED = themes, approved
+	if (folder is None) != (tracks is None):
+		raise SystemExit("other_draft_boxes: a folder and its track table go together")
+	folder, tracks = folder or ep.THEMES, tracks or ep.APPROVED
+	if not os.path.isdir(folder):
+		raise SystemExit("other_draft_boxes: no folder %s" % folder)
+	origins, out = ep.origins(), []
+	missing = [n for n in origins if n != 5 and n not in tracks]
+	if missing or len(set(tracks.values())) != len(tracks):
+		raise SystemExit("other_draft_boxes: tracks without a biome %s, or a biome named twice: %s" % (missing, tracks))
+	for number, (origin, yaw) in origins.items():
+		if number == 5:
+			continue
+		path = os.path.join(folder, tracks[number] + "Draft.luau")
+		if not os.path.isfile(path):
+			raise SystemExit("other_draft_boxes: no Draft file %s for track %d" % (path, number))
+		src, n0 = open(path).read(), len(out)
+		sizes = {a: [float(x) for x in v.split(",")] for a, v in re.findall(r"\n\t\t(\w+) = \{\n\t\t\tSize = v\(([^)]*)\)", src)}
+		for m in re.finditer(r'\{ "(\w+)", ([^{}]*?) \},\n', src[src.index("\tPlaced = {") : src.index("\tHeroes = ")]):
+			name, rest = m.group(1), m.group(2).split(", Group")[0]
+			nums = [float(x) for x in rest.split(", v(")[0].split(",")]
+			st = re.search(r"v\(([^)]*)\)", rest)
+			sc = [float(x) for x in st.group(1).split(",")] if st else [nums[4]] * 3
+			R = np.array(ep.yaw_rot(yaw)) @ np.array(ep.from_euler_yxz(*((nums[5], nums[3], nums[6]) if len(nums) > 6 else (0.0, nums[3], 0.0))))
+			size = np.array(sizes[name]) * np.array(sc)
+			out.append((np.array(ep.to_world(origin, yaw, nums[:3])) + R @ np.array([0.0, size[1] / 2, 0.0]), R, size / 2, number, name))
+		print("KAIJUBASE drafts %s: T%d %s %d props sha256 %s" % (label, number, path, len(out) - n0, hashlib.sha256(src.encode()).hexdigest()[:12]))
 	return out
 
 
@@ -1125,6 +1144,24 @@ def overlapped(box, boxes):
 		if np.all(np.abs(c - bc) < ext + np.abs(bR) @ bh) and ep.obb_overlap(c, R, h, bc, bR, bh):
 			out[t] = out.get(t, 0) + 1
 	return out
+
+
+def cut_fill(k, label, boxes):
+	"""Owner 2026-11-25: the site fill (k.fill) keeps only props clear of every other track's scenery, box against box."""
+	bpy.context.view_layer.update()
+	pre, stays, cut, by, left = "W2_%s_" % k.biome, {}, {}, {}, []
+	for ob in k.fill:
+		name, hit = ob.data.name[len(pre) :], overlapped(instance_box(ob), boxes)
+		for t in hit:
+			by[t] = by.get(t, 0) + 1
+		(cut if hit else stays)[name] = (cut if hit else stays).get(name, 0) + 1
+		if hit:
+			bpy.data.objects.remove(ob)
+		else:
+			left.append(ob)
+	k.fill = left
+	FILL[:] = [(o.location.x, -o.location.y, o.data.name[len(pre) :]) for o in left]
+	print("KAIJUBASE fill against drafts %s: kept" % label, len(left), stays, "removed", sum(cut.values()), cut, "removed props by track", dict(sorted(by.items())))
 
 
 def corpse_sites(k, city_end, windows, avoid, tall_avoid):
@@ -1258,20 +1295,8 @@ def corpse_sites(k, city_end, windows, avoid, tall_avoid):
 						k.place(what, (x, -1.0, z), yaw_, sc_)
 						spots["CityBlock" if name == "CityBlock" else "other"].append((x, z))
 						apron[what] = apron.get(what, 0) + 1
-	# owner 2026-11-25: the fill keeps only props clear of every other track's draft props (box against box)
-	bpy.context.view_layer.update()
-	sets, stays, cut, by = other_draft_boxes(), {}, {}, {}
-	for ob in [o for o in k.col.objects if o not in kept and o.type == "MESH"]:
-		name, box = ob.data.name[len(pre) :], instance_box(ob)
-		hit = {(label, t) for label, boxes in sets for t in overlapped(box, boxes)}
-		for label, t in hit:
-			by.setdefault(label, {}).setdefault(t, 0)
-			by[label][t] += 1
-		(cut if hit else stays)[name] = (cut if hit else stays).get(name, 0) + 1
-		if hit:
-			bpy.data.objects.remove(ob)
-	print("KAIJUBASE fill clear of other tracks: kept", stays, "removed", cut, "removed props by draft set and track", {a: dict(sorted(b.items())) for a, b in by.items()})
-	FILL[:] = [(o.location.x, -o.location.y, o.data.name[len(pre) :]) for o in k.col.objects if o not in kept and o.type == "MESH"]
+	k.fill = [o for o in k.col.objects if o not in kept and o.type == "MESH"]
+	cut_fill(k, "on disk", other_draft_boxes())
 	print("KAIJUBASE apron filled", apron)
 	print("KAIJUBASE fill dropped by the corridor test", drop)
 

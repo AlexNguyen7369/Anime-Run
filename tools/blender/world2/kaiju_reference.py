@@ -3,6 +3,7 @@ approvals"). Never overwrites the approved shots: the build goes to a scratch fo
 assets/world2_draft/track05_KaijuBase/reference/. --fit also asks export_props's planner functions which placements pass
 the game's rules at which scale; it exports and writes nothing.
 Headless:  Blender -b --factory-startup --python tools/blender/world2/kaiju_reference.py -- <scratch folder> [--fast] [--fit] [--sites]
+           [--extra <drafts folder> <1=Biome,2=Biome,...>]
 Import-safe: main() runs only as a script.
 """
 
@@ -207,21 +208,32 @@ def budget(k):
 	print("FILL", n_, "kept fill props (within 25 studs of a fill spot, same prop),", hit, "overlap another track's draft prop; pairs by track", dict(sorted(by.items())), "fill spots", len(fill))
 
 
-def kaiju_overlaps(k):
+def extra_drafts(argv):
+	"""--extra <folder> <1=Biome,2=Biome,...>: a second set of Draft files (a layout change not landed yet) with the full
+	table of the other tracks, as (folder, {track: biome}), or None. Only this script takes it: an export never does."""
+	if "--extra" not in argv:
+		return None
+	i = argv.index("--extra")
+	if len(argv) < i + 3:
+		raise SystemExit("--extra needs a folder and a track table")
+	return argv[i + 1], {int(a): b for a, b in (q.split("=") for q in argv[i + 2].split(","))}
+
+
+def kaiju_overlaps(k, sets):
 	"""The other tracks' draft props inside each corpse's box, per draft set."""
 	from biomes import KaijuBase
 
 	bpy.context.view_layer.update()
 	for ob in [o for o in k.col.objects if o.type == "MESH" and o.data.name.endswith("_KaijuCorpse")]:
 		box = KaijuBase.instance_box(ob)
-		for label, boxes in KaijuBase.other_draft_boxes():
+		for label, boxes in sets:
 			by = KaijuBase.overlapped(box, boxes)
 			print("KAIJU BOX at", tuple(round(v) for v in ob.location), label, sum(by.values()), dict(sorted(by.items())), flush=True)
 
 
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :]
-	scratch = [a for a in argv if not a.startswith("--")][0]
+	scratch = argv[0]
 	build_track.OUT, build_track.BUILD = os.path.join(scratch, "out"), os.path.join(scratch, "build")
 	if os.path.abspath(scratch).startswith(os.path.abspath(DRAFT)):
 		raise SystemExit("the scratch folder may not be the draft folder")
@@ -229,16 +241,21 @@ def main():
 		import export_props
 
 		export_props.record()
+	extra = extra_drafts(argv)
 	k = build_track.run(5, fast="--fast" in argv, render=False)
+	from biomes import KaijuBase
+
+	sets = [("on disk", KaijuBase.other_draft_boxes())]
+	if extra:
+		sets.append(("extra", KaijuBase.other_draft_boxes("extra", *extra)))
+		KaijuBase.cut_fill(k, *sets[1])
 	if "--fit" in argv:
 		fit(k)
 		budget(k)
-		kaiju_overlaps(k)
+		kaiju_overlaps(k, sets)
 		return
 	os.makedirs(OUT, exist_ok=True)
 	cam = bpy.context.scene.camera
-	from biomes import KaijuBase
-
 	if "--sites" in argv:  # only the shots the site fill shows in
 		context_shots(k, cam, KaijuBase.SITES, approved=False)
 		return

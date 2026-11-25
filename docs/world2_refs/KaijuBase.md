@@ -214,8 +214,8 @@ rail top and end cleanly on the deck; the band speckle is dense, medium-small, o
 - Tail (the red slab in run shot 02): now a round tapering tail that curls away from the road, with pale crags along its
   top, so it no longer reads as a wall.
 
-Rework (owner 2026-11-25: only the dead kaiju and its site reopened; earlier form rulings dropped). Not approved yet,
-reference renders only (`assets/world2_draft/track05_KaijuBase/reference/`, made by `tools/blender/world2/kaiju_reference.py`).
+Rework (owner 2026-11-25: only the dead kaiju and its site reopened; earlier form rulings dropped). Approved by the owner
+2026-11-25 at round 5 (1bc5e9f7): 19,889 tris, body alone 292.4 long; mesh and both placements frozen; not exported. Renders (`assets/world2_draft/track05_KaijuBase/reference/`, made by `tools/blender/world2/kaiju_reference.py`).
 Replaces the corpse described in the table and in rounds 13 to 16:
 - An invented generic beast, whole and unwounded, not the source's kaiju: one continuous body meshed from a distance
   field (no balls, boxes, plates or cups): ribs under the hide, shoulder and hip, jointed limbs with digits, a head rolled
@@ -240,7 +240,7 @@ Replaces the corpse described in the table and in rounds 13 to 16:
 - Round 5: the closed eye is a lid cap in hide colour on a darker rim cap, square to the skin, with one crease; the dip
   between brow and snout is back in the outline; the jaw wreck is low, tilted and dull; the earth is level with the plain
   at the road side and both ends.
-- Approved by the owner 2026-11-25 (round 5, 1bc5e9f7): mesh and both placements frozen. The site fill is cut to the props
-  clear of every other track's draft props (`corpse_sites`, tested by code; `W2_EXTRA_DRAFTS` adds a second draft set):
-  12 stay (7 Apartment, 3 Office, 2 Rubble) against the committed drafts and the Track 1/6 swap set of cb6d716e. Re-run
-  after the Track 1/6 swap lands.
+- The site fill is cut to the props clear of every other track's scenery, CLEAR_EXEMPT props included, box against box
+  (owner 2026-11-25; `cut_fill`, tested by code against the Draft files on disk). 10 stay against the files on disk; 6 (4
+  Apartment, 1 Office, 1 Rubble) stay when the Track 1/6 swap's Draft files of cb6d716e are tested too
+  (`kaiju_reference.py --extra`, which only that script takes). Re-run after the swap lands.
