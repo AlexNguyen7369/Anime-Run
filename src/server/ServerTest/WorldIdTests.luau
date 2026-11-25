@@ -14,7 +14,7 @@ function Tests.world_id_race()
 	local r, flag = H.report("world_id_race")
 	local world = require(ReplicatedStorage.Shared.WorldConfig).Id
 	local value = ReplicatedStorage:FindFirstChild("WorldId")
-	local old = { RunService.IsClient, game.IsLoaded, game.Loaded }
+	local old = { RunService.IsClient, game.IsLoaded, game.Loaded, RunService.IsServer }
 	local copy
 	local ok, err = xpcall(function()
 		local loaded = false
@@ -23,6 +23,9 @@ function Tests.world_id_race()
 		end
 		RunService.IsClient = function()
 			return true
+		end
+		RunService.IsServer = function()
+			return false
 		end
 		place.IsLoaded = function()
 			return loaded
@@ -40,8 +43,18 @@ function Tests.world_id_race()
 		local early = require(copy)
 		flag("client_early_require_knows_world", early.Id == world, early.Id, world)
 		flag("client_waited_for_loaded", loaded == true)
+		-- client and server at once (Studio Run mode, the command bar): no wait, even before Loaded
+		copy:Destroy()
+		RunService.IsServer = function()
+			return true
+		end
+		loaded = false
+		copy = ReplicatedStorage.Shared.WorldConfig:Clone()
+		copy.Name, copy.Parent = "ServerTestWorldIdRunMode", ReplicatedStorage.Shared
+		require(copy)
+		flag("run_mode_never_waits", loaded == false)
 	end, debug.traceback)
-	RunService.IsClient, place.IsLoaded, place.Loaded = old[1], old[2], old[3]
+	RunService.IsClient, place.IsLoaded, place.Loaded, RunService.IsServer = old[1], old[2], old[3], old[4]
 	if value then
 		value.Parent = ReplicatedStorage
 	end

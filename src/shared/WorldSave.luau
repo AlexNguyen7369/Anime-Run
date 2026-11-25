@@ -51,9 +51,10 @@ end
 
 -- The payload world `id` writes: its progress keys moved into Worlds[key] next to the stored record's other worlds, so
 -- World 1's top-level progress is never overwritten from World 2. Keys of Worlds[key] this version does not know are
--- kept, as PlayerData keeps unknown top-level keys. `keep`: an arrival sent back (Server/WorldTravel, docs/BUGS.md
--- w2-sendback-stale-team) never entered the world: Worlds[key] stays as stored and none of the payload's per-world keys
--- is written (else a first entry's team carried from World 1 would be saved as this world's own).
+-- kept, as PlayerData keeps unknown top-level keys. `keep`: an arrival not yet allowed to stay (being sent back, or its admin
+-- check unknown; Server/WorldTravel, docs/BUGS.md w2-sendback-stale-team): Worlds[key].Team stays as stored, and Equipped too
+-- while it is the value carried from World 1 (the top level's), so a later real first entry takes the team of that day.
+-- Every other key is written as always, with the shared ones (Gems, Copies) in the same write.
 function WorldSave.Fold(payload, current, id, keep)
 	local key = WorldConfig.SaveKey(id)
 	if not key then
@@ -61,19 +62,19 @@ function WorldSave.Fold(payload, current, id, keep)
 	end
 	local out = table.clone(payload)
 	local worlds = type(current) == "table" and type(current.Worlds) == "table" and table.clone(current.Worlds) or {}
-	local mine = type(worlds[key]) == "table" and table.clone(worlds[key]) or nil
+	local mine = type(worlds[key]) == "table" and table.clone(worlds[key]) or {}
+	local stored = type(worlds[key]) == "table" and worlds[key] or {}
+	local carried = type(current) == "table" and current.Equipped or nil
 	for _, name in KEYS do
-		if not keep then
-			mine = mine or {}
+		if keep and (name == "Team" or name == "Equipped" and out[name] == carried) then
+			mine[name] = stored[name]
+		else
 			mine[name] = out[name]
 		end
 		out[name] = nil
 	end
 	for _, name in WorldSave.FLAG_KEYS do
-		if not keep then
-			mine = mine or {}
-			mine[name] = (out[name] == true or mine[name] == true) or nil
-		end
+		mine[name] = (out[name] == true or mine[name] == true) or nil
 		out[name] = nil
 	end
 	worlds[key] = mine

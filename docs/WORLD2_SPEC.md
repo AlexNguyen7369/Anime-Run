@@ -39,10 +39,12 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   the placeholder starter, `View` gives World 1's `Team` and `Equipped`, so the team carries over; the first World 2 save
   writes it to `Worlds.W2`. `GachaService.CheckStarter` does nothing in World 2 (no starter choice, auto-roll not turned
   off for the roll tutorial) and `Client/ArrivalState.IsNew` is false there;
-  `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys. An arrival being sent back
-  (Travel and gate: arrival check) never entered World 2: its saves write none of `Worlds.W2` (`Fold` `keep`, while the
-  player's runtime attribute `SendingBack` is on; not saved), so a later real first entry still takes the team of that
-  day (docs/BUGS.md w2-sendback-stale-team). A player who may stay after all is cleared and saves as before.
+  `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys. An arrival not (yet) allowed to
+  stay (Travel and gate: arrival check refused it, or its admin check is unknown and waits for a recheck) keeps
+  `Worlds.W2.Team` as stored, and `Worlds.W2.Equipped` too while it is the value carried from World 1, so a later real
+  first entry still takes the team of that day (docs/BUGS.md w2-sendback-stale-team). Every other key, per world and
+  shared, is written together as before (`Fold` `keep`, while the player's runtime attribute `SendingBack` is on; not
+  saved). Once it may stay the attribute is cleared and it saves as before.
 - `Worlds.W2.Welcomed` (true once World 2's welcome was given; absent = not yet): a one-way flag
   (`WorldSave.FLAG_KEYS`), never cleared by a save without it. VERSION unchanged: an older save has none and is
   welcomed once; World 1 servers (old and new) keep `Worlds` whole as they keep every unknown key. `Fold` keeps the

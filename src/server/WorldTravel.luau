@@ -261,8 +261,7 @@ end
 -- again after ADMIN_RECHECK, up to ADMIN_RECHECKS times, then the player counts as no admin.
 local function sendBack(player)
 	local carry = { Loaded = player:GetAttribute("DataLoaded") == true, Released = false }
-	-- its saves write no World 2 progress until it may stay (PlayerData, WorldSave.Fold `keep`; docs/BUGS.md w2-sendback-stale-team)
-	player:SetAttribute("SendingBack", true)
+	player:SetAttribute("SendingBack", true) -- set by Arrived already; cleared below if it may stay after all
 	for try = 1, WorldTravel.ARRIVAL_TRIES do
 		if try > 1 then
 			task.wait(WorldTravel.ARRIVAL_RETRY)
@@ -317,6 +316,9 @@ function WorldTravel.Arrived(player, recheck)
 	end
 	recheck = recheck or 0
 	local allowed, _, unknown = WorldTravel.CanEnter(player, 2)
+	-- from the first refusal or unknown answer its saves keep the carried team out of Worlds.W2 (PlayerData, WorldSave.Fold
+	-- `keep`; docs/BUGS.md w2-sendback-stale-team), until it may stay
+	player:SetAttribute("SendingBack", if allowed then nil else true)
 	if allowed then
 		if recheck > 0 then
 			pcall(WorldTravel.Stayed, player)
