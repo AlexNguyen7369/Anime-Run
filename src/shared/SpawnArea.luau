@@ -514,7 +514,7 @@ local function pieceAltar(m, f, piece)
 	glow(last, 20)
 	-- the prompt's own part, in front of the model's stand: within reach from the steps
 	m.PrimaryPart =
-		prompt(m, f * CFrame.new(0, piece.Stand, -5), "OpenSidekicks", "Summon", "SIDEKICKS", ALTAR_PROMPT_DISTANCE)
+		prompt(m, f * CFrame.new(0, piece.Stand, -4.9), "OpenSidekicks", "Summon", "SIDEKICKS", ALTAR_PROMPT_DISTANCE)
 	return m
 end
 

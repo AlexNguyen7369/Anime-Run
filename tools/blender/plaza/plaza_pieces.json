@@ -4,6 +4,7 @@
   "Hash": "3df41d93729506b1",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 8450
  },
  "AltarGreatLotusUnlocked": {
@@ -11,6 +12,7 @@
   "Hash": "1bc9f43f871b9768",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 10380
  },
  "AltarTwinRoofLocked": {
@@ -18,6 +20,7 @@
   "Hash": "b6e916dd15f34eb4",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 9572
  },
  "AltarTwinRoofUnlocked": {
@@ -25,6 +28,7 @@
   "Hash": "7ab221d89d68127d",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 8012
  },
  "BossGateClosed": {
@@ -32,6 +36,7 @@
   "Hash": "e8db904463781341",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 11030
  },
  "BossGateOpen": {
@@ -39,6 +44,7 @@
   "Hash": "5858dd43d22d12d1",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 10189
  },
  "IndexBoard": {
@@ -46,6 +52,7 @@
   "Hash": "2bea49dc5fb8adce",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 2700
  },
  "MarketStall": {
@@ -53,6 +60,7 @@
   "Hash": "a7050ed71d413496",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 3980
  },
  "POTIONSStall": {
@@ -60,6 +68,7 @@
   "Hash": "68b124bae448e7c4",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 3865
  },
  "SHOPStall": {
@@ -67,6 +76,7 @@
   "Hash": "a44856a05d768bbe",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 2198
  },
  "SenseiDais": {
@@ -74,6 +84,7 @@
   "Hash": "06c57bf37d8be459",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 504
  },
  "SkyLoop": {
@@ -81,6 +92,7 @@
   "Hash": "e8b4b0b42f351141",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 1996
  },
  "WorldGateLocked": {
@@ -88,6 +100,7 @@
   "Hash": "ef4e146f35366463",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 10306
  },
  "WorldGateOpen": {
@@ -95,6 +108,7 @@
   "Hash": "76c8f25b433c9163",
   "Kind": "Mesh",
   "Lane": "B",
+  "Reviewed": "2026-11-25 rules-auditor",
   "Tris": 8403
  }
 }

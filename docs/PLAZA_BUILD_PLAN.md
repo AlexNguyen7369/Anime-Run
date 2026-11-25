@@ -10,16 +10,14 @@ draft scripts at 03148343 (headless Blender); "proposed" where no owner word exi
 | Piece | Keys | Tris | Box, top | Palette colours, glow names |
 |---|---|---|---|---|
 | World gate B | WorldGateLocked, WorldGateOpen | 10,306 / 8,403 | 35.5 x 29.6, 36.5 | 27, 6 |
-| Boss gate A | BossGateClosed, BossGateOpen | 11,482 / 10,189 | 35.3 x 29.6, 34.7 / 37.0 | 25, 5 (open) |
-| (its closed draft, unmended) | BossGateClosedDraft | 11,030 | 35.3 x 29.6, 34.7 | same set |
+| Boss gate A | BossGateClosed, BossGateOpen | 11,030 / 10,189 | 35.3 x 29.6, 34.7 / 37.0 | 25, 5 (open) |
 | Altar B (World 1) | AltarGreatLotusLocked, Unlocked | 8,450 / 10,380 | 66.2 wide, 56.1 / 60.3 | 41, 4 |
 | Altar A (World 2) | AltarTwinRoofLocked, Unlocked | 9,572 / 8,012 | 67.1 wide, 74.5 | 22, 4 |
 | Markets B | SHOPStall, POTIONSStall, MarketStall, IndexBoard, SenseiDais | 2,198 / 3,865 / 3,980 / 2,700 / 504 | tops 13.0, 14.0, 15.5, 13.7, 6.2 | 33, 7 |
 | Sky loop | SkyLoop | 1,996 | posts at 19, 75, 200, 250, 322 | its own set |
 
 - Parts: Body (Body2 over 20,000 corners) and one per glow colour. A palette of at most 64 colours per set; glow is part colour.
-- The closed boss gate has a dark rim behind the door joint and a plate, studs and point on the seal's back, **proposed** (owner asked);
-  without them it is BossGateClosedDraft.
+- The closed boss gate is the approved draft as it was (owner 2026-11-25).
 - World 2 shows WorldGateOpen with its glow in cyan (`PlazaLook.Glow`), no second mesh.
 - Clear of the loop's new posts and ribbon (least 12.3 studs, the roof altar) and inside the floor (least 1.7, the boss gate), but the world
   gate: its box reaches 2.4 past the floor edge (eaves and dais; today's dais passes it too).
