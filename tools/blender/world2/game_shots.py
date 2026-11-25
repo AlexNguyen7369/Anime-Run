@@ -2,8 +2,8 @@
 shots also hold horizon pieces off the track's ground). Built = a row of the exported <Biome>Draft.luau on its own
 ground, less the rows listed in --removed=<json> {biome: [row number]} (what the game's Prune takes, from the harness).
 Headless: Blender -b --factory-startup --python tools/blender/world2/game_shots.py -- <number ...> [--removed=<json>] [--fast]
---option (with CASTLE_052=1 or RANK_TURNED=1): that not exported layout option, every prop on the own ground, into
-option_castle_052/ or option_turned/.
+--option (with CASTLE_052=1, RANK_TURNED=1 or both): that not exported layout option, every prop on the own ground, into
+option_castle_052/, option_turned/ or option_castle_turned/.
 """
 
 import json
@@ -15,6 +15,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import build_track as bt  # noqa: E402
 import export_props as ep  # noqa: E402
+
+
+# the option folder by which layout switches of biomes/ElvenPlains.py are set
+OPTION = {(True, False): "option_castle_052", (False, True): "option_turned", (True, True): "option_castle_turned"}.get(
+	(os.environ.get("CASTLE_052") == "1", os.environ.get("RANK_TURNED") == "1")
+)
 
 
 def built_rows(number, biome, removed):
@@ -57,7 +63,7 @@ def run(number, removed, fast):
 		ob.hide_render = not ok
 		shown, hidden = shown + ok, hidden + (not ok)
 	print("GAME", number, biome, "built rows", len(rows), "shown", shown, "hidden", hidden)
-	bt.shots(k, bpy.context.scene.camera, os.path.join(bt.OUT, "track%02d_%s" % (number, biome), ("option_turned" if os.environ.get("RANK_TURNED") else "option_castle_052") if option else "game"))
+	bt.shots(k, bpy.context.scene.camera, os.path.join(bt.OUT, "track%02d_%s" % (number, biome), OPTION if option else "game"))
 
 
 def main():
