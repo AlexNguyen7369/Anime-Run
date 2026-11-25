@@ -1146,12 +1146,22 @@ def overlapped(box, boxes):
 	return out
 
 
+# Draft (b), the fill may only shrink: the ten props bb93b6c4 kept, (x, z, prop). Not the owner's ruling yet.
+COMMITTED = (
+	(-130.0, 872.2, "Apartment"), (-177.6, 743.1, "Apartment"), (-184.5, 696.9, "Apartment"), (-231.0, 875.4, "Apartment"),
+	(-801.5, 563.2, "Apartment"), (-670.2, -861.4, "Apartment"), (-233.3, 747.2, "Office"), (-646.8, 744.2, "Office"),
+	(-965.0, -1088.1, "Rubble"), (-799.0, -1154.1, "Rubble"),
+)
+
+
 def cut_fill(k, label, boxes):
 	"""Owner 2026-11-25: the site fill (k.fill) keeps only props clear of every other track's scenery, box against box."""
 	bpy.context.view_layer.update()
 	pre, stays, cut, by, left = "W2_%s_" % k.biome, {}, {}, {}, []
 	for ob in k.fill:
 		name, hit = ob.data.name[len(pre) :], overlapped(instance_box(ob), boxes)
+		was = any(name == n and abs(ob.location.x - x) < 0.2 and abs(-ob.location.y - z) < 0.2 for x, z, n in COMMITTED)
+		hit = hit if hit or was else {"not committed": 1}
 		for t in hit:
 			by[t] = by.get(t, 0) + 1
 		(cut if hit else stays)[name] = (cut if hit else stays).get(name, 0) + 1
@@ -1161,7 +1171,7 @@ def cut_fill(k, label, boxes):
 			left.append(ob)
 	k.fill = left
 	FILL[:] = [(o.location.x, -o.location.y, o.data.name[len(pre) :]) for o in left]
-	print("KAIJUBASE fill against drafts %s: kept" % label, len(left), stays, "removed", sum(cut.values()), cut, "removed props by track", dict(sorted(by.items())))
+	print("KAIJUBASE fill against drafts %s: kept" % label, len(left), stays, "removed", sum(cut.values()), cut, "removed props by track", dict(sorted(by.items(), key=str)))
 
 
 def corpse_sites(k, city_end, windows, avoid, tall_avoid):
