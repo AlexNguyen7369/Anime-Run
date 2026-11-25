@@ -79,6 +79,7 @@ local ANCESTORS = {
 	Script = { LuaSourceContainer = true, BaseScript = true },
 	Part = { BasePart = true, PVInstance = true },
 	MeshPart = { BasePart = true, PVInstance = true },
+	PointLight = { Light = true },
 }
 local Methods = {}
 local data = setmetatable({}, { __mode = "k" })

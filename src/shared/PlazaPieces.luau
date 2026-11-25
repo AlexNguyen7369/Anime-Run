@@ -13,7 +13,6 @@ local TODAYS_MODEL_SIZE = 7 -- studs, the turning Mythic's largest extent in tod
 -- The merchants' switch, off: their poses are not built. The owner's rulings are in (2026-11-25: Frierin may load in World 1, Kakashe
 -- is the smaller one). The Sensei dummy stays while off.
 PlazaPieces.MERCHANTS_LIVE = false
-PlazaPieces.LOOP_POSTS = { 19, 75, 200, 250, 322 } -- degrees; the SkyLoop piece's (tools/blender/plaza/build_plaza.py LOOP_POSTS)
 PlazaPieces.ALTAR_TAGS = { Locked = "PlazaAltarLocked", Unlocked = "PlazaAltarUnlocked" } -- Shared/PlazaPieceLook, per player
 
 -- Per world: the altar's look, what its model stands on over the floor (studs, and studs ahead of the centre), its lock label's

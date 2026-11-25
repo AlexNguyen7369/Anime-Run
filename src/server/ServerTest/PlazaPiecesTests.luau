@@ -91,6 +91,9 @@ function Tests.plaza_pieces()
 			local want = name == "CheckpointNpc" and 0.75 or 1
 			flag("merchant_scale_" .. name, row.Scale == want, row.Scale or -1, want)
 		end
+		local posts = Pieces.Assets.SkyLoop.Posts -- measured on the mesh (build_loop.py), written with the table
+		local degrees = posts and table.concat(posts, " ") or "missing"
+		flag("sky_loop_posts", degrees == "19 75 200 250 322", degrees, "19 75 200 250 322")
 		flag("merchants_off_by_default", oldMerchants == false)
 
 		for _, world in { 1, 2 } do
@@ -291,7 +294,10 @@ function Tests.plaza_pieces()
 					part.Name = name
 					CollectionService:AddTag(part, tag)
 					part.Parent = workspace
-					table.insert(made, { part, state, name })
+					local light = Instance.new("PointLight")
+					light.Range = 18
+					light.Parent = part
+					table.insert(made, { part, state, name, light })
 				end
 			end
 			for _, locked in { true, false } do
@@ -301,6 +307,14 @@ function Tests.plaza_pieces()
 					flag(
 						("look_%s_%s_%s"):format(locked and "locked" or "unlocked", m[2], m[3]),
 						m[1].Transparency == (shown and 0 or 1) and m[1].CastShadow == (shown and m[3] == "Body")
+					)
+					-- by its range: REDUCED EFFECTS (Client/BiomeEnvironment) owns Enabled and Brightness
+					local range = shown and 18 or 0
+					flag(
+						("look_%s_%s_%s_light"):format(locked and "locked" or "unlocked", m[2], m[3]),
+						m[4].Range == range,
+						m[4].Range,
+						range
 					)
 				end
 			end

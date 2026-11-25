@@ -260,7 +260,7 @@ local function run(scenario, pending)
 		flag("layout_statue", moved <= LAYOUT.PosTol, moved, LAYOUT.PosTol)
 		local front = flat(exclusive.Face).Unit:Dot(-LAYOUT.Statue.Unit)
 		flag("layout_statue_faces_spawn", front >= 0.98, front, 0.98)
-		local posts = Pieces and Pieces.Ready("SkyLoop") and Pieces.LOOP_POSTS
+		local posts = Pieces and Pieces.Ready("SkyLoop") and pieceRows.SkyLoop.Posts
 		local same = type(posts) == "table" and #posts == #LAYOUT.Posts
 		for i, deg in LAYOUT.Posts do
 			same = same and posts[i] == deg
@@ -449,73 +449,87 @@ local function run(scenario, pending)
 			ReplicatedStorage:SetAttribute("BossEventPhase", before)
 		end
 
-		-- World gate B
+		-- World gate B. The gate that ships (the table's own ids) and the one with ids filled in hold the same rules; draft B's
+		-- geometry is judged on the second, under the first's names.
 		local function gate(open)
 			WorldConfig.GATE_OPEN = open
-			local m = uploaded(function()
+			local shipped = SpawnArea.WorldGate(CFrame.new())
+			local piece = uploaded(function()
 				return SpawnArea.WorldGate(CFrame.new())
 			end)
 			WorldConfig.GATE_OPEN = oldOpen
-			return m
+			return { { "", shipped }, { "piece_", piece } }
 		end
 		for _, state in { { "locked", false }, { "open", true } } do
-			local name, m = state[1], gate(state[2])
 			local locked = world == 1 and not state[2] -- World 2's gate leads back and is always open
-			local portal = m:FindFirstChild("Portal")
-			local key = "gate_" .. name
-			flag(key .. "_portal", portal ~= nil)
-			if not portal then
-				continue
+			for _, build in gate(state[2]) do
+				local m = build[2]
+				local portal = m:FindFirstChild("Portal")
+				local key = "gate_" .. build[1] .. state[1]
+				flag(key .. "_portal", portal ~= nil)
+				if not portal then
+					continue
+				end
+				local at = flat(portal.CFrame.Position)
+				flag(key .. "_place", (at - GATE.At).Magnitude <= TOL, (at - GATE.At).Magnitude, TOL)
+				local target = world == 1 and 2 or 1
+				flag(
+					key .. "_destination",
+					portal:GetAttribute("TargetWorld") == target,
+					portal:GetAttribute("TargetWorld"),
+					target
+				)
+				flag(
+					key .. "_lock_rule",
+					portal:GetAttribute("Locked") == locked,
+					text(portal:GetAttribute("Locked")),
+					text(locked)
+				)
+				flag(key .. "_touch", (portal.CanTouch == true) == not locked)
+				local barrier = m:FindFirstChild("Barrier")
+				flag(key .. "_barrier", (barrier ~= nil and barrier.CanCollide ~= false) == locked)
+				-- the box of the touch part in the gate's own frame: x across the doorway, z through it
+				local frame = CFrame.lookAt(Vector3.new(GATE.At.X, FLOOR, GATE.At.Y), Vector3.new(HUB.X, FLOOR, HUB.Y))
+				local rel, s = frame:ToObjectSpace(portal.CFrame), portal.Size
+				local x = math.abs(rel.RightVector.X) * s.X
+					+ math.abs(rel.UpVector.X) * s.Y
+					+ math.abs(rel.LookVector.X) * s.Z
+				local y = math.abs(rel.RightVector.Y) * s.X
+					+ math.abs(rel.UpVector.Y) * s.Y
+					+ math.abs(rel.LookVector.Y) * s.Z
+				local bottom, top = rel.Position.Y - y / 2, rel.Position.Y + y / 2
+				flag(key .. "_touch_fills_doorway", x >= GATE.DoorMinWidth, x, GATE.DoorMinWidth)
+				local named = "gate_" .. state[1]
+				if build[1] == "piece_" then
+					flag(
+						named .. "_touch_not_a_disc",
+						portal.Shape ~= Enum.PartType.Cylinder,
+						text(portal.Shape),
+						"no Cylinder"
+					)
+					flag(
+						named .. "_touch_fits_doorway",
+						x <= GATE.DoorWidth + TOL and top <= GATE.DoorTop + TOL,
+						x,
+						GATE.DoorWidth
+					)
+					flag(
+						named .. "_touch_at_runner_height",
+						bottom <= GATE.SillMax and top >= GATE.ChestMin,
+						bottom,
+						GATE.SillMax
+					)
+				end
+				local label = find(m, "BillboardGui", "Label")
+				local offset = label and (label.StudsOffsetWorldSpace or Vector3.zero).Y or 0
+				local height = portal.CFrame.Position.Y - FLOOR + offset
+				if build[1] == "piece_" then
+					flag(named .. "_label_over_roof", label ~= nil and height >= GATE.RoofTop, height, GATE.RoofTop)
+				end
+				local state2 = find(label, "TextLabel", "State")
+				local want = locked and "COMING SOON" or "ENTER"
+				flag(key .. "_label_text", state2 ~= nil and state2.Text == want, text(state2 and state2.Text), want)
 			end
-			local at = flat(portal.CFrame.Position)
-			flag(key .. "_place", (at - GATE.At).Magnitude <= TOL, (at - GATE.At).Magnitude, TOL)
-			local target = world == 1 and 2 or 1
-			flag(
-				key .. "_destination",
-				portal:GetAttribute("TargetWorld") == target,
-				portal:GetAttribute("TargetWorld"),
-				target
-			)
-			flag(
-				key .. "_lock_rule",
-				portal:GetAttribute("Locked") == locked,
-				text(portal:GetAttribute("Locked")),
-				text(locked)
-			)
-			flag(key .. "_touch", (portal.CanTouch == true) == not locked)
-			local barrier = m:FindFirstChild("Barrier")
-			flag(key .. "_barrier", (barrier ~= nil and barrier.CanCollide ~= false) == locked)
-			-- the box of the touch part in the gate's own frame: x across the doorway, z through it
-			local frame = CFrame.lookAt(Vector3.new(GATE.At.X, FLOOR, GATE.At.Y), Vector3.new(HUB.X, FLOOR, HUB.Y))
-			local rel, s = frame:ToObjectSpace(portal.CFrame), portal.Size
-			local x = math.abs(rel.RightVector.X) * s.X
-				+ math.abs(rel.UpVector.X) * s.Y
-				+ math.abs(rel.LookVector.X) * s.Z
-			local y = math.abs(rel.RightVector.Y) * s.X
-				+ math.abs(rel.UpVector.Y) * s.Y
-				+ math.abs(rel.LookVector.Y) * s.Z
-			local bottom, top = rel.Position.Y - y / 2, rel.Position.Y + y / 2
-			flag(key .. "_touch_not_a_disc", portal.Shape ~= Enum.PartType.Cylinder, text(portal.Shape), "no Cylinder")
-			flag(
-				key .. "_touch_fits_doorway",
-				x <= GATE.DoorWidth + TOL and top <= GATE.DoorTop + TOL,
-				x,
-				GATE.DoorWidth
-			)
-			flag(key .. "_touch_fills_doorway", x >= GATE.DoorMinWidth, x, GATE.DoorMinWidth)
-			flag(
-				key .. "_touch_at_runner_height",
-				bottom <= GATE.SillMax and top >= GATE.ChestMin,
-				bottom,
-				GATE.SillMax
-			)
-			local label = find(m, "BillboardGui", "Label")
-			local offset = label and (label.StudsOffsetWorldSpace or Vector3.zero).Y or 0
-			local height = portal.CFrame.Position.Y - FLOOR + offset
-			flag(key .. "_label_over_roof", label ~= nil and height >= GATE.RoofTop, height, GATE.RoofTop)
-			local state2 = find(label, "TextLabel", "State")
-			local want = locked and "COMING SOON" or "ENTER"
-			flag(key .. "_label_text", state2 ~= nil and state2.Text == want, text(state2 and state2.Text), want)
 		end
 		for _, key in { "WorldGateLocked", "WorldGateOpen" } do
 			local asset = pieceRows[key]

@@ -80,16 +80,6 @@ return {
 	},
 	BossGateClosed = {
 		Asset = 0,
-		Hash = "a3baaf4b8b1a1d12",
-		Pos = Vector3.new(2.460, 1.000, 93.301),
-		Face = Vector3.new(-0.0264, 0, -0.9997),
-		Parts = {
-			Body = { Size = Vector3.new(35.300, 34.700, 29.600), Center = Vector3.new(0.000, 17.350, -0.000) },
-			Body2 = { Size = Vector3.new(29.600, 22.800, 29.600), Center = Vector3.new(0.000, 11.400, -0.000) },
-		},
-	},
-	BossGateClosedDraft = {
-		Asset = 0,
 		Hash = "e8db904463781341",
 		Pos = Vector3.new(2.460, 1.000, 93.301),
 		Face = Vector3.new(-0.0264, 0, -0.9997),
@@ -247,6 +237,7 @@ return {
 		Hash = "e8b4b0b42f351141",
 		Pos = Vector3.new(0.000, 0.000, -0.000),
 		Face = Vector3.new(0.0000, 0, 1.0000),
+		Posts = { 19, 75, 200, 250, 322 },
 		Parts = {
 			Body = { Size = Vector3.new(129.000, 29.000, 129.000), Center = Vector3.new(0.000, 15.500, -0.000) },
 			Glow_neonb = {

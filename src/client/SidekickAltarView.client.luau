@@ -51,11 +51,15 @@ local function lockSpot()
 	local altar = area:FindFirstChild("SidekickAltar")
 	return altar and altar:FindFirstChild("LockSpot", true)
 end
-if lockSpot() then
-	label.Size = UDim2.new(12, 60, 3, 18)
-	label.StudsOffsetWorldSpace = Vector3.zero
-	label.Adornee = lockSpot()
+local function placeLabel() -- again on each refresh: the spots stream in and out
+	local at = lockSpot()
+	if at then
+		label.Size = UDim2.new(12, 60, 3, 18)
+		label.StudsOffsetWorldSpace = Vector3.zero
+	end
+	label.Adornee = at or spot
 end
+placeLabel()
 label.Enabled = false
 label.ResetOnSpawn = false -- this script runs once; a respawn must not drop the label
 local text = Instance.new("TextLabel")
@@ -89,8 +93,8 @@ local function refresh()
 	PlazaPieceLook.Altar(isLocked)
 	if not spot.Parent then
 		spot = findSpot() or spot
-		label.Adornee = lockSpot() or spot
 	end
+	placeLabel()
 	-- streamed out: show nothing until the altar is back (a parentless attachment reads its offset as world)
 	local key = spot.Parent and id and (id .. (isLocked and ":locked" or "")) or nil
 	label.Enabled = isLocked
@@ -149,7 +153,7 @@ player:GetAttributeChangedSignal("RebirthLevel"):Connect(refresh)
 models:GetAttributeChangedSignal("Ready"):Connect(refresh)
 models.ChildAdded:Connect(refresh)
 area.DescendantAdded:Connect(function(d)
-	if d.Name == "ModelSpot" then
+	if d.Name == "ModelSpot" or d.Name == "LockSpot" then
 		refresh()
 	end
 end)
