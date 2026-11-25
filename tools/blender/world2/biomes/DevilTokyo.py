@@ -1,4 +1,4 @@
-"""World 2 Track 1: Devil Hunter Tokyo (Saw Man). Night Tokyo where the devil hunters work, built to read 1-1 with the
+"""World 2 Track 6: Devil Hunter Tokyo (Saw Man). Night Tokyo where the devil hunters work, built to read 1-1 with the
 anime's street scenes (refs and landmark list: docs/world2_refs/DevilTokyo.md):
 - the hunters' headquarters: the tallest mass in town, a pale grey stepped government block with deep horizontal slabs
   (Kasumigaseki style), sparse lit offices, a lit forecourt and a large changed emblem (ring and diamond, not the real
@@ -10,7 +10,7 @@ anime's street scenes (refs and landmark list: docs/world2_refs/DevilTokyo.md):
   warm pools, concrete utility poles (a transformer drum on every second one) with 8 sagging wires per span, black cable
   bundles and wires crossing high over the street;
 - shophouses with shutters, awnings, narrow stacked corner signs and a pair of vending machines; a convenience store;
-- the infield as low back-street blocks: coin parking, small houses, a pocket park;
+- low back-street blocks breaking up the street fronts: coin parking, small houses, a pocket park;
 - a Jinbocho corner from the film: a retro tiled building and a lit phone booth.
 Signs are abstract coloured panels with glyph blocks only (no text, no real shop colours or logos, design doc 5).
 Everything in-house, parts only. Building walls vary per instance (grey concrete, brown tile, off-white, green) through the
@@ -18,6 +18,8 @@ material's object-random colour (the game needs a colour per instance the same w
 render set (design doc 4.47)."""
 
 import math
+
+from roads import Roads
 
 MODEL_SHOTS = ["HQ", "Mansion", "Apaato", "Konbini", "Retro"]  # hero close-ups judged at full size (build_track)
 CLEAR_EXEMPT = {"CrossWire"}  # wires spanning the street overhead: lowest point 20+ studs over the road top (14+ rule)
@@ -644,21 +646,22 @@ def hexcol(h):
 	return (lin[0], lin[1], lin[2], 1.0)
 
 
-def street(k, side, names, front, start, end, gap=(2, 8), avoid=(), flip=0.0):
-	"""Buildings shoulder to shoulder along one side: each one's road face sits about `front` studs from the centre line.
-	`avoid`: (x, z, radius) plots kept free. `flip`: share of mansions turned to show the corridor face to the road."""
+def street(k, r, side, names, front, start, end, gap, avoid, flip=0.0):
+	"""Buildings shoulder to shoulder along one side: each one's road face sits about `front` studs from the centre line,
+	on this track's own half of the gap to the next road. `avoid`: (x, z, radius) plots kept free. `flip`: share of
+	mansions turned to show the corridor face to the road."""
 	d = start
 	while d < end:
-		name = k.rng.choice(names)
-		w, dep = FOOT[name]
-		off = side * (front + dep / 2)
-		pos, yaw = k.beside(d + w / 2, off)
-		free = all(math.hypot(pos[0] - x, pos[2] - z) > r for x, z, r in avoid)
-		if free and k.clear_of_road(pos[0], pos[2], abs(off) * 0.92):
-			yaw += math.pi / 2 if side > 0 else -math.pi / 2  # -Z faces the road, as kit.along
-			if name == "Mansion" and k.rng.random() < flip:
-				yaw += math.pi  # Aki's apartment beat: the corridor face toward the road
-			k.place(name, pos, yaw)
+		first = k.rng.choice(names)
+		for name in (first, "ShopHouse", "Konbini"):  # a narrower one where the first does not fit the bend or the gap
+			w, dep = FOOT[name]
+			pos, yaw = k.beside(d + w / 2, side * (front + dep / 2))
+			yaw += side * math.pi / 2  # -Z faces the road, as kit.along
+			if all(math.hypot(pos[0] - x, pos[2] - z) > rad + w / 2 for x, z, rad in avoid) and r.fits(pos[0], pos[2], yaw, w, dep + 4):
+				if name == "Mansion" and k.rng.random() < flip:
+					yaw += math.pi  # Aki's apartment beat: the corridor face toward the road
+				k.place(name, pos, yaw)
+				break
 		d += w + k.rng.uniform(*gap)
 
 
@@ -681,89 +684,103 @@ def build(k):
 	vary(k, SHOP_WALL, ("B8B0A3", "8A8C8C", "7A5A48", "A8B4A0", "C8C0B0"))
 	vary(k, APA_WALL, ("A99C83", "8E9A90", "B4A890"))
 
-	k.ground(ASPH, margin=500, y=0.0)
+	k.ground(ASPH, margin=3200, y=0.0)
+	r = Roads(k.track["Number"])
 	L = k.length
 	end = L - 70
-	# Street edge both sides: pavement, kerb, guardrail, lamps with pools, poles with wires over the street
-	# As k.along (same rng calls, so the street layout is unchanged), but a kit is skipped on a tight inner bend where its
-	# straight 48-stud length would bring a road-side corner (local x +-24, z -6.4) within 24 studs of the centre line.
+	# Track 6's road is one long lap between Track 5's and Track 7's, 118 to 150 studs off each: one street front a side,
+	# then the next track's land. Street edge both sides: pavement, kerb, guardrail, lamps with pools, poles with wires.
+	# A kit is skipped on a tight bend where its straight 48-stud length would bring a road-side corner (local x +-24,
+	# z -6.4) within 24 studs of the centre line.
+	kits = []
 	d = 24
 	while d < end:
 		for off in (-35, 35):
-			k.rng.uniform(0, 0)
-			pos, yaw = k.beside(d + k.rng.uniform(0, 0), off)
-			if not k.clear_of_road(pos[0], pos[2], 24):
-				continue
-			name, _ = k.rng.choice(["StreetKit"]), k.rng.uniform(1.0, 1.0)
-			p, right, t = k.at(d)
 			s = 1 if off > 0 else -1
+			pos, yaw = k.beside(d, off)
+			p, right, t = k.at(d)
 			corners = [p + right * (off - s * 6.4) + t * e for e in (-24, 24)]
-			if all(k.clear_of_road(c.x, c.z, 24.6) for c in corners):
-				k.place(name, pos, yaw + s * math.pi / 2)
+			if r.nearest([(c.x, c.z) for c in corners])[0].min() > 24.6 and r.fits(pos[0], pos[2], yaw + s * math.pi / 2, 48, 8):
+				k.place("StreetKit", pos, yaw + s * math.pi / 2)
+				head = p + right * (off - s * 5.5)  # the lamp head, inside the kit's box: the game keeps a lamp with its prop
+				kits.append((d, s, (head.x, 17.5, head.z)))
 		d += 48
-	# Hero landmark: the HQ at the end of the street axis seen by the run cameras (0.06, 0.33, 0.62, 0.9 of the run)
-	hq_plots = []
-	for f in (0.33, 0.62, 0.9, 0.06):
-		if len(hq_plots) == 2:
+	# Hero landmark: the HQ at the end of the street axis the 0.06 run camera looks down, past the first corner
+	avoid = []
+	p, right, t = k.at(L * 0.06)
+	yaw = math.atan2(-t.x, -t.z) + math.pi  # front (-Z) faces back down the axis toward the camera
+	for ahead in range(400, 800, 5):
+		q = p + right * 10 + t * ahead
+		if r.fits(q.x, q.z, yaw, 192, 134, own=False):
+			k.place("HQ", (q.x, 0.0, q.z), yaw)
+			avoid.append((q.x, q.z, 120))
+			for j in range(220, ahead - 100, 30):  # the axis stays open, so the runner sees it from the straight
+				v = p + right * 10 + t * j
+				avoid.append((v.x, v.z, 25 + 45 * j / ahead))
+			for side in (-1, 1):  # floodlights washing the pale front
+				fx, fz = q.x - t.x * 70 + right.x * side * 40, q.z - t.z * 70 + right.z * side * 40
+				k.light((fx, 30, fz), "E8F0FF", energy=100000, radius=10).data.use_shadow = False
+			print("HQ at", ahead, round(q.x), round(q.z))
 			break
-		p, right, t = k.at(L * f)
-		for ahead in (300, 360, 420, 250):
-			q = p + right * 10 + t * ahead
-			if k.clear_of_road(q.x, q.z, 110) and all(math.hypot(q.x - x, q.z - z) > 300 for x, z, _ in hq_plots):
-				yaw = math.atan2(-t.x, -t.z) + math.pi  # front (-Z) faces back down the axis toward the camera
-				k.place("HQ", (q.x, 0.0, q.z), yaw)
-				hq_plots.append((q.x, q.z, 120))
-				for side in (-1, 1):  # floodlights washing the pale front
-					fx, fz = q.x - t.x * 70 + right.x * side * 40, q.z - t.z * 70 + right.z * side * 40
-					k.light((fx, 30, fz), "E8F0FF", energy=100000, radius=10).data.use_shadow = False
-				print("HQ at", f, ahead)
-				break
-	# Aki's apartment beat: one hero mansion square-on at the end of an early street axis, corridor face to the camera
-	hero_plot = []
-	for f in (0.33, 0.06):
-		if hero_plot:
+	# The Jinbocho corner near the start, on the right of the 0.06 run camera
+	for ahead in range(75, 200, 5):
+		pos, yaw = k.beside(L * 0.06 + ahead, 40 + 12)
+		if r.fits(pos[0], pos[2], yaw + math.pi / 2, 32, 30):
+			k.place("Retro", pos, yaw + math.pi / 2)
+			avoid.append((pos[0], pos[2], 16))
+			print("Retro at", ahead)
 			break
-		p, right, t = k.at(L * f)
-		for ahead in (170, 200, 140, 230):
-			q = p + right * 10 + t * ahead
-			if k.clear_of_road(q.x, q.z, 48) and all(math.hypot(q.x - x, q.z - z) > 160 for x, z, _ in hq_plots):
-				k.place("Mansion", (q.x, 0.0, q.z), math.atan2(-t.x, -t.z))  # +Z (corridor face) toward the camera
-				hero_plot.append((q.x, q.z, 50))
-				print("Hero mansion at", f, ahead)
-				break
-	hq_plots += hero_plot
-	# The Jinbocho corner near the start, on the right
-	pos, yaw = k.beside(L * 0.06 + 75, 40 + 10)
-	k.place("Retro", pos, yaw + math.pi / 2)
-	retro_plot = [(pos[0], pos[2], 30)]
-	# Street fronts, a taller back row, the infield as low blocks, the far skyline kept below the HQ
-	street(k, -1, ["ShopHouse", "ShopHouse", "Konbini", "Apaato", "Mansion"], 40, 20, end, avoid=hq_plots, flip=0.5)
-	street(k, 1, ["ShopHouse", "Apaato", "ShopHouse", "Mansion", "Konbini"], 40, 20, end, avoid=hq_plots + retro_plot, flip=0.5)
-	street(k, -1, ["Mansion", "Mansion", "ShopHouse"], 76, 0, end, gap=(6, 20), avoid=hq_plots)
-	street(k, 1, ["Mansion", "Apaato", "Mansion"], 76, 0, end, gap=(6, 20), avoid=hq_plots)
-	# Infield back streets: low blocks on an aligned 110-stud grid, each with a sodium light over its parking and park
-	c = (k.lo + k.hi) / 2
-	for i in range(-4, 5):
-		for j in range(-4, 5):
-			x, z = c.x + i * 110, c.z + j * 110
-			if k.clear_of_road(x, z, 125) and all(math.hypot(x - a, z - b) > r + 70 for a, b, r in hq_plots):
-				k.place("LowBlock", (x, 0.0, z), 0.0)
-				k.light((x - 10, 20, z - 10), SODIUM, energy=60000, radius=8).data.use_shadow = False
-	# The far city: rooftop tiles on an aligned 320-stud grid out to the horizon, offices standing among them
-	for i in range(-7, 8):
-		for j in range(-7, 8):
-			x, z = c.x + i * 320, c.z + j * 320
-			if math.hypot(i, j) <= 6.6 and k.clear_of_road(x, z, 330) and all(math.hypot(x - a, z - b) > r + 230 for a, b, r in hq_plots):
-				k.place("RoofTile", (x, 0.0, z), 0.0)
-	k.field(40, ["Office"], clearance=230, margin=450, scale=(0.4, 0.55))
-	k.field(30, ["Office"], clearance=520, margin=1100, scale=(0.35, 0.5))  # back ring of lit towers to the horizon
-	# Wires over the street: one set per 48 studs from the left kits' second pole (placed last: street layout unchanged)
-	k.along(48, (-35,), ["CrossWire"], start=24, end=end)
-	# Night: teal-blue ambient for cool shadows, warm sodium point lights at the lamps
-	k.sky([(0.0, "3A4A5A"), (0.06, "22344A"), (0.25, "122236"), (1.0, "060C18")], strength=1.0, sun=(0.6, "6FA8C0", 35, 140))
-	d = 24
-	while d < L:
+	# Back streets: low blocks filling the gap to the next road where it is wide enough, breaking up the street fronts
+	last = -1e9
+	for d in range(300, int(end), 10):
 		for side in (-1, 1):
-			pos, _ = k.beside(d + (0 if side < 0 else 24), side * 22, 18)
+			if d - last < 520:
+				continue
+			pos, yaw = k.beside(d, side * 74.6)
+			yaw += side * math.pi / 2
+			if all(math.hypot(pos[0] - x, pos[2] - z) > rad + 60 for x, z, rad in avoid) and r.fits(pos[0], pos[2], yaw, 100, 100, own=False, clear=24.2):
+				k.place("LowBlock", pos, yaw)
+				# under the street lamps' energy: the game keeps the 48 brightest lamps
+				k.light((pos[0], 20, pos[2]), SODIUM, energy=24000, radius=8).data.use_shadow = False
+				avoid.append((pos[0], pos[2], 62))
+				last = d
+	# Street fronts both sides
+	street(k, r, -1, ["ShopHouse", "Mansion", "Konbini", "Apaato", "Mansion"], 40, 20, end, (2, 8), avoid, flip=0.5)
+	street(k, r, 1, ["ShopHouse", "Apaato", "Mansion", "Mansion", "Konbini"], 40, 20, end, (2, 8), avoid, flip=0.5)
+	# The far city, past the tracks around this one: rooftop tiles on an aligned 320-stud grid wherever one clears every
+	# road, offices standing among the outer roads. All off this track's own ground, so only the backdrop of the draft.
+	c = (k.lo + k.hi) / 2
+	gx, gz = (k.hi.x - k.lo.x) / 2 + 330, (k.hi.z - k.lo.z) / 2 + 330
+	for i in range(-13, 14):
+		for j in range(-13, 14):
+			x, z = c.x + i * 320, c.z + j * 320
+			if (abs(i * 320) > gx or abs(j * 320) > gz) and math.hypot(i, j) <= 12.5 and r.fits(x, z, 0.0, 320, 320, own=False):
+				k.place("RoofTile", (x, 0.0, z), 0.0)
+	placed = tries = 0
+	while placed < 70 and tries < 4000:
+		tries += 1
+		x, z = c.x + k.rng.uniform(-2600, 2600), c.z + k.rng.uniform(-2600, 2600)
+		if (abs(x - c.x) > gx or abs(z - c.z) > gz) and r.fits(x, z, 0.0, 44, 44, own=False):
+			k.place("Office", (x, -1.0, z), k.rng.choice((0.0, math.pi / 2)), k.rng.uniform(0.5, 0.75))
+			placed += 1
+	# Wires over the street: one set per 96 studs from the left kits' second pole, only where the kits stand both sides
+	have = {(kd, s) for kd, s, _ in kits}
+	for kd, s, _ in kits:
+		if s < 0 and int(kd / 48) % 2 == 0 and (kd, 1) in have:
+			pos, yaw = k.beside(kd, -35)
+			k.place("CrossWire", pos, yaw - math.pi / 2)
+	# Night: teal-blue ambient for cool shadows, warm sodium point lights at the lamp heads. The game keeps the 48 brightest
+	# of a track (BiomeDressing.PLACED_LIGHTS): the HQ's 2 floodlights and 46 lamps spread evenly along the whole road
+	# (sides alternating); the rest are dimmer and only light the draft.
+	k.sky([(0.0, "3A4A5A"), (0.06, "22344A"), (0.25, "122236"), (1.0, "060C18")], strength=1.0, sun=(0.6, "6FA8C0", 35, 140))
+	main = set()
+	for j in range(46):
+		want, s = L * (j + 0.5) / 46, 1 if j % 2 else -1
+		kd, ks, _ = min((q for q in kits if q[1] == s), key=lambda q: abs(q[0] - want))
+		main.add((kd, ks))
+	for kd, s, pos in kits:
+		if (kd, s) in main:
 			k.light(pos, SODIUM, energy=26000, radius=4).data.use_shadow = False  # many lamps: shadows off
-		d += 96
+		elif (int(kd / 48) + (s > 0)) % 2 == 0:
+			k.light(pos, SODIUM, energy=18000, radius=4).data.use_shadow = False
+	print("LAMPS", len(main), "KITS", len(kits))
