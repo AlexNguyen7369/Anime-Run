@@ -118,8 +118,7 @@ function Tests.plaza_pieces()
 			local want = name == "CheckpointNpc" and 0.75 or 1
 			flag("merchant_scale_" .. name, row.Scale == want, row.Scale or -1, want)
 		end
-		-- the locked Mythic is not near-black any more; today's altar keeps its look. Whether it reads against what is behind it:
-		-- plaza_build_pending, altar_locked_reads
+		-- the locked Mythic is not near-black any more; today's altar keeps its look. No contrast limit (owner 2026-11-25, question 31).
 		for world = 1, 2 do
 			WorldConfig.Id = world
 			fill(0)

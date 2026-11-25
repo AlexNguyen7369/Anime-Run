@@ -1,7 +1,8 @@
 """What stands behind the locked Mythic on each approved altar (WORLD_REDESIGN_SPEC 4.2, docs/OWNER_QUESTIONS.md 31): rays from a player's eye
 (at the spawn, 40, 25 and 18 studs off, eye 9.9 / 6.5 studs up; straight on and 25 degrees each side) through a disc of 0.42 of the model's size
 round the model's spot, on to the locked altar of the approved draft (draft_altar.py concept_b, concept_a; unlit colours). Prints the share of
-each surface and its contrast with the approved locked colour. PlazaBuildTests BEHIND_LOCKED holds its output (surfaces of 2% or more).
+each surface and its contrast with the approved locked colour. A measuring tool only: there is no contrast limit (owner 2026-11-25,
+question 31), and no test reads its output.
 Headless: blender -b --factory-startup --python tools/blender/plaza/locked_backdrop.py
 """
 import math

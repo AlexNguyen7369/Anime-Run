@@ -130,10 +130,10 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
 - Summon altar: World 1 draft B (great lotus), World 2 draft A (twin-roof stage). The only difference between the worlds'
   pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged, but the Mythic's size on
   the new altars: 17.5 studs (World 1), 25 (World 2); the floating header stands over the crest (owner 2026-11-25).
-  Locked, the Mythic is a silhouette of colour (74, 66, 92) on the lotus and (132, 120, 152) on the dark roof stage (owner 2026-11-25). **Proposed**: it is
-  opaque, it reads against what is behind it (contrast at least 2.5; measured on the drafts' surfaces behind it the worst is 1.51 on the lotus and 1.03 on the roof
-  stage, `plaza_build_pending`, owner question 31), and today's altar keeps
-  (24, 22, 30) at 25% clear.
+  Locked, the Mythic is a silhouette of colour (74, 66, 92) on the lotus and (132, 120, 152) on the dark roof stage (owner 2026-11-25), kept after the Studio
+  pictures with no contrast limit (owner 2026-11-25, question 31: "keep colours, drop the limit"; measured worst 1.51 on the lotus and
+  1.03 on the roof stage, `tools/blender/plaza/locked_backdrop.py`, for reference only). **Proposed**: it is opaque, and today's
+  altar keeps (24, 22, 30) at 25% clear.
 - Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds. The cyber accents stay on them (owner 2026-11-25).
 - Merchants (owner 2026-11-25, "approved merchant casts"): existing roster models, the same in both worlds: Shop
   `sea_navigator` (Nammi), Potions `leaf_medic` (Sakara), Market `ds_flame` (Rengoko), Index `fr_mage` (Frierin), Sensei
