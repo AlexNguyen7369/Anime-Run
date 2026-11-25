@@ -155,10 +155,21 @@ function Tests.world2_sendback()
 			fw.Awakening and fw.Awakening.leaf_hero == 1 and folded.Copies.leaf_hero == 2
 		)
 		flag("fold_keep_other_keys", fw.BestTrack == 4 and fw.Old == 1 and folded.Team == nil)
-		local picked = WorldSave.Fold({ Team = { "sea_captain" }, Equipped = "sea_captain" }, stored, 2, true)
+		-- a character put first before it may stay is not written either: a later first entry gets World 1's whole team
+		local world1 = { Team = { "leaf_hero", "sea_captain" }, Equipped = "leaf_hero", Worlds = {} }
+		local picked =
+			WorldSave.Fold({ Team = { "sea_captain", "leaf_hero" }, Equipped = "sea_captain" }, world1, 2, true)
 		flag(
-			"fold_keep_own_equipped_written",
-			picked.Worlds.W2.Equipped == "sea_captain" and picked.Worlds.W2.Team == nil
+			"fold_keep_changed_equipped_not_written",
+			picked.Worlds.W2.Equipped == nil and picked.Worlds.W2.Team == nil
+		)
+		picked.Team, picked.Equipped = world1.Team, world1.Equipped -- the top level, as PlayerData merges it
+		local entry = WorldSave.View(picked, 2)
+		flag(
+			"later_first_entry_gets_world1_team",
+			H.same(entry.Team, world1.Team) and entry.Equipped == "leaf_hero",
+			entry.Team and table.concat(entry.Team, ",") or "none",
+			"leaf_hero,sea_captain"
 		)
 	end, debug.traceback)
 	WorldConfig.Id, WorldConfig.GATE_OPEN = saved[1], saved[2]

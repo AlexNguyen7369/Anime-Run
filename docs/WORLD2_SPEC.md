@@ -41,8 +41,9 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   off for the roll tutorial) and `Client/ArrivalState.IsNew` is false there;
   `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys. An arrival not (yet) allowed to
   stay (Travel and gate: arrival check refused it, or its admin check is unknown and waits for a recheck) keeps
-  `Worlds.W2.Team` as stored, and `Worlds.W2.Equipped` too while it is the value carried from World 1, so a later real
-  first entry still takes the team of that day (docs/BUGS.md w2-sendback-stale-team). Every other key, per world and
+  `Worlds.W2.Team` and `Worlds.W2.Equipped` as stored (even if the player put another character first: an Equipped
+  alone would give a later first entry a one-member team), so a later real first entry still takes World 1's whole team
+  of that day (docs/BUGS.md w2-sendback-stale-team). Every other key, per world and
   shared, is written together as before (`Fold` `keep`, while the player's runtime attribute `SendingBack` is on; not
   saved). Once it may stay the attribute is cleared and it saves as before.
 - `Worlds.W2.Welcomed` (true once World 2's welcome was given; absent = not yet): a one-way flag
