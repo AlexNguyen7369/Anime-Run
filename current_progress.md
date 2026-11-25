@@ -255,8 +255,9 @@
 251. 2026-11-24 — Alex Nguyen — Ran the full server suite in the World 2 Studio (69 pass, 2 fail, 12 skipped as World 1 only) and fixed the tests that assumed World 1; after the fixes money 43/43 and awakening 71/71 pass, boss_king_arena stays red pending an asset upload, and the skipped World 2 coverage is listed as open work in docs/OWNER_QUESTIONS.md; World 1 not rerun.
 252. 2026-11-24 — Alex Nguyen — Added server scenarios world2_summon (Summon gives only the place's Sidekick set, pity counts shared across worlds; 21/21 offline in both worlds, goes red when the list is swapped) and boss_models_placed (the four boss models are in the place's BakedModels; not yet run, needs Studio).
 253. 2026-11-24 — Alex Nguyen — The roll_anim server scenario follows each world's cast and is no longer skipped in World 2 (offline: World 1 77/77, World 2 77/77, was 62 pass and 14 fail; red when the reel draws the other world's pool); rules audit PASS; not yet run in Studio.
+254. 2026-11-25 — Alex Nguyen — World 2 rules recorded: Tracks 1 and 6 swap biomes (roads, pay and saves stay with the number) and Track 5's dead kaiju and its site reopened for a rework (b2bfac13; docs only).
 
 ## What's next
-**Run roll_anim, world2_summon, boss_models_placed, the Sidekick and boss suites in the World 2 Studio, then the full server suite in World 1.**
+**Build the World 2 Track 1 and 6 swap (config and re-placed scenery) and render the reworked Track 5 dead kaiju for the owner's approval.**
 
-**Why this is next:** these scenarios have only run offline (roll_anim's reel odds checks are statistical and depend on Studio's Random), and the harness changes of 4ccbf209 have not been run in World 1, so neither world's suite is confirmed on the current code.
+**Why this is next:** the owner put both first on 2026-11-25; the Studio suites for World 2 would otherwise run on a track order that is about to change.
