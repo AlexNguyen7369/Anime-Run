@@ -167,3 +167,19 @@
 - The save VERSION stays 19, so live World 1 servers never go read-only on a World 2 save.
 - The gate sits on the plaza's south-east corner (194, -176). The ring of stalls is full.
 - Draft props are part-built in Blender. Nothing was uploaded and no asset generators were used (no credits spent).
+
+## Nightly run 2026-11-23 01:22 → 03:20
+
+### Done
+- Full UiTestRun on main 6a36029: synced the 39 client files that differ from e579995 into Studio (hash-checked), ran from the Server datamodel with no Client polling: `[UITEST] END pass=75 fail=2`. ui_boss_king_arena and ui_character_icons now green.
+- Daily claimed-day seal: dropped its UIAspectRatioConstraint (the UI layout model does not solve one) and placed it as a 36 x 36-unit square in placeCard; Studio rerun ui_layout 891/0, ui_daily_boosts 13/0. Commit f12e5ef, merged 573deed.
+- Bookkeeping for the ui-scroll merge (goal done, board, handoff, progress) and this run, on feature/alex/ui-scroll-redesign; PR #28 into main opened, fresh merge review APPROVE (no blocking items).
+- Studio restored to e579995, 37/37 base hashes, peer animerun-cf told; world-2-build-plan told Studio is free.
+
+### Decisions I made for you
+- Seal fix in product code (square in design units) over extending the test's layout solver: smaller, keeps the solver's "never ignore an unsupported layout object" rule. Revert: git revert f12e5ef.
+- Seal size 36 units is a placeholder (marked proposed).
+
+### Blocked (needs you)
+- Bring main up to date (PR #28): stopped at the merge; the permission check denied `gh pr merge 28`, and merging to main is never pre-approved on a nightly run. Question: merge PR #28 (fresh review APPROVE, mergeable, based on main 6a36029)? State: feature/alex/ui-scroll-redesign pushed, nothing else left.
+- ui_run_visual: fails only because the Studio window is throttled in the background. Question: may a run bring Studio to the front once (it breaks the no-focus rule while you are away)? State: main, no code change needed.

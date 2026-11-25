@@ -47,12 +47,12 @@ local WORLD1 = {
 -- World 2 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): proposed copy, tweaked names only. Road screenshots come
 -- after the owner approves the Blender drafts.
 local WORLD2 = {
-	[1] = { Blurb = "Night streets of the devil hunters, where Katanah Man's blades wait in the alleys." },
+	[1] = { Blurb = "Flowered plains and old elven ruins, where Ora's puppet army once marched." },
 	[2] = { Blurb = "The Demon King's black castle, its stairs guarded by Barran's red sky." },
 	[3] = { Blurb = "A ghost town of cracked avenues and meteor craters, hunted by Garoo." },
 	[4] = { Blurb = "A cursed mountain tunnel road where Turbo Grammy races anyone after dark." },
 	[5] = { Blurb = "A city wrecked by kaiju, where Kaijo No. 9 slips past the defense force walls." },
-	[6] = { Blurb = "Flowered plains and old elven ruins, where Ora's puppet army once marched." },
+	[6] = { Blurb = "Night streets of the devil hunters, where Katanah Man's blades wait in the alleys." },
 	[7] = { Blurb = "A black volcanic island hollowed by the ant nest, ruled by Berru." },
 	[8] = { Blurb = "The monsters' underground den of caverns and bone bridges, deep in Orochy's lair." },
 	[9] = { Blurb = "A city turned to gold by Makto's curse, frozen in one golden instant." },

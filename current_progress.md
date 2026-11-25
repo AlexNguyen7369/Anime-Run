@@ -256,8 +256,36 @@
 252. 2026-11-24 — Alex Nguyen — Added server scenarios world2_summon (Summon gives only the place's Sidekick set, pity counts shared across worlds; 21/21 offline in both worlds, goes red when the list is swapped) and boss_models_placed (the four boss models are in the place's BakedModels; not yet run, needs Studio).
 253. 2026-11-24 — Alex Nguyen — The roll_anim server scenario follows each world's cast and is no longer skipped in World 2 (offline: World 1 77/77, World 2 77/77, was 62 pass and 14 fail; red when the reel draws the other world's pool); rules audit PASS; not yet run in Studio.
 254. 2026-11-25 — Alex Nguyen — World 2 rules recorded: Tracks 1 and 6 swap biomes (roads, pay and saves stay with the number) and Track 5's dead kaiju and its site reopened for a rework (b2bfac13; docs only).
+255. 2026-11-25 — Alex Nguyen — Owner's ruling on the dead kaiju's first draft recorded: shape, size and colour stay, four blending and detail faults go through review rounds (2812cbc5; docs only).
+256. 2026-11-25 — Alex Nguyen — Handoff and owner questions updated for the World 2 track swap (audit FAIL, round 2 running) and the kaiju rework (rounds 1 to 4 reviewed) (6d39eef5; docs only).
+257. 2026-11-25 — Alex Nguyen — Owner approved the reworked dead kaiju of World 2 Track 5 (round 5, 1bc5e9f7) and ruled its site fill is cut to the clear props (bda2943c; docs only, kaiju branch not merged).
+258. 2026-11-25 — Alex Nguyen — Two owner questions recorded from the kaiju rules audit: the 8 moved vans and the kaiju's overlap with other tracks' props (b7c50814; docs only).
+259. 2026-11-25 — Alex Nguyen — Owner questions recorded from the swap round 2 audit (hero turns and counts, two HQs) and the kaiju van test (b67dcf41; docs only).
+260. 2026-11-25 — Alex Nguyen — Owner questions recorded for swap round 3 (close-up model counts, Track 1 options) with the review page (42e85715; docs only).
+261. 2026-11-25 — Alex Nguyen — World 2 swap round 4 (2d0d07a9, not merged) reviewed at 7 on both tracks, audited with no violations and re-tested offline; handoff and owner questions updated (6b87b2f6).
+262. 2026-11-25 — Alex Nguyen — World 2 overlap across tracks recorded from renders with all ten tracks drawn (swap round 5, 5747dda6, not merged) (30127f74; docs only).
+263. 2026-11-25 — Alex Nguyen — Recorded the owner's World 2 ground ruling (nearest road owns the ground), swap round 5 scores of 6 and 6, and World 2 Studio results: roll_anim 77/77, world2_summon 21/21, boss_models_placed 8/14 red with three boss models not saved in the place (8bd795cd).
+264. 2026-11-25 — Alex Nguyen — Put the always-on HUD back to its old look: PR #29 merged into main (5ef219ed) after a fresh review, and the World 2 branch merged the same look with a PASS rules audit and World 2 Studio UI checks.
+265. 2026-11-25 — Alex Nguyen — Added Blender drafts (renders only, nothing in game) for the world gate, a bigger Summon altar with research notes, and the plaza's markets and merchants, each reviewed blind and audited; ground-ownership count and kaiju dry run saved under docs/proposals.
+266. 2026-11-25 — Alex Nguyen — Added drafts (renders only) for the boss gate with three spots and two spawn layouts, the revised World 1 lotus altar with World 2's altar at dusk, and roster merchants in the approved stalls; each reviewed blind, audited, with owner questions recorded.
+221. 2026-11-23 — Alex Nguyen — Merged the Scroll Dojo UI redesign (goal ui-scroll, PR #27) into main after a fresh merge review approved it and its one player-visible note was fixed.
+222. 2026-11-23 — Alex Nguyen — Full UiTestRun on main 6a36029 in Studio: 75 pass, 2 fail (ui_run_visual needs a focused Studio window; ui_layout's Daily claimed-day seal fixed by dropping its UIAspectRatioConstraint, rerun ui_layout 891/0 and ui_daily_boosts 13/0); ui_boss_king_arena and ui_character_icons green.
+223. 2026-11-23 — Alex Nguyen — Reverted HUD option A (owner: too blocky and cluttered): HudChrome, TeamHud, Bosses/Team buttons, Turbo bar and Money/Gems back to the 4.40 look, HudPlaque removed, HUD tests restored; every panel and popup keeps the 4.46 Scroll Dojo look.
+267. 2026-11-25 — Alex Nguyen — Merged origin/main (5ef219ed, PR #29) into the World 2 branch on feature/alex/agent-3: HudPlaque and its option A branches removed, World 2's differences and the stricter HUD tests kept (offline checks only, no Studio).
+268. 2026-11-25 — Alex Nguyen — Merged PR #31 (World 2 branch, 533ea015) into main after a second fresh review approved it; World 2's gate stays closed, World 1 Studio checks green apart from the known boss models, and the reviewer's World 2 findings are in docs/BUGS.md.
+268. 2026-11-25 — Alex Nguyen — Built the boss gate guide on feature/alex/boss-guide (Gojio, one E prompt, text-only conversation, spec draft and tests; offline checks only, position and wording proposed).
+269. 2026-11-25 — Alex Nguyen — Fixed the boss gate guide after its rules audit: Rewards line per phase, guide off until the gate is built, tests tightened.
+268. 2026-11-25 — Alex Nguyen — Wrote docs/PLAZA_BUILD_PLAN.md, the draft-to-game plan for the approved spawn pieces (nothing built or uploaded).
+269. 2026-11-25 — Alex Nguyen — Wrote the red tests for the approved spawn pieces (plaza_build, spawn_area RING and statue rows, moved headers) and gave the offline scenario runner Roblox's lookAt.
+270. 2026-11-25 — Alex Nguyen — Built the upload-free part of the approved spawn layout: Index, Team altar and statue moved with their headers, the boss gate as a Parts stand-in with its state and prompt, merchant markers (offline checks only, no Studio).
+271. 2026-11-25 — Alex Nguyen — Merged the boss gate build (2468a9a6) into feature/alex/boss-guide: the guide reads Shared/BossGateConfig, with a popup mock-up, text-fit numbers and touch targets (offline checks only).
+272. 2026-11-25 — Alex Nguyen — Merged world2-place into feature/alex/boss-guide, fixed the guide's stale wording from its re-audit and drew popup layout B as a mock-up proposal (not coded).
+273. 2026-11-25 — Alex Nguyen — Fixed the boss guide's audit items and gave the boss gate an off switch (BossGateConfig.LIVE, the guide needs both switches) with tests for both states and the closed-gate prompt (offline checks only).
+274. 2026-11-25 — Alex Nguyen — Made ui_boss_guide run with auto-roll and racing off and a quiet baseline before grants_nothing, and reworded plaza_build's sensei check (offline checks only, branch feature/alex/boss-guide-tests).
+275. 2026-11-25 — Alex Nguyen — Coded the boss gate guide's popup layout B, split plaza_build into guards and plaza_build_pending, and widened grants_nothing to the Money stat and Relics (offline checks only).
+276. 2026-11-25 — Alex Nguyen — Merged the World 2 Track 1 and 6 swap (round 8, HQ left out) into the World 2 branch; offline tests green in both worlds, harness fails only on heroes with no spot; 14 spawn piece models uploaded, not reviewed and not used in game.
 
 ## What's next
-**Build the World 2 Track 1 and 6 swap (config and re-placed scenery) and render the reworked Track 5 dead kaiju for the owner's approval.**
+**Run the swap and the white-mesh fix in Studio, then land the fixes and pieces behind their audits.**
 
-**Why this is next:** the owner put both first on 2026-11-25; the Studio suites for World 2 would otherwise run on a track order that is about to change.
+**Why this is next:** the World 2 branch should be checked in Studio before its next PR into main.

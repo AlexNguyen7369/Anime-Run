@@ -1,0 +1,131 @@
+ROWS 1 ElvenPlains draft rows 258 whole 256 built 255 kept 255
+ROWS 2 DemonCastle draft rows 474 whole 474 built 415 kept 406
+ROWS 3 RuinedCityZ draft rows 475 whole 475 built 466 kept 464
+ROWS 4 HauntedTunnel draft rows 949 whole 949 built 911 kept 903
+ROWS 5 KaijuBase draft rows 588 whole 588 built 542 kept 536
+ROWS 6 DevilTokyo draft rows 746 whole 746 built 746 kept 746
+ROWS 7 AntIsland draft rows 1167 whole 1167 built 954 kept 951
+ROWS 8 MonsterDen draft rows 1435 whole 1435 built 1404 kept 1397
+ROWS 9 GoldenCity draft rows 2012 whole 2012 built 1620 kept 1615
+ROWS 10 HellGate draft rows 3888 whole 3888 built 3415 kept 3411
+TRACK built a(heroes) b(heroes) b>=50%share | plaza a,b | tie | owners of a
+1 ElvenPlains 255 35 0 61 2 36 | 51 61 0 | 0 | {2: 20, 3: 15}
+2 DemonCastle 406 55 5 67 7 44 | 1 1 1 | 0 | {1: 19, 3: 28, 4: 6, 5: 2}
+3 RuinedCityZ 464 116 1 137 3 116 | 0 0 0 | 0 | {1: 1, 2: 61, 4: 49, 5: 4, 6: 1}
+4 HauntedTunnel 903 271 1 318 3 276 | 2 2 2 | 0 | {1: 8, 2: 12, 3: 109, 5: 102, 6: 38, 7: 2}
+5 KaijuBase 536 36 1 116 1 36 | 1 2 1 | 0 | {1: 5, 2: 4, 3: 4, 4: 12, 6: 6, 7: 5}
+6 DevilTokyo 746 97 7 145 31 91 | 0 0 0 | 1 | {3: 2, 4: 5, 5: 52, 7: 26, 8: 12}
+7 AntIsland 951 158 6 214 15 160 | 0 0 0 | 0 | {4: 1, 5: 10, 6: 44, 8: 103}
+8 MonsterDen 1397 152 38 229 53 150 | 0 0 0 | 2 | {1: 2, 2: 2, 3: 3, 4: 3, 5: 4, 6: 2, 7: 110, 9: 26}
+9 GoldenCity 1615 355 0 407 0 358 | 0 0 0 | 9 | {2: 3, 7: 24, 8: 195, 10: 133}
+10 HellGate 3411 18 11 96 87 18 | 0 0 0 | 0 | {8: 5, 9: 13}
+ALL 10684 1293 1790 plaza 55 66
+TYPES 1 prop built/a/b/plazaA [owners a]
+  Pine 142/34/47/20 {2: 19, 3: 15}
+  Forest 8/0/7/0 {}
+  Flowers 82/0/4/27 {}
+  Rank* 3/0/2/0 {}
+  RuinWall 9/1/1/2 {2: 1}
+  Cottage* 9/0/0/2 {}
+  HeroStatue* 2/0/0/0 {}
+TYPES 2 prop built/a/b/plazaA [owners a]
+  RuinB 40/27/37/0 {1: 11, 3: 16}
+  Chunk 10/10/10/0 {3: 5, 4: 4, 5: 1}
+  Crag 10/10/10/1 {1: 6, 3: 4}
+  Hound* 4/3/4/0 {1: 1, 3: 2}
+  Wyvern* 2/2/2/0 {1: 1, 3: 1}
+  RuinA 2/2/2/0 {4: 1, 5: 1}
+  Smoke 1/1/1/0 {4: 1}
+  Gate* 1/0/1/0 {}
+  Rampart 148/0/0/0 {}
+  Fill 40/0/0/0 {}
+  Edge 148/0/0/0 {}
+TYPES 3 prop built/a/b/plazaA [owners a]
+  MidRise 123/36/44/0 {2: 15, 4: 20, 5: 1}
+  OfficeBroken 64/23/25/0 {2: 11, 4: 12}
+  HighRise 25/24/24/0 {1: 1, 2: 12, 4: 11}
+  Rubble 60/14/17/0 {2: 8, 4: 4, 5: 1, 6: 1}
+  Collapsed 41/11/15/0 {2: 9, 4: 2}
+  Barricade 76/4/5/0 {2: 4}
+  Kerb 26/3/4/0 {2: 1, 5: 2}
+  Overpass* 2/0/2/0 {}
+  BrickFlat* 1/1/1/0 {2: 1}
+  Fill 46/0/0/0 {}
+TYPES 4 prop built/a/b/plazaA [owners a]
+  Cedar 552/229/265/2 {1: 8, 2: 12, 3: 88, 5: 83, 6: 36, 7: 2}
+  House 68/21/26/0 {3: 13, 5: 8}
+  House2 67/20/24/0 {3: 8, 5: 11, 6: 1}
+  Portal* 2/0/2/0 {}
+  Hospital* 1/1/1/0 {6: 1}
+  TunnelSeg 28/0/0/0 {}
+  Guardrail 82/0/0/0 {}
+  Fill 78/0/0/0 {}
+  Mirror 25/0/0/0 {}
+TYPES 5 prop built/a/b/plazaA [owners a]
+  Apartment 63/11/51/1 {1: 4, 2: 2, 3: 1, 4: 3, 6: 1}
+  Office 38/16/35/0 {2: 1, 3: 2, 4: 8, 6: 3, 7: 2}
+  Hangar 13/3/13/0 {4: 1, 6: 2}
+  Rubble 158/0/11/0 {}
+  Smoke 3/3/3/0 {1: 1, 2: 1, 3: 1}
+  CityBlock 2/2/2/0 {7: 2}
+  Railgun* 1/1/1/0 {7: 1}
+  SweeperVan* 7/0/0/0 {}
+  BaseWall 220/0/0/0 {}
+  Pier 31/0/0/0 {}
+TYPES 6 prop built/a/b/plazaA [owners a]
+  ShopHouse 139/45/67/0 {5: 37, 7: 8}
+  Office 45/45/45/0 {3: 2, 4: 5, 5: 11, 7: 15, 8: 12}
+  Mansion* 63/4/18/0 {5: 3, 7: 1}
+  Konbini* 57/2/8/0 {5: 1, 7: 1}
+  Apaato* 49/0/4/0 {}
+  HQ* 1/1/1/0 {7: 1}
+  LowBlock 1/0/1/0 {}
+  StreetKit 332/0/1/0 {}
+  Retro* 2/0/0/0 {}
+  CrossWire 57/0/0/0 {}
+TYPES 7 prop built/a/b/plazaA [owners a]
+  Brush 705/114/133/0 {4: 1, 5: 10, 6: 20, 8: 83}
+  ThatchHouse 77/17/32/0 {6: 13, 8: 4}
+  Ruin 52/15/26/0 {6: 10, 8: 5}
+  Mound 10/6/8/0 {6: 1, 8: 5}
+  Camp* 10/0/8/0 {}
+  Ant* 6/5/6/0 {8: 5}
+  Nest* 1/1/1/0 {8: 1}
+  Chamber* 1/0/0/0 {}
+  Bank 89/0/0/0 {}
+TYPES 8 prop built/a/b/plazaA [owners a]
+  RockPillar 345/86/98/0 {2: 1, 3: 2, 4: 1, 5: 3, 6: 2, 7: 65, 9: 12}
+  FleshWall* 381/33/44/0 {1: 1, 4: 1, 7: 26, 9: 5}
+  Ceiling 105/0/42/0 {}
+  CityChunk 111/18/24/0 {7: 15, 9: 3}
+  LavaChasm 34/5/7/0 {1: 1, 3: 1, 4: 1, 7: 2}
+  Graveyard* 10/4/7/0 {2: 1, 7: 1, 9: 2}
+  Colonnade 136/5/5/0 {5: 1, 7: 1, 9: 3}
+  LairTower* 1/1/1/0 {9: 1}
+  Shrine* 1/0/1/0 {}
+  Coliseum* 1/0/0/0 {}
+  BoneArch 52/0/0/0 {}
+  MineRail 220/0/0/0 {}
+TYPES 9 prop built/a/b/plazaA [owners a]
+  CityBlock 623/319/369/0 {7: 21, 8: 179, 10: 119}
+  Square 72/33/35/0 {2: 3, 7: 3, 8: 16, 10: 11}
+  Forest 3/2/2/0 {10: 2}
+  CityWall 8/1/1/0 {10: 1}
+  Palace* 1/0/0/0 {}
+  Church* 1/0/0/0 {}
+  RowB 182/0/0/0 {}
+  RowA* 181/0/0/0 {}
+  Wagon* 76/0/0/0 {}
+  Tree 194/0/0/0 {}
+  People* 274/0/0/0 {}
+TYPES 10 prop built/a/b/plazaA [owners a]
+  SkyDoor* 1351/0/76/0 {}
+  Hand* 73/11/11/0 {8: 5, 9: 6}
+  Hill 23/7/9/0 {9: 7}
+  DarkGate* 1/0/0/0 {}
+  ArmB 62/0/0/0 {}
+  ArmA* 73/0/0/0 {}
+  Grass 878/0/0/0 {}
+  Astronaut* 44/0/0/0 {}
+  DoorOpen 300/0/0/0 {}
+  DoorClosed* 606/0/0/0 {}

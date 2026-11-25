@@ -1,6 +1,6 @@
 --!nonstrict
 -- World awareness on the HUD (docs/WORLD2_SPEC.md "World HUD", design doc 4.47), display only:
--- * WorldLabel: a small lacquer plate "World N" (Shared/WorldConfig.Id) under the top-right pills, as wide as and
+-- * WorldLabel: a small dark round pill "World N" (Shared/WorldConfig.Id) under the top-right pills, as wide as and
 --   right-aligned with HudChrome's right column, so it sits in the gap above that column and right of the race map
 --   (Client/RaceProgressMap keeps 8 px left of the column) at every tested viewport, phones included.
 -- * Travel: while the server holds a trip (player attribute Travelling, Server/WorldTravel.Go) TeamToast shows
@@ -9,8 +9,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local WorldConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("WorldConfig"))
-local D = require(script.Parent:WaitForChild("AnimeSkin")).Dojo
-local HudPlaque = require(script.Parent:WaitForChild("HudPlaque"))
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 
 local player = Players.LocalPlayer
@@ -31,23 +29,17 @@ label.Position = UDim2.new(1, -14, 0, 55)
 label.Size = UDim2.fromOffset(84, HEIGHT)
 label.Text = "World " .. WorldConfig.Id
 label.TextScaled = true
-if HudPlaque.Old then
-	-- World 2's HUD look (design doc 4.47): it had no label before option A, so it takes its sibling pills' 4.40 look,
-	-- a dark round pill with white outlined Fredoka (Client/HudChrome PILL_COLOR, PILL_TRANSPARENCY, outline 1.5).
-	label.BackgroundColor3 = Color3.fromRGB(18, 18, 21)
-	label.BackgroundTransparency = 0.12
-	label.BorderSizePixel = 0
-	label.Font = UiTheme.Font
-	label.TextColor3 = Color3.new(1, 1, 1)
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(1, 0)
-	corner.Parent = label
-	UiTheme.Stroke(label, 1.5, UiTheme.Outline)
-else
-	label:SetAttribute("DojoTextColor", D.Colors.Gold)
-	D.Lacquer(label)
-	D.Text(label, "Item")
-end
+-- Design doc 4.46 "HUD look": the 4.40 look of its sibling pills,
+-- a dark round pill with white outlined Fredoka (Client/HudChrome PILL_COLOR, PILL_TRANSPARENCY, outline 1.5).
+label.BackgroundColor3 = Color3.fromRGB(18, 18, 21)
+label.BackgroundTransparency = 0.12
+label.BorderSizePixel = 0
+label.Font = UiTheme.Font
+label.TextColor3 = Color3.new(1, 1, 1)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = label
+UiTheme.Stroke(label, 1.5, UiTheme.Outline)
 local fit = Instance.new("UITextSizeConstraint")
 fit.MaxTextSize = 18
 fit.Parent = label
