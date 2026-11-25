@@ -287,10 +287,13 @@
 276. 2026-11-25 — Alex Nguyen — Wrote the spawn pieces' game code behind empty upload ids (Shared/PlazaPieces), so the plaza stays as it is until the meshes are uploaded; offline checks only.
 276. 2026-11-25 — Alex Nguyen — Made Gojio silent below rebirth 1 (owner): no prompt and no conversation, rule recorded in the design doc and specs (offline checks only).
 275. 2026-11-25 — Alex Nguyen — Built the export scripts and GLBs of the approved spawn pieces (gates, altars, market set B, sky loop), checked against the drafts; nothing uploaded.
-277. 2026-11-25 — Alex Nguyen — Built the merchants' poses behind their off switch and a readable locked Mythic per altar; exporter names its parts without numbers (offline checks only).
-278. 2026-11-25 — Alex Nguyen — Recorded the owner's approval of the locked Mythic colours and the merchants' names.
+277. 2026-11-25 — Alex Nguyen — Merged the spawn pieces' code, the export tools and Gojio's rebirth rule into the World 2 branch (offline checks in both worlds).
+278. 2026-11-25 — Alex Nguyen — Turned on the 14 reviewed spawn pieces in the World 2 branch, fixed the loader for uploads whose part names carry a number, and saved copies in both places (World 1 v915, World 2 v90, not published); Studio `spawn_area` 188/188 in both worlds, World 1's tests not rerun after the loader fix.
+279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
+280. 2026-11-25 — Alex Nguyen — Built the merchants' poses behind their off switch and a readable locked Mythic per altar; exporter names its parts without numbers (offline checks only).
+281. 2026-11-25 — Alex Nguyen — Recorded the owner's approval of the locked Mythic colours and the merchants' names.
 
 ## What's next
-**Run the swap and the white-mesh fix in Studio, then land the fixes and pieces behind their audits.**
+**Merge the white-mesh and grass fix once its audit passes, after running `biome_runtime` in Studio.**
 
-**Why this is next:** the World 2 branch should be checked in Studio before its next PR into main.
+**Why this is next:** the World 2 colour re-export cannot start before it (new meshes would show at 64% brightness), and the next PR into main should carry it.
