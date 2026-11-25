@@ -13,7 +13,6 @@ local PanelSwitch = require(client:WaitForChild("PanelSwitch"))
 local Icons = require(client:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
 local UiFeedback = require(client:WaitForChild("UiFeedback"))
-local HudPlaque = require(client:WaitForChild("HudPlaque"))
 local UiMotion = require(client:WaitForChild("UiMotion"))
 local QuestConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("QuestConfig"))
 local SidekickConfig =
@@ -42,14 +41,11 @@ task.spawn(function()
 end)
 
 local RED = UiTheme.Palette.Danger
--- Design doc 4.46 HUD option A "wood plaques" (replaces 4.40's Tab tilt look; positions and cells stay 4.40's): each
--- button is a cream wood plaque (Client/HudPlaque) with its icon art, a brush label under it and a vermilion key-letter
--- seal. Sizes are proposed.
-local CELL = Vector2.new(84, 94) -- one button (4.40's cell, unchanged)
-local ICON = 60 -- px, square (drafts/hud_a.html)
-local ICON_TOP = 6 -- px: the icon's centre stays 36 px down, where 4.40's 72 px icon had it (the bottom pair's anchor)
-local LABEL = 24 -- px, the label band under the icon
+-- Design doc 4.40: no tile frame, the Tab tilt icon with its label under it. Sizes are proposed.
+local ICON = 72 -- px, square
+local LABEL = 22 -- px, the label band under the icon
 local GAP = 8 -- px between buttons in a column
+local CELL = Vector2.new(ICON + 12, ICON + LABEL) -- one button
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -59,6 +55,16 @@ local function make(class, name, parent, props)
 	end
 	object.Parent = parent
 	return object
+end
+
+local function outlined(label, thickness)
+	make(
+		"UIStroke",
+		"Outline",
+		label,
+		{ Color = UiTheme.Outline, Thickness = thickness, LineJoinMode = Enum.LineJoinMode.Round }
+	)
+	return label
 end
 
 local function icon(name, parent, props)
@@ -90,7 +96,7 @@ local function badge(parent)
 		"UIStroke",
 		"Ring",
 		b,
-		{ Color = UiTheme.Scroll.SealText, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
+		{ Color = Color3.new(1, 1, 1), Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
 	)
 	return b
 end
@@ -150,7 +156,7 @@ local shopColumn =
 	holder("ShopColumn", 3, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
 -- Auto and Upgrade flank the LEVEL / TURBO LUCK bars at the bottom centre; placed every refresh.
 -- The anchor sits on the icon's centre (not the icon + label), so the icon lines up with the gap.
-local ICON_MID = (ICON_TOP + ICON / 2) / CELL.Y
+local ICON_MID = ICON / 2 / CELL.Y
 local autoSlot = holder("AutoSlot", 1, { AnchorPoint = Vector2.new(1, ICON_MID) })
 local upgradeSlot = holder("UpgradeSlot", 1, { AnchorPoint = Vector2.new(0, ICON_MID) })
 local BOTTOM_SCALE = 0.75 -- the bottom pair is smaller than the edge tiles (owner, 2026-10-15)
@@ -178,7 +184,7 @@ local KEYS = {
 local tiles = {}
 for order, slot in SLOTS do
 	local name = slot[1]
-	-- A transparent button over its wood plaque: the icon art, the brush label under it (design doc 4.46 option A).
+	-- A transparent button: the Tab tilt icon, the label under it (design doc 4.40).
 	local tile = make("ImageButton", name, slot[2], {
 		LayoutOrder = order,
 		Size = UDim2.fromOffset(CELL.X, CELL.Y),
@@ -187,25 +193,25 @@ for order, slot in SLOTS do
 		AutoButtonColor = false,
 	})
 	tile:SetAttribute("Panel", PANEL[name])
-	HudPlaque.Plaque(tile)
 	icon(name, tile, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, ICON_TOP),
+		Position = UDim2.fromScale(0.5, 0),
 		Size = UDim2.fromOffset(ICON, ICON),
 		ZIndex = 2,
 	})
-	HudPlaque.Font(
+	outlined(
 		make("TextLabel", "Label", tile, {
 			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -2),
-			Size = UDim2.new(1, -6, 0, LABEL),
+			Position = UDim2.new(0.5, 0, 1, 2),
+			Size = UDim2.new(1, 8, 0, LABEL + 4),
 			BackgroundTransparency = 1,
+			Font = UiTheme.Font,
 			TextSize = 19,
-			TextColor3 = HudPlaque.Ink,
+			TextColor3 = Color3.new(1, 1, 1),
 			Text = name,
 			ZIndex = 3,
 		}),
-		HudPlaque.Script
+		2.5
 	)
 	if PANEL[name] then
 		tile.Activated:Connect(function()
@@ -213,15 +219,21 @@ for order, slot in SLOTS do
 		end)
 	end
 	if KEYS[name] then
-		-- The vermilion seal on the plaque's top-right corner, inside the cell (4.40: the tile's top-right).
-		HudPlaque.Seal(make("TextLabel", "Key", tile, {
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -3, 0, 3),
-			Size = UDim2.fromOffset(20, 20),
-			TextSize = 14,
-			Text = KEYS[name].Name,
-			ZIndex = 4,
-		}))
+		outlined(
+			make("TextLabel", "Key", tile, {
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -2, 0, 2),
+				Size = UDim2.fromOffset(18, 18),
+				BackgroundTransparency = 1,
+				Font = UiTheme.Font,
+				TextSize = 16,
+				TextColor3 = Color3.new(1, 1, 1),
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Text = KEYS[name].Name,
+				ZIndex = 3,
+			}),
+			2
+		)
 	end
 	tiles[name] = { Button = tile, Badge = badge(tile) }
 end
@@ -266,7 +278,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
--- Top-right pills (wood plaques, option A) -------------------------------------------------------------------------
+-- Top-right pills (Roblox top-bar style) -------------------------------------------------------------------------
 bar = make("Frame", "TopRight", root, {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -12, 0, 7),
@@ -282,39 +294,39 @@ make("UIListLayout", "Layout", bar, {
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	Padding = UDim.new(0, 8),
 })
+local PILL_COLOR = Color3.fromRGB(18, 18, 21)
+local PILL_TRANSPARENCY = 0.12 -- placeholder: nearly solid, so the see-through world signs do not read as HUD
 local DAILY_WIDTH = 146 -- px, placeholder: fits "23:59:59", so the countdown never resizes the row
 local function pill(name, order, caption)
-	-- Option A (design doc 4.46): a small wood plaque, the icon art and a brush caption (drafts/hud_a.html).
 	local b = make("TextButton", name, bar, {
 		LayoutOrder = order,
 		Size = UDim2.fromOffset(caption and 0 or 44, 44),
 		AutomaticSize = caption and Enum.AutomaticSize.X or Enum.AutomaticSize.None,
-		BackgroundTransparency = 1,
+		BackgroundColor3 = PILL_COLOR,
+		BackgroundTransparency = PILL_TRANSPARENCY,
 		Text = "",
 		AutoButtonColor = false,
 	})
-	HudPlaque.Plaque(b, 1, 6)
+	make("UICorner", "Corner", b, { CornerRadius = UDim.new(1, 0) })
 	icon(name, b, {
-		ZIndex = 2,
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = caption and UDim2.new(0, 12, 0.5, 0) or UDim2.new(0.5, -13, 0.5, 0),
 		Size = UDim2.fromOffset(26, 26),
 	})
 	local text
 	if caption then
-		text = HudPlaque.Font(
-			make("TextLabel", "Caption", b, {
-				Position = UDim2.fromOffset(46, 0),
-				Size = UDim2.fromScale(0, 1),
-				AutomaticSize = Enum.AutomaticSize.X,
-				BackgroundTransparency = 1,
-				TextSize = 20,
-				TextColor3 = HudPlaque.Ink,
-				Text = caption,
-				ZIndex = 2,
-			}),
-			HudPlaque.Script
-		)
+		make("UIPadding", "Padding", b, { PaddingRight = UDim.new(0, 16) })
+		text = make("TextLabel", "Caption", b, {
+			Position = UDim2.fromOffset(46, 0),
+			Size = UDim2.fromScale(0, 1),
+			AutomaticSize = Enum.AutomaticSize.X,
+			BackgroundTransparency = 1,
+			Font = UiTheme.Font,
+			TextSize = 19,
+			TextColor3 = Color3.new(1, 1, 1),
+			Text = caption,
+		})
+		outlined(text, 1.5)
 	end
 	b.Activated:Connect(function()
 		PanelSwitch.Action(name)
@@ -380,7 +392,7 @@ local autoRing = make("Frame", "OnRing", autoTile, {
 	Size = autoIcon.Size,
 	BackgroundTransparency = 1,
 	Visible = false,
-	ZIndex = autoIcon.ZIndex, -- over the plaque (ZIndex 1)
+	ZIndex = autoIcon.ZIndex - 1,
 })
 make("UICorner", "Corner", autoRing, { CornerRadius = UDim.new(1, 0) })
 make("UIStroke", "Ring", autoRing, { Color = UiTheme.Palette.Money, Thickness = 2 })

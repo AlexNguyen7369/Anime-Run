@@ -224,8 +224,9 @@
 220. 2026-11-23 — Alex Nguyen — ui-scroll: fixed PR #27 review note (ink-in no longer writes Visible, so a part its panel hides mid-unroll stays hidden; ui_handscroll 21/0 with the new owner-hide check, ui_index 10/0, ui_panel_focus 57/0) and merged main (PR #26) into the integration branch.
 221. 2026-11-23 — Alex Nguyen — Merged the Scroll Dojo UI redesign (goal ui-scroll, PR #27) into main after a fresh merge review approved it and its one player-visible note was fixed.
 222. 2026-11-23 — Alex Nguyen — Full UiTestRun on main 6a36029 in Studio: 75 pass, 2 fail (ui_run_visual needs a focused Studio window; ui_layout's Daily claimed-day seal fixed by dropping its UIAspectRatioConstraint, rerun ui_layout 891/0 and ui_daily_boosts 13/0); ui_boss_king_arena and ui_character_icons green.
+223. 2026-11-23 — Alex Nguyen — Reverted HUD option A (owner: too blocky and cluttered): HudChrome, TeamHud, Bosses/Team buttons, Turbo bar and Money/Gems back to the 4.40 look, HudPlaque removed, HUD tests restored; every panel and popup keeps the 4.46 Scroll Dojo look.
 
 ## What's next
-**Rerun ui_run_visual with Studio as the front window once the owner allows focus.**
+**Run ui_team, ui_boss_event, ui_responsive and ui_layout in Studio on feature/alex/hud-revert, then open its PR into main.**
 
-**Why this is next:** it is the only UI red left on main and only fails because the Studio window is throttled in the background; the owner's no-focus rule means it needs the owner's word.
+**Why this is next:** the HUD revert touches the HUD tests and the boss event column buttons; main gets it only through a reviewed PR once those are green.

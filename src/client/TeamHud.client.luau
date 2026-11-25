@@ -27,7 +27,6 @@ local Palette = UiTheme.Palette
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
-local HudPlaque = require(script.Parent:WaitForChild("HudPlaque"))
 
 local SLOTS = 3
 local CIRCLE = 52 -- px (placeholder)
@@ -50,9 +49,7 @@ local ACTIVE_SCALE = 1.18 -- placeholders
 local TIRED_SCALE = 0.88
 local GOLD = Palette.Gold
 local DIM = Palette.TeamDim
--- Option A (design doc 4.46 "nameplate team row"): lacquer faces with a gold rim; the arc, sizes and places stay 4.40's.
-local FACE = HudPlaque.LacquerColor
-local RING = UiTheme.Dojo.Gold
+local RING = Palette.TeamRing
 local GREY = Palette.TeamGrey
 local CATEGORY_COLORS = {
 	Sprinter = Palette.Sprinter,
@@ -124,11 +121,12 @@ local badge = text(overlay, "Bonus", {
 	Size = UDim2.fromOffset(0, 20),
 	TextSize = 13,
 	TextColor3 = GOLD,
+	BackgroundTransparency = 0.3,
+	BackgroundColor3 = Palette.TeamPlate, -- stays readable over every biome
 	Visible = false,
 	ZIndex = 8,
 })
-HudPlaque.Lacquer(badge, 6) -- a lacquer plate with a gold rim, solid: stays readable over every biome
-HudPlaque.Font(badge, HudPlaque.BodyBold)
+make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, badge)
 make("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }, badge)
 
 local marker = text(overlay, "Marker", {
@@ -180,8 +178,8 @@ local card = make("Frame", {
 	Name = "InfoCard",
 	AnchorPoint = Vector2.new(0.5, 1),
 	Size = UDim2.fromOffset(CARD_WIDTH, 96),
-	BackgroundColor3 = FACE,
-	BackgroundTransparency = 0.04,
+	BackgroundColor3 = Palette.TeamPlate,
+	BackgroundTransparency = 0.08,
 	Visible = false,
 	ZIndex = 30,
 }, overlay)
@@ -192,15 +190,11 @@ make("UIPadding", {
 	PaddingRight = UDim.new(0, 10),
 	PaddingTop = UDim.new(0, 6),
 }, card)
-local cardName = HudPlaque.Font(
-	text(card, "Name", {
-		Size = UDim2.new(1, 0, 0, 22),
-		TextSize = 19,
-		TextColor3 = UiTheme.Scroll.Cream,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}),
-	HudPlaque.Script
-)
+local cardName = text(card, "Name", {
+	Size = UDim2.new(1, 0, 0, 22),
+	TextSize = 19,
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
 local chip = make("Frame", {
 	Name = "Category",
 	Position = UDim2.fromOffset(0, 26),
@@ -380,7 +374,7 @@ for slot = 1, SLOTS do
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, (slot - 2) * SPACING, 0.5, 0),
 		Size = UDim2.fromOffset(CIRCLE, CIRCLE),
-		BackgroundColor3 = FACE,
+		BackgroundColor3 = DIM,
 		BorderSizePixel = 0,
 		ZIndex = 5,
 	}, row)
@@ -584,7 +578,7 @@ local function render()
 					ImageTransparency = tired and 0.45 or 0,
 				})
 			end
-			tween(circle.Frame, 0.35, { BackgroundColor3 = tired and Palette.TeamTired or FACE })
+			tween(circle.Frame, 0.35, { BackgroundColor3 = tired and Palette.TeamTired or DIM })
 			if not active then
 				tween(circle.Glow, 0.25, { BackgroundTransparency = 1 })
 				tween(circle.Scale, 0.35, { Scale = tired and TIRED_SCALE or 1 }, Enum.EasingStyle.Quint)

@@ -23,7 +23,7 @@ Status: owner approved the references 2026-11-20. Sizes, timings and colours sta
 Design doc 4.46 lists each layout. Reference frame per GUI (`assets/ui/scroll_redesign/drafts/<name>.html`, shots in
 `drafts/shots/`): index, phone_index, backpack, shop, market, quests, daily, rebirth, stats, settings, settings_profile,
 tracks, duel, starter, itemmenu, pickers, rolloptions, toasts, bosses, bossreward, bossinvite, bosshud, hud_a.
-Not built: hud_b (option B rejected), upgrades (the Upgrades tree stays as it is).
+Reverted: hud_a (owner 2026-11-23, "too blocky and cluttered"; the HUD keeps the 4.40 look). Not built: hud_b (option B rejected), upgrades (the Upgrades tree stays as it is).
 
 ## Hookup
 - Panels opt in with the `Handscroll` attribute; `PanelSwitch` then runs the unroll in place of `openMotion` /
