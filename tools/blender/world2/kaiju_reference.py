@@ -2,7 +2,7 @@
 approvals"). Never overwrites the approved shots: the build goes to a scratch folder and every image to
 assets/world2_draft/track05_KaijuBase/reference/. --fit also asks export_props's planner functions which placements pass
 the game's rules at which scale; it exports and writes nothing.
-Headless:  Blender -b --factory-startup --python tools/blender/world2/kaiju_reference.py -- <scratch folder> [--fast] [--fit]
+Headless:  Blender -b --factory-startup --python tools/blender/world2/kaiju_reference.py -- <scratch folder> [--fast] [--fit] [--sites]
 Import-safe: main() runs only as a script.
 """
 
@@ -65,9 +65,10 @@ def run_shot(k, cam, d, name, ahead=70, fov=70):
 	build_track.shoot(cam, (eye.x, p.y + build_track.RUNNER_EYE[1], eye.z), (look.x, p.y + 4, look.z), os.path.join(OUT, name + ".jpg"), fov)
 
 
-def context_shots(k, cam, sites):
-	run_shot(k, cam, k.length * 0.06, "run_06_same_camera")
-	run_shot(k, cam, k.length * 0.33, "run_33_same_camera")
+def context_shots(k, cam, sites, approved=True):
+	if approved:
+		run_shot(k, cam, k.length * 0.06, "run_06_same_camera")
+		run_shot(k, cam, k.length * 0.33, "run_33_same_camera")
 	for i, (d, off, *_) in enumerate(sites, 1):
 		run_shot(k, cam, d - 260, "run_site%d_far" % i)
 		run_shot(k, cam, d - 150, "run_site%d_near" % i)
@@ -206,6 +207,18 @@ def budget(k):
 	print("FILL", n_, "kept fill props (within 25 studs of a fill spot, same prop),", hit, "overlap another track's draft prop; pairs by track", dict(sorted(by.items())), "fill spots", len(fill))
 
 
+def kaiju_overlaps(k):
+	"""The other tracks' draft props inside each corpse's box, per draft set."""
+	from biomes import KaijuBase
+
+	bpy.context.view_layer.update()
+	for ob in [o for o in k.col.objects if o.type == "MESH" and o.data.name.endswith("_KaijuCorpse")]:
+		box = KaijuBase.instance_box(ob)
+		for label, boxes in KaijuBase.other_draft_boxes():
+			by = KaijuBase.overlapped(box, boxes)
+			print("KAIJU BOX at", tuple(round(v) for v in ob.location), label, sum(by.values()), dict(sorted(by.items())), flush=True)
+
+
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :]
 	scratch = [a for a in argv if not a.startswith("--")][0]
@@ -220,11 +233,15 @@ def main():
 	if "--fit" in argv:
 		fit(k)
 		budget(k)
+		kaiju_overlaps(k)
 		return
 	os.makedirs(OUT, exist_ok=True)
 	cam = bpy.context.scene.camera
 	from biomes import KaijuBase
 
+	if "--sites" in argv:  # only the shots the site fill shows in
+		context_shots(k, cam, KaijuBase.SITES, approved=False)
+		return
 	model_shots(k, cam)
 	context_shots(k, cam, KaijuBase.SITES)
 	old = lambda n: os.path.join(DRAFT, n + ".jpg")  # noqa: E731

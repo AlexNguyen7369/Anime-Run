@@ -240,3 +240,7 @@ Replaces the corpse described in the table and in rounds 13 to 16:
 - Round 5: the closed eye is a lid cap in hide colour on a darker rim cap, square to the skin, with one crease; the dip
   between brow and snout is back in the outline; the jaw wreck is low, tilted and dull; the earth is level with the plain
   at the road side and both ends.
+- Approved by the owner 2026-11-25 (round 5, 1bc5e9f7): mesh and both placements frozen. The site fill is cut to the props
+  clear of every other track's draft props (`corpse_sites`, tested by code; `W2_EXTRA_DRAFTS` adds a second draft set):
+  12 stay (7 Apartment, 3 Office, 2 Rubble) against the committed drafts and the Track 1/6 swap set of cb6d716e. Re-run
+  after the Track 1/6 swap lands.

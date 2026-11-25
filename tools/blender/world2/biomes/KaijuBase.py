@@ -1080,6 +1080,53 @@ SITES = ((1057.0, -92.0, 1.0, -2.0), (2683.0, -91.0, 1.0, -1.0))  # d, off, scal
 FILL = []  # (x, z, prop) of the last build's added fill, for kaiju_reference.py
 
 
+def other_draft_boxes():
+	"""The other tracks' draft props as [(set name, export_props.draft_boxes(5))]: the committed drafts and, when
+	W2_EXTRA_DRAFTS is set ("<folder of <Biome>Draft.luau>|<track>=<Biome>,..."), also a second draft set (a layout change
+	not landed yet, with its track numbers)."""
+	import os
+
+	import export_props as ep
+
+	out = [("committed", ep.draft_boxes(5))]
+	extra = os.environ.get("W2_EXTRA_DRAFTS")
+	if extra:
+		folder, _, swaps = extra.partition("|")
+		themes, approved = ep.THEMES, ep.APPROVED
+		try:
+			ep.THEMES = folder
+			ep.APPROVED = {**approved, **{int(a): b for a, b in (q.split("=") for q in swaps.split(",") if q)}}
+			out.append(("extra", ep.draft_boxes(5)))
+		finally:
+			ep.THEMES, ep.APPROVED = themes, approved
+	return out
+
+
+def instance_box(ob):
+	"""A placed prop's box in the game, as export_props.hero_box gives it: (centre, rows, half size), Roblox world."""
+	import export_props as ep
+	import numpy as np
+
+	m3 = [[ob.matrix_world[i][j] for j in range(3)] for i in range(3)]
+	scl = [math.sqrt(sum(m3[i][j] ** 2 for i in range(3))) for j in range(3)]
+	R = np.array(ep.rb_matrix([[m3[i][j] / scl[j] for j in range(3)] for i in range(3)]))
+	lo, hi = (np.array(v) * (scl[0], scl[2], scl[1]) for v in ep.bounds(ob.data))
+	return np.array(ep.rb_of(ob.matrix_world.translation)) + R @ ((lo + hi) / 2), R, (hi - lo) / 2
+
+
+def overlapped(box, boxes):
+	"""Track number -> how many of `boxes` (draft_boxes) the box (instance_box) overlaps."""
+	import export_props as ep
+	import numpy as np
+
+	c, R, h = box
+	ext, out = np.abs(R) @ h, {}
+	for bc, bR, bh, t, _ in boxes:
+		if np.all(np.abs(c - bc) < ext + np.abs(bR) @ bh) and ep.obb_overlap(c, R, h, bc, bR, bh):
+			out[t] = out.get(t, 0) + 1
+	return out
+
+
 def corpse_sites(k, city_end, windows, avoid, tall_avoid):
 	"""The corpses in their legal pockets and the city closed up round them (reopened by the owner 2026-11-25). Additive, on
 	its own random stream: the frozen instances are not touched, except the ones a body lies on, which it crushed."""
@@ -1211,6 +1258,19 @@ def corpse_sites(k, city_end, windows, avoid, tall_avoid):
 						k.place(what, (x, -1.0, z), yaw_, sc_)
 						spots["CityBlock" if name == "CityBlock" else "other"].append((x, z))
 						apron[what] = apron.get(what, 0) + 1
+	# owner 2026-11-25: the fill keeps only props clear of every other track's draft props (box against box)
+	bpy.context.view_layer.update()
+	sets, stays, cut, by = other_draft_boxes(), {}, {}, {}
+	for ob in [o for o in k.col.objects if o not in kept and o.type == "MESH"]:
+		name, box = ob.data.name[len(pre) :], instance_box(ob)
+		hit = {(label, t) for label, boxes in sets for t in overlapped(box, boxes)}
+		for label, t in hit:
+			by.setdefault(label, {}).setdefault(t, 0)
+			by[label][t] += 1
+		(cut if hit else stays)[name] = (cut if hit else stays).get(name, 0) + 1
+		if hit:
+			bpy.data.objects.remove(ob)
+	print("KAIJUBASE fill clear of other tracks: kept", stays, "removed", cut, "removed props by draft set and track", {a: dict(sorted(b.items())) for a, b in by.items()})
 	FILL[:] = [(o.location.x, -o.location.y, o.data.name[len(pre) :]) for o in k.col.objects if o not in kept and o.type == "MESH"]
 	print("KAIJUBASE apron filled", apron)
 	print("KAIJUBASE fill dropped by the corridor test", drop)
