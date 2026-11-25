@@ -52,6 +52,8 @@ def table(pieces, ledger):
 		out.append('\t\tHash = "%s",' % a["Hash"])
 		out.append("\t\tPos = %s," % up.v3(a["Pos"]))
 		out.append("\t\tFace = Vector3.new(%.4f, 0, %.4f)," % tuple(a["Face"]))
+		if "Posts" in a:
+			out.append("\t\tPosts = { %s }," % ", ".join("%g" % d for d in a["Posts"]))
 		out.append("\t\tParts = {")
 		for name, p in sorted(a["Parts"].items()):
 			glow = ', Glow = "%s"' % p["Glow"] if "Glow" in p else ""
