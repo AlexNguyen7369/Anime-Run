@@ -22,6 +22,9 @@ import os
 
 from roads import Roads
 
+# (prop, world x, z, scale) behind the finish: the spots beside the 0.9 axis free of Track 2's ruins, which fill the axis itself
+BEHIND_FINISH = [("RuinWall", 306, 425, 1.0), ("Pine", 322, 410, 1.3), ("Pine", 310, 408, 1.2), ("Pine", 325, 420, 1.3), ("Pine", 405, 402, 1.3), ("Pine", 418, 395, 1.3), ("Pine", 412, 410, 1.3), ("Pine", 420, 406, 1.2)]
+
 MODEL_SHOTS = ["Town", "RuinedCastle", "Rank", "HeroStatue", "Cottage"]  # hero close-ups (build_track.model_shots); Rank is the headless army
 
 GRASS, GRASS2, GRASS3 = "86BC62", "6FA656", "9CCB72"
@@ -232,8 +235,8 @@ def hero_statue():
 		("ball", (3.4, 3.0, 3.2), (0, y0 + 27.7, 0.55), PATINA3, {"subdiv": 3, "smooth": True}),  # bob: sides to the jaw
 		("ball", (2.9, 1.1, 1.0), (0, y0 + 28.8, -1.2), PATINA3, {"subdiv": 2, "smooth": True}),  # bangs
 		# forearms out of the cape, hands stacked on the pommel at the waist
-		("cyl", (0.9, 3.4, 1.0), (-1.5, y0 + 18.9, -2.0), PATINA2, {"seg": 8, "smooth": True, "rot": (90, -40, 0)}),
-		("cyl", (0.9, 3.4, 1.0), (1.5, y0 + 18.9, -2.0), PATINA2, {"seg": 8, "smooth": True, "rot": (90, 40, 0)}),
+		("cyl", (0.9, 3.4, 0.9), (-1.5, y0 + 18.9, -2.0), PATINA2, {"seg": 8, "smooth": True, "rot": (90, -40, 0)}),
+		("cyl", (0.9, 3.4, 0.9), (1.5, y0 + 18.9, -2.0), PATINA2, {"seg": 8, "smooth": True, "rot": (90, 40, 0)}),
 		("ball", (2.2, 1.4, 1.5), (0, y0 + 19.0, -3.2), PATINA, {"subdiv": 1, "smooth": True}),  # hands
 		# the sword: pommel above the hands, crossguard below, long blade planted on the plinth
 		("ball", (1.0, 1.0, 1.0), (0, y0 + 20.1, -3.2), PATINA3, {"subdiv": 1, "smooth": True}),
@@ -567,6 +570,9 @@ def build(k):
 	# Landmark 2: the ruined castle, at its approved 1.5 beside the town on the horizon (no gap on this track's ground holds
 	# it). CASTLE_052=1 in the environment builds the owner's option instead: 0.52, dead ahead at the end of the start straight
 	option = os.environ.get("CASTLE_052") == "1"
+	# RANK_TURNED=1: the other option for the owner, not exported: the statues and ranks turned to the runner, with one more
+	# of each than the approved rules allow where they stand (default: statue square to the road, rank toward the town)
+	turned = os.environ.get("RANK_TURNED") == "1"
 	best = None
 	for x in range(-190, -90, 4) if option else ():
 		for z in range(-310, -220, 4):
@@ -600,11 +606,21 @@ def build(k):
 				return True
 		return False
 
-	for f, d, off in ((0.9, 2800, 42), (0.9, 2790, -68), (0.9, 2838, 58), (0.33, 1075, -70), (0.33, 1110, -70), (0.06, 228, -46)):
+	for f, d, off in ((0.9, 2800, 42), (0.9, 2838, 58), (0.33, 1075, -70), (0.33, 1110, -70), (0.06, 228, -46)):
 		pos, _ = facing(k, d, off)
 		see(f, pos[0], pos[2])
 	see(0.06, -150, -274)
 	see(0.06, -110, -280)
+
+	def stand_rank(x, z, yaw=None, shifts=(0.0, 0.12, -0.12, 0.25, -0.25)):
+		"""A rank facing the town (the approved turn, within 0.25 rad); True where it fits."""
+		for sh in shifts if yaw is None else (0.0,):
+			y = (math.atan2(-(tx - x), -(tz - z)) + sh) if yaw is None else yaw
+			if free(x, z, 50) and r.fits(x, z, y, 104, 66, clear=24.5):
+				k.place("Rank", (x, -1.0, z), y)
+				taken.append((x, z, 50))
+				return True
+		return False
 
 	def put(name, d, off, turn=0.0, scale=1.0, size=None, rad=None, faces=True):
 		"""The prop at `off` studs beside the road at d, its front to the road; False where it does not fit."""
@@ -612,6 +628,8 @@ def build(k):
 		yaw = yaw + turn if faces else k.rng.uniform(0, math.tau)
 		w, dep = size or BOX[name]
 		rad = max(w, dep) * scale / 2 if rad is None else rad
+		if name in ("Pine", "Forest") and r.nearest([(pos[0], pos[2])])[0][0] < 50:
+			return False
 		if name in ("Pine", "Forest") and hidden(pos[0], pos[2], w * scale):
 			return False
 		if name == "Pine" and pos[0] > sp.x and pos[2] < sp.z and math.hypot(pos[0] - sp.x, pos[2] - sp.z) < 170:
@@ -626,7 +644,8 @@ def build(k):
 	# The hero's statue where the 0.06 run camera sees it, left of the castle, and one by the finish for the 0.9 camera
 	for d, off in ((228, -46), (222, -50), (216, -44), (235, -44), (205, -50), (200, -58)):
 		pos, yaw = facing(k, d, off)
-		yaw = math.atan2(-(sp.x - pos[0]), -(sp.z - pos[2]))
+		if turned:
+			yaw = math.atan2(-(sp.x - pos[0]), -(sp.z - pos[2]))
 		if r.fits(pos[0], pos[2], yaw, 24, 24, clear=24.5) and all(math.hypot(pos[0] - a, pos[2] - b) > 12 + 62 for a, b, _ in (taken[:1] if option else ())):
 			k.place("HeroStatue", pos, yaw)
 			taken.append((pos[0], pos[2], 16))
@@ -634,31 +653,25 @@ def build(k):
 			break
 	# the end of the start straight: a rank on its mound under the broken walls of a ruin (the castle's place)
 	if not option:
-		for x, z, turn, sc in ((-150, -274, 0.0, 1.3), (-104, -280, -0.35, 1.2), (-196, -262, 0.45, 1.2)):
+		for x, z, turn, sc in ((-150, -274, 0.0, 1.3), (-104, -280, -0.35, 1.2), (-200, -240, 0.6, 1.0)):
 			yaw = math.atan2(-(sp.x - x), -(sp.z - z)) + turn
 			if free(x, z, 18) and r.fits(x, z, yaw, 41 * sc, 21 * sc):
 				k.place("RuinWall", (x, -1.0, z), yaw, sc)
 				taken.append((x, z, 24))
-		for x, z in ((-60, -276), (-44, -276), (-30, -276), (-16, -276)):
-			yaw = math.atan2(-(sp.x - x), -(sp.z - z)) * 0.3 + math.pi
-			if free(x, z, 50) and r.fits(x, z, yaw, 104, 66):
-				k.place("Rank", (x, -1.0, z), yaw)
-				taken.append((x, z, 52))
-				break
+		any(stand_rank(x, -276) for x in range(-56, 40, 6))
 	# Finish: the statue and a ruin group beside the last straight, a rank of the army across it
 	for d, off in ((2800, 42), (2790, 42), (2770, 42)):
-		if put("HeroStatue", d, off, 0.9, size=(24, 24), rad=18):
+		if put("HeroStatue", d, off, 0.9 if turned else 0.0, size=(24, 24), rad=18):
 			print("Statue 90 at", d)
 			break
-	for d, off in ((2790, -68), (2780, -70), (2770, -68), (2760, -66)):
+	for d, off in ((2790, -68), (2780, -70), (2770, -68), (2760, -66)) if turned else ():
 		if put("Rank", d, off, 0.0, size=(104, 66), rad=52):
-			print("Rank 90 at", d)
 			break
 	for d, off, turn, sc in ((2838, 58, 0.5, 1.1), (2745, 62, -0.4, 1.0), (2700, 66, 0.2, 1.2), (2846, -50, 0.3, 1.0)):
 		put("RuinWall", d, off, turn, sc)
 	for f, statue, houses in (
 		(0.045, False, ((-60, -58, 0.0), (-26, -62, 0.1), (46, -58, -0.1), (80, -64, 0.2), (-44, -98, 0.3), (-4, -100, -0.2), (36, -98, 0.1))),
-		(0.30, True, ((-50, -58, 0.4), (40, -62, -0.3), (74, -58, 0.5), (-20, -100, 0.2), (24, -98, -0.4))),
+		(0.30, False, ((-50, -58, 0.4), (40, -62, -0.3), (74, -58, 0.5), (-20, -100, 0.2), (24, -98, -0.4))),
 		(0.30, False, ((-30, 58, 0.2), (10, 60, -0.3), (48, 58, 0.3))),
 		(0.80, False, ((-60, -60, 0.5), (-24, -96, -0.3), (14, -58, 0.2), (30, -98, -0.6))),
 	):
@@ -668,17 +681,28 @@ def build(k):
 		for dd, off, turn in houses:
 			put("Cottage", d0 + dd, off, turn, k.rng.uniform(0.9, 1.05), size=(30, 29), rad=17)
 
+	def outer(d):
+		p, right, _ = k.at(d)
+		return 1 if (p.x + right.x - cx) ** 2 + (p.z + right.z - cz) ** 2 > (p.x - cx) ** 2 + (p.z - cz) ** 2 else -1
+
+	# the 0.62 view: a conifer band and a mound outside the bend ahead of it
+	for d, name, sc in ((2005, "Forest", 1.0), (2070, "Forest", 1.05), (2150, "Mound", 0.8), (2235, "Forest", 1.0), (2300, "Forest", 1.05)):
+		for shift in (0, 8, -8, 16, -16):
+			if any(put(name, d + shift, outer(d) * o, 0.0, sc, rad=46 if name == "Mound" else 34) for o in (70, 66, 74)):
+				break
 	# Landmark 4: the headless army massed on mounds among pines along the second lap, facing the road
-	for d, off in ((1075, -70), (1095, -68), (1120, -66), (1140, -70)):  # ahead of the 0.33 run camera, outside the road
-		if put("Rank", d, off, 0.05, size=(104, 66), rad=50):
-			break
-	d, n, side = k.length * 0.44, 0, 1
-	while d < k.length * 0.86 and n < 5:
-		if any(put("Rank", d, s * o, k.rng.uniform(-0.08, 0.08), 1.0, size=(104, 66), rad=50) for s in (side, -side) for o in (64, 70, 76)):
-			n, side = n + 1, -side
-			d += 150
-		else:
-			d += 20
+	# ahead of the 0.33 run camera outside the road, then outside the bend the 0.62 camera looks into, then anywhere on the
+	# second lap: 4 in all, as the approved draft kept
+	n = sum(1 for ob in k.col.objects if ob.data and ob.data.name.endswith("_Rank"))
+	for dd in ((1060, 1160), (2080, 2240), (2240, 2500), (1180, 1400), (700, 1000), (500, 700)):
+		done = False
+		for d in range(*dd, 10):
+			for o in (-66, -70, -74, -62, 66, 70, 74):
+				if not done and n < (6 if turned else 4):
+					pos, yaw = facing(k, d, o)
+					if stand_rank(pos[0], pos[2], yaw if turned else None):
+						n, done = n + 1, True
+						print("Rank at", d, o)
 	print("Ranks", n)
 
 	# Meadow dressing by the road: blue-moon-weed clusters, single pines, ruin fragments, small pine woods with paths
@@ -691,10 +715,6 @@ def build(k):
 			d += every
 
 	# low mounds and dark conifer bands outside the road (the horizon from the runner's eye), ruins in uneven groups
-	def outer(d):
-		p, right, _ = k.at(d)
-		return 1 if (p.x + right.x - cx) ** 2 + (p.z + right.z - cz) ** 2 > (p.x - cx) ** 2 + (p.z - cz) ** 2 else -1
-
 	for d in range(250, int(k.length) - 60, 140):
 		put("Mound", d, outer(d) * 70, 0.0, 0.8, rad=52)
 	for d, off, turn, sc in ((300, 58, 0.2, 1.1), (345, 60, -0.5, 1.0), (690, 58, 0.0, 1.2), (1010, 56, 0.7, 1.0), (1050, 66, -0.2, 1.2), (1600, 60, 0.4, 1.1), (1640, 62, -0.3, 1.0), (1675, 58, 0.1, 1.2), (2250, 58, 0.3, 1.0)):
@@ -703,11 +723,19 @@ def build(k):
 		for d in range(90 + o % 30, int(k.length) - 50, 46):
 			put("Forest", d, outer(d) * o, 0.0, k.rng.uniform(0.9, 1.05), rad=30)
 	for o in (70, 96, 120, 140):
-		for d in range(60 + o % 9, int(k.length) - 40, 15):
+		for d in range(60 + o % 9, int(k.length) - 40, 13):
+			if (d // 78) % 3 == 2:
+				continue  # clumps, not an even row
 			put("Pine", d, outer(d) * (o + k.rng.uniform(-5, 5)), 0.0, k.rng.uniform(1.0, 1.5), rad=7, faces=False)
 	line(170, (-72, 72), "Forest", 8, 70, (0.9, 1.05), faces=True)
 	line(44, (-44, 44), "Flowers", 4, 40, (1.0, 1.0))
-	line(58, (-52, 52), "Pine", 12, 50, (0.9, 1.4))
+	for o in (56, 65, 74):  # the dense band outside the bend the 0.62 view looks into
+		for d in range(1960 + o % 7, 2420, 15):
+			put("Pine", d, outer(d) * (o + k.rng.uniform(-3, 3)), 0.0, k.rng.uniform(1.0, 1.5), rad=7, faces=False)
+	for d in range(60, int(k.length) - 70, 150):  # clumps of pines, well off the barrier
+		for off in (-66, 66):
+			for dd, do in ((0, 0), (13, 8), (-12, 7), (5, -9), (20, -6)):
+				put("Pine", d + dd + (40 if off > 0 else 0), off + do, 0.0, k.rng.uniform(0.9, 1.4), rad=7, faces=False)
 
 	def scatter(count, names, rad, scale, pad, own=True):
 		placed = tries = 0
@@ -724,7 +752,7 @@ def build(k):
 	scatter(14, ["Mound"], 52, (0.8, 0.95), 220)
 	scatter(50, ["Forest"], 30, (0.9, 1.1), 220)
 	scatter(110, ["Flowers"], 8, (1.2, 1.5), 180)
-	scatter(130, ["Pine"], 7, (0.9, 1.5), 220)
+	scatter(40, ["Pine"], 7, (0.9, 1.5), 220)
 	# The snow massif behind the hill town (ref 01) past Track 10's road: the draft's only horizon pieces with the town, off
 	# this track's own ground, so not built (docs/WORLD2_SPEC.md). Scale over 1.26 keeps the exported mesh in its 3 pieces.
 	k.place("Mountain", (700, -1.0, -5150), 0.0, 1.35)
@@ -742,5 +770,21 @@ def build(k):
 			taken.append((x, z, w * sc / 2))
 			n += 1
 	print("BACKDROP", n)
+	# Behind the finish, on the 0.9 view's axis
+	for name, x, z, sc in BEHIND_FINISH:
+		w, dep = BOX[name]
+		if free(x, z, 6) and r.fits(x, z, 0.0, w * sc, dep * sc, own=False):
+			k.place(name, (x, -1.0, z), 0.0, sc)
+			taken.append((x, z, 8))
+	if option:  # pines at the mound's foot, under its overhanging corner towers (a fault of the mesh)
+		_, x, z, yaw = best
+		for j in range(40):
+			a = j * math.tau / 40
+			for rr in (0.5, 0.56):
+				lx, lz = 252 * 0.52 * rr * math.cos(a), 212 * 0.52 * rr * math.sin(a)
+				px, pz = x + lx * math.cos(yaw) + lz * math.sin(yaw), z - lx * math.sin(yaw) + lz * math.cos(yaw)
+				if abs(lz + 60) > 22 and r.fits(px, pz, 0.0, 14, 14) and j % 3:
+					k.place("Pine", (px, -1.0, pz), k.rng.uniform(0, math.tau), k.rng.uniform(0.9, 1.0))
+					break
 	# Bright hazy day: cyan overhead fading to near-white haze at the horizon (no fog: it blacked out the render)
 	k.sky([(0.0, "F6FAF8"), (0.04, "E6F2F4"), (0.12, "C4E4EE"), (0.35, "8ACCE6"), (1.0, "4AA8D6")], strength=0.85, sun=(3.4, "FFF6E6", 48, 150))

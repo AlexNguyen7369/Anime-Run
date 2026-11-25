@@ -719,10 +719,10 @@ def build(k):
 				head = p + right * (off - s * 5.5)  # the lamp head, inside the kit's box: the game keeps a lamp with its prop
 				kits.append((d, s, (head.x, 17.5, head.z)))
 		d += 48
-	# Hero landmarks: two HQs, each at the end of a street axis: past the first corner (0.06 run camera) and past the
-	# finish straight (0.9). The second stands in the widest of the gaps beyond Track 7 that its box fits.
+	# Hero landmarks: two HQs, each at the end of a street axis: past the first corner (0.06 run camera) and, where
+	# one is legal, on the 0.9 camera's.
 	near = r.neighbours()
-	avoid, sight = [], []
+	avoid, sight, hq_at = [], [], []
 
 	def stand_hq(f, spots):
 		p, right, t = k.at(L * f)
@@ -734,6 +734,7 @@ def build(k):
 				fx, fz = -math.sin(yaw), -math.cos(yaw)  # the front (-Z)
 				k.place("HQ", (x - fx * 19, 0.0, z - fz * 19), yaw)  # x, z is its box's centre: the forecourt runs out in front
 				avoid.append((x, z, 120))
+				hq_at.append((x, z))
 				ahead = math.hypot(x - eye.x, z - eye.z)
 				for j in range(200, int(ahead) - 100, 30):  # the axis stays low, so the runner sees it from the straight
 					sight.append((eye.x + (x - eye.x) * j / ahead, eye.z + (z - eye.z) * j / ahead, 12 + 60 * j / ahead))
@@ -746,8 +747,22 @@ def build(k):
 	p, right, t = k.at(L * 0.06)
 	back = math.atan2(-t.x, -t.z) + math.pi  # front faces back down the axis toward the camera
 	stand_hq(0.06, [(p.x + right.x * 10 + t.x * a, p.z + right.z * 10 + t.z * a, (back,)) for a in range(400, 800, 5)])
-	p9, _, _ = k.at(L * 0.9)
-	stand_hq(0.9, [(x, z, (-math.pi / 2, 0.0)) for z in range(1402, 1370, -2) for x in range(-990, -1040, -3)])
+	# The second by the same turn rule (front back down the 0.9 camera's axis), on the spot nearest that axis that overlaps at
+	# most 3 props of other tracks
+	p, right, t = k.at(L * 0.9)
+	back = math.atan2(-t.x, -t.z) + math.pi
+	ex, ez = p.x + right.x * 10, p.z + right.z * 10
+	(lox, loz), (hix, hiz) = r.ground(4)
+	spots = []
+	for x in range(int(lox), int(hix), 12):
+		for z in range(int(loz), int(hiz), 12):
+			along = (x - ex) * t.x + (z - ez) * t.z
+			if along < 300 or abs((x - ex) * t.z - (z - ez) * t.x) > along * 1.2:
+				continue  # out of view
+			if r.nearest([(x, z)])[0][0] > 85 and r.fits(x, z, back, 192, 130, own=False, clear=24.5) and len(r.overlaps(near, x, z, back, 190, 128)) <= 3:
+				spots.append((abs((x - ex) * t.z - (z - ez) * t.x) / along, x, z))
+	print("HQ 0.9 legal spots, approved turn, at most 3 overlaps:", len(spots))
+	stand_hq(0.9, [(x, z, (back,)) for _, x, z in sorted(spots)[:1]])
 	# The Jinbocho corner near the start, on the right of the 0.06 run camera
 	for ahead in range(75, 200, 5):
 		pos, yaw = k.beside(L * 0.06 + ahead, 40 + 12)
@@ -762,6 +777,31 @@ def build(k):
 			k.place("Retro", pos, yaw + math.pi / 2)
 			avoid.append((pos[0], pos[2], 16))
 			break
+	# Lit shop fronts where the 0.62 and 0.9 run cameras see a dark edge, before the low blocks take the plots
+	def fill(d0, d1, side, names):
+		d = d0
+		while d < d1:
+			for name in names:
+				w, dep = FOOT[name]
+				hit = False
+				for front in (40, 46, 52, 60, 70):
+					pos, yaw = k.beside(d + w / 2, side * (front + dep / 2))
+					yaw += side * math.pi / 2
+					if all(math.hypot(pos[0] - x, pos[2] - z) > rad + w / 2 for x, z, rad in avoid + (sight if name not in LOW else [])) and r.fits(pos[0], pos[2], yaw, w, dep + 2, own=False, clear=24.5):
+						k.place(name, pos, yaw)
+						avoid.append((pos[0], pos[2], w / 2))
+						print("FILL", name, round(d), side * front)
+						hit = True
+						break
+				if hit:
+					d += w + 2
+					break
+			else:
+				d += 6
+
+	fill(L * 0.62 + 40, L * 0.62 + 190, -1, ("ShopHouse",))
+	fill(L * 0.62 + 4, L * 0.62 + 190, 1, ("Mansion", "ShopHouse", "Apaato"))
+	fill(L * 0.9 + 4, L * 0.9 + 110, -1, ("ShopHouse", "Apaato"))
 	# Back streets: low blocks filling the gap to the next road where it is wide enough, breaking up the street fronts
 	last = -1e9
 	for d in range(300, int(end), 10):
@@ -811,12 +851,13 @@ def build(k):
 			pos, yaw = k.beside(kd, -35)
 			k.place("CrossWire", pos, yaw - math.pi / 2)
 	# Night: teal-blue ambient for cool shadows, warm sodium point lights at the lamp heads. The game keeps the 48 brightest
-	# of a track (BiomeDressing.PLACED_LIGHTS): the HQs' 4 floodlights and 44 lamps spread evenly along the whole road
+	# of a track (BiomeDressing.PLACED_LIGHTS): the HQ's 2 floodlights and 46 lamps (44 with a second HQ) spread evenly along the whole road
 	# (sides alternating); the rest are dimmer and only light the draft.
 	k.sky([(0.0, "3A4A5A"), (0.06, "22344A"), (0.25, "122236"), (1.0, "060C18")], strength=1.0, sun=(0.6, "6FA8C0", 35, 140))
 	main = set()
-	for j in range(44):
-		want, s = L * (j + 0.5) / 44, 1 if j % 2 else -1
+	main_n = 46 if len(hq_at) < 2 else 44
+	for j in range(main_n):
+		want, s = L * (j + 0.5) / main_n, 1 if j % 2 else -1
 		kd, ks, _ = min((q for q in kits if q[1] == s), key=lambda q: abs(q[0] - want))
 		main.add((kd, ks))
 	for kd, s, pos in kits:

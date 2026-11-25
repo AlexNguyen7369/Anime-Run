@@ -2,7 +2,8 @@
 shots also hold horizon pieces off the track's ground). Built = a row of the exported <Biome>Draft.luau on its own
 ground, less the rows listed in --removed=<json> {biome: [row number]} (what the game's Prune takes, from the harness).
 Headless: Blender -b --factory-startup --python tools/blender/world2/game_shots.py -- <number ...> [--removed=<json>] [--fast]
---option (with CASTLE_052=1): the not exported layout option, every prop on the own ground, into option_castle_052/.
+--option (with CASTLE_052=1 or RANK_TURNED=1): that not exported layout option, every prop on the own ground, into
+option_castle_052/ or option_turned/.
 """
 
 import json
@@ -56,7 +57,7 @@ def run(number, removed, fast):
 		ob.hide_render = not ok
 		shown, hidden = shown + ok, hidden + (not ok)
 	print("GAME", number, biome, "built rows", len(rows), "shown", shown, "hidden", hidden)
-	bt.shots(k, bpy.context.scene.camera, os.path.join(bt.OUT, "track%02d_%s" % (number, biome), "option_castle_052" if option else "game"))
+	bt.shots(k, bpy.context.scene.camera, os.path.join(bt.OUT, "track%02d_%s" % (number, biome), ("option_turned" if os.environ.get("RANK_TURNED") else "option_castle_052") if option else "game"))
 
 
 def main():
