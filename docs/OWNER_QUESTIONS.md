@@ -277,3 +277,8 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
    move was not pointed out to the owner.)
 7. The kaiju's own box overlaps 17 and 24 other-track props (against cb6d716e), most of them Track 6's. Leave them, or
    reopen those layouts to remove them?
+8. Swap round 2 (39311940), rules audit: "approved turn" is not defined for a re-laid layout. Default: the old draft's turn
+   rules. Do more statues (3, was 2) and army Ranks (7, was 4) on Track 1 stand? Two HQs on Track 6 overlap 9 and 3
+   other-track props (item 3's "11" is replaced): both, the second only, or neither?
+9. Kaiju vans (item 6): 5 of 8 can return to their frozen spots (bb93b6c4 scratch test); 3 would stand inside the kaiju.
+   Kaiju overlaps with exempt props counted: 21 and 28 (item 7's 17 and 24 left them out).
