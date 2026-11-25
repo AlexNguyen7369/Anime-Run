@@ -3,7 +3,7 @@
 A plan, not a rule: the spec and the design doc win. Built so far (offline only, no Studio): the Index, Team altar and
 statue moves with their headers, the boss gate's Parts stand-in, state and prompt, the merchant markers, and the guide. Gate and
 guide are off (`BossGateConfig.LIVE`, `BossGuideConfig.LIVE` = false). No mesh is uploaded, no place saved. Numbers are measured from the
-draft scripts at 03148343 (headless Blender); "proposed" where no owner word exists. Guards: `plaza_build`; 8 waiting checks: `plaza_build_pending` (on demand, `PlazaBuildTests.PENDING`),
+draft scripts at 03148343 (headless Blender); "proposed" where no owner word exists. Guards: `plaza_build`; 1 waiting check: `plaza_build_pending` (on demand, `PlazaBuildTests.PENDING`),
 `spawn_area` RING rows and EXCLUSIVE_XZ, `ui_billboards` headers.
 
 ## 1. Pieces (studs, y up; tris as exported, with the reversed copies of faces whose back shows)
@@ -56,7 +56,7 @@ pads reach 33 studs: check them against the sky-loop post and the boss gate (14.
 | left pillar cut on the join view | 88% of the gate is in view on join (report.json); turning or moving it more than the tolerance is a layout change | yes |
 | statue over RACE START, shadow on the spawn pad | spot is approved: lower pedestal, smaller rig, or a shadow-free statue | yes for spot or size |
 | World 2 rock behind the horns | move that island in `PlazaLook.Islands` (placeholder values) | no |
-| locked altar B statue near-black | `SidekickAltarView` LOCKED_COLOR lighter, with the altar mesh step (it recolours today's altar) | no |
+| locked altar B statue near-black | done: `PlazaPieces.LockedLook`, per altar; colours owner-approved, no contrast limit (owner 2026-11-25, docs/OWNER_QUESTIONS.md 31); seen in Studio pictures | no |
 | Index keeper's arm through staff | pose values in PlazaMerchants | no |
 | locked label readability | altar lock label size and spot | no |
 

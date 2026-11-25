@@ -162,4 +162,18 @@ function Support.player(cleanup, id)
 	return player
 end
 
+-- WCAG contrast of two colours
+function Support.contrast(a, b)
+	local function light(c)
+		local y = 0
+		for channel, weight in { R = 0.2126, G = 0.7152, B = 0.0722 } do
+			local x = c[channel]
+			y += weight * (if x <= 0.04045 then x / 12.92 else ((x + 0.055) / 1.055) ^ 2.4)
+		end
+		return y
+	end
+	local x, y = light(a), light(b)
+	return (math.max(x, y) + 0.05) / (math.min(x, y) + 0.05)
+end
+
 return Support

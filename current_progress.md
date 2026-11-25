@@ -283,12 +283,31 @@
 273. 2026-11-25 — Alex Nguyen — Fixed the boss guide's audit items and gave the boss gate an off switch (BossGateConfig.LIVE, the guide needs both switches) with tests for both states and the closed-gate prompt (offline checks only).
 274. 2026-11-25 — Alex Nguyen — Made ui_boss_guide run with auto-roll and racing off and a quiet baseline before grants_nothing, and reworded plaza_build's sensei check (offline checks only, branch feature/alex/boss-guide-tests).
 275. 2026-11-25 — Alex Nguyen — Coded the boss gate guide's popup layout B, split plaza_build into guards and plaza_build_pending, and widened grants_nothing to the Money stat and Relics (offline checks only).
+276. 2026-11-25 — Alex Nguyen — Found the causes of the World 2 grass-through-road and dark-prop bugs, with red tests and patch drafts (docs/W2_VISUAL_BUGS.md; offline only, nothing uploaded).
+277. 2026-11-25 — Alex Nguyen — Wrote the red test for grey-tinted World 2 meshes (biome_mesh_color) and moved the vertex-colour export patch to its own branch feature/alex/w2-color-export.
+278. 2026-11-25 — Alex Nguyen — Made textureless World 2 meshes white instead of the default grey and wrote the owner's note on the three visual fixes (offline checks only, no Studio).
+279. 2026-11-25 — Alex Nguyen — Fixed the white-mesh audit violation (only MeshParts are read), wrote both approved World 2 scenery fixes into BIOME_ENVIRONMENT_SPEC and merged world2-place.
 276. 2026-11-25 — Alex Nguyen — Merged the World 2 Track 1 and 6 swap (round 8, HQ left out) into the World 2 branch; offline tests green in both worlds, harness fails only on heroes with no spot; 14 spawn piece models uploaded, not reviewed and not used in game.
 276. 2026-11-25 — Alex Nguyen — Wrote the spawn pieces' game code behind empty upload ids (Shared/PlazaPieces), so the plaza stays as it is until the meshes are uploaded; offline checks only.
 276. 2026-11-25 — Alex Nguyen — Made Gojio silent below rebirth 1 (owner): no prompt and no conversation, rule recorded in the design doc and specs (offline checks only).
 275. 2026-11-25 — Alex Nguyen — Built the export scripts and GLBs of the approved spawn pieces (gates, altars, market set B, sky loop), checked against the drafts; nothing uploaded.
+277. 2026-11-25 — Alex Nguyen — Merged the spawn pieces' code, the export tools and Gojio's rebirth rule into the World 2 branch (offline checks in both worlds).
+278. 2026-11-25 — Alex Nguyen — Turned on the 14 reviewed spawn pieces in the World 2 branch, fixed the loader for uploads whose part names carry a number, and saved copies in both places (World 1 v915, World 2 v90, not published); Studio `spawn_area` 188/188 in both worlds, World 1's tests not rerun after the loader fix.
+279. 2026-11-25 — Alex Nguyen — Recorded the owner's kaiju fill choice ("A with 12") in the design log.
+280. 2026-11-25 — Alex Nguyen — Merged the Track 5 kaiju fill "A with 12" into the World 2 branch as a draft (Blender tools and renders only; not exported to the game, nothing uploaded).
+281. 2026-11-25 — Alex Nguyen — Fixed two World 2 bugs found by reading, each reproduced red offline first: a sent-back arrival no longer saves a stale World 2 team, and a client waits for the place to load before reading the world id.
+282. 2026-11-25 — Alex Nguyen — Narrowed the sent-back save fix to the carried World 2 team, covered the unknown admin-check path, and kept a Studio Run-mode server from waiting on game.Loaded (audit fixes).
+283. 2026-11-25 — Alex Nguyen — A not-yet-allowed World 2 arrival now keeps both its World 2 Team and Equipped as stored, so a later first entry gets World 1's whole team.
+281. 2026-11-25 — Alex Nguyen — Bounded the admin group-rank lookup (failed lookups hold briefly, concurrent checks share one), test red first; found why World 2 Track 10 shows a blue sky (no World 2 skybox) and proposed gradient skies for the owner.
+282. 2026-11-25 — Alex Nguyen — Admin rank audit fixes: the arrival recheck test asks for real again, the hold is pinned under the recheck, and a killed lookup no longer leaves later checks waiting forever.
+280. 2026-11-25 — Alex Nguyen — Narrowed World 2's bare ground round finish slabs and the plaza to 2 studs past their own footprint (was up to 7.2 from the CLEARANCE-grown boxes), with a harness collar check written red first; offline only, World 1 hashes unchanged.
+281. 2026-11-25 — Alex Nguyen — Tightened the harness collar check after audit: it tests the drawn strip (red with SLAB_BARE 3), fails any clear slab not facing a multiple of 90 degrees, and checks the VFX floor too.
+284. 2026-11-25 — Alex Nguyen — Built the merchants' poses behind their off switch and a readable locked Mythic per altar; exporter names its parts without numbers (offline checks only).
+285. 2026-11-25 — Alex Nguyen — Recorded the owner's approval of the locked Mythic colours and the merchants' names.
+286. 2026-11-25 — Alex Nguyen — Fixed the merchant-poses re-audit wording, pinned the approved locked colours in a test and added the script that measures what stands behind the locked Mythic.
+287. 2026-11-25 — Alex Nguyen — Dropped the locked Mythic's contrast check per the owner's answer to question 31 (colours kept, no limit); the plaza now has one waiting check.
 
 ## What's next
-**Run the swap and the white-mesh fix in Studio, then land the fixes and pieces behind their audits.**
+**Audit the white-mesh and grass fix (with the narrowed slab collar), run `biome_runtime` in Studio and look at the grass by the plaza and a finish slab, then merge it into the World 2 branch.**
 
-**Why this is next:** the World 2 branch should be checked in Studio before its next PR into main.
+**Why this is next:** the World 2 colour re-export cannot start before it (new meshes would show at 64% brightness), and the next PR into main should carry it.

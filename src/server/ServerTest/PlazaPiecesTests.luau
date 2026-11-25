@@ -28,6 +28,33 @@ local KEYS = {
 	"SkyLoop",
 }
 
+-- The merchants' poses: where a limb's end stands in the approved draft (tools/blender/plaza/draft_merchants.py turn() on (0, 0, -1), in the built
+-- rig's studs from its feet), as (-x, z, y): right, up, back of the rig
+local LIMB_ENDS = {
+	ShopStall = {
+		RightArm = Vector3.new(1.895, 2.889, -1.588),
+		LeftArm = Vector3.new(-1.602, 2.852, -1.625),
+	},
+	PotionsStall = {
+		RightArm = Vector3.new(1.439, 2.883, -1.658),
+		LeftArm = Vector3.new(-1.439, 2.883, -1.658),
+	},
+	Marketplace = {
+		RightArm = Vector3.new(1.718, 2.892, -1.635),
+		LeftArm = Vector3.new(-1.718, 2.892, -1.635),
+	},
+	IndexBoard = {
+		LeftArm = Vector3.new(-1.472, 2.973, -1.715),
+		RightArm = Vector3.new(1.538, 2.024, -0.278),
+	},
+	CheckpointNpc = {
+		RightArm = Vector3.new(2.004, 5.659, -0.939),
+		LeftArm = Vector3.new(-1.935, 2.135, 0.484),
+		RightLeg = Vector3.new(0.709, 0.011, 0),
+		LeftLeg = Vector3.new(-0.709, 0.011, 0),
+	},
+}
+
 local function find(root, class, name)
 	for _, d in root and root:GetDescendants() or {} do
 		if d:IsA(class) and (name == nil or d.Name == name) then
@@ -91,6 +118,28 @@ function Tests.plaza_pieces()
 			local want = name == "CheckpointNpc" and 0.75 or 1
 			flag("merchant_scale_" .. name, row.Scale == want, row.Scale or -1, want)
 		end
+		-- the locked Mythic is not near-black any more; today's altar keeps its look. No contrast limit (owner 2026-11-25, question 31).
+		for world = 1, 2 do
+			WorldConfig.Id = world
+			fill(0)
+			local old = Pieces.LockedLook and Pieces.LockedLook()
+			flag(
+				"locked_look_before_w" .. world,
+				old ~= nil and old.Color == Color3.fromRGB(24, 22, 30) and old.Transparency == 0.25
+			)
+			fill(1)
+			local new = Pieces.LockedLook and Pieces.LockedLook()
+			local approved = world == 1 and Color3.fromRGB(74, 66, 92) or Color3.fromRGB(132, 120, 152) -- owner 2026-11-25
+			flag(
+				"locked_colour_approved_w" .. world,
+				new ~= nil and new.Color == approved,
+				new and tostring(new.Color),
+				tostring(approved)
+			)
+			local dark = new and H.contrast(Color3.fromRGB(24, 22, 30), new.Color) or 0
+			flag("locked_look_not_near_black_w" .. world, dark >= 1.5, dark, 1.5)
+		end
+		WorldConfig.Id = oldWorld
 		local posts = Pieces.Assets.SkyLoop.Posts -- measured on the mesh (build_loop.py), written with the table
 		local degrees = posts and table.concat(posts, " ") or "missing"
 		flag("sky_loop_posts", degrees == "19 75 200 250 322", degrees, "19 75 200 250 322")
@@ -289,6 +338,27 @@ function Tests.plaza_pieces()
 				end
 				flag(w .. "merchants_on_five", n == 5, n, 5)
 				flag(w .. "merchants_static", loose == 0, loose, 0)
+				-- posed as the draft, standing at the marker, at the row's scale
+				for name, row in H.module(Shared, "PlazaMerchants") do
+					local service = on:FindFirstChild(name)
+					local rig = service and service:FindFirstChild("Merchant")
+					local marker = find(service, "Attachment", "MerchantSpot")
+					if not (rig and marker) then
+						flag(w .. "merchant_posed_" .. name, false)
+						continue
+					end
+					flag(w .. "merchant_posed_" .. name, next(row.Pose or {}) ~= nil)
+					local frame = marker.WorldCFrame * CFrame.Angles(0, math.rad(row.Yaw or 0), 0)
+					for limb, at in LIMB_ENDS[name] or {} do
+						local part = rig:FindFirstChild(limb)
+						local tip = part.CFrame * Vector3.new(0, -row.Scale, 0) -- half of the built limb's 2 studs
+						local away = (frame:PointToObjectSpace(tip) - at * row.Scale).Magnitude
+						flag(w .. "merchant_" .. name .. "_" .. limb, away < 0.01, away, 0.01)
+					end
+					local label = rig:FindFirstChild("NameLabel")
+					local hidden = label ~= nil and label.Enabled == false
+					flag(w .. "merchant_label_" .. name, hidden == (name == "CheckpointNpc"))
+				end
 				flag(w .. "merchants_dummy_gone", on.CheckpointNpc:FindFirstChild("Rig") == nil)
 				Pieces.MERCHANTS_LIVE = false
 			end

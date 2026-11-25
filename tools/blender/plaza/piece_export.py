@@ -106,6 +106,9 @@ def export_mesh(m, key, pal_mat, cells):
 			verts.extend(tuple(m.v[k]) for k in face)
 			polys.append(tuple(range(i, i + len(face))))
 			uvs.extend([cells.get(name, (0.5, 0.5))] * len(face))
+		for data in (bpy.data.meshes, bpy.data.objects):  # a name in use becomes "Body.001", in the upload too
+			if part in data:
+				data[part].name = "_used_" + part
 		me = bpy.data.meshes.new(part)
 		me.from_pydata(verts, [], polys)
 		if part.startswith("Body"):
@@ -115,6 +118,7 @@ def export_mesh(m, key, pal_mat, cells):
 			me.materials.append(pal_mat)
 		me.update()
 		ob = bpy.data.objects.new(part, me)
+		assert ob.name == me.name == part, (ob.name, me.name)
 		bpy.context.scene.collection.objects.link(ob)
 		obs.append(ob)
 		xs, ys, zs = zip(*verts)
@@ -128,8 +132,15 @@ def export_mesh(m, key, pal_mat, cells):
 	bpy.ops.object.select_all(action="DESELECT")
 	for ob in obs:
 		ob.select_set(True)
-	path = os.path.join(OUT, key + ".glb")
-	bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_yup=True, use_selection=True, export_apply=True, export_animations=False)
+	path, new = os.path.join(OUT, key + ".glb"), os.path.join(OUT, key + "_new.glb")
+	bpy.ops.export_scene.gltf(filepath=new, export_format="GLB", export_yup=True, use_selection=True, export_apply=True, export_animations=False)
+	data = open(new, "rb").read()
+	gl = json.loads(data[20 : 20 + int.from_bytes(data[12:16], "little")])
+	names = sorted(n["name"] for n in gl["nodes"] if "mesh" in n)
+	if not names == sorted(parts) == sorted(n["name"] for n in gl["meshes"]):
+		os.remove(new)  # the last good GLB stays
+		raise AssertionError((key, names))
+	os.replace(new, path)
 	for ob in obs:
 		me = ob.data
 		bpy.data.objects.remove(ob)

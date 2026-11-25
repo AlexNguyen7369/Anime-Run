@@ -19,8 +19,7 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local MODEL_SIZE = PlazaPieces.AltarModelSize() -- studs, the model's largest extent
 local TURN_SPEED = math.rad(30) -- placeholder: radians per second
 local TURN_DISTANCE = 250 -- placeholder: studs; farther away the model holds still
-local LOCKED_COLOR = Color3.fromRGB(24, 22, 30) -- placeholder: the locked silhouette
-local LOCKED_TRANSPARENCY = 0.25 -- placeholder
+local LOCKED = PlazaPieces.LockedLook() -- the locked silhouette (placeholders but for the new altars' colours)
 
 local player = Players.LocalPlayer
 local area = Workspace:WaitForChild("SpawnArea")
@@ -118,9 +117,9 @@ local function refresh()
 			d.CanTouch = false
 			d.CanQuery = false
 			if isLocked then
-				d.Color = LOCKED_COLOR
+				d.Color = LOCKED.Color
 				d.Material = Enum.Material.SmoothPlastic
-				d.Transparency = math.max(d.Transparency, LOCKED_TRANSPARENCY)
+				d.Transparency = math.max(d.Transparency, LOCKED.Transparency)
 				if d:IsA("MeshPart") then
 					d.TextureID = ""
 				end
