@@ -230,3 +230,7 @@ Replaces the corpse described in the table and in rounds 13 to 16:
   closed dull eye, nostrils, horn rings, lip and tongue groove; spike collars and low flank plates; stake line along the
   back, sweepers on ropes, crushed cars, barriers and crew on the bank. The middle gantry is a one-sided mast with a
   stayed jib, because the body fills the lane behind it. Site fill on any track's road corridor is not placed.
+- Round 3: the closed lid grows from the skin; the head's faces are even and calmly painted; teeth rooted by ray in each
+  jaw; wrecks with uneven slipped floors, broken corners, dust, scorch and buried bases, a slab folded at the belly; a
+  ragged earth edge in the ground colour; ropes follow the skin and end on a sweeper, a hook sling or a weight; crew and
+  cars stand on the sampled ground; Apartments and Rubble fill the apron wherever every track's corridor allows.
