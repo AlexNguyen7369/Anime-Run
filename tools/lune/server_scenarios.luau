@@ -502,6 +502,15 @@ function Random.new(seed)
 	return rng
 end
 
+-- Lune's CFrame.lookAt mirrors Z (as tools/lune/biome_harness.luau found): Roblox's, with the exact basis
+local CFrameFixed = setmetatable({
+	lookAt = function(at, target, up)
+		local look = (target - at).Unit
+		local right = look:Cross(up or roblox.Vector3.new(0, 1, 0)).Unit
+		return roblox.CFrame.fromMatrix(at, right, right:Cross(look))
+	end,
+}, { __index = roblox.CFrame })
+
 local globals = {
 	game = game,
 	workspace = workspace,
@@ -512,6 +521,7 @@ local globals = {
 		return isMock[value] and "Instance" or roblox.typeof and roblox.typeof(value) or typeof(value)
 	end,
 	Enum = roblox.Enum,
+	CFrame = CFrameFixed,
 	warn = function() end,
 	print = print,
 	tick = os.clock,

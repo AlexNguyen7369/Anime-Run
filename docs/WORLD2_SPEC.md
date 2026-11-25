@@ -189,8 +189,8 @@ written before the swap.
 - Ground ownership (owner 2026-11-25, the overlap question): where two tracks' scenery meets, a spot belongs to the track
   whose road (nearest centre line) is nearest; other tracks' props there are moved or removed. Before any frozen track
   changes, a full count (props and heroes per track) goes to the owner; the freezes and the re-export hold stand until
-  then. **Open question**: the plaza's ground, whether a prop is judged by its centre or its whole footprint, and heroes
-  with no spot under the rule.
+  then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
+  legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its

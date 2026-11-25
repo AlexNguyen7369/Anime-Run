@@ -1657,6 +1657,11 @@ UiSpec.ServerSetup = {
 			.. "puts AutoRoll back to the 'snapshot' value.",
 	},
 	{
+		Id = "quiet",
+		When = "asked for by ui_boss_guide itself (UiScenarios.Needs); put back right after it (restore:quiet)",
+		What = "AutoRoll off and auto racing stopped, so only the scenario itself could move Rolls, Money or Gems.",
+	},
+	{
 		Id = "auto_roll_on",
 		When = "before UiTestRun if AutoRoll is false (a scenario fails with state_missing:auto_roll_on)",
 		What = "Turns auto-rolling back on (AutoRoll = true). Empties spares if the bag is half full (design doc 4.41), until its restore.",
@@ -5170,6 +5175,34 @@ do
 		Prepare = rewardsPrepare,
 		NeedSetup = { "spy", "boss_rewards_open" },
 		Expect = { Remote = false, After = { "boss_rewards_closed" } },
+	})
+end
+
+-- Gojio's conversation at the boss gate (docs/BOSS_GUIDE_SPEC.md; UiBossGuide). A PanelSwitch panel: one at a time with the rest.
+UiSpec.Guis.BossGuideUi = {
+	Source = "Client/BossGuideUi",
+	Panels = { "Panel" },
+	Buttons = {
+		{ Path = "Panel/CloseButton", Does = "close_panel", Panel = "BossGuideUi/Panel" },
+		{ Path = "Panel/Next", Does = "local" },
+	},
+}
+UiSpec.PanelSwitch.Names["BossGuideUi/Panel"] = "BossGuide"
+UiSpec.Hitbox.PanelBodies["BossGuideUi/Panel"] = true
+table.insert(CLOSED, "BossGuideUi/Panel")
+for _, c in
+	{
+		{ "boss_guide_close", "Panel/CloseButton", false, "boss_guide_closed" },
+		{ "boss_guide_next", "Panel/Next", true, "boss_guide_advanced" },
+	}
+do
+	table.insert(UiSpec.Clicks, {
+		Id = c[1],
+		Gui = "BossGuideUi",
+		Path = c[2],
+		Prepare = only("BossGuideUi/Panel"),
+		NeedSetup = { "spy" },
+		Expect = { Panels = { ["BossGuideUi/Panel"] = c[3] }, Remote = false, After = { c[4] } },
 	})
 end
 
