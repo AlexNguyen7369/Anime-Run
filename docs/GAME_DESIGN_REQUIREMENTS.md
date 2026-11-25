@@ -937,6 +937,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-25: owner, on the spawn drafts (https://claude.ai/artifact/YQeWdGJUMrYyRH2MMGWyfp): "B gate approved, Have A gate be a boss spawn gate (closed if boss event inactive), A summon altar approved. B markets aproved", merchants take existing anime character models, "consistent with world"; "Only exception is world 1 summon altar is B summon altar instead. World 2 summon altar is A" (4.24, 4.36, 4.43, 4.47, WORLD_REDESIGN_SPEC 4.2). Looks approved as renders; nothing is in the game yet.
 - 2026-11-25: owner: "world2 ui is same as world 1 ui with the exceptionof 4th character slot. keep gui and hud consistent" (4.46 "HUD look", 4.47): confirms the old HUD in both worlds and the Scroll Dojo panels in both; the fourth team slot is the only difference in look. Owner, same day: "keep awakening bar and welcome popup" (World 2 features, they stay).
 - 2026-11-25: owner: "switching HUD back to old HUD (World 1 HUD)" (4.40, 4.46, 4.47): the 2026-11-24 ruling below stands.
 - 2026-11-25: owner: Blender drafts only for a redrafted world gate, a much bigger and more extravagant Summon altar (with market research), and the plaza's markets and merchants (4.24, 4.36, 4.43, 4.47): nothing in game changes until the owner approves the drafts; positions, prompts, sizes and gameplay rules stay as written. Every size in the drafts is **proposed**.

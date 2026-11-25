@@ -109,6 +109,21 @@ positions are **proposed**; warm gold, amber and paper, one pink accent, matchin
   above the 4 stone lanterns by the gate, bobbing on near clients (tag `BiomeBob`). 12 parts.
 - Total 39 parts, 4 lights. No new client script, asset or sound.
 
+
+### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders, build not started)
+The same in both worlds unless a line says otherwise (owner: "consistent with world"); replaces "services unchanged" in
+WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Positions, prompts and panels stay; every size **proposed**.
+- World gate: gate draft B (shrine gatehouse). Position, lock rule and destination unchanged. Proposed: the label moves up,
+  a non-disc touch part, a locked and an open mesh.
+- Boss gate (new): gate draft A (stone ring). Closed while no boss event is active, open while one is. **Open question**:
+  where it stands, and what it does. **Proposed** until the owner says: its prompt, when open, runs the Bosses panel's Go
+  under that rule's existing joining times and limits; closed, it does nothing; no change to boss rules or timing.
+- Summon altar: World 1 draft B (great lotus), World 2 draft A (twin-roof stage). The only difference between the worlds'
+  pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged.
+- Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds.
+- Merchants: figures at the stalls are existing roster character models, not the draft's own figures; **proposed** one per
+  piece, the same in both worlds, display names the tweaked ones (design doc 5). Static until the owner asks for motion.
+
 ## 5. Player plots: removed (owner 2026-11-11, design doc 4.43)
 
 - Removed: the 7 plots, the Dojo squad (Showcase), the workshop stat boost and levels, the WORKSHOP panel and the remotes `WorkshopOpen`, `WorkshopUpgrade`, `SetWorkshopStat` and `SetShowcase`.
