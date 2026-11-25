@@ -299,3 +299,4 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 13. Ground ownership, details the ruling does not give: the plaza's ground; centre or whole footprint of a prop; heroes
     that fit no spot under the rule (leave out, shrink or move far). Asked with the full count.
 14. Swap round 5 (5747dda6) scored T1 6, T6 6 (bar 7) on its own scenery; round 6 waits for the ownership count.
+15. Audit of round 5 (NEEDS OWNER, no hard violation): Mound 4 to 0, LowBlock 3 to 1 and item 10's counts are stale (now 63, 49, 57); moved props keep their old turn; the 5% / 15% overlap limits are in no doc. Harness exit 1 on the 10 known unplaced heroes only (ROAD 47/10, TRANSFORM 10684/0, PIN 11/0, 154 warnings), run twice independently.
