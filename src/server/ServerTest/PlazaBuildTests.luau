@@ -18,7 +18,7 @@
 -- It builds a fresh plaza outside the DataModel, so hub-local positions are read directly (world + (118, -80)). Not covered
 -- here: the wiring of the client scripts (ui_boss_gate), the meshes' looks, the client's altar display and locked label, header heights, loading of the merchants' models
 -- (4.47 "every world shows" is open), collision by walking, the boss event states, views from the spawn.
--- Offline: lune run tools/lune/server_scenarios <1|2> PlazaBuildTests.plaza_build
+-- Offline: lune run tools/lune/server_scenarios <1|2> PlazaBuildTests.plaza_build PlazaBuildTests.plaza_build_pending
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local H = require(script.Parent.AcceptanceSupport)
 local Shared = ReplicatedStorage.Shared
@@ -144,8 +144,43 @@ local function bounds(asset)
 	return hi.X >= lo.X and hi - lo or nil, lo.Y
 end
 
-function Tests.plaza_build()
-	local r, flag = H.report("plaza_build")
+-- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 23 checks. When a
+-- row's work lands, take the row out here: the check is then a guard of plaza_build. Keep the count in TestConfig's comment.
+local PENDING = {
+	layout_loop_posts = "upload",
+	boss_gate_mesh_BossGateClosed = "upload",
+	boss_gate_mesh_BossGateClosed_on_plaza = "upload",
+	boss_gate_mesh_BossGateOpen = "upload",
+	boss_gate_mesh_BossGateOpen_on_plaza = "upload",
+	gate_mesh_WorldGateLocked = "upload",
+	gate_mesh_WorldGateLocked_footprint = "upload",
+	gate_mesh_WorldGateLocked_on_floor = "upload",
+	gate_mesh_WorldGateOpen = "upload",
+	gate_mesh_WorldGateOpen_footprint = "upload",
+	gate_mesh_WorldGateOpen_on_floor = "upload",
+	altar_mesh_Locked = "upload",
+	altar_mesh_Unlocked = "upload",
+	altar_look_of_this_world = "altar build",
+	gate_locked_touch_not_a_disc = "gate build",
+	gate_locked_touch_fits_doorway = "gate build",
+	gate_locked_touch_at_runner_height = "gate build",
+	gate_locked_label_over_roof = "gate build",
+	gate_open_touch_not_a_disc = "gate build",
+	gate_open_touch_fits_doorway = "gate build",
+	gate_open_touch_at_runner_height = "gate build",
+	gate_open_label_over_roof = "gate build",
+	merchant_sensei_replaces_the_dummy = "merchants", -- red only on a server: offline has no rig to build
+}
+
+local function run(scenario, pending)
+	local r, record = H.report(scenario)
+	local seen = {}
+	local function flag(key, ...)
+		seen[key] = true
+		if (PENDING[key] ~= nil) == pending then
+			record(key, ...)
+		end
+	end
 	local WorldConfig, SpawnArea = require(Shared.WorldConfig), require(Shared.SpawnArea)
 	local PlazaAssets, Catalog = require(Shared.PlazaAssets), require(Shared.CharacterCatalog)
 	local world = WorldConfig.Id
@@ -562,8 +597,25 @@ function Tests.plaza_build()
 	if Switch and GuideSwitch then
 		Switch.LIVE, GuideSwitch.LIVE = gateWas, guideWas
 	end
-	flag("plaza_build_completed", ok, ok and 1 or tostring(err))
+	record(scenario .. "_completed", ok, ok and 1 or tostring(err))
+	if not pending then -- a pending name that no check carries would hide nothing and count for nothing
+		local lost = {}
+		for key in PENDING do
+			if not seen[key] then
+				table.insert(lost, key)
+			end
+		end
+		record("pending_names_are_checks", #lost == 0, #lost == 0 and 1 or table.concat(lost, " "), 1)
+	end
 	return r
+end
+
+function Tests.plaza_build()
+	return run("plaza_build", false)
+end
+
+function Tests.plaza_build_pending()
+	return run("plaza_build_pending", true)
 end
 
 return Tests

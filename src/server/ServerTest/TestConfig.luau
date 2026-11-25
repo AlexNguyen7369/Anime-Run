@@ -28,7 +28,7 @@ return {
 		"hud",
 		"auto_toggle",
 		"spawn_area",
-		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: red by design (23 in Studio) until the uploads and merchants; OWNER_QUESTIONS
+		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: the guards; what waits is plaza_build_pending (OnDemand)
 		"gacha",
 		"catalog",
 		"index",
@@ -101,6 +101,10 @@ return {
 	--   ReplicatedStorage:SetAttribute("ServerTestOnly", "speed_probe"); ReplicatedStorage:SetAttribute("ServerTestRun", true)
 	-- ServerTestOnly (comma-separated names) runs only those scenarios; clear it (nil) for the full suite again.
 	OnDemand = {
+		-- 23 checks of WORLD_REDESIGN_SPEC 4.2 PENDING, red by design (PlazaBuildTests.PENDING; owner 2026-11-25): 13 wait for the
+		-- uploads, 8 for the world gate's build, 1 for the altar's build, 1 for the merchants (passes offline). As work lands,
+		-- rows leave PENDING and this count; at 0 the entry goes.
+		"plaza_build_pending",
 		"speed_probe", -- docs/WORLDS_SPEC.md section 1: highest green cruise speed for RaceConfig.MAX_CRUISE
 		-- docs/BIOME_ENVIRONMENT_SPEC.md section 10 (dev tool, no full-harness gate; each waits for TerrainReady):
 		--   ServerTestOnly = "terrain_built,zone_switch,server_lighting_unchanged,assets_ip"

@@ -94,6 +94,7 @@ local ROLES = {
 	Title = { F.Title, C.Ink },
 	Section = { F.Title, C.Ink },
 	Item = { F.Button, C.Ink },
+	Speech = { F.Button, C.Ink },
 	Tab = { F.Button, C.Ink },
 	Footer = { F.Button, C.Cream },
 	Body = { F.Body, C.Ink },
@@ -121,6 +122,7 @@ local HEADINGS = {
 	SLOTS = { "装備", "" },
 	SELL = { "売却", "" },
 	["AUTO SELL"] = { "自動", "" },
+	GOJIO = { "案内", "Boss gate guide" }, -- the boss gate guide's popup (owner 2026-11-25)
 	["ROLL ODDS"] = { "確率", "" },
 }
 
