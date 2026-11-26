@@ -10,12 +10,12 @@
     -3232.215
    ],
    "OverlapsFrom": [
-    0,
-    null
+    30,
+    "T7 Mound 122x280x81"
    ],
    "OverlapsTo": [
-    1,
-    "T5 Apartment 88x125x76"
+    6,
+    "T2 RuinA 151x252x71"
    ],
    "Studs": 3691.5,
    "To": [
@@ -80,8 +80,8 @@
     -2879.475
    ],
    "OverlapsFrom": [
-    15,
-    "T9 Forest 221x145x180"
+    0,
+    null
    ],
    "OverlapsTo": [
     0,

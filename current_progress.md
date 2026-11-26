@@ -322,6 +322,7 @@
 299. 2026-11-26 — Alex Nguyen — Re-fitted World 2 Tracks 6 (DevilTokyo) and 7 (AntIsland) to the wide layout: Drafts re-exported with 0 drops and 0 off own ground, the HQ and the island volcano placed again, the T7 island laid along the road, review sets rendered.
 300. 2026-11-26 — Alex Nguyen — Corrected the Track 6/7 re-fit per the lead: Track 6's HQ out again with the approved lamps, the island volcano kept at its approved scale (no spot), all 48 Track 7 ships moved inside the Ground rect, and the lead's three re-fit decisions recorded as proposed in WORLD2_SPEC.
 301. 2026-11-26 — Alex Nguyen — Re-exported World 2 Tracks 1-5 and 8-10 on the final square-spiral Segments (66856b89): every approved hero placed but T1 Town, T3 HeroHQ and T8 LairTower (no spot at approved scale); T2 ChainTower now has a spot; both kaiju placements kept; uploaded ledger Ids kept.
+302. 2026-11-26 — Alex Nguyen — Regenerated cross_track.json for World 2 Tracks 1 and 6 on the square spiral (Track 6's lit landmark spots searched on the new road under the approved rule) and ran the second export pass of Tracks 1-5 and 8-10 against every track's new Draft.
 
 ## What's next
 **Second re-fit pass of World 2 once agent-3's Tracks 1-5 and 8-10 Drafts are on the 66856b89 Segments: re-run the T6/T7 neighbour checks and the WORLD=2 biome harness until PIN, ROAD and TRANSFORM are green for all ten tracks.**
