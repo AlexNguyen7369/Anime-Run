@@ -238,15 +238,14 @@ written before the swap.
   centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,
   and one more Office tower (scale 0.55, the approved top) with its lit face to the finish axis. The spots are
   **proposed** (`tools/blender/world2/cross_track.py` LANDMARK); the HQ stays out.
-- World 2 track layout (owner 2026-11-26: "biomes/tracks on world 2 are much too close to each other where racing on
-  one track is not immersive. Spacing per track in terms of width should be much larger, can have the track be
-  straight even, not just circular. There should be little to no overlaps in other tracks"; spacing about 600 studs
-  road edge to road edge, owner's pick): the chain is a square spiral of long straights
+- World 2 track layout (owner 2026-11-26, verbatim: "biomes/tracks on world 2 are much too close to each other where racing on one track is not immersive. Spacing per track in terms of wdith should be much larger , can have the track be straight even, not just circular. There should little to no overlaps in other tracks"; asked directly, the owner picked a spacing of "About 600
+  studs" road edge to road edge between any two World 2 tracks): the chain is a square spiral of long straights
   (docs/proposals/W2_WIDE_LAYOUT.md option C, picked by the lead under the owner's nightly pre-approval 2026-11-26).
-  Fixed by the owner: the smallest road-edge gap between any two World 2 tracks (pairs within 1,200 studs of chain
-  through a shared joint excepted) is at least 600. **Proposed**: pitch 760, corner radius 420. Track lengths, the
-  chain rule, the first/last straights and the NPC table are unchanged. (Replaces the 2026-11-24 coordinator's
-  choice "World 2 keeps World 1's track spacing".)
+  The hard floor, a smallest road-edge gap of at least 600 between any two World 2 tracks, is the lead's reading of
+  the owner's "About 600" under that pre-approval; the 1,200-stud skip of pairs through a shared joint is **proposed**.
+  **Proposed**: pitch 760, corner radius 420, first side 1,000 (so every cut between tracks falls in a straight and
+  every finish straight runs on the 90-degree grid). Track lengths, the chain rule, the first/last straights and the
+  NPC table are unchanged. (Replaces the 2026-11-24 coordinator's choice "World 2 keeps World 1's track spacing".)
 - Hero moves (2026-11-24; positions are re-fitted to the new layout (agent-3 round)): a hero landmark with no placement that passes every game rule moves whole (all its pieces, its
   approved scale and turn) to the nearest spot on its own track's ground that clears its own and every other track's
   corridor, the spawn area and every checkpoint and win pad; the biome drafts stay as approved and the move lives in

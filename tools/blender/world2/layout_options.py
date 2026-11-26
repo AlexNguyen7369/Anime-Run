@@ -135,9 +135,11 @@ def option_b(pitch=780.0, bend_r=2000.0, bend_a=8.0):
 	return tracks
 
 
-def option_c(pitch=760.0, first=900.0, corner=420.0):
+def option_c(pitch=760.0, first=1000.0, corner=420.0):
 	"""(c) Square spiral of long straights: right-hand 90 degree corners of radius `corner`, sides a, a, a+p, a+p, ...
-	so every lap sits `pitch` outside the last; straights up to ~7,000 studs."""
+	so every lap sits `pitch` outside the last; straights up to ~7,000 studs. first = 1,000 puts every cut between two
+	tracks inside a straight (no partial corner, no inserted straight), so every finish straight runs on the 90 degree
+	grid like the checkpoint slabs' collar (biome harness GRASS COLLAR)."""
 	plan, k, sides = [], 0, []
 	while sum(sides) < sum(TARGETS) + 8000:
 		sides.append(first + pitch * (k // 2))
