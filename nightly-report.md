@@ -31,7 +31,7 @@
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you
-- Streaming: World 2 hero landmarks (about 15 models) made persistent instead of raising the global streaming radius (Track 2's ChainTower vanished past about 1,100 studs). Revert: drop the Persistent setting.
+- Far landmarks: Track 2's ChainTower vanishing past about 1,100 studs is Roblox's distance culling at low automatic graphics quality (it draws at high quality), not streaming, haze or LOD. Players on low settings will see the same; nothing in game can lift it. The Persistent change was dropped (orch/world2/w2-hero-stream left unmerged).
 - Scenery refit round 1 scored about 6 in blind review (approved sets about 8): heroes out of view, bare horizons on the long straights, each track a thin band. Round 2 (agents 1 and 3): hero spots seen from the run cameras, each track's own ground filled to its midline with its approved backdrop props, a proposed sky-prop rule (stays in its band, hidden by fog from other tracks). Target 7+ per track before landing.
 - T6 DevilTokyo back row thinned to every 7th slot (with 760 gaps nothing blocked it, so it would have doubled the buildings, about 1.9M more tris). T7 AntIsland coast runs along the road (the old oval would have covered the inner laps); its Nest now faces its road (was a random turn) so its ants stand on its own ground.
 - World 2 layout C is level: the square spiral has no hills (agent-1 removed the Slopes from all World 2 routes; no rule needs them). Hills can be put back inside straights later without changing the plan. Revert: ask for slopes in straights.
