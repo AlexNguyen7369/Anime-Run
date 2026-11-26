@@ -12200,6 +12200,8 @@ do
 	Scenarios.assets_ip = env.assets_ip
 	Scenarios.tunnel_clear = env.tunnel_clear
 end
+-- docs/W2_RENDER_AUDIT.md: nothing shows through a road (on demand, TestConfig.OnDemand)
+Scenarios.road_surface_clear = require(script.Parent.RoadSurfaceTests).road_surface_clear
 Scenarios.passes = require(script.Parent.MonetizationTests).passes -- docs/MONETIZATION_SPEC.md
 Scenarios.odds = require(script.Parent.MonetizationTests).odds
 Scenarios.bag = require(script.Parent.MonetizationTests).bag -- docs/BAG_AND_AUTOSELL_SPEC.md

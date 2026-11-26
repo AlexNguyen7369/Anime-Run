@@ -64,6 +64,16 @@ re-exported (W2_REEXPORT_PLAN batches 1 to 10).
 - Boss models: "Failed to upload TexturePack (Referenced Asset 5 / 17 / 7)" (CharacterModelService's SurfaceAppearances).
 - `rbxassetid://203785492` "Asset type does not match": it is not in `src`, so it comes from the saved place.
 
+## Status (2026-11-26, later)
+- Road supports: **fixed**. The lead chose to fix them Blender-first, because the game must not change a draft's size
+  or placement. The generators keep each support's top `SUPPORT_CLEARANCE` (0.05) under the lowest road underside over
+  its length (`kit.support_top`, commit 6c2533f0); a support that would be under 0.2 studs is sunk, not dropped. The 284
+  support rows of today's five Drafts are rewritten to match (base and footprint kept). On-demand Studio scenario
+  `road_surface_clear`: base 29 pass / 7 fail, fixed 34 pass / 0 fail (640,798 road samples). Pictures:
+  `T2_fill_after.jpg`, `T5_pier_after.jpg`, `T7_bank_after.jpg`.
+- GiantCorpse (lead 2026-11-26): kept as it is. Not re-exported or re-uploaded; it carries the kaiju exception and the owner
+  decides on return.
+
 ## Order proposed
 1. Road supports cut under the road (code only, all tracks, layout-proof). Fix first.
 2. Merge w2-skies (owner sees the toned-down pictures first).

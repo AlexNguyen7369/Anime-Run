@@ -113,5 +113,6 @@ return {
 		"server_lighting_unchanged",
 		"assets_ip",
 		"tunnel_clear", -- spec 3.5: tunnel roof >= 12 over the road, clear of checkpoints
+		"road_surface_clear", -- docs/W2_RENDER_AUDIT.md: no part, terrain or Grass through any road; supports under it
 	},
 }
