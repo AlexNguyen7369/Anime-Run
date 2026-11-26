@@ -120,7 +120,7 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   (`Client/UiTest/UiWorld2`).
 
 ## Tracks
-Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tracks/World2/W2*.luau`.
+Routes follow "World 2 track layout" below (owner 2026-11-26: a square spiral of long straights, target lengths unchanged); `Shared/Tracks/World2/W2*.luau`, briefs in `ServerTest/TrackTests/World2`.
 
 | Track | Id | Biome key | Series | Biome (working name) | Enemy (based on) |
 |---|---|---|---|---|---|

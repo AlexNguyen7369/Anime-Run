@@ -13,6 +13,11 @@ previous finish. Output goes to `assets/world2_draft/layout_options/`: one plan 
 `option_a_wide_spiral.png`, `option_b_zigzag.png`, `option_c_square_spiral.png`) and `layout_options.json`, which holds
 every option's measured rows and its full segment lists, ready to paste into the track files.
 
+Update after the pick (same day): TrackValidator needs every track's **last** straight to be at least 64 studs (the
+60-stud checkpoint plus 4), not 40. The tool now cuts with that rule, and the table below is re-measured with it. C (the
+pick, now in the track files) has a smallest gap of 618 (was 643). A drops to 596, 4 short of 600. B is 662. The first
+measurement is in git history (6b4d73b7).
+
 ## How each number is measured
 
 - **Gap**: the smallest distance from the edge of this track's road to the edge of another track's road. That is the
@@ -33,20 +38,20 @@ every option's measured rows and its full segment lists, ready to paste into the
 | Layout | Smallest gap per track, T1..T10 (studs) | Worst gap | Band on other ground | Extent x / z | Max \|xz\| | Longest straight | Spirals outward |
 |---|---|---|---|---|---|---|---|
 | Current | 89, 83, 78, 78, 78, 41, 41, 148, 514, 1131 | **41** (T6/T7) | 47, 50, 53, 53, 53, 49, 23, 4, 0, 0 % | -4148..4173 / -4148..4148 | 4,293 | 920 | yes |
-| A: wide spiral, pitch 740 | 694, 691, 694, 691, 678, 658, 638, 623, 620, 620 | **620** | T1 7.5 %, others ≤ 0.1 % | -3849..4876 / -4162..4878 | 4,998 | 40 (all arcs) | yes |
-| B: wide zigzag rows, pitch 780 | 740, 701, 701, 701, 701, 663, 663, 687, 687, 740 | **663** | T1 5.2 %, others ≤ 0.1 % | -118..6941 / -10117..12285 | 12,405 | 2,432 | **no** (T2 mean 1,177 < T1 1,259) |
-| C: square spiral, pitch 760 | 701, 643, 701, 643, 696, 720, 720, 720, 720, 720 | **643** | T1 4.5 %, others ≤ 0.1 % | -3937..3803 / -4629..3871 | 4,749 | 7,660 | yes |
+| A: wide spiral, pitch 740 | 694, 688, 691, 688, 671, 646, 620, 601, 596, 596 | **596** (4 short) | T1 7.5 %, others ≤ 0.1 % | -3854..4884 / -4160..4880 | 5,004 | 64 (all arcs) | yes |
+| B: wide zigzag rows, pitch 780 | 740, 701, 701, 701, 701, 662, 662, 685, 685, 740 | **662** | T1 5.3 %, others ≤ 0.1 % | -118..6941 / -10093..12333 | 12,453 | 2,420 | **no** (T2 mean < T1) |
+| C: square spiral, pitch 760 | 689, 618, 689, 618, 702, 720, 720, 720, 720, 720 | **618** | T1 4.5 %, others ≤ 0.2 % | -3949..3791 / -4631..3869 | 4,751 | 7,660 | yes |
 
 - The current chain misses the 600 target by 86 (T9) to 559 (T6, T7) studs on 9 of the 10 tracks. Only T10 passes.
   About half of each prop band on Tracks 1 to 6 lies on another track's ground.
-- **All three options meet the 600 target on every track; none falls short.** A's narrowest margin is +20 (T9, T10),
-  B's is +63 and C's is +43.
+- B and C meet the 600 target on every track. B's narrowest margin is +62 and C's is +18. A falls short by 4 on T9
+  and T10 (596); a pitch of 750 would fix that.
 - The T1 band share in each option is the plaza zone around the start and not another track. The ≤ 0.1 % elsewhere is
   the corner of each track's joint with its neighbour.
 - Lengths match the targets exactly in every option (0.00 %): 2,952 / 3,690 / 4,612 / 5,766 / 7,207 / 9,009 / 11,261 /
   14,076 / 17,595 / 21,994. Track 6 goes from 8,720 (-3.2 %) to its table length of 9,009. The NPC speed and time table
   is unchanged.
-- The smallest gap to the spawn area (from T2 onwards) is 747 for A, 496 for B and 742 for C. The current chain's is 194.
+- The smallest gap to the spawn area (from T2 onwards) is 760 for A, 496 for B and 762 for C. The current chain's is 194.
 
 ## The options
 
@@ -65,7 +70,7 @@ the world furthest: about 7,000 × 22,400 studs, ±12.4k, still inside ±20k.
 sides grow 760 every two sides, so straights run from 820 studs on Track 1 to 7,660 on Track 10. It keeps both spiral
 rules: it spirals outward with T1 nearest and T10 outermost, and each track is a band of the spiral. It also gives the
 long straights the owner asked for. It is the most compact option, with a max |xz| of 4,749, about the same size as
-today's world. Its smallest gap is 643 studs, with 720 from Track 6 outward.
+today's world. Its smallest gap is 618 studs (T2/T4), with 720 from Track 6 outward.
 
 ## Rules each option keeps or breaks
 
@@ -75,7 +80,7 @@ today's world. Its smallest gap is 643 studs, with 720 from Track 6 outward.
 | TRACKS_AND_BIOMES_SPEC: first and last segments are level straights ≥ 40 | keeps | keeps | keeps |
 | Min radius 60 (World 1 track tests) | keeps (456) | keeps (390) | keeps (420) |
 | Right-hand lane, drivable at stat speed: the runner is on a rail with no corner slowing; all turns are ≥ 390 and level | keeps (to verify with TrackValidator) | keeps (to verify) | keeps (to verify) |
-| No overlap with any track or the spawn area | keeps (747 to the spawn) | keeps (496) | keeps (742) |
+| No overlap with any track or the spawn area | keeps (760 to the spawn) | keeps (496) | keeps (762) |
 | Target length within 5 %; length and NPC table (FIXED) | keeps (0 %) | keeps (0 %) | keeps (0 %) |
 | WORLD_REDESIGN_SPEC 3 "spirals outward" (placeholder, mean distance) | keeps | **breaks** at T2 (needs the owner's rule change) | keeps |
 | WORLD_REDESIGN_SPEC 3 spiral form / "ring band about 1.5 laps" (owner ruling for spirals) | keeps the spiral; laps < 1.5 ("may be") | **breaks** (not a spiral; needs the owner's rule change) | keeps the spiral; laps < 1.5 ("may be") |
@@ -96,8 +101,7 @@ today's world. Its smallest gap is 643 studs, with 720 from Track 6 outward.
 
 ## Recommendation
 
-**C, the square spiral of long straights.** It meets the 600-stud target with margin (643 smallest, 720 on the outer
-tracks). No prop band touches another track. It has the long straights the owner asked for. It is the only option that
+**C, the square spiral of long straights.** It meets the 600-stud target (618 smallest, 720 on the outer tracks). No prop band touches another track. It has the long straights the owner asked for. It is the only option that
 does all of that without a rule change: it keeps "spirals outward" and the spiral form. It also stays the size of
 today's world (±4.7k), so the baseplate, streaming and physics precision stay where they are now. B is the purest
 "straight" reading, but it needs two rule changes and a world almost three times as long. A keeps the rules, but all of
