@@ -1122,6 +1122,108 @@ do
 	end
 	print(string.format("PLATE CHECKS pass=%d fail=%d", pass, fail))
 end
+-- PLATE TILES: Main's plate as built (the parts of the first JOIN tracks and the spawn area, the terrain box, PlateBox,
+-- MARGIN 64; TrackBuilder.PlateTiles), and every Ground part's margin-grown corners and centre on a tile, judged exactly as
+-- Studio's world_layout world_baseplate_covers_everything (margin 20, |offset| <= half size). Reproduces the seam tie of
+-- 2026-11-26: a Ground tile's centre exactly on the line between two plate tiles. PLATE_OVERLAP=0 in the environment shows it.
+do
+	local TB = req(Shared.TrackBuilder)
+	local TS = req(Shared.TerrainShape)
+	local JOIN, MARGIN, TEST_MARGIN = 5, 64, 20
+	local lo, hi = R.Vector2.new(math.huge, math.huge), R.Vector2.new(-math.huge, -math.huge)
+	local function grow(root)
+		for _, d in root:GetDescendants() do
+			if d:IsA("BasePart") then
+				local cf, size = d.CFrame, d.Size
+				local hx = math.abs(cf.RightVector.X) * size.X / 2
+					+ math.abs(cf.UpVector.X) * size.Y / 2
+					+ math.abs(cf.LookVector.X) * size.Z / 2
+				local hz = math.abs(cf.RightVector.Z) * size.X / 2
+					+ math.abs(cf.UpVector.Z) * size.Y / 2
+					+ math.abs(cf.LookVector.Z) * size.Z / 2
+				lo = R.Vector2.new(math.min(lo.X, d.Position.X - hx), math.min(lo.Y, d.Position.Z - hz))
+				hi = R.Vector2.new(math.max(hi.X, d.Position.X + hx), math.max(hi.Y, d.Position.Z + hz))
+			end
+		end
+	end
+	for i, e in entries do
+		if i <= JOIN then
+			grow(e.Model)
+		end
+	end
+	grow(spawnArea)
+	local box = TS.Box()
+	lo = R.Vector2.new(math.min(lo.X, box.Min.X), math.min(lo.Y, box.Min.Y))
+	hi = R.Vector2.new(math.max(hi.X, box.Max.X), math.max(hi.Y, box.Max.Y))
+	lo, hi = TB.PlateBox(entries, lo, hi)
+	lo -= R.Vector2.new(MARGIN, MARGIN)
+	hi += R.Vector2.new(MARGIN, MARGIN)
+	local overlap = process.env.PLATE_OVERLAP and tonumber(process.env.PLATE_OVERLAP) or nil
+	local tiles = TB.PlateTiles(lo, hi, overlap)
+	-- as the Studio test: the point in each tile's CFrame (float32, as the engine's), against the tile's half size
+	local frames = {}
+	for _, t in tiles do
+		table.insert(frames, { R.CFrame.new(t.Centre.X, -68, t.Centre.Y), R.Vector3.new(t.Size.X, 1, t.Size.Y) })
+	end
+	-- with SLACK studs to spare: a point exactly on a seam between two tiles (the 2026-11-26 tie) has none without the
+	-- overlap, and float error then puts it on neither in the engine (Lune's rounding happens to fall the other way)
+	local SLACK = 0.01
+	local function covered(x, z)
+		for _, f in frames do
+			local l = f[1]:PointToObjectSpace(R.Vector3.new(x, -68, z))
+			if math.abs(l.X) <= f[2].X / 2 - SLACK and math.abs(l.Z) <= f[2].Z / 2 - SLACK then
+				return true
+			end
+		end
+		return false
+	end
+	local pass, fail, big = 0, 0, 0
+	for _, t in tiles do
+		big = math.max(big, t.Size.X, t.Size.Y)
+	end
+	for _, e in entries do
+		for _, part in e.Model:GetDescendants() do
+			if part:IsA("BasePart") and part.Name == "Ground" then
+				local cf, size = part.CFrame, part.Size
+				local hx = math.abs(cf.RightVector.X) * size.X / 2
+					+ math.abs(cf.LookVector.X) * size.Z / 2
+					+ TEST_MARGIN
+				local hz = math.abs(cf.RightVector.Z) * size.X / 2
+					+ math.abs(cf.LookVector.Z) * size.Z / 2
+					+ TEST_MARGIN
+				local c = cf.Position
+				for _, pt in
+					{
+						{ c.X - hx, c.Z - hz },
+						{ c.X + hx, c.Z + hz },
+						{ c.X - hx, c.Z + hz },
+						{ c.X + hx, c.Z - hz },
+						{ c.X, c.Z },
+					}
+				do
+					if covered(pt[1], pt[2]) then
+						pass += 1
+					else
+						fail += 1
+						print(
+							string.format(
+								"PLATE TILES FAIL %s Ground point (%.3f, %.3f) on no tile",
+								e.Model.Name,
+								pt[1],
+								pt[2]
+							)
+						)
+					end
+				end
+			end
+		end
+	end
+	if big > 2048 then
+		fail += 1
+		print(string.format("PLATE TILES FAIL a tile is %.2f studs, over a part's 2048", big))
+	end
+	print(string.format("PLATE TILES CHECKS pass=%d fail=%d (%d tiles)", pass, fail, #tiles))
+end
 -- World 2's seam (WORLD2_SPEC "World 2 track layout"; TerrainShape.EXACT_FAR): with laps 760 apart the gap midline lies
 -- past the stamp, so the grid's nearest track and distance there must be the true ones (to the centre waypoints, <= 12
 -- studs apart) within SEAM_TOL, and the nearest track the true one wherever the second is more than 2 SEAM_TOL farther.

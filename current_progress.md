@@ -382,8 +382,11 @@
 379. 2026-11-26 — Alex Nguyen — Fixed the World 2 re-fit's rules-audit findings (KaijuBase CityBlock out of the band, owner questions 37-38 answered, the round 2 spec entry, the kept-ids rule, Mountain pieces out of the live rows, stale spec text), checked the lighting zones and the terrain box offline, and logged the one new GoldenCity TRANSFORM row.
 380. 2026-11-26 — Alex Nguyen — Closed the World 2 re-fit's last landing reds on my side: the TRANSFORM check compares unit vectors (Lune float drift), the baseplate covers every track's Ground by construction (TrackBuilder.PlateBox, harness PLATE check), Track 10's Abyss re-placed 400 studs ahead of the 0.9 camera (radius 210), and the audit's spec text.
 381. 2026-11-26 — Alex Nguyen — Made the track briefs' four cash checks and the pad-label literal world-aware (World 2's base, x2 per track and "$63.3b"/"$32.4t"; World 1 unchanged in effect), so the World 2 briefs no longer fail on World 1 constants.
+382. 2026-11-26 — Alex Nguyen — Corrected World 2 prop facing: Open Cloud's GLB import turns meshes 180 degrees about Y, so World 2 placement turns each mesh back about its centre (BiomeDressing.MeshCFrame); w2_mesh_turn 9/0, harness TRANSFORM 13,007/0, Studio before/after pictures (Konbini, Mansion, ChainTower, GiantCorpse).
+383. 2026-11-26 — Alex Nguyen — Raised World 2 track lighting (owner 2026-11-26 "too dim"): channel and luminance floors up, Track 7 dusk brighter; rule and tests first, Studio before/after on six tracks, rules audit PASS.
+384. 2026-11-26 — Alex Nguyen — Made the safety baseplate's tiles overlap by 0.1 stud (TrackBuilder.PlateTiles) so no point falls on a seam between two tiles, with a harness row that reproduces the Studio tie, and checked offline that Track 7's 0.62 view is on its own road and ground.
 
 ## What's next
-**Studio check of the re-fit (agent-2: moved and resized heroes load, the hash-mismatch meshes, other tracks' tall props through the game's fog), then merge orch/world2/w2-refit into feature/alex/world2-place.**
+**The lead merges orch/world2/w2-brighter into the World 2 landing and the owner looks at the brighter tracks (Track 10's paler red).**
 
-**Why this is next:** the offline checks pass; the meshes whose GLB hash differs from the upload and the sky-prop rule can only be judged in Studio and by the owner.
+**Why this is next:** the owner asked for the brighter tracks before the World 2 landing goes further.

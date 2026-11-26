@@ -368,6 +368,32 @@ function TrackBuilder.GroundBox(layout, origin)
 	return lo, hi
 end
 
+-- Studs each baseplate tile reaches past its share of the plate on every side, so neighbours overlap by twice this:
+-- a point on a seam (float error) is on a tile. Studio world_layout 2026-11-26: a Ground tile's centre on the seam
+-- between Tile_2_2 and Tile_2_3 lay on neither.
+TrackBuilder.PLATE_OVERLAP = 0.05
+TrackBuilder.PLATE_TILE = 2048 -- a part's largest size: an overlapping tile stays at or under it
+
+-- The safety baseplate's tiles over the XZ box lo..hi (Vector2): { Name, Centre (Vector2), Size (Vector2) } each, the
+-- fewest equal tiles of at most PLATE_TILE, each grown by PLATE_OVERLAP on every side.
+function TrackBuilder.PlateTiles(lo, hi, overlap)
+	overlap = overlap or TrackBuilder.PLATE_OVERLAP
+	local span = TrackBuilder.PLATE_TILE - 2 * overlap
+	local nx, nz = math.ceil((hi.X - lo.X) / span), math.ceil((hi.Y - lo.Y) / span)
+	local sx, sz = (hi.X - lo.X) / nx, (hi.Y - lo.Y) / nz
+	local tiles = {}
+	for i = 0, nx - 1 do
+		for j = 0, nz - 1 do
+			table.insert(tiles, {
+				Name = "Tile_" .. i .. "_" .. j,
+				Centre = Vector2.new(lo.X + sx * (i + 0.5), lo.Y + sz * (j + 0.5)),
+				Size = Vector2.new(sx + 2 * overlap, sz + 2 * overlap),
+			})
+		end
+	end
+	return tiles
+end
+
 -- The safety baseplate's XZ box before the late tracks have parts (WORLD_REDESIGN_SPEC 3: every track part plus a
 -- margin): lo / hi (Vector2) grown to every entry's ({ Layout, Origin }) Ground box, so a track built after the plate
 -- (Main's late tracks) is under it even where its Ground reaches past the terrain box (2026-11-26, Studio world_layout).

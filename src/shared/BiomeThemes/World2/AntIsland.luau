@@ -35,9 +35,11 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	SkyLook = {
 		Lighting = {
 			ClockTime = 17.6,
-			Brightness = 1.4,
-			ExposureCompensation = -0.3,
-			OutdoorAmbient = hex("D8946A"):Lerp(hex("6E6670"), 0.5),
+			-- brighter dusk (owner 2026-11-26 "too dim cant see much/dark", WORLD2_SPEC "Track lighting"; proposed): was 1.4,
+			-- -0.3 and the orange half toward grey
+			Brightness = 2.1,
+			ExposureCompensation = 0.2,
+			OutdoorAmbient = hex("D8946A"):Lerp(hex("6E6670"), 1 / 3),
 		},
 		Grade = { Saturation = -0.1, TintColor = Color3.new(1, 1, 1):Lerp(hex("FFB070"), 0.3) },
 	},
