@@ -62,8 +62,18 @@ function Tests.world2_lighting()
 		for _, look in looks do
 			local tag, L = key .. look[1], look[2]
 			flag(tag .. "_brightness", L.Brightness >= f.Brightness - EPS, L.Brightness, f.Brightness)
-			flag(tag .. "_ambient", top(L.Ambient) >= f.Ambient - EPS, math.floor(top(L.Ambient) * 1000) / 1000, f.Ambient)
-			flag(tag .. "_ambient_lum", lum(L.Ambient) >= f.AmbLum - EPS, math.floor(lum(L.Ambient) * 1000) / 1000, f.AmbLum)
+			flag(
+				tag .. "_ambient",
+				top(L.Ambient) >= f.Ambient - EPS,
+				math.floor(top(L.Ambient) * 1000) / 1000,
+				f.Ambient
+			)
+			flag(
+				tag .. "_ambient_lum",
+				lum(L.Ambient) >= f.AmbLum - EPS,
+				math.floor(lum(L.Ambient) * 1000) / 1000,
+				f.AmbLum
+			)
 			flag(
 				tag .. "_outdoor",
 				top(L.OutdoorAmbient) >= f.OutdoorAmbient - EPS,
@@ -77,7 +87,12 @@ function Tests.world2_lighting()
 				f.OutLum
 			)
 			if f.Exposure then
-				flag(tag .. "_exposure", math.abs(L.ExposureCompensation - f.Exposure) < EPS, L.ExposureCompensation, f.Exposure)
+				flag(
+					tag .. "_exposure",
+					math.abs(L.ExposureCompensation - f.Exposure) < EPS,
+					L.ExposureCompensation,
+					f.Exposure
+				)
 			end
 		end
 	end
