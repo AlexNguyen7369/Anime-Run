@@ -145,6 +145,69 @@ function M.overlap(tracks, only)
 	return ok, nearest, worst
 end
 
+-- World 2 road gap (WORLD2_SPEC "World 2 track layout", owner 2026-11-26): the smallest XZ gap from track `only`'s
+-- road edge to any other track's road edge, centre waypoints less both half widths. For neighbouring tracks a pair is
+-- skipped when its chain distance through their shared joint (arc to this track's finish + arc from the next track's
+-- start) is under ROAD_GAP_SKIP, so the joint itself is no near miss. only = nil: every pair. Bucketed and yielding.
+-- Returns the smallest gap (math.huge if no pair came within one cell) and its pair "a-b".
+M.ROAD_GAP_SKIP = 1200
+function M.roadGap(tracks, only, reach)
+	local cell = reach or 700
+	local arcs, grid = {}, {}
+	for i, t in tracks do
+		local a = table.create(#t.Points, 0)
+		for k = 2, #t.Points do
+			a[k] = a[k - 1] + (t.Points[k] - t.Points[k - 1]).Magnitude
+		end
+		arcs[i] = a
+		for k, p in t.Points do
+			local key = math.floor(p.X / cell) * 65536 + math.floor(p.Z / cell)
+			local bucket = grid[key]
+			if not bucket then
+				bucket = {}
+				grid[key] = bucket
+			end
+			table.insert(bucket, { i, k })
+		end
+		tick(#t.Points)
+	end
+	local best, pair = math.huge, nil
+	for i, t in tracks do
+		if only == nil or i == only then
+			local ai, total = arcs[i], arcs[i][#arcs[i]]
+			for k, p in t.Points do
+				local cx, cz = math.floor(p.X / cell), math.floor(p.Z / cell)
+				for dx = -1, 1 do
+					for dz = -1, 1 do
+						for _, e in grid[(cx + dx) * 65536 + cz + dz] or {} do
+							local j, m = e[1], e[2]
+							if j ~= i and (only ~= nil or j > i) then
+								local skip = false
+								if j == i + 1 then
+									skip = (total - ai[k]) + arcs[j][m] < M.ROAD_GAP_SKIP
+								elseif j == i - 1 then
+									skip = ai[k] + (arcs[j][#arcs[j]] - arcs[j][m]) < M.ROAD_GAP_SKIP
+								end
+								if not skip then
+									local q = tracks[j].Points[m]
+									local d = Vector2.new(p.X - q.X, p.Z - q.Z).Magnitude
+										- (t.Layout.Width + tracks[j].Layout.Width) / 2
+									if d < best then
+										best = d
+										pair = ("%s-%s"):format(tostring(t.Number), tostring(tracks[j].Number))
+									end
+								end
+							end
+						end
+						tick(1)
+					end
+				end
+			end
+		end
+	end
+	return best, pair
+end
+
 -- Mean XZ distance of a track's centre waypoints from the plaza centre (world origin, WORLD_REDESIGN_SPEC 3)
 function M.meanRadius(t)
 	local sum = 0
@@ -453,6 +516,28 @@ function M.make(helpers)
 					check(case[1], -1, 0, false)
 				end
 			end
+		end
+
+		if expect.MinRoadGap then -- World 2 (WORLD2_SPEC "World 2 track layout", owner 2026-11-26)
+			local specs = TrackRegistry and TrackRegistry.Chain() or {}
+			local tracks = TrackBuilder and M.world(TrackBuilder, specs) or {}
+			local index = nil
+			for i, t in tracks do
+				if t.Number == n then
+					index = i
+				end
+			end
+			local gap, pair = math.huge, nil
+			if index then
+				gap, pair = M.roadGap(tracks, index, expect.MinRoadGap + 100)
+			end
+			check(
+				"min_road_gap_other_tracks",
+				index and gap or -1,
+				expect.MinRoadGap,
+				index ~= nil and gap >= expect.MinRoadGap
+			)
+			metrics.nearest_road_gap_pair = pair
 		end
 
 		if expect.RunnerRuns then

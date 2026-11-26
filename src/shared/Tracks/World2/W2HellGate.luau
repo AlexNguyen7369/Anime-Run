@@ -1,7 +1,7 @@
 --!nonstrict
 -- World 2 Track 10 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Hell's Gate run.
--- Same route as World 1's Track 10 (Space), so its length, spiral lap and validator results carry over
--- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
+-- Route: World 2's square spiral of long straights (WORLD2_SPEC "World 2 track layout", owner 2026-11-26; pitch 760
+-- and corner radius 420 proposed), the target length of docs/TRACKS_AND_BIOMES_SPEC.md "Lengths". Palette proposed.
 return {
 	Name = "W2HellGate",
 	Description = "Hell's Gate run: a red sky over endless doors, floating stairs and a field of giant hands.",
@@ -19,22 +19,10 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 120 },
-		{ Type = "Slope", Length = 220, Rise = 54 }, -- grassy island hill
-		{ Type = "Straight", Length = 30 },
-		{ Type = "Slope", Length = 220, Rise = -54 },
-		{ Type = "Straight", Length = 919.908 },
-		{ Type = "Turn", Angle = -90, Radius = 3297.927 }, -- corner
-		{ Type = "Straight", Length = 150 },
-		{ Type = "Turn", Angle = 5, Radius = 3350 }, -- land bridge over blue-green water
-		{ Type = "Turn", Angle = -10, Radius = 3350 },
-		{ Type = "Turn", Angle = 5, Radius = 3350 },
-		{ Type = "Straight", Length = 382.113 },
-		{ Type = "Turn", Angle = -90, Radius = 3297.927 }, -- corner
-		{ Type = "Straight", Length = 850 },
-		{ Type = "Straight", Length = 850 },
-		{ Type = "Turn", Angle = -90, Radius = 3297.927 }, -- corner
-		{ Type = "Straight", Length = 764.274 }, -- finish straight
-		{ Type = "Straight", Length = 764.274 }, -- finish straight
+		{ Type = "Straight", Length = 6594.5547 }, -- start straight
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 7660 },
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 6420.0764 }, -- finish straight
 	},
 }

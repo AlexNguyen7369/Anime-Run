@@ -49,9 +49,12 @@ def seg_len(seg):
 	return seg["Length"]
 
 
+END_MIN = 64  # TrackValidator: the last straight holds the checkpoint (CHECKPOINT_LENGTH 60 + 4)
+
+
 def cut(plan, lengths):
-	"""Cuts one continuous plan into tracks of exactly `lengths`, each starting and ending on a level straight >= 40.
-	A cut inside a straight (40+ either side) costs nothing; anywhere else a 40-stud straight is inserted."""
+	"""Cuts one continuous plan into tracks of exactly `lengths`, each starting on a level straight >= 40 and ending on
+	one >= END_MIN. A cut inside a straight (room either side) costs nothing; anywhere else a straight is inserted."""
 	plan = [dict(s) for s in plan]
 	i, tracks = 0, []
 	for L in lengths:
@@ -62,23 +65,23 @@ def cut(plan, lengths):
 		while need > 1e-6:
 			cur = plan[i]
 			l = seg_len(cur)
-			if cur["Type"] == "Straight" and l >= need + 40 and need >= 40:
+			if cur["Type"] == "Straight" and l >= need + 40 and need >= END_MIN:
 				segs.append(S(need))
 				cur["Length"] = l - need
 				need = 0
-			elif cur["Type"] == "Straight" and abs(l - need) < 1e-6 and need >= 40:
+			elif cur["Type"] == "Straight" and abs(l - need) < 1e-6 and need >= END_MIN:
 				segs.append(S(need))
 				i += 1
 				need = 0
-			elif l < need - 40:
+			elif l < need - END_MIN:
 				segs.append(dict(cur))
 				need -= l
 				i += 1
-			else:  # end here: take need - 40 of this piece, then a 40 straight
-				take = need - 40
+			else:  # end here: take need - END_MIN of this piece, then an END_MIN straight
+				take = need - END_MIN
 				if cur["Type"] == "Straight":
 					cur["Length"] = l - take
-					segs.append(S(take + 40))
+					segs.append(S(take + END_MIN))
 				else:
 					sign = 1 if cur["Angle"] >= 0 else -1
 					a = math.degrees(take / cur["Radius"])
@@ -86,7 +89,7 @@ def cut(plan, lengths):
 					cur["Angle"] = sign * (abs(cur["Angle"]) - a)
 					if abs(cur["Angle"]) < 1e-9:
 						i += 1
-					segs.append(S(40))
+					segs.append(S(END_MIN))
 				need = 0
 		segs = [s for s in segs if seg_len(s) > 1e-6]
 		tracks.append(segs)
@@ -112,7 +115,7 @@ def option_b(pitch=780.0, bend_r=2000.0, bend_a=8.0):
 	tracks = []
 	for n, L in enumerate(TARGETS, 1):
 		u = math.pi * pitch / 2 if n < 10 else 0.0
-		body = L - 80 - u
+		body = L - 40 - END_MIN - u
 		s_len = bend_r * math.radians(4 * bend_a)
 		nb = max(0, int(body // 3200))
 		straight = (body - nb * s_len) / (nb + 1)
@@ -121,7 +124,7 @@ def option_b(pitch=780.0, bend_r=2000.0, bend_a=8.0):
 			segs += [T(bend_a, bend_r), T(-2 * bend_a, bend_r), T(bend_a, bend_r), S(straight)]
 		if n < 10:
 			segs.append(T(-180 if n % 2 == 1 else 180, pitch / 2))
-		segs.append(S(40))
+		segs.append(S(END_MIN))
 		merged = []
 		for s in segs:
 			if merged and s["Type"] == "Straight" and merged[-1]["Type"] == "Straight":
@@ -281,7 +284,7 @@ def draw(tracks, m, name, title):
 
 
 OPTIONS = [
-	("current", "Current World 2 chain (feature/alex/world2-place)", current),
+	("live", "Live World 2 chain (src/shared/Tracks/World2)", current),
 	("option_a_wide_spiral", "Option A: same spiral, lap pitch 740", option_a),
 	("option_b_zigzag", "Option B: wide zigzag rows, pitch 780, gentle S-bends", option_b),
 	("option_c_square_spiral", "Option C: square spiral of long straights, pitch 760", option_c),
@@ -291,6 +294,11 @@ OPTIONS = [
 def main():
 	os.makedirs(OUT, exist_ok=True)
 	result = {}
+	path = os.path.join(OUT, "layout_options.json")
+	if os.path.exists(path):  # "current" is the chain before the wide layout (c726534f), kept as measured then
+		before = json.load(open(path)).get("current")
+		if before:
+			result["current"] = before
 	for key, title, make in OPTIONS:
 		tracks = world(make())
 		m = measure(tracks)

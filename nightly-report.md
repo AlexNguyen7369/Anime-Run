@@ -3,6 +3,7 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- Skies merge: stopped before merging orch/world2/w2-skies (7faffd03). You asked for "pictures again before the merge" (design log 2026-11-26), so I did not pre-approve it. Question: are the toned-down skies on https://claude.ai/artifact/XAGPYh1kpojUd35tXm58NJ good to merge? State: audit found only that gate, now written into WORLD2_SPEC (ffa6c958); world2_skies 81/81.
 - Studio test run and Play check: my script writes to the cloud place were denied. Question: allow execute_luau script writes, or connect Rojo to w2-ingame? State: orch/world2/cast-ingame pushed.
 - Merge to main and publishing places: not done (never pre-approved).
 
@@ -183,3 +184,19 @@
 ### Blocked (needs you)
 - Bring main up to date (PR #28): stopped at the merge; the permission check denied `gh pr merge 28`, and merging to main is never pre-approved on a nightly run. Question: merge PR #28 (fresh review APPROVE, mergeable, based on main 6a36029)? State: feature/alex/ui-scroll-redesign pushed, nothing else left.
 - ui_run_visual: fails only because the Studio window is throttled in the background. Question: may a run bring Studio to the front once (it breaks the no-focus rule while you are away)? State: main, no code change needed.
+
+## Nightly run 2026-11-26 (owner pre-approved everything until finished; place publishing and force-push still excluded)
+
+### Queue
+1. World 2 wide layout (about 600 studs between tracks, straight allowed, little to no overlap): agent-1 options, lead picks, implement, re-place scenery (agent-3), Studio verify.
+2. World 2 rendering: ground/grass/z-fighting, other tracks visible, dark props (agent-2 audit, then fixes; re-export uploads).
+3. Skies merge (owner's toned-down choice), zones re-fitted after the re-lay.
+4. Full Studio pass both worlds, PR World 2 into main, fresh reviewer, merge on approval (owner standing rule).
+
+### Done
+
+### Decisions I made for you
+
+### Blocked (needs you)
+
+### Skipped

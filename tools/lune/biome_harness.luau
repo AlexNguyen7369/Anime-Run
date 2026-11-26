@@ -1028,6 +1028,67 @@ do
 	table.insert(clear, { Min = centre - half, Max = centre + half })
 end
 TS.Prepare(entries, clear, { spawnArea })
+-- World 2's seam (WORLD2_SPEC "World 2 track layout"; TerrainShape.EXACT_FAR): with laps 760 apart the gap midline lies
+-- past the stamp, so the grid's nearest track and distance there must be the true ones (to the centre waypoints, <= 12
+-- studs apart) within SEAM_TOL, and the nearest track the true one wherever the second is more than 2 SEAM_TOL farther.
+if process.env.WORLD == "2" then
+	local SEAM_TOL, pts = 4, {}
+	for _, e in entries do
+		for k, w in e.Layout.Waypoints do
+			local p = e.Origin:PointToWorldSpace(w)
+			table.insert(pts, { e.Number, p.X, p.Z })
+		end
+	end
+	-- inside the grid only (the centre lines' box plus STAMP); past it the grid answers by its nearest edge node
+	local box = { Min = R.Vector2.new(math.huge, math.huge), Max = R.Vector2.new(-math.huge, -math.huge) }
+	for _, q in pts do
+		box.Min = R.Vector2.new(math.min(box.Min.X, q[2]), math.min(box.Min.Y, q[3]))
+		box.Max = R.Vector2.new(math.max(box.Max.X, q[2]), math.max(box.Max.Y, q[3]))
+	end
+	box.Min -= R.Vector2.one * TS.STAMP
+	box.Max += R.Vector2.one * TS.STAMP
+	local pass, fail, worst, seed = 0, 0, 0, 12345
+	for _ = 1, 3000 do
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		local x = box.Min.X + (seed / 2147483648) * (box.Max.X - box.Min.X)
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		local z = box.Min.Y + (seed / 2147483648) * (box.Max.Y - box.Min.Y)
+		local best, bestN, second = math.huge, nil, math.huge
+		local near = {}
+		for _, q in pts do
+			local d = math.sqrt((q[2] - x) ^ 2 + (q[3] - z) ^ 2)
+			if d < (near[q[1]] or math.huge) then
+				near[q[1]] = d
+			end
+		end
+		for n, d in near do
+			if d < best then
+				best, bestN, second = d, n, best
+			elseif d < second then
+				second = d
+			end
+		end
+		if best > TS.STAMP + 16 and best < 600 then
+			local zone, d = TS.Owner(x, z, bestN)
+			local ok = math.abs(d - best) <= SEAM_TOL and (zone == bestN or second - best <= 2 * SEAM_TOL)
+			worst = math.max(worst, math.abs(d - best))
+			if ok then
+				pass += 1
+			else
+				fail += 1
+			end
+		end
+	end
+	print(
+		string.format(
+			"W2 SEAM CHECKS pass=%d fail=%d worst %.1f studs%s",
+			pass,
+			fail,
+			worst,
+			fail > 0 and " FAIL" or ""
+		)
+	)
+end
 -- docs/BUGS.md w2-grass-through-road: the engine grows grass blades on Grass terrain taller than the 2 studs between the
 -- corridor's top and the road's, so no column under a road, its walls or a clear slab (checkpoint apron, WinPad, plaza
 -- floor) is Grass. Every waypoint, across the road and its walls every 4 studs.
