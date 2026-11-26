@@ -340,6 +340,7 @@
 330. 2026-11-26 — Alex Nguyen — Made road_surface_clear enforce the 0.05 support clearance under every road (Studio 55/55 on the final rows), re-shot the Track 2, 5 and 7 after pictures on them, and merged the World 2 branch.
 331. 2026-11-26 — Alex Nguyen — Corrected the opening words of WORLD2_SPEC's road-supports exception to name the 6 sunk rows' bases, after the third rules audit.
 332. 2026-11-26 — Alex Nguyen — Merged the World 2 road-support fix (Fill, Pier and Bank tops under the road on climbs, 6 sunk at 0.2) and the render audit into the World 2 branch; Studio road_surface_clear 55/0 over 640,798 samples; audit PASS.
+332. 2026-11-26 — Alex Nguyen — Checked the World 2 HUD slot-1 placeholder in Studio: it is the placeholder Starter left in slot 1 by the auto-fill rule (by design, owner question noted), not a HUD fault; recorded in BUGS.md.
 
 ## What's next
 **Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**
