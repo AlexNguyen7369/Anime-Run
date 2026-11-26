@@ -11,6 +11,7 @@
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you
+- Spawn: scale the plaza about 1.3x in both worlds (one shared layout), clamped to World 1's track clearances; larger SpawnLocation scatter. Revert: drop orch/world2/w2-spawn-gate.
 - Layout: chose option C (square spiral of long straights, pitch 760, corners R420; smallest gap 643, T6 on 720) over A (wider round spiral, 620, no straights) and B (zigzag, 663, breaks two spiral rules and grows the world to 12k). C keeps every rule and today's world size. Revert: pick A or B from docs/proposals/W2_WIDE_LAYOUT.md (orch/world2/w2-wide-layout 6b4d73b7).
 - Moving tracks whole with connectors was ruled out: agent-3 showed the +5% length slack is 3-8x too short (W2_LAYOUT_IMPACT.md, 00ebd421).
 - Track 1 neighbours round (orch/world2/w2-t1-neighbours): dropped as moot, left unmerged.
@@ -194,7 +195,8 @@
 1. World 2 wide layout (about 600 studs between tracks, straight allowed, little to no overlap): agent-1 options, lead picks, implement, re-place scenery (agent-3), Studio verify.
 2. World 2 rendering: ground/grass/z-fighting, other tracks visible, dark props (agent-2 audit, then fixes; re-export uploads).
 3. Skies merge (owner's toned-down choice), zones re-fitted after the re-lay.
-4. Full Studio pass both worlds, PR World 2 into main, fresh reviewer, merge on approval (owner standing rule).
+4. Owner's added tasks (2026-11-26, design log f2446967): World 2 back to a team of 3 (subagent, orch/world2/w2-team3); wider spawn + boss gate draft A in World 2 (subagent, orch/world2/w2-spawn-gate); track smoke, dragons and moving props drafts, LIVE off (subagent, orch/world2/w2-track-vfx).
+5. Full Studio pass both worlds, PR World 2 into main, fresh reviewer, merge on approval (owner standing rule).
 
 ### Done
 
