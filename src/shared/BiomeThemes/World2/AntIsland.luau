@@ -16,9 +16,13 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	-- Flat ground at the corridor height, as the draft's ground plane (spec 3.3 Blocks)
 	Terrain = {
 		Ridge = { Shape = "Blocks" },
-		-- The approved island's sea (WORLD2_SPEC "Track 7's sea", BIOME_ENVIRONMENT_SPEC 2.2 "Coast"; proposed): Water from
-		-- 280 studs off the road, so the blockade ships (312 out) float and the coast cliffs (about 253) stand at the shore.
-		Coast = { From = 280, Blend = 24, Depth = 2 }, -- a 2-stud sea: the ships snap to the bed, so they float about 2 deep
+		-- The approved island's sea (WORLD2_SPEC "Track 7's sea", BIOME_ENVIRONMENT_SPEC 2.2 "Coast"; proposed): Water round
+		-- the blockade ships (Under: each Ship row's hull box, full within Reach of it, back to land over Blend), from 240
+		-- studs off the road, so the ships (312 out, their hulls from about 280) float and the nest, its ants and the
+		-- volcano past the coast stay on the draft's grass (the 3 ships on the nest are out of the draft, 2026-11-27). Depth 4 (was 2): the game's 4-stud voxels draw no water over a
+		-- bed under 3 studs deep (Studio 2026-11-26: ships on sand); 4 draws the same water voxel as Docks' 6. The ships
+		-- snap to the bed, so they float about 4 deep.
+		Coast = { From = 240, Blend = 24, Depth = 4, Under = "Ship", Reach = 24 },
 		Water = { Level = -3 },
 		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Sand },
 		CliffSlope = 0.9,
