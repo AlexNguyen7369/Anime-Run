@@ -330,8 +330,9 @@
 327. 2026-11-26 — Alex Nguyen — Kept the Shop, Potions, Market and Index at their approved distance from the spawn (moved only with the centre) so their merchants' names stay readable at 16 px, checked them clear of every other piece by 16.35 studs, and merged the World 2 branch (team of 3, track effects, skies) into the spawn-gate branch.
 328. 2026-11-26 — Alex Nguyen — Reverted the moved 1.2x plaza after the rules audit (walk spawn 159.5 from Track 1's start, the 4.43 ring split) and instead grew the walkable floor on its three open sides only (east 131.6, north 132, south -119, west unchanged, tree pit round the Great Sakura), every road at least 2.00 studs off in both worlds and option C, rules and tests first.
 329. 2026-11-26 — Alex Nguyen — Merged the World 2 boss gate (draft A), the spawn floor grown on its three open sides (225.6 x 251) and the spawn scatter; Studio World 2: spawn_area 201/201, plaza_pieces 306/306, plaza_build 171/171, boss_guide 95/95, auto_toggle 158/158, world_layout 12/12, ui_boss_gate 14/14; audit PASS.
+330. 2026-11-26 — Alex Nguyen — Fixed three UI test harness bugs as test writer (Bosses button race in ui_team, ui_boss camera state carried between runs, Daily Rewards popup left open before a scenario) with bounded waits and setup/teardown, no check dropped or limit widened; Studio proof pending.
 
 ## What's next
-**Land the World 2 square-spiral layout together with the scenery refit (orch/world2/w2-wide-layout and orch/world2/w2-refit), then run the World 2 track tests in Studio.**
+**Prove the three UI harness fixes in a World 2 Studio slot: ui_team, ui_boss and ui_boss_gate each green twice in a row in one Play session, then mark the BUGS.md lines proven.**
 
-**Why this is next:** the layout alone leaves scenery on the old routes (PIN 156/853); the World 2 PR to main and the effects' Studio check both need the re-laid tracks.
+**Why this is next:** the fixes are offline only; the World 2 PR's Studio pass needs these scenarios to be trustworthy, and the BUGS.md entries stay 'proof pending' until then.
