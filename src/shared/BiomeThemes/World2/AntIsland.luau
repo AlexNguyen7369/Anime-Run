@@ -24,6 +24,11 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 		CliffSlope = 0.9,
 	},
 	Audio = { Volume = 0.35 }, -- no sounds yet
+	-- The sea's look (WORLD2_SPEC "Track 7's sea"; proposed): the approved draft's sea colour (biomes/AntIsland.py OCEAN
+	-- 1C4260), set on the client per zone (Client/BiomeEnvironment), so only this zone's water has it
+	Atmosphere = {
+		Water = { Color = hex("1C4260"), Transparency = 0.3, Reflectance = 0.25, WaveSize = 0.15, WaveSpeed = 8 },
+	},
 	-- Asset ledger (spec 4.4): one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {

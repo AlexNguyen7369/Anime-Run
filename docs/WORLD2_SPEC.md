@@ -257,7 +257,8 @@ written before the swap.
 - Track 7's sea (2026-11-26, the owner's "fix rendering on all tracks", lead's decision, **proposed**): terrain Water from
   280 studs off Track 7's road out to its own ground's edge (the coast and the ships' band), level -3, so the 48 blockade
   ships float as in the approved draft instead of standing on grass. World 2 AntIsland only; road corridor, walls,
-  checkpoints and the grass-strip rule unchanged (BIOME_ENVIRONMENT_SPEC 2.2 "Coast").
+  checkpoints and the grass-strip rule unchanged (BIOME_ENVIRONMENT_SPEC 2.2 "Coast"). Its water colour is the approved
+  draft's sea, 1C4260 (transparency 0.3, reflectance 0.25, waves 0.15 / 8; proposed), set per zone on the client.
 - Hero moves (2026-11-24; positions are re-fitted to the new layout (agent-3 round)): a hero landmark with no placement that passes every game rule moves whole (all its pieces, its
   approved scale and turn) to the nearest spot on its own track's ground that clears its own and every other track's
   corridor, the spawn area and every checkpoint and win pad; the biome drafts stay as approved and the move lives in
