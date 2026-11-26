@@ -332,8 +332,9 @@
 309. 2026-11-26 — Alex Nguyen — Applied the owner's 2026-11-26 rulings on World 2: Track 6's HQ back on its legal spot with its floodlights, and Track 1 Town (1.015), Track 3 HeroHQ (0.562) and Track 7 IslandVolcano (0.389) shrunk to the largest scale that fits their own ground in a run camera's view; Track 7 now scores 7/7/7 blind.
 310. 2026-11-26 — Alex Nguyen — World 2 re-fit round 2 tools: hero spot search prefers the run cameras' views, kit.band backdrop over each track's own band, an approximate fog for context renders, the proposed sky-prop rule (WORLD2_SPEC) and owner questions 37-38 (LairTower, Abyss scale).
 311. 2026-11-26 — Alex Nguyen — Placed World 2's Track 8 LairTower (3.45) and Track 10 Abyss (radius 500) at the largest scale that fits their own ground, in run-camera view (owner 2026-11-26), kept every row on the game's Ground rectangle, and re-rendered Tracks 4, 5, 8, 9 and 10.
+312. 2026-11-26 — Alex Nguyen — Finished World 2 re-fit round 2 for Tracks 4, 5, 8, 9 and 10 (blind game scores 7, 7, 8, 7, 7), rewrote the pins over all ten final Drafts (harness clean but one known TRANSFORM row) and added the round 2 report.
 
 ## What's next
-**The lead's landing pass: merge the World 2 layout, re-fit and UI-fix branches, agent-3's PIN=write, then the World 2 Studio pass with the ten track:W2* briefs at normal and max speed.**
+**Owner review of the World 2 wide-layout re-fit (renders in assets/world2_draft/relayout_2026-11-26, report docs/proposals/W2_REFIT_REPORT.md): the sky-prop rule's numbers, the context views, then the Studio check of the hash-mismatch meshes and the ChainTower uploads.**
 
-**Why this is next:** every re-fitted track now meets the blind bar and the harness is green apart from stale pins; the World 2 PR waits on the merge and the Studio checks.
+**Why this is next:** every track now meets the game-view bar; what is left needs the owner (sky-prop thresholds, fog) or Studio (mesh checks, uploads).

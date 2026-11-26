@@ -131,3 +131,99 @@ Proposed for round 2:
 ## Renders
 
 `assets/world2_draft/relayout_2026-11-26/trackNN_<Key>/{game,context}/` (2e166615).
+
+# Round 2 (Tracks 4, 5, 8, 9, 10: agent-3; Tracks 1, 2, 3, 6, 7: agent-1 on orch/world2/w2-refit-b, merged here)
+
+Target from the lead: at least 7 in the game view on every track, from fresh blind reviewers.
+
+## What changed
+
+- **Hero spots.** `export_props.find_spot(prefer=)` prefers a legal spot that a run camera has in frame within 1,600
+  studs (`seen_near`). On the wide layout, every hero spot must also lie on its track's Ground rectangle: the game builds a
+  Placed prop only with its base centre there (`kit.in_ground`). Moves now: T5 DefenseHQ 60, T9 Church 310,
+  T10 DarkGate 90.
+- **Shrink to fit** (owner 2026-11-26, design log fe810a44, "Approve 1-4", item 2):
+  - T8 LairTower stands at scale 3.45 (approved 4.2) ahead of the 0.62 camera, turn 0.
+  - T10 Abyss has radius 500 (its rule's old floor was 800) ahead of the 0.9 camera. This is the first time it is in a
+    Draft.
+  - agent-1: T1 Town 1.015, T3 HeroHQ 0.562, T7 IslandVolcano 0.389, T6 HQ back at its legal spot.
+  - Every hero is now placed: biome harness W2 ROAD 57/0.
+- **Own-band backdrop** (`kit.band`). Each biome's approved backdrop props, at their approved scales, fill out to the
+  ground midline (about 380), on own ground and on the Ground rectangle:
+  - T4: cedars;
+  - T5: far city blocks;
+  - T8: cavern pillars, ruins and flesh walls;
+  - T9: golden forest past the wall;
+  - T10: hills and hands.
+- **Export rule.** Non-hero rows off the Ground rectangle are left out. The game never builds them, and the game renders
+  never drew them.
+- **Ledger.** The `ElvenPlains Mountain_p3` row is out of the live rows, with its uploaded id kept in a note (lead).
+
+## Counts (final Drafts, all ten)
+
+| Track | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Rows | 1,019 | 980 | 1,021 | 1,191 | 963 | 938 | 1,123 | 1,734 | 1,395 | 2,620 |
+| Approved | 355 | 474 | 475 | 949 | 596 | 765 | 1,718* | 1,435 | 2,012 | 3,888 |
+
+\* T7's approved Draft count as committed before the re-fit.
+
+Why some tracks are above or below their approved counts:
+- **Above** (T1, T5, T8): each track now owns a band about 380 studs each side of its road. Before, it owned about 60 to
+  75 in the spiral's gaps, so the approved rows were mostly near the road and many were cut by the cross-track rules.
+  The new rows are the same props over about five times the ground.
+- **Below** (T9, T10):
+  - On the approved layout, T9's city grid and T10's sky-door rows covered the whole box of the spiral. In the old game
+    most of those rows stood on other tracks' ground or off the Ground rectangle, so they were never built.
+  - On the wide layout they are left out of the Draft instead: T9 city blocks and forest outside its band; T10 inner-side
+    sky doors over Tracks 8 and 9, and rows past its Ground rectangle.
+  - Near the road, the density matches the approved sets (reviewers, below).
+
+## Checks
+
+- **Independent check over all ten Drafts** (12,984 rows): 0 on another track's ground, 0 meeting a checkpoint or the
+  plaza, 0 off the Ground rectangle.
+- **Biome harness (WORLD=2, pins rewritten):**
+  - W2 13,511/0, PLAZA 15/0, ROAD 57/0, GROUP 7/0, SEAM 1,884/0, GRASS 98,718/0, PIN 11/0 (36 warn).
+  - TRANSFORM 12,983/1: GoldenCity RowB at y 31 prints identical numbers; it is unchanged from round 1.
+
+## Blind scores, round 2 (fresh reviewers; pictures only; approved sets and the old in-game sets as references)
+
+| Track | Game | Context |
+|---|---|---|
+| 4 Haunted Tunnel | 7 | 6 |
+| 5 Kaiju Base | 7 | 6 |
+| 8 Monster Den | 8 | 7 |
+| 9 Golden City | 7 | 5 |
+| 10 Hell's Gate | 7 | 6 |
+
+agent-1's tracks (their reviewers): T1 7/7/6, T2 7/7/7, T6 7/8/7; T3 and T7 re-worked (see their report).
+
+Open faults on my tracks:
+- **T4:** the approved mountain ridges cannot fit a 380 band at their scale; there are flat boxes behind the tunnel portal
+  (as approved).
+- **T5:** the Defence HQ is hard to pick out in the run views. The highway is no longer raised: the square spiral has no
+  slopes, so there are no piers.
+- **T9:** the band reads thin from above. Its city wall is at 290 with forest beyond.
+- **T10:** the sky doors form straight rows (as in the old game) and are thinned over the other tracks' ground.
+
+**Context.** Every track scores 5 to 7. Neighbours' tall pieces show in the run views: T10's doors and arms, its Abyss
+dome (now placed), T8's pillars, and clouds. These renders have no fog or draw distance. The proposed sky-prop rule
+(WORLD2_SPEC) checked by geometry (`sky_check.py`) finds 700 rows over 300 studs within 1,500 of another road:
+- T10 sky doors 545;
+- T8 rock pillars 116;
+- T2 smoke, wyverns and tower 20;
+- T3 high-rises 10;
+- T7 mounds 5;
+- T8 LairTower, T9 Church, T10 Abyss and one T10 arm, 1 each.
+
+Enforcing the rule as written would strip most of T10's approved sky doors. The thresholds, and the game's fog, need the
+owner and a Studio check.
+
+## Uploads (unchanged from round 1, plus)
+
+- **Abyss** (T10): uploaded Id kept; its GLB hash does not match the upload record. It joins the Studio-check list.
+- **LairTower** (T8): its GLB is the same mesh at a new scale, so no upload.
+- **ChainTower_p1-p4** (T2): new pieces, still to upload later (lead).
+
+Renders: `assets/world2_draft/relayout_2026-11-26/track{04,05,08,09,10}_*/{game,context}` (round 2).
