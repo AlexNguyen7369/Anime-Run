@@ -203,8 +203,8 @@ function Tests.make(deps)
 			end
 		end
 		flag("test_has_seven_characters", #chars >= 7, #chars, 7)
-		-- 3; World 2: 4 (design doc 4.47: World 1's boss events run in World 2 with the World 2 team of 4)
-		local TEAM_SIZE = require(Shared.StaminaConfig).TEAM_SIZE
+		-- 3 in both worlds (design doc 4.47: World 1's boss events run in World 2 with a team of 3, owner 2026-11-26)
+		local TEAM_SIZE = 3
 		local function fighter()
 			local p = newPlayer()
 			wear(p, chars[1], "side_knight")
@@ -1173,12 +1173,8 @@ function Tests.make(deps)
 					wear(p, id, "side_chain")
 				end
 				gacha.Grant(p, bare)
-				-- one more than a team holds, every one with a Sidekick: refused for its size alone
+				-- one more than a team holds (3 in both worlds, design doc 4.47), every one with a Sidekick: refused for its size alone
 				local tooMany = { a, b, c, d }
-				if TEAM_SIZE >= 4 then
-					wear(p, chars[7], "side_chain")
-					table.insert(tooMany, chars[7])
-				end
 				local normal, equipped = p:GetAttribute("Team"), p:GetAttribute("EquippedCharacter")
 				eq("set_team_needs_joining", S.SetTeam(p, { a }), false)
 				S.Join(p)
@@ -1186,7 +1182,7 @@ function Tests.make(deps)
 				local picked = { c, a, b }
 				flag("team_kept_in_slot_order", H.same(S.TeamOf(p), picked))
 				local refused = {
-					["four"] = tooMany, -- World 2: five
+					["four"] = tooMany,
 					["duplicate"] = { a, a },
 					["no_sidekick"] = { a, bare },
 					["unowned"] = { a, unowned },
@@ -1328,6 +1324,20 @@ function Tests.make(deps)
 					a .. "," .. c
 				)
 				S.Leave(p, "Left")
+
+				-- A saved team of 4 (the World 2 team-of-4 build, docs/WORLD2_SPEC.md "Save"): its first 3 that can fight.
+				sidekick.Equip(p, b, entryB)
+				wear(p, chars[4], "side_chain")
+				p:SetAttribute("LastBossTeam", table.concat({ chars[4], c, b, a }, ","))
+				eq("saved_four_join_ok", S.Join(p), true)
+				flag(
+					"saved_team_of_4_loads_3",
+					H.same(S.TeamOf(p), { chars[4], c, b }),
+					table.concat(S.TeamOf(p) or {}, ","),
+					table.concat({ chars[4], c, b }, ",")
+				)
+				S.Leave(p, "Left")
+				sidekick.Equip(p, b, nil)
 
 				-- None left: as a player with no saved team.
 				p:SetAttribute("LastBossTeam", b)
@@ -1487,10 +1497,7 @@ function Tests.make(deps)
 					damageOf("side_knight") > damageOf("side_dogs") and damageOf("side_dogs") > damageOf("side_chain")
 				)
 				local normal = p:GetAttribute("Team")
-				local auto = { others[2], others[1], high }
-				if TEAM_SIZE >= 4 then
-					table.insert(auto, low) -- World 2's fourth slot: the last one wearing a Sidekick
-				end
+				local auto = { others[2], others[1], high } -- 3 in both worlds (design doc 4.47, owner 2026-11-26)
 				flag("auto_by_damage_then_cruise_max_3", H.same(S.AutoTeam(p), auto))
 				eq("auto_team_sets_nothing", p:GetAttribute("Team"), normal)
 				eq("auto_team_no_sidekick_empty", #S.AutoTeam(newPlayer()), 0)

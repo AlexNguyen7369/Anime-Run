@@ -10,6 +10,7 @@ local Themes = require(script.Parent.BiomeThemes)
 local Kit = require(script.Parent.BiomeThemes:WaitForChild("Kit"))
 local PlazaLook = require(script.Parent.PlazaLook)
 local TrackRegistry = require(script.Parent.TrackRegistry)
+local TrackSkyConfig = require(script.Parent.TrackSkyConfig)
 
 local BiomeEnvironment = {}
 BiomeEnvironment.BLEND_SECONDS = 3 -- placeholder (spec 5.3): the longest blend, at walking / low speed
@@ -257,6 +258,24 @@ local KING_ARENA = Kit.Atmosphere({
 	},
 })
 
+-- A profile with its WithSky groups laid over it, made once per profile (the theme's own table is never changed)
+local skyProfiles = setmetatable({}, { __mode = "k" })
+local function withSky(profile)
+	local merged = skyProfiles[profile]
+	if not merged then
+		merged = table.clone(profile)
+		merged.WithSky = nil
+		for group, values in profile.WithSky do
+			merged[group] = table.clone(profile[group] or {})
+			for k, value in values do
+				merged[group][k] = value
+			end
+		end
+		skyProfiles[profile] = merged
+	end
+	return merged
+end
+
 -- Atmosphere profile (spec 5.2) of a zone; zone 0 has the plaza's, any other zone without one the LightingConfig baseline. In the
 -- arena zone, boss (a BossCatalog id, nil for Big Raga) picks the room: boss_mage's colosseum, boss_king's own arena, else the sky arena.
 function BiomeEnvironment.Profile(zone, boss)
@@ -266,7 +285,12 @@ function BiomeEnvironment.Profile(zone, boss)
 		return boss == "boss_mage" and COLOSSEUM or boss == "boss_king" and KING_ARENA or ARENA
 	end
 	local theme = Themes[biomeOf[zone]]
-	return theme and theme.Atmosphere or baseline
+	local profile = theme and theme.Atmosphere or baseline
+	-- a World 2 track whose own sky shows (docs/WORLD2_SPEC.md "Track skies") takes its WithSky overrides (Kit.fromDraft)
+	if profile.WithSky and BiomeEnvironment.SkyboxFace(zone, profile, "Bk") then
+		return withSky(profile)
+	end
+	return profile
 end
 
 function BiomeEnvironment.Audio(zone)
@@ -279,14 +303,29 @@ function BiomeEnvironment.Audio(zone)
 	return theme and theme.Audio or {}
 end
 
--- The usable ledger row (reviewed, with an Id, of `kind` when given) of `key` in a biome's Assets (spec 4.4), or nil
+-- An id that names an asset: rbxassetid://0 marks a row not uploaded yet (the World 2 track skies, Kit.draftSky)
+local function realId(id)
+	return type(id) == "string" and id ~= "" and string.match(id, "^rbxassetid://0+$") == nil
+end
+
+-- The usable ledger row (reviewed, with an Id, of `kind` when given) of `key` in a biome's Assets (spec 4.4), or nil.
+-- A row with any id 0 (its Id or one of its Faces) is not usable: a skybox shows whole or not at all. A World 2 track
+-- sky's row (TrackSky) is usable only while Shared/TrackSkyConfig.LIVE is on (docs/WORLD2_SPEC.md "Track skies").
 function BiomeEnvironment.Row(biome, key, kind)
 	local theme = Themes[biome]
 	local row = key and theme and theme.Assets and theme.Assets[key]
-	if type(row) ~= "table" or type(row.Id) ~= "string" or row.Id == "" then
+	if type(row) ~= "table" or not realId(row.Id) then
 		return nil
 	end
 	if type(row.Reviewed) ~= "string" or row.Reviewed == "" or (kind and row.Kind ~= kind) then
+		return nil
+	end
+	for _, id in type(row.Faces) == "table" and row.Faces or {} do
+		if not realId(id) then
+			return nil
+		end
+	end
+	if row.TrackSky and not TrackSkyConfig.LIVE then
 		return nil
 	end
 	return row
@@ -304,6 +343,16 @@ function BiomeEnvironment.Asset(zone, key, kind)
 		return BiomeEnvironment.Row("Snow", key, kind)
 	end
 	return BiomeEnvironment.Row(biomeOf[zone], key, kind)
+end
+
+-- The id a Sky face (Bk, Dn, Ft, Lf, Rt, Up) shows in zone under profile (spec 5.2 Sky.Skybox), or nil: the place's own
+-- face stays (Client/BiomeEnvironment writes its server value back, so leaving a zone restores the default sky)
+function BiomeEnvironment.SkyboxFace(zone, profile, face)
+	local row = BiomeEnvironment.Asset(zone, profile and profile.Sky and profile.Sky.Skybox, "Skybox")
+	if not row then
+		return nil
+	end
+	return row.Faces and row.Faces[face] or row.Id
 end
 
 -- Sine ease, 0..1

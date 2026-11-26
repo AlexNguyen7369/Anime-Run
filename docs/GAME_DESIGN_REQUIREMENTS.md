@@ -830,8 +830,10 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - Speed: a per-world cruise table; the studs/s band stays World 1's (48-800). World 1 characters run at x0.1 there
   (**proposed**), World 2 adds the Eternal rarity (780, **proposed**).
 - **World 2's UI is World 1's** (owner 2026-11-24: "UI and GUI should stay exactly the same with world 1 with the
-  exception of a 4th team slot"): the two worlds share one look, HUD and panels alike. What differs in World 2 is the
-  fourth team slot (Team panel, TeamHud row, boss team). The World 2 welcome popup and
+  exception of a 4th team slot"; the exception is gone, owner 2026-11-26: "Remove 4th team slot mechanic (this includes
+  fixing ui and everything that is related to 4 members"): the two worlds share one look, HUD and panels alike, the
+  Team panel, the TeamHud row and the boss team included (3 slots in both). *Replaced 2026-11-26: "What differs in
+  World 2 is the fourth team slot (Team panel, TeamHud row, boss team)" (2026-11-24).* The World 2 welcome popup and
   the Awakening bar exist only in World 2 and stay (owner 2026-11-25, "keep awakening bar and welcome popup"). Which look the HUD has is
   4.46 "HUD look" (owner's latest ruling of 2026-11-24): the old HUD, in both worlds.
 - Arriving in World 2 resets nothing (owner 2026-11-24: "world 2 should not reset character so they dont need to go
@@ -839,22 +841,26 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   freely afterwards; a World 2 team that holds only the placeholder starter counts as none, **proposed**), and World 2
   never opens the starter choice (4.21), the roll tutorial or the first-join flow (4.24). A save that owns no character
   runs as the placeholder starter there.
-- World 2 only: a **team of 4** (slot 4 unlocked on first entry; this amends 4.2 and 4.8 for World 2: bonuses need any 3
-  matching members) and **Awakening** (duplicate Copies buy up to 5 stars per character; owner 2026-11-24: each star gives +3% cruise and
+- **Team of 3 in World 2** (owner 2026-11-26: "Remove 4th team slot mechanic"): World 2's Team has 3 slots, exactly as
+  World 1's; 4.2 and 4.8 hold unchanged in both worlds (a bonus needs a full team of 3). *Replaced 2026-11-26: "World 2
+  only: a team of 4 (slot 4 unlocked on first entry; this amends 4.2 and 4.8 for World 2: bonuses need any 3 matching
+  members)" (2026-11-23/24).* A save whose World 2 Team holds 4 loses nothing: it loads as its first 3 owned members
+  and the 4th stays owned, in the Bag, with its Copies, stars and gear (migration rule: `WORLD2_SPEC` "Save").
+- World 2 only: **Awakening** (duplicate Copies buy up to 5 stars per character; owner 2026-11-24: each star gives +3% cruise and
   +3% stamina, so +15% of each at 5 stars; star costs 1, 2, 4, 8, 16 Copies are **placeholders**).
 - World 2 rewards (owner 2026-11-24): first-clear Gems pay again on World 2 tracks (they are new tracks); World 2
   tracks pay more Money than World 1: Track N pays World 1 Track 10's Money times a growing multiplier (x2 per track
   step is a **placeholder**).
 - World awareness (**proposed**, `WORLD2_SPEC` "World HUD and welcome"): a small "World N" label on the HUD, a
-  "Travelling to World N..." toast while a trip runs, and a one-time World 2 welcome popup (team of 4, new summon pool,
+  "Travelling to World N..." toast while a trip runs, and a one-time World 2 welcome popup (new summon pool,
   the return gate), given once per save (`Worlds.W2.Welcomed`).
 - World 2 HUD look: the same as World 1's, the old HUD of 4.46 "HUD look" (owner 2026-11-24: "revert HUD to world 1
   hud or old hud. not scrol hud. Scroll Gui can stay."; the orchestrator reads it as both worlds). History of that
   day: first "edit world2 ui to be old hud instead of scroll hud, gui can stay" (old HUD in World 2 only,
   `HudPlaque.Old = WorldConfig.Id == 2`), then the "World 2's UI is World 1's" ruling above (option A in both), then
   this one. Panels, pages, popups, toasts, banners and the boss event UI keep the Scroll Dojo look in both worlds.
-- Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with the World 2 team of
-  4; no World 2 bosses yet.
+- Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with a team of 3 as in
+  World 1 (owner 2026-11-26; *replaced: "with the World 2 team of 4"*); no World 2 bosses yet.
 - Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,
   Kaiju No. 8 and Frieren (owner 2026-11-23). World 2 rolls only World 2 characters.
 - Cast and Sidekicks (owner 2026-11-23): the full World 2 cast and a new 12-Sidekick set are drafted as models and digital art
@@ -944,6 +950,8 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-26: owner, after the toned-down Studio pictures ("World 2 Skies, Toned-Down Haze" page): "skies merge is fine, approved": the four World 2 track skies (Density 0.22, Haze 0.5 while a sky shows) merge into the World 2 branch; this meets the "pictures again before the merge" gate.
+- 2026-11-26: owner, asked directly in the lead session whether agent-2 may re-export about 100 World 2 prop meshes in their approved colours and upload them tonight in 10 batches (Studio colour check before batch 2; GiantCorpse and the kaiju left out): "Yes, upload tonight (Recommended)". New ids go into the ledger; nothing is published (W2_REEXPORT_PLAN, W2_VISUAL_BUGS "w2-dark-props").
 - 2026-11-26: owner, in the lead session during the unattended run (verbatim): "Ensure boss gate added to world 2 location, gate A  of approved gate blends"; "Remove 4th team slot mechanic (this includes fixing ui and everything that is related to 4 members"; "Go ahead and expand spawn location radius to your descretion. You approve this change and do it,  will check when i wake up"; "Begin drafting vfx for dynamic smoke on tracks and vfx for moving dragons and dyanmic movement for some track assets to increase immersive experience. You can go ahead and approve the assets that you draft up for and i iwll approve the vfx and motions after it is fully finished." Effects: World 2 Team goes back to 3 slots (reverses 4.47's team of 4, the WORLD2_SPEC fourth-slot lines and TEAM_AND_STAMINA_SPEC's World 2 amendment; UI and HUD then match World 1 exactly); the boss gate (draft A, stone ring) stands in World 2's spawn; the spawn area grows by the lead's choice (recorded in WORLD_REDESIGN_SPEC); track VFX and motion drafts: assets approved by the lead, VFX and motions wait for the owner.
 - 2026-11-26: owner, in the lead session: "big issue: biomes/tracks on world 2 are much too close to each other where racing on one track is not immersive. Spacing per track in terms of wdith should be much larger , can have the track be straight even, not just circular. There should little to no overlaps in other tracks and fix rendering on all tracks"; asked directly, spacing "About 600 studs (Recommended)" (smallest road-edge gap between any two World 2 tracks) and the rendering faults to fix "Ground/grass/z-fighting, Other tracks visible, Dark or dull props". Then, starting an unattended run: "run end to end, do not stop and finish tasks fully until completion. Preapprove everything until tasks are fully finished". Under that pre-approval the lead picks the layout (docs/proposals/W2_WIDE_LAYOUT.md option C, square spiral of long straights), approves the re-placed scenery and its renders on the owner's behalf, and the owner reviews them on return. Not covered (kept out by the owner earlier or by the run's own limits): publishing a place; merging the skies before the owner sees the toned-down pictures ("pictures again before the merge"). Changes WORLD2_SPEC "World 2 track layout" (replaces the 2026-11-24 spacing choice and "Routes are World 1's").
 - 2026-11-26: owner, after the in-game Studio pictures of the four track skies ("World 2 Skies in Studio"): "reccommended option, just tone down the haze across all a bit, colors are fine just too much": the four skies are switched on, with their haze toned down a little on all four so the scenery keeps more of its own colour; the sky colours stay as they are; pictures again before the merge.

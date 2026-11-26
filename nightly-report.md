@@ -3,14 +3,19 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
-- Skies merge: stopped before merging orch/world2/w2-skies (7faffd03). You asked for "pictures again before the merge" (design log 2026-11-26), so I did not pre-approve it. Question: are the toned-down skies on https://claude.ai/artifact/XAGPYh1kpojUd35tXm58NJ good to merge? State: audit found only that gate, now written into WORLD2_SPEC (ffa6c958); world2_skies 81/81.
+- Boss gate guide (Gojio) in World 2: the gate (draft A) is on in World 2, off in World 1; Gojio's own switch (BossGuideConfig.LIVE) is yours by BOSS_GUIDE_SPEC, so he is not standing at the gate yet. Question: turn Gojio on with the World 2 gate?
+- Track effects LIVE: stays off until you approve the effects and motions (your words). Previews: assets/world2_draft/track_fx/previews/ on orch/world2/w2-track-vfx. Questions: does your "tone down the haze" cover Track 10's red ground-haze particles? Are DemonCastle's black-violet drakes too close to Kaizel's wyvern look?
 - Studio test run and Play check: my script writes to the cloud place were denied. Question: allow execute_luau script writes, or connect Rojo to w2-ingame? State: orch/world2/cast-ingame pushed.
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Team of 3 in World 2: merged (slot 4 gone from rules, server, Team page, HUD, boss team, welcome popup; a stored 4th member stays owned, the team loads its first 3). Studio World 2: 8 ServerTests all green (boss_event 1870/1870); 5 of 7 UiTests green, ui_team and ui_boss fail the same on the base (BUGS). World 1 Studio was not open, so not run there; offline both worlds green.
+- Track effects draft: merged into the World 2 branch with LIVE off (smoke and haze on 9 tracks, drakes on 3, a spirit eel on Track 4, sway/bob/flicker); 8 assets uploaded, moderation Approved; track_fx 68/0 both worlds; audit PASS. Not seen in Studio yet.
+- Skies: merged orch/world2/w2-skies into the World 2 branch after the owner approved the pictures ("skies merge is fine, approved"); world2_skies 81/81, audit's one finding (the owner's merge gate) written into the spec.
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you
+- Spawn: 1.3x would cross Track 1's wall (only 2 studs of room; 1.02x is the most in place), so I chose 1.20x with the plaza centre moved 20 studs east, both worlds (floor gap 1.85, pad 27.2 from Track 1's start, rule 40); plus a spawn scatter so players no longer land on one point (18 spots on rings of 4 and 8). Revert: drop the commits on orch/world2/w2-spawn-gate after c92015e3, or the branch.
 - Layout: chose option C (square spiral of long straights, pitch 760, corners R420; smallest gap 643, T6 on 720) over A (wider round spiral, 620, no straights) and B (zigzag, 663, breaks two spiral rules and grows the world to 12k). C keeps every rule and today's world size. Revert: pick A or B from docs/proposals/W2_WIDE_LAYOUT.md (orch/world2/w2-wide-layout 6b4d73b7).
 - Moving tracks whole with connectors was ruled out: agent-3 showed the +5% length slack is 3-8x too short (W2_LAYOUT_IMPACT.md, 00ebd421).
 - Track 1 neighbours round (orch/world2/w2-t1-neighbours): dropped as moot, left unmerged.
@@ -194,7 +199,8 @@
 1. World 2 wide layout (about 600 studs between tracks, straight allowed, little to no overlap): agent-1 options, lead picks, implement, re-place scenery (agent-3), Studio verify.
 2. World 2 rendering: ground/grass/z-fighting, other tracks visible, dark props (agent-2 audit, then fixes; re-export uploads).
 3. Skies merge (owner's toned-down choice), zones re-fitted after the re-lay.
-4. Full Studio pass both worlds, PR World 2 into main, fresh reviewer, merge on approval (owner standing rule).
+4. Owner's added tasks (2026-11-26, design log f2446967): World 2 back to a team of 3 (subagent, orch/world2/w2-team3); wider spawn + boss gate draft A in World 2 (subagent, orch/world2/w2-spawn-gate); track smoke, dragons and moving props drafts, LIVE off (subagent, orch/world2/w2-track-vfx).
+5. Full Studio pass both worlds, PR World 2 into main, fresh reviewer, merge on approval (owner standing rule).
 
 ### Done
 

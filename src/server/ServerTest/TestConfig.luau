@@ -64,6 +64,8 @@ return {
 		"world2_team",
 		"awakening", -- design doc 4.47: World 2 stars from Copies, World 1 unchanged
 		"world2_rewards", -- WORLD2_SPEC "Rewards": World 2 pad Cash, first-clear Gems per world
+		"world2_skies", -- WORLD2_SPEC "Track skies": four draft skies behind TrackSkyConfig.LIVE, id 0 changes nothing
+		"track_fx", -- WORLD2_SPEC "Track effects (draft)": LIVE off, World 1 untouched, budget caps, dragon clearance
 		"world2_summon", -- design doc 4.47 "Pity counts stay shared", SIDEKICK_SPEC "World 2 set": Summon gives this place's set
 		"boss_models_placed", -- the four boss models startBoss loads are in this place's ServerStorage.BakedModels
 		"harness_save", -- design doc 4.24 "Harness saves": a harness run never writes the live save

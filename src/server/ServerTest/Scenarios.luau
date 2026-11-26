@@ -12329,12 +12329,15 @@ Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
 Scenarios.world2_welcome = require(script.Parent.World2WelcomeTests).world2_welcome -- WORLD2_SPEC "Welcome"
 Scenarios.boss_guide = require(script.Parent.BossGuideTests).boss_guide -- docs/BOSS_GUIDE_SPEC.md
-Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 team of 4
+Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 Team of 3 in World 2 and its migration
 -- deliverables w2-summon, w2-boss: Summon gives this place's Sidekick set with shared pity; boss models are in the place
 Scenarios.world2_summon = require(script.Parent.World2ProofTests).world2_summon
 Scenarios.boss_models_placed = require(script.Parent.World2ProofTests).boss_models_placed
 Scenarios.awakening = require(script.Parent.AwakeningTests).awakening -- design doc 4.47 Awakening, WORLD2_SPEC "Awakening"
 Scenarios.world2_rewards = require(script.Parent.World2RewardsTests).world2_rewards -- design doc 4.47 World 2 rewards
+Scenarios.world2_skies = require(script.Parent.World2SkyTests).world2_skies -- WORLD2_SPEC "Track skies" (owner question 33)
+-- WORLD2_SPEC "Track effects (draft, owner approval pending)": off by default, World 2 only, budget caps
+Scenarios.track_fx = require(script.Parent.TrackFxTests).track_fx
 Scenarios.harness_save = require(script.Parent.HarnessSaveTests).harness_save -- design doc 4.24 "Harness saves"
 -- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): another world's models load on demand (Server/CharacterModelService)
 Scenarios.character_models = require(script.Parent.CharacterModelTests).character_models
