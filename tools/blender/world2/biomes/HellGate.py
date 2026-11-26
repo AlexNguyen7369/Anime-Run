@@ -548,16 +548,14 @@ def build(k):
 	# Giant pale hands rising out of the plain: whole hands in view beside the road, colossal ones far out
 	ground_along(k, 650, (-240, 240), ["Hand"], jitter=40, start=400, end=dark - 300, scale=(1.5, 1.8))  # whole hand in frame
 	k.field(16, ["Hand"], clearance=900, margin=700, scale=(5.0, 6.5))
-	# The darkness: one vast black dome beyond the finish, as big as the loop allows (it clears every road stretch by 50)
-	p, right, t = k.at(L)
-	R = 2600.0
+	# The darkness: one vast black dome ahead of a run camera, as big as the band allows (it clears every road stretch by 50)
 
 	import chain
 
 	every = [Vector(w) for t_ in chain.build() for w in t_["Waypoints"][::2]]  # every track's road (2026-11-26 re-fit)
 
-	def clear(ctr, R):
-		if not k.owns(ctr.x, ctr.z):
+	def clear(ctr, R, right, t):
+		if not k.owns(ctr.x, ctr.z) or not k.in_ground(ctr.x, ctr.z):
 			return False
 		for w in every:
 			v = Vector((w.x - ctr.x, 0, w.z - ctr.z))
@@ -565,15 +563,33 @@ def build(k):
 				return False
 		return True
 
-	# Owner 2026-11-26 ("Approve 1-4", item 2): below the old 800 floor if that is what fits; the largest radius whose dome
-	# clears every road by 50 with its centre on this track's ground, ahead of the 0.9 run camera as approved
-	while True:
-		ctr = p + t * (R + 60)
-		if R <= 100 or clear(ctr, R):
-			break
-		R -= 50 if R > 800 else 25
-	print("ABYSS radius", R)
-	ob = k.place("Abyss", (ctr.x, -1.0, ctr.z), facing((t.x, t.z)), R)
+	# Owner 2026-11-26 ("Approve 1-4", item 2) and the lead (2026-11-26, after the Studio far-view check: beyond the finish
+	# it stood about 2,760 studs ahead of the 0.9 camera and did not draw): the largest dome, its wide face to a run
+	# camera, 300 to 1,200 studs ahead of it (0.9 first, as approved), clear of every road by 50, its centre on this
+	# track's own ground and Ground rect. Candidates by their road distance's bound, then nearest the camera's axis.
+	best = None
+	for f in (0.9, 0.62, 0.33, 0.06):
+		q, r_, t_ = k.at(L * f)
+		eye = q + r_ * 10 - t_ * 14
+		cands = []
+		for a in range(300, 1201, 50):
+			for side in range(-400, 401, 50):
+				c = eye + t_ * a + r_ * side
+				dist, who = k.road_near(c.x, c.z)
+				if who == k.track["Number"] and k.in_ground(c.x, c.z):
+					cands.append((-(dist - 50), abs(side) / a, c))
+		cands.sort(key=lambda x: (round(x[0], -1), x[1]))
+		for nb, _, c in cands[:60]:
+			R_ = min(2600.0, -nb)  # a dome no wider along its axis than the road distance allows
+			while R_ >= 100 and not clear(c, R_, r_, t_):
+				R_ -= 25
+			if R_ >= 100 and (best is None or R_ > best[0]):
+				best = (R_, c, r_, t_, f)
+		if best and best[4] == f:
+			break  # the first camera (0.9 as approved) that has a spot keeps it
+	R, ctr, right, t, f = best
+	print("ABYSS radius", R, "at", (round(ctr.x), round(ctr.z)), "ahead of the", f, "camera")
+	ob = k.place("Abyss", (ctr.x, -1.0, ctr.z), facing((t.x, t.z)), R)  # its wide face across the camera's axis
 	ob.visible_shadow = False
 	import bpy
 

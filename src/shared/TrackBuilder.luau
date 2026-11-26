@@ -348,6 +348,38 @@ local function checkeredLine(parent, name, cframe, width, depth, colors)
 	return folder
 end
 
+-- The world XZ box (lo, hi: Vector2) of the Ground Build lays under a track: its waypoints' box padded by Width * 3 +
+-- 200 in the track's frame, turned into the world.
+function TrackBuilder.GroundBox(layout, origin)
+	local minP, maxP = Vector3.new(math.huge, 0, math.huge), Vector3.new(-math.huge, 0, -math.huge)
+	for _, p in layout.Waypoints do
+		minP = Vector3.new(math.min(minP.X, p.X), 0, math.min(minP.Z, p.Z))
+		maxP = Vector3.new(math.max(maxP.X, p.X), 0, math.max(maxP.Z, p.Z))
+	end
+	local pad = layout.Width * 3 + 200
+	local lo, hi = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
+	for _, x in { minP.X - pad, maxP.X + pad } do
+		for _, z in { minP.Z - pad, maxP.Z + pad } do
+			local w = origin:PointToWorldSpace(Vector3.new(x, 0, z))
+			lo = Vector2.new(math.min(lo.X, w.X), math.min(lo.Y, w.Z))
+			hi = Vector2.new(math.max(hi.X, w.X), math.max(hi.Y, w.Z))
+		end
+	end
+	return lo, hi
+end
+
+-- The safety baseplate's XZ box before the late tracks have parts (WORLD_REDESIGN_SPEC 3: every track part plus a
+-- margin): lo / hi (Vector2) grown to every entry's ({ Layout, Origin }) Ground box, so a track built after the plate
+-- (Main's late tracks) is under it even where its Ground reaches past the terrain box (2026-11-26, Studio world_layout).
+function TrackBuilder.PlateBox(entries, lo, hi)
+	for _, e in entries do
+		local glo, ghi = TrackBuilder.GroundBox(e.Layout, e.Origin)
+		lo = Vector2.new(math.min(lo.X, glo.X), math.min(lo.Y, glo.Y))
+		hi = Vector2.new(math.max(hi.X, ghi.X), math.max(hi.Y, ghi.Y))
+	end
+	return lo, hi
+end
+
 -- The world XZ box (and CFrame, Size) of the CheckpointArea part Build makes, without building it (terrain clear boxes, design doc 4.25)
 function TrackBuilder.CheckpointBox(layout, origin)
 	local endCF = origin * CFrame.new(layout.EndPosition) * CFrame.Angles(0, layout.EndHeading, 0)

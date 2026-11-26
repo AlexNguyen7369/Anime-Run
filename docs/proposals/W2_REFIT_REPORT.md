@@ -144,8 +144,9 @@ Target from the lead: at least 7 in the game view on every track, from fresh bli
   T10 DarkGate 90.
 - **Shrink to fit** (owner 2026-11-26, design log fe810a44, "Approve 1-4", item 2):
   - T8 LairTower stands at scale 3.45 (approved 4.2) ahead of the 0.62 camera, turn 0.
-  - T10 Abyss has radius 500 (its rule's old floor was 800) ahead of the 0.9 camera. This is the first time it is in a
-    Draft.
+  - T10 Abyss has radius 210 (its rule's old floor was 800), about 400 studs ahead of the 0.9 camera. This is the first
+    time it is in a Draft. (At radius 500 past the finish it stood 2,760 studs from that camera and did not draw in
+    Studio; re-placed at landing.)
   - agent-1: T1 Town 1.015, T3 HeroHQ 0.562, T7 IslandVolcano 0.389, T6 HQ back at its legal spot.
   - Every hero is now placed: biome harness W2 ROAD 57/0.
 - **Own-band backdrop** (`kit.band`). Each biome's approved backdrop props, at their approved scales, fill out to the

@@ -643,8 +643,10 @@ local function placedOk(origin, row, def, prop, name)
 		if
 			(got.Position - want.Position).Magnitude < 0.01
 			and (mesh.Size - size).Magnitude < 0.01
-			and got.RightVector:Dot(want.RightVector) > 0.99999
-			and got.UpVector:Dot(want.UpVector) > 0.99999
+			-- unit vectors on both sides: the angle limit stays exactly 0.99999 (about 0.26 deg), only a vector's length (float32
+			-- drift in Lune's CFrame, 1e-5 on GoldenCity Placed_483 on the wide layout) no longer counts as an angle
+			and got.RightVector.Unit:Dot(want.RightVector.Unit) > 0.99999
+			and got.UpVector.Unit:Dot(want.UpVector.Unit) > 0.99999
 		then
 			return true
 		end
@@ -1070,6 +1072,53 @@ do
 	table.insert(clear, { Min = centre - half, Max = centre + half })
 end
 TS.Prepare(entries, clear, { spawnArea })
+-- PLATE (WORLD_REDESIGN_SPEC 3: the safety baseplate covers every track part plus the margin, 20 placeholder): Main
+-- builds the plate before the late tracks have parts, so its box is TrackBuilder.PlateBox (the terrain box and every
+-- track's Ground rect, from the layouts). Every built Ground tile's world box, grown by 20, must lie inside it (Studio
+-- world_layout world_baseplate_covers_everything, 2026-11-26: a T10 Ground corner was outside).
+do
+	local TB = req(Shared.TrackBuilder)
+	local TS = req(Shared.TerrainShape)
+	local pass, fail = 0, 0
+	local box = TS.Box()
+	if box and TB.PlateBox then
+		local lo, hi = TB.PlateBox(entries, box.Min, box.Max)
+		for _, e in entries do
+			for _, part in e.Model:GetDescendants() do
+				if part:IsA("BasePart") and part.Name == "Ground" then
+					local cf, size = part.CFrame, part.Size
+					local half = R.Vector2.new(
+						math.abs(cf.RightVector.X) * size.X / 2 + math.abs(cf.LookVector.X) * size.Z / 2,
+						math.abs(cf.RightVector.Z) * size.X / 2 + math.abs(cf.LookVector.Z) * size.Z / 2
+					) + R.Vector2.new(20, 20)
+					local c = R.Vector2.new(cf.Position.X, cf.Position.Z)
+					if
+						c.X - half.X >= lo.X
+						and c.Y - half.Y >= lo.Y
+						and c.X + half.X <= hi.X
+						and c.Y + half.Y <= hi.Y
+					then
+						pass += 1
+					else
+						fail += 1
+						print(
+							string.format(
+								"PLATE FAIL %s Ground at %.0f, %.0f outside the plate box",
+								e.Model.Name,
+								c.X,
+								c.Y
+							)
+						)
+					end
+				end
+			end
+		end
+	else
+		fail += 1
+		print("PLATE FAIL no TrackBuilder.PlateBox or no terrain box")
+	end
+	print(string.format("PLATE CHECKS pass=%d fail=%d", pass, fail))
+end
 -- World 2's seam (WORLD2_SPEC "World 2 track layout"; TerrainShape.EXACT_FAR): with laps 760 apart the gap midline lies
 -- past the stamp, so the grid's nearest track and distance there must be the true ones (to the centre waypoints, <= 12
 -- studs apart) within SEAM_TOL, and the nearest track the true one wherever the second is more than 2 SEAM_TOL farther.
