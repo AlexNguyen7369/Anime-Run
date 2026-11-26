@@ -16,7 +16,11 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	-- Flat ground at the corridor height, as the draft's ground plane (spec 3.3 Blocks)
 	Terrain = {
 		Ridge = { Shape = "Blocks" },
-		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Ground },
+		-- The approved island's sea (WORLD2_SPEC "Track 7's sea", BIOME_ENVIRONMENT_SPEC 2.2 "Coast"; proposed): Water from
+		-- 280 studs off the road, so the blockade ships (312 out) float and the coast cliffs (about 253) stand at the shore.
+		Coast = { From = 280, Blend = 24, Depth = 2 }, -- a 2-stud sea: the ships snap to the bed, so they float about 2 deep
+		Water = { Level = -3 },
+		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Sand },
 		CliffSlope = 0.9,
 	},
 	Audio = { Volume = 0.35 }, -- no sounds yet

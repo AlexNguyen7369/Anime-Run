@@ -882,6 +882,20 @@ local function biomeY(n, d, x, z, roadY, dc, p)
 			shape = sec.Ridge.Shape or "Hills"
 		end
 	end
+	-- A coast (spec 2.2 "Coast", World 2 AntIsland): from Coast.From studs off this road outward the ground is a sea basin
+	-- (bed Coast.Depth under the profile's Water.Level), blended in over Coast.Blend. The corridor and clear boxes
+	-- returned above, so the road, its walls, the pads and the grass strip never get water.
+	local coast = prof.Coast
+	if coast and de > coast.From then
+		local f = smooth((de - coast.From) / (coast.Blend or 24))
+		-- the bed Coast.Depth under the water (default 6, the Water shape's); props snap to it (SnapToTerrain), so a
+		-- shallow sea keeps a ship's hull about that deep
+		local bed = (prof.Water and prof.Water.Level or -3) - (coast.Depth or 6)
+		y += (bed - y) * f
+		if f >= 0.5 then
+			band, shape = "Ridge", "Water"
+		end
+	end
 	if prof.Far and n == state.Last and de > MID then
 		local f = smooth((de - MID) / TerrainShape.FAR_BLEND)
 		y += (shapeY(prof.Far, 1, x, z, n + 100, prof) - y) * f
