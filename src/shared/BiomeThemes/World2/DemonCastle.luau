@@ -26,8 +26,8 @@ return Kit.fromDraft("DemonCastle", require(script.Parent.DemonCastleDraft), {
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {
 		W2_DemonCastle_Sky = draftSky(
-			{ Side = 0, Up = 0, Dn = 0 }, -- ids: not uploaded (renders go to the owner first)
-			nil, -- Reviewed: the rules audit
+			{ Side = 130503656954140, Up = 106416109766477, Dn = 74778906620679 }, -- ids: uploaded 2026-11-26 (owner choice F)
+			"2026-11-26 rules-auditor", -- Reviewed: the rules audit
 			"assets/world2_draft/skies/track02_DemonCastle (tools/blender/world2/track_sky.py)"
 		),
 		W2_DemonCastle_Gate = draftMesh(

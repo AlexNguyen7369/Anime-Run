@@ -26,8 +26,8 @@ return Kit.fromDraft("GoldenCity", require(script.Parent.GoldenCityDraft), {
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {
 		W2_GoldenCity_Sky = draftSky(
-			{ Side = 0, Up = 0, Dn = 0 }, -- ids: not uploaded (renders go to the owner first)
-			nil, -- Reviewed: the rules audit
+			{ Side = 81386184856083, Up = 110292604700791, Dn = 127822365813655 }, -- ids: uploaded 2026-11-26 (owner choice F)
+			"2026-11-26 rules-auditor", -- Reviewed: the rules audit
 			"assets/world2_draft/skies/track09_GoldenCity (tools/blender/world2/track_sky.py)"
 		),
 		W2_GoldenCity_RowA = draftMesh(

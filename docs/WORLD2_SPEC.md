@@ -53,14 +53,21 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
     pixels replaced by the new sky (approximate: no haze or fog redone), the draft's run render and the panorama. Track 2
     has no Studio picture: a level view over flat draft-coloured ground instead.
   - Game: `Kit.fromDraft` takes the theme's `Skybox = "W2_<Key>_Sky"` as the profile's `Sky.Skybox`; the row is
-    `Kit.draftSky` (Kind Skybox, Lane A as the plaza's, Faces form, `TrackSky = true`) with ids
-    `rbxassetid://0` until uploaded and Reviewed empty until the rules audit signs it. `BiomeEnvironment.Row` never uses a
-    row with any id 0 (the whole set or nothing), nor a `TrackSky` row while `Shared/TrackSkyConfig.LIVE` is false
-    (off until the four sets are approved by the owner, uploaded under the owner's account and reviewed,
-    BIOME_ENVIRONMENT_SPEC 4.1). Until then every track shows today's default sky. Once on, a track's six faces apply in
-    its zone only (`BiomeEnvironment.SkyboxFace`; the client writes the place's own faces back on leaving), swapped
-    under the blend's haze (BIOME_ENVIRONMENT_SPEC 5.3); fog and lighting are unchanged (still `Kit.fromDraft`'s floors).
+    `Kit.draftSky` (Kind Skybox, Lane A as the plaza's, Faces form, `TrackSky = true`): Id and Bk, Ft, Lf, Rt = the
+    Side image, plus Up and Dn. `BiomeEnvironment.Row` never uses a row with any id 0 (the whole set or nothing), an
+    unreviewed row, nor a `TrackSky` row while `Shared/TrackSkyConfig.LIVE` is false; then every track shows the
+    place's default sky. With the switch on, a track's six faces apply in its zone only (`BiomeEnvironment.SkyboxFace`;
+    the client writes the place's own faces back on leaving), swapped under the blend's haze (BIOME_ENVIRONMENT_SPEC
+    5.3), and its profile takes the WithSky rule below (fog Color and Decay from the drawn sky on all four tracks; Ant
+    Island's light too); without its sky a track's fog and lighting are `Kit.fromDraft`'s, floors included.
     Tests: `world2_skies` (both worlds). Track 10's layout and meshes stay frozen (a skybox touches neither).
+  - Upload and switch-on (owner 2026-11-26, choice F, design doc change log: "the four track skies (Hell's Gate,
+    Golden City, Ant Island, Demon Castle) are uploaded, then each is reviewed and checked in Studio before it is switched
+    on"): (1) the twelve images (three per track) are uploaded under the owner's account (done 2026-11-26); (2) the rules
+    auditor reviews each image and signs its row's `Reviewed` (done 2026-11-26, all twelve faces); (3) the ids go into
+    the four `draftSky` rows; (4) each sky is checked in Studio (its six faces in its zone only, the default sky back on
+    leaving, the fog meeting the sky, Ant Island's light) before `TrackSkyConfig.LIVE` is switched on in the World 2
+    branch; the switch-on is its own commit so it can be checked in Studio before it is merged.
   - Review round 2026-11-26 (agent-3, images only: Golden City 8, Hell's Gate 7, Demon Castle 7, Ant Island 6):
     - Horizon seam: while a track's own sky shows, its profile takes `WithSky` (`Kit.fromDraft`, applied by
       `BiomeEnvironment.Profile` only then): fog `Atmosphere.Color` = the drawn sky at the horizon and `Decay` = the

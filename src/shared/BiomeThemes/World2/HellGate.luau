@@ -26,8 +26,8 @@ return Kit.fromDraft("HellGate", require(script.Parent.HellGateDraft), {
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {
 		W2_HellGate_Sky = draftSky(
-			{ Side = 0, Up = 0, Dn = 0 }, -- ids: not uploaded (renders go to the owner first)
-			nil, -- Reviewed: the rules audit
+			{ Side = 86680490565696, Up = 90282386160927, Dn = 93152644275483 }, -- ids: uploaded 2026-11-26 (owner choice F)
+			"2026-11-26 rules-auditor", -- Reviewed: the rules audit
 			"assets/world2_draft/skies/track10_HellGate (tools/blender/world2/track_sky.py)"
 		),
 		W2_HellGate_DoorClosed = draftMesh(

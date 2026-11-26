@@ -38,8 +38,8 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {
 		W2_AntIsland_Sky = draftSky(
-			{ Side = 0, Up = 0, Dn = 0 }, -- ids: not uploaded (renders go to the owner first)
-			nil, -- Reviewed: the rules audit
+			{ Side = 80259567382435, Up = 135567629453732, Dn = 72479367010394 }, -- ids: uploaded 2026-11-26 (owner choice F)
+			"2026-11-26 rules-auditor", -- Reviewed: the rules audit
 			"assets/world2_draft/skies/track07_AntIsland (tools/blender/world2/track_sky.py)"
 		),
 		W2_AntIsland_IslandVolcano = draftMesh(

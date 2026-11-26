@@ -315,6 +315,7 @@
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 294. 2026-11-25 — Alex Nguyen — Drew in-house gradient skies for World 2 Tracks 10, 2, 9 and 7 from their drafts with previews for the owner, and coded them behind an off switch with zero ids (nothing uploaded).
 295. 2026-11-26 — Alex Nguyen — Fixed the World 2 skies after review: fog meets each sky, a softer Demon Castle horizon, a proposed dusk light for Ant Island, redone previews (all behind the off switch).
+296. 2026-11-26 — Alex Nguyen — Put the four uploaded, reviewed World 2 sky ids into their ledger rows, wrote the owner's choice F steps into the spec and switch, and made the sky tests check the off and id-0 cases by setting them for the check.
 
 ## What's next
 **Look at the two kaiju sites in Studio on orch/world2/kaiju-land (mesh loads, hide colour, nothing standing inside the bodies), rules-audit the branch, then merge it into the World 2 branch.**
