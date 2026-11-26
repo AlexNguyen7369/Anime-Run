@@ -601,6 +601,93 @@ for i, m in models do
 		end
 	end
 end
+-- Landmarks' streaming (WORLD2_SPEC "Hero landmarks always loaded", proposed; Shared/World2Landmarks): in World 2 every
+-- listed landmark row is Persistent, each listed name and At row is found, and no other Placed model is Persistent; in
+-- World 1 nothing Placed is Persistent. Also the triangles Persistent keeps loaded.
+do
+	local w2 = process.env.WORLD == "2"
+	local LM = w2 and req(Shared.World2Landmarks) or { Biomes = {} }
+	local want, wrong, other, tris = 0, {}, {}, 0
+	local seenName, seenAt = {}, {}
+	for i, m in models do
+		local biome = entries[i].Biome
+		local theme = req(Shared.BiomeThemes)[biome]
+		local folder = Shared.BiomeThemes:FindFirstChild("World2")
+		local draftModule = w2 and folder and folder:FindFirstChild(biome .. "Draft")
+		local draft = draftModule and req(draftModule)
+		for _, c in m.Environment:GetChildren() do
+			local k = tonumber(string.match(c.Name, "^Placed_(%d+)$"))
+			local row = k and theme and theme.Placed and theme.Placed[k]
+			if row and c:IsA("Model") then
+				local base = entries[i].Origin * R.CFrame.new(row[2], row[3], row[4])
+				local is = w2 and LM.Is(biome, row[1], base.Position.X, base.Position.Z)
+				if is then
+					want += 1
+					local whole = string.match(row[1], "^(.-)_p%d+$") or row[1]
+					seenName[biome .. "/" .. whole] = true
+					for j, at in (LM.Biomes[biome] and LM.Biomes[biome].At) or {} do
+						if
+							at.Prop == whole
+							and math.abs(at.X - base.Position.X) <= LM.AT_TOLERANCE
+							and math.abs(at.Z - base.Position.Z) <= LM.AT_TOLERANCE
+						then
+							seenAt[biome .. "/" .. j] = (seenAt[biome .. "/" .. j] or 0) + 1
+						end
+					end
+					if c.ModelStreamingMode ~= R.Enum.ModelStreamingMode.Persistent then
+						table.insert(wrong, biome .. "/" .. c.Name)
+					end
+					local prop = draft and draft.Props[row[1]]
+					tris += prop and prop.Tris or 0
+				elseif c.ModelStreamingMode == R.Enum.ModelStreamingMode.Persistent then
+					table.insert(other, biome .. "/" .. c.Name)
+				end
+			end
+		end
+	end
+	local missing = {}
+	if w2 then
+		for biome, entry in LM.Biomes do
+			local placedHere = false
+			for _, e in entries do
+				placedHere = placedHere or e.Biome == biome
+			end
+			for _, name in placedHere and entry.Names or {} do
+				if not seenName[biome .. "/" .. name] then
+					table.insert(missing, biome .. "/" .. name)
+				end
+			end
+			for j, at in placedHere and entry.At or {} do
+				if seenAt[biome .. "/" .. j] ~= 1 then
+					table.insert(
+						missing,
+						("%s/%s at %.1f, %.1f (%d rows)"):format(
+							biome,
+							at.Prop,
+							at.X,
+							at.Z,
+							seenAt[biome .. "/" .. j] or 0
+						)
+					)
+				end
+			end
+		end
+	end
+	print(
+		string.format(
+			"%s STREAM landmark rows %d, not Persistent %d%s; listed but not found %d%s; other Placed Persistent %d%s; landmark tris %d",
+			w2 and "W2" or "W1",
+			want,
+			#wrong,
+			#wrong > 0 and " FAIL (" .. table.concat(wrong, ", ", 1, math.min(6, #wrong)) .. ")" or "",
+			#missing,
+			#missing > 0 and " FAIL (" .. table.concat(missing, ", ") .. ")" or "",
+			#other,
+			#other > 0 and " FAIL (" .. table.concat(other, ", ", 1, math.min(6, #other)) .. ")" or "",
+			tris
+		)
+	)
+end
 if process.env.WORLD == "2" then -- first what the other tracks and the spawn area remove, then the own finish pieces
 	for i, m in models do
 		local others = table.clone(models)
