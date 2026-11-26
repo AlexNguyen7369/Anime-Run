@@ -814,6 +814,8 @@
   "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_Church": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "2ba2b507d7c17bd9692b2a3dfce9a522375871e45c3a2a7dc80c98b40792524a",
   "Mesh": "96691966974800",
   "Model": "78470959187567",
@@ -827,9 +829,12 @@
     "75460377273832",
     "33ae651a297bdff9ad3c83e7656c176bc78495af0c1c609860812444392266a5"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_CityBlock": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "94b98b42aa442dd096bfd63ae8567cc312b0ab4aa4fc774ae38bc8d5fde2b6eb",
   "Mesh": "123665817049005",
   "Model": "81905340008049",
@@ -843,9 +848,12 @@
     "126881660859530",
     "0f0ca846bb9621ede96c973a7b490de8a2b363a716ae198dd2f29af3754fddf1"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_CityWall": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "8d9b3d67fbc30df2af321cb4ec5ee4d9fcffe1797bf878cd014bd87da73fac2a",
   "Mesh": "93620205433011",
   "Model": "105154453231458",
@@ -859,9 +867,12 @@
     "114849920865458",
     "ffd2882981ede63047be31468c6dc5eabea91fe9f12d4d78c6dd2b2dfd7ed693"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_Forest": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "ede6a7dced169fa29513d9a5060487c675cbb6ea41f306840d28012ba24c3d8d",
   "Mesh": "110294150077365",
   "Model": "104037967386574",
@@ -875,9 +886,12 @@
     "104554146717607",
     "7d29c20a2897eacbfdba2517840c11aaa5560d252b096d22db485cfd3e382026"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_Palace": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "566335056d6760ac5bbc50842cbf9677c9313e832e48b6c6f8aa9fa34c110db6",
   "Mesh": "136212196862585",
   "Model": "86505084191695",
@@ -891,9 +905,12 @@
     "110606034322769",
     "ba3b1e98cbf9d57b6c73b198f6379701cb6749e468a13abbc56341fab7cf263f"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_People": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "c3118c1fa19ff98be5d699a3d751ec98e94ece1dfcad2ce037431dc41d803a90",
   "Mesh": "110803201186097",
   "Model": "97476309654130",
@@ -907,9 +924,12 @@
     "98051555364079",
     "4c8f4a8724aa0fcf1608e09af9d42c274754cacc6333b3a88bd917febc8e3833"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_RowA": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "b180bad8d8c383b950be8653243ad0d68ae731c539cad5bcd6fd9a9b845a3760",
   "Mesh": "124347681004287",
   "Model": "115152619034144",
@@ -923,9 +943,12 @@
     "78005577651563",
     "817a696b10ced02c82cb227c3d6903128d7e9a23ef23ce831baf22e68c812df9"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_RowB": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "1051463238a1f4e832be401a51034327edff3db565961546465f11e5e6d4dfc7",
   "Mesh": "130226902945891",
   "Model": "116650028911057",
@@ -939,9 +962,12 @@
     "79091228891665",
     "a0bf3a752df00eb012d60ddbf1e316f5db4f0ed91814ebd23a0d362bd923bf4c"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_Square": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "d5c4dc5c0b1aa5f3c56b05268d95635bb63c767755f0d12596659c386d42533a",
   "Mesh": "106894878619674",
   "Model": "104575599413966",
@@ -955,9 +981,12 @@
     "139179066978516",
     "a62315769ad0c49274af380d81257d3efc263811ef969c86ef3ac6a483e14a78"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_Tree": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "c54b667178dd2067de0c5b219cf8d52a273af22bc0362be01d0cbdeab0d306ad",
   "Mesh": "116033071287406",
   "Model": "132536888302021",
@@ -971,9 +1000,12 @@
     "140732085904212",
     "7586386fa8516dba952cdc16a4de7244471344991c644103a9ff42b3dd713e55"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_GoldenCity_Wagon": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "8e66450137229707cf9f39549fa143c3828854b48dbf6394afa040e507e2ba7c",
   "Mesh": "78274942818520",
   "Model": "95851826899847",
@@ -987,7 +1019,8 @@
     "80676931915228",
     "e087ce8bef12739b2ba4ad11105ed9a6bc1719288df6f855261c651ab3d1b422"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HauntedTunnel_Cedar": {
   "Applied": true,
@@ -1501,6 +1534,186 @@
    ]
   },
   "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_MonsterDen_BoneArch": {
+  "Hash": "877a8549d584f2ee82f0a49a96d8de261006b748e5979ef5ad692dcc66c58bda",
+  "Model": "83263330175555",
+  "Old": {
+   "Mesh": "134313444498876",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_BoneArch",
+    "117471068552029",
+    "134313444498876",
+    "b2d5e2fc2157a07776fd9868355873458532f51fd2aa04500a7df6d6384a3dec"
+   ]
+  }
+ },
+ "W2_MonsterDen_Ceiling": {
+  "Hash": "cca10a0fb537105f4af1d24689737ccc054ba9f52df8e57c932b74282b32186d",
+  "Model": "87946506486066",
+  "Old": {
+   "Mesh": "73952038713372",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_Ceiling",
+    "85560586340341",
+    "73952038713372",
+    "d9ba1f4fb36b1e59f43fcfdf61b2eeab7bb1036f223751ecb93b1b8b0d049f3e"
+   ]
+  }
+ },
+ "W2_MonsterDen_CityChunk": {
+  "Hash": "695eca6856cbc1f91cc40ab1d827bd657d6268c44fb135c4c268c3ca185c8be1",
+  "Model": "118852347239476",
+  "Old": {
+   "Mesh": "132672902847315",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_CityChunk",
+    "127339290068256",
+    "132672902847315",
+    "046635d4d41db5f6a33a504faf89a21bd41e31ea56b6488013d5e1b2cc708cbf"
+   ]
+  }
+ },
+ "W2_MonsterDen_Coliseum": {
+  "Hash": "ca2473810e4ba188e80f66d9306a2a9fb60b6f8a35942331da3759549e746a09",
+  "Model": "137433399180530",
+  "Old": {
+   "Mesh": "90325094774122",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_Coliseum",
+    "98217212476489",
+    "90325094774122",
+    "0f2feb9be479d3c13d2e35f0d4a5f149d3b1d4bff331994ae6b0f35eea9acdda"
+   ]
+  }
+ },
+ "W2_MonsterDen_Colonnade": {
+  "Hash": "092dfc22c9ab669ccce270367c8f96f5cf1086998fa6c75cadaad7020812df03",
+  "Model": "117334205650331",
+  "Old": {
+   "Mesh": "119909944250983",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_Colonnade",
+    "128180591395123",
+    "119909944250983",
+    "1d7d8aa5422979ad1348165f833bc0135c15866895d0b25bf146be285ddf0686"
+   ]
+  }
+ },
+ "W2_MonsterDen_FleshWall": {
+  "Hash": "207f4edd00f13bf3b4c0a0e18a2305d67cd7adf80faf0c11fe6b530c7f9523b7",
+  "Model": "112455063164322",
+  "Old": {
+   "Mesh": "96814307678288",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_FleshWall",
+    "138395951841464",
+    "96814307678288",
+    "ca4328e30f8f71e743bf80a600292e97827ba0f6dd339d026e843d785e2bd5b9"
+   ]
+  }
+ },
+ "W2_MonsterDen_Graveyard": {
+  "Hash": "5ccd77f714143bc39447352044f047d56c2cb3e796e66a6da0f2a570977df830",
+  "Model": "90673503706537",
+  "Old": {
+   "Mesh": "128210878798511",
+   "Reviewed": "2026-11-24 auditor (re-audit after the IP fix)",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_Graveyard",
+    "129597159795421",
+    "128210878798511",
+    "70c3dd57a1630e43f858d3ab1cc22ef9879fcb5db650f4342bc098c988e959c2"
+   ]
+  }
+ },
+ "W2_MonsterDen_LairTower": {
+  "Hash": "0c7c455fb22809ee7fb3a7dd7ff55cd4e25e4f4aeb0a7d002d333a0ed0a46a66",
+  "Model": "99150452043221",
+  "Old": {
+   "Mesh": "105671156219228",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_LairTower",
+    "113086619289387",
+    "105671156219228",
+    "0eab7ccc9902e56c6eff2cf644b4960b644622c866ef4fe44507ccd3839c5857"
+   ]
+  }
+ },
+ "W2_MonsterDen_LavaChasm": {
+  "Hash": "19926b75332af6cf534b200c9d86d39416e6436ef2d95cd16c44f4155e19f350",
+  "Model": "114357216665293",
+  "Old": {
+   "Mesh": "120210266475561",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_LavaChasm",
+    "111186877820090",
+    "120210266475561",
+    "1ae26fd980f37f16156704df3d48b001a119b6747a75c653d1f34f1ffc40837f"
+   ]
+  }
+ },
+ "W2_MonsterDen_MineRail": {
+  "Hash": "e0d956ed78e7658881a98f66fda84868f42f4487a5be1fb7d55cf63c904adcb1",
+  "Model": "137784072840431",
+  "Old": {
+   "Mesh": "135510115133001",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_MineRail",
+    "115324463218031",
+    "135510115133001",
+    "9642d3964e156131103dc3f0eb9f90e84b9998a8c89067c53aeb9d2b87edb22f"
+   ]
+  }
+ },
+ "W2_MonsterDen_RockPillar": {
+  "Hash": "2b17a044c4f589a20214422628ded13d82500db7fb25059cda57be9d42dbe291",
+  "Model": "81087005004941",
+  "Old": {
+   "Mesh": "111180318689753",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_RockPillar",
+    "139223667826530",
+    "111180318689753",
+    "317d9813363fd355ebf487fdd08d3816b3f34aa97b0e1ae3c9a3fbfba500d184"
+   ]
+  }
+ },
+ "W2_MonsterDen_Shrine": {
+  "Hash": "f5c679e7c6670cbb68a9858e2069207a9e8b7ec6790163acfcdbc008aa890e6d",
+  "Model": "78653255477648",
+  "Old": {
+   "Mesh": "120344748083281",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "MonsterDen",
+    "W2_MonsterDen_Shrine",
+    "95121910060018",
+    "120344748083281",
+    "646bd4ab4f5835fb7ded5d3eda7e3bedafae431bb64939b8f8476cb4e9f5e4c8"
+   ]
+  }
  },
  "W2_RuinedCityZ_Barricade": {
   "Applied": true,
