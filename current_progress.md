@@ -317,6 +317,7 @@
 295. 2026-11-26 — Alex Nguyen — Fixed the World 2 skies after review: fog meets each sky, a softer Demon Castle horizon, a proposed dusk light for Ant Island, redone previews (all behind the off switch).
 296. 2026-11-26 — Alex Nguyen — Put the four uploaded, reviewed World 2 sky ids into their ledger rows, wrote the owner's choice F steps into the spec and switch, and made the sky tests check the off and id-0 cases by setting them for the check.
 297. 2026-11-26 — Alex Nguyen — Switched the four World 2 track skies on in their own commit, for the Studio check before merging (owner choice F).
+298. 2026-11-26 — Alex Nguyen — Toned down the haze of the four World 2 skied tracks while their sky shows (Density 0.22, Haze 0.5; owner: "tone down the haze across all a bit"), sky colours kept.
 
 ## What's next
 **Look at the two kaiju sites in Studio on orch/world2/kaiju-land (mesh loads, hide colour, nothing standing inside the bodies), rules-audit the branch, then merge it into the World 2 branch.**

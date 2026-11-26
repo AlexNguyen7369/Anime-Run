@@ -71,8 +71,10 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   - Review round 2026-11-26 (agent-3, images only: Golden City 8, Hell's Gate 7, Demon Castle 7, Ant Island 6):
     - Horizon seam: while a track's own sky shows, its profile takes `WithSky` (`Kit.fromDraft`, applied by
       `BiomeEnvironment.Profile` only then): fog `Atmosphere.Color` = the drawn sky at the horizon and `Decay` = the
-      drawn sky 2 degrees up (`SKY_DECAY_HEIGHT` 0.035), so the haze meets the sky in its own colours; Density and Haze
-      unchanged. Off, or with an id 0, the theme's own profile is returned as today. The pale blue-grey line in the first
+      drawn sky 2 degrees up (`SKY_DECAY_HEIGHT` 0.035), so the haze meets the sky in its own colours. Owner 2026-11-26,
+      after the Studio pictures: "reccommended option, just tone down the haze across all a bit, colors are fine just too
+      much": while the sky shows, Density 0.22 (was 0.3) and Haze 0.5 (was 1) on all four (`Kit` `SKY_FOG`, values
+      proposed); Glare and the colours unchanged. Off, or with an id 0, the theme's own profile is returned as today. The pale blue-grey line in the first
       previews was the default sky's pale band left in the Studio picture by the picture edit; the redone previews
       replace it and recolour Track 10's fog band by the fog change.
     - Demon Castle: its dark stop under the horizon moves from -0.012 to -0.035 in the drawing only

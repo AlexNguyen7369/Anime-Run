@@ -248,9 +248,20 @@ function Tests.world2_skies()
 				a.Decay and a.Decay:ToHex(),
 				FOG[n][2]
 			)
+			-- the haze toned down "a bit" while the sky shows (owner 2026-11-26), from the day look's 0.3 and 1
+			flag(("live_%d_fog_density"):format(n), a.Density == 0.22, a.Density, 0.22)
+			flag(("live_%d_fog_haze"):format(n), a.Haze == 0.5, a.Haze, 0.5)
 			flag(
-				("live_%d_fog_density_kept"):format(n),
-				a.Density == theme.Atmosphere.Density and a.Haze == theme.Atmosphere.Haze
+				("live_%d_fog_glare_kept"):format(n),
+				a.Glare == theme.Atmosphere.Glare,
+				a.Glare,
+				theme.Atmosphere.Glare
+			)
+			flag(
+				("off_%d_fog_kept"):format(n),
+				theme.Atmosphere.Density == 0.3 and theme.Atmosphere.Haze == 1,
+				theme.Atmosphere.Density,
+				0.3
 			)
 			flag(("live_%d_sky_key_kept"):format(n), p.Sky and p.Sky.Skybox == "W2_" .. key .. "_Sky")
 			local l = p.Lighting or {}

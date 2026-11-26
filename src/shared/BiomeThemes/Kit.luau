@@ -510,6 +510,9 @@ local function skyColor(sky, z)
 	return Color3.new(channel(a[2].R, b[2].R), channel(a[2].G, b[2].G), channel(a[2].B, b[2].B))
 end
 local SKY_DECAY_HEIGHT = 0.035 -- proposed: the fog's Decay is the drawn sky about 2 degrees up
+-- The haze while a track's own sky shows, toned down "a bit" (owner 2026-11-26: "just tone down the haze across all a bit,
+-- colors are fine just too much"; was the day look's Density 0.3 and Haze 1): the colours stay the sky's. Proposed.
+local SKY_FOG = { Density = 0.22, Haze = 0.5 }
 
 local function fromDraft(key, draft, o)
 	local props = {}
@@ -574,12 +577,14 @@ local function fromDraft(key, draft, o)
 	-- ledger row key. Shown only once the row has real ids, is reviewed and Shared/TrackSkyConfig.LIVE is on (BiomeEnvironment.Row).
 	profile.Sky.Skybox = o.Skybox
 	-- With that sky shown (BiomeEnvironment.Profile), the fog takes the drawn sky's own colours at the horizon so no seam
-	-- shows where they meet, plus the theme's SkyLook (light that matches the draft under its sky). All proposed.
+	-- shows where they meet, at a lighter haze (SKY_FOG), plus the theme's SkyLook (light that matches the draft under its sky). All proposed.
 	if o.Skybox then
 		local withSky = {
 			Atmosphere = {
 				Color = lift(skyColor(draft.Sky, 0), look.Fog),
 				Decay = lift(skyColor(draft.Sky, SKY_DECAY_HEIGHT), look.Fog * 0.6),
+				Density = math.min(profile.Atmosphere.Density, SKY_FOG.Density),
+				Haze = math.min(profile.Atmosphere.Haze, SKY_FOG.Haze),
 			},
 		}
 		for group, values in o.SkyLook or {} do
