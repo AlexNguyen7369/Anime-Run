@@ -250,7 +250,7 @@ written before the swap.
 - Approved by the owner 2026-11-24: Track 9 GoldenCity, frozen at round 4 (4d994ed; owner: "earlier version is
   fine"). The unfinished corrected round is kept in git stash, not applied. All 10 tracks are approved.
 - Approved by the owner 2026-11-24 as-is after stalling at 6/10: Track 2 DemonCastle (round 8, 2455c6f). Frozen.
-- Recorded exception to the freeze, road supports' tops only (owner 2026-11-26 "fix rendering on all tracks", rendering
+- Recorded exception to the freeze, road supports' tops, and the bases of the 6 sunk rows, only (owner 2026-11-26 "fix rendering on all tracks", rendering
   priority "Ground/grass/z-fighting"; the lead's approval under the owner's same-day pre-approval; after pictures for the
   owner's review on return: `assets/world2_draft/audit/render_2026-11-26/T2_fill_after.jpg`, `T5_pier_after.jpg`,
   `T7_bank_after.jpg`; docs/W2_RENDER_AUDIT.md). The draft road supports under raised road (Fill on Tracks 2, 3 and 4,
