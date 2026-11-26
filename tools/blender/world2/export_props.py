@@ -285,6 +285,28 @@ def props_overlap(local, origin, yaw, pos, e, sc, ctx):
 	return len(hits), max(hits)[1] if hits else None
 
 
+def pads_hit(local, origin, yaw, pos, e, sc, boxes):
+	"""The placed mesh's box grown by PRUNE_CLEAR meets a checkpoint area or the spawn floor (blockers()): what the game's
+	Prune removes (BiomeDressing.Prune, kept for World 2's Placed props)."""
+	import numpy as np
+
+	c, R, own = hero_box(local, origin, yaw, pos, e, sc)
+	half = own + PRUNE_CLEAR
+	ext = np.abs(R) @ half
+	for bc, bR, bh, column in boxes:
+		bext = np.abs(np.array(bR)) @ np.array(bh)
+		if np.any(np.abs(c[[0, 2]] - np.array(bc)[[0, 2]]) >= ext[[0, 2]] + bext[[0, 2]]):
+			continue
+		cc = c.copy()
+		if column:
+			cc[1] = bc[1]
+		elif abs(c[1] - bc[1]) >= ext[1] + bext[1]:
+			continue
+		if obb_overlap(cc, R, half, bc, bR, bh):
+			return True
+	return False
+
+
 _LINES = {}
 
 
@@ -325,20 +347,8 @@ def rules_ok(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 		return fail("owner")
 	if ctx.get("zone") and zone_of(ctx["zone"], np.array([to_world(origin, yaw, pos)])[:, [0, 2]])[0] != ctx["number"]:
 		return fail("zone")
-	c, R, own = hero_box(local, origin, yaw, pos, e, sc)
-	half = own + PRUNE_CLEAR
-	ext = np.abs(R) @ half
-	for bc, bR, bh, column in ctx["boxes"]:
-		bext = np.abs(np.array(bR)) @ np.array(bh)
-		if np.any(np.abs(c[[0, 2]] - np.array(bc)[[0, 2]]) >= ext[[0, 2]] + bext[[0, 2]]):
-			continue
-		cc = c.copy()
-		if column:
-			cc[1] = bc[1]
-		elif abs(c[1] - bc[1]) >= ext[1] + bext[1]:
-			continue
-		if obb_overlap(cc, R, half, bc, bR, bh):
-			return fail("pads")
+	if pads_hit(local, origin, yaw, pos, e, sc, ctx["boxes"]):
+		return fail("pads")
 	import clearance
 
 	tris = game_tris(local, origin, yaw, pos, e, sc)
@@ -930,12 +940,16 @@ def export(number, glb=True, plan=False, zone=None):
 	corr = clearance.corridors(build_track.load_chain().values())
 	local = {n: local_tris(k.props[n].data, centres[n]) for n in names}
 	ptris = {n: parts_tris(props[n]["parts"]) for n in names}  # what the game builds while a mesh has no Id
-	kept, dropped, off_ground = [], {}, {}
+	kept, dropped, off_ground, on_pads, pad_boxes = [], {}, {}, {}, blockers()
 	for name, pos, e, sc in placed:
 		skip = (number,) if name in exempt else ()
 		hits = clearance.intrudes(game_tris(local[name], origin, yaw, pos, e, sc), corr, skip)
 		if not hits and len(ptris[name]):  # its parts fallback must clear the roads too (box per part)
 			hits = clearance.intrudes(game_tris(ptris[name], origin, yaw, pos, e, sc), corr, skip)
+		if not hits and not props[name]["hero"] and pads_hit(local[name], origin, yaw, pos, e, sc, pad_boxes):
+			on_pads[game[name]] = on_pads.get(game[name], 0) + 1  # the game's Prune would remove it: left out here
+			props[name]["count"] -= 1
+			continue
 		if not hits:
 			owner = owner_at(to_world(origin, yaw, pos))
 			if owner != number:  # ground ownership: the spot is another track's (its road is nearer)
@@ -1038,6 +1052,7 @@ def export(number, glb=True, plan=False, zone=None):
 		"Kept": len(kept),
 		"By": {"track %d" % t: d for t, d in sorted(dropped.items())},
 		"OffGround": {"track %d" % t: d for t, d in sorted(off_ground.items())},
+		"OnPads": on_pads,
 		"Heroes": {game[h]: props[h]["count"] if h in props else None for h in heroes},
 		"Moved": moved,
 		"Lowered": lowered,

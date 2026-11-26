@@ -324,6 +324,7 @@
 301. 2026-11-26 — Alex Nguyen — Re-exported World 2 Tracks 1-5 and 8-10 on the final square-spiral Segments (66856b89): every approved hero placed but T1 Town, T3 HeroHQ and T8 LairTower (no spot at approved scale); T2 ChainTower now has a spot; both kaiju placements kept; uploaded ledger Ids kept.
 302. 2026-11-26 — Alex Nguyen — Regenerated cross_track.json for World 2 Tracks 1 and 6 on the square spiral (Track 6's lit landmark spots searched on the new road under the approved rule) and ran the second export pass of Tracks 1-5 and 8-10 against every track's new Draft.
 303. 2026-11-26 — Alex Nguyen — Ran the second re-fit pass on World 2 Tracks 6 and 7 against agent-3's pass-2 Drafts: Track 6 re-exported with the cross-track additions (935 placed, 0 dropped), Track 7 unchanged, both clean in the biome harness apart from the two no-spot heroes.
+304. 2026-11-26 — Alex Nguyen — Made the World 2 export leave out mid props whose box meets a checkpoint area or the spawn floor (the game's Prune), re-exported Tracks 1-5 and 8-10 (pass 3) and checked all ten Drafts: 0 of 12,948 rows on another track's ground or on a checkpoint.
 
 ## What's next
 **Clear the last World 2 biome harness fails on agent-3's tracks (pass 3: Prune-on-pads drops, Track 1 and 10 draft drops, the pinned Mirror/Kerb/Office boxes, the ElvenPlains ledger row), then a full World 2 Studio pass before the World 2 PR.**
