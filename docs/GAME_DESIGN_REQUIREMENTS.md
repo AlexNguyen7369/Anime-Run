@@ -943,6 +943,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-25: owner, asked directly: merchant names "Readable from spawn": each merchant's floating name is as large as it can be without covering its stall's sign or header (about a 2-stud label, readable from the spawn on 1080p); Kakashe's stays hidden.
 - 2026-11-25: owner: "Kaiju ready to upload, merchants can be added already to merge": the new Track 5 kaiju mesh (GiantCorpse rework, 19,889 tris) may be uploaded under the owner's account, then reviewed (BIOME_ENVIRONMENT_SPEC 4.1 step 3) before its id is used; the plaza merchants may be turned on (`MERCHANTS_LIVE`) and merged into the World 2 branch.
 - 2026-11-25: owner, asked directly (owner question 33): World 2 track skies: "Four tracks": Hell's Gate first, then Demon Castle, Golden City and Ant Island get in-house gradient skies made from their approved drafts' sky colours; the other tracks keep the default sky; renders to the owner before upload.
 - 2026-11-25: owner, asked directly (owner question 34): "0 to 4 is fine": round finish slabs, the spawn plaza and the effects floor the brown strip may be 0 to 4 studs (never wider than 4, no grass on a slab); along roads it stays 2 to 4.
