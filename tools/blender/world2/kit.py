@@ -15,6 +15,9 @@ from mathutils import Matrix, Vector
 import roadframe
 
 
+_OWNERS = None  # roadframe.Owners of the chain, made on first use
+
+
 def rb(x, y, z):
 	return Vector((x, -z, y))
 
@@ -172,6 +175,17 @@ class Kit:
 		(cx, cz), (tx, tz), (rx, rz) = roadframe.frame(self.wps, d)
 		return cx + tx * along + rx * off, cz + tz * along + rz * off
 
+	def owns(self, x, z):
+		"""True where this track owns the ground at world (x, z): its centre line is the nearest (roadframe.Owners, the
+		owner's 2026-11-25 rule by base centre). Scatter draws over the track's box retry until they land on it, so the
+		approved counts stand on the track's own ground on any layout (2026-11-26 re-fit)."""
+		global _OWNERS
+		if _OWNERS is None:
+			import chain
+
+			_OWNERS = roadframe.Owners(chain.build())
+		return _OWNERS.owner(x, z) == self.track["Number"]
+
 	def heading(self, d):
 		"""Roblox heading of the road at d (0 = facing -Z); a hand-set turn is stored relative to it."""
 		return roadframe.heading(self.wps, d)
@@ -256,11 +270,11 @@ class Kit:
 	def field(self, count, names, clearance, margin=300, scale=(1.0, 1.0)):
 		"""`count` props at random over the track's area, never within `clearance` of the road."""
 		placed, tries = 0, 0
-		while placed < count and tries < count * 20:
+		while placed < count and tries < count * 200:  # most of a wide layout's box is other tracks' ground
 			tries += 1
 			x = self.rng.uniform(self.lo.x - margin, self.hi.x + margin)
 			z = self.rng.uniform(self.lo.z - margin, self.hi.z + margin)
-			if self.clear_of_road(x, z, clearance):
+			if self.owns(x, z) and self.clear_of_road(x, z, clearance):
 				self.place(self.rng.choice(names), (x, -1.0, z), self.rng.uniform(0, math.tau), self.rng.uniform(*scale))
 				placed += 1
 

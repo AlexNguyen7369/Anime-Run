@@ -736,6 +736,10 @@ def build(k):
 	for g in range(7):
 		x = rng.uniform(k.lo.x + 150, k.hi.x - 150)
 		z = rng.uniform(k.lo.z + 150, k.hi.z - 150)
+		for _ in range(400):  # a river starts on this track's own ground (wide layout, 2026-11-26 re-fit)
+			if k.owns(x, z):
+				break
+			x, z = rng.uniform(k.lo.x + 150, k.hi.x - 150), rng.uniform(k.lo.z + 150, k.hi.z - 150)
 		head = rng.uniform(0, math.tau)
 		for i in range(10):
 			if k.clear_of_road(x, z, 90):
