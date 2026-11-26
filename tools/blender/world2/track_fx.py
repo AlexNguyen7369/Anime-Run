@@ -738,6 +738,7 @@ def preview_eel(name="dragon_eel"):
 	for o in (body, wing):
 		bpy.data.objects.remove(o)
 	tint = hexc("BFE8F0")
+	head_ob = head
 	head["tint"] = tint
 	segs = [seg]
 	for i in range(13):
@@ -750,19 +751,43 @@ def preview_eel(name="dragon_eel"):
 	head.scale = (2.5, 2.5, 2.5)
 	cam = camera((0, -150, 10), (330, 150, 230), lens=40)
 	centre = Vector((360, 150, 240))
-
-	def at(u):
-		a = u * math.pi * 2
+	# TrackFxPlan.DragonPath's 8 control points, its closed Catmull-Rom spline and its arc-length table (SplineAt), so
+	# the segments are laid out by distance exactly as Client/TrackFx does
+	ctrl = []
+	for i in range(8):
+		a = i / 8 * math.pi * 2
 		r = 200 * (1 + 0.18 * math.sin(a * 2 + 1))
-		return centre + Vector((math.cos(a) * r, math.sin(a) * r * 0.7, 22 * math.sin(a * 3)))
+		ctrl.append(centre + Vector((math.cos(a) * r, math.sin(a) * r * 0.7, 22 * math.sin(a * 3))))
 
-	lap = sum((at((i + 1) / 200) - at(i / 200)).length for i in range(200))
+	def spline(u):
+		n = len(ctrl)
+		f = (u % 1) * n
+		k = int(math.floor(f))
+		t = f - k
+		p0, p1, p2, p3 = ctrl[(k - 1) % n], ctrl[k % n], ctrl[(k + 1) % n], ctrl[(k + 2) % n]
+		return 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3)
+
+	us, ds, total, last = [0.0], [0.0], 0.0, spline(0)
+	for k in range(1, 257):
+		p = spline(k / 256)
+		total += (p - last).length
+		last = p
+		us.append(k / 256)
+		ds.append(total)
+
+	def at(dist):
+		g = dist % total
+		k = max(i for i in range(len(ds)) if ds[i] <= g)
+		k = min(k, len(ds) - 2)
+		span = ds[k + 1] - ds[k]
+		return spline(us[k] + (us[k + 1] - us[k]) * ((g - ds[k]) / span if span > 0 else 0))
+
 	for f in range(12):
 		t = 10 + f * 0.4
-		u = (t / 75) % 1
-		for k, ob in enumerate([head] + segs):
-			uu = u - k * 21 / lap
-			p, q = at(uu), at(uu + 0.002)
+		head = ((t / 75) % 1) * total
+		for k, ob in enumerate([head_ob] + segs):
+			dd = head - sum(21 * (1 - 0.45 * (j - 0.5) / 14) for j in range(1, k + 1))  # TrackFxPlan.EelBack
+			p, q = at(dd), at(dd + 1)
 			fwd = (q - p).normalized()
 			side = fwd.cross(Vector((0, 0, 1))).normalized()
 			wave = math.sin(t / 3.2 * math.pi * 2 - k / 9 * math.pi * 2) * 15 * (k / 14)

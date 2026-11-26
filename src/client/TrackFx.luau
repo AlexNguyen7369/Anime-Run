@@ -355,18 +355,21 @@ local function buildDragon(def)
 		path[i] = state.Origin:PointToWorldSpace(p)
 	end
 	model.Parent = state.Folder
-	return { Def = def, Model = model, Parts = parts, Path = path }
+	return { Def = def, Model = model, Parts = parts, Path = path, Arc = Plan.ArcTable(path) }
 end
 
-local function pathFrame(path, u)
-	local pos, tan = Plan.Spline(path, u)
+local function pathFrame(d, dist)
+	local pos, tan = Plan.SplineAt(d.Path, d.Arc, dist)
 	return CFrame.lookAt(pos, pos + tan), tan
 end
 
+-- Every dragon moves by distance along its loop (TrackFxPlan.ArcTable), so its speed is even and an eel's segments
+-- keep their spacing all the way round, the lap's closing span included.
 local function updateDragon(d, t, camera)
 	local def = d.Def
-	local u = (t / def.Period + (def.Phase or 0)) % 1
-	local cf, tan = pathFrame(d.Path, u)
+	local lap = t / def.Period + (def.Phase or 0)
+	local dist = (lap % 1) * d.Arc.Length
+	local cf, tan = pathFrame(d, dist)
 	local far = (cf.Position - camera).Magnitude > Config.Budget.DragonCull
 	local parent = if far then nil else state.Folder
 	if d.Model.Parent ~= parent then
@@ -377,10 +380,10 @@ local function updateDragon(d, t, camera)
 	end
 	if def.Kind == "Drake" then
 		local D = Config.Drake
-		local _, ahead = pathFrame(d.Path, u + 0.01)
+		local _, ahead = pathFrame(d, dist + 20)
 		local turn = tan:Cross(ahead).Y -- sign of the turn: bank into it
 		local beat = (t / D.FlapPeriod) % 1
-		local gliding = ((t / def.Period + (def.Phase or 0)) * 3) % 1 < D.GlideShare
+		local gliding = (lap * 3) % 1 < D.GlideShare
 		local flap = gliding and 0.15 or math.sin(beat * math.pi * 2)
 		local body = cf
 			* CFrame.new(0, -flap * D.Bob, 0)
@@ -400,14 +403,9 @@ local function updateDragon(d, t, camera)
 			* CFrame.Angles(0, 0, math.pi) -- the same wing mesh turned about the long axis
 	else
 		local E = Config.Eel
-		local lapLength = 0
-		for i = 1, #d.Path do
-			lapLength += (d.Path[i % #d.Path + 1] - d.Path[i]).Magnitude
-		end
 		d.Parts.Head.CFrame = cf
 		for i, seg in d.Parts.Segments do
-			local back = u - i * E.Spacing / lapLength
-			local scf = pathFrame(d.Path, back)
+			local scf = pathFrame(d, dist - Plan.EelBack(i))
 			local wave = math.sin(t / E.WavePeriod * math.pi * 2 - i / E.WaveLength * math.pi * 2)
 				* E.Wave
 				* (i / E.Segments)

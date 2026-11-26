@@ -116,6 +116,50 @@ function TrackFxPlan.Spline(points, u)
 	return pos, tan.Magnitude > 1e-6 and tan.Unit or Vector3.zAxis
 end
 
+-- Arc-length table of the closed spline: Catmull-Rom's parameter does not move at an even speed (a short span is
+-- crossed as fast as a long one), so a body laid out by parameter bunches on the short spans and stretches on the
+-- long ones, worst where the loop closes. { Length, U = { u_k }, D = { distance_k } } over `samples` even steps of u.
+function TrackFxPlan.ArcTable(points, samples)
+	samples = samples or 256
+	local us, ds, total = { 0 }, { 0 }, 0
+	local last = TrackFxPlan.Spline(points, 0)
+	for k = 1, samples do
+		local u = k / samples
+		local p = TrackFxPlan.Spline(points, u)
+		total += (p - last).Magnitude
+		last = p
+		us[k + 1], ds[k + 1] = u, total
+	end
+	return { Length = total, U = us, D = ds }
+end
+
+-- Point and tangent at distance d along the closed spline (wraps both ways), from ArcTable
+function TrackFxPlan.SplineAt(points, arc, d)
+	local goal = d % arc.Length
+	local ds = arc.D
+	local lo, hi = 1, #ds
+	while hi - lo > 1 do
+		local mid = (lo + hi) // 2
+		if ds[mid] <= goal then
+			lo = mid
+		else
+			hi = mid
+		end
+	end
+	local span = ds[hi] - ds[lo]
+	local u = arc.U[lo] + (arc.U[hi] - arc.U[lo]) * (span > 0 and (goal - ds[lo]) / span or 0)
+	return TrackFxPlan.Spline(points, u)
+end
+
+-- Distance behind the head of eel segment i: segments shrink toward the tail (to 55%), and so do the gaps between them
+function TrackFxPlan.EelBack(i)
+	local E, back = Config.Eel, 0
+	for k = 1, i do
+		back += E.Spacing * (1 - 0.45 * (k - 0.5) / E.Segments)
+	end
+	return back
+end
+
 -- Smallest 3D distance from the path (sampled) to the track's centre line points
 function TrackFxPlan.Clearance(points, waypoints, samples)
 	local best = math.huge

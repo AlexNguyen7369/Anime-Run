@@ -141,6 +141,40 @@ function Tests.track_fx()
 		end
 	end
 
+	-- An eel's segments keep their spacing all round the loop, the lap's closing span included: the body is laid out by
+	-- distance (TrackFxPlan.ArcTable / SplineAt), not by the spline's uneven parameter
+	do
+		local TrackBuilder = require(Shared.TrackBuilder)
+		local key, def = "HauntedTunnel", Config.Tracks.HauntedTunnel.Dragons[1]
+		local path = Plan.DragonPath(TrackBuilder.Layout(w2[key]).Waypoints, def)
+		local arc = Plan.ArcTable(path)
+		local E = Config.Eel
+		local lo, hi = math.huge, 0
+		for step = 0, 199 do
+			local head = arc.Length * step / 200
+			local prev = Plan.SplineAt(path, arc, head)
+			for i = 1, E.Segments do
+				local p = Plan.SplineAt(path, arc, head - Plan.EelBack(i))
+				local gap = (p - prev).Magnitude / (Plan.EelBack(i) - Plan.EelBack(i - 1))
+				lo, hi = math.min(lo, gap), math.max(hi, gap)
+				prev = p
+			end
+		end
+		flag("eel_spacing_even_min", lo >= 0.95, lo, 0.95)
+		flag("eel_spacing_even_max", hi <= 1.01, hi, 1.01)
+		local a, b = Plan.SplineAt(path, arc, arc.Length - 0.01), Plan.SplineAt(path, arc, 0.01)
+		flag("loop_closes_smoothly", (a - b).Magnitude < 0.1, (a - b).Magnitude, 0.1)
+		-- what the parameter alone gives (the old layout): uneven, so the distance table is needed
+		local uLo, uHi = math.huge, 0
+		local step = E.Spacing / arc.Length
+		for k = 0, 399 do
+			local u = k / 400
+			local gap = (Plan.Spline(path, u) - Plan.Spline(path, u - step)).Magnitude / E.Spacing
+			uLo, uHi = math.min(uLo, gap), math.max(uHi, gap)
+		end
+		flag("parameter_alone_is_uneven", uHi / uLo > 1.1, uHi / uLo, 1.1)
+	end
+
 	-- The nearest-first pick never passes a cap
 	local candidates = {}
 	for i = 1, 40 do
