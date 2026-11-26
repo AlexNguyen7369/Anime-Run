@@ -315,8 +315,9 @@
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 281. 2026-11-26 — Alex Nguyen — Started the World 2 wide-layout round: owner ruling (about 600 studs between tracks, straight allowed) recorded as owner question 36, and layout, impact and render-audit tasks sent to agents 1-3.
 294. 2026-11-26 — Alex Nguyen — Turned the draft A boss gate on in World 2 only (BossGateConfig.LIVE per world, guide still off), added a spaced spawn scatter for real players at the walk spawn, and measured that the plaza can grow about its centre only about 1.02x before Track 1's first straight (nothing moved), tests first.
+295. 2026-11-26 — Alex Nguyen — Grew the plaza 1.2x on world (20, 0) in both worlds through one transform (Shared/PlazaLayout, plaza_layout.py), moving every approved position, the camera sweep and the sky loop with it, clear of every road (closest 1.85 studs, pad 27.2 from Track 1's start), tests first; the merchant names now read 13.3-14.8 px from the spawn.
 
 ## What's next
-**Run spawn_area, plaza_pieces, plaza_build and boss_guide in Studio in both worlds on orch/world2/w2-spawn-gate, then pick how the plaza grows (about 1.02x in place, or a plaza centre moved east) and whether Gojio's switch goes on with the World 2 gate.**
+**Get the lead's or owner's ruling on the merchant names reading below 16 px from the spawn in the 1.2x plaza, then run spawn_area, plaza_pieces, plaza_build, boss_guide and world_layout in Studio in both worlds on orch/world2/w2-spawn-gate.**
 
-**Why this is next:** the gate's live build and the scatter are checked only offline, and the owner's wider-spawn request stays unmet until a growth option that clears Track 1 is chosen.
+**Why this is next:** plaza_pieces stays red on merchant_name_readable_* until that conflict with "Readable from spawn" is ruled on, and the moved plaza is only checked offline so far.
