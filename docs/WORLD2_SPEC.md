@@ -339,8 +339,23 @@ proposed.**
   `Client/BiomeEnvironment`.
 - Anchors: a named placed prop (its draft key, read from the `Placed_<i>` model: the mesh child's name, the fallback parts'
   name or the lane C `Mesh` attribute; `Offset` is a point of its box, -1..1 per axis) or a track-local spot (`At` along
-  the centre line, `Side`, `Lateral`, `Height`, from `TrackBuilder.Layout` and the track's `Start` part). Never a world
-  position, so the effects follow the re-laid tracks.
+  the centre line, `Side`, `Lateral`, `Height`, from `TrackBuilder.Layout`). Never a world position, so the effects follow
+  the re-laid tracks. A track's origin is computed on the client from the chain as Main.server builds it
+  (`TrackBuilder.CHAIN_ORIGIN`, `Layout`, `EndCFrame`; `TrackFxPlan.ChainOrigins`), never read from a streamed part: with
+  StreamingEnabled a track's `Start` is out of range away from its beginning, and the effects waited on it (Studio
+  2026-11-26, docs `assets/world2_draft/track_fx/studio_2026-11-26/README.md`).
+- Off the road (2026-11-26, the props rule): every emitter's spread (the circle round its emitter box, `Area` or `Fill`)
+  stays at least `ROAD_CLEAR` 24 studs (horizontal) from every World 2 track's centre line. Where it does not, the spread
+  is first narrowed, down to `MIN_SPREAD` (**proposed** 0.5) of its width, then the emitter is moved straight away from
+  the nearest centre line until it clears; one that still touches another road is not built (`TrackFxPlan.ClearSpread`).
+- Dragons over their own ground (2026-11-26): every point of a dragon's loop lies over its own track's ground (its nearest
+  centre line, of all World 2 tracks, is its own track's, by `OWN_MARGIN` **proposed** 20 studs), the ownership rule of the
+  scenery (TerrainShape.Owner, the gap midline). A loop control point that is not is pulled straight toward its own
+  centre line until it is (`TrackFxPlan.OwnPath`); the 150-stud clearance from its own centre line still holds.
+- The eel reads as one body: each segment overlaps the next along the path (segment length at least `EEL_OVERLAP`
+  **proposed** 1.6 times the spacing between their centres, with the tail's side-to-side wave counted), so no gap shows.
+  Its segments are longer meshes of the same model (scale only: same 14 segments and tris): first segment 40 long (was 27.5,
+  **proposed**), and the tail's side-to-side wave 10 studs (was 15, **proposed**).
 - Assets: in-house only (design doc 5, BIOME_ENVIRONMENT_SPEC 4.4 Lane B): Blender geometry
   (`tools/blender/world2/track_fx.py`) and numpy textures (`tools/blender/world2/track_fx_textures.py`, the roblox-vfx
   method). The dragon and the eel are generic: no anime's dragon design (no whiskers, antlers, pearl, coiling serpent

@@ -553,6 +553,30 @@ if not process.env.NOMESH then
 end
 local TS = req(Shared.TerrainShape)
 local entries, models = World.build(tonumber(process.env.N or "10"))
+-- WORLD=2 track effects (WORLD2_SPEC "Track effects"): the client's chain origins (TrackFxPlan.ChainOrigins, no streamed
+-- part) are the built tracks' Start less 0.5, track by track
+if process.env.WORLD == "2" then
+	local Plan = req(Shared.TrackFxPlan)
+	local origins = Plan.ChainOrigins(req(Shared.TrackBuilder), req(Shared.TrackRegistry).Chain())
+	local opass, ofail = 0, 0
+	for _, e in entries do
+		local start = e.Model:FindFirstChild("Start", true)
+		local want = start and start.CFrame * R.CFrame.new(0, -0.5, 0)
+		local got = origins[e.Number]
+		if
+			want
+			and got
+			and (got.Position - want.Position).Magnitude < 0.01
+			and got.LookVector:Dot(want.LookVector) > 0.99999
+		then
+			opass += 1
+		else
+			ofail += 1
+			print("W2 FX ORIGIN FAIL track " .. tostring(e.Number))
+		end
+	end
+	print(string.format("W2 FX ORIGIN CHECKS pass=%d fail=%d", opass, ofail))
+end
 local spawnArea = R.Instance.new("Part") -- the plaza floor (SpawnArea.FLOOR_SIZE at the origin)
 spawnArea.Size = R.Vector3.new(188, 1, 220)
 spawnArea.CFrame = R.CFrame.new(0, -1, 0)

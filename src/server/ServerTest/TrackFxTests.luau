@@ -175,6 +175,141 @@ function Tests.track_fx()
 		flag("parameter_alone_is_uneven", uHi / uLo > 1.1, uHi / uLo, 1.1)
 	end
 
+	-- 2026-11-26 Studio fixes (WORLD2_SPEC "Track effects"): the origin from the chain, smoke off the road, dragons over
+	-- their own ground, an eel with no gaps. Values are the spec's, written here as literals.
+	do
+		local TrackBuilder = require(Shared.TrackBuilder)
+		local TrackRegistry = require(Shared.TrackRegistry)
+		local Themes = require(Shared.BiomeThemes)
+		local chain = TrackRegistry.Chain()
+		flag("road_clear_24", B.RoadClear == 24, B.RoadClear, 24)
+		flag("min_spread_half", B.MinSpread == 0.5, B.MinSpread, 0.5)
+		flag("own_margin_20", B.OwnMargin == 20, B.OwnMargin, 20)
+		flag("eel_overlap_1_6", B.EelOverlap == 1.6, B.EelOverlap, 1.6)
+		local api = type(Plan.ChainOrigins) == "function"
+			and type(Plan.CentreLines) == "function"
+			and type(Plan.ClearSpread) == "function"
+			and type(Plan.SpreadClearance) == "function"
+			and type(Plan.Owner) == "function"
+			and type(Plan.OwnPath) == "function"
+		flag("fix_api_exists", api)
+		if api then
+			-- 1. Each track's origin, from the chain alone, is the server-built Start less 0.5. In Studio: the live tracks.
+			-- Offline the lune runner cannot build a track: tools/lune/biome_harness.luau (WORLD=2) builds them and checks it
+			-- ("W2 FX ORIGIN CHECKS").
+			local origins = Plan.ChainOrigins(TrackBuilder, chain)
+			local live = workspace:FindFirstChild("Track")
+			for _, spec in chain do
+				local model = live and live:FindFirstChild(spec.Name)
+				local start = model and model:FindFirstChild("Start", true)
+				if start then
+					local want = start.CFrame * CFrame.new(0, -0.5, 0)
+					local got = origins[spec.Number]
+					flag(
+						("origin_%d_is_start"):format(spec.Number),
+						got ~= nil
+							and (got.Position - want.Position).Magnitude < 0.01
+							and got.LookVector:Dot(want.LookVector) > 0.99999,
+						got and (got.Position - want.Position).Magnitude or -1,
+						0.01
+					)
+				end
+			end
+			local lines = Plan.CentreLines(TrackBuilder, chain, origins)
+			local byBiome = {}
+			for _, spec in chain do
+				byBiome[spec.Biome] = spec
+			end
+			-- 2. Every smoke row's spread, on every placed prop of its key, is clear of every road by 24 after ClearSpread
+			for key, track in Config.Tracks do
+				local spec, theme = byBiome[key], Themes[key]
+				local base = spec and origins[spec.Number]
+				local worst, kept, dropped = math.huge, 0, 0
+				local rowsKept = true
+				for _, row in track.Smoke or {} do
+					local preset = Config.Presets[row.Preset]
+					local rowKept = 0
+					for _, m in row.Prop and theme and theme.Placed or {} do
+						if m[1] == row.Prop then
+							local def = theme.Props[m[1]]
+							local s = m[9] or m[6] or 1
+							local size = def.Size * s
+							local box = base
+								* CFrame.new(m[2], m[3], m[4])
+								* CFrame.fromEulerAnglesYXZ(m[7] or 0, m[5], m[8] or 0)
+								* CFrame.new(0, size.Y / 2, 0)
+							local at = Plan.BoxPoint(box, size, row.Offset).Position
+							local pos, area = Plan.ClearSpread(at, Plan.Area(preset, row, size), lines)
+							if pos then
+								kept += 1
+								rowKept += 1
+								worst = math.min(worst, Plan.SpreadClearance(pos, area, lines))
+							else
+								dropped += 1
+							end
+						end
+					end
+					-- a row whose prop has no placement (AntIsland IslandVolcano, "when it is placed") has nothing to keep
+					local placed = false
+					for _, m in row.Prop and theme and theme.Placed or {} do
+						placed = placed or m[1] == row.Prop
+					end
+					rowsKept = rowsKept and (not placed or rowKept > 0)
+				end
+				if kept + dropped > 0 then
+					flag(key .. "_smoke_clear_of_roads", worst >= 24 - 1e-6, math.floor(worst * 10) / 10, 24)
+					flag(key .. "_smoke_rows_keep_an_anchor", rowsKept, ("%d kept, %d dropped"):format(kept, dropped))
+				end
+			end
+			-- 3. Every dragon loop, sampled, lies over its own track's ground and keeps 150 from its own centre line
+			for key, track in Config.Tracks do
+				local spec = byBiome[key]
+				for i, def in track.Dragons or {} do
+					local waypoints = TrackBuilder.Layout(spec).Waypoints
+					local path = Plan.DragonPath(waypoints, def)
+					for k, p in path do
+						path[k] = origins[spec.Number]:PointToWorldSpace(p)
+					end
+					path = Plan.OwnPath(path, spec.Number, lines, Plan.DragonFoot(waypoints, def, origins[spec.Number]))
+					local own, n = 0, 128
+					for k = 0, n - 1 do
+						local p = Plan.Spline(path, k / n)
+						if Plan.Owner(lines, p.X, p.Z) == spec.Number then
+							own += 1
+						end
+					end
+					flag(("%s_dragon%d_over_own_ground"):format(key, i), own == n, own, n)
+					local world = {}
+					for k, w in waypoints do
+						world[k] = origins[spec.Number]:PointToWorldSpace(w)
+					end
+					local c = Plan.Clearance(path, world)
+					flag(("%s_dragon%d_own_clearance"):format(key, i), c >= B.MinDragonClearance, math.floor(c), 150)
+				end
+			end
+		end
+		-- 4. The eel has no gaps: each pair of neighbours (head first) overlaps, the tail's wave counted
+		local E = Config.Eel
+		local function len(i)
+			return i == 0 and E.HeadSize.Z or E.SegmentSize.Z * (1 - 0.45 * i / E.Segments)
+		end
+		local function wave(i, t)
+			return math.sin(t * math.pi * 2 - i / E.WaveLength * math.pi * 2) * E.Wave * (i / E.Segments)
+		end
+		local worstRatio = math.huge
+		for i = 1, E.Segments do
+			local along = Plan.EelBack(i) - Plan.EelBack(i - 1)
+			local side = 0
+			for t = 0, 1, 0.01 do
+				side = math.max(side, math.abs(wave(i, t) - wave(i - 1, t)))
+			end
+			local chord = math.sqrt(along * along + side * side)
+			worstRatio = math.min(worstRatio, (len(i - 1) + len(i)) / 2 / chord)
+		end
+		flag("eel_segments_overlap", worstRatio >= 1.6, math.floor(worstRatio * 100) / 100, 1.6)
+		flag("eel_segment_count_kept", E.Segments == 14, E.Segments, 14)
+	end
+
 	-- The nearest-first pick never passes a cap
 	local candidates = {}
 	for i = 1, 40 do
