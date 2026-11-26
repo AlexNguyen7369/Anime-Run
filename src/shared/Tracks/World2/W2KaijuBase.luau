@@ -19,10 +19,10 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 1585.7757 }, -- start straight
+		{ Type = "Straight", Length = 2341.7757 }, -- start straight
 		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
-		{ Type = "Straight", Length = 3100 },
+		{ Type = "Straight", Length = 3200 },
 		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
-		{ Type = "Straight", Length = 1201.7554 }, -- finish straight
+		{ Type = "Straight", Length = 345.7554 }, -- finish straight
 	},
 }
