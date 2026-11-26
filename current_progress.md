@@ -384,6 +384,7 @@
 381. 2026-11-26 — Alex Nguyen — Made the track briefs' four cash checks and the pad-label literal world-aware (World 2's base, x2 per track and "$63.3b"/"$32.4t"; World 1 unchanged in effect), so the World 2 briefs no longer fail on World 1 constants.
 382. 2026-11-26 — Alex Nguyen — Corrected World 2 prop facing: Open Cloud's GLB import turns meshes 180 degrees about Y, so World 2 placement turns each mesh back about its centre (BiomeDressing.MeshCFrame); w2_mesh_turn 9/0, harness TRANSFORM 13,007/0, Studio before/after pictures (Konbini, Mansion, ChainTower, GiantCorpse).
 383. 2026-11-26 — Alex Nguyen — Raised World 2 track lighting (owner 2026-11-26 "too dim"): channel and luminance floors up, Track 7 dusk brighter; rule and tests first, Studio before/after on six tracks, rules audit PASS.
+384. 2026-11-26 — Alex Nguyen — Made the safety baseplate's tiles overlap by 0.1 stud (TrackBuilder.PlateTiles) so no point falls on a seam between two tiles, with a harness row that reproduces the Studio tie, and checked offline that Track 7's 0.62 view is on its own road and ground.
 
 ## What's next
 **The lead merges orch/world2/w2-brighter into the World 2 landing and the owner looks at the brighter tracks (Track 10's paler red).**
