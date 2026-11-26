@@ -314,8 +314,9 @@
 293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 281. 2026-11-26 — Alex Nguyen — Started the World 2 wide-layout round: owner ruling (about 600 studs between tracks, straight allowed) recorded as owner question 36, and layout, impact and render-audit tasks sent to agents 1-3.
+294. 2026-11-26 — Alex Nguyen — Turned the draft A boss gate on in World 2 only (BossGateConfig.LIVE per world, guide still off), added a spaced spawn scatter for real players at the walk spawn, and measured that the plaza can grow about its centre only about 1.02x before Track 1's first straight (nothing moved), tests first.
 
 ## What's next
-**Show the owner agent-1's measured World 2 layout options (with agent-3's impact map and agent-2's render audit), get the pick, and write it into WORLD_REDESIGN_SPEC section 3 and WORLD2_SPEC before any code.**
+**Run spawn_area, plaza_pieces, plaza_build and boss_guide in Studio in both worlds on orch/world2/w2-spawn-gate, then pick how the plaza grows (about 1.02x in place, or a plaza centre moved east) and whether Gojio's switch goes on with the World 2 gate.**
 
-**Why this is next:** the re-lay of every World 2 track, the scenery placements and the render fixes all build on the chosen layout, and a new form needs a written rule first.
+**Why this is next:** the gate's live build and the scatter are checked only offline, and the owner's wider-spawn request stays unmet until a growth option that clears Track 1 is chosen.
