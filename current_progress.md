@@ -313,6 +313,7 @@
 292. 2026-11-26 — Alex Nguyen — Made Rengoko's Market name as readable as the others per the owner's "Readable, rare overlap" ruling: 1.75 studs, in front of the top of the hair, clear of the sign in every view, with the ruling's raised side views allowed in the test and a line-of-sight hair check.
 293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
+281. 2026-11-26 — Alex Nguyen — Started the World 2 wide-layout round: owner ruling (about 600 studs between tracks, straight allowed) recorded as owner question 36, and layout, impact and render-audit tasks sent to agents 1-3.
 294. 2026-11-26 — Alex Nguyen — Proposed three wider World 2 layouts measured against the owner's 600-stud road gap (current chain 41; wide spiral 620, zigzag rows 663, square spiral 643), with plans and a tool, recommending the square spiral of long straights.
 
 ## What's next
