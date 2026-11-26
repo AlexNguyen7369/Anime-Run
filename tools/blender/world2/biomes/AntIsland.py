@@ -582,6 +582,56 @@ def _nature(k):
 COAST = 260.0
 SHIPS = 312.0  # base centres inside the track's Ground rect (waypoint box + Width x 3 + 200 = 320), so all are built
 HALLASAN_SCALE = 1.25  # approved
+SHIP_NEST_GAP = 24.0  # studs of water a ship keeps from the nest's footprint (the terrain sea's Reach round a hull)
+
+
+def _footprint(ob):
+	"""The object's box footprint in the ground plane: its 4 world corners (Blender x, y), from the bound box."""
+	pts = []
+	m = Matrix.LocRotScale(ob.location, ob.rotation_euler, ob.scale)  # matrix_world waits for a view layer update
+	for c in ob.bound_box:
+		w = m @ Vector(c)
+		pts.append((round(w.x, 4), round(w.y, 4)))
+	return list(dict.fromkeys(pts))
+
+
+def _footprints_meet(a, b, gap):
+	"""True when the footprints of a and b (convex, from their bound boxes) come within `gap` studs: no separating
+	axis among their edge normals with that much room."""
+	pa, pb = _footprint(a), _footprint(b)
+
+	def hull(pts):
+		pts = sorted(set(pts))
+		if len(pts) < 3:
+			return pts
+
+		def cross(o, p, q):
+			return (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0])
+
+		lo, hi = [], []
+		for p in pts:
+			while len(lo) >= 2 and cross(lo[-2], lo[-1], p) <= 0:
+				lo.pop()
+			lo.append(p)
+		for p in reversed(pts):
+			while len(hi) >= 2 and cross(hi[-2], hi[-1], p) <= 0:
+				hi.pop()
+			hi.append(p)
+		return lo[:-1] + hi[:-1]
+
+	ha, hb = hull(pa), hull(pb)
+	for poly in (ha, hb):
+		for i in range(len(poly)):
+			x0, y0 = poly[i]
+			x1, y1 = poly[(i + 1) % len(poly)]
+			nx, ny = y1 - y0, x0 - x1
+			ln = math.hypot(nx, ny) or 1.0
+			nx, ny = nx / ln, ny / ln
+			da = [x * nx + y * ny for x, y in ha]
+			db = [x * nx + y * ny for x, y in hb]
+			if min(da) - max(db) >= gap or min(db) - max(da) >= gap:
+				return False
+	return True
 
 
 def _all_roads(k):
@@ -712,7 +762,7 @@ def build(k):
 	# ground between nest and road. On the wide layout's long straights the camera axis stays on the road, so the spot
 	# is searched over the own ground: nearest a camera among spots within 45 degrees of its heading. (Re-fit 2026-11-26:
 	# the turn was random on the approved layout.)
-	nest = None
+	nest, nest_ob = None, None
 	cams = []
 	for f in (0.62, 0.33, 0.9):
 		p, right, t = k.at(L * f)
@@ -744,7 +794,7 @@ def build(k):
 		step = max(1, len(k.wps) // 1500)
 		rx, rz = min(((w.x, w.z) for w in k.wps[::step]), key=lambda w: math.hypot(w[0] - nest[1], w[1] - nest[2]))
 		nest_yaw = math.atan2(-(rx - nest[1]), -(rz - nest[2]))  # local -Z (front, the ants) toward the road
-		k.place("Nest", (nest[1], -1.0, nest[2]), nest_yaw, 1.0)
+		nest_ob = k.place("Nest", (nest[1], -1.0, nest[2]), nest_yaw, 1.0)
 		th = nest_yaw  # Blender turn theta maps local (x, z) to (x cos + z sin, -x sin + z cos)
 		nest_ants = []
 		for (x, y, z), yaw, sc, tilt in NEST_ANTS:
@@ -843,6 +893,7 @@ def build(k):
 			continue
 		out = math.atan2(-(right.x * side), -(right.z * side))
 		k.place("Cliff", (q.x, -4.0, q.z), out + k.rng.uniform(-0.4, 0.4), k.rng.uniform(1.0, 1.7))
+	skipped_ships = 0
 	for i in range(48):
 		side = 1 if i % 2 else -1
 		d = (i // 2 + 0.5) * L / 24
@@ -851,7 +902,15 @@ def build(k):
 		if not k.owns(q.x, q.z):
 			continue
 		along = math.atan2(-t.x, -t.z) + (0 if i % 4 < 2 else math.pi)  # bows both ways along the coast
-		k.place("Ship", (q.x, -4.0, q.z), along + k.rng.uniform(-0.15, 0.15), k.rng.uniform(3.0, 3.6))
+		ship = k.place("Ship", (q.x, -4.0, q.z), along + k.rng.uniform(-0.15, 0.15), k.rng.uniform(3.0, 3.6))
+		# Off the nest (2026-11-27, Track 7's sea): the nest's 400-stud mound reaches past the ship band at a spiral
+		# corner, and a ship on it stood in the mound with the sea round its hull flooding the nest. Placed first, so
+		# the draws (and every prop after) are unchanged; a ship whose hull footprint meets the nest's is left out.
+		if nest_ob is not None and _footprints_meet(ship, nest_ob, SHIP_NEST_GAP):
+			bpy.data.objects.remove(ship)
+			k.instances -= 1
+			skipped_ships += 1
+	print("SHIPS off the nest: left out", skipped_ships)
 	# Overcast dusk over a war zone; cool lamps along the road, floodlit camps, blue glow in the chamber
 	k.sky([(0.0, "D8946A"), (0.04, "A07A70"), (0.12, "6E6670"), (0.35, "4A4C5A"), (1.0, "2A2C38")], strength=0.9, sun=(2.4, "FFB070", 12, 230))
 	d = 40

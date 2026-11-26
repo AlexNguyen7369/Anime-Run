@@ -6,6 +6,9 @@
 -- Also mirrored into the LocalPlayer attribute "UiTestResult" (JSON) for execute_luau readers. Every result attribute
 -- this harness sets (UiTestResult, UiTestScenarioResult, UiTestClickResult, UiTestClickTarget) is on the CLIENT's
 -- LocalPlayer and does NOT replicate: read it in the client datamodel (or the console), never from the server.
+-- Read it only AFTER the run: a Studio MCP execute_luau call in the Client datamodel puts Camera.CameraType back to its
+-- value at the call's start when it returns, so a client poll during a run breaks a held camera for a frame
+-- (docs/BUGS.md ui-boss-view-mcp-restore). Trigger and wait from the Server datamodel.
 -- Trigger: ReplicatedStorage attribute UiTestRun = true (set it to false first if it is already true).
 -- Clicks: ReplicatedStorage attribute UiTestClick = <UiSpec.Clicks Id> (set it to nil between clicks, and clear
 -- UiTestClickDone before each click); see the protocol in UiSpec.Clicks. Owned by ui-test-writer.

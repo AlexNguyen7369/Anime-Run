@@ -76,6 +76,16 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   since they return before it. AntIsland: From 280, Blend 24, Depth 2, Level -3, so the blockade ships (312 out) float and the
   coast cliffs (about 253 out) stand at the shore. Its bed is the profile's `Materials.Bed`: Sand for AntIsland (was Ground;
   proposed, 2026-11-26). Checked by the biome harness's `W2 SEA` rows.
+  - Round the hulls (2026-11-27, Studio finding: ships on sand; lead's fix "make Coast follow the ship band", **proposed**):
+    `Coast.Under = "<Prop>"` keeps the sea to that prop's Placed rows: full within `Reach` studs of each row's box (def Size
+    x scale, turned as the row), back to land over `Blend` past it, and only from `From` off the road. Elsewhere the zone
+    keeps its land, so props past the coast (Track 7's nest and its ants at a spiral corner) stay dry.
+  - Depth is what the game draws: the terrain writer's 4-stud voxels (`TerrainShape.Voxel`, shared with the harness) put
+    water only in whole voxels above the ground's, so a bed under about 3 studs deep draws none (Depth 2 drew Sand and no
+    water). AntIsland now: From 240, Blend 24, Depth 4, Under Ship, Reach 24 (the same water voxel as Docks' Depth 6).
+  - The harness checks drawn water (`TerrainShape.DrawnWater`), not the column's water level: under every ship's centre and
+    the quarter points of its hull, none under the base of any other AntIsland prop but the shore cliffs, none in any road's
+    corridor, and every other zone's terrain unchanged.
 
 - Elevated road (slopes up to Rise 54): biomes with `Embank = true` raise the corridor to road Y - 3 (placeholder)
   under the slope, so hills sit under hills. Supports end up buried, which is fine. City biomes (5, 6) keep

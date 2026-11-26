@@ -361,6 +361,10 @@ written before the swap.
   checkpoints and the grass-strip rule unchanged (BIOME_ENVIRONMENT_SPEC 2.2 "Coast"). Its water colour is the approved
   draft's sea, 1C4260 (transparency 0.3, reflectance 0.25, waves 0.15 / 8; proposed), set per zone on the client. The sea's
   bed is Sand (the profile's Materials.Bed, was Ground; proposed, 46ffbe4b), the approved draft's beach under the water.
+  Re-fit 2026-11-27 (Studio: the ships stood on sand, the 2-stud sea drew no water voxel; **proposed**): the sea follows the
+  ships (BIOME_ENVIRONMENT_SPEC 2.2 "Coast", Under Ship, Reach 24, from 240 off the road, Depth 4), and the 3 ships whose
+  hull met the nest's 400-stud mound at the spiral corner are left out of the draft (45 of 48; the rest unchanged), so no
+  ship stands on the nest and the nest and its ants stay on dry ground.
 - Hero moves (2026-11-24; re-fitted to the wide layout 2026-11-26): a hero landmark with no placement that passes every game rule moves whole (all its pieces, its
   scale and turn) to a spot on its own track's ground that clears its own and every other track's corridor, the spawn area
   and every checkpoint and win pad, and lies on its Ground rectangle (BiomeDressing builds a Placed prop only there); among

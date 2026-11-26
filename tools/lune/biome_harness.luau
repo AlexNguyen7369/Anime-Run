@@ -1285,7 +1285,8 @@ if process.env.WORLD == "2" then
 		)
 	)
 end
--- Track 7's sea (BIOME_ENVIRONMENT_SPEC 2.2 "Coast", WORLD2_SPEC): water under every blockade ship, none in any road's
+-- Track 7's sea (BIOME_ENVIRONMENT_SPEC 2.2 "Coast", WORLD2_SPEC): drawn water under every blockade ship, none under
+-- the base of any other AntIsland prop but the shore cliffs, none in any road's
 -- corridor (every 4th centre waypoint of every track, across W/2 + 24 each side every 8 studs), and every other zone's
 -- terrain unchanged: a checksum of Column (height to 1/4 stud, material, water) on a 96-stud grid, points that are not
 -- AntIsland's and not within the seam blend of it, against the value before the sea (SEA_OTHER_HASH).
@@ -1293,11 +1294,23 @@ if process.env.WORLD == "2" then
 	local Themes = req(Shared.BiomeThemes)
 	local SEA_OTHER_HASH = 106734784 -- the red run's value (before the sea, 2026-11-26): the other zones' terrain must not move
 	local seaN, ships, wet, dryCorr, wetCorr = nil, 0, 0, 0, 0
+	local MIN_DRAWN, dryShips = 1, {} -- studs of drawn water under each sampled point
+	local landProps, wetLand = 0, {}
 	for i, e in entries do
 		if e.Biome == "AntIsland" then
 			seaN = e.Number
 			for _, prop in models[i].Environment:GetChildren() do
 				local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+				local row = k and Themes.AntIsland.Placed[k]
+				if row and row[1] ~= "Ship" and row[1] ~= "Cliff" then
+					-- the island's land: the sea is the ships' band, so every other prop's base is dry (the nest and its
+					-- ants stand past the coast at a spiral corner, on the draft's grass)
+					local b = e.Origin:PointToWorldSpace(R.Vector3.new(row[2], row[3], row[4]))
+					landProps += 1
+					if TS.DrawnWater(b.X, b.Z) > 0 then
+						table.insert(wetLand, string.format("%s %s at %.0f,%.0f", prop.Name, row[1], b.X, b.Z))
+					end
+				end
 				if k and Themes.AntIsland.Placed[k][1] == "Ship" then
 					local ps = parts(prop)
 					local c = R.Vector3.zero
@@ -1306,8 +1319,25 @@ if process.env.WORLD == "2" then
 					end
 					c /= math.max(1, #ps)
 					ships += 1
-					local _, waterY = TS.Column(c.X, c.Z)
-					wet += waterY and 1 or 0
+					-- the water the game's writer draws (TS.DrawnWater, the writer's own voxel rule), not Column's water
+					-- level: a 2-stud sea had a level under every ship and no water voxel (Studio 2026-11-26, ships on
+					-- sand). Under the centre and the hull's quarter points along and across it.
+					local hull = ps[1]
+					local along, across =
+						hull.CFrame.LookVector * hull.Size.Z / 4, hull.CFrame.RightVector * hull.Size.X / 4
+					local dry = 0
+					for _, q in { c, c + along, c - along, c + across, c - across } do
+						if TS.DrawnWater(q.X, q.Z) < MIN_DRAWN then
+							dry += 1
+						end
+					end
+					wet += dry == 0 and 1 or 0
+					if dry > 0 and #dryShips < 4 then
+						table.insert(
+							dryShips,
+							string.format("%s at %.0f,%.0f (%d of 5 points dry)", prop.Name, c.X, c.Z, dry)
+						)
+					end
 				end
 			end
 		end
@@ -1347,7 +1377,23 @@ if process.env.WORLD == "2" then
 		end
 	end
 	local hashOk = SEA_OTHER_HASH == nil or SEA_OTHER_HASH == h
-	print(string.format("W2 SEA ships %d, water under %d%s", ships, wet, ships > 0 and wet == ships and "" or " FAIL"))
+	print(
+		string.format(
+			"W2 SEA ships %d, drawn water under %d%s%s",
+			ships,
+			wet,
+			ships > 0 and wet == ships and "" or " FAIL",
+			#dryShips > 0 and ": " .. table.concat(dryShips, ", ") or ""
+		)
+	)
+	print(
+		string.format(
+			"W2 SEA land props %d, in drawn water %d%s",
+			landProps,
+			#wetLand,
+			landProps > 0 and #wetLand == 0 and "" or " FAIL: " .. table.concat(wetLand, ", ", 1, math.min(#wetLand, 6))
+		)
+	)
 	print(string.format("W2 SEA corridor points %d dry, %d wet%s", dryCorr, wetCorr, wetCorr == 0 and "" or " FAIL"))
 	print(
 		string.format(

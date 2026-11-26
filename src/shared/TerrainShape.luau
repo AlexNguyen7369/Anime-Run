@@ -538,6 +538,45 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 			Max = hi + Vector2.one * (20 + TerrainShape.SKIRT),
 		},
 	}
+	-- Coast hulls (spec 2.2 "Coast", Under): the sea of a profile whose Coast names a prop is the water round that prop's
+	-- Placed rows (World 2 AntIsland: its blockade ships), each a box of the def's Size x scale in XZ, turned as
+	-- BiomeDressing turns the row; bucketed like the pads, by every PAD_BUCKET cell its Reach + Blend touches
+	for _, e in entries do
+		local theme = Themes[e.Biome]
+		local coast = theme and theme.Terrain and theme.Terrain.Coast
+		if coast and coast.Under then
+			local B = TerrainShape.PAD_BUCKET
+			local hullReach = (coast.Reach or 0) + (coast.Blend or 24)
+			local hulls = {}
+			for _, row in theme.Placed or {} do
+				local def = row[1] == coast.Under and theme.Props[row[1]]
+				if def then
+					local cf = e.Origin * CFrame.new(row[2], row[3], row[4]) * CFrame.fromEulerAnglesYXZ(0, row[5], 0)
+					local sc = row[6] or 1
+					local r = Vector2.new(cf.RightVector.X, cf.RightVector.Z).Unit
+					local l = Vector2.new(cf.LookVector.X, cf.LookVector.Z).Unit
+					local hull = {
+						C = Vector2.new(cf.X, cf.Z),
+						R = r,
+						L = l,
+						HX = def.Size.X * sc / 2,
+						HZ = def.Size.Z * sc / 2,
+					}
+					local ex = math.abs(r.X) * hull.HX + math.abs(l.X) * hull.HZ + hullReach
+					local ez = math.abs(r.Y) * hull.HX + math.abs(l.Y) * hull.HZ + hullReach
+					for i = math.floor((hull.C.X - ex) / B), math.floor((hull.C.X + ex) / B) do
+						for j = math.floor((hull.C.Y - ez) / B), math.floor((hull.C.Y + ez) / B) do
+							local key = i * 65536 + j
+							hulls[key] = hulls[key] or {}
+							table.insert(hulls[key], hull)
+						end
+					end
+				end
+			end
+			state.Hulls = state.Hulls or {}
+			state.Hulls[e.Number] = hulls
+		end
+	end
 	-- 4. Tunnels (spec 3.5, option A): each tunnel segment as a flat box in XZ, bucketed like the pads. Column keeps
 	-- the box (walls, ceiling and a voxel of margin) clear of voxels and heaps earth over it.
 	for _, e in entries do
@@ -888,6 +927,20 @@ local function biomeY(n, d, x, z, roadY, dc, p)
 	local coast = prof.Coast
 	if coast and de > coast.From then
 		local f = smooth((de - coast.From) / (coast.Blend or 24))
+		if coast.Under then
+			-- only round the hulls: full within Reach of a hull's box, back to land over Blend past it
+			local e = math.huge
+			local bk = TerrainShape.PAD_BUCKET
+			for _, h in
+				state.Hulls and state.Hulls[n] and state.Hulls[n][math.floor(x / bk) * 65536 + math.floor(z / bk)] or {}
+			do
+				local dx, dz = x - h.C.X, z - h.C.Y
+				local ex = math.max(math.abs(dx * h.R.X + dz * h.R.Y) - h.HX, 0)
+				local ez = math.max(math.abs(dx * h.L.X + dz * h.L.Y) - h.HZ, 0)
+				e = math.min(e, math.sqrt(ex * ex + ez * ez))
+			end
+			f *= 1 - smooth((e - (coast.Reach or 0)) / (coast.Blend or 24))
+		end
 		-- the bed Coast.Depth under the water (default 6, the Water shape's); props snap to it (SnapToTerrain), so a
 		-- shallow sea keeps a ship's hull about that deep
 		local bed = (prof.Water and prof.Water.Level or -3) - (coast.Depth or 6)
@@ -1025,6 +1078,47 @@ function TerrainShape.Column(x, z)
 		surface = M.Ground -- the grid's clear-box distance can read over 0 (so Ridge) inside the grown box's edge cells
 	end
 	return y, waterY, surface, mats.Cliff or DEFAULT_MATERIALS.Cliff, prof.CliffSlope or 0.9, lo, hi
+end
+
+-- How Server/TerrainBuilder writes a column as voxels (the game's terrain, not the shape above): RES-stud voxels, the
+-- occupancy written LIFT lower so the drawn surface sits at the column's top (LIFT calibrated in Studio 2026-10-30:
+-- corridor Height -1 written that way rendered at y 1.00, flush with the road top). One function for the writer and the
+-- biome harness, so a check on drawn water is a check on what the game builds.
+TerrainShape.VOXEL_RES = 4
+TerrainShape.VOXEL_LIFT = TerrainShape.VOXEL_RES / 2
+
+-- The voxel whose bottom is `yb` in a column of top `y`, water top `w` (or nil) and tunnel hollow `tlo`..`thi` (or
+-- nil): "Ground", "Water" or "Air", and its occupancy. A voxel the ground reaches into is ground, so water fills only
+-- whole voxels above the ground's: a sea shallower than that grid step draws no water at all.
+function TerrainShape.Voxel(y, w, tlo, thi, yb)
+	local res, lift = TerrainShape.VOXEL_RES, TerrainShape.VOXEL_LIFT
+	-- under a tunnel's earth the column stops at the tunnel floor; the voxel at the hollow top stays air
+	local inHole = tlo and yb < thi
+	local o = math.clamp(((inHole and tlo or y) - lift - yb) / res, 0, 1)
+	if o > 0 then
+		return "Ground", o
+	elseif w and not inHole and yb < w - lift then
+		return "Water", math.clamp((w - lift - yb) / res, 0, 1)
+	end
+	return "Air", 0
+end
+
+-- Studs of water the writer draws at (x, z): the water voxels' occupancy times RES (0 where Column has water but no
+-- voxel holds it)
+function TerrainShape.DrawnWater(x, z)
+	local y, w, _, _, _, tlo, thi = TerrainShape.Column(x, z)
+	if not w then
+		return 0
+	end
+	local res = TerrainShape.VOXEL_RES
+	local depth = 0
+	for yb = math.floor(math.min(tlo or y, y) / res) * res - res, math.ceil(w / res) * res, res do
+		local kind, o = TerrainShape.Voxel(y, w, tlo, thi, yb)
+		if kind == "Water" then
+			depth += o * res
+		end
+	end
+	return depth
 end
 
 -- The ground a prop stands on: the top, or the tunnel floor inside a tunnel box
