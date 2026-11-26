@@ -9452,6 +9452,39 @@ function UiScenarios.DismissWelcome()
 	player:SetAttribute("World2WelcomeShow", nil)
 end
 
+-- The Daily Rewards popup (Client/BoostDailyUi) opens by itself once per UTC day, up to a second after the save loads,
+-- while today's reward is unclaimed; it counts as an open panel (docs/BUGS.md ui-harness-daily-popup). Closed before a
+-- run the way a player closes it (PanelSwitch "Daily"); after that it stays closed for the day. A bounded wait first
+-- lets a pending auto-open happen, so it cannot open in the middle of a scenario. Scenarios that check the Daily view
+-- open it themselves (setPanels).
+-- (No chunk-level local here: this chunk is at Luau's 200-local limit.)
+function UiScenarios.DismissDaily()
+	local autoOpenWait = 2.5 -- s: BoostDailyUi checks once a second
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	local backdrop = gui and gui:FindFirstChild("DailyBoosts") and gui.DailyBoosts:FindFirstChild("ModalBackdrop")
+	if not (backdrop and backdrop:IsA("GuiObject")) then
+		return
+	end
+	local today = math.floor(os.time() / 86400)
+	if
+		not backdrop.Visible
+		and player:GetAttribute("DataLoaded") == true
+		and player:GetAttribute("DailyLast") ~= today
+	then
+		local deadline = os.clock() + autoOpenWait
+		while not backdrop.Visible and os.clock() < deadline do
+			task.wait(0.05)
+		end
+	end
+	if backdrop.Visible then
+		local switch = panelSwitch()
+		if switch and type(switch.Close) == "function" then
+			switch.Close("Daily")
+		end
+		waitHidden({ backdrop })
+	end
+end
+
 function UiScenarios.Run(name)
 	local res = newResult(name)
 	local fn = S[name]

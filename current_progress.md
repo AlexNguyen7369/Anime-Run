@@ -341,6 +341,9 @@
 331. 2026-11-26 — Alex Nguyen — Corrected the opening words of WORLD2_SPEC's road-supports exception to name the 6 sunk rows' bases, after the third rules audit.
 332. 2026-11-26 — Alex Nguyen — Merged the World 2 road-support fix (Fill, Pier and Bank tops under the road on climbs, 6 sunk at 0.2) and the render audit into the World 2 branch; Studio road_surface_clear 55/0 over 640,798 samples; audit PASS.
 332. 2026-11-26 — Alex Nguyen — Checked the World 2 HUD slot-1 placeholder in Studio: it is the placeholder Starter left in slot 1 by the auto-fill rule (by design, owner question noted), not a HUD fault; recorded in BUGS.md.
+341. 2026-11-26 — Alex Nguyen — Fixed three UI test harness bugs as test writer (Bosses button race in ui_team, ui_boss camera state carried between runs, Daily Rewards popup left open before a scenario) with bounded waits and setup/teardown, no check dropped or limit widened; Studio proof pending.
+342. 2026-11-26 — Alex Nguyen — Proved the three UI harness fixes in World 2 Studio, each green twice in one Play session (ui_boss_gate 14/14, ui_team 71/71, ui_boss 487/487), and marked their BUGS.md lines proven.
+343. 2026-11-26 — Alex Nguyen — Merged the three UI test harness fixes (BossButton wait, boss camera settle, Daily popup close) into the World 2 branch; Studio World 2 ui_boss_gate 14/14, ui_team 71/71, ui_boss 487/487, each twice in one Play session; audit PASS.
 
 ## What's next
 **Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**

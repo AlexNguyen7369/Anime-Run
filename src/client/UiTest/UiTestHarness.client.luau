@@ -91,6 +91,7 @@ local function runAll()
 	print("[UITEST] START")
 	pcall(UiScenarios.PlayWithoutPasses)
 	pcall(UiScenarios.DismissWelcome)
+	pcall(UiScenarios.DismissDaily) -- docs/BUGS.md ui-harness-daily-popup
 	local results, pass, fail = {}, 0, 0
 	for _, name in UiScenarios.Names do
 		local ok, res = pcall(UiScenarios.Run, name)
@@ -134,6 +135,7 @@ local function runClick(id)
 	if isolated("UiTestClick") then
 		start()
 		pcall(UiScenarios.DismissWelcome) -- as before a run: a lone click must not press under World 2's welcome
+		pcall(UiScenarios.DismissDaily)
 		ok, res = pcall(UiScenarios.RunClick, id)
 	else
 		ok, res = true, refusal("click:" .. tostring(id))
@@ -189,6 +191,7 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 		start()
 		pcall(UiScenarios.PlayWithoutPasses)
 		pcall(UiScenarios.DismissWelcome)
+		pcall(UiScenarios.DismissDaily) -- docs/BUGS.md ui-harness-daily-popup
 		local ok, res = pcall(UiScenarios.Run, name)
 		if not ok then
 			res = {
