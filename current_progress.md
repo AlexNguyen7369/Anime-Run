@@ -312,6 +312,7 @@
 291. 2026-11-26 — Alex Nguyen — Sized each merchant's name per stall as large as it can be without covering its sign, over the measured hair top, with readability and hair checks; the Marketplace name cannot be readable under its sign (open question, its readability check left red).
 292. 2026-11-26 — Alex Nguyen — Made Rengoko's Market name as readable as the others per the owner's "Readable, rare overlap" ruling: 1.75 studs, in front of the top of the hair, clear of the sign in every view, with the ruling's raised side views allowed in the test and a line-of-sight hair check.
 293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
+280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 
 ## What's next
 **Look at the two kaiju sites in Studio on orch/world2/kaiju-land (mesh loads, hide colour, nothing standing inside the bodies), rules-audit the branch, then merge it into the World 2 branch.**
