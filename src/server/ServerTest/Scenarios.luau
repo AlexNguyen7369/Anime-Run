@@ -12352,6 +12352,7 @@ Scenarios.boss_models_placed = require(script.Parent.World2ProofTests).boss_mode
 Scenarios.awakening = require(script.Parent.AwakeningTests).awakening -- design doc 4.47 Awakening, WORLD2_SPEC "Awakening"
 Scenarios.world2_rewards = require(script.Parent.World2RewardsTests).world2_rewards -- design doc 4.47 World 2 rewards
 Scenarios.world2_skies = require(script.Parent.World2SkyTests).world2_skies -- WORLD2_SPEC "Track skies" (owner question 33)
+Scenarios.w2_mesh_turn = require(script.Parent.World2MeshTurnTests).w2_mesh_turn -- WORLD2_SPEC "Blender first", import turn
 -- WORLD2_SPEC "Track effects (draft, owner approval pending)": off by default, World 2 only, budget caps
 Scenarios.track_fx = require(script.Parent.TrackFxTests).track_fx
 Scenarios.harness_save = require(script.Parent.HarnessSaveTests).harness_save -- design doc 4.24 "Harness saves"

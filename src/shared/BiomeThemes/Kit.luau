@@ -531,6 +531,9 @@ local function fromDraft(key, draft, o)
 		end
 		props[name] = prop(name, d.Size, parts, {
 			Mesh = not d.PartsOnly and ("W2_" .. key .. "_" .. name) or nil,
+			-- Open Cloud's GLB import turns the geometry 180 degrees about Y; placement turns it back (WORLD2_SPEC
+			-- "Blender first", import turn)
+			ImportTurn = not d.PartsOnly or nil,
 			Hero = d.Hero,
 			CastShadow = if NO_SHADOW[key] and NO_SHADOW[key][name] then false else nil,
 		})

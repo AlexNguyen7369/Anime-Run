@@ -236,6 +236,13 @@ written before the swap.
   live Blender through the MCP (`build_track.run(n)`).
 - After the owner approves the render set: export the approved props, upload them under the asset ledger rules
   (BIOME_ENVIRONMENT_SPEC 4.4), and write the game BiomeThemes from the same data.
+- Import turn (2026-11-26, the lead under the owner's "fix rendering on all tracks"): Roblox's Open Cloud import of a GLB
+  turns the geometry 180 degrees about Y (X and Z negated, measured on all 115 World 2 ledger meshes: none came out
+  unturned). World 2 biome placement turns each uploaded draft mesh back by 180 degrees about its own centre
+  (`Kit.fromDraft` marks the def `ImportTurn`, `BiomeDressing` applies it), so every prop faces as in its approved
+  Blender draft and a split mesh's pieces (the ChainTower) join. Its box is symmetric, so size, ground and overlap
+  checks are unchanged. World 1 biome meshes (generated in Studio) and the plaza pieces (Open Cloud GLB too) keep their
+  look as approved in Studio: changing those is an owner question.
 
 ### Render set approvals
 - Bar before the owner sees a track: an independent reviewer scores it 7/10 or more against the source refs, scene

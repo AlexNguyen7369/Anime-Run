@@ -639,7 +639,9 @@ local function placedOk(origin, row, def, prop, name)
 	local mesh = prop:FindFirstChild(name)
 	if mesh then
 		local size = def.Size * s
-		local want, got = base * R.CFrame.new(0, size.Y / 2, 0), mesh.CFrame
+		-- every World 2 draft mesh is turned 180 degrees about its own centre against the import turn (WORLD2_SPEC "Blender
+		-- first", import turn): same centre and box, rotation turned
+		local want, got = base * R.CFrame.new(0, size.Y / 2, 0) * R.CFrame.Angles(0, math.pi, 0), mesh.CFrame
 		if
 			(got.Position - want.Position).Magnitude < 0.01
 			and (mesh.Size - size).Magnitude < 0.01
