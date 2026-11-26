@@ -30,10 +30,12 @@ def hexcol(h, a=1.0):
 
 
 # Road supports under raised road (docs/W2_RENDER_AUDIT.md): a support's top stays SUPPORT_CLEARANCE under the lowest road
-# underside over its length, as the game's own TrackBuilder supports (BiomeDressing.SUPPORT_CLEARANCE), so it never shows
-# through a climb. In place coordinates (k.place's y) the road top is p.y - 0.5 and the road is ROAD_THICKNESS deep.
+# underside over its length, as the game's own TrackBuilder supports (TrackBuilder SUPPORT_CLEARANCE), so it never shows
+# through a climb. In place coordinates (k.place's y) the road top is the centre line's p.y and the road is ROAD_THICKNESS deep.
 ROAD_THICKNESS = 2.0  # TrackBuilder ROAD_THICKNESS
-SUPPORT_CLEARANCE = 0.05  # TrackBuilder / BiomeDressing SUPPORT_CLEARANCE
+SUPPORT_CLEARANCE = 0.05  # TrackBuilder SUPPORT_CLEARANCE
+SUPPORT_SLACK = 0.15  # placeholder: the centre line misses up to 0.12 of the road's height at a support's far corners on a
+# curve (measured against the built road, 2026-11-26), so a support's top stays this much further under
 SUPPORT_MIN = 0.2  # placeholder: a support never thinner; one that would be sinks into the ground instead
 
 
@@ -176,7 +178,7 @@ class Kit:
 		to its waypoints' heights."""
 		n = max(1, int(math.ceil((d1 - d0) / step)))
 		low = min(self.at(d0 + (d1 - d0) * i / n)[0].y for i in range(n + 1))
-		return low - 0.5 - ROAD_THICKNESS - SUPPORT_CLEARANCE
+		return low - ROAD_THICKNESS - SUPPORT_CLEARANCE - SUPPORT_SLACK
 
 	def support(self, name, x, z, yaw, d0, d1, ground=-1.0):
 		"""Places `name` (a unit box prop standing on its base) as a road support between d0 and d1: its top at support_top,
