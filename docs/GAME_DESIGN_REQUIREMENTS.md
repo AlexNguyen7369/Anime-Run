@@ -943,6 +943,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-26: owner, asked directly: Market merchant's name "Readable, rare overlap": Rengoko's name is the same readable size as the others (about 1.7 studs) and may touch the MARKET sign from high side camera angles near the stall, never from the spawn or at player eye height.
 - 2026-11-25: owner, asked directly: merchant names "Readable from spawn": each merchant's floating name is as large as it can be without covering its stall's sign or header (about a 2-stud label, readable from the spawn on 1080p); Kakashe's stays hidden.
 - 2026-11-25: owner: "Kaiju ready to upload, merchants can be added already to merge": the new Track 5 kaiju mesh (GiantCorpse rework, 19,889 tris) may be uploaded under the owner's account, then reviewed (BIOME_ENVIRONMENT_SPEC 4.1 step 3) before its id is used; the plaza merchants may be turned on (`MERCHANTS_LIVE`) and merged into the World 2 branch.
 - 2026-11-25: owner, asked directly (owner question 33): World 2 track skies: "Four tracks": Hell's Gate first, then Demon Castle, Golden City and Ant Island get in-house gradient skies made from their approved drafts' sky colours; the other tracks keep the default sky; renders to the owner before upload.
