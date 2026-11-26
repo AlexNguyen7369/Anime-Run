@@ -3,6 +3,8 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- Sky props on layout C: tall pieces (Track 10's sky doors and arms, Track 8's pillars, the Abyss) show across the 656+ stud gaps in context views. Proposed rule (WORLD2_SPEC, not enforced): a sky prop stays in its band and under 300 studs high unless 1,500 from other roads; as written it would remove most of Track 10's approved sky doors (700 rows break it). Question: enforce it, change the numbers, or rely on fog (to be judged in Studio)?
+- Track 2 ChainTower now has a spot; it needs 4 new uploads (ChainTower_p1-p4, cut from the approved mesh). To be uploaded by agent-2 under your upload approval.
 - (ANSWERED by the owner on return, see the design log: uploads, hero shrink-to-fit, T6 HQ back, Gojio on; effects stay off; T10 haze a tiny bit less; drakes fine; Starter team unchanged.)
 - Heroes with no spot at approved scale on layout C: T1 Town, T3 HeroHQ, T8 LairTower, T10 Abyss (never placed). Question: allow a smaller scale for any of them, or keep them out?
 - Starter in slot 1: a World 2 save with no team starts as {Starter}, and auto-fill appends kept rolls but never replaces a filled slot (your 2026-11-20 rule), so the placeholder Starter (no model or portrait) stays first until the player edits the team. Not a code fault. Question: should a kept roll replace a team that is only the Starter?
@@ -15,6 +17,7 @@
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Scenery refit round 2: every World 2 track scores 7 or above in fresh blind review (T1 7.2, T2 7, T3 7, T4 7, T5 7, T6 7.3, T7 7, T8 8, T9 7, T10 7); every hero placed (shrink-to-fit by your word: T1 Town 1.015, T3 HeroHQ 0.562, T7 volcano 0.389, T8 LairTower 3.45, T10 Abyss r500); T6 HQ back; Track 7 now has a sea. Landing into the World 2 branch in progress.
 - Dark props: all 100 World 2 props re-uploaded in their approved colours and applied (GiantCorpse kept as is); per-batch Studio side-by-sides in assets/world2_draft/audit/reexport_2026-11-26/; ledger harness 12655/0. To look at on track: night tracks 4, 6, 8, lighting floors, Track 8's much lighter LairTower/Colonnade/Coliseum.
 - Re-export batch 10 (Hell's Gate, 10 meshes) uploaded by agent-2 after the owner approved uploads in its own session; Studio colour check and batches 1-9 next.
 - Track effects fixes (from the Studio look): effects now build on the whole track under streaming (origin from the chain), no smoke/haze over any road, dragons and the eel stay over their own track's ground (most only fit once layout C lands), the eel reads as one body. track_fx 76/0 World 1, 102/0 World 2 (106/0 on C). Still LIVE off; frame time not measurable in the throttled Studio window.
