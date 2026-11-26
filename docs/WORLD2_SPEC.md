@@ -207,7 +207,10 @@ written before the swap.
   meshes unchanged; re-export of these two lifted from the hold, `--no-glb`; new renders need the owner's approval);
   (b) Track 5's dead kaiju (`GiantCorpse`) and its site (ground, crushed buildings, rubble and crew around it), sized to
   fit a legal spot, earlier form rulings dropped; reference renders need the owner's approval before export, upload or
-  placement. The rest of Track 5 stays frozen. Every other track stays on the re-export hold.
+  placement. The rest of Track 5 stays frozen. Every other track stays on the re-export hold (lifted for the colours, next line).
+- Re-export hold lifted by the owner 2026-11-25 ("yes to all", item 5: after one test model is compared beside an old one; done the same day, three
+  matched the approved colours): the meshes may be exported and uploaded again with their approved colours (docs/W2_REEXPORT_PLAN.md).
+  Shapes, layouts, Drafts and the freezes do not change by it; Track 5's `GiantCorpse` waits for its own export.
 - Owner 2026-11-25 on the dead kaiju's first draft: shape, size (about 311 x 150 studs, 116 tall) and colour are good and
   stay; fix the lead's four faults (crushed walls look like flat cutouts, visible ground edge around the body, soft feet
   and claws and an eye that barely reads, bare road-side bank) in review rounds against the references. This is not the

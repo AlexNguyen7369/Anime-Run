@@ -315,6 +315,9 @@
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 294. 2026-11-26 — Alex Nguyen — Audited World 2 rendering on all 10 tracks in Studio: grass, terrain and white-mesh fixes hold; draft road supports cut through the sloped road on Tracks 2-5 and 7; neighbouring tracks crowd the view, every uploaded mesh still ships dark colours, and every track uses the stock sky (docs/W2_RENDER_AUDIT.md).
 295. 2026-11-26 — Alex Nguyen — Fixed World 2's road supports showing through climbs Blender-first: the generators keep each support under the road (commit 6c2533f0), today's 284 support rows match it, and the new road_surface_clear Studio check went from 7 fails to 34/34 passing.
+277. 2026-11-25 — Alex Nguyen — Built the World 2 colour re-export (119 meshes baked, batch plan and upload tool with rollback); nothing uploaded or changed in the game.
+278. 2026-11-25 — Alex Nguyen — Fixed the re-export tool after its audit (lost replies, lock, journaled apply, Studio vertex comparison) and recorded the lifted re-export hold; nothing uploaded.
+279. 2026-11-25 — Alex Nguyen — Tightened the re-export tool after its re-audit (signatures, ids, clear) and merged world2-place; nothing uploaded.
 
 ## What's next
 **Re-export World 2's prop meshes in their approved colours (W2_REEXPORT_PLAN batches 1-10, GiantCorpse excluded): bake, dry-run, upload batch 1, compare it in Studio, then upload the rest.**
