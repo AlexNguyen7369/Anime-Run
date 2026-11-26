@@ -250,6 +250,16 @@ written before the swap.
 - Approved by the owner 2026-11-24: Track 9 GoldenCity, frozen at round 4 (4d994ed; owner: "earlier version is
   fine"). The unfinished corrected round is kept in git stash, not applied. All 10 tracks are approved.
 - Approved by the owner 2026-11-24 as-is after stalling at 6/10: Track 2 DemonCastle (round 8, 2455c6f). Frozen.
+- Recorded exception to the freeze, road supports' tops, and the bases of the 6 sunk rows, only (owner 2026-11-26 "fix rendering on all tracks", rendering
+  priority "Ground/grass/z-fighting"; the lead's approval under the owner's same-day pre-approval; after pictures for the
+  owner's review on return: `assets/world2_draft/audit/render_2026-11-26/T2_fill_after.jpg`, `T5_pier_after.jpg`,
+  `T7_bank_after.jpg`; docs/W2_RENDER_AUDIT.md). The draft road supports under raised road (Fill on Tracks 2, 3 and 4,
+  Pier on Track 5, Bank on Track 7) keep their footprint, and their base except where sunk (below); their top sits `SUPPORT_CLEARANCE` (0.05, TrackBuilder's
+  own value) under the lowest road underside over the support's length, with `SUPPORT_SLACK` (**placeholder** 0.15, the
+  centre line's shortfall at a support's far corners on a curve) more. A support that would be thinner than `SUPPORT_MIN`
+  (**placeholder** 0.2) is that thick and sunk into the ground (its base moves down), never dropped: 6 rows on the
+  2026-11-26 layout. Generators: `kit.support_top` and
+  `kit.support` (tools/blender/world2/kit.py); Studio check `road_surface_clear` (on demand).
 - In game (owner 2026-11-23): props placed from an approved draft keep the draft's clearance (24+ studs from the road
   centre line, overhead 14+, checked by tools/blender/world2/clearance.py). World 1's 8-stud road-edge clearance
   (BiomeDressing.CLEARANCE) does not prune them.
@@ -266,7 +276,10 @@ written before the swap.
   meshes unchanged; re-export of these two lifted from the hold, `--no-glb`; new renders need the owner's approval);
   (b) Track 5's dead kaiju (`GiantCorpse`) and its site (ground, crushed buildings, rubble and crew around it), sized to
   fit a legal spot, earlier form rulings dropped; reference renders need the owner's approval before export, upload or
-  placement. The rest of Track 5 stays frozen. Every other track stays on the re-export hold.
+  placement. The rest of Track 5 stays frozen. Every other track stays on the re-export hold (lifted for the colours, next line).
+- Re-export hold lifted by the owner 2026-11-25 ("yes to all", item 5: after one test model is compared beside an old one; done the same day, three
+  matched the approved colours): the meshes may be exported and uploaded again with their approved colours (docs/W2_REEXPORT_PLAN.md).
+  Shapes, layouts, Drafts and the freezes do not change by it; Track 5's `GiantCorpse` waits for its own export.
 - Owner 2026-11-25 on the dead kaiju's first draft: shape, size (about 311 x 150 studs, 116 tall) and colour are good and
   stay; fix the lead's four faults (crushed walls look like flat cutouts, visible ground edge around the body, soft feet
   and claws and an eye that barely reads, bare road-side bank) in review rounds against the references. This is not the

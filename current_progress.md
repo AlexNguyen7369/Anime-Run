@@ -330,8 +330,17 @@
 327. 2026-11-26 — Alex Nguyen — Kept the Shop, Potions, Market and Index at their approved distance from the spawn (moved only with the centre) so their merchants' names stay readable at 16 px, checked them clear of every other piece by 16.35 studs, and merged the World 2 branch (team of 3, track effects, skies) into the spawn-gate branch.
 328. 2026-11-26 — Alex Nguyen — Reverted the moved 1.2x plaza after the rules audit (walk spawn 159.5 from Track 1's start, the 4.43 ring split) and instead grew the walkable floor on its three open sides only (east 131.6, north 132, south -119, west unchanged, tree pit round the Great Sakura), every road at least 2.00 studs off in both worlds and option C, rules and tests first.
 329. 2026-11-26 — Alex Nguyen — Merged the World 2 boss gate (draft A), the spawn floor grown on its three open sides (225.6 x 251) and the spawn scatter; Studio World 2: spawn_area 201/201, plaza_pieces 306/306, plaza_build 171/171, boss_guide 95/95, auto_toggle 158/158, world_layout 12/12, ui_boss_gate 14/14; audit PASS.
+294. 2026-11-26 — Alex Nguyen — Audited World 2 rendering on all 10 tracks in Studio: grass, terrain and white-mesh fixes hold; draft road supports cut through the sloped road on Tracks 2-5 and 7; neighbouring tracks crowd the view, every uploaded mesh still ships dark colours, and every track uses the stock sky (docs/W2_RENDER_AUDIT.md).
+295. 2026-11-26 — Alex Nguyen — Fixed World 2's road supports showing through climbs Blender-first: the generators keep each support under the road (commit 6c2533f0), today's 284 support rows match it, and the new road_surface_clear Studio check went from 7 fails to 34/34 passing.
+277. 2026-11-25 — Alex Nguyen — Built the World 2 colour re-export (119 meshes baked, batch plan and upload tool with rollback); nothing uploaded or changed in the game.
+278. 2026-11-25 — Alex Nguyen — Fixed the re-export tool after its audit (lost replies, lock, journaled apply, Studio vertex comparison) and recorded the lifted re-export hold; nothing uploaded.
+279. 2026-11-25 — Alex Nguyen — Tightened the re-export tool after its re-audit (signatures, ids, clear) and merged world2-place; nothing uploaded.
+296. 2026-11-26 — Alex Nguyen — Merged the colour re-export tools and baked all 119 meshes; the first upload (Track 10) was blocked by this session's permissions, so nothing was sent.
+297. 2026-11-26 — Alex Nguyen — Corrected the support fix after its rules audit (road-top convention, 0.15 corner allowance, every row checked under the road), recorded the freeze exception in WORLD2_SPEC, and tightened road_surface_clear with a road-deck check; Studio 55/55.
+330. 2026-11-26 — Alex Nguyen — Made road_surface_clear enforce the 0.05 support clearance under every road (Studio 55/55 on the final rows), re-shot the Track 2, 5 and 7 after pictures on them, and merged the World 2 branch.
+331. 2026-11-26 — Alex Nguyen — Corrected the opening words of WORLD2_SPEC's road-supports exception to name the 6 sunk rows' bases, after the third rules audit.
 
 ## What's next
-**Land the World 2 square-spiral layout together with the scenery refit (orch/world2/w2-wide-layout and orch/world2/w2-refit), then run the World 2 track tests in Studio.**
+**Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**
 
-**Why this is next:** the layout alone leaves scenery on the old routes (PIN 156/853); the World 2 PR to main and the effects' Studio check both need the re-laid tracks.
+**Why this is next:** the owner approved tonight's uploads, everything up to the send is ready, and dark props are the last rendering fault that does not depend on the re-lay.
