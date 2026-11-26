@@ -387,6 +387,7 @@
 384. 2026-11-26 — Alex Nguyen — Made the safety baseplate's tiles overlap by 0.1 stud (TrackBuilder.PlateTiles) so no point falls on a seam between two tiles, with a harness row that reproduces the Studio tie, and checked offline that Track 7's 0.62 view is on its own road and ground.
 385. 2026-11-27 — Alex Nguyen — Made Track 7's sea draw as water: the terrain writer and the harness share one voxel rule, the sea follows the ship hulls (4 studs deep), 3 ships on the nest left out (45/45 ships over drawn water), and traced ui_boss's camera flake to the Studio MCP's client execute_luau restoring CameraType (runner fix, check unchanged).
 386. 2026-11-27 — Alex Nguyen — Confirmed Track 7's sea in Studio (Rojo at 9ddb2ce6): 45/45 ships over written water voxels, world_layout 12/0, picture saved in the audit folder.
+387. 2026-11-27 — Alex Nguyen — Turned the four track-effect meshes back against the Open Cloud import turn (drakes flew tail first); rule and test first, Studio before/after of Track 1's drake.
 
 ## What's next
 **The lead merges orch/world2/w2-sea-edge into the World 2 landing, and the runners switch to waiting on the Server datamodel during UI runs.**
