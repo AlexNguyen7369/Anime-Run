@@ -38,6 +38,18 @@ SIDES = ("Bk", "Ft", "Lf", "Rt")
 TRACKS = ((10, "HellGate"), (2, "DemonCastle"), (9, "GoldenCity"), (7, "AntIsland"))
 
 
+# Proposed softening (owner review round 2026-11-26): Demon Castle's dark below-horizon stop sits 0.7 degrees under its
+# bright orange horizon stop, a 1-2 px hard line on a 512 px face; moved 2 degrees down, so the orange meets the dark in a
+# band of about 10 px. Nothing at or above the horizon changes, so the sky still matches the draft where it shows.
+SOFTEN = {"DemonCastle": {-0.012: -0.035}}
+
+
+def soften(key, stops):
+	moves = SOFTEN.get(key, {})
+	assert all(p < 0 for p in moves), "softening only moves stops below the horizon"
+	return [(moves.get(p, p), h) for p, h in stops]
+
+
 def folder(number, key):
 	return "track%02d_%s" % (number, key)
 
@@ -182,7 +194,8 @@ def read_png(path):
 
 
 def make(number, key, out_root=OUT, size=SIZE):
-	stops, strength, ground = read_draft(key)
+	draft_stops, strength, ground = read_draft(key)
+	stops = soften(key, draft_stops)
 	ramp = Ramp(stops, strength)
 	out = os.path.join(out_root, folder(number, key))
 	os.makedirs(out, exist_ok=True)
@@ -201,6 +214,7 @@ def make(number, key, out_root=OUT, size=SIZE):
 		"ledger_key": "W2_%s_Sky" % key,
 		"source": "src/shared/BiomeThemes/World2/%sDraft.luau Sky" % key,
 		"stops": stops,
+		"draft_stops": draft_stops,
 		"strength": strength,
 		"ground": ground,
 		"size": size,
@@ -238,6 +252,18 @@ def self_test():
 	except (OSError, ValueError):
 		check(True, "an unknown track is refused")
 
+	# softening: nothing at or over the horizon changes; the step under it is spread over more rows of a 512 px side face
+	for key in SOFTEN:
+		stops, strength, _ = read_draft(key)
+		a, b = Ramp(stops, strength), Ramp(soften(key, stops), strength)
+		check(all(a.at_height(k / 4096) == b.at_height(k / 4096) for k in range(0, 4097)), "%s: softening leaves the sky above the horizon alone" % key)
+
+		def worst_step(ramp):
+			rows = [ramp.at_height(v / math.sqrt(1 + v * v)) for v in (1 - (j + 0.5) / 256 for j in range(512))]
+			return max(max(abs(x - y) for x, y in zip(p, q)) for p, q in zip(rows, rows[1:]))
+
+		before, after = worst_step(a), worst_step(b)
+		check(after < before and after <= 40, "%s: softer horizon line (largest row step %d -> %d of 255)" % (key, before, after))
 	size = 64
 	with tempfile.TemporaryDirectory() as tmp:
 		for number, key in TRACKS:
@@ -250,7 +276,7 @@ def self_test():
 			check(len({a[f] for f in SIDES}) == 1, "%s: the four sides are one image" % key)
 			faces = {f: read_png(os.path.join(out, "W2_%s_Sky%s.png" % (key, f))) for f in FACES}
 			check(all(w == size and h == size for w, h, _ in faces.values()), "%s: %d px faces" % (key, size))
-			ramp = Ramp(stops, strength)
+			ramp = Ramp(soften(key, stops), strength)
 
 			def px(face, i, j):
 				row = faces[face][2][j]

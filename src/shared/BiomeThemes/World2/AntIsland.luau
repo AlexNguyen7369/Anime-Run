@@ -21,6 +21,18 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	},
 	-- In-house gradient sky from the draft's stops (owner 2026-11-25, question 33; docs/WORLD2_SPEC.md "Track skies")
 	Skybox = "W2_AntIsland_Sky",
+	-- Light that matches the draft's dusk under that sky (only while it shows; proposed): a lower sun, light at the day
+	-- floor, less exposure, the outdoor light between the draft's horizon and its grey-violet sky, the grade
+	-- warmer and less saturated. The road-and-runner floors (WORLD2_SPEC "Track lighting") still hold.
+	SkyLook = {
+		Lighting = {
+			ClockTime = 17.6,
+			Brightness = 1.4,
+			ExposureCompensation = -0.3,
+			OutdoorAmbient = hex("D8946A"):Lerp(hex("6E6670"), 0.5),
+		},
+		Grade = { Saturation = -0.1, TintColor = Color3.new(1, 1, 1):Lerp(hex("FFB070"), 0.3) },
+	},
 	Audio = { Volume = 0.35 }, -- no sounds yet
 	-- Asset ledger (spec 4.4): the track sky's row (Kit.draftSky), then one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.

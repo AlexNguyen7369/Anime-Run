@@ -1,4 +1,26 @@
 {
+ "draft_stops": [
+  [
+   0.0,
+   "D8946A"
+  ],
+  [
+   0.04,
+   "A07A70"
+  ],
+  [
+   0.12,
+   "6E6670"
+  ],
+  [
+   0.35,
+   "4A4C5A"
+  ],
+  [
+   1.0,
+   "2A2C38"
+  ]
+ ],
  "faces": {
   "Bk": "W2_AntIsland_SkyBk.png",
   "Dn": "W2_AntIsland_SkyDn.png",

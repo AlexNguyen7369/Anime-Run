@@ -61,6 +61,27 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
     its zone only (`BiomeEnvironment.SkyboxFace`; the client writes the place's own faces back on leaving), swapped
     under the blend's haze (BIOME_ENVIRONMENT_SPEC 5.3); fog and lighting are unchanged (still `Kit.fromDraft`'s floors).
     Tests: `world2_skies` (both worlds). Track 10's layout and meshes stay frozen (a skybox touches neither).
+  - Review round 2026-11-26 (agent-3, images only: Golden City 8, Hell's Gate 7, Demon Castle 7, Ant Island 6):
+    - Horizon seam: while a track's own sky shows, its profile takes `WithSky` (`Kit.fromDraft`, applied by
+      `BiomeEnvironment.Profile` only then): fog `Atmosphere.Color` = the drawn sky at the horizon and `Decay` = the
+      drawn sky 2 degrees up (`SKY_DECAY_HEIGHT` 0.035), so the haze meets the sky in its own colours; Density and Haze
+      unchanged. Off, or with an id 0, the theme's own profile is returned as today. The pale blue-grey line in the first
+      previews was the default sky's pale band left in the Studio picture by the picture edit; the redone previews
+      replace it and recolour Track 10's fog band by the fog change.
+    - Demon Castle: its dark stop under the horizon moves from -0.012 to -0.035 in the drawing only
+      (`track_sky.py SOFTEN`), so the orange horizon meets the dark below in about 10 px of a 512 px face instead of a
+      1-2 px line; nothing at or over the horizon changes. No Studio picture of Track 2 exists in the repo (searched
+      `assets/`: only World 1's Forest T2 and Track 2 model close-ups), so its board keeps the level game view.
+    - Ant Island: `assets/world2_draft/audit/lighting_2026-11-25/T7_road.jpg` is filed as Track 7, but its scenery is
+      not Ant Island's: the orange blocks match Golden City's CityBlock and the timber houses and pines are not in Ant
+      Island's draft (its props near the road are Brush, Bank, ThatchHouse, Ruin). By the draft placements, 79 Golden
+      City CityBlocks and 153 Haunted Tunnel cedars stand within 150 studs of Track 7's centre line, so the picture is
+      most likely Track 7's road with neighbouring tracks' scenery (the ground-ownership question); not confirmed in
+      Studio. Under its sky Ant Island takes `SkyLook`: ClockTime 17.6 (was 17.2), Brightness 1.4 (the day floor, was
+      1.44), ExposureCompensation -0.3 (was 0), OutdoorAmbient A37D6D (halfway from the draft's horizon D8946A to its
+      sky 6E6670, was 997966), Grade Saturation -0.1 (was 0.18) and TintColor 30% toward the sun FFB070 (was 15%). The
+      road-and-runner floors still hold (tested). `studio_sky_dusk.png` previews it as a picture regrade (no new
+      shadows).
 
 ## Save
 - `Shared/WorldConfig.Id` comes from `ReplicatedStorage.WorldId` (the World 2 place only); a client waits for `game.Loaded`

@@ -184,6 +184,86 @@ function Tests.world2_skies()
 			hell.Id = ZERO
 			flag("id0_row_changes_nothing", allServer(shown(10)))
 		end
+
+		-- With its sky shown, a track's fog takes the drawn sky's colours so no seam shows at the horizon, and Ant Island
+		-- its dusk light (WORLD2_SPEC "Track skies", all proposed); without it the profile is the theme's own, unchanged.
+		Config.LIVE = false
+		local base = 0
+		for n, key in SKY_TRACKS do
+			base += Env.Profile(n) == Themes[key].Atmosphere and 0 or 1
+		end
+		flag("off_profile_is_theme_own", base == 0, base, 0)
+		Config.LIVE = true
+		for _, row in rows do
+			row.Id = FAKE.Side
+			for _, face in FACES do
+				row.Faces[face] = fakeFace(face)
+			end
+			row.Reviewed = "2026-11-25 test"
+		end
+		local function near(c, hex, tol)
+			local want = Color3.fromHex(hex)
+			return typeof(c) == "Color3"
+				and math.abs(c.R - want.R) <= tol
+				and math.abs(c.G - want.G) <= tol
+				and math.abs(c.B - want.B) <= tol
+		end
+		local function top(c)
+			return typeof(c) == "Color3" and math.max(c.R, c.G, c.B) or 0
+		end
+		-- drawn by tools/blender/world2/track_sky.py: the sky at the horizon and 2 degrees up (Ramp.at_height(0), (0.035))
+		local FOG = {
+			[10] = { "FF8A4A", "F6743C" },
+			[2] = { "F37428", "C04A28" },
+			[9] = { "FFFE8A", "FFF076" },
+			[7] = { "CE8D65", "A1786A" },
+		}
+		for n, key in SKY_TRACKS do
+			local p, own = Env.Profile(n), Themes[key].Atmosphere
+			local a = p.Atmosphere or {}
+			flag(
+				("live_%d_fog_colour"):format(n),
+				near(a.Color, FOG[n][1], 1.5 / 255),
+				a.Color and a.Color:ToHex(),
+				FOG[n][1]
+			)
+			flag(
+				("live_%d_fog_decay"):format(n),
+				near(a.Decay, FOG[n][2], 1.5 / 255),
+				a.Decay and a.Decay:ToHex(),
+				FOG[n][2]
+			)
+			flag(
+				("live_%d_fog_density_kept"):format(n),
+				a.Density == own.Atmosphere.Density and a.Haze == own.Atmosphere.Haze
+			)
+			flag(("live_%d_sky_key_kept"):format(n), p.Sky and p.Sky.Skybox == "W2_" .. key .. "_Sky")
+			local l = p.Lighting or {}
+			-- the road-and-runner floors (WORLD2_SPEC "Track lighting") still hold with the sky
+			flag(
+				("live_%d_floors"):format(n),
+				l.Brightness >= 1.4 and top(l.Ambient) >= 0.36 and top(l.OutdoorAmbient) >= 0.6
+			)
+			if n ~= 7 then
+				flag(("live_%d_light_unchanged"):format(n), p.Lighting == own.Lighting and p.Grade == own.Grade)
+			end
+		end
+		local ant = Env.Profile(7)
+		local l, g = ant.Lighting or {}, ant.Grade or {}
+		flag("live_7_dusk_clock", l.ClockTime == 17.6, l.ClockTime, 17.6)
+		flag("live_7_dusk_brightness", l.Brightness == 1.4, l.Brightness, 1.4)
+		flag("live_7_dusk_exposure", l.ExposureCompensation == -0.3, l.ExposureCompensation, -0.3)
+		flag(
+			"live_7_dusk_outdoor",
+			near(l.OutdoorAmbient, "A37D6D", 1.5 / 255),
+			l.OutdoorAmbient and l.OutdoorAmbient:ToHex(),
+			"A37D6D"
+		)
+		flag("live_7_dusk_saturation", g.Saturation == -0.1, g.Saturation, -0.1)
+		flag("live_7_own_light_untouched", Themes.AntIsland.Atmosphere.Lighting.ClockTime ~= 17.6)
+		-- one track still at id 0 keeps its own profile
+		rows[2].Faces.Up = ZERO
+		flag("id0_track_keeps_own_profile", Env.Profile(2) == Themes.DemonCastle.Atmosphere)
 	end, debug.traceback)
 	flag("completed", ok, ok and 1 or tostring(err))
 

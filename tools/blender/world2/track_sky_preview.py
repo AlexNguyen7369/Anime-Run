@@ -2,13 +2,17 @@
 Reads the faces track_sky.py wrote and, per track, writes into assets/world2_draft/skies/trackNN_<Key>/:
   equirect.png      the six faces put back together as a 360 x 180 degree panorama (checks the cube's layout and seams)
   studio_sky.png    the track's Studio picture of 2026-11-25 (assets/world2_draft/audit/lighting_2026-11-25/T<N>_road.jpg,
-                    the default blue sky) with its blue sky pixels replaced by the new sky at each row's elevation
-                    (vertical FOV 70, the camera taken as level at the picture's horizon). Approximate: the game's haze
-                    and fog are not redone, and the sun disc is the engine's. Only where such a picture exists.
+                    the default blue sky) with its sky pixels (and the default sky's pale band over the horizon) replaced
+                    by the new sky at each row's elevation (vertical FOV 70, the camera taken as level at the picture's
+                    horizon), and the fog band under the horizon recoloured by the change of the fog colours (Kit WithSky).
+                    Approximate: a picture edit, not the engine; the sun disc is the engine's. Only where a picture exists
+                    (none for Track 2).
+  studio_sky_dusk.png  Ant Island only: the same with its scenery regraded from today's light to its SkyLook (exposure,
+                    outdoor light, tint, saturation; the lower sun's shadows are not redone)
   game_view.png     where there is no Studio picture: a level view (FOV 70) of the new sky over flat ground of the draft's
                     ground colour
-  preview.png       one board: Studio now | Studio with the new sky (or the game view) / the approved draft render | the
-                    panorama
+  preview.png       one board: Studio now | Studio with the new sky (Ant Island: and its dusk light; Track 2: the game
+                    view) / the approved draft render | the panorama
 And checks the faces against the draft's own Blender world (kit.Kit.sky): a Cycles panorama of that world, compared
 pixel by pixel with equirect.png (printed as SKYCHECK lines; drawn the same way, the difference should be a few levels).
 Offline. Headless:
@@ -110,7 +114,7 @@ class Cube:
 		return self.sample(np.zeros_like(elev), np.sin(elev), np.cos(elev))
 
 
-def game_view(cube, ground_hex, w=W, h=H):
+def game_view(cube, ground_hex, key, w=W, h=H):
 	f = (h / 2) / math.tan(math.radians(FOV / 2))
 	j = np.arange(h) + 0.5
 	i = np.arange(w) + 0.5
@@ -119,15 +123,32 @@ def game_view(cube, ground_hex, w=W, h=H):
 	n = np.sqrt(x * x + y * y + z * z)
 	sky = cube.sample(x / n, y / n, z / n)
 	g = np.array([int(ground_hex[k : k + 2], 16) / 255 for k in (0, 2, 4)], dtype=np.float32)
-	horizon = cube.at_elevation(np.zeros(1))[0]
+	horizon = fog_colours(key)[1][0]  # the fog's colour while the sky shows (Kit WithSky)
 	dist = np.where(y < 0, 12 / np.maximum(-y / np.sqrt(x * x + z * z), 1e-4), 0)  # eye 12 studs over flat ground
 	fog = (1 - np.exp(-dist / 1500))[..., None]  # proposed look only: ground fades to the horizon colour
 	ground = g * (1 - fog) + horizon * fog
 	return np.where((y < 0)[..., None], ground, sky)
 
 
-def studio_with_sky(cube, shot):
-	"""Replace the default blue sky of a Studio picture by the new sky at each row's elevation."""
+def hexf(h):
+	return np.array([int(h[i : i + 2], 16) / 255 for i in (0, 2, 4)], dtype=np.float32)
+
+
+def fog_colours(key):
+	"""(old, new) fog (Atmosphere Color, Decay) of a track, as Kit.fromDraft makes them: old = the draft's horizon stop and
+	the stop two above it; new (while its sky shows) = the drawn sky at the horizon and about 2 degrees up. sRGB 0..1."""
+	stops, strength, _ = ts.read_draft(key)
+	first = next(i for i, (p, _) in enumerate(stops) if p >= 0)
+	old = (hexf(stops[first][1]), hexf(stops[min(first + 2, len(stops) - 1)][1]))
+	ramp = ts.Ramp(ts.soften(key, stops), strength)
+	new = (np.array(ramp.at_height(0), np.float32) / 255, np.array(ramp.at_height(0.035), np.float32) / 255)
+	return old, new
+
+
+def studio_with_sky(cube, shot, key):
+	"""The Studio picture with its default sky replaced by the new sky at each row's elevation, and its fog band (the far
+	ground in haze just under the horizon) recoloured by the change of the fog colours. Approximate: a picture edit, not
+	the engine."""
 	h, w = shot.shape[:2]
 	r, g, b = shot[..., 0], shot[..., 1], shot[..., 2]
 	blue = (b > r + 0.1) & (b > g) & (b > 0.55)  # the bright blue default sky; dark navy scenery stays
@@ -136,17 +157,77 @@ def studio_with_sky(cube, shot):
 	horizon = int(sky_rows.max()) + 1 if len(sky_rows) else h // 2
 	f = (h / 2) / math.tan(math.radians(FOV / 2))
 	elev = np.arctan((horizon - (np.arange(h) + 0.5)) / f)
-	colour = cube.at_elevation(elev)  # [h, 3]
+	colour = cube.at_elevation(np.maximum(elev, 0))  # [h, 3]; just under the line the horizon colour
 	# soft edge: how far past the blue threshold a pixel is (anti-aliased outlines blend)
-	alpha = np.clip((b - r - 0.04) / 0.12, 0, 1) * (b > 0.45) * (b >= g - 0.02)  # pale blue near the horizon too
-	# the default sky's pale grey band just over the horizon (it fades into the fog colour there)
+	alpha = np.clip((b - r - 0.04) / 0.12, 0, 1) * (b > 0.45) * (b >= g - 0.02)
+	# the default sky's pale band over the horizon: light, weakly coloured pixels
 	band = np.zeros(h, bool)
-	band[max(0, horizon - 60) : horizon + 4] = True
-	pale = (np.abs(r - g) < 0.12) & (b >= r - 0.03) & ((r + g + b) / 3 > 0.55) & band[:, None]
+	band[max(0, horizon - 60) : horizon + 2] = True
+	sat = shot.max(axis=2) - shot.min(axis=2)
+	pale = (sat < 0.25) & (shot.mean(axis=2) > 0.42) & band[:, None]
 	alpha = np.maximum(alpha, pale.astype(np.float32))
-	alpha[horizon + 4 :] = 0
+	alpha[horizon + 2 :] = 0
 	out = shot * (1 - alpha[..., None]) + colour[:, None, :] * alpha[..., None]
-	return out, horizon
+
+	# Where the far ground shows as an even fog band across the picture (Track 10's plain), the old sky faded into it
+	# over a few rows under the horizon: that fade now runs from the new sky's horizon colour into the fog, recoloured by
+	# the change of the fog colours (Kit WithSky). Where scenery hides it (Tracks 7 and 9), nothing is done there.
+	def even(j):
+		m = np.median(shot[j], axis=0)
+		return m, (np.abs(shot[j] - m).max(axis=1) < 0.06).mean()
+
+	(old_c, old_d), (new_c, new_d) = fog_colours(key)
+	gain = (new_c + new_d) / np.maximum(old_c + old_d, 1e-3)
+	fog_start, fog_rows = None, 0
+	for j in range(horizon, min(h - 7, horizon + 60)):
+		m, frac = even(j)
+		if frac > 0.8 and np.abs(m - even(j + 6)[0]).max() < 0.02:
+			fog_start = j
+			break
+	if fog_start is not None:
+		ref = even(fog_start)[0]
+		j = fog_start
+		while j < min(h, fog_start + 150):
+			m, frac = even(j)
+			if frac < 0.5 or np.abs(m - ref).max() > 0.2:
+				break
+			near = np.abs(shot[j] - m).max(axis=1) < 0.15
+			out[j, near] = np.clip(shot[j, near] * gain, 0, 1)
+			j += 1
+		fog_rows = j - fog_start
+		fog_new = np.clip(ref * gain, 0, 1)
+		top = colour[horizon - 1]
+		for j in range(horizon, fog_start):
+			near = shot[j].mean(axis=1) > 0.25  # the fade itself (the doors' dark tops stay)
+			t = (j - horizon + 0.5) / (fog_start - horizon)
+			out[j, near] = top * (1 - t) + fog_new * t
+			alpha[j, near] = 1
+	return out, horizon, alpha, fog_rows
+
+
+# Ant Island's light under its sky (themes SkyLook) against today's, for a picture regrade; game values (world2_skies)
+ANT_LIGHT = {
+	"old": {"Brightness": 1.44, "Outdoor": "997966", "Sun": "FFB070", "Exposure": 0.0, "Tint": 0.15, "Saturation": 0.18},
+	"new": {"Brightness": 1.4, "Outdoor": "A37D6D", "Sun": "FFB070", "Exposure": -0.3, "Tint": 0.3, "Saturation": -0.1},
+}
+
+
+def regrade(pic, keep, look):
+	"""A rough picture regrade of lit scenery from one light to another (sun x Brightness + outdoor ambient, exposure,
+	tint, saturation). The lower sun's shadows are not redone. keep: per-pixel weight of pixels to leave (the sky)."""
+
+	def light(v):
+		sun = hexf(v["Sun"])
+		tint = 1 + (sun - 1) * v["Tint"]
+		return (v["Brightness"] * sun * 0.5 + hexf(v["Outdoor"])) * 2 ** v["Exposure"] * tint
+
+	old, new = look["old"], look["new"]
+	gain = light(new) / light(old)
+	out = np.clip(pic * gain, 0, 1)
+	lum = out.mean(axis=2, keepdims=True)
+	out = lum + (out - lum) * (1 + new["Saturation"]) / (1 + old["Saturation"])
+	k = keep[..., None]
+	return pic * k + np.clip(out, 0, 1) * (1 - k)
 
 
 def draft_world_panorama(key, w=256, h=128):
@@ -196,9 +277,9 @@ def run(number, key):
 	ref = draft_world_panorama(key)
 	ours = cube.equirect(ref.shape[1], ref.shape[0])
 	diff = np.abs(ref - ours) * 255
-	band = slice(4, ref.shape[0] - 4)  # skip the poles' first rows (one-pixel filter there)
+	band = slice(4, ref.shape[0] // 2)  # the sky over the horizon (softening only moves stops under it); poles' rows skipped
 	print(
-		"SKYCHECK %s mean %.2f p99 %.1f max %.1f (0-255, our faces vs the draft's Cycles world)"
+		"SKYCHECK %s mean %.2f p99 %.1f max %.1f (0-255, over the horizon, our faces vs the draft's Cycles world)"
 		% (key, diff[band].mean(), np.percentile(diff[band], 99), diff[band].max()),
 		flush=True,
 	)
@@ -207,12 +288,15 @@ def run(number, key):
 	studio_path = os.path.join(AUDIT, "T%d_road.jpg" % number)
 	if os.path.exists(studio_path):
 		shot = load(studio_path)
-		swapped, horizon = studio_with_sky(cube, shot)
+		swapped, horizon, alpha, fog_rows = studio_with_sky(cube, shot, key)
 		save(swapped, os.path.join(folder, "studio_sky.png"))
-		print("STUDIO %s horizon row %d of %d" % (key, horizon, shot.shape[0]), flush=True)
+		print("STUDIO %s horizon row %d of %d, fog band %d rows" % (key, horizon, shot.shape[0], fog_rows), flush=True)
+		if key == "AntIsland":
+			swapped = regrade(swapped, alpha, ANT_LIGHT)
+			save(swapped, os.path.join(folder, "studio_sky_dusk.png"))
 		top, bottom = [fit(shot), fit(swapped)], [draft, fit(pano)]
 	else:
-		view = game_view(cube, manifest["ground"] or "808080")
+		view = game_view(cube, manifest["ground"] or "808080", key)
 		save(view, os.path.join(folder, "game_view.png"))
 		top, bottom = [fit(view), draft], [fit(pano), np.zeros((H, W, 3), np.float32)]
 	gap = np.full((8, W * 2 + 8, 3), 0.08, np.float32)

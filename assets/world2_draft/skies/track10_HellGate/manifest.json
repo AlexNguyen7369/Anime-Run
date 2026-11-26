@@ -1,4 +1,26 @@
 {
+ "draft_stops": [
+  [
+   0.0,
+   "FF8A4A"
+  ],
+  [
+   0.06,
+   "F0602E"
+  ],
+  [
+   0.22,
+   "C02018"
+  ],
+  [
+   0.55,
+   "820A12"
+  ],
+  [
+   1.0,
+   "3A0208"
+  ]
+ ],
  "faces": {
   "Bk": "W2_HellGate_SkyBk.png",
   "Dn": "W2_HellGate_SkyDn.png",

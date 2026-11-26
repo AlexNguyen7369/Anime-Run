@@ -1,4 +1,30 @@
 {
+ "draft_stops": [
+  [
+   0.0,
+   "FFE27A"
+  ],
+  [
+   0.05,
+   "FFD060"
+  ],
+  [
+   0.14,
+   "FFB458"
+  ],
+  [
+   0.3,
+   "F0A070"
+  ],
+  [
+   0.6,
+   "C88A80"
+  ],
+  [
+   1.0,
+   "8A6A88"
+  ]
+ ],
  "faces": {
   "Bk": "W2_GoldenCity_SkyBk.png",
   "Dn": "W2_GoldenCity_SkyDn.png",
