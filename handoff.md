@@ -4,6 +4,7 @@
 - Now 3 moved (T2 Wyvern 6, Crag x2), 31 out (T2 Hound 1 of 4, RuinB x12, Crag x4; T3 HighRise; T4 Cedar x8; T5 Smoke, Apartment x4; T8 LavaChasm). Kept: T8 FleshWall (one-eyed monster), 16 pieces the game prunes (plaza ground open). Table and before|after sheets: docs/proposals/world2_t1_neighbours.
 - roads.Roads.neighbours (Track 1 only) reads the moved pieces where they stood, so Track 1's own Blender layout is unchanged (checked object for object).
 - Checks: clearance own track CLEAR on 2/3/4/5/8, --all-tracks unchanged from before; WORLD=2 PINSTRICT harness only the 11 known unplaced-hero ROAD FAILs, pins 11/0 after PIN=write (only real pin changes: 7 Track 1 hits gone; the rest are Placed_N renumbering); world2_cast 121/0; stylua 0, selene 0/19.
+- Track 3 context faults found (not applied, owner's call): Track 5 Smoke on Track 2's ground (-171, -558) and on Track 3's (-576, -519), Track 8 RockPillar (-500, -345) and Track 2 RuinB (-508, -390) on Track 3's; see the proposal README.
 - Needs the owner's look at the renders before any merge.
 
 ## RESUME HERE (2026-11-25 night, devbox): yes to all; boss models saved; uploads next

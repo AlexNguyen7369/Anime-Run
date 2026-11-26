@@ -42,3 +42,16 @@ Notes for the reviewer (fix round):
   Track 2 Ramparts, the smoke a Track 5 Smoke at (364, 555), the white tower a Track 5 Office at (441, 339); all stand on
   their own ground, so the ground rule moves none of them. The smallest change that would clear the finish view is
   removing that Office and that Smoke (the Ramparts line Track 2's road); that needs the owner's word, not proposed here.
+
+Track 3 context, faults that were there before this proposal (also in ccce728f), identified by ray probes of the
+context scene. Positions are world base centres; "ground" is the owner by the nearest-road rule. Nothing applied: the
+tracks are frozen and the owner decides.
+| View | What | Piece | Ground | Legal options |
+|---|---|---|---|---|
+| 05 side (camera inside the cloud) | smoke cloud, about 80% of the frame | Track 5 Smoke at (-171, -558) | Track 2's (58 studs from its road) | under the ground rule it goes or moves to Track 5's ground; or leave it (the side camera is a review shot, not a runner's view) |
+| 02 run 33, vanishing point | smoke column | Track 5 Smoke at (-576, -519) | Track 3's (23 studs from its road) | goes or moves to Track 5's ground (same rule as Track 1's smoke) |
+| 02 run 33, right verge (900-990, 290-450) | purple spike | Track 8 RockPillar at (-500, -345), 175 tall | Track 3's (68) | goes or moves to Track 8's ground |
+| 02 run 33, same spot, behind | ruin | Track 2 RuinB at (-508, -390) | Track 3's (60) | goes or moves to Track 2's ground |
+| 03 run 62, right (1310-1600, 0-530) | translucent orange glow wall | Track 2 Gate at (408, -486), the arch over Track 2's road | Track 2's own (0, it spans the road) | none under the ground rule (own ground, approved hero); only the owner can ask for it to change |
+The torch on the verge in 02 was not resolved by the probes (Track 3 Wall, Barricade and Track 4 Portal and Cedar are
+also near that line). The same planner (t1_neighbours.py) could be pointed at Track 3's ground if the owner says so.
