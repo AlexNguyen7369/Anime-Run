@@ -78,6 +78,28 @@ function Tests.track_fx()
 	end
 	flag("assets_in_house_and_reviewed_before_use", assetsOk)
 
+	-- Real-name check over every ledger key and prompt (BIOME_ENVIRONMENT_SPEC 4.1 step 2: "the real-name check scans it")
+	local realNameIn = require(script.Parent.CatalogTests).realNameIn
+	local namesOk, scanned = true, 0
+	for key, row in Config.Assets do
+		for _, text in { key, row.Prompt or "" } do
+			scanned += #text > 0 and 1 or 0
+			local hit = realNameIn(string.lower(text))
+			if hit ~= nil then
+				namesOk = false
+				flag("real_name_" .. key, false, hit, "none")
+			end
+		end
+	end
+	flag("assets_no_real_names", namesOk)
+	flag("real_name_scan_saw_every_key_and_prompt", scanned == 2 * #(function()
+		local keys = {}
+		for k in Config.Assets do
+			table.insert(keys, k)
+		end
+		return keys
+	end)(), scanned)
+
 	-- Each track: worst case of its caps in budget, anchors name draft props, dragons and motion capped
 	for key, track in Config.Tracks do
 		local emitters, particles = Plan.WorstCase(track)
