@@ -813,6 +813,134 @@
   },
   "Reviewed": "2026-11-26 auditor"
  },
+ "W2_HauntedTunnel_Cedar": {
+  "Hash": "8d99c5f599f2bcc8c8b4523c750ec1733fc6a377408e1b585996b61038f657db",
+  "Mesh": "122295868463156",
+  "Model": "81829574418898",
+  "Old": {
+   "Mesh": "79139214379536",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HauntedTunnel",
+    "W2_HauntedTunnel_Cedar",
+    "103972669017659",
+    "79139214379536",
+    "36226a619e96b88a9d878cf4e1d7bead7202281d9c5ed526c597fc0c697eea74"
+   ]
+  }
+ },
+ "W2_HauntedTunnel_Guardrail": {
+  "Hash": "6c5400896d1a9305eb0def6c95c0b574267f334a604442b0c6dcc5a8fa7e5d2f",
+  "Mesh": "82430968150399",
+  "Model": "86104282199273",
+  "Old": {
+   "Mesh": "92459771126821",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HauntedTunnel",
+    "W2_HauntedTunnel_Guardrail",
+    "122832767438060",
+    "92459771126821",
+    "3afa7135543c8e729aff3e06104c39684b2023abf0c513b932281c2662ed2ed8"
+   ]
+  }
+ },
+ "W2_HauntedTunnel_Hospital": {
+  "Hash": "20b7aacf5ec038c57fd95b8c2f827384122077cae1cfeebe2e12b0fda46e8298",
+  "Mesh": "75581668528127",
+  "Model": "100904717098516",
+  "Old": {
+   "Mesh": "92718831172316",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HauntedTunnel",
+    "W2_HauntedTunnel_Hospital",
+    "94866281508285",
+    "92718831172316",
+    "babb72ec861da66b9ce80e37889d48aebb0f3ebfd421782bc61055e4c10d3783"
+   ]
+  }
+ },
+ "W2_HauntedTunnel_House": {
+  "Hash": "427571973124e5ba859f00f71732d9df529b59b53b6b458fe0bd1cc1c7c9b32a",
+  "Mesh": "99467477243026",
+  "Model": "128574310455745",
+  "Old": {
+   "Mesh": "90524789648692",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HauntedTunnel",
+    "W2_HauntedTunnel_House",
+    "71371381786002",
+    "90524789648692",
+    "af87bc806c9ed85a9b06beffef097444cb0848f89b79c9d3c431d5c75a0323d2"
+   ]
+  }
+ },
+ "W2_HauntedTunnel_House2": {
+  "Hash": "8a1aa9182e9f03d53f56f3d4181a9f2fd4664cc919d1c1f7bc6290431d324b72",
+  "Mesh": "94470574289892",
+  "Model": "103101854656717",
+  "Old": {
+   "Mesh": "86991347584325",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HauntedTunnel",
+    "W2_HauntedTunnel_House2",
+    "79409889115776",
+    "86991347584325",
+    "f0e9ca7aa44c408ca4b8d783279666fe14ef26d053ee0473fbdee61d3b3fe77b"
+   ]
+  }
+ },
+ "W2_HauntedTunnel_Mirror": {
+  "Hash": "b2e4cf2576a88a81f4d62847d1ed040ac5f9a4bba672bc45cdeb6245f659913b",
+  "Mesh": "138858360025246",
+  "Model": "113004043718439",
+  "Old": {
+   "Mesh": "127172492240976",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HauntedTunnel",
+    "W2_HauntedTunnel_Mirror",
+    "95973725109716",
+    "127172492240976",
+    "05a4ed51ceb65fdd7ffcac8788c5ade27168e0f74b97ce1b018be04d2aa0d35f"
+   ]
+  }
+ },
+ "W2_HauntedTunnel_Portal": {
+  "Hash": "2293493e8b4a9b1c9a49332f1e1cdce1c600a55d5d260618fd1b92a1f28a5411",
+  "Mesh": "84000800021775",
+  "Model": "140512996558784",
+  "Old": {
+   "Mesh": "136990120156711",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HauntedTunnel",
+    "W2_HauntedTunnel_Portal",
+    "130018447646889",
+    "136990120156711",
+    "a67f4ad7630d61fd49a09202da7234ff9c98ee7a866fce2fc7f9efd677ece533"
+   ]
+  }
+ },
+ "W2_HauntedTunnel_TunnelSeg": {
+  "Hash": "b15fec9c2465ad5264d31a65e475ce93eed68a00940a24ccd1b11f0a574ad046",
+  "Mesh": "130973838232672",
+  "Model": "100592817044260",
+  "Old": {
+   "Mesh": "92988886596764",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HauntedTunnel",
+    "W2_HauntedTunnel_TunnelSeg",
+    "112266550089625",
+    "92988886596764",
+    "f885b7537de9cbf40d40d9e5dcc33ad8c755e0a4260efa684b9bff720ed24374"
+   ]
+  }
+ },
  "W2_HellGate_ArmA": {
   "Applied": true,
   "Checked": "2026-11-26 agent-2",
@@ -1003,8 +1131,146 @@
   },
   "Reviewed": "2026-11-26 auditor"
  },
+ "W2_KaijuBase_Apartment": {
+  "Hash": "2391489cd9ac007a80927012f486983a63b3c6c65ec85adb25e81b08deaddf85",
+  "Model": "107728844470449",
+  "Old": {
+   "Mesh": "99204856403287",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_Apartment",
+    "119921315956681",
+    "99204856403287",
+    "0f3d872e73d27e4ec1c6c794f7abf67d63eb338f950ca7fd7159589ef6fbfdc1"
+   ]
+  }
+ },
+ "W2_KaijuBase_BaseWall": {
+  "Hash": "9b8ad5a76f2551c731ac8f0ad60b5c95f08a35a0341281af14000035b5aa4fd5",
+  "Model": "121109889890831",
+  "Old": {
+   "Mesh": "140334990873492",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_BaseWall",
+    "104638992168972",
+    "140334990873492",
+    "b3b4c049fc6b150c077cd444b7fae4631258414ffba7305040317c053fc9bf62"
+   ]
+  }
+ },
+ "W2_KaijuBase_CityBlock": {
+  "Hash": "e9731bb760afa3f851cd87cdf98c87a448cdf5cfee84838adccb8623959e33b1",
+  "Model": "121952228460315",
+  "Old": {
+   "Mesh": "89234299895602",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_CityBlock",
+    "121964735897913",
+    "89234299895602",
+    "3f7f5720f1c66d924960f2ce6506738aaefb9490a53fc7ec02c31a8a86f51076"
+   ]
+  }
+ },
+ "W2_KaijuBase_Hangar": {
+  "Hash": "9a1223e7b405b8243d3bc27f77ff8e4bee0ced9faad3d3162ed52bd6f2a44188",
+  "Model": "112816100561978",
+  "Old": {
+   "Mesh": "87550144654218",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_Hangar",
+    "133622015542012",
+    "87550144654218",
+    "036b6a17b6bce95ec09783f23b3bb98287451863c7c681a980373361cea46aa4"
+   ]
+  }
+ },
+ "W2_KaijuBase_Office": {
+  "Hash": "1038b5c97257499fa00c92cc9755eb60a065095c61ee015f8fe9e665754aeada",
+  "Model": "115525023652116",
+  "Old": {
+   "Mesh": "86226530341139",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_Office",
+    "78140697833067",
+    "86226530341139",
+    "b169c152ddac9f42a87f3a3b721458291be10a7fa18d35e313cd1dbcf3babc83"
+   ]
+  }
+ },
+ "W2_KaijuBase_Railgun": {
+  "Hash": "668b38c9b12d1aced1ccdbf75503c2493406c2bdbfc389c15987c9bbe01df5fa",
+  "Model": "95764235503643",
+  "Old": {
+   "Mesh": "137707160154918",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_Railgun",
+    "131092331768583",
+    "137707160154918",
+    "6dedffca279258978da95c5703de7685eb58cd18b463ff57d407b565b3d1f62e"
+   ]
+  }
+ },
+ "W2_KaijuBase_Rubble": {
+  "Hash": "95bf3d9035e6e81353519f7570f3c514f3e7d8266f7e457e8a7867703673c467",
+  "Model": "95624993792237",
+  "Old": {
+   "Mesh": "114695284919853",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_Rubble",
+    "95751263659704",
+    "114695284919853",
+    "c001836c0385c78cdf976b7c5ebbafe12a6ce2f38156fcc562cfc42e36e1ff3d"
+   ]
+  }
+ },
+ "W2_KaijuBase_Smoke": {
+  "Hash": "2776a806d2172211e85421171aea593294afd5196c294cf4c191c5f62758ad75",
+  "Model": "100022017850753",
+  "Old": {
+   "Mesh": "84419066261119",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_Smoke",
+    "135117447346822",
+    "84419066261119",
+    "b3583a1540d3dcedc209efe4e77190bfaa9883536e289f67a92f570ed2ef4705"
+   ]
+  }
+ },
+ "W2_KaijuBase_SweeperVan": {
+  "Hash": "f5bb0cbbfdac5efe6ccf78e7c28a0e1a6bcaa856bd735840979d2e5c7707a150",
+  "Model": "83887044215739",
+  "Old": {
+   "Mesh": "119746374638988",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "KaijuBase",
+    "W2_KaijuBase_SweeperVan",
+    "131031199824640",
+    "119746374638988",
+    "89e0a57f73b9a14394274adad2c791ec4efd6c6898bbfde029363dd8dc8a0059"
+   ]
+  }
+ },
  "W2_RuinedCityZ_Barricade": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "5e60c165457573f803362a696a17b31dd1b258fd4639701c48b9a82b2ed2e62b",
+  "Mesh": "110914855028494",
   "Model": "82331251427699",
   "Old": {
    "Mesh": "93229397253870",
@@ -1016,10 +1282,14 @@
     "93229397253870",
     "c7c827a2d0e39745dd33b28e724224802b6d5cd40519ea27ef6779d627068d4d"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_Blocks": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "300805427648cbecd8ce9c24f2ca80d495076b8413254a2be22971b4ce63f8e3",
+  "Mesh": "100517695612442",
   "Model": "116831596761511",
   "Old": {
    "Mesh": "97388531264178",
@@ -1031,10 +1301,14 @@
     "97388531264178",
     "b1b60a35fd31130a28f5d826dfcf6bb8d4ac077568138b789ddfbb6ccf405f53"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_BrickFlat": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "7830b3500e9711284c1dc932d6c3757fe578a3f5998a49526e461c6abc233bc8",
+  "Mesh": "125329792828469",
   "Model": "119493960669604",
   "Old": {
    "Mesh": "71827032081453",
@@ -1046,10 +1320,14 @@
     "71827032081453",
     "933bf298767dc04e155ea879fab8622622a60248624c60dff30e0d8c63c43a05"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_Collapsed": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "3af4f259597454250763105c5e964f8cd2cef083372910f508f0fdd6db41e3f3",
+  "Mesh": "101695735392690",
   "Model": "72193394863724",
   "Old": {
    "Mesh": "113982394157032",
@@ -1061,10 +1339,14 @@
     "113982394157032",
     "079390e34c62521282878760daf4299deb0cc5ed8bf696ce379277d4f8695dcc"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_HighRise": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "90f970e1f3889057c98b5025089112dd3074fa18c3da8f09c5f90195d450848a",
+  "Mesh": "73566821854830",
   "Model": "114853463538243",
   "Old": {
    "Mesh": "75405867009013",
@@ -1076,10 +1358,14 @@
     "75405867009013",
     "347c18701788f3d6879d464dd2875858a2b7ae88346f9b533f2ee15adc586845"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_Kerb": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "dc7b27b6bc0bd0b2ba9e94525b00cb62552a904b60ba68329d75b391e82cbba3",
+  "Mesh": "85311222639243",
   "Model": "122408949708903",
   "Old": {
    "Mesh": "97829263072176",
@@ -1091,10 +1377,14 @@
     "97829263072176",
     "86508f7baf3061cb650aa8584f3878772f8c7c75b0a590f7cb84193122e9cb15"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_MidRise": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "d8e5c47000d4bfbbbda5c77b7f644a2128b84f08f686ae9fbbc467e9f73bc8de",
+  "Mesh": "73158011899896",
   "Model": "99492295748316",
   "Old": {
    "Mesh": "110618976116132",
@@ -1106,10 +1396,14 @@
     "110618976116132",
     "88a05273b3f1aa89465fddbbfc77c2fa65cab61e195bd8f4a6c7182351873892"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_OfficeBroken": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "6289033612fba7e83023b61b040d08e36ac400058d95ef07dfcd57ddf6fe8fd1",
+  "Mesh": "82820061701016",
   "Model": "125009294107727",
   "Old": {
    "Mesh": "82488362586325",
@@ -1121,10 +1415,14 @@
     "82488362586325",
     "8052bd18ffa7f6165e0d5f4e7e0db6301d7d78fe266afc6163502e8e8166dcef"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_Overpass": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "79f5751b078591d9620e178d2419d7e7cbbf7b9a0ff8f2bea4f936ecfba2b453",
+  "Mesh": "124550083311797",
   "Model": "120636290226393",
   "Old": {
    "Mesh": "130120483743247",
@@ -1136,10 +1434,14 @@
     "130120483743247",
     "b86854b71ed8264715b3148efce0e1ec6dc466adced6d4158c0fa9287de9b337"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_Rubble": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "1c5e3a682385cc34b119bf5aae04675926f9b71afdb9140bec3a97fc6a95f234",
+  "Mesh": "118567594153784",
   "Model": "119868929409361",
   "Old": {
    "Mesh": "120346568607759",
@@ -1151,6 +1453,7 @@
     "120346568607759",
     "400a2a2274cde71e0136dd22323f6b17660e5d0d48627aef3a7111498c0e9b2c"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  }
 }
