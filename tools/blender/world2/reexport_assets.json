@@ -815,6 +815,7 @@
  },
  "W2_GoldenCity_Church": {
   "Hash": "2ba2b507d7c17bd9692b2a3dfce9a522375871e45c3a2a7dc80c98b40792524a",
+  "Mesh": "96691966974800",
   "Model": "78470959187567",
   "Old": {
    "Mesh": "75460377273832",
@@ -830,6 +831,7 @@
  },
  "W2_GoldenCity_CityBlock": {
   "Hash": "94b98b42aa442dd096bfd63ae8567cc312b0ab4aa4fc774ae38bc8d5fde2b6eb",
+  "Mesh": "123665817049005",
   "Model": "81905340008049",
   "Old": {
    "Mesh": "126881660859530",
@@ -845,6 +847,7 @@
  },
  "W2_GoldenCity_CityWall": {
   "Hash": "8d9b3d67fbc30df2af321cb4ec5ee4d9fcffe1797bf878cd014bd87da73fac2a",
+  "Mesh": "93620205433011",
   "Model": "105154453231458",
   "Old": {
    "Mesh": "114849920865458",
@@ -860,6 +863,7 @@
  },
  "W2_GoldenCity_Forest": {
   "Hash": "ede6a7dced169fa29513d9a5060487c675cbb6ea41f306840d28012ba24c3d8d",
+  "Mesh": "110294150077365",
   "Model": "104037967386574",
   "Old": {
    "Mesh": "104554146717607",
@@ -875,6 +879,7 @@
  },
  "W2_GoldenCity_Palace": {
   "Hash": "566335056d6760ac5bbc50842cbf9677c9313e832e48b6c6f8aa9fa34c110db6",
+  "Mesh": "136212196862585",
   "Model": "86505084191695",
   "Old": {
    "Mesh": "110606034322769",
@@ -890,6 +895,7 @@
  },
  "W2_GoldenCity_People": {
   "Hash": "c3118c1fa19ff98be5d699a3d751ec98e94ece1dfcad2ce037431dc41d803a90",
+  "Mesh": "110803201186097",
   "Model": "97476309654130",
   "Old": {
    "Mesh": "98051555364079",
@@ -905,6 +911,7 @@
  },
  "W2_GoldenCity_RowA": {
   "Hash": "b180bad8d8c383b950be8653243ad0d68ae731c539cad5bcd6fd9a9b845a3760",
+  "Mesh": "124347681004287",
   "Model": "115152619034144",
   "Old": {
    "Mesh": "78005577651563",
@@ -920,6 +927,7 @@
  },
  "W2_GoldenCity_RowB": {
   "Hash": "1051463238a1f4e832be401a51034327edff3db565961546465f11e5e6d4dfc7",
+  "Mesh": "130226902945891",
   "Model": "116650028911057",
   "Old": {
    "Mesh": "79091228891665",
@@ -935,6 +943,7 @@
  },
  "W2_GoldenCity_Square": {
   "Hash": "d5c4dc5c0b1aa5f3c56b05268d95635bb63c767755f0d12596659c386d42533a",
+  "Mesh": "106894878619674",
   "Model": "104575599413966",
   "Old": {
    "Mesh": "139179066978516",
@@ -950,6 +959,7 @@
  },
  "W2_GoldenCity_Tree": {
   "Hash": "c54b667178dd2067de0c5b219cf8d52a273af22bc0362be01d0cbdeab0d306ad",
+  "Mesh": "116033071287406",
   "Model": "132536888302021",
   "Old": {
    "Mesh": "140732085904212",
@@ -965,6 +975,7 @@
  },
  "W2_GoldenCity_Wagon": {
   "Hash": "8e66450137229707cf9f39549fa143c3828854b48dbf6394afa040e507e2ba7c",
+  "Mesh": "78274942818520",
   "Model": "95851826899847",
   "Old": {
    "Mesh": "80676931915228",
@@ -979,6 +990,8 @@
   }
  },
  "W2_HauntedTunnel_Cedar": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "8d99c5f599f2bcc8c8b4523c750ec1733fc6a377408e1b585996b61038f657db",
   "Mesh": "122295868463156",
   "Model": "81829574418898",
@@ -992,9 +1005,12 @@
     "79139214379536",
     "36226a619e96b88a9d878cf4e1d7bead7202281d9c5ed526c597fc0c697eea74"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HauntedTunnel_Guardrail": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "6c5400896d1a9305eb0def6c95c0b574267f334a604442b0c6dcc5a8fa7e5d2f",
   "Mesh": "82430968150399",
   "Model": "86104282199273",
@@ -1008,9 +1024,12 @@
     "92459771126821",
     "3afa7135543c8e729aff3e06104c39684b2023abf0c513b932281c2662ed2ed8"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HauntedTunnel_Hospital": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "20b7aacf5ec038c57fd95b8c2f827384122077cae1cfeebe2e12b0fda46e8298",
   "Mesh": "75581668528127",
   "Model": "100904717098516",
@@ -1024,9 +1043,12 @@
     "92718831172316",
     "babb72ec861da66b9ce80e37889d48aebb0f3ebfd421782bc61055e4c10d3783"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HauntedTunnel_House": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "427571973124e5ba859f00f71732d9df529b59b53b6b458fe0bd1cc1c7c9b32a",
   "Mesh": "99467477243026",
   "Model": "128574310455745",
@@ -1040,9 +1062,12 @@
     "90524789648692",
     "af87bc806c9ed85a9b06beffef097444cb0848f89b79c9d3c431d5c75a0323d2"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HauntedTunnel_House2": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "8a1aa9182e9f03d53f56f3d4181a9f2fd4664cc919d1c1f7bc6290431d324b72",
   "Mesh": "94470574289892",
   "Model": "103101854656717",
@@ -1056,9 +1081,12 @@
     "86991347584325",
     "f0e9ca7aa44c408ca4b8d783279666fe14ef26d053ee0473fbdee61d3b3fe77b"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HauntedTunnel_Mirror": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "b2e4cf2576a88a81f4d62847d1ed040ac5f9a4bba672bc45cdeb6245f659913b",
   "Mesh": "138858360025246",
   "Model": "113004043718439",
@@ -1072,9 +1100,12 @@
     "127172492240976",
     "05a4ed51ceb65fdd7ffcac8788c5ade27168e0f74b97ce1b018be04d2aa0d35f"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HauntedTunnel_Portal": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "2293493e8b4a9b1c9a49332f1e1cdce1c600a55d5d260618fd1b92a1f28a5411",
   "Mesh": "84000800021775",
   "Model": "140512996558784",
@@ -1088,9 +1119,12 @@
     "136990120156711",
     "a67f4ad7630d61fd49a09202da7234ff9c98ee7a866fce2fc7f9efd677ece533"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HauntedTunnel_TunnelSeg": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "b15fec9c2465ad5264d31a65e475ce93eed68a00940a24ccd1b11f0a574ad046",
   "Mesh": "130973838232672",
   "Model": "100592817044260",
@@ -1104,7 +1138,8 @@
     "92988886596764",
     "f885b7537de9cbf40d40d9e5dcc33ad8c755e0a4260efa684b9bff720ed24374"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_HellGate_ArmA": {
   "Applied": true,
