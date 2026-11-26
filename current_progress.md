@@ -346,8 +346,9 @@
 336. 2026-11-26 — Alex Nguyen — Uploaded, compared, reviewed, Studio-checked and applied World 2 re-export batch 2 (DemonCastle, 10 meshes; harness 12655/0).
 337. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batch 3 (RuinedCityZ, 10 meshes; harness 12655/0).
 338. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batches 5 (KaijuBase, 9 meshes, GiantCorpse untouched) and 4 (HauntedTunnel, 8 meshes; harness 12655/0).
+339. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batches 9 (GoldenCity, 11) and 8 (MonsterDen, 12): all 100 re-exported meshes now in the game ledgers (harness 12655/0).
 
 ## What's next
-**Finish the last World 2 re-export batches, 9 and 8: upload, Studio side-by-side check, review, apply, harness, commit each.**
+**Studio on-track check of the re-exported props (step 5 leftovers: kit-colour swatches, night tracks 4, 6 and 8, lighting floors) before the batches merge into the World 2 branch.**
 
-**Why this is next:** batches 10, 7, 1, 6, 2, 3, 5 and 4 passed; 9 and 8 finish the dark-props fix.
+**Why this is next:** every batch is applied on orch/world2/w2-render-audit; the plan asks for lighting floors to be judged again with the lighter meshes in view.
