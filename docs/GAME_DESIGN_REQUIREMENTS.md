@@ -449,7 +449,8 @@ before any Studio work.
   while no boss event is active and open while one is; its prompt opens the same Bosses popup as the Bosses button and changes
   no boss rule, timing or reward. `jk_strongest` (Gojio) stands at it; a player who walks up presses E to start a conversation
   that gives information about the boss gate; text only, nothing granted. He does not talk to a player below rebirth 1 (owner
-  2026-11-25). The lines and popup layout B are approved (owner 2026-11-25); sizes and the prompt range stay **proposed**
+  2026-11-25). He is in the game in World 2 only, beside the gate there (owner 2026-11-26, "Approve 1-4", item 4: Gojio on at
+  the World 2 boss gate); World 1 has neither the gate nor him. The lines and popup layout B are approved (owner 2026-11-25); sizes and the prompt range stay **proposed**
   (`docs/BOSS_GUIDE_SPEC.md`; off in the game until the gate is turned on). The gate is on in World 2 (owner 2026-11-26, change log),
   off in World 1.
 - Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked

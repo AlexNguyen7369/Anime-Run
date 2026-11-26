@@ -17,6 +17,7 @@
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Gojio guide on at the World 2 boss gate (World 1 off, like the gate): Studio boss_guide 101/0, ui_boss_guide 36/0, ui_boss_gate 14/0. Track 10 red haze a little less opaque (effects still off).
 - Scenery refit round 2: every World 2 track scores 7 or above in fresh blind review (T1 7.2, T2 7, T3 7, T4 7, T5 7, T6 7.3, T7 7, T8 8, T9 7, T10 7); every hero placed (shrink-to-fit by your word: T1 Town 1.015, T3 HeroHQ 0.562, T7 volcano 0.389, T8 LairTower 3.45, T10 Abyss r500); T6 HQ back; Track 7 now has a sea. Landing into the World 2 branch in progress.
 - Dark props: all 100 World 2 props re-uploaded in their approved colours and applied (GiantCorpse kept as is); per-batch Studio side-by-sides in assets/world2_draft/audit/reexport_2026-11-26/; ledger harness 12655/0. To look at on track: night tracks 4, 6, 8, lighting floors, Track 8's much lighter LairTower/Colonnade/Coliseum.
 - Re-export batch 10 (Hell's Gate, 10 meshes) uploaded by agent-2 after the owner approved uploads in its own session; Studio colour check and batches 1-9 next.

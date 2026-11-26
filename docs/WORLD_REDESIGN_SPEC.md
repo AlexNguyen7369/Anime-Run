@@ -132,7 +132,7 @@ positions are **proposed**; warm gold, amber and paper, one pink accent, matchin
 - Total 39 parts, 4 lights. No new client script, asset or sound.
 
 
-### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; on in both worlds, except the boss gate and its guide, which have their own switches; the merchants' switch is on, owner 2026-11-25; the boss gate is on in World 2, owner 2026-11-26)
+### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; on in both worlds, except the boss gate and its guide, which have their own switches; the merchants' switch is on, owner 2026-11-25; the boss gate and its guide are on in World 2, owner 2026-11-26)
 The same in both worlds unless a line says otherwise (owner: "consistent with world"); replaces "services unchanged" in
 WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels stay; positions stay except those the fuller layout below replaces; every size **proposed**.
 - **Proposed**: a piece with any of its parts missing after loading counts as not loaded, so its stand-in stays (the sky loop has none and is absent).
@@ -146,7 +146,8 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
   Owner 2026-11-26: "Ensure boss gate added to world 2 location, gate A of approved gate blends": the gate stands in World 2's
   spawn at S4 with the uploaded draft A meshes (`BossGateClosed` 125398438490160, `BossGateOpen` 85973554587379);
   `BossGateConfig.LIVE` is true in World 2 only. World 1 keeps it off (the owner named World 2; lead's reading). The guide
-  keeps his own switch (`BossGuideConfig.LIVE`, off until the lead turns it on).
+  keeps his own switch (`BossGuideConfig.LIVE`): on in World 2 only too (owner 2026-11-26, "Approve 1-4", item 4), the same
+  per-world table as the gate's.
 - Layout (owner 2026-11-25): the Saitamo statue and the Index board may move so they block nothing (the world gate, the
   Summon altar and the boss gate from the spawn). Fuller layout approved (owner 2026-11-25, same words and reading): statue (-16.5, 4.4), Index (76.7, -34.2), Team altar (-35.0, 76.4), loop posts 45 to 19, 100 to 75, 315 to 322 degrees; to fix while building: the gate's left pillar cut on the join view, the statue over the RACE START sign. The
   Index keeps its prompt, panel and header. The sky loop and its posts stay in that
