@@ -372,6 +372,185 @@ function Tests.plaza_pieces()
 					flag(w .. "merchant_label_" .. name, hidden == (name == "CheckpointNpc"))
 				end
 				flag(w .. "merchants_dummy_gone", on.CheckpointNpc:FindFirstChild("Rig") == nil)
+				-- docs/BUGS.md merchant-names-cover-signs (lead, Studio 2026-11-25): a merchant's floating name never covers its
+				-- stall's sign. Each name and sign as seen from the spawn and from 20, 30 and 40 studs in front of the stall (straight
+				-- on and 30 degrees each side; eye 4.4, 8 or 12 studs over the floor: the head, the camera behind it, a raised camera).
+				-- A label sized in pixels is judged on a phone, 400 px tall, 70 degrees field of view.
+				local plan = Pieces.Plan(Layout, false)
+				local hub = Vector3.new(118, 0, -80) -- SpawnArea.CENTRE: area (built at the origin) = world + this
+				local SIGN_OF = {
+					ShopStall = "SHOP",
+					PotionsStall = "POTIONS",
+					Marketplace = "MARKET",
+					IndexBoard = "RUNNER INDEX",
+				}
+				local spawnPart = on:FindFirstChild("Spawn", true)
+				local function project(eye, look, p)
+					local right = look:Cross(Vector3.yAxis).Unit
+					local up = right:Cross(look)
+					local d = p - eye
+					local z = d:Dot(look)
+					return Vector2.new(d:Dot(right) / z, d:Dot(up) / z)
+				end
+				local function bounds(eye, look, points)
+					local lo, hi = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
+					for _, p in points do
+						local q = project(eye, look, p)
+						lo, hi = lo:Min(q), hi:Max(q)
+					end
+					return lo, hi
+				end
+				for name, sign in SIGN_OF do
+					local service = on:FindFirstChild(name)
+					local rig = service and service:FindFirstChild("Merchant")
+					local label = rig and rig:FindFirstChild("NameLabel")
+					local marker = find(service, "Attachment", "MerchantSpot")
+					local row = H.module(Shared, "PlazaMerchants")[name]
+					local s
+					for _, r0 in plan.Signs do
+						if r0.Text == sign then
+							s = r0
+						end
+					end
+					if not (label and marker and s) then
+						flag(w .. "merchant_name_clear_" .. name, false, "missing", "label, marker, sign")
+						continue
+					end
+					local signAt = s.Pos + hub
+					local sw, sh = math.max(#s.Text * s.Size * 0.72, 2), s.Size * 1.3 -- PlazaDressing sign()
+					local signRight = s.Face:Cross(Vector3.yAxis).Unit
+					local signPts = {}
+					for _, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+						table.insert(signPts, signAt + signRight * c[1] * sw / 2 + Vector3.yAxis * c[2] * sh / 2)
+					end
+					-- where the label stands: its attachment, else the head of a rig standing at the marker
+					local adornee = label.Adornee
+					local centre = (adornee and adornee:IsA("Attachment") and adornee.WorldCFrame.Position)
+						or (marker.WorldCFrame.Position + Vector3.new(0, 4.5 * row.Scale, 0))
+					centre += (label.StudsOffsetWorldSpace or Vector3.zero) + (label.StudsOffset or Vector3.zero)
+					local floorY = marker.WorldCFrame.Position.Y - row.Feet.Y
+					local front = marker.WorldCFrame.LookVector
+					local eyes, raisedSide = {}, {}
+					for _, up in { 4.4, 8, 12 } do
+						table.insert(eyes, spawnPart.CFrame.Position + Vector3.new(0, up, 0))
+					end
+					for _, dist in { 20, 30, 40 } do
+						for _, deg in { -30, 0, 30 } do
+							local dir = CFrame.Angles(0, math.rad(deg), 0):VectorToWorldSpace(front)
+							for _, up in { 4.4, 8, 12 } do
+								local e = marker.WorldCFrame.Position + dir * dist
+								table.insert(eyes, Vector3.new(e.X, floorY + up, e.Z))
+								raisedSide[#eyes] = up == 12 and deg ~= 0
+							end
+						end
+					end
+					-- Owner 2026-11-26 (Marketplace): "Readable, rare overlap": Rengoko's name is the same readable size as the
+					-- others and may touch the MARKET sign from high side camera angles near the stall, never from the spawn or at
+					-- player eye height. Only there, and only in the raised (eye 12) side (30 degree) views, may it overlap.
+					local mayTouch = name == "Marketplace"
+					local worst, overlaps, allowed = math.huge, 0, 0
+					for i, eye in eyes do
+						local look = (centre - eye).Unit
+						local dist = (centre - eye).Magnitude
+						local studsPerPx = 2 * dist * math.tan(math.rad(35)) / 400
+						local w0 = label.Size.X.Scale + label.Size.X.Offset * studsPerPx
+						local h0 = label.Size.Y.Scale + label.Size.Y.Offset * studsPerPx
+						local right = look:Cross(Vector3.yAxis).Unit
+						local up = right:Cross(look)
+						local namePts = {}
+						for _, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+							table.insert(namePts, centre + right * c[1] * w0 / 2 + up * c[2] * h0 / 2)
+						end
+						local nLo, nHi = bounds(eye, look, namePts)
+						local sLo, sHi = bounds(eye, look, signPts)
+						-- the gap between the two screen boxes (negative: they overlap), in the view's units
+						local gap = math.max(sLo.X - nHi.X, nLo.X - sHi.X, sLo.Y - nHi.Y, nLo.Y - sHi.Y)
+						worst = math.min(worst, gap)
+						if gap <= 0 and mayTouch and raisedSide[i] then
+							allowed += 1
+						elseif gap <= 0 then
+							overlaps += 1
+						end
+					end
+					flag(
+						w .. "merchant_name_clear_" .. name,
+						overlaps == 0,
+						("%d of %d views overlap (%d allowed raised side views)"):format(overlaps, #eyes, allowed),
+						"0"
+					)
+					flag(
+						w .. "merchant_name_in_studs_" .. name,
+						label.Size.X.Offset == 0 and label.Size.Y.Offset == 0,
+						tostring(label.Size),
+						"studs"
+					)
+					-- owner 2026-11-25 "Readable from spawn": the name at least READABLE_PX tall from the spawn (the head, eye 4.4) on a 1080
+					-- px screen at 70 degrees field of view (proposed), its box wide enough for its letters, and its bottom over the
+					-- merchant's hair, so the hair never covers it. Hair tops: studs over the feet at Scale 1, measured from the built
+					-- meshes (draft_merchants.py load(), 2026-11-26).
+					local READABLE_PX = 16
+					local HAIR = { sea_navigator = 6.236, leaf_medic = 6.484, ds_flame = 6.96, fr_mage = 6.239 }
+					local h1 = label.Size.Y.Scale
+					local fromSpawn = (centre - (spawnPart.CFrame.Position + Vector3.new(0, 4.4, 0))).Magnitude
+					local px = h1 / (2 * fromSpawn * math.tan(math.rad(35))) * 1080
+					flag(w .. "merchant_name_readable_" .. name, px >= READABLE_PX, ("%.1f px"):format(px), READABLE_PX)
+					local text = label:FindFirstChild("Name")
+					local letters = text and #text.Text or 0
+					flag(
+						w .. "merchant_name_fits_text_" .. name,
+						letters > 0 and label.Size.X.Scale >= h1 * 0.6 * letters,
+						label.Size.X.Scale,
+						h1 * 0.6 * letters
+					)
+					-- Over the hair, or in front of it: from none of the 30 views does a line to the name (5 x 3 points) pass through
+					-- the box round the hair (feet frame at Scale 1, X across, Z to the back; measured as HAIR: everything over the
+					-- head's centre)
+					local HAIR_BOX = { ds_flame = { Vector3.new(-1.74, 5, -0.98), Vector3.new(1.74, 6.96, 1.48) } }
+					local bottom = centre.Y - h1 / 2
+					local hair = marker.WorldCFrame.Position.Y + (HAIR[row.Id] or math.huge) * row.Scale
+					local hidden = 0
+					local hairBox = HAIR_BOX[row.Id]
+					if bottom < hair + 0.1 and hairBox then
+						local feet = marker.WorldCFrame * CFrame.Angles(0, math.rad(row.Yaw or 0), 0)
+						local lo, hi = hairBox[1] * row.Scale, hairBox[2] * row.Scale
+						local function through(a, b) -- the segment a-b (feet frame) meets the box
+							local t0, t1 = 0, 1
+							for _, axis in { "X", "Y", "Z" } do
+								local d = b[axis] - a[axis]
+								if math.abs(d) < 1e-9 then
+									if a[axis] < lo[axis] or a[axis] > hi[axis] then
+										return false
+									end
+								else
+									local u, v = (lo[axis] - a[axis]) / d, (hi[axis] - a[axis]) / d
+									t0, t1 = math.max(t0, math.min(u, v)), math.min(t1, math.max(u, v))
+									if t0 > t1 then
+										return false
+									end
+								end
+							end
+							return true
+						end
+						for _, eye in eyes do
+							local look = (centre - eye).Unit
+							local right = look:Cross(Vector3.yAxis).Unit
+							local up = right:Cross(look)
+							local a = feet:PointToObjectSpace(eye)
+							for gx = -2, 2 do
+								for gy = -1, 1 do
+									local p = centre + right * gx / 2 * label.Size.X.Scale / 2 + up * gy * h1 / 2
+									hidden += through(a, feet:PointToObjectSpace(p)) and 1 or 0
+								end
+							end
+						end
+					end
+					flag(
+						w .. "merchant_name_over_hair_" .. name,
+						bottom >= hair + 0.1 or (hairBox ~= nil and hidden == 0),
+						("%.2f over the hair, %d hidden points"):format(bottom - hair, hidden),
+						"0.1 over or 0 hidden"
+					)
+				end
 			end
 		end
 
