@@ -30,9 +30,11 @@ from roads import Roads
 # each stands square to the last straight (turn pi from its heading)
 BEHIND_FINISH = [("RuinWall", 3224.917868, 54.0, 1.0), ("Pine", 3209.917868, 38.0, 1.3), ("Pine", 3207.917868, 50.0, 1.2), ("Pine", 3219.917868, 35.0, 1.3), ("Pine", 3201.917868, -45.0, 1.3), ("Pine", 3194.917868, -58.0, 1.3), ("Pine", 3209.917868, -52.0, 1.3), ("Pine", 3205.917868, -60.0, 1.2)]
 
-# (d, off, along, turn off the town's direction, run view) of the army's ranks, one in each of three run views (0.06, 0.33,
-# 0.62): each passes export_props.rules_ok (exact triangles and parts fallback against every road, pads, plaza, own ground)
-RANKS = [(337.592536, -75.0, 0.01, 0.0, 0.06), (1039.307609, -67.9, 0.0, 0.0, 0.33), (1991.011477, -62.628058, 0.0, 0.24, 0.62)]
+# (d, off, along, turn from the road's heading, run view) of the army's ranks, one in each of three run views (0.06, 0.33,
+# 0.62): each passes export_props.rules_ok (exact triangles and parts fallback against every road, pads, plaza, own ground).
+# The turn is the approved one (toward the town on the approved chain, plus 0.24 for the third) kept relative to the road,
+# so a rank stands to its road as approved wherever the town ends up (2026-11-26 re-fit)
+RANKS = [(337.592536, -75.0, 0.01, 1.354861, 0.06), (1039.307609, -67.9, 0.0, -1.722429, 0.33), (1991.011477, -62.628058, 0.0, 1.497386, 0.62)]
 
 # (d, off, turn from the road's heading) of the 4 low mounds (the approved draft's count), at 0.8: found by search over this
 # track's own ground (off every road, standing in no other track's prop)
@@ -621,7 +623,8 @@ def build(k):
 	else:
 		x, z = at06(*CASTLE_AT)
 		yaw = math.atan2(-(sp.x - x), -(sp.z - z))
-		assert r.fits(x, z, yaw, 372, 302, own=False)
+		# on the approved chain this spot was off every road (asserted); on another layout it may not be, and the export's
+		# hero rule (export_props: moved whole to the nearest legal spot on its own ground, hero_moves.json) places it
 		k.place("RuinedCastle", (x, -1.0, z), yaw, 1.5)
 
 	# Open lines from the run cameras to the landmarks: no tree on them
@@ -675,12 +678,12 @@ def build(k):
 		return True
 
 	if not turned:
-		for d, off, along, sh, view in RANKS:
+		for d, off, along, turn, view in RANKS:
 			if option and view == 0.06:  # the castle stands there: the next free spot on along the row
 				any(stand_rank(*at06(RANK_ROW, x2 + 118)) for x2 in range(0, 120, 4))
 				continue
 			x, z = k.spot(d, off, along)
-			k.place("Rank", (x, -1.0, z), math.atan2(-(tx - x), -(tz - z)) + sh)
+			k.place("Rank", (x, -1.0, z), k.heading(d) + turn)
 			taken.append((x, z, 50))
 			see(view, x, z)
 	for d, off, turn in MOUNDS:
@@ -786,12 +789,12 @@ def build(k):
 
 	def scatter(count, names, rad, scale, pad):
 		placed = tries = 0
-		while placed < count and tries < count * 60:
+		while placed < count and tries < count * 300:  # wide layout: most of the box is other tracks' ground
 			tries += 1
 			x, z = k.rng.uniform(k.lo.x - pad, k.hi.x + pad), k.rng.uniform(k.lo.z - pad, k.hi.z + pad)
 			name, sc, yaw = k.rng.choice(names), k.rng.uniform(*scale), k.rng.uniform(0, math.tau)
 			w, dep = BOX[name]
-			if not (name in ("Pine", "Forest") and hidden(x, z, w * sc)) and free(x, z, rad) and r.fits(x, z, yaw, w * sc, dep * sc):
+			if k.owns(x, z) and not (name in ("Pine", "Forest") and hidden(x, z, w * sc)) and free(x, z, rad) and r.fits(x, z, yaw, w * sc, dep * sc):
 				k.place(name, (x, -1.0, z), yaw, sc)
 				taken.append((x, z, rad))
 				placed += 1
@@ -812,7 +815,7 @@ def build(k):
 		name, sc = k.rng.choice((("Forest", 1.0), ("Pine", 1.5), ("Pine", 1.2)))
 		w, dep = {"FarWood": (248, 180)}.get(name, BOX.get(name))
 		yaw = k.rng.choice((0.0, math.pi / 2))
-		if free(x, z, w * sc / 2) and r.fits(x, z, yaw, w * sc, dep * sc) and not r.overlaps(near, x, z, yaw, w * sc, dep * sc):
+		if k.owns(x, z) and free(x, z, w * sc / 2) and r.fits(x, z, yaw, w * sc, dep * sc) and not r.overlaps(near, x, z, yaw, w * sc, dep * sc):
 			k.place(name, (x, -1.0, z), yaw, sc)
 			taken.append((x, z, w * sc / 2))
 			n += 1

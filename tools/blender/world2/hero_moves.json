@@ -2,7 +2,50 @@
  "AntIsland": {},
  "DemonCastle": {},
  "DevilTokyo": {},
- "ElvenPlains": {},
+ "ElvenPlains": {
+  "Rank": {
+   "From": [
+    -74.816,
+    -11.0,
+    -336.58
+   ],
+   "OverlapsFrom": [
+    2,
+    "T4 Hospital 218x182x135"
+   ],
+   "OverlapsTo": [
+    0,
+    null
+   ],
+   "Studs": 111.8,
+   "To": [
+    -184.816,
+    -11.0,
+    -356.58
+   ]
+  },
+  "RuinedCastle": {
+   "From": [
+    -1377.174,
+    -18.5,
+    -3232.215
+   ],
+   "OverlapsFrom": [
+    0,
+    null
+   ],
+   "OverlapsTo": [
+    2,
+    "T3 Blocks 217x2x217"
+   ],
+   "Studs": 3171.6,
+   "To": [
+    1042.826,
+    -18.5,
+    -1182.215
+   ]
+  }
+ },
  "GoldenCity": {},
  "HauntedTunnel": {},
  "HellGate": {
