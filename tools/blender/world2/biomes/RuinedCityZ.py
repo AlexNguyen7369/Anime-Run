@@ -968,6 +968,45 @@ def build(k):
 				break
 		if done:
 			break
+	# 02: the infield crater (approved: scale 1.5, turn 0.3, the dark bowl the 33% view looks at). Its approved spot, the
+	# track box's centre, is another track's ground on the wide layout, so it stands beside the road ahead of the 0.33
+	# camera instead, its whole bowl clear of every road (24 studs), its base centre on this track's own ground and Ground
+	# rect, the sight line to it cleared; not on the 0.62 crater or an overpass (re-fit round 2, proposed spot).
+	e, t = _eye(k, 0.33)
+	side = Vector((-t.z, 0, t.x))
+	spot = None
+	others = [(ob.location.x, -ob.location.y) for ob in k.col.objects if ob.type == "MESH" and ob.name.split("_")[2] in ("Crater", "Overpass")]
+	for dist in range(350, 1301, 50):
+		for lat in (260, -260, 285, -285, 310, -310):
+			x, z = e.x + t.x * dist + side.x * lat, e.z + t.z * dist + side.z * lat
+			if (
+				_clear_seg(k, x, z, 218 + 24)
+				and k.owns(x, z)
+				and _on_ground(k, x, z)
+				and all(math.hypot(x - a, z - b) > 300 for a, b in others)
+			):
+				spot = (x, z)
+				break
+		if spot:
+			break
+	if spot:
+		x, z = spot
+		_clear_near(k, x, z, 240, BUILD + ("Kerb", "Rubble", "Blocks", "Barricade"))
+		# the street walls between the camera and the bowl go, in a wedge widening to the bowl's width, so the low dark
+		# plateau (about 69 studs high at 1.5) shows from the runner's lane
+		vx, vz = x - e.x, z - e.z
+		ln = math.hypot(vx, vz)
+		for ob in list(k.col.objects):
+			if ob.type != "MESH" or ob.name.split("_")[2] not in BUILD:
+				continue
+			ox, oz = ob.location.x - e.x, -ob.location.y - e.z
+			u = (ox * vx + oz * vz) / (ln * ln)
+			if 0.02 < u < 1.05 and abs(ox * vz - oz * vx) / ln < 25 + 225 * u:
+				k.col.objects.unlink(ob)
+		k.place("Crater", (x, -1.0, z), 0.3, 1.5)
+		print("CRATER 033 at", round(x), round(z))
+	else:
+		print("CRATER 033: no spot")
 	# The Hero Association HQ dominating the skyline, dead ahead of the 33% view (ref New_Hero_Association_Headquarters_
 	# Anime): the nearest spot along that view's heading where its whole footprint clears the road; big enough to fill
 	# about a quarter of the frame height; the street corridor toward it cleared
@@ -992,8 +1031,27 @@ def build(k):
 	while placed < 26 and tries < 600:
 		tries += 1
 		x, z = p.x + right.x * rng.uniform(40, 150) + t.x * rng.uniform(-110, 110), p.z + right.z * rng.uniform(40, 150) + t.z * rng.uniform(-110, 110)
-		if k.clear_of_road(x, z, 34):
+		if k.clear_of_road(x, z, 34) and k.owns(x, z):
 			k.place(("Rubble", "Kerb", "Rubble", "Barricade")[placed % 4], (x, -1.0, z), rng.uniform(0, math.tau), rng.uniform(0.9, 1.4))
 			placed += 1
+	# 05: the side view's frame beyond its wreck street: empty lots (Blocks tiles with no building on them) get the approved
+	# buildings at approved scales, facing the road, so the frame is a city, not grey lots (re-fit round 2, proposed)
+	near = [(ob.location.x, -ob.location.y) for ob in k.col.objects if ob.type == "MESH" and ob.name.split("_")[2] in BUILD + ("Crater", "Overpass", "SaitamaApt")]
+	street = lambda x, z: abs((x - p.x) * t.x + (z - p.z) * t.z) < 130 and 20 < (x - p.x) * right.x + (z - p.z) * right.z < 165  # noqa: E731
+	filled = 0
+	for along in range(-420, 421, 44):
+		for lat in list(range(-370, -50, 44)) + list(range(66, 371, 44)):
+			q = p + t * (along + rng.uniform(-8, 8)) + right * (lat + rng.uniform(-8, 8))
+			if street(q.x, q.z) or not (k.owns(q.x, q.z) and _on_ground(k, q.x, q.z) and _clear_seg(k, q.x, q.z, 58)):
+				continue
+			if any(math.hypot(q.x - a, q.z - b) < 34 for a, b in near):
+				continue
+			name = rng.choice(("MidRise", "OfficeBroken", "Collapsed", "MidRise") if abs(lat) > 270 else ("MidRise", "OfficeBroken", "Collapsed", "HighRise"))
+			_, yaw = k.beside(L * 0.48 + along, lat)
+			ob = k.place(name, (q.x, -1.0, q.z), yaw + (math.pi / 2 if lat > 0 else -math.pi / 2) + rng.uniform(-0.3, 0.3), rng.uniform(1.0, 1.3))
+			ob.scale[2] *= rng.uniform(0.75, 1.3)
+			near.append((q.x, q.z))
+			filled += 1
+	print("05 INFILL", filled)
 	k.sky([(0.0, "E2DCCC"), (0.07, "C6CFD4"), (0.3, "8FB4D8"), (1.0, "3C74BE")], strength=1.0, sun=(4.0, "FFEED6", 46, 150))
 	_enforce_clearance(k)
