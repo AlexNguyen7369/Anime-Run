@@ -2,11 +2,12 @@
 log; docs/WORLD2_SPEC.md "Ground ownership": nearest road, base centre) and writes their rows into cross_track.json ("fix"
 only, under the other track's biome; roads.apply_cross_track runs them last in those builds).
 Not touched: KEEP (the one-eyed monster), and what the game already prunes (the plaza's ground is an open question).
+Owner 2026-11-26: OWNER_OUT go; ON_T3 (on Track 3's ground) take the same rule with Track 3 as their host track.
 A prop moves to the nearest legal spot within MOVE studs, its turn, height and scale unchanged, or is left out; a hero
 (MODEL_SHOTS) is searched within HERO_MOVE, the smoke column within SIGHT_MOVE. Legal: its own track's Ground and own ground by more than TIE,
 every vertex 24+ studs from its own centre line (clearance.py), its real triangles off every corridor (the export's test), off the plaza and checkpoints (Prune), and not standing in any
 built prop of any track (cross_track.Placed, LIMIT) nor touching one (but Flowers), and seen in no run view of Track 1 or of its own track it was
-not seen in before (frame only, no occlusion); a hero or the smoke column first tries spots out of every Track 1 view. SIGHT props must also leave Track 1's 6% view.
+not seen in before (frame only, no occlusion); a hero or the smoke column first tries spots out of every host-track view. SIGHT props must also leave Track 1's 6% view.
 Run it on the drafts before its own rows (it drops them from cross_track.json first), then with --patch, once.
 Headless: Blender -b --factory-startup --python tools/blender/world2/t1_neighbours.py
 Import-safe: main() runs only as a script.
@@ -32,7 +33,25 @@ import export_props as ep  # noqa: E402
 import roads  # noqa: E402
 
 KEEP = {(8, "FleshWall")}  # the one-eyed monster, accepted unchanged
-SIGHT = {(5, "Smoke")}  # off Track 1's 6% view
+SIGHT = {(5, "Smoke", -68, -263)}  # off Track 1's 6% view
+# Owner 2026-11-26 (design doc change log, choice C): out, to clear Track 1's finish view (they stand on their own ground)
+OWNER_OUT = [(5, "Office", 428.6, 337.4), (5, "Smoke", 398.5, 567.1)]  # base centres (the review named their origins (441, 339), (364, 555))
+# Owner 2026-11-26 (choice D): the ground rule on Track 3's ground for these, by the same move rule (Track 2's Gate stays)
+ON_T3 = [(5, "Smoke", -576, -519), (8, "RockPillar", -500, -345), (2, "RuinB", -508, -390)]
+
+
+def find(every, track, name, x, z):
+	"""The built prop of `track` named `name` whose base centre is within 3 studs of (x, z)."""
+	hit = [p for p in every if p.track == track and p.name == name and math.hypot(p.pos[0] - x, p.pos[2] - z) < 3]
+	if len(hit) != 1:
+		raise SystemExit("T%d %s at (%d, %d): %d matches" % (track, name, x, z, len(hit)))
+	return hit[0]
+
+
+def sight(p):
+	return any((p.track, p.name) == s[:2] and math.hypot(p.pos[0] - s[2], p.pos[2] - s[3]) < 3 for s in SIGHT)
+
+
 MOVE, HERO_MOVE, SIGHT_MOVE, STEP = 120, 600, 2000, 6  # studs, proposed
 # pieces with a hollow or a ground shape that "inside" cannot judge
 VAST = {"Island", "Ceiling", "Barrier", "Abyss", "Fill", "Bank", "Pier"}
@@ -95,9 +114,14 @@ def main():
 	every = ct.neighbours(1, glo - 900, ghi + 900, skip=())
 	here = [p for p in every if p.track != 1 and r.nearest([(p.pos[0], p.pos[2])])[1][0] == 1 and (p.track != 6)]
 	corr = clearance.corridors(bt.load_chain().values())
-	k1 = bt.run(1, render=False, fast=True)
-	views = {id(p): ep.seen_by(k1, p.world(p.shape.tris.reshape(-1, 3))) for p in here}
-	gone, jobs = set(), []
+	gone, jobs, host = set(), [], {}
+	for t, name, x, z in ON_T3:
+		p = find(every, t, name, x, z)
+		jobs.append(p)
+		gone.add(id(p))
+		host[id(p)] = 3
+	out = [find(every, *q) for q in OWNER_OUT]
+	gone |= {id(p) for p in out}
 	for p in here:
 		if (p.track, p.name) in KEEP:
 			print("STAY kept T%d %s (%.0f, %.0f)" % (p.track, p.name, p.pos[0], p.pos[2]))
@@ -106,10 +130,16 @@ def main():
 		else:
 			jobs.append(p)
 			gone.add(id(p))
+			host[id(p)] = 1
 	stand = [p for p in every if id(p) not in gone]
-	kits = {n: bt.run(n, render=False, fast=True) for n in sorted({p.track for p in jobs})}  # the run views (road data only)
+	kits = {n: bt.run(n, render=False, fast=True) for n in sorted({p.track for p in jobs} | {1, 3})}  # the run views (road data only)
 	seen = lambda k, q: set(ep.seen_by(k, q.world(q.shape.tris.reshape(-1, 3))))  # noqa: E731
-	heroes, rects, exempt, rows, rn_of = {}, {}, {}, {}, {}
+	views = {id(p): sorted(seen(kits[host[id(p)]], p)) for p in jobs}
+	rows = {}
+	for p in out:
+		rows.setdefault(p.track, []).append((p, None))
+		print("PLAN T%d %s (%.1f, %.1f) OUT (owner, choice C)" % (p.track, p.name, p.pos[0], p.pos[2]))
+	heroes, rects, exempt, rn_of = {}, {}, {}, {}
 	for p in sorted(jobs, key=lambda q: -np.prod((q.hi - q.lo)[[0, 2]])):
 		n = p.track
 		if n not in heroes:
@@ -120,9 +150,10 @@ def main():
 			rn_of[n] = rn
 			rects[n] = [np.array(v) for v in rn.ground()]
 		hero = p.name in heroes[n]
-		lim = HERO_MOVE if hero else SIGHT_MOVE if (n, p.name) in SIGHT else MOVE
+		lim = HERO_MOVE if hero else SIGHT_MOVE if sight(p) else MOVE
+		kh = kits[host[id(p)]]
 		t1_old, own_old = set(views[id(p)]), seen(kits[n], p)
-		if (n, p.name) in SIGHT:
+		if sight(p):
 			t1_old.discard(0.06)
 		ring = sorted(((i, j) for i in range(-lim, lim + 1, STEP) for j in range(-lim, lim + 1, STEP) if 0 < math.hypot(i, j) <= lim), key=lambda q: math.hypot(*q))
 		new, why = None, {}
@@ -130,7 +161,7 @@ def main():
 		def no(rule, why=why):
 			why[rule] = why.get(rule, 0) + 1
 
-		spots = [(i, j, strict) for strict in ((True, False) if hero or (n, p.name) in SIGHT else (False,)) for i, j in ring]
+		spots = [(i, j, strict) for strict in ((True, False) if hero or sight(p) else (False,)) for i, j in ring]
 		for i, j, strict in spots:
 			x, z = p.pos[0] + i, p.pos[2] + j
 			if not (np.all((x, z) >= rects[n][0] + 2) and np.all((x, z) <= rects[n][1] - 2)) or owner_of(r, x, z) != n:
@@ -145,8 +176,8 @@ def main():
 				no("corridor")
 			elif standing(q, stand) or any(o.name not in VAST and o.name != "Flowers" and np.all(q.lo < o.hi) and np.all(q.hi > o.lo) and q.touches(o) for o in stand):
 				no("stands in or touches")
-			elif not seen(k1, q) <= (set() if strict else t1_old):
-				no("new Track 1 view" if not strict else "a Track 1 view (first pass)")
+			elif not seen(kh, q) <= (set() if strict else t1_old):
+				no("new host-track view" if not strict else "a host-track view (first pass)")
 			elif not seen(kits[n], q) <= own_old:
 				no("new own-track view")
 			else:
@@ -158,7 +189,7 @@ def main():
 		if new is not None:
 			print("SEEN T%d %s own views %s -> %s" % (n, p.name, sorted(own_old), sorted(seen(kits[n], new))))
 		print(
-			"PLAN T%d %s (%.1f, %.1f) %s %s in T1 views %s%s"
+			"PLAN T%d %s (%.1f, %.1f) %s %s in host T%d views %s%s"
 			% (
 				n,
 				p.name,
@@ -166,8 +197,9 @@ def main():
 				p.pos[2],
 				"hero" if hero else "",
 				"to (%.1f, %.1f) %.0f studs" % (new.pos[0], new.pos[2], math.hypot(*(new.pos - p.pos)[[0, 2]])) if new is not None else "OUT %s" % why,
+				host[id(p)],
 				views[id(p)],
-				" then %s" % ep.seen_by(k1, new.world(new.shape.tris.reshape(-1, 3))) if new is not None else "",
+				" then %s" % ep.seen_by(kh, new.world(new.shape.tris.reshape(-1, 3))) if new is not None else "",
 			),
 			flush=True,
 		)

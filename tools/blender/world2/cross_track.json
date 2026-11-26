@@ -8,6 +8,7 @@
 ["Crag", 218.279, 220.758, 236.279, 268.758, null],
 ["Crag", 273.678, -225.241, null, null, null],
 ["Hound", 133.385, 276.0, null, null, null],
+["RuinB", -507.683, -390.433, null, null, null],
 ["RuinB", -334.346, 196.279, null, null, null],
 ["RuinB", -325.894, -119.802, null, null, null],
 ["RuinB", -320.761, 69.59, null, null, null],
@@ -365,14 +366,18 @@
 ["Apartment", -336.325, -222.317, null, null, null],
 ["Apartment", -183.101, -73.011, null, null, null],
 ["Apartment", 426.856, -144.899, null, null, null],
-["Smoke", -67.574, -262.749, null, null, null]
+["Office", 428.564, 337.401, null, null, null],
+["Smoke", -575.627, -519.299, null, null, null],
+["Smoke", -67.574, -262.749, null, null, null],
+["Smoke", 398.496, 567.112, null, null, null]
 ],
 "add": [
 
 ]},
 "MonsterDen": {
 "fix": [
-["LavaChasm", 236.626, -247.337, null, null, null]
+["LavaChasm", 236.626, -247.337, null, null, null],
+["RockPillar", -499.984, -344.915, null, null, null]
 ],
 "add": [
 

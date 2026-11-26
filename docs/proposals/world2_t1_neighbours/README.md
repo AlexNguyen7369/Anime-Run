@@ -1,4 +1,4 @@
-# Other tracks' pieces on Track 1's ground: PROPOSAL (2026-11-25, not approved, not merged)
+# Other tracks' pieces on Track 1's ground (owner's choices A to D, 2026-11-26; renders 2026-11-26)
 Owner's "Go ahead" (design doc change log 2026-11-25 (b); WORLD2_SPEC "Ground ownership": nearest road, base centre).
 Planner: tools/blender/world2/t1_neighbours.py (rows in cross_track.json under each biome, `fix`, yaw null = moved only;
 the exported drafts patched in place with `--patch`, no re-export). Sheets here: before | after, only views that changed.
@@ -55,3 +55,17 @@ tracks are frozen and the owner decides.
 | 03 run 62, right (1310-1600, 0-530) | translucent orange glow wall | Track 2 Gate at (408, -486), the arch over Track 2's road | Track 2's own (0, it spans the road) | none under the ground rule (own ground, approved hero); only the owner can ask for it to change |
 The torch on the verge in 02 was not resolved by the probes (Track 3 Wall, Barricade and Track 4 Portal and Cedar are
 also near that line). The same planner (t1_neighbours.py) could be pointed at Track 3's ground if the owner says so.
+
+## Owner's choices, 2026-11-26 (design doc change log 59095431), applied on top of the kaiju landing
+- A: the Hound placement stays out. B: the smoke column stays out.
+- C: Track 5's Office (base centre (428.6, 337.4); the review named its origin (441, 339)) and Smoke (base centre
+  (398.5, 567.1); origin (364, 555)) are out, to clear Track 1's finish view. Owner's word; they stood on Track 5's ground.
+- D: the ground rule on Track 3's ground, same move rule with Track 3 as the host track: Track 5 Smoke (-576, -519) out
+  (no Track 5 ground within 2000 studs passes), Track 8 RockPillar (-500, -345) out (own ground over 120 studs away),
+  Track 2 RuinB (-508, -390) out (no spot within 120 passes). Track 2's Gate stays.
+- Totals now: 3 moved, 36 out. The merged Track 5 kaiju rows are exactly as on feature/alex/world2-place; Track 5's
+  draft differs from it only by the 8 rows out (4 Apartments, 3 Smokes, 1 Office).
+- Before|after sheets of this round (before = feature/alex/world2-place 03d7ba3e, after = this branch): round4/, Track 1
+  and Track 5 only (views with 0.1%+ changed pixels). NOT DONE (stopped when the owner left): the before renders of Tracks
+  2, 3, 4 and 8 and their sheets, and Track 2 context 03 at the 2048 shadow pool (the committed one is the default
+  pool, so its pale road patches are back). After renders of all six tracks are committed under assets/world2_draft.
