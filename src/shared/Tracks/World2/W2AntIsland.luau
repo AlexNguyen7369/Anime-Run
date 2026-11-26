@@ -1,7 +1,7 @@
 --!nonstrict
 -- World 2 Track 7 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Ant Island run.
--- Same route as World 1's Track 7 (Desert), so its length, spiral lap and validator results carry over
--- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
+-- Route: World 2's square spiral of long straights (WORLD2_SPEC "World 2 track layout", owner 2026-11-26; pitch 760
+-- and corner radius 420 proposed), the target length of docs/TRACKS_AND_BIOMES_SPEC.md "Lengths". Palette proposed.
 return {
 	Name = "W2AntIsland",
 	Description = "Ant Island run: volcanic shores, giant hive mounds and tunnels of the ant nest.",
@@ -19,56 +19,10 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 40 }, -- start straight
-		{ Type = "Turn", Angle = -90, Radius = 350 }, -- corner
-		{ Type = "Straight", Length = 180 },
-		{ Type = "Turn", Angle = 16, Radius = 320 }, -- cherry blossom avenue sweep
-		{ Type = "Turn", Angle = -32, Radius = 320 },
-		{ Type = "Turn", Angle = 16, Radius = 320 },
-		{ Type = "Straight", Length = 120 },
-		{ Type = "Slope", Length = 220, Rise = 34 }, -- stone stairs up to the hilltop shrine
-		{ Type = "Straight", Length = 60 },
-		{ Type = "Slope", Length = 220, Rise = -34 },
-		{ Type = "Straight", Length = 462.184 },
-		{ Type = "Turn", Angle = -90, Radius = 395 }, -- corner
-		{ Type = "Straight", Length = 150 },
-		{ Type = "Turn", Angle = 20, Radius = 320 }, -- switchback bends on the shrine hill
-		{ Type = "Turn", Angle = -40, Radius = 320 },
-		{ Type = "Turn", Angle = 20, Radius = 320 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -20, Radius = 320 },
-		{ Type = "Turn", Angle = 40, Radius = 320 },
-		{ Type = "Turn", Angle = -20, Radius = 320 },
-		{ Type = "Straight", Length = 572.428 },
-		{ Type = "Turn", Angle = -90, Radius = 395 }, -- corner
-		{ Type = "Straight", Length = 130 },
-		{ Type = "Turn", Angle = 16, Radius = 320 }, -- cherry blossom avenue sweep
-		{ Type = "Turn", Angle = -32, Radius = 320 },
-		{ Type = "Turn", Angle = 16, Radius = 320 },
-		{ Type = "Straight", Length = 260 },
-		{ Type = "Slope", Length = 220, Rise = 34 }, -- stone stairs up to the hilltop shrine
-		{ Type = "Straight", Length = 60 },
-		{ Type = "Slope", Length = 220, Rise = -34 },
-		{ Type = "Straight", Length = 495.947 },
-		{ Type = "Turn", Angle = -90, Radius = 395 }, -- corner
-		{ Type = "Straight", Length = 120 },
-		{ Type = "Turn", Angle = 20, Radius = 320 }, -- switchback bends on the shrine hill
-		{ Type = "Turn", Angle = -40, Radius = 320 },
-		{ Type = "Turn", Angle = 20, Radius = 320 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -20, Radius = 320 },
-		{ Type = "Turn", Angle = 40, Radius = 320 },
-		{ Type = "Turn", Angle = -20, Radius = 320 },
-		{ Type = "Straight", Length = 240 },
-		{ Type = "Turn", Angle = 16, Radius = 320 }, -- cherry blossom avenue sweep
-		{ Type = "Turn", Angle = -32, Radius = 320 },
-		{ Type = "Turn", Angle = 16, Radius = 320 },
-		{ Type = "Straight", Length = 330.007 },
-		{ Type = "Turn", Angle = -90, Radius = 395 }, -- corner
-		{ Type = "Straight", Length = 200 },
-		{ Type = "Slope", Length = 220, Rise = 34 }, -- stone stairs up to the hilltop shrine
-		{ Type = "Straight", Length = 60 },
-		{ Type = "Slope", Length = 220, Rise = -34 },
-		{ Type = "Straight", Length = 473.565 }, -- finish straight
+		{ Type = "Straight", Length = 3448.9135 }, -- start straight
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 4620 },
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 1872.6176 }, -- finish straight
 	},
 }

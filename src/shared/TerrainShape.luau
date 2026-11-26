@@ -25,6 +25,11 @@ TerrainShape.COARSE = 64 -- studs per coarse cell for nodes past the stamp radiu
 TerrainShape.POLY_STEP = 64 -- placeholder: studs between ZonePolyline points
 TerrainShape.PLAZA_MARGIN = 64 -- placeholder: zone 0 = plaza + this
 TerrainShape.SKIRT = 900 -- placeholder: terrain past the outermost road edge
+-- World 2's laps are 760 apart (WORLD2_SPEC "World 2 track layout", owner 2026-11-26), so the gap midline and its seam
+-- (spec 2.2) lie about 380 studs out, past STAMP. There each node past the stamp gets its own distances (to the
+-- polyline segments near its coarse cell) instead of the cell's, so the seam is a line, not 64-stud steps. World 1's
+-- laps keep the seam inside STAMP and its grid as it was.
+TerrainShape.EXACT_FAR = require(script.Parent.WorldConfig).Id == 2
 TerrainShape.PAD_BUCKET = 64 -- studs per bucket cell of the pad lookup (AddPad)
 TerrainShape.EMBANK_BELOW = 3 -- placeholder: an Embank corridor sits this far below the road
 -- placeholder: an Embank corridor sits EMBANK_BELOW under the lowest road Y within this many studs (grid nodes of the
@@ -196,6 +201,56 @@ local function bySlab(x, z)
 end
 
 -- Track n's centre line resampled every POLY_STEP studs (XZ), first and last waypoints included
+-- EXACT_FAR: the polyline segments of every track that can be nearest or second nearest to some node of the coarse
+-- cell centred (cx, cz), given each track's nearest point distance `best` from the centre. A node is at most `reach`
+-- from the centre, so its nearest segment of track n starts within best[n] + 2 reach + POLY_STEP of it, and a track
+-- whose best is more than 2 reach past the second smallest can be neither.
+local function nearSegments(polys, best, cx, cz)
+	local reach = TerrainShape.COARSE * math.sqrt(2) / 2
+	local first, second = math.huge, math.huge
+	for _, d in best do
+		if d < first then
+			first, second = d, first
+		elseif d < second then
+			second = d
+		end
+	end
+	local near = {}
+	for n, d in best do
+		if d <= second + 2 * reach then
+			local poly, keep = polys[n], {}
+			local r = d + 2 * reach + TerrainShape.POLY_STEP
+			for k = 1, #poly - 1 do
+				local dx, dz = poly[k].X - cx, poly[k].Y - cz
+				if dx * dx + dz * dz <= r * r then
+					table.insert(keep, poly[k])
+					table.insert(keep, poly[k + 1])
+				end
+			end
+			near[n] = keep
+		end
+	end
+	return near
+end
+
+-- EXACT_FAR: the two nearest tracks at node (x, z) and their distances, over the cell's nearSegments
+local function exactFar(near, x, z)
+	local t1, d1, t2, d2 = NONE, math.huge, NONE, math.huge
+	for n, segs in near do
+		local m = math.huge
+		for k = 1, #segs, 2 do
+			local a, b = segs[k], segs[k + 1]
+			m = math.min(m, (segment(x, z, a.X, a.Y, b.X, b.Y)))
+		end
+		if m < d1 then
+			t2, d2, t1, d1 = t1, d1, n, m
+		elseif m < d2 then
+			t2, d2 = n, m
+		end
+	end
+	return t1, d1, t2, d2
+end
+
 local function polyline(pts)
 	local out = { Vector2.new(pts[1].X, pts[1].Z) }
 	local carry = 0
@@ -350,6 +405,9 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 							c[3], c[4] = n, d
 						end
 					end
+					if TerrainShape.EXACT_FAR then
+						c.Near = nearSegments(polys, best, cx, cz)
+					end
 					coarse[key] = c
 					work += 1
 					if work % 300 == 0 then
@@ -357,10 +415,18 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 					end
 				end
 				local o = k * REC
-				buffer.writeu8(buf, o, c[1])
-				buffer.writeu16(buf, o + 2, q16(math.max(STAMP, c[2])))
-				buffer.writeu8(buf, o + 1, c[3])
-				buffer.writeu16(buf, o + 4, q16(math.max(STAMP, c[4])))
+				if c.Near then
+					local t1, d1, t2, d2 = exactFar(c.Near, x0 + i * CELL, z0 + j * CELL)
+					buffer.writeu8(buf, o, t1)
+					buffer.writeu16(buf, o + 2, q16(math.max(STAMP, d1)))
+					buffer.writeu8(buf, o + 1, t2)
+					buffer.writeu16(buf, o + 4, q16(math.max(STAMP, d2)))
+				else
+					buffer.writeu8(buf, o, c[1])
+					buffer.writeu16(buf, o + 2, q16(math.max(STAMP, c[2])))
+					buffer.writeu8(buf, o + 1, c[3])
+					buffer.writeu16(buf, o + 4, q16(math.max(STAMP, c[4])))
+				end
 				buffer.writei16(buf, o + 6, 8 * 1)
 			end
 		end

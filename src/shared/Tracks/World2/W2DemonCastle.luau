@@ -1,7 +1,7 @@
 --!nonstrict
 -- World 2 Track 2 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Demon King's Castle run.
--- Same route as World 1's Track 2 (Hill), so its length, spiral lap and validator results carry over
--- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
+-- Route: World 2's square spiral of long straights (WORLD2_SPEC "World 2 track layout", owner 2026-11-26; pitch 760
+-- and corner radius 420 proposed), the target length of docs/TRACKS_AND_BIOMES_SPEC.md "Lengths". Palette proposed.
 return {
 	Name = "W2DemonCastle",
 	Description = "Demon King's Castle run: black stone ramparts, spiral stairs and floating spires over a blood-red sky.",
@@ -19,20 +19,12 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 83.456 },
-		{ Type = "Turn", Angle = -90, Radius = 125 }, -- corner
-		{ Type = "Straight", Length = 528 },
-		{ Type = "Turn", Angle = -90, Radius = 125 }, -- corner
-		{ Type = "Straight", Length = 130 },
-		{ Type = "Slope", Length = 150, Rise = 26 }, -- crater rim climb and drop
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Slope", Length = 150, Rise = -26 },
-		{ Type = "Straight", Length = 95 },
-		{ Type = "Turn", Angle = -90, Radius = 170 }, -- corner
-		{ Type = "Straight", Length = 588 },
-		{ Type = "Turn", Angle = -90, Radius = 170 }, -- corner
-		{ Type = "Straight", Length = 670 },
-		{ Type = "Turn", Angle = -90, Radius = 170 }, -- corner
+		{ Type = "Straight", Length = 40 }, -- start straight
+		{ Type = "Turn", Angle = -61.5525, Radius = 420 },
+		{ Type = "Straight", Length = 820 },
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 1580 },
+		{ Type = "Turn", Angle = -10.2399, Radius = 420 },
 		{ Type = "Straight", Length = 64 }, -- finish straight
 	},
 }

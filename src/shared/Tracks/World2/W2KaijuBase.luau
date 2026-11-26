@@ -1,7 +1,7 @@
 --!nonstrict
 -- World 2 Track 5 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Wrecked Kaiju Base run.
--- Same route as World 1's Track 5 (Serpentine), so its length, spiral lap and validator results carry over
--- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
+-- Route: World 2's square spiral of long straights (WORLD2_SPEC "World 2 track layout", owner 2026-11-26; pitch 760
+-- and corner radius 420 proposed), the target length of docs/TRACKS_AND_BIOMES_SPEC.md "Lengths". Palette proposed.
 return {
 	Name = "W2KaijuBase",
 	Description = "Wrecked Kaiju Base run: a kaiju-smashed city, defense force base walls and giant bones in the streets.",
@@ -19,30 +19,10 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 862.026 },
-		{ Type = "Turn", Angle = -90, Radius = 260 }, -- corner
-		{ Type = "Straight", Length = 180 },
-		{ Type = "Turn", Angle = 24, Radius = 150 }, -- scramble crossing jink
-		{ Type = "Turn", Angle = -48, Radius = 150 },
-		{ Type = "Turn", Angle = 24, Radius = 150 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -24, Radius = 150 },
-		{ Type = "Turn", Angle = 48, Radius = 150 },
-		{ Type = "Turn", Angle = -24, Radius = 150 },
-		{ Type = "Straight", Length = 486.916 },
-		{ Type = "Turn", Angle = -90, Radius = 305 }, -- corner
-		{ Type = "Straight", Length = 240 },
-		{ Type = "Slope", Length = 160, Rise = 18 }, -- up over the meteor crater
-		{ Type = "Straight", Length = 80 },
-		{ Type = "Slope", Length = 160, Rise = -18 },
-		{ Type = "Straight", Length = 578 },
-		{ Type = "Turn", Angle = -90, Radius = 305 }, -- corner
-		{ Type = "Straight", Length = 200 },
-		{ Type = "Slope", Length = 200, Rise = 30 }, -- up the rubble mound
-		{ Type = "Straight", Length = 60 },
-		{ Type = "Slope", Length = 200, Rise = -30 },
-		{ Type = "Straight", Length = 640 },
-		{ Type = "Turn", Angle = -90, Radius = 305 }, -- corner
-		{ Type = "Straight", Length = 765.255 }, -- finish straight
+		{ Type = "Straight", Length = 1585.7757 }, -- start straight
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 3100 },
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 1201.7554 }, -- finish straight
 	},
 }
