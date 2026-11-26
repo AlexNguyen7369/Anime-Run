@@ -107,13 +107,10 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
 			"piece 2 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p2.glb"
 		),
-		W2_ElvenPlains_Mountain_p3 = draftMesh(
-			772,
-			"rbxassetid://140544040618009", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
-			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
-			"piece 3 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p3.glb"
-		),
+		-- W2_ElvenPlains_Mountain_p3 (uploaded rbxassetid://140544040618009, 772 tris, reviewed 2026-11-24 auditor (wave 2);
+		-- piece 3 of 3 of Mountain at its placed scale 1.35): out of the live rows since the 2026-11-26 re-fit. The Mountain
+		-- stands off Track 1's own ground on the wide layout and is not placed, so the export cuts it at scale 1 into 2
+		-- pieces. Restore this row if the Mountain is placed again at 1.35 (lead 2026-11-26).
 		W2_ElvenPlains_Mound = draftMesh(
 			844,
 			"rbxassetid://93806218892651", -- Id: tools/blender/world2/upload_props.py
