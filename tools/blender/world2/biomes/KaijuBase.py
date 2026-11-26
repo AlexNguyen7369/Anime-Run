@@ -1146,8 +1146,9 @@ def overlapped(box, boxes):
 	return out
 
 
-# Owner 2026-11-25 "A with 12": left out of fill draft A, (x, z, prop); each touches a van as placed.
-LEFT_OUT = ((-471.8, 875.3, "Apartment"), (-613.6, 876.6, "Apartment"))
+# Owner 2026-11-25 "A with 12": left out of fill draft A, (d, off, prop) road-relative (roadframe.py, kit.spot; world
+# (-471.8, 875.3) and (-613.6, 876.6) on the approved chain); each touches a van as placed.
+LEFT_OUT = ((725.83, -65.3, "Apartment"), (866.1439, -66.708289, "Apartment"))
 
 
 def cut_fill(k, label, boxes):
@@ -1155,9 +1156,10 @@ def cut_fill(k, label, boxes):
 	LEFT_OUT."""
 	bpy.context.view_layer.update()
 	pre, stays, cut, by, left, out = "W2_%s_" % k.biome, {}, {}, {}, [], set()
+	left_out = [(*k.spot(d, off), n) for d, off, n in LEFT_OUT]
 	for ob in k.fill:
 		name, hit = ob.data.name[len(pre) :], overlapped(instance_box(ob), boxes)
-		if not hit and any(name == n and abs(ob.location.x - x) < 0.2 and abs(-ob.location.y - z) < 0.2 for x, z, n in LEFT_OUT):
+		if not hit and any(name == n and abs(ob.location.x - x) < 0.2 and abs(-ob.location.y - z) < 0.2 for x, z, n in left_out):
 			hit = {"owner": 1}
 			out.add((round(ob.location.x, 1), round(-ob.location.y, 1), name))
 		for t in hit:

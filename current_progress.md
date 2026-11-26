@@ -314,8 +314,9 @@
 293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 294. 2026-11-26 — Alex Nguyen — Proposed three wider World 2 layouts measured against the owner's 600-stud road gap (current chain 41; wide spiral 620, zigzag rows 663, square spiral 643), with plans and a tool, recommending the square spiral of long straights.
+295. 2026-11-26 — Alex Nguyen — Made the World 2 drafts' hand-set world spots road-relative (Track 1 ranks, mounds, horizon town, castle and massif, behind-finish props; Track 5's two left-out Apartments; Track 6's landmark, tower turn and Konbini in cross_track), with the same placements on the approved chain (Tracks 1, 5 and 6 compared instance by instance).
 
 ## What's next
-**Implement the World 2 layout option the lead picks (recommended C, square spiral of long straights) on orch/world2/w2-wide-layout: new Segments in the ten World 2 track files, the lead's rule entries, track tests and TrackValidator green, chain_check.json and the offline lune scenarios.**
+**Re-place every World 2 track's scenery, heroes, kaiju site and Track 6 landmark on the square-spiral layout (orch/world2/w2-wide-layout Segments), check clearance and ground ownership, then render the review set into assets/world2_draft/relayout_2026-11-26/.**
 
-**Why this is next:** the owner ruled World 2's tracks too close; scenery refits (agent-3's map), hero moves and the kaiju rows all depend on the new road positions.
+**Why this is next:** the wide layout changes every road, so no Draft placement, hero move or render set holds until the scenery is laid out on it again.

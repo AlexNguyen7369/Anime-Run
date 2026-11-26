@@ -12,6 +12,8 @@ import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
+import roadframe
+
 
 def rb(x, y, z):
 	return Vector((x, -z, y))
@@ -163,6 +165,16 @@ class Kit:
 		q = p + right * off
 		yaw = math.atan2(-t.x, -t.z)  # Roblox heading of the road (0 = facing -Z)
 		return (q.x, p.y - 1.0 + y, q.z), yaw
+
+	def spot(self, d, off, along=0.0):
+		"""Roblox world (x, z) of a road-relative spot (roadframe.py): the centre line at d (past the ends along the end
+		straights), then `along` studs on in the road's direction there and `off` studs to its right (negative: left)."""
+		(cx, cz), (tx, tz), (rx, rz) = roadframe.frame(self.wps, d)
+		return cx + tx * along + rx * off, cz + tz * along + rz * off
+
+	def heading(self, d):
+		"""Roblox heading of the road at d (0 = facing -Z); a hand-set turn is stored relative to it."""
+		return roadframe.heading(self.wps, d)
 
 	def road(self, pal):
 		"""Road ribbon, edge walls and the checkpoint apron, from the track's palette (game colours)."""

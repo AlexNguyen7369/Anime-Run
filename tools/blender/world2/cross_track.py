@@ -52,7 +52,9 @@ BOX = {
 }  # fmt: skip
 # Cottage and RuinWall are not checked (they were while a finish Rank stood behind them; that Rank is out)
 TALL = {"Pine", "Forest", "Mound", "Mansion", "ShopHouse", "Office"}  # may hide a landmark (the layout's `hidden`)
-TURN = {(1184.0, -341.9): 0.0}  # the near tower of the 0.62 view: its two lit faces to the runner
+# (d, off, turn from the road's heading) of the near tower of the 0.62 view: its two lit faces to the runner. Road-relative
+# (roadframe.py, kit.spot): world (1184.0, -341.9) at turn 0.0 on the approved chain.
+TURN = [(5493.998233, -74.0, math.pi)]
 TOWER = (0.36, 0.55)  # the approved draft's Office scales
 BLOCK = ep.blockers()  # the game takes a neighbour that meets these (BiomeDressing.Prune); still treated as standing here
 
@@ -71,9 +73,23 @@ def woods(count, name, scale, gap, seed):
 	return {"what": name, "count": count, "spots": spots}
 
 
-def at(name, x, z):
-	"""One prop at a set spot, its front to the road."""
-	return {"what": "%s at (%.0f, %.0f)" % (name, x, z), "count": 1, "spots": lambda lay: [lay.make(name, x, z, lay.road_yaw(x, z), 1.0)]}
+def at(name, d, off):
+	"""One prop at a set road-relative spot (d, off: roadframe.py), its front to the road."""
+
+	def spots(lay):
+		x, z = lay.k.spot(d, off)
+		return [lay.make(name, x, z, lay.road_yaw(x, z), 1.0)]
+
+	return {"what": "%s at d %.0f, off %.0f" % (name, d, off), "count": 1, "spots": spots}
+
+
+def turned(lay, x, z, turn):
+	"""TURN's turn where (x, z) is its spot (to 0.1 stud, as the old world key matched), else `turn`."""
+	for d, off, t in TURN:
+		sx, sz = lay.k.spot(d, off)
+		if (round(x, 1), round(z, 1)) == (round(sx, 1), round(sz, 1)):
+			return lay.k.heading(d) + t
+	return turn
 
 
 def towers(count, gap, seed):
@@ -85,7 +101,7 @@ def towers(count, gap, seed):
 		for sc, d, off, turn in draws:
 			(x, _, z), _ = lay.k.beside(d, off)
 			if all(q.name != "Office" or math.hypot(q.pos[0] - x, q.pos[2] - z) >= gap for q in lay.kept):
-				yield lay.make("Office", x, z, TURN.get((round(x, 1), round(z, 1)), turn), sc)
+				yield lay.make("Office", x, z, turned(lay, x, z, turn), sc)
 
 	return {"what": "Office", "count": count, "spots": spots}
 
@@ -125,7 +141,7 @@ FILL = {
 		woods(80, "Pine", (0.9, 1.5), 12, 7),
 		woods(20, "Flowers", (1.0, 1.5), 30, 9),
 	],
-	"DevilTokyo": [fronts(("ShopHouse", "Apaato", "Konbini"), (40, 46, 54, 62), 80, 8), towers(41, 70, 5), at("Konbini", 1183.6, -381.5)],
+	"DevilTokyo": [fronts(("ShopHouse", "Apaato", "Konbini"), (40, 46, 54, 62), 80, 8), towers(41, 70, 5), at("Konbini", 5456.975912, -73.967563)],
 }
 
 # Track 6's lit focal points (owner 2026-11-25, "lit landmark approved"; design doc change log): at the bend (the 0.06 run
@@ -133,10 +149,13 @@ FILL = {
 # face turned to the camera's axis. "out": the prop of ours it stands in place of. The HQ stays out; the sight plots stay.
 # Picked from renders of three spots each (bend: this Mansion, an Office or a third Retro behind the outer front; finish:
 # this Office, an Office or a ShopHouse in place of the Mansion at (-222.7, 1138.2)). Spots **proposed**.
+# Road-relative (roadframe.py, kit.spot): "out" (prop, d, off, along), "put" (prop, d, off, turn from the road's heading at d,
+# scale). On the approved chain: out Apaato (-944.927, 925.065); put Mansion (-943.8, 960.0) yaw -1.541, Office (-226.5, 1169.4)
+# yaw -1.518.
 LANDMARK = {
 	"DevilTokyo": [
-		{"what": "bend", "out": [("Apaato", -944.927, 925.065)], "put": ("Mansion", -943.8, 960.0, -1.541, 1.0)},
-		{"what": "finish", "out": [], "put": ("Office", -226.5, 1169.4, -1.518, 0.55)},
+		{"what": "bend", "out": [("Apaato", 823.914599, -50.958858, 1.973462)], "put": ("Mansion", 805.891479, -77.545497, -2.463787, 1.0)},
+		{"what": "finish", "out": [], "put": ("Office", 8173.202926, -86.70771, -3.193814, 0.55)},
 	],
 }
 
@@ -437,7 +456,8 @@ class Layout:
 					placed += 1
 			print("FILL", self.biome, rule["what"], placed, "of", rule["count"])
 		for mark in LANDMARK.get(self.biome, ()):
-			for name, x, z in mark["out"]:
+			for name, d, off, along in mark["out"]:
+				x, z = self.k.spot(d, off, along)
 				hit = min((q for q in self.kept if q.name == name), key=lambda q: math.hypot(q.pos[0] - x, q.pos[2] - z), default=None)
 				if hit is None or math.hypot(hit.pos[0] - x, hit.pos[2] - z) > 1.0:
 					raise SystemExit("LANDMARK %s: no %s at (%.3f, %.3f)" % (mark["what"], name, x, z))
@@ -448,7 +468,9 @@ class Layout:
 					self.adds.remove(added[0])
 				else:
 					self.rows.append(row + [None] * 3)
-			name, x, z, yaw, scale = mark["put"]
+			name, d, off, turn, scale = mark["put"]
+			x, z = self.k.spot(d, off)
+			yaw = self.k.heading(d) + turn
 			p = self.make(name, x, z, yaw, scale)
 			touch = [(q.track, q.name) for q, a, b, bad in self.contacts(p) if a or b or p.touches(q)]
 			if not self.legal(p, self.kept, view=False) or touch:
