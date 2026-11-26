@@ -15,7 +15,7 @@
 local UiSpec = {}
 
 local MarketConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("MarketConfig"))
-local TEAM_SIZE = require(game:GetService("ReplicatedStorage").Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4
+local TEAM_SIZE = 3 -- both worlds (design doc 4.2, 4.47)
 -- A MarketConfig item's Name (a readable placeholder when the id is gone, so the spec still loads and the click fails)
 local function marketName(kind, id)
 	local item = MarketConfig.Get(kind, id)
@@ -3626,13 +3626,12 @@ UiSpec.Team = {
 	SummonPanel = "RacerSidekicks/Canvas",
 	Gone = { "BestTeam" }, -- no descendant of Panel has this name (Quick Setup replaced it, 4.45)
 	GoneDirect = { "Slots", "Bonus" }, -- layout A's parts: no child of Panel has these names any more
-	-- owner 2026-11-17 (4.45); World 2's team of 4 adds slot 4 (4.47)
-	SlotLabels = TEAM_SIZE == 4 and { "SLOT 1", "SLOT 2", "SLOT 3", "SLOT 4" } or { "SLOT 1", "SLOT 2", "SLOT 3" },
+	SlotLabels = { "SLOT 1", "SLOT 2", "SLOT 3" }, -- owner 2026-11-17 (4.45); both worlds (4.47)
 	FullScreenTol = 2, -- px: Panel AbsoluteSize against its ScreenGui's
 	TeamName = "Team 1",
 	Ready = "Ready",
 	Unsaved = "Unsaved changes",
-	CountText = "%d / " .. TEAM_SIZE, -- owner 2026-11-19 (4.45 T2); World 2: "/ 4" (4.47)
+	CountText = "%d / " .. TEAM_SIZE, -- owner 2026-11-19 (4.45 T2)
 	PlusText = "+",
 	AddText = "Add Character",
 	RemoveText = "Remove",

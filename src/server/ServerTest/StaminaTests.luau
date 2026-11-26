@@ -40,7 +40,7 @@ local SPEED_TOL = 1e-6 -- swap cruise: fixed per character (design doc 4.13)
 local SLOW_NPC = 0.001 -- studs/s: the NPC never wins
 local FAST_NPC = 1e7 -- studs/s: the NPC always wins
 local OLD_VERSION = 12 -- the save VERSION before Team (PlayerData)
-local TEAM_SIZE = require(Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47, World2TeamTests)
+local TEAM_SIZE = 3 -- both worlds (design doc 4.2; World 2 too since owner 2026-11-26, 4.47, World2TeamTests)
 local UNOWNED = TEAM_SIZE + 2 -- ids[UNOWNED] is never granted; ids 1..TEAM_SIZE + 1 are owned (one past the size)
 local UID = 991400000
 
@@ -467,7 +467,7 @@ function Tests.team_bonus()
 		and bonus({ m[1] }) == nil
 		and bonus({}) == nil
 		and bonus({ m[1], m[1], m[2] }) == nil
-		and (TEAM_SIZE > 3 or bonus({ m[1], m[2], m[3], others[1] }) == nil) -- World 2's 4: World2TeamTests
+		and bonus({ m[1], m[2], m[3], others[1] }) == nil -- a list of 4 is no team, in both worlds
 		and bonus(nil) == nil
 	flag("team_bonus_needs_3_members", small)
 

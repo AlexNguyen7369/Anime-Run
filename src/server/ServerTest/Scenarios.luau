@@ -12240,7 +12240,7 @@ Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
 Scenarios.world2_welcome = require(script.Parent.World2WelcomeTests).world2_welcome -- WORLD2_SPEC "Welcome"
 Scenarios.boss_guide = require(script.Parent.BossGuideTests).boss_guide -- docs/BOSS_GUIDE_SPEC.md
-Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 team of 4
+Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 Team of 3 in World 2 and its migration
 -- deliverables w2-summon, w2-boss: Summon gives this place's Sidekick set with shared pity; boss models are in the place
 Scenarios.world2_summon = require(script.Parent.World2ProofTests).world2_summon
 Scenarios.boss_models_placed = require(script.Parent.World2ProofTests).boss_models_placed
