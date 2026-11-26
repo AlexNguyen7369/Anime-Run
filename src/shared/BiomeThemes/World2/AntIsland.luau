@@ -51,71 +51,71 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 		),
 		W2_AntIsland_Nest = draftMesh(
 			10040,
-			"rbxassetid://105423028314113", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://125455946041466", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low wide sandy colony mound with a lumpy cratered surface and dark rimmed tunnel mouths",
 			"hero landmark, 1 placed; build/world2/export/AntIsland/W2_AntIsland_Nest.glb"
 		),
 		W2_AntIsland_Ant = draftMesh(
 			2000,
-			"rbxassetid://108845152754257", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://73462651219732", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: generic giant ant with slate chitin, dark plates, a banded spiked abdomen and an angular spiked head",
 			"mid prop, 15 placed; build/world2/export/AntIsland/W2_AntIsland_Ant.glb"
 		),
 		W2_AntIsland_Chamber = draftMesh(
 			6286,
-			"rbxassetid://127071148146370", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://139970076186570", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: opened cave chamber with a raised tiered carpet of round blue eggs under pale web strands",
 			"hero landmark, 1 placed; build/world2/export/AntIsland/W2_AntIsland_Chamber.glb"
 		),
 		W2_AntIsland_ThatchHouse = draftMesh(
 			900,
-			"rbxassetid://87977916324970", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://85851037078208", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small thatched roof cottage with stone walls",
 			"mid prop, 82 placed; build/world2/export/AntIsland/W2_AntIsland_ThatchHouse.glb"
 		),
 		W2_AntIsland_Ruin = draftMesh(
 			1092,
-			"rbxassetid://138092145053862", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://74674387670238", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small ruined stone building",
 			"mid prop, 63 placed; build/world2/export/AntIsland/W2_AntIsland_Ruin.glb"
 		),
 		W2_AntIsland_Camp = draftMesh(
 			1808,
-			"rbxassetid://85683813900111", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://130501406342862", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: raid camp: a helicopter on a pad, tents, floodlights and sandbag rings",
 			"mid prop, 11 placed; build/world2/export/AntIsland/W2_AntIsland_Camp.glb"
 		),
 		W2_AntIsland_Ship = draftMesh(
 			166,
-			"rbxassetid://116359125507961", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://79087380500183", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small fishing boat",
 			"mid prop, 48 placed; build/world2/export/AntIsland/W2_AntIsland_Ship.glb"
 		),
 		W2_AntIsland_Mound = draftMesh(
 			1076,
-			"rbxassetid://103223853324007", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://134316544687426", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: tall rocky mound",
 			"mid prop, 18 placed; build/world2/export/AntIsland/W2_AntIsland_Mound.glb"
 		),
 		W2_AntIsland_Cliff = draftMesh(
 			444,
-			"rbxassetid://99845249170958", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://124764413940847", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: dark basalt sea cliff",
 			"mid prop, 170 placed; build/world2/export/AntIsland/W2_AntIsland_Cliff.glb"
 		),
 		W2_AntIsland_Brush = draftMesh(
 			420,
-			"rbxassetid://137746318604400", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://98426012245371", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low bush clump",
 			"mid prop, 805 placed; build/world2/export/AntIsland/W2_AntIsland_Brush.glb"
 		),

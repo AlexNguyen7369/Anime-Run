@@ -25,85 +25,85 @@ return Kit.fromDraft("MonsterDen", require(script.Parent.MonsterDenDraft), {
 	Assets = {
 		W2_MonsterDen_Ceiling = draftMesh(
 			1276,
-			"rbxassetid://73952038713372", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://103262095804565", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: wet rock cave ceiling over a road with ivory rib arches, chains with cage lanterns and stalactites",
 			"mid prop, 106 placed; build/world2/export/MonsterDen/W2_MonsterDen_Ceiling.glb"
 		),
 		W2_MonsterDen_FleshWall = draftMesh(
 			2036,
-			"rbxassetid://96814307678288", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://133207070021886", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: organic cave wall of wet rock with a monster maw of ivory fangs, a glaring eye and two curling tentacles",
 			"mid prop, 425 placed; build/world2/export/MonsterDen/W2_MonsterDen_FleshWall.glb"
 		),
 		W2_MonsterDen_LairTower = draftMesh(
 			12084,
-			"rbxassetid://105671156219228", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://97429402367429", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: underground round stone tower with ledges on corbels, arched windows and outside staircases",
 			"hero landmark, 1 placed; build/world2/export/MonsterDen/W2_MonsterDen_LairTower.glb"
 		),
 		W2_MonsterDen_Coliseum = draftMesh(
 			11616,
-			"rbxassetid://90325094774122", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://104444130906292", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: round underground hall of dark grey stone tiers over deep black gaps with tall thin poles and a spiked throne",
 			"hero landmark, 1 placed; build/world2/export/MonsterDen/W2_MonsterDen_Coliseum.glb"
 		),
 		W2_MonsterDen_Shrine = draftMesh(
 			2900,
-			"rbxassetid://120344748083281", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://104017933349426", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: stepped stone temple with a wide central stair, balustrades, niche blocks and a blank relief slab",
 			"hero landmark, 1 placed; build/world2/export/MonsterDen/W2_MonsterDen_Shrine.glb"
 		),
 		W2_MonsterDen_MineRail = draftMesh(
 			854,
-			"rbxassetid://135510115133001", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://129872724725933", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: timber mine rail trestle with an ore cart of gold, a lantern post and glowing veins",
 			"mid prop, 220 placed; build/world2/export/MonsterDen/W2_MonsterDen_MineRail.glb"
 		),
 		W2_MonsterDen_Graveyard = draftMesh(
 			4648,
-			"rbxassetid://128210878798511", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (re-audit after the IP fix)", -- Reviewed: the rules audit
+			"rbxassetid://122661984949518", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: three heaps of ivory round dome helmets with dark ring bands among broken flagstones",
 			"mid prop, 23 placed; build/world2/export/MonsterDen/W2_MonsterDen_Graveyard.glb"
 		),
 		W2_MonsterDen_Colonnade = draftMesh(
 			612,
-			"rbxassetid://119909944250983", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://135021263027365", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: ruined colonnade: two stone columns under a broken lintel, a stump and a fallen drum",
 			"mid prop, 146 placed; build/world2/export/MonsterDen/W2_MonsterDen_Colonnade.glb"
 		),
 		W2_MonsterDen_CityChunk = draftMesh(
 			876,
-			"rbxassetid://132672902847315", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://77990890188576", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: rock mass with two tilted city buildings embedded in it, pipes and a tilted lattice pylon",
 			"mid prop, 120 placed; build/world2/export/MonsterDen/W2_MonsterDen_CityChunk.glb"
 		),
 		W2_MonsterDen_RockPillar = draftMesh(
 			168,
-			"rbxassetid://111180318689753", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://129184697267250", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: cave column: a stalagmite rising into a stalactite with glowing veins at its foot",
 			"mid prop, 462 placed; build/world2/export/MonsterDen/W2_MonsterDen_RockPillar.glb"
 		),
 		W2_MonsterDen_LavaChasm = draftMesh(
 			660,
-			"rbxassetid://120210266475561", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://102812549110840", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: lava river stretch between raised broken rock lips with crust plates",
 			"mid prop, 75 placed; build/world2/export/MonsterDen/W2_MonsterDen_LavaChasm.glb"
 		),
 		W2_MonsterDen_BoneArch = draftMesh(
 			968,
-			"rbxassetid://134313444498876", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://84124456148828", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: rib bone arch on a vertebra spine spanning a road",
 			"mid prop, 52 placed; build/world2/export/MonsterDen/W2_MonsterDen_BoneArch.glb"
 		),

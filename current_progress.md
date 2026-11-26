@@ -347,6 +347,14 @@
 344. 2026-11-26 — Alex Nguyen — Looked at the World 2 track effects in Studio on Tracks 2, 4, 5, 7 and 10 (LIVE forced in the test session only) and saved pictures and flags for the owner: effects never build away from a track's streamed-in Start, and Track 4's haze reaches over the road.
 345. 2026-11-26 — Alex Nguyen — Fixed the World 2 track effects (origin from the chain, no smoke over roads, dragon loops kept whole over their own ground, an eel with no gaps), tested on today's routes and the C layout, and checked them in Studio with LIVE forced in the test session only.
 346. 2026-11-26 — Alex Nguyen — Fixed the track effects audit: track_fx runs in World 1 again (76/0; the dragon block skips biomes World 1 lacks), and the spec's measured loop sizes, clearances and test counts are current.
+347. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batch 10 (HellGate, 10 meshes in their approved colours; harness 12655/0).
+348. 2026-11-26 — Alex Nguyen — Uploaded, compared, reviewed, Studio-checked and applied World 2 re-export batch 7 (AntIsland, 10 meshes; harness 12655/0).
+349. 2026-11-26 — Alex Nguyen — Uploaded, compared, reviewed, Studio-checked and applied World 2 re-export batch 1 (ElvenPlains, 11 meshes; harness 12655/0).
+350. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batch 6 (DevilTokyo, 9 meshes; harness 12655/0).
+351. 2026-11-26 — Alex Nguyen — Uploaded, compared, reviewed, Studio-checked and applied World 2 re-export batch 2 (DemonCastle, 10 meshes; harness 12655/0).
+352. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batch 3 (RuinedCityZ, 10 meshes; harness 12655/0).
+353. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batches 5 (KaijuBase, 9 meshes, GiantCorpse untouched) and 4 (HauntedTunnel, 8 meshes; harness 12655/0).
+354. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batches 9 (GoldenCity, 11) and 8 (MonsterDen, 12): all 100 re-exported meshes now in the game ledgers (harness 12655/0).
 
 ## What's next
 **Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**
