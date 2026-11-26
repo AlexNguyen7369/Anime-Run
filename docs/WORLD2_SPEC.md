@@ -319,8 +319,8 @@ written before the swap.
   so nothing of one track hangs over another's land. Its top stays under SKY_TOP (**proposed** 300 studs over the ground)
   unless it is at least SKY_FAR (**proposed** 1,500 studs) from every other track's road, so its silhouette is not seen above
   another track's horizon through that track's fog. Checked by geometry on the Drafts (`tools/blender/world2/sky_check.py`;
-  a Blender fog render was tried and does not model the game's Atmosphere): 700 rows over SKY_TOP within SKY_FAR of
-  another road on the round 2 Drafts, 545 of them Track 10's sky doors (116 Track 8's rock pillars), so the numbers need the owner before they are enforced; the Studio
+  a Blender fog render was tried and does not model the game's Atmosphere): 677 rows over SKY_TOP within SKY_FAR of
+  another road on the landed Drafts, 523 of them Track 10's sky doors (116 Track 8's rock pillars), so the numbers need the owner before they are enforced; the Studio
   check decides what the game's fog hides.
 - Track 6 lit landmark (owner 2026-11-25, "lit landmarj approved"; renders went to the owner, who approved the merge (choice E, 2026-11-26)): at the bend
   (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
@@ -362,22 +362,31 @@ written before the swap.
   sees it (`tools/blender/world2/herofit.py` and the biome scripts). On the wide layout: Track 1 Town 1.015 (approved
   1.6) in the 0.33 view; Track 3 HeroHQ 0.562 (approved 2.3+) in the 0.33 view; Track 7 IslandVolcano 0.389 (approved
   1.25) seen from the 0.06/0.62/0.9 cameras, the 0.33 view kept for the nest; Track 8 LairTower 3.45 (approved 4.2)
-  ahead of the 0.62 camera, turn 0; Track 10 Abyss radius 500 (its rule's old floor 800; in a Draft for the first time)
-  ahead of the 0.9 camera. Track 1 RuinedCastle and Track 2 ChainTower stand at their approved scales on the wide layout
+  ahead of the 0.62 camera, turn 0; Track 10 Abyss radius 210 (its rule's old floor 800; in a Draft for the first time)
+  about 400 studs ahead of the 0.9 camera, its wide face to it (lead 2026-11-26: radius 500 past the finish stood
+  2,760 studs from that camera and did not draw). Track 1 RuinedCastle and Track 2 ChainTower stand at their approved scales on the wide layout
   (re-fit round 2). Track 9's Barrier (a dome over every road) stays out, as before.
 - Re-fit round 2 (2026-11-26; the lead's approval under the owner's nightly pre-approval, for the owner's review on
   return; renders assets/world2_draft/relayout_2026-11-26, report docs/proposals/W2_REFIT_REPORT.md). Each **proposed**:
   - Own-band backdrop (`kit.band`): each track's approved backdrop props, at their approved scales and turns, out to its
     ground midline (about 380 studs) on its own ground and Ground rect: T4 Cedar, T5 Office and Apartment, T8 cavern props
     (RockPillar, CityChunk, Graveyard, Colonnade, FleshWall), T9 Forest, T10 Hill and Hand. Rows against the approved Drafts:
-    T1 1,019 (355), T2 980 (474), T3 1,021 (475), T4 1,191 (949), T5 963 (596), T6 937 (765), T7 1,123 (1,167),
+    T1 1,019 (355), T2 980 (474), T3 1,021 (475), T4 1,191 (949), T5 1,010 (596), T6 937 (765), T7 1,123 (1,167),
     T8 1,734 (1,435), T9 1,395 (2,012), T10 2,620 (3,888); the own ground grew about five times (bands about 380 a side
     for about 60 to 75), and T9's city grid and T10's sky doors past their own ground or Ground rect are left out.
-  - Track 3's crater at a new spot in a run camera's view (agent-1, orch/world2/w2-refit-b).
+  - Track 1 (agent-1's round 2): the first and last villages moved just ahead of the 0.06 and 0.9 run cameras; the woods
+    in patches with open meadows between (a smooth mask), not one even carpet over the wide band; the 0.9 view, which
+    runs down a long straight past the finish, closed with the track's own woods and ruins.
+  - Track 2 (agent-1's round 2): a band loop of the approved scatter props out to the midline: Crag 1.5-3.0, RuinB
+    1.0-2.2, RuinA 1.0-1.6, at 190 to 305 studs from the centre line.
+  - Track 3 (agent-1's round 2): city rows at 235, 300 and 355 studs from the centre line, and 6 HighRises at 1.25 to
+    1.45 framing the finish; the crater at a new spot in a run camera's view.
   - Track 1's ranks keep their approved turn relative to the road (they turned toward the town, which the layout moved).
   - Track 7's mound cluster re-placed on its own band (agent-1).
   - Track 9's city wall along both edges of its own band, `WALL_OFF` 290 studs from the centre line, in 520-stud pieces
     (was an ellipse round the whole track box), the golden forest past it.
+    For the owner: a wall piece is stretched along X to fit its stretch of road, up to 1.523 (the approved draft's
+    stretches reached 1.167).
   - DemonCastle's castle plinth `PLINTH_CLEAR` 300 studs from its road (was 340; the wide layout's own ground ends about
     329 out).
 

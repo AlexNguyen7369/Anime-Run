@@ -206,6 +206,7 @@ do
 	if box then
 		lo, hi = lo:Min(box.Min), hi:Max(box.Max)
 	end
+	lo, hi = TrackBuilder.PlateBox(entries, lo, hi) -- and their Ground, which can reach past that box
 	lo -= Vector2.one * MARGIN
 	hi += Vector2.one * MARGIN
 	local authored = Workspace:FindFirstChild("Baseplate")
