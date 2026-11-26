@@ -1,7 +1,7 @@
 --!nonstrict
 -- World 2 Track 6 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Devil Hunter City run.
--- Same route as World 1's Track 6 (City), so its length, spiral lap and validator results carry over
--- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
+-- Route: World 2's square spiral of long straights (WORLD2_SPEC "World 2 track layout", owner 2026-11-26; pitch 760
+-- and corner radius 420 proposed), the target length of docs/TRACKS_AND_BIOMES_SPEC.md "Lengths". Palette proposed.
 return {
 	Name = "W2DevilTokyo",
 	Description = "Devil Hunter City run: neon night streets, alley corners and the hunters' headquarters tower.",
@@ -19,62 +19,10 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 180 },
-		{ Type = "Turn", Angle = 20, Radius = 200 }, -- past the campus gates
-		{ Type = "Turn", Angle = -40, Radius = 200 },
-		{ Type = "Turn", Angle = 20, Radius = 200 },
-		{ Type = "Straight", Length = 149.129 },
-		{ Type = "Turn", Angle = -90, Radius = 305 }, -- corner
-		{ Type = "Straight", Length = 240 },
-		{ Type = "Turn", Angle = 30, Radius = 120 }, -- mock-city training ground blocks
-		{ Type = "Turn", Angle = -60, Radius = 120 },
-		{ Type = "Turn", Angle = 30, Radius = 120 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Turn", Angle = 60, Radius = 120 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Straight", Length = 150 },
-		{ Type = "Turn", Angle = -24, Radius = 160 }, -- round the toppled robots
-		{ Type = "Turn", Angle = 48, Radius = 160 },
-		{ Type = "Turn", Angle = -24, Radius = 160 },
-		{ Type = "Straight", Length = 234.689 },
-		{ Type = "Turn", Angle = -90, Radius = 350 }, -- corner
-		{ Type = "Straight", Length = 130 },
-		{ Type = "Turn", Angle = 20, Radius = 200 }, -- past the campus gates
-		{ Type = "Turn", Angle = -40, Radius = 200 },
-		{ Type = "Turn", Angle = 20, Radius = 200 },
-		{ Type = "Straight", Length = 260 },
-		{ Type = "Turn", Angle = 30, Radius = 120 }, -- mock-city training ground blocks
-		{ Type = "Turn", Angle = -60, Radius = 120 },
-		{ Type = "Turn", Angle = 30, Radius = 120 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Turn", Angle = 60, Radius = 120 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Straight", Length = 244.384 },
-		{ Type = "Turn", Angle = -90, Radius = 350 }, -- corner
-		{ Type = "Straight", Length = 120 },
-		{ Type = "Turn", Angle = -24, Radius = 160 }, -- round the toppled robots
-		{ Type = "Turn", Angle = 48, Radius = 160 },
-		{ Type = "Turn", Angle = -24, Radius = 160 },
-		{ Type = "Straight", Length = 240 },
-		{ Type = "Turn", Angle = 20, Radius = 200 }, -- past the campus gates
-		{ Type = "Turn", Angle = -40, Radius = 200 },
-		{ Type = "Turn", Angle = 20, Radius = 200 },
-		{ Type = "Straight", Length = 616.072 },
-		{ Type = "Turn", Angle = -90, Radius = 350 }, -- corner
-		{ Type = "Straight", Length = 200 },
-		{ Type = "Turn", Angle = 30, Radius = 120 }, -- mock-city training ground blocks
-		{ Type = "Turn", Angle = -60, Radius = 120 },
-		{ Type = "Turn", Angle = 30, Radius = 120 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Turn", Angle = 60, Radius = 120 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Straight", Length = 130 },
-		{ Type = "Turn", Angle = -24, Radius = 160 }, -- round the toppled robots
-		{ Type = "Turn", Angle = 48, Radius = 160 },
-		{ Type = "Turn", Angle = -24, Radius = 160 },
-		{ Type = "Straight", Length = 427.689 }, -- finish straight
+		{ Type = "Straight", Length = 2658.2446 }, -- start straight
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 3860 },
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 1171.0865 }, -- finish straight
 	},
 }

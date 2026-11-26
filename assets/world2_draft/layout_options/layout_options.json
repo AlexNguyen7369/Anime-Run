@@ -1781,6 +1781,497 @@
    ]
   ]
  },
+ "live": {
+  "Rows": [
+   {
+    "Track": 1,
+    "Length": 2952.0,
+    "Target": 2952.0,
+    "LengthOff%": -0.0,
+    "MinGapRoadToRoad": 688.9,
+    "NearestTrack": 3,
+    "MinGapCentreToRoad": 708.9,
+    "BandOnOtherGround%": 4.5,
+    "PlazaGap": null,
+    "MeanDistFromPlaza": 728.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     480,
+     "Straight",
+     64
+    ],
+    "Segments": 7,
+    "LongestStraight": 820
+   },
+   {
+    "Track": 2,
+    "Length": 3690.0,
+    "Target": 3690.0,
+    "LengthOff%": 0.0,
+    "MinGapRoadToRoad": 617.7,
+    "NearestTrack": 4,
+    "MinGapCentreToRoad": 637.7,
+    "BandOnOtherGround%": 0.2,
+    "PlazaGap": 761.5,
+    "MeanDistFromPlaza": 1058.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     40,
+     "Straight",
+     64
+    ],
+    "Segments": 7,
+    "LongestStraight": 1580
+   },
+   {
+    "Track": 3,
+    "Length": 4612.5,
+    "Target": 4612.5,
+    "LengthOff%": -0.0,
+    "MinGapRoadToRoad": 688.9,
+    "NearestTrack": 1,
+    "MinGapCentreToRoad": 708.9,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 1344.7,
+    "MeanDistFromPlaza": 1694.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     40,
+     "Straight",
+     1748
+    ],
+    "Segments": 5,
+    "LongestStraight": 1748
+   },
+   {
+    "Track": 4,
+    "Length": 5765.6,
+    "Target": 5765.6,
+    "LengthOff%": -0.0,
+    "MinGapRoadToRoad": 617.7,
+    "NearestTrack": 2,
+    "MinGapCentreToRoad": 637.7,
+    "BandOnOtherGround%": 0.1,
+    "PlazaGap": 1423.1,
+    "MeanDistFromPlaza": 1812.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     592,
+     "Straight",
+     1514
+    ],
+    "Segments": 5,
+    "LongestStraight": 2340
+   },
+   {
+    "Track": 5,
+    "Length": 7207.0,
+    "Target": 7207.0,
+    "LengthOff%": 0.0,
+    "MinGapRoadToRoad": 701.5,
+    "NearestTrack": 2,
+    "MinGapCentreToRoad": 721.5,
+    "BandOnOtherGround%": 0.1,
+    "PlazaGap": 1538.4,
+    "MeanDistFromPlaza": 2506.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     1586,
+     "Straight",
+     1202
+    ],
+    "Segments": 5,
+    "LongestStraight": 3100
+   },
+   {
+    "Track": 6,
+    "Length": 9008.8,
+    "Target": 9008.8,
+    "LengthOff%": 0.0,
+    "MinGapRoadToRoad": 720.0,
+    "NearestTrack": 8,
+    "MinGapCentreToRoad": 740.0,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 2104.9,
+    "MeanDistFromPlaza": 2656.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     2658,
+     "Straight",
+     1171
+    ],
+    "Segments": 5,
+    "LongestStraight": 3860
+   },
+   {
+    "Track": 7,
+    "Length": 11261.0,
+    "Target": 11261.0,
+    "LengthOff%": 0.0,
+    "MinGapRoadToRoad": 720.0,
+    "NearestTrack": 5,
+    "MinGapCentreToRoad": 740.0,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 2263.1,
+    "MeanDistFromPlaza": 3288.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     3449,
+     "Straight",
+     1873
+    ],
+    "Segments": 5,
+    "LongestStraight": 4620
+   },
+   {
+    "Track": 8,
+    "Length": 14076.2,
+    "Target": 14076.2,
+    "LengthOff%": 0.0,
+    "MinGapRoadToRoad": 720.0,
+    "NearestTrack": 10,
+    "MinGapCentreToRoad": 740.0,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 2864.9,
+    "MeanDistFromPlaza": 3491.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     3507,
+     "Straight",
+     3869
+    ],
+    "Segments": 5,
+    "LongestStraight": 5380
+   },
+   {
+    "Track": 9,
+    "Length": 17595.3,
+    "Target": 17595.3,
+    "LengthOff%": -0.0,
+    "MinGapRoadToRoad": 720.0,
+    "NearestTrack": 10,
+    "MinGapCentreToRoad": 740.0,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 3234.4,
+    "MeanDistFromPlaza": 4327.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     2271,
+     "Straight",
+     305
+    ],
+    "Segments": 7,
+    "LongestStraight": 6900
+   },
+   {
+    "Track": 10,
+    "Length": 21994.1,
+    "Target": 21994.1,
+    "LengthOff%": 0.0,
+    "MinGapRoadToRoad": 720.0,
+    "NearestTrack": 9,
+    "MinGapCentreToRoad": 740.0,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 3703.1,
+    "MeanDistFromPlaza": 4654.0,
+    "MinRadius": 420.0,
+    "FirstLast": [
+     "Straight",
+     6595,
+     "Straight",
+     6420
+    ],
+    "Segments": 5,
+    "LongestStraight": 7660
+   }
+  ],
+  "ExtentXZ": [
+   -3949,
+   3791,
+   -4631,
+   3869
+  ],
+  "MaxAbs": 4751,
+  "SpiralsOutward": true,
+  "Segments": [
+   [
+    {
+     "Type": "Straight",
+     "Length": 480.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 60.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 820.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -28.4475,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 64.0
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 40.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -61.5525,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 820.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 1580.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -10.2399,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 64.0
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 40.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -79.7601,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 1580.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 1748.0933
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 591.9067
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 2340.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 1514.2243
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 1585.7757
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 3100.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 1201.7554
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 2658.2446
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 3860.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 1171.0865
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 3448.9135
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 4620.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 1872.6176
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 3507.3824
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 5380.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 3869.3487
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 2270.6513
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 6140.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 6900.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 305.4453
+    }
+   ],
+   [
+    {
+     "Type": "Straight",
+     "Length": 6594.5547
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 7660.0
+    },
+    {
+     "Type": "Turn",
+     "Angle": -90.0,
+     "Radius": 420.0
+    },
+    {
+     "Type": "Straight",
+     "Length": 6420.0764
+    }
+   ]
+  ]
+ },
  "option_a_wide_spiral": {
   "Rows": [
    {
@@ -1788,9 +2279,9 @@
     "Length": 2952.0,
     "Target": 2952.0,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 694.9,
+    "MinGapRoadToRoad": 694.5,
     "NearestTrack": 3,
-    "MinGapCentreToRoad": 714.9,
+    "MinGapCentreToRoad": 714.5,
     "BandOnOtherGround%": 7.5,
     "PlazaGap": null,
     "MeanDistFromPlaza": 861.0,
@@ -1799,208 +2290,208 @@
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
     "Segments": 42,
-    "LongestStraight": 40
+    "LongestStraight": 64
    },
    {
     "Track": 2,
     "Length": 3690.0,
     "Target": 3690.0,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 691.5,
+    "MinGapRoadToRoad": 688.3,
     "NearestTrack": 4,
-    "MinGapCentreToRoad": 711.5,
+    "MinGapCentreToRoad": 708.3,
     "BandOnOtherGround%": 0.1,
-    "PlazaGap": 746.9,
-    "MeanDistFromPlaza": 1052.0,
+    "PlazaGap": 759.9,
+    "MeanDistFromPlaza": 1066.0,
     "MinRadius": 937.1666666666667,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
-    "Segments": 34,
-    "LongestStraight": 40
+    "Segments": 33,
+    "LongestStraight": 64
    },
    {
     "Track": 3,
     "Length": 4612.5,
     "Target": 4612.5,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 694.1,
+    "MinGapRoadToRoad": 691.9,
     "NearestTrack": 5,
-    "MinGapCentreToRoad": 714.1,
+    "MinGapCentreToRoad": 711.9,
     "BandOnOtherGround%": 0.1,
-    "PlazaGap": 885.5,
-    "MeanDistFromPlaza": 1686.0,
-    "MinRadius": 1319.5,
+    "PlazaGap": 870.6,
+    "MeanDistFromPlaza": 1676.0,
+    "MinRadius": 1307.1666666666667,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
     "Segments": 32,
-    "LongestStraight": 40
+    "LongestStraight": 64
    },
    {
     "Track": 4,
     "Length": 5765.6,
     "Target": 5765.6,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 691.5,
+    "MinGapRoadToRoad": 688.3,
     "NearestTrack": 2,
-    "MinGapCentreToRoad": 711.5,
-    "BandOnOtherGround%": 0.1,
-    "PlazaGap": 1480.5,
-    "MeanDistFromPlaza": 1796.0,
-    "MinRadius": 1677.1666666666667,
+    "MinGapCentreToRoad": 708.3,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 1490.2,
+    "MeanDistFromPlaza": 1815.0,
+    "MinRadius": 1664.8333333333333,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
     "Segments": 32,
-    "LongestStraight": 40
+    "LongestStraight": 64
    },
    {
     "Track": 5,
     "Length": 7207.0,
     "Target": 7207.0,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 678.2,
+    "MinGapRoadToRoad": 671.8,
     "NearestTrack": 7,
-    "MinGapCentreToRoad": 698.2,
-    "BandOnOtherGround%": 0.0,
-    "PlazaGap": 1551.6,
-    "MeanDistFromPlaza": 2370.0,
-    "MinRadius": 2034.8333333333333,
+    "MinGapCentreToRoad": 691.8,
+    "BandOnOtherGround%": 0.1,
+    "PlazaGap": 1538.8,
+    "MeanDistFromPlaza": 2356.0,
+    "MinRadius": 2022.5,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
     "Segments": 34,
-    "LongestStraight": 40
+    "LongestStraight": 64
    },
    {
     "Track": 6,
     "Length": 9008.8,
     "Target": 9008.8,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 658.4,
+    "MinGapRoadToRoad": 646.0,
     "NearestTrack": 8,
-    "MinGapCentreToRoad": 678.4,
+    "MinGapCentreToRoad": 666.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 2224.7,
-    "MeanDistFromPlaza": 2533.0,
-    "MinRadius": 2417.166666666667,
+    "PlazaGap": 2235.9,
+    "MeanDistFromPlaza": 2548.0,
+    "MinRadius": 2404.8333333333335,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
-    "Segments": 35,
-    "LongestStraight": 40
+    "Segments": 36,
+    "LongestStraight": 64
    },
    {
     "Track": 7,
     "Length": 11261.0,
     "Target": 11261.0,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 638.6,
+    "MinGapRoadToRoad": 620.2,
     "NearestTrack": 9,
-    "MinGapCentreToRoad": 658.6,
+    "MinGapCentreToRoad": 640.2,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 2387.6,
-    "MeanDistFromPlaza": 3230.0,
+    "PlazaGap": 2362.4,
+    "MeanDistFromPlaza": 3222.0,
     "MinRadius": 2811.833333333333,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
     "Segments": 38,
-    "LongestStraight": 40
+    "LongestStraight": 64
    },
    {
     "Track": 8,
     "Length": 14076.2,
     "Target": 14076.2,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 623.9,
+    "MinGapRoadToRoad": 601.0,
     "NearestTrack": 9,
-    "MinGapCentreToRoad": 643.9,
+    "MinGapCentreToRoad": 621.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 2977.6,
-    "MeanDistFromPlaza": 3365.0,
+    "PlazaGap": 2998.0,
+    "MeanDistFromPlaza": 3364.0,
     "MinRadius": 3243.5,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
-    "Segments": 42,
-    "LongestStraight": 40
+    "Segments": 41,
+    "LongestStraight": 64
    },
    {
     "Track": 9,
     "Length": 17595.3,
     "Target": 17595.3,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 620.0,
+    "MinGapRoadToRoad": 596.0,
     "NearestTrack": 10,
-    "MinGapCentreToRoad": 640.0,
+    "MinGapCentreToRoad": 616.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 3663.0,
-    "MeanDistFromPlaza": 4052.0,
-    "MinRadius": 3724.5,
+    "PlazaGap": 3659.7,
+    "MeanDistFromPlaza": 4061.0,
+    "MinRadius": 3712.1666666666665,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
     "Segments": 45,
-    "LongestStraight": 40
+    "LongestStraight": 64
    },
    {
     "Track": 10,
     "Length": 21994.1,
     "Target": 21994.1,
-    "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 620.0,
+    "LengthOff%": -0.0,
+    "MinGapRoadToRoad": 596.0,
     "NearestTrack": 9,
-    "MinGapCentreToRoad": 640.0,
+    "MinGapCentreToRoad": 616.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 3701.1,
-    "MeanDistFromPlaza": 4645.0,
-    "MinRadius": 4242.5,
+    "PlazaGap": 3682.0,
+    "MeanDistFromPlaza": 4640.0,
+    "MinRadius": 4230.166666666667,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
-    "Segments": 49,
-    "LongestStraight": 40
+    "Segments": 50,
+    "LongestStraight": 64
    }
   ],
   "ExtentXZ": [
-   -3849,
-   4876,
-   -4162,
-   4878
+   -3854,
+   4884,
+   -4160,
+   4880
   ],
-  "MaxAbs": 4998,
+  "MaxAbs": 5004,
   "SpiralsOutward": true,
   "Segments": [
    [
@@ -2205,12 +2696,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -3.1760399376550685,
+     "Angle": -1.7087462777077356,
      "Radius": 937.1666666666667
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -2220,7 +2711,7 @@
     },
     {
      "Type": "Turn",
-     "Angle": -2.8239600623449315,
+     "Angle": -4.291253722292264,
      "Radius": 937.1666666666667
     },
     {
@@ -2370,17 +2861,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -6.0,
+     "Angle": -4.730877511542744,
      "Radius": 1307.1666666666667
     },
     {
-     "Type": "Turn",
-     "Angle": -0.8270123560436334,
-     "Radius": 1319.5
-    },
-    {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -2390,7 +2876,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -5.1729876439563665,
+     "Angle": -1.2691224884572563,
+     "Radius": 1307.1666666666667
+    },
+    {
+     "Type": "Turn",
+     "Angle": -6.0,
      "Radius": 1319.5
     },
     {
@@ -2530,17 +3021,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -6.0,
+     "Angle": -4.211272793214484,
      "Radius": 1664.8333333333333
     },
     {
-     "Type": "Turn",
-     "Angle": -0.6841081865319446,
-     "Radius": 1677.1666666666667
-    },
-    {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -2550,7 +3036,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -5.315891813468055,
+     "Angle": -1.7887272067855164,
+     "Radius": 1664.8333333333333
+    },
+    {
+     "Type": "Turn",
+     "Angle": -6.0,
      "Radius": 1677.1666666666667
     },
     {
@@ -2690,17 +3181,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -6.0,
+     "Angle": -5.7710025281434225,
      "Radius": 2022.5
     },
     {
-     "Type": "Turn",
-     "Angle": -2.475508614837907,
-     "Radius": 2034.8333333333333
-    },
-    {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -2710,7 +3196,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -3.524491385162093,
+     "Angle": -0.22899747185657748,
+     "Radius": 2022.5
+    },
+    {
+     "Type": "Turn",
+     "Angle": -6.0,
      "Radius": 2034.8333333333333
     },
     {
@@ -2860,17 +3351,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -6.0,
+     "Angle": -3.3469157230274083,
      "Radius": 2404.8333333333335
     },
     {
-     "Type": "Turn",
-     "Angle": -0.2048961054252259,
-     "Radius": 2417.166666666667
-    },
-    {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -2880,7 +3366,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -5.795103894574774,
+     "Angle": -2.6530842769725917,
+     "Radius": 2404.8333333333335
+    },
+    {
+     "Type": "Turn",
+     "Angle": -6.0,
      "Radius": 2417.166666666667
     },
     {
@@ -3040,12 +3531,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -4.010843750544588,
+     "Angle": -1.0766043160533019,
      "Radius": 2811.833333333333
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -3055,7 +3546,7 @@
     },
     {
      "Type": "Turn",
-     "Angle": -1.9891562494554123,
+     "Angle": -4.923395683946698,
      "Radius": 2811.833333333333
     },
     {
@@ -3230,12 +3721,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -5.360547213919021,
+     "Angle": -2.3928607769843118,
      "Radius": 3243.5
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -3245,7 +3736,7 @@
     },
     {
      "Type": "Turn",
-     "Angle": -0.6394527860809793,
+     "Angle": -3.6071392230156882,
      "Radius": 3243.5
     },
     {
@@ -3435,17 +3926,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -6.0,
+     "Angle": -4.5173980450331985,
      "Radius": 3712.1666666666665
     },
     {
-     "Type": "Turn",
-     "Angle": -1.4759361281646133,
-     "Radius": 3724.5
-    },
-    {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -3455,7 +3941,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -4.524063871835387,
+     "Angle": -1.4826019549668015,
+     "Radius": 3712.1666666666665
+    },
+    {
+     "Type": "Turn",
+     "Angle": -6.0,
      "Radius": 3724.5
     },
     {
@@ -3660,17 +4151,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -6.0,
+     "Angle": -4.672866153425188,
      "Radius": 4230.166666666667
     },
     {
-     "Type": "Turn",
-     "Angle": -1.5938458491078247,
-     "Radius": 4242.5
-    },
-    {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -3680,7 +4166,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -4.406154150892175,
+     "Angle": -1.327133846574812,
+     "Radius": 4230.166666666667
+    },
+    {
+     "Type": "Turn",
+     "Angle": -6.0,
      "Radius": 4242.5
     },
     {
@@ -3910,12 +4401,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -3.0827123966479744,
+     "Angle": -0.2237802611325013,
      "Radius": 4809.833333333334
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ]
   ]
@@ -3930,18 +4421,18 @@
     "MinGapRoadToRoad": 740.0,
     "NearestTrack": 3,
     "MinGapCentreToRoad": 760.0,
-    "BandOnOtherGround%": 5.2,
+    "BandOnOtherGround%": 5.3,
     "PlazaGap": null,
-    "MeanDistFromPlaza": 1259.0,
+    "MeanDistFromPlaza": 1250.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     1687,
+     1663,
      "Straight",
-     40
+     64
     ],
     "Segments": 3,
-    "LongestStraight": 1687
+    "LongestStraight": 1663
    },
    {
     "Track": 2,
@@ -3951,18 +4442,18 @@
     "MinGapRoadToRoad": 701.1,
     "NearestTrack": 3,
     "MinGapCentreToRoad": 721.1,
-    "BandOnOtherGround%": 0.1,
+    "BandOnOtherGround%": 0.0,
     "PlazaGap": 496.0,
-    "MeanDistFromPlaza": 1177.0,
+    "MeanDistFromPlaza": 1179.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     2425,
+     2401,
      "Straight",
-     40
+     64
     ],
     "Segments": 3,
-    "LongestStraight": 2425
+    "LongestStraight": 2401
    },
    {
     "Track": 3,
@@ -3974,16 +4465,16 @@
     "MinGapCentreToRoad": 721.1,
     "BandOnOtherGround%": 0.1,
     "PlazaGap": 1276.0,
-    "MeanDistFromPlaza": 2277.0,
+    "MeanDistFromPlaza": 2273.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     1135,
+     1123,
      "Straight",
-     40
+     64
     ],
     "Segments": 7,
-    "LongestStraight": 1135
+    "LongestStraight": 1123
    },
    {
     "Track": 4,
@@ -3994,17 +4485,17 @@
     "NearestTrack": 5,
     "MinGapCentreToRoad": 721.1,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 2069.6,
-    "MeanDistFromPlaza": 2768.0,
+    "PlazaGap": 2072.7,
+    "MeanDistFromPlaza": 2771.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     1712,
+     1700,
      "Straight",
-     40
+     64
     ],
     "Segments": 7,
-    "LongestStraight": 1712
+    "LongestStraight": 1700
    },
    {
     "Track": 5,
@@ -4016,100 +4507,100 @@
     "MinGapCentreToRoad": 721.1,
     "BandOnOtherGround%": 0.1,
     "PlazaGap": 2836.0,
-    "MeanDistFromPlaza": 3879.0,
+    "MeanDistFromPlaza": 3877.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     2432,
+     2420,
      "Straight",
-     40
+     64
     ],
     "Segments": 7,
-    "LongestStraight": 2432
+    "LongestStraight": 2420
    },
    {
     "Track": 6,
     "Length": 9008.8,
     "Target": 9008.8,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 663.1,
+    "MinGapRoadToRoad": 662.6,
     "NearestTrack": 7,
-    "MinGapCentreToRoad": 683.1,
+    "MinGapCentreToRoad": 682.6,
     "BandOnOtherGround%": 0.0,
     "PlazaGap": 3616.0,
-    "MeanDistFromPlaza": 4575.0,
+    "MeanDistFromPlaza": 4579.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     1863,
+     1855,
      "Straight",
-     40
+     64
     ],
     "Segments": 11,
-    "LongestStraight": 1863
+    "LongestStraight": 1855
    },
    {
     "Track": 7,
     "Length": 11261.0,
     "Target": 11261.0,
     "LengthOff%": -0.0,
-    "MinGapRoadToRoad": 663.1,
+    "MinGapRoadToRoad": 662.6,
     "NearestTrack": 6,
-    "MinGapCentreToRoad": 683.1,
+    "MinGapCentreToRoad": 682.6,
     "BandOnOtherGround%": 0.0,
     "PlazaGap": 4396.0,
-    "MeanDistFromPlaza": 5762.0,
+    "MeanDistFromPlaza": 5760.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     1691,
+     1685,
      "Straight",
-     40
+     64
     ],
     "Segments": 15,
-    "LongestStraight": 1691
+    "LongestStraight": 1685
    },
    {
     "Track": 8,
     "Length": 14076.2,
     "Target": 14076.2,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 687.7,
+    "MinGapRoadToRoad": 685.1,
     "NearestTrack": 9,
-    "MinGapCentreToRoad": 707.7,
-    "BandOnOtherGround%": 0.0,
-    "PlazaGap": 5182.6,
-    "MeanDistFromPlaza": 6665.0,
+    "MinGapCentreToRoad": 705.1,
+    "BandOnOtherGround%": 0.1,
+    "PlazaGap": 5181.2,
+    "MeanDistFromPlaza": 6669.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     2395,
+     2389,
      "Straight",
-     40
+     64
     ],
     "Segments": 15,
-    "LongestStraight": 2395
+    "LongestStraight": 2389
    },
    {
     "Track": 9,
     "Length": 17595.3,
     "Target": 17595.3,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 687.7,
+    "MinGapRoadToRoad": 685.1,
     "NearestTrack": 8,
-    "MinGapCentreToRoad": 707.7,
+    "MinGapCentreToRoad": 705.1,
     "BandOnOtherGround%": 0.0,
     "PlazaGap": 5956.0,
-    "MeanDistFromPlaza": 8038.0,
+    "MeanDistFromPlaza": 8037.0,
     "MinRadius": 390.0,
     "FirstLast": [
      "Straight",
-     1824,
+     1820,
      "Straight",
-     40
+     64
     ],
     "Segments": 23,
-    "LongestStraight": 1824
+    "LongestStraight": 1820
    },
    {
     "Track": 10,
@@ -4120,32 +4611,32 @@
     "NearestTrack": 9,
     "MinGapCentreToRoad": 760.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 6738.5,
-    "MeanDistFromPlaza": 9256.0,
+    "PlazaGap": 6739.5,
+    "MeanDistFromPlaza": 9261.0,
     "MinRadius": 2000.0,
     "FirstLast": [
      "Straight",
-     2213,
+     2210,
      "Straight",
-     2213
+     2234
     ],
     "Segments": 25,
-    "LongestStraight": 2213
+    "LongestStraight": 2234
    }
   ],
   "ExtentXZ": [
    -118,
    6941,
-   -10117,
-   12285
+   -10093,
+   12333
   ],
-  "MaxAbs": 12405,
+  "MaxAbs": 12453,
   "SpiralsOutward": false,
   "Segments": [
    [
     {
      "Type": "Straight",
-     "Length": 1686.7788650999807
+     "Length": 1662.7788650999807
     },
     {
      "Type": "Turn",
@@ -4154,13 +4645,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 2424.778865099981
+     "Length": 2400.778865099981
     },
     {
      "Type": "Turn",
@@ -4169,13 +4660,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 1135.134071911805
+     "Length": 1123.134071911805
     },
     {
      "Type": "Turn",
@@ -4194,7 +4685,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1095.134071911805
+     "Length": 1083.134071911805
     },
     {
      "Type": "Turn",
@@ -4203,13 +4694,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 1711.6840719118052
+     "Length": 1699.6840719118052
     },
     {
      "Type": "Turn",
@@ -4228,7 +4719,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1671.6840719118052
+     "Length": 1659.6840719118052
     },
     {
      "Type": "Turn",
@@ -4237,13 +4728,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 2432.384071911805
+     "Length": 2420.384071911805
     },
     {
      "Type": "Turn",
@@ -4262,7 +4753,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2392.384071911805
+     "Length": 2380.384071911805
     },
     {
      "Type": "Turn",
@@ -4271,13 +4762,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 1863.185807515746
+     "Length": 1855.185807515746
     },
     {
      "Type": "Turn",
@@ -4296,7 +4787,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1823.185807515746
+     "Length": 1815.185807515746
     },
     {
      "Type": "Turn",
@@ -4315,7 +4806,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1823.185807515746
+     "Length": 1815.185807515746
     },
     {
      "Type": "Turn",
@@ -4324,13 +4815,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 1691.186675317717
+     "Length": 1685.186675317717
     },
     {
      "Type": "Turn",
@@ -4349,7 +4840,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1651.186675317717
+     "Length": 1645.186675317717
     },
     {
      "Type": "Turn",
@@ -4368,7 +4859,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1651.186675317717
+     "Length": 1645.186675317717
     },
     {
      "Type": "Turn",
@@ -4387,7 +4878,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1651.186675317717
+     "Length": 1645.186675317717
     },
     {
      "Type": "Turn",
@@ -4396,13 +4887,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 2394.986675317717
+     "Length": 2388.986675317717
     },
     {
      "Type": "Turn",
@@ -4421,7 +4912,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2354.986675317717
+     "Length": 2348.986675317717
     },
     {
      "Type": "Turn",
@@ -4440,7 +4931,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2354.986675317717
+     "Length": 2348.986675317717
     },
     {
      "Type": "Turn",
@@ -4459,7 +4950,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2354.986675317717
+     "Length": 2348.986675317717
     },
     {
      "Type": "Turn",
@@ -4468,13 +4959,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 1824.170876453021
+     "Length": 1820.170876453021
     },
     {
      "Type": "Turn",
@@ -4493,7 +4984,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1784.170876453021
+     "Length": 1780.170876453021
     },
     {
      "Type": "Turn",
@@ -4512,7 +5003,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1784.170876453021
+     "Length": 1780.170876453021
     },
     {
      "Type": "Turn",
@@ -4531,7 +5022,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1784.170876453021
+     "Length": 1780.170876453021
     },
     {
      "Type": "Turn",
@@ -4550,7 +5041,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1784.170876453021
+     "Length": 1780.170876453021
     },
     {
      "Type": "Turn",
@@ -4569,7 +5060,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 1784.170876453021
+     "Length": 1780.170876453021
     },
     {
      "Type": "Turn",
@@ -4578,13 +5069,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 2213.1479531916816
+     "Length": 2209.71938176311
     },
     {
      "Type": "Turn",
@@ -4603,7 +5094,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2173.1479531916816
+     "Length": 2169.71938176311
     },
     {
      "Type": "Turn",
@@ -4622,7 +5113,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2173.1479531916816
+     "Length": 2169.71938176311
     },
     {
      "Type": "Turn",
@@ -4641,7 +5132,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2173.1479531916816
+     "Length": 2169.71938176311
     },
     {
      "Type": "Turn",
@@ -4660,7 +5151,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2173.1479531916816
+     "Length": 2169.71938176311
     },
     {
      "Type": "Turn",
@@ -4679,7 +5170,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2173.1479531916816
+     "Length": 2169.71938176311
     },
     {
      "Type": "Turn",
@@ -4698,7 +5189,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 2213.1479531916816
+     "Length": 2233.71938176311
     }
    ]
   ]
@@ -4710,10 +5201,10 @@
     "Length": 2952.0,
     "Target": 2952.0,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 701.0,
+    "MinGapRoadToRoad": 688.9,
     "NearestTrack": 3,
-    "MinGapCentreToRoad": 721.0,
-    "BandOnOtherGround%": 4.5,
+    "MinGapCentreToRoad": 708.9,
+    "BandOnOtherGround%": 4.6,
     "PlazaGap": null,
     "MeanDistFromPlaza": 728.0,
     "MinRadius": 420.0,
@@ -4721,7 +5212,7 @@
      "Straight",
      480,
      "Straight",
-     40
+     64
     ],
     "Segments": 7,
     "LongestStraight": 820
@@ -4731,18 +5222,18 @@
     "Length": 3690.0,
     "Target": 3690.0,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 643.4,
+    "MinGapRoadToRoad": 617.7,
     "NearestTrack": 4,
-    "MinGapCentreToRoad": 663.4,
-    "BandOnOtherGround%": 0.1,
-    "PlazaGap": 742.0,
-    "MeanDistFromPlaza": 1050.0,
+    "MinGapCentreToRoad": 637.7,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 761.5,
+    "MeanDistFromPlaza": 1058.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     40
+     64
     ],
     "Segments": 7,
     "LongestStraight": 1580
@@ -4752,39 +5243,39 @@
     "Length": 4612.5,
     "Target": 4612.5,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 701.0,
+    "MinGapRoadToRoad": 688.9,
     "NearestTrack": 1,
-    "MinGapCentreToRoad": 721.0,
+    "MinGapCentreToRoad": 708.9,
     "BandOnOtherGround%": 0.1,
-    "PlazaGap": 1357.0,
-    "MeanDistFromPlaza": 1700.0,
+    "PlazaGap": 1344.7,
+    "MeanDistFromPlaza": 1694.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
      40,
      "Straight",
-     1796
+     1748
     ],
     "Segments": 5,
-    "LongestStraight": 1796
+    "LongestStraight": 1748
    },
    {
     "Track": 4,
     "Length": 5765.6,
     "Target": 5765.6,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 643.4,
+    "MinGapRoadToRoad": 617.7,
     "NearestTrack": 2,
-    "MinGapCentreToRoad": 663.4,
+    "MinGapCentreToRoad": 637.7,
     "BandOnOtherGround%": 0.1,
-    "PlazaGap": 1425.5,
-    "MeanDistFromPlaza": 1811.0,
+    "PlazaGap": 1423.1,
+    "MeanDistFromPlaza": 1812.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
-     544,
+     592,
      "Straight",
-     1562
+     1514
     ],
     "Segments": 5,
     "LongestStraight": 2340
@@ -4794,18 +5285,18 @@
     "Length": 7207.0,
     "Target": 7207.0,
     "LengthOff%": 0.0,
-    "MinGapRoadToRoad": 696.9,
+    "MinGapRoadToRoad": 701.5,
     "NearestTrack": 2,
-    "MinGapCentreToRoad": 716.9,
+    "MinGapCentreToRoad": 721.5,
     "BandOnOtherGround%": 0.1,
-    "PlazaGap": 1536.4,
-    "MeanDistFromPlaza": 2509.0,
+    "PlazaGap": 1538.4,
+    "MeanDistFromPlaza": 2506.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
-     1538,
+     1586,
      "Straight",
-     1250
+     1202
     ],
     "Segments": 5,
     "LongestStraight": 3100
@@ -4819,14 +5310,14 @@
     "NearestTrack": 8,
     "MinGapCentreToRoad": 740.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 2117.0,
-    "MeanDistFromPlaza": 2660.0,
+    "PlazaGap": 2104.9,
+    "MeanDistFromPlaza": 2656.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
-     2610,
+     2658,
      "Straight",
-     1219
+     1171
     ],
     "Segments": 5,
     "LongestStraight": 3860
@@ -4839,15 +5330,15 @@
     "MinGapRoadToRoad": 720.0,
     "NearestTrack": 5,
     "MinGapCentreToRoad": 740.0,
-    "BandOnOtherGround%": 0.1,
-    "PlazaGap": 2251.0,
+    "BandOnOtherGround%": 0.0,
+    "PlazaGap": 2263.1,
     "MeanDistFromPlaza": 3288.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
-     3401,
+     3449,
      "Straight",
-     1921
+     1873
     ],
     "Segments": 5,
     "LongestStraight": 4620
@@ -4861,14 +5352,14 @@
     "NearestTrack": 10,
     "MinGapCentreToRoad": 740.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 2877.0,
-    "MeanDistFromPlaza": 3492.0,
+    "PlazaGap": 2864.9,
+    "MeanDistFromPlaza": 3491.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
-     3459,
+     3507,
      "Straight",
-     3917
+     3869
     ],
     "Segments": 5,
     "LongestStraight": 5380
@@ -4882,14 +5373,14 @@
     "NearestTrack": 10,
     "MinGapCentreToRoad": 740.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 3239.3,
-    "MeanDistFromPlaza": 4334.0,
+    "PlazaGap": 3234.4,
+    "MeanDistFromPlaza": 4327.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
-     2223,
+     2271,
      "Straight",
-     353
+     305
     ],
     "Segments": 7,
     "LongestStraight": 6900
@@ -4903,26 +5394,26 @@
     "NearestTrack": 9,
     "MinGapCentreToRoad": 740.0,
     "BandOnOtherGround%": 0.0,
-    "PlazaGap": 3705.5,
-    "MeanDistFromPlaza": 4650.0,
+    "PlazaGap": 3703.1,
+    "MeanDistFromPlaza": 4654.0,
     "MinRadius": 420.0,
     "FirstLast": [
      "Straight",
-     6547,
+     6595,
      "Straight",
-     6468
+     6420
     ],
     "Segments": 5,
     "LongestStraight": 7660
    }
   ],
   "ExtentXZ": [
-   -3937,
-   3803,
-   -4629,
-   3871
+   -3949,
+   3791,
+   -4631,
+   3869
   ],
-  "MaxAbs": 4749,
+  "MaxAbs": 4751,
   "SpiralsOutward": true,
   "Segments": [
    [
@@ -4950,12 +5441,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -31.721547153104197,
+     "Angle": -28.44750260949949,
      "Radius": 420.0
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -4965,7 +5456,7 @@
     },
     {
      "Type": "Turn",
-     "Angle": -58.2784528468958,
+     "Angle": -61.552497390500506,
      "Radius": 420.0
     },
     {
@@ -4983,12 +5474,12 @@
     },
     {
      "Type": "Turn",
-     "Angle": -16.787959559841386,
+     "Angle": -10.239870472631974,
      "Radius": 420.0
     },
     {
      "Type": "Straight",
-     "Length": 40.0
+     "Length": 64.0
     }
    ],
    [
@@ -4998,7 +5489,7 @@
     },
     {
      "Type": "Turn",
-     "Angle": -73.21204044015862,
+     "Angle": -79.76012952736802,
      "Radius": 420.0
     },
     {
@@ -5012,13 +5503,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 1796.0932564768607
+     "Length": 1748.0932564768607
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 543.9067435231393
+     "Length": 591.9067435231393
     },
     {
      "Type": "Turn",
@@ -5036,13 +5527,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 1562.2243419691479
+     "Length": 1514.2243419691479
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 1537.7756580308521
+     "Length": 1585.7756580308521
     },
     {
      "Type": "Turn",
@@ -5060,13 +5551,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 1249.7554274614342
+     "Length": 1201.7554274614342
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 2610.244572538566
+     "Length": 2658.244572538566
     },
     {
      "Type": "Turn",
@@ -5084,13 +5575,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 1219.0865129537199
+     "Length": 1171.0865129537199
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 3400.9134870462804
+     "Length": 3448.9134870462804
     },
     {
      "Type": "Turn",
@@ -5108,13 +5599,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 1920.6175984460062
+     "Length": 1872.6175984460062
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 3459.382401553994
+     "Length": 3507.382401553994
     },
     {
      "Type": "Turn",
@@ -5132,13 +5623,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 3917.348683938293
+     "Length": 3869.348683938293
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 2222.651316061707
+     "Length": 2270.651316061707
     },
     {
      "Type": "Turn",
@@ -5165,13 +5656,13 @@
     },
     {
      "Type": "Straight",
-     "Length": 353.44531217672215
+     "Length": 305.44531217672215
     }
    ],
    [
     {
      "Type": "Straight",
-     "Length": 6546.554687823278
+     "Length": 6594.554687823278
     },
     {
      "Type": "Turn",
@@ -5189,7 +5680,7 @@
     },
     {
      "Type": "Straight",
-     "Length": 6468.076397669007
+     "Length": 6420.076397669007
     }
    ]
   ]
