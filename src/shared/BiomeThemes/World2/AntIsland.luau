@@ -16,7 +16,11 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	-- Flat ground at the corridor height, as the draft's ground plane (spec 3.3 Blocks)
 	Terrain = {
 		Ridge = { Shape = "Blocks" },
-		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Ground },
+		-- The approved island's sea (WORLD2_SPEC "Track 7's sea", BIOME_ENVIRONMENT_SPEC 2.2 "Coast"; proposed): Water from
+		-- 280 studs off the road, so the blockade ships (312 out) float and the coast cliffs (about 253) stand at the shore.
+		Coast = { From = 280, Blend = 24, Depth = 2 }, -- a 2-stud sea: the ships snap to the bed, so they float about 2 deep
+		Water = { Level = -3 },
+		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Sand },
 		CliffSlope = 0.9,
 	},
 	-- In-house gradient sky from the draft's stops (owner 2026-11-25, question 33; docs/WORLD2_SPEC.md "Track skies")
@@ -34,6 +38,11 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 		Grade = { Saturation = -0.1, TintColor = Color3.new(1, 1, 1):Lerp(hex("FFB070"), 0.3) },
 	},
 	Audio = { Volume = 0.35 }, -- no sounds yet
+	-- The sea's look (WORLD2_SPEC "Track 7's sea"; proposed): the approved draft's sea colour (biomes/AntIsland.py OCEAN
+	-- 1C4260), set on the client per zone (Client/BiomeEnvironment), so only this zone's water has it
+	Atmosphere = {
+		Water = { Color = hex("1C4260"), Transparency = 0.3, Reflectance = 0.25, WaveSize = 0.15, WaveSpeed = 8 },
+	},
 	-- Asset ledger (spec 4.4): the track sky's row (Kit.draftSky), then one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {

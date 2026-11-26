@@ -1080,7 +1080,7 @@ def kaiju_corpse(k):
 
 
 
-SITES = ((1057.0, -92.0, 1.0, -2.0), (2683.0, -91.0, 1.0, -1.0))  # d, off, scale, turn (degrees): the two legal pockets beside Track 5's city half
+SITES = ((1057.0, -96.0, 1.0, -2.0), (2683.0, -91.0, 1.0, -1.0))  # d, off, scale, turn (degrees): the two legal pockets beside Track 5's city half
 
 FILL = []  # (x, z, prop) of the last build's added fill, for kaiju_reference.py
 
@@ -1151,8 +1151,9 @@ def overlapped(box, boxes):
 	return out
 
 
-# Owner 2026-11-25 "A with 12": left out of fill draft A, (x, z, prop); each touches a van as placed.
-LEFT_OUT = ((-471.8, 875.3, "Apartment"), (-613.6, 876.6, "Apartment"))
+# Owner 2026-11-25 "A with 12": left out of fill draft A, (d, off, prop) road-relative (roadframe.py, kit.spot; world
+# (-471.8, 875.3) and (-613.6, 876.6) on the approved chain); each touches a van as placed.
+LEFT_OUT = ((725.83, -65.3, "Apartment"), (866.1439, -66.708289, "Apartment"))
 
 
 def cut_fill(k, label, boxes):
@@ -1160,9 +1161,10 @@ def cut_fill(k, label, boxes):
 	LEFT_OUT."""
 	bpy.context.view_layer.update()
 	pre, stays, cut, by, left, out = "W2_%s_" % k.biome, {}, {}, {}, [], set()
+	left_out = [(*k.spot(d, off), n) for d, off, n in LEFT_OUT]
 	for ob in k.fill:
 		name, hit = ob.data.name[len(pre) :], overlapped(instance_box(ob), boxes)
-		if not hit and any(name == n and abs(ob.location.x - x) < 0.2 and abs(-ob.location.y - z) < 0.2 for x, z, n in LEFT_OUT):
+		if not hit and any(name == n and abs(ob.location.x - x) < 0.2 and abs(-ob.location.y - z) < 0.2 for x, z, n in left_out):
 			hit = {"owner": 1}
 			out.add((round(ob.location.x, 1), round(-ob.location.y, 1), name))
 		for t in hit:
@@ -1926,11 +1928,11 @@ def build(k):
 			gz += 160
 		gx += 160
 	placed, tries = 0, 0  # smoke columns, clear of the road rows, towers and landmarks
-	while placed < 9 and tries < 800:
+	while placed < 9 and tries < 8000:  # own ground only (2026-11-26 re-fit)
 		tries += 1
 		x = k.rng.uniform(k.lo.x - 200, k.hi.x + 200)
 		z = k.rng.uniform(k.lo.z - 200, k.hi.z + 200)
-		if k.clear_of_road(x, z, 220) and all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid + towers + tall_avoid):
+		if k.owns(x, z) and k.clear_of_road(x, z, 220) and all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid + towers + tall_avoid):
 			ob = k.place("Smoke", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(1.2, 1.8))
 			ob.visible_shadow = False  # smoke casts no hard shadow
 			placed += 1
@@ -1942,6 +1944,9 @@ def build(k):
 		if k.clear_of_road(x, z, 420) and all(math.hypot(x - ax, z - az) > r for ax, az, r in tall_avoid):
 			k.place(k.rng.choice(["Office", "Apartment", "Office"]), (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(1.2, 2.4))
 			placed += 1
+	# Wide layout (2026-11-26 re-fit): the wrecked city's far blocks out to this track's ground midline (about 380 out),
+	# the approved far-skyline props at their approved scales, so the straights do not run into empty lots
+	print("BAND city", k.band(["Office", "Apartment", "Office"], 50, (150, 370), scale=(1.2, 2.0), gap=75, seed=1, space=55))
 	corpse_sites(k, city_end, [(d - 460, d + 460) for d, _, _ in corpses], avoid, tall_avoid)
 	# Clear day with big cumulus clouds (sky dressing, the game's Sky clouds; not prop assets)
 	k.sky(

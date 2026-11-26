@@ -634,7 +634,12 @@ end
 
 function Scenarios.track(trackName)
 	local label = "track:" .. trackName
-	local testModule = script.Parent.TrackTests:FindFirstChild(trackName)
+	-- World 2's briefs live in TrackTests/World2 (WORLD2_SPEC "World 2 track layout"); World 1's at the top
+	local briefs = script.Parent.TrackTests
+	if require(Shared:WaitForChild("WorldConfig")).Id == 2 then
+		briefs = briefs:FindFirstChild("World2") or briefs
+	end
+	local testModule = briefs:FindFirstChild(trackName)
 	if not testModule then
 		return result(label, { { name = "test_file_exists", value = 0, limit = 1, pass = false } }, {})
 	end

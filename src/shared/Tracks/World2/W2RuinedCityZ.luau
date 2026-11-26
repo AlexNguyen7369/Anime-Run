@@ -1,7 +1,7 @@
 --!nonstrict
 -- World 2 Track 3 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Ruined City Zed run.
--- Same route as World 1's Track 3 (DragRace), so its length, spiral lap and validator results carry over
--- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
+-- Route: World 2's square spiral of long straights (WORLD2_SPEC "World 2 track layout", owner 2026-11-26; pitch 760
+-- and corner radius 420 proposed), the target length of docs/TRACKS_AND_BIOMES_SPEC.md "Lengths". Palette proposed.
 return {
 	Name = "W2RuinedCityZ",
 	Description = "Ruined City Zed run: cracked avenues, a meteor crater and leaning half-fallen towers.",
@@ -19,30 +19,10 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 240 },
-		{ Type = "Turn", Angle = -16, Radius = 200 }, -- along the wooden docks
-		{ Type = "Turn", Angle = 32, Radius = 200 },
-		{ Type = "Turn", Angle = -16, Radius = 200 },
-		{ Type = "Straight", Length = 213.49 },
-		{ Type = "Turn", Angle = -90, Radius = 170 }, -- corner
-		{ Type = "Straight", Length = 775 },
-		{ Type = "Turn", Angle = -90, Radius = 215 }, -- corner
-		{ Type = "Straight", Length = 130 },
-		{ Type = "Turn", Angle = 26, Radius = 130 }, -- harbor town lanes
-		{ Type = "Turn", Angle = -52, Radius = 130 },
-		{ Type = "Turn", Angle = 26, Radius = 130 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -26, Radius = 130 },
-		{ Type = "Turn", Angle = 52, Radius = 130 },
-		{ Type = "Turn", Angle = -26, Radius = 130 },
-		{ Type = "Straight", Length = 172.094 },
-		{ Type = "Turn", Angle = -90, Radius = 215 }, -- corner
-		{ Type = "Straight", Length = 180 },
-		{ Type = "Slope", Length = 170, Rise = 22 }, -- cliff road with sea views
-		{ Type = "Straight", Length = 60 },
-		{ Type = "Slope", Length = 170, Rise = -22 },
-		{ Type = "Straight", Length = 300 },
-		{ Type = "Turn", Angle = -90, Radius = 215 }, -- corner
-		{ Type = "Straight", Length = 183.542 }, -- finish straight
+		{ Type = "Straight", Length = 320.9378 }, -- start straight
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 1680 },
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 1292.0933 }, -- finish straight
 	},
 }

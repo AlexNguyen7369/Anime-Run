@@ -506,6 +506,9 @@ def forest():
 	return p
 
 
+WALL_OFF = 290  # studs from the centre line to the city wall (wide layout: the gap midline is about 380 out)
+
+
 class RoadGrid:
 	"""Fast "is this spot clear of every road stretch" lookup: waypoints bucketed on a coarse grid (kit.clear_of_road
 	scans the whole polyline per call, too slow for thousands of city-fill tries)."""
@@ -557,7 +560,7 @@ def build(k):
 	def on_sightline(f, clear, scale, name):
 		"""A landmark dead ahead of the runner's camera at fraction f, beyond where the straight ends, facing it."""
 		p, _, t = k.at(k.length * f)
-		for D in range(260, 3000, 20):
+		for D in range(260, 12000, 20):  # past the end of the wide layout's long straights (up to about 7,000 studs)
 			x, z = p.x + t.x * D, p.z + t.z * D
 			if grid.clear(x, z, clear) and free(x, z, clear):
 				k.place(name, (x, -1.0, z), math.atan2(-(p.x - x), -(p.z - z)), scale)
@@ -610,7 +613,7 @@ def build(k):
 		z0 = c.z - WZ
 		while z0 < c.z + WZ:
 			x, z = x0 + k.rng.uniform(-6, 6), z0 + k.rng.uniform(-6, 6)
-			if ((x - c.x) / (WX - 90)) ** 2 + ((z - c.z) / (WZ - 90)) ** 2 < 1 and grid.clear(x, z, 150) and free(x, z, 90):
+			if ((x - c.x) / (WX - 90)) ** 2 + ((z - c.z) / (WZ - 90)) ** 2 < 1 and k.owns(x, z) and grid.clear(x, z, 150) and free(x, z, 90):
 				n += 1
 				if n % 13 == 0:
 					k.place("Square", (x, -1.0, z), 0.0, 1.0)
@@ -618,20 +621,29 @@ def build(k):
 					k.place("CityBlock", (x, -1.0, z), round(k.rng.uniform(0, 3)) * math.pi / 2, k.rng.uniform(1.0, 1.2))
 			z0 += cell
 		x0 += cell
-	# The towering wall ring with its tall cone-roofed towers; skipped where the road passes
-	nw = int(2 * math.pi * math.sqrt((WX * WX + WZ * WZ) / 2) / 520)
-	for j in range(nw):
-		a = j * math.tau / nw
-		x, z = c.x + WX * math.cos(a), c.z + WZ * math.sin(a)
-		x2, z2 = c.x + WX * math.cos(a + math.tau / nw), c.z + WZ * math.sin(a + math.tau / nw)
-		if all(grid.clear(x + (x2 - x) * t, z + (z2 - z) * t, 120) for t in (0, 0.25, 0.5, 0.75, 1)):
-			ob = k.place("CityWall", ((x + x2) / 2, -1.0, (z + z2) / 2), -math.atan2(z2 - z, x2 - x), 1.0)
-			ob.scale = (math.hypot(x2 - x, z2 - z) / 520, 1.0, 1.0)
-	# Beyond the walls: the golden forest of the Golden Land
-	for _ in range(150):
-		a = k.rng.uniform(0, math.tau)
-		r = k.rng.uniform(1.06, 1.24)
-		k.place("Forest", (c.x + WX * r * math.cos(a), -1.0, c.z + WZ * r * math.sin(a)), k.rng.uniform(0, math.tau), k.rng.uniform(1.4, 2.6))
+	# The towering wall with its tall cone-roofed towers round the city: on the wide layout (2026-11-26 re-fit) the city is
+	# the band of ground this road owns, so the wall runs along both edges of it, WALL_OFF studs out, in 520-stud pieces
+	# (the approved piece length); skipped where another road passes or the ground is not this track's
+	for side in (-1, 1):
+		d = 0.0
+		while d < k.length:
+			x, z = k.spot(d, side * WALL_OFF)
+			x2, z2 = k.spot(min(d + 520.0, k.length), side * WALL_OFF)
+			seg = math.hypot(x2 - x, z2 - z)
+			if seg > 60 and all(grid.clear(x + (x2 - x) * t, z + (z2 - z) * t, 120) and k.owns(x + (x2 - x) * t, z + (z2 - z) * t) for t in (0, 0.25, 0.5, 0.75, 1)):
+				ob = k.place("CityWall", ((x + x2) / 2, -1.0, (z + z2) / 2), -math.atan2(z2 - z, x2 - x), 1.0)
+				ob.scale = (seg / 520, 1.0, 1.0)
+			d += 520.0
+	# Beyond the walls: the golden forest of the Golden Land, in the strip of own ground past them
+	n, tries = 0, 0
+	while n < 150 and tries < 6000:
+		tries += 1
+		x, z = k.spot(k.rng.uniform(0, k.length), k.rng.choice((-1, 1)) * k.rng.uniform(WALL_OFF + 30, WALL_OFF + 60))
+		if k.owns(x, z) and grid.clear(x, z, 120):
+			k.place("Forest", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(1.4, 2.6))
+			n += 1
+	# Wide layout (2026-11-26 re-fit): more of the golden forest past the walls, out to this track's ground midline
+	print("BAND forest", k.band(["Forest"], 80, (WALL_OFF + 30, 375), scale=(1.4, 2.6), gap=60, seed=1))
 	# The Great Barrier: a true sphere over everything, its gold lattice lines visible in the sky from the road
 	k.place("Barrier", (c.x, -1.0, c.z), 0.0, RB)
 	# Sunset: a golden-yellow sun band at the horizon, warm peach above, dusky rose overhead

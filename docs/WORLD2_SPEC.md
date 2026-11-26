@@ -179,7 +179,7 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   (`Client/UiTest/UiWorld2`).
 
 ## Tracks
-Routes are World 1's (same segments, so lengths and the spiral hold); `Shared/Tracks/World2/W2*.luau`.
+Routes follow "World 2 track layout" below (owner 2026-11-26: a square spiral of long straights, target lengths unchanged); `Shared/Tracks/World2/W2*.luau`, briefs in `ServerTest/TrackTests/World2`.
 
 | Track | Id | Biome key | Series | Biome (working name) | Enemy (based on) |
 |---|---|---|---|---|---|
@@ -259,7 +259,8 @@ written before the swap.
   centre line's shortfall at a support's far corners on a curve) more. A support that would be thinner than `SUPPORT_MIN`
   (**placeholder** 0.2) is that thick and sunk into the ground (its base moves down), never dropped: 6 rows on the
   2026-11-26 layout. Generators: `kit.support_top` and
-  `kit.support` (tools/blender/world2/kit.py); Studio check `road_surface_clear` (on demand).
+  `kit.support` (tools/blender/world2/kit.py); Studio check `road_surface_clear` (on demand). The exception covered the old
+  layout: on the wide layout (square spiral, 2026-11-26) the roads have no slopes, so there are 0 Fill, Pier and Bank rows.
 - In game (owner 2026-11-23): props placed from an approved draft keep the draft's clearance (24+ studs from the road
   centre line, overhead 14+, checked by tools/blender/world2/clearance.py). World 1's 8-stud road-edge clearance
   (BiomeDressing.CLEARANCE) does not prune them.
@@ -305,21 +306,84 @@ written before the swap.
   changes, a full count (props and heroes per track) goes to the owner; the freezes and the re-export hold stand until
   then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
   legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
+- Sky props on the wide layout (**proposed**, agent-3, 2026-11-26, re-fit round 2; lead's ask, not yet owner-approved): a
+  prop that stands high off the ground (sky doors and arms, clouds, floating rocks and smoke, a tower's chains) stays inside
+  its own track's band: its base centre on its own ground (as every prop) and its whole box within the ground its road owns,
+  so nothing of one track hangs over another's land. Its top stays under SKY_TOP (**proposed** 300 studs over the ground)
+  unless it is at least SKY_FAR (**proposed** 1,500 studs) from every other track's road, so its silhouette is not seen above
+  another track's horizon through that track's fog. Checked by geometry on the Drafts (`tools/blender/world2/sky_check.py`;
+  a Blender fog render was tried and does not model the game's Atmosphere): 677 rows over SKY_TOP within SKY_FAR of
+  another road on the landed Drafts, 523 of them Track 10's sky doors (116 Track 8's rock pillars), so the numbers need the owner before they are enforced; the Studio
+  check decides what the game's fog hides.
 - Track 6 lit landmark (owner 2026-11-25, "lit landmarj approved"; renders went to the owner, who approved the merge (choice E, 2026-11-26)): at the bend
   (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
   centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,
   and one more Office tower (scale 0.55, the approved top) with its lit face to the finish axis. The spots are
-  **proposed** (`tools/blender/world2/cross_track.py` LANDMARK); the HQ stays out.
-- 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
-  has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
-  track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
-  approved scale and turn) to the nearest spot on its own track's ground that clears its own and every other track's
-  corridor, the spawn area and every checkpoint and win pad; the biome drafts stay as approved and the move lives in
-  tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves: Track 4 Hospital (1377, 609) to (1589, 821), 300; Track 5 Railgun (1865, -307) to
-  (-362, -1230), 2410; Track 7 Nest (-486, 1809) to (-486, 2059), 250; Track 8 Coliseum (2707, 132) to (3167, 132),
-  460; Track 8 LairTower (-680, 1795) to (3294, -2179), 5620; Track 10 DarkGate (3485, 3478) to (3402, 3512), 90.
-  No spot at the approved scale (not built): Track 1 Town and RuinedCastle, Track 2 ChainTower, Track 3 HeroHQ and Crater, Track 4
-  School and OldWoodHouse, Track 5 DefenseHQ, Track 6 HQ, Track 7 IslandVolcano.
+  **proposed** (`tools/blender/world2/cross_track.py` LANDMARK). The HQ is back since 2026-11-26 (below); whether the
+  finish Office, the stand-in "where the HQ would stand", stays is open for the owner.
+- World 2 track layout (owner 2026-11-26, verbatim: "biomes/tracks on world 2 are much too close to each other where racing on one track is not immersive. Spacing per track in terms of wdith should be much larger , can have the track be straight even, not just circular. There should little to no overlaps in other tracks"; asked directly, the owner picked a spacing of "About 600
+  studs" road edge to road edge between any two World 2 tracks): the chain is a square spiral of long straights
+  (docs/proposals/W2_WIDE_LAYOUT.md option C, picked by the lead under the owner's nightly pre-approval 2026-11-26).
+  The hard floor, a smallest road-edge gap of at least 600 between any two World 2 tracks, is the lead's reading of
+  the owner's "About 600" under that pre-approval; the 1,200-stud skip of pairs through a shared joint is **proposed**.
+  **Proposed**: pitch 760, corner radius 420, first side 1,000 (so every cut between tracks falls in a straight and
+  every finish straight runs on the 90-degree grid). Track lengths, the chain rule, the first/last straights and the
+  NPC table are unchanged. (Replaces the 2026-11-24 coordinator's choice "World 2 keeps World 1's track spacing".)
+- Re-fit of Tracks 6 and 7 to the wide layout (2026-11-26, lead's decisions under the owner's nightly pre-approval,
+  **proposed**): Track 6's back row of buildings keeps one in 7 free slots (`BACK_EVERY`; nothing blocks it on the wide
+  layout, which would double the approved building count). Track 6's HQ: owner 2026-11-26 ("Approve 1-4", design log
+  fe810a44) brings it back on its legal spot on its own ground (0.9 axis, world -2714, 2418) with its 2 floodlights
+  (46 lamps, 48 lights), lifting the "for now" of 2026-11-25.
+  Track 7's island runs along the road (coast 260 studs out on both sides, the 48 ships at 312, inside its Ground
+  rect) instead of an oval round the whole track; its nest is turned to face its road so its ants stand on its own
+  ground, a change from the approved random turn, for the owner.
+- Track 7's sea (2026-11-26, the owner's "fix rendering on all tracks", lead's decision, **proposed**): terrain Water from
+  280 studs off Track 7's road out to its own ground's edge (the coast and the ships' band), level -3, so the 48 blockade
+  ships float as in the approved draft instead of standing on grass. World 2 AntIsland only; road corridor, walls,
+  checkpoints and the grass-strip rule unchanged (BIOME_ENVIRONMENT_SPEC 2.2 "Coast"). Its water colour is the approved
+  draft's sea, 1C4260 (transparency 0.3, reflectance 0.25, waves 0.15 / 8; proposed), set per zone on the client. The sea's
+  bed is Sand (the profile's Materials.Bed, was Ground; proposed, 46ffbe4b), the approved draft's beach under the water.
+- Hero moves (2026-11-24; re-fitted to the wide layout 2026-11-26): a hero landmark with no placement that passes every game rule moves whole (all its pieces, its
+  scale and turn) to a spot on its own track's ground that clears its own and every other track's corridor, the spawn area
+  and every checkpoint and win pad, and lies on its Ground rectangle (BiomeDressing builds a Placed prop only there); among
+  those, a spot a run camera has in frame within 1,600 studs first (export_props.find_spot / seen_near, **proposed**), else
+  the nearest. The move lives in tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves on the
+  square spiral: Track 5 DefenseHQ 60, Track 9 Church 310, Track 10 DarkGate 90 (none on Tracks 1-4, 6-8).
+- Shrink to fit (owner 2026-11-26, "Approve 1-4", design log fe810a44): a hero with no spot at its approved scale stands at
+  the largest scale that fits its own ground (its real mesh box and the game's parts fallback clear of every road by
+  24.5, pads and the plaza, base centre on its own ground and Ground rect), with its approved turn, where a run camera
+  sees it (`tools/blender/world2/herofit.py` and the biome scripts). On the wide layout: Track 1 Town 1.015 (approved
+  1.6) in the 0.33 view; Track 3 HeroHQ 0.562 (approved 2.3+) in the 0.33 view; Track 7 IslandVolcano 0.389 (approved
+  1.25) seen from the 0.06/0.62/0.9 cameras, the 0.33 view kept for the nest; Track 8 LairTower 3.45 (approved 4.2)
+  ahead of the 0.62 camera, turn 0; Track 10 Abyss radius 210 (its rule's old floor 800; in a Draft for the first time)
+  about 400 studs ahead of the 0.9 camera, its wide face to it (lead 2026-11-26: radius 500 past the finish stood
+  2,760 studs from that camera and did not draw). Track 1 RuinedCastle and Track 2 ChainTower stand at their approved scales on the wide layout
+  (re-fit round 2). Track 9's Barrier (a dome over every road) stays out, as before.
+- Re-fit round 2 (2026-11-26; the lead's approval under the owner's nightly pre-approval, for the owner's review on
+  return; renders assets/world2_draft/relayout_2026-11-26, report docs/proposals/W2_REFIT_REPORT.md). Each **proposed**:
+  - Own-band backdrop (`kit.band`): each track's approved backdrop props, at their approved scales and turns, out to its
+    ground midline (about 380 studs) on its own ground and Ground rect: T4 Cedar, T5 Office and Apartment, T8 cavern props
+    (RockPillar, CityChunk, Graveyard, Colonnade, FleshWall), T9 Forest, T10 Hill and Hand. Rows against the approved Drafts:
+    T1 1,019 (355), T2 980 (474), T3 1,021 (475), T4 1,191 (949), T5 1,010 (596), T6 937 (765), T7 1,123 (1,167),
+    T8 1,734 (1,435), T9 1,395 (2,012), T10 2,597 (3,888); the own ground grew about five times (bands about 380 a side
+    for about 60 to 75), and T9's city grid and T10's sky doors past their own ground or Ground rect are left out.
+    For the owner: Track 10's dark dome (Abyss) now stands before the finish, about 400 studs ahead of the 0.9 run
+    camera (radius 210), not beyond it; re-placing it took out 22 sky doors and 1 hill where it now stands.
+  - Track 1 (agent-1's round 2): the first and last villages moved just ahead of the 0.06 and 0.9 run cameras; the woods
+    in patches with open meadows between (a smooth mask), not one even carpet over the wide band; the 0.9 view, which
+    runs down a long straight past the finish, closed with the track's own woods and ruins.
+  - Track 2 (agent-1's round 2): a band loop of the approved scatter props out to the midline: Crag 1.5-3.0, RuinB
+    1.0-2.2, RuinA 1.0-1.6, at 190 to 305 studs from the centre line.
+  - Track 3 (agent-1's round 2): city rows at 235, 300 and 355 studs from the centre line, and 6 HighRises at 1.25 to
+    1.45 framing the finish; the crater at a new spot in a run camera's view.
+  - Track 1's ranks keep their approved turn relative to the road (they turned toward the town, which the layout moved).
+  - Track 7's mound cluster re-placed on its own band (agent-1).
+  - Track 9's city wall along both edges of its own band, `WALL_OFF` 290 studs from the centre line, in 520-stud pieces
+    (was an ellipse round the whole track box), the golden forest past it.
+    For the owner: a wall piece is stretched along X to fit its stretch of road, up to 1.523 (the approved draft's
+    stretches reached 1.167).
+  - DemonCastle's castle plinth `PLINTH_CLEAR` 300 studs from its road (was 340; the wide layout's own ground ends about
+    329 out).
 
 ## Track effects (draft, owner approval pending)
 Owner 2026-11-26 (design doc change log, verbatim): "Begin drafting vfx for dynamic smoke on tracks and vfx for moving

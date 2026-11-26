@@ -2,7 +2,7 @@
 closest render to what a player sees). Built = the exported rows on each track's own ground (game_shots.built_rows).
 Missing: game terrain and ground colours of the other tracks, Prune, streaming distance, the other tracks' lights, the
 game's own lighting, the plaza, moved heroes of other tracks. The sky, sun and lamps are the reviewed track's.
-Headless: Blender -b --factory-startup --python tools/blender/world2/context_shots.py -- <number ...> [--fast]
+Headless: Blender -b --factory-startup --python tools/blender/world2/context_shots.py -- <number ...> [--fast] [--out=<folder>]
 """
 
 import importlib
@@ -63,6 +63,9 @@ def run(number, fast):
 
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :]
+	out = next((a.split("=", 1)[1] for a in argv if a.startswith("--out=")), None)
+	if out:  # another review set's folder (relative to the repo root), e.g. assets/world2_draft/relayout_2026-11-26
+		bt.OUT = os.path.join(bt.ROOT, out)
 	for n in [int(a) for a in argv if not a.startswith("--")]:
 		run(n, "--fast" in argv)
 

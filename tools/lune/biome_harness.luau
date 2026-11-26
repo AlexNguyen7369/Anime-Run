@@ -643,8 +643,10 @@ local function placedOk(origin, row, def, prop, name)
 		if
 			(got.Position - want.Position).Magnitude < 0.01
 			and (mesh.Size - size).Magnitude < 0.01
-			and got.RightVector:Dot(want.RightVector) > 0.99999
-			and got.UpVector:Dot(want.UpVector) > 0.99999
+			-- unit vectors on both sides: the angle limit stays exactly 0.99999 (about 0.26 deg), only a vector's length (float32
+			-- drift in Lune's CFrame, 1e-5 on GoldenCity Placed_483 on the wide layout) no longer counts as an angle
+			and got.RightVector.Unit:Dot(want.RightVector.Unit) > 0.99999
+			and got.UpVector.Unit:Dot(want.UpVector.Unit) > 0.99999
 		then
 			return true
 		end
@@ -1070,6 +1072,187 @@ do
 	table.insert(clear, { Min = centre - half, Max = centre + half })
 end
 TS.Prepare(entries, clear, { spawnArea })
+-- PLATE (WORLD_REDESIGN_SPEC 3: the safety baseplate covers every track part plus the margin, 20 placeholder): Main
+-- builds the plate before the late tracks have parts, so its box is TrackBuilder.PlateBox (the terrain box and every
+-- track's Ground rect, from the layouts). Every built Ground tile's world box, grown by 20, must lie inside it (Studio
+-- world_layout world_baseplate_covers_everything, 2026-11-26: a T10 Ground corner was outside).
+do
+	local TB = req(Shared.TrackBuilder)
+	local TS = req(Shared.TerrainShape)
+	local pass, fail = 0, 0
+	local box = TS.Box()
+	if box and TB.PlateBox then
+		local lo, hi = TB.PlateBox(entries, box.Min, box.Max)
+		for _, e in entries do
+			for _, part in e.Model:GetDescendants() do
+				if part:IsA("BasePart") and part.Name == "Ground" then
+					local cf, size = part.CFrame, part.Size
+					local half = R.Vector2.new(
+						math.abs(cf.RightVector.X) * size.X / 2 + math.abs(cf.LookVector.X) * size.Z / 2,
+						math.abs(cf.RightVector.Z) * size.X / 2 + math.abs(cf.LookVector.Z) * size.Z / 2
+					) + R.Vector2.new(20, 20)
+					local c = R.Vector2.new(cf.Position.X, cf.Position.Z)
+					if
+						c.X - half.X >= lo.X
+						and c.Y - half.Y >= lo.Y
+						and c.X + half.X <= hi.X
+						and c.Y + half.Y <= hi.Y
+					then
+						pass += 1
+					else
+						fail += 1
+						print(
+							string.format(
+								"PLATE FAIL %s Ground at %.0f, %.0f outside the plate box",
+								e.Model.Name,
+								c.X,
+								c.Y
+							)
+						)
+					end
+				end
+			end
+		end
+	else
+		fail += 1
+		print("PLATE FAIL no TrackBuilder.PlateBox or no terrain box")
+	end
+	print(string.format("PLATE CHECKS pass=%d fail=%d", pass, fail))
+end
+-- World 2's seam (WORLD2_SPEC "World 2 track layout"; TerrainShape.EXACT_FAR): with laps 760 apart the gap midline lies
+-- past the stamp, so the grid's nearest track and distance there must be the true ones (to the centre waypoints, <= 12
+-- studs apart) within SEAM_TOL, and the nearest track the true one wherever the second is more than 2 SEAM_TOL farther.
+if process.env.WORLD == "2" then
+	local SEAM_TOL, pts = 4, {}
+	for _, e in entries do
+		for k, w in e.Layout.Waypoints do
+			local p = e.Origin:PointToWorldSpace(w)
+			table.insert(pts, { e.Number, p.X, p.Z })
+		end
+	end
+	-- inside the grid only (the centre lines' box plus STAMP); past it the grid answers by its nearest edge node
+	local box = { Min = R.Vector2.new(math.huge, math.huge), Max = R.Vector2.new(-math.huge, -math.huge) }
+	for _, q in pts do
+		box.Min = R.Vector2.new(math.min(box.Min.X, q[2]), math.min(box.Min.Y, q[3]))
+		box.Max = R.Vector2.new(math.max(box.Max.X, q[2]), math.max(box.Max.Y, q[3]))
+	end
+	box.Min -= R.Vector2.one * TS.STAMP
+	box.Max += R.Vector2.one * TS.STAMP
+	local pass, fail, worst, seed = 0, 0, 0, 12345
+	for _ = 1, 3000 do
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		local x = box.Min.X + (seed / 2147483648) * (box.Max.X - box.Min.X)
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		local z = box.Min.Y + (seed / 2147483648) * (box.Max.Y - box.Min.Y)
+		local best, bestN, second = math.huge, nil, math.huge
+		local near = {}
+		for _, q in pts do
+			local d = math.sqrt((q[2] - x) ^ 2 + (q[3] - z) ^ 2)
+			if d < (near[q[1]] or math.huge) then
+				near[q[1]] = d
+			end
+		end
+		for n, d in near do
+			if d < best then
+				best, bestN, second = d, n, best
+			elseif d < second then
+				second = d
+			end
+		end
+		if best > TS.STAMP + 16 and best < 600 then
+			local zone, d = TS.Owner(x, z, bestN)
+			local ok = math.abs(d - best) <= SEAM_TOL and (zone == bestN or second - best <= 2 * SEAM_TOL)
+			worst = math.max(worst, math.abs(d - best))
+			if ok then
+				pass += 1
+			else
+				fail += 1
+			end
+		end
+	end
+	print(
+		string.format(
+			"W2 SEAM CHECKS pass=%d fail=%d worst %.1f studs%s",
+			pass,
+			fail,
+			worst,
+			fail > 0 and " FAIL" or ""
+		)
+	)
+end
+-- Track 7's sea (BIOME_ENVIRONMENT_SPEC 2.2 "Coast", WORLD2_SPEC): water under every blockade ship, none in any road's
+-- corridor (every 4th centre waypoint of every track, across W/2 + 24 each side every 8 studs), and every other zone's
+-- terrain unchanged: a checksum of Column (height to 1/4 stud, material, water) on a 96-stud grid, points that are not
+-- AntIsland's and not within the seam blend of it, against the value before the sea (SEA_OTHER_HASH).
+if process.env.WORLD == "2" then
+	local Themes = req(Shared.BiomeThemes)
+	local SEA_OTHER_HASH = 106734784 -- the red run's value (before the sea, 2026-11-26): the other zones' terrain must not move
+	local seaN, ships, wet, dryCorr, wetCorr = nil, 0, 0, 0, 0
+	for i, e in entries do
+		if e.Biome == "AntIsland" then
+			seaN = e.Number
+			for _, prop in models[i].Environment:GetChildren() do
+				local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+				if k and Themes.AntIsland.Placed[k][1] == "Ship" then
+					local ps = parts(prop)
+					local c = R.Vector3.zero
+					for _, part in ps do
+						c += part.Position
+					end
+					c /= math.max(1, #ps)
+					ships += 1
+					local _, waterY = TS.Column(c.X, c.Z)
+					wet += waterY and 1 or 0
+				end
+			end
+		end
+		for k = 1, #e.Layout.Waypoints, 4 do
+			local w = e.Origin:PointToWorldSpace(e.Layout.Waypoints[k])
+			local nxt = e.Origin:PointToWorldSpace(e.Layout.Waypoints[math.min(k + 1, #e.Layout.Waypoints)])
+			local t = (nxt - w) * R.Vector3.new(1, 0, 1)
+			if t.Magnitude > 1e-3 then
+				local right = R.Vector3.new(-t.Unit.Z, 0, t.Unit.X)
+				local half = e.Layout.Width / 2 + 24
+				for off = -half, half, 8 do
+					local q = w + right * off
+					local _, waterY = TS.Column(q.X, q.Z)
+					if waterY then
+						wetCorr += 1
+					else
+						dryCorr += 1
+					end
+				end
+			end
+		end
+	end
+	local box, h, pts = TS.Box(), 0, 0
+	for x = box.Min.X, box.Max.X, 96 do
+		for z = box.Min.Y, box.Max.Y, 96 do
+			local zone = TS.Zone(x, z)
+			local own, dOwn = TS.Owner(x, z, zone)
+			local _, dSea = TS.Owner(x, z, seaN)
+			if zone ~= seaN and dSea - dOwn > 24 then
+				local y, waterY, surface = TS.Column(x, z)
+				local v = string.format("%d|%s|%s", math.round(y * 4), tostring(surface), tostring(waterY))
+				for c = 1, #v do
+					h = (h * 31 + string.byte(v, c)) % 2147483647
+				end
+				pts += 1
+			end
+		end
+	end
+	local hashOk = SEA_OTHER_HASH == nil or SEA_OTHER_HASH == h
+	print(string.format("W2 SEA ships %d, water under %d%s", ships, wet, ships > 0 and wet == ships and "" or " FAIL"))
+	print(string.format("W2 SEA corridor points %d dry, %d wet%s", dryCorr, wetCorr, wetCorr == 0 and "" or " FAIL"))
+	print(
+		string.format(
+			"W2 SEA other zones %d points, checksum %d%s",
+			pts,
+			h,
+			hashOk and "" or " FAIL (was " .. tostring(SEA_OTHER_HASH) .. ")"
+		)
+	)
+end
 -- docs/BUGS.md w2-grass-through-road: the engine grows grass blades on Grass terrain taller than the 2 studs between the
 -- corridor's top and the road's, so no column under a road, its walls or a clear slab (checkpoint apron, WinPad, plaza
 -- floor) is Grass. Every waypoint, across the road and its walls every 4 studs.

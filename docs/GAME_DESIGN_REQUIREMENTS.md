@@ -819,8 +819,8 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - Shared across worlds: Money, Gems, Rebirth, stat points, Index, Copies, Sidekicks, Relics, passes. Per world: `BestTrack`,
   `Checkpoint`, `RaceBestTimes` (World 2 saves them under `Worlds.W2`; World 1's layout is unchanged) and the team.
 - 10 tracks, one per new series first, then classic arcs: Frieren, Solo Levelup, One Punch, Dandadan, Kaiju No. 8,
-  Saw Man (owner 2026-11-25: Tracks 1 and 6 swapped), then Solo Levelup, One Punch, Frieren, Saw Man (names and enemies **proposed**, `WORLD2_SPEC`). Routes reuse
-  World 1's validated track routes; biomes are new.
+  Saw Man (owner 2026-11-25: Tracks 1 and 6 swapped), then Solo Levelup, One Punch, Frieren, Saw Man (names and enemies **proposed**, `WORLD2_SPEC`). Routes follow
+  `WORLD2_SPEC` "World 2 track layout" (owner 2026-11-26: a wider World 2 layout); biomes are new.
 - World 2 spawn plaza (owner 2026-11-24: "rift shrine approved"): "Rift Shrine": World 1's plaza layout, footprint,
   spawn and services unchanged; dusk sky; cyber accents and the plaza sky loop cyan instead of World 1's colour; a
   generic dimensional rift (a swirling blue-violet disc in a ring of floating stones, not any show's gate design)
