@@ -358,6 +358,8 @@
   }
  },
  "W2_DevilTokyo_Apaato": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "a27d3e78c69445b4ca0e9a6cbcbfe03d89309eeaec591d792cc82d77a75cd023",
   "Mesh": "101741407398138",
   "Model": "139440706968753",
@@ -371,9 +373,12 @@
     "123016589142707",
     "f93964672e2df1576fe5bd7b397fa8523e124fbcdca75545bcff66319bc9b3e9"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_CrossWire": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "fcc27d394cd8345bb7be1f5f0c1a3943c353a7a53f41862835651a1f71ccf432",
   "Mesh": "88136633615823",
   "Model": "118213332232996",
@@ -387,9 +392,12 @@
     "81063852702531",
     "b84da1713d539cd104185a1f1951e75c5bc9fc952491c4e34f8fb035aec1ff1c"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_Konbini": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "d46e7b0ae39b1e8b29e324edbfc7997ba61c3d9b4a5e67d6762bcdfa595cb2f3",
   "Mesh": "93419933208425",
   "Model": "82786290254184",
@@ -403,9 +411,12 @@
     "72291390266049",
     "383cbb194b3d144cf5e4032aa41f3ce8fb34d7aa96bd879890c2cd93a66132f6"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_LowBlock": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "22391b3e2f77fe06529491b24a6048d65f7f86685fe2c0d12a0ec7b1b7602468",
   "Mesh": "98675611662267",
   "Model": "94547836720202",
@@ -419,9 +430,12 @@
     "127760755339403",
     "61f19ec5523989511eb38cf24e994daec1d589bc68d570d70f9f9da832851e2a"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_Mansion": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "5972b59a5c4827155aa60d0146dcbe0e7a8c685acd1614da1e16f1f4ad43c43b",
   "Mesh": "109606087986256",
   "Model": "89655119277903",
@@ -435,9 +449,12 @@
     "119172716877851",
     "16ee8ddd06b8e5b1c713ab1cb32e112add111f7d200937c5c7961eb59260cf3c"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_Office": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "2eff2f720eeeefc9203d0a91b20311d3bb885111c1e2e8da6a341adff1fc6d97",
   "Mesh": "93521041404144",
   "Model": "138589791248419",
@@ -451,9 +468,12 @@
     "71344064037058",
     "9fa3f2467441961ab96b4ee9b33d6c3ee5e7dea014292ff5effd8d05c98d3edd"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_Retro": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "85d985ddc92dedf34c3924133f673b2102c559d715f59282545186d542dc951c",
   "Mesh": "80992181510611",
   "Model": "106542262677333",
@@ -467,9 +487,12 @@
     "132164987689350",
     "adc5f7dd25dbd57f39f66b8e84a2e1851287726b7342a8e79cb2e1d3cef8c534"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_ShopHouse": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "a82c38d676bb574d0b008e044895cceef689d6b39f2faed79e7e9c2342a2d7d6",
   "Mesh": "105704765421070",
   "Model": "137541593482879",
@@ -483,9 +506,12 @@
     "135750318277018",
     "a2f79e0ada4da271de69a4d854cd002f6bfe5cb6475ff1baf8da9128f3da1f7f"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_StreetKit": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "b78b8354164a9485568dd884f420a9cd79a327376c941a3e518bd20df797c39e",
   "Mesh": "99220342719129",
   "Model": "87152528737304",
@@ -499,7 +525,8 @@
     "131689529192881",
     "38a4d2ac24035212f0f461757df08f8afd3f5f2fa0b7b02b97c1594b4cb5fb18"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_ElvenPlains_Cottage": {
   "Applied": true,
