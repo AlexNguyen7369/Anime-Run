@@ -155,6 +155,15 @@ function Tests.plaza_pieces()
 		)
 		flag("parts_all_complete", Pieces.Complete({ Parts = { Body = 1 } }, { Body = {} }))
 		flag("merchants_on", oldMerchants == true) -- owner 2026-11-25: "merchants can be added already to merge"
+		-- owner 2026-11-26: "Ensure boss gate added to world 2 location, gate A of approved gate blends": on in World 2 only
+		flag("boss_gate_on_in_world2_only", oldLive == (oldWorld == 2), tostring(oldLive), tostring(oldWorld == 2))
+		local gateRows = Pieces.Assets.BossGateClosed and Pieces.Assets.BossGateOpen
+		flag(
+			"boss_gate_uploaded",
+			gateRows ~= nil and ids.BossGateClosed == 125398438490160 and ids.BossGateOpen == 85973554587379,
+			tostring(ids.BossGateClosed) .. " " .. tostring(ids.BossGateOpen),
+			"125398438490160 85973554587379"
+		)
 
 		for _, world in { 1, 2 } do
 			WorldConfig.Id = world

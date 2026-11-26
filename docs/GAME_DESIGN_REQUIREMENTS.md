@@ -450,7 +450,8 @@ before any Studio work.
   no boss rule, timing or reward. `jk_strongest` (Gojio) stands at it; a player who walks up presses E to start a conversation
   that gives information about the boss gate; text only, nothing granted. He does not talk to a player below rebirth 1 (owner
   2026-11-25). The lines and popup layout B are approved (owner 2026-11-25); sizes and the prompt range stay **proposed**
-  (`docs/BOSS_GUIDE_SPEC.md`; off in the game until the gate is turned on).
+  (`docs/BOSS_GUIDE_SPEC.md`; off in the game until the gate is turned on). The gate is on in World 2 (owner 2026-11-26, change log),
+  off in World 1.
 - Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked
   out. The event lasts 8 minutes in total (owner 2026-11-05), and Phase 2's start adds 2 fresh minutes (owner 2026-11-06):
   - 0:00-1:00, preparation: arrivals stand on the track with a team HUD of 3 slots. Only characters with a Sidekick can be slotted, and the HUD says so. A player with 1 or 2 such characters has a team of 1 or 2. The HUD opens on the team from the player's last event, when it is still valid, and shows the team's average stamina as a number (owner 2026-11-05). Its X closes it only with at least 1 character chosen; otherwise red text, gone in a moment, says to select a character. After closing, the team runs on the track as display only, each with its Sidekick, and an Edit Team button above the minibar reopens the HUD until the spawn (owner 2026-11-05).
@@ -596,6 +597,8 @@ before any Studio work.
   - The other drafts were A "Fountain spawn, wings kept" and B "Ring court" (ring radius 60). The draft had C's ring at 88, where the Shop and Best Roll backs touched the floor edge (x +-94), so the build pulled it in to 84. The draft script `draft_showpiece.py` was removed with the pick (git history holds it).
   - This replaces the Two wings positions of 4.24; everything else in 4.24 stays.
 - Tests `dojo`, `workshop`, `workshop_phase2`, `workshop_boost`, `showcase`, `ui_workshop_modal` and `ui_workshop_showcase` are retired; a `data` check covers the refund.
+- Wider floor (2026-11-26, lead's choice under the owner's "Go ahead and expand spawn location radius to your descretion. You approve this change", change log f2446967; sizes **proposed**): the walkable floor grows on its open sides only. Nothing approved moves: the spawn stays at (0, 0), and the ring of 84, the gate pad, the Sensei, the Great Sakura, boss gate S4, the sky loop and the statue keep their spots. The west edge (x -94, facing Track 1's first straight) stays; the east edge moves to x 131.6, the north edge to z 132 and the south edge to z -119 (to -132 the south side would come within 0.7 studs of Track 1's wall). The Great Sakura keeps a tree pit of open ground round its trunk. Spec: `docs/WORLD_REDESIGN_SPEC.md` 4 "Plaza size".
+- Spawn scatter (2026-11-26, lead's choice under the same owner words; numbers **proposed**): avatars put at the walk spawn (join, respawn, Stop) do not stand on top of each other: a player stands at the walk spawn when it is free and otherwise at a free spot of two rings round it on the spawn disc (`docs/WORLD_REDESIGN_SPEC.md` 4 "Spawn scatter"). Players without a client (tests) stand at the walk spawn.
 
 ### 4.44 Track power-ups (owner 2026-11-11)
 - Power-ups lie on the runner's path on all 10 tracks. A track win is no longer only the team's cruise against the
