@@ -313,8 +313,9 @@
 292. 2026-11-26 — Alex Nguyen — Made Rengoko's Market name as readable as the others per the owner's "Readable, rare overlap" ruling: 1.75 studs, in front of the top of the hair, clear of the sign in every view, with the ruling's raised side views allowed in the test and a line-of-sight hair check.
 293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
+281. 2026-11-26 — Alex Nguyen — Started the World 2 wide-layout round: owner ruling (about 600 studs between tracks, straight allowed) recorded as owner question 36, and layout, impact and render-audit tasks sent to agents 1-3.
 
 ## What's next
-**Look at the two kaiju sites in Studio on orch/world2/kaiju-land (mesh loads, hide colour, nothing standing inside the bodies), rules-audit the branch, then merge it into the World 2 branch.**
+**Show the owner agent-1's measured World 2 layout options (with agent-3's impact map and agent-2's render audit), get the pick, and write it into WORLD_REDESIGN_SPEC section 3 and WORLD2_SPEC before any code.**
 
-**Why this is next:** the kaiju is in the Draft only on this branch; the re-export's batch 5 and the World 2 PR both wait for it to be in the World 2 branch.
+**Why this is next:** the re-lay of every World 2 track, the scenery placements and the render fixes all build on the chosen layout, and a new form needs a written rule first.
