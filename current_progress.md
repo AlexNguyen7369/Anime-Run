@@ -325,8 +325,9 @@
 302. 2026-11-26 — Alex Nguyen — Regenerated cross_track.json for World 2 Tracks 1 and 6 on the square spiral (Track 6's lit landmark spots searched on the new road under the approved rule) and ran the second export pass of Tracks 1-5 and 8-10 against every track's new Draft.
 303. 2026-11-26 — Alex Nguyen — Ran the second re-fit pass on World 2 Tracks 6 and 7 against agent-3's pass-2 Drafts: Track 6 re-exported with the cross-track additions (935 placed, 0 dropped), Track 7 unchanged, both clean in the biome harness apart from the two no-spot heroes.
 304. 2026-11-26 — Alex Nguyen — Made the World 2 export leave out mid props whose box meets a checkpoint area or the spawn floor (the game's Prune), re-exported Tracks 1-5 and 8-10 (pass 3) and checked all ten Drafts: 0 of 12,948 rows on another track's ground or on a checkpoint.
+305. 2026-11-26 — Alex Nguyen — Rendered and blind-scored the World 2 re-fit of Tracks 1-5 and 8-10 (game 6-7, context 3-5 against approved 7-8) and wrote the round 1 report with counts, checks, faults and the upload list (docs/proposals/W2_REFIT_REPORT.md).
 
 ## What's next
-**Clear the last World 2 biome harness fails on agent-3's tracks (pass 3: Prune-on-pads drops, Track 1 and 10 draft drops, the pinned Mirror/Kerb/Office boxes, the ElvenPlains ledger row), then a full World 2 Studio pass before the World 2 PR.**
+**Round 2 of the World 2 re-fit: bring each moved or missing hero back into its run views on its own band (T1 castle, T5 Defence HQ, T9 church, T10 Abyss, T8 LairTower), close the long straights' 0.9 views with the track's own props, and settle a sky-prop rule for the context views.**
 
-**Why this is next:** Tracks 6 and 7 are clean; the World 2 PR waits on a green harness for all ten tracks and on the Studio checks.
+**Why this is next:** only Tracks 2 and 4 reach the reviewer's bar of 7 in round 1, and the faults are the heroes and views the wide layout moved; the owner reviews these sets on return.
