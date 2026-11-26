@@ -1010,19 +1010,24 @@ def build(k):
 	# The Hero Association HQ dominating the skyline, dead ahead of the 33% view (ref New_Hero_Association_Headquarters_
 	# Anime): the nearest spot along that view's heading where its whole footprint clears the road; big enough to fill
 	# about a quarter of the frame height; the street corridor toward it cleared
-	e, t = _eye(k, 0.33)
-	hq, hq_scale = None, 3.0
-	for dist in range(1500, 9001, 100):
-		sc = max(2.3, dist / 800)
-		q = Vector((e.x + t.x * dist, 0, e.z + t.z * dist))
-		if k.clear_of_road(q.x, q.z, 660 * sc + 40):
-			hq, hq_scale = q, sc
-			break
-	if hq is None:
-		hq, hq_scale = Vector((k.hi.x + 1240, 0, k.lo.z - 1620)), 2.3
-	print("HQ", hq, hq_scale)
-	_clear_view(k, e + t * 420, hq.x, hq.z, 160, BUILD)  # only past the end of the straight: the street walls stay
-	k.place("HeroHQ", (hq.x, -1.0, hq.z), 0.4, hq_scale)
+	# Owner 2026-11-26 ("Approve 1-4", design log fe810a44): with no spot at its approved scale (2.3+ on the approved
+	# layout) it stands at the largest scale that fits this track's own ground (tools/blender/world2/herofit.py, its mesh
+	# box, its approved turn 0.4), in a run camera's view (the approved 0.33 first), the street toward it cleared.
+	import herofit
+
+	vs = k.props["HeroHQ"].data.vertices
+	hq_w, hq_d = 2 * max(abs(v.co.x) for v in vs), 2 * max(abs(v.co.y) for v in vs)
+	hit = herofit.best(k, hq_w, hq_d, 2.3, cams=(0.33, 0.06, 0.62, 0.9), aheads=range(240, 2401, 80), sides=range(-1000, 1001, 80), owns=k.owns, base_yaw=0.4)
+	if hit:
+		hq_scale, hx, hz, _, f = hit
+		hq = Vector((hx, 0, hz))
+		e, t = _eye(k, f)
+		_clear_view(k, e + t * 420, hq.x, hq.z, 160, BUILD)  # only past 420 along the view: the street walls stay
+		_clear_near(k, hq.x, hq.z, max(hq_w, hq_d) * hq_scale / 2 + 12, BUILD)  # it now stands inside the city band
+		k.place("HeroHQ", (hq.x, -1.0, hq.z), 0.4, hq_scale)
+		print("HQ at", round(hx), round(hz), "scale", round(hq_scale, 3), "for the", f, "camera")
+	else:
+		print("HQ no spot even shrunk")
 	# 05: the side camera's street: buildings cleared, wrecks, vending machines, cordons and overgrowth at street level
 	p, right, t = k.at(L * 0.48)
 	g = p + right * 140 - t * 60

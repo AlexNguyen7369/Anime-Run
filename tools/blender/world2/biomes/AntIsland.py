@@ -673,29 +673,40 @@ def build(k):
 	_bank(k, SUPPORT)
 	L = k.length
 	# Hero placements first so the scatter keeps clear of them
-	best, bd = None, 0.0
-	for i in range(81):  # on this track's own ground, farthest from every road (the wide layout's other laps included)
+	# Owner 2026-11-26 ("Approve 1-4", design log fe810a44): a hero with no spot at its approved scale stands at the largest
+	# scale that fits its own ground. Hallasan (approved 1.25, turn 0.4): on this track's own ground, every grid spot's
+	# largest scale whose shape keeps every road corridor (24) clear with a margin, counting the game's parts fallback (a box
+	# per cone: sqrt(2) x the base radius 760 x scale), preferring spots a run camera sees (ahead, within its view, under
+	# 2,500 studs); the largest such scale wins.
+	cams7 = []
+	for f in (0.06, 0.62, 0.9):  # not 0.33: the nest stands ahead of that camera (its only spot on the wide layout)
+		p, right, t = k.at(L * f)
+		cams7.append((p.x + right.x * 10, p.z + right.z * 10, t.x, t.z))
+	best, bd, best_seen = None, 0.0, False
+	for i in range(81):
 		for j in range(81):
 			x = lo.x - 600 + (hi.x - lo.x + 1200) * i / 80
 			z = lo.z - 600 + (hi.z - lo.z + 1200) * j / 80
 			if not k.owns(x, z):
 				continue
 			dd = far(x, z)
-			if dd > bd:
-				best, bd = (x, z), dd
-	# Hero rule (WORLD2_SPEC hero moves): a hero keeps its approved scale. Hallasan's is 1.25 (the approved draft's
-	# formula on the approved layout: 1,177 studs clear), a shield 950 studs in radius: its real mesh needs 975+ studs
-	# from every road. No spot on this track's own ground has that on the wide layout, so it stays on the "no spot"
-	# list (not placed, its mesh and Props entry kept) and reserves no ground.
-	hs = HALLASAN_SCALE
+			seen = any(
+				(x - ex) * tx + (z - ez) * tz > 200
+				and abs((x - ex) * tz - (z - ez) * tx) < (x - ex) * tx + (z - ez) * tz
+				and math.hypot(x - ex, z - ez) < 2500
+				for ex, ez, tx, tz in cams7
+			)
+			if (seen, dd) > (best_seen, bd):
+				best, bd, best_seen = (x, z), dd, seen
+	hs = min(HALLASAN_SCALE, (bd - 40) / (760 * math.sqrt(2)))
 	keep, placed_hallasan = [], None
-	if bd >= 760 * hs + 24 + 16:
+	if hs >= 0.3:
 		k.place("Hallasan", (best[0], -1.0, best[1]), 0.4, hs)
+		keep.append((best[0], best[1], 760 * hs * math.sqrt(2) + 20))
 		placed_hallasan = best
-		keep.append((best[0], best[1], 760 * hs + 20))
-		print("HALLASAN at", (round(best[0]), round(best[1])), "clear", round(bd), "scale", hs)
+		print("HALLASAN at", (round(best[0]), round(best[1])), "clear", round(bd), "scale", round(hs, 3), "seen", best_seen)
 	else:
-		print("HALLASAN no spot at its approved scale", hs, "best clear", round(bd), "at", (round(best[0]), round(best[1])))
+		print("HALLASAN no spot even shrunk: best clear", round(bd))
 	# The nest stands ahead of a run camera (0.33, 0.62, 0.9), 340+ studs off every road, on this track's own ground, its
 	# front (and its fan of ants, 205-262 out on that side) turned to this track's road, so the ants stand on the own
 	# ground between nest and road. On the wide layout's long straights the camera axis stays on the road, so the spot
