@@ -32,71 +32,71 @@ return Kit.fromDraft("DemonCastle", require(script.Parent.DemonCastleDraft), {
 		),
 		W2_DemonCastle_Gate = draftMesh(
 			2760,
-			"rbxassetid://79874342576678", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://128288802417594", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low spired dark stone gate towers with a pointed arch, heavy iron doors swung open and a wall of fire beyond",
 			"hero landmark, 1 placed; build/world2/export/DemonCastle/W2_DemonCastle_Gate.glb"
 		),
 		W2_DemonCastle_Hound = draftMesh(
 			4916,
-			"rbxassetid://123470017397509", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://126688114628834", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: three headed horned hound statue on a stone plinth",
 			"hero landmark, 4 placed; build/world2/export/DemonCastle/W2_DemonCastle_Hound.glb"
 		),
 		W2_DemonCastle_Wyvern = draftMesh(
 			3800,
-			"rbxassetid://100711382108896", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://115595097346048", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: pale grey white wyvern with dark membrane wings, a swept horn crown and red eyes, carrying a purple armoured rider with a blue blade",
 			"mid prop, 6 placed; build/world2/export/DemonCastle/W2_DemonCastle_Wyvern.glb"
 		),
 		W2_DemonCastle_RuinA = draftMesh(
 			2652,
-			"rbxassetid://127977593747750", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://73495593540254", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: window gridded high rise ruin wrapped in pink magenta fire",
 			"mid prop, 4 placed; build/world2/export/DemonCastle/W2_DemonCastle_RuinA.glb"
 		),
 		W2_DemonCastle_RuinB = draftMesh(
 			648,
-			"rbxassetid://113115759032361", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://73174739975227", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low burning ruined block with window grids and magenta flames",
 			"mid prop, 40 placed; build/world2/export/DemonCastle/W2_DemonCastle_RuinB.glb"
 		),
 		W2_DemonCastle_Chunk = draftMesh(
 			276,
-			"rbxassetid://128251368400216", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://94517765870802", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: irregular burning rock slab floating in the air",
 			"mid prop, 50 placed; build/world2/export/DemonCastle/W2_DemonCastle_Chunk.glb"
 		),
 		W2_DemonCastle_Smoke = draftMesh(
 			100,
-			"rbxassetid://133873457161169", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://85884834451546", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: dark smoke cloud puffs",
 			"mid prop, 12 placed; build/world2/export/DemonCastle/W2_DemonCastle_Smoke.glb"
 		),
 		W2_DemonCastle_Rampart = draftMesh(
 			442,
-			"rbxassetid://98810199248357", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://74252823314975", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: plain black battlement wall with a brazier in front",
 			"mid prop, 150 placed; build/world2/export/DemonCastle/W2_DemonCastle_Rampart.glb"
 		),
 		W2_DemonCastle_Crag = draftMesh(
 			256,
-			"rbxassetid://95816986297535", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://94686815475779", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: obsidian crag rock",
 			"mid prop, 15 placed; build/world2/export/DemonCastle/W2_DemonCastle_Crag.glb"
 		),
 		W2_DemonCastle_Edge = draftMesh(
 			336,
-			"rbxassetid://108864240998285", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://131090412279441", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: dark flagstone strip with glowing ember cracks",
 			"mid prop, 152 placed; build/world2/export/DemonCastle/W2_DemonCastle_Edge.glb"
 		),

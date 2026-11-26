@@ -208,7 +208,10 @@
   "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_Chunk": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "c500b4d4d90060a33f5f7796c2905f15c83a84bed418acb3a4fb5560bdb7c4f4",
+  "Mesh": "94517765870802",
   "Model": "135912617095333",
   "Old": {
    "Mesh": "128251368400216",
@@ -220,10 +223,14 @@
     "128251368400216",
     "1d7e03f30cd2702baecda5f557684f98996240f1b5545d219d6e9f08c5d8960e"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_Crag": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "a1020d5cfcd28c0c663133b0ea3f0843fef8fa552a12a69ce4dbf56234732f49",
+  "Mesh": "94686815475779",
   "Model": "90725156835069",
   "Old": {
    "Mesh": "95816986297535",
@@ -235,10 +242,14 @@
     "95816986297535",
     "637fa89fbf56efb41aaa60694a125eb2d557130e8ec7d717257eee5a95571e39"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_Edge": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "8687a7e444147a33ff55f9aa0c1d5487970b723b7af3dceed37b9fd74cfd388a",
+  "Mesh": "131090412279441",
   "Model": "97554129590403",
   "Old": {
    "Mesh": "108864240998285",
@@ -250,10 +261,14 @@
     "108864240998285",
     "a03ffd831548c52b8cfbca64aa3fbd0eda63d87a197a430eeb3efffb7836e9a3"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_Gate": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "652cb94a1acd0632159c4c3f0f0394ebf8edff172d98eec7a3279ed1106c48b1",
+  "Mesh": "128288802417594",
   "Model": "128795993440370",
   "Old": {
    "Mesh": "79874342576678",
@@ -265,10 +280,23 @@
     "79874342576678",
     "af7153ca0494523d3319e4fd4d692bcf8d442b4d8eed300e356396d4699c392e"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_Hound": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Compared": {
+   "At": "2026-11-26",
+   "Key": "W2_DemonCastle_Hound",
+   "Max": 9e-06,
+   "New": "126688114628834",
+   "Old": "123470017397509",
+   "TrisNew": 4916,
+   "TrisOld": 4916
+  },
   "Hash": "7c32cc270b1c90150a446e688b3235d75208f43ca169d163a9d598bdb2a89a83",
+  "Mesh": "126688114628834",
   "Model": "108674442952364",
   "Old": {
    "Mesh": "123470017397509",
@@ -280,10 +308,14 @@
     "123470017397509",
     "4192eca87d9f89fc00bd00b7b06f0031e85da3e2e7cfba2581454aff608fdea0"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_Rampart": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "7b9447d66afc91bb33433311772d7fcac73b4028ae1bbf9778dfa9d586c279e3",
+  "Mesh": "74252823314975",
   "Model": "97426538472361",
   "Old": {
    "Mesh": "98810199248357",
@@ -295,10 +327,14 @@
     "98810199248357",
     "f2d7bdc15b29b2dd2af090cd2df780d3b7b53de79d0c392cd16f319c8774d12a"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_RuinA": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "5acce6215a6785514604a71877b7909b0f86722b53f205458340786e5e2bbddf",
+  "Mesh": "73495593540254",
   "Model": "89424896504398",
   "Old": {
    "Mesh": "127977593747750",
@@ -310,10 +346,14 @@
     "127977593747750",
     "05728cdbad1d7d8bfabae7a73c1271b68b850f7047a64050d31791ba9b4e8f0c"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_RuinB": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "5c91fc291baa0ee10cdff7ba52b96e32b1c84657a575afc902c4fb22b62e1c28",
+  "Mesh": "73174739975227",
   "Model": "138306650339300",
   "Old": {
    "Mesh": "113115759032361",
@@ -325,10 +365,14 @@
     "113115759032361",
     "20f4e5d264c685d4d83baa7add1b55650ca252e7d5d3ee5a78587cb41d23f5af"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_Smoke": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "e6a8e79aae2b9be33b6be8915c56992b1b7914e9f6f809d46da34bf98649fa94",
+  "Mesh": "85884834451546",
   "Model": "137754960431202",
   "Old": {
    "Mesh": "133873457161169",
@@ -340,10 +384,23 @@
     "133873457161169",
     "41371ad915e99b3fcdef4f3561cfaf7ee08f99eabfdcfeae7c6cffdc2ea62857"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DemonCastle_Wyvern": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Compared": {
+   "At": "2026-11-26",
+   "Key": "W2_DemonCastle_Wyvern",
+   "Max": 1.6e-05,
+   "New": "115595097346048",
+   "Old": "100711382108896",
+   "TrisNew": 3800,
+   "TrisOld": 3800
+  },
   "Hash": "ff8e715209d768b17543dd296c334a6f497a99f50da6aee364ba7a8d49bc6275",
+  "Mesh": "115595097346048",
   "Model": "105904251883042",
   "Old": {
    "Mesh": "100711382108896",
@@ -355,7 +412,8 @@
     "100711382108896",
     "69ee9b82772089c2a7dc862d30fdf2170f243bae755291fe2dbcdce147939d53"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_DevilTokyo_Apaato": {
   "Applied": true,
@@ -944,5 +1002,155 @@
    ]
   },
   "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_RuinedCityZ_Barricade": {
+  "Hash": "5e60c165457573f803362a696a17b31dd1b258fd4639701c48b9a82b2ed2e62b",
+  "Model": "82331251427699",
+  "Old": {
+   "Mesh": "93229397253870",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_Barricade",
+    "134297211037372",
+    "93229397253870",
+    "c7c827a2d0e39745dd33b28e724224802b6d5cd40519ea27ef6779d627068d4d"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_Blocks": {
+  "Hash": "300805427648cbecd8ce9c24f2ca80d495076b8413254a2be22971b4ce63f8e3",
+  "Model": "116831596761511",
+  "Old": {
+   "Mesh": "97388531264178",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_Blocks",
+    "118794025748638",
+    "97388531264178",
+    "b1b60a35fd31130a28f5d826dfcf6bb8d4ac077568138b789ddfbb6ccf405f53"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_BrickFlat": {
+  "Hash": "7830b3500e9711284c1dc932d6c3757fe578a3f5998a49526e461c6abc233bc8",
+  "Model": "119493960669604",
+  "Old": {
+   "Mesh": "71827032081453",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_BrickFlat",
+    "130642104552059",
+    "71827032081453",
+    "933bf298767dc04e155ea879fab8622622a60248624c60dff30e0d8c63c43a05"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_Collapsed": {
+  "Hash": "3af4f259597454250763105c5e964f8cd2cef083372910f508f0fdd6db41e3f3",
+  "Model": "72193394863724",
+  "Old": {
+   "Mesh": "113982394157032",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_Collapsed",
+    "97921958176901",
+    "113982394157032",
+    "079390e34c62521282878760daf4299deb0cc5ed8bf696ce379277d4f8695dcc"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_HighRise": {
+  "Hash": "90f970e1f3889057c98b5025089112dd3074fa18c3da8f09c5f90195d450848a",
+  "Model": "114853463538243",
+  "Old": {
+   "Mesh": "75405867009013",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_HighRise",
+    "111747552406298",
+    "75405867009013",
+    "347c18701788f3d6879d464dd2875858a2b7ae88346f9b533f2ee15adc586845"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_Kerb": {
+  "Hash": "dc7b27b6bc0bd0b2ba9e94525b00cb62552a904b60ba68329d75b391e82cbba3",
+  "Model": "122408949708903",
+  "Old": {
+   "Mesh": "97829263072176",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_Kerb",
+    "135212011160672",
+    "97829263072176",
+    "86508f7baf3061cb650aa8584f3878772f8c7c75b0a590f7cb84193122e9cb15"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_MidRise": {
+  "Hash": "d8e5c47000d4bfbbbda5c77b7f644a2128b84f08f686ae9fbbc467e9f73bc8de",
+  "Model": "99492295748316",
+  "Old": {
+   "Mesh": "110618976116132",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_MidRise",
+    "94441173328339",
+    "110618976116132",
+    "88a05273b3f1aa89465fddbbfc77c2fa65cab61e195bd8f4a6c7182351873892"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_OfficeBroken": {
+  "Hash": "6289033612fba7e83023b61b040d08e36ac400058d95ef07dfcd57ddf6fe8fd1",
+  "Model": "125009294107727",
+  "Old": {
+   "Mesh": "82488362586325",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_OfficeBroken",
+    "102872089493429",
+    "82488362586325",
+    "8052bd18ffa7f6165e0d5f4e7e0db6301d7d78fe266afc6163502e8e8166dcef"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_Overpass": {
+  "Hash": "79f5751b078591d9620e178d2419d7e7cbbf7b9a0ff8f2bea4f936ecfba2b453",
+  "Model": "120636290226393",
+  "Old": {
+   "Mesh": "130120483743247",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_Overpass",
+    "84825923954189",
+    "130120483743247",
+    "b86854b71ed8264715b3148efce0e1ec6dc466adced6d4158c0fa9287de9b337"
+   ]
+  }
+ },
+ "W2_RuinedCityZ_Rubble": {
+  "Hash": "1c5e3a682385cc34b119bf5aae04675926f9b71afdb9140bec3a97fc6a95f234",
+  "Model": "119868929409361",
+  "Old": {
+   "Mesh": "120346568607759",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "RuinedCityZ",
+    "W2_RuinedCityZ_Rubble",
+    "89943381898279",
+    "120346568607759",
+    "400a2a2274cde71e0136dd22323f6b17660e5d0d48627aef3a7111498c0e9b2c"
+   ]
+  }
  }
 }
