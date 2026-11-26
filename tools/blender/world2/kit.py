@@ -273,6 +273,54 @@ class Kit:
 		return ob
 
 	# --- scatter ---
+	def band(self, names, every, off, scale=(1.0, 1.0), clear=None, start=0.0, end=None, face_road=False, gap=0.0, seed=0, space=30.0):
+		"""Backdrop over this track's own band (2026-11-26 re-fit, wide layout): every `every` studs along the road, on each
+		side, one prop of `names` at a random offset in `off` (lo, hi) from the centre line, on this track's own ground
+		(owns) and at least `clear` (default lo) from every stretch of its road; `gap`: studs kept from the ground props of `names`
+		already placed and from each other, `space` from every other ground prop (by base point). A random turn unless face_road. Its own random stream, so the draft's other props do not change. Returns
+		the number placed."""
+		rng = random.Random(self.track["Number"] * 104729 + seed)
+		lo, hi = off
+		clear = lo if clear is None else clear
+		end = self.length if end is None else end
+		n, d = 0, start
+		road = {"Wall", "Dash", "Apron", "WinPad", "Road", "Ground"}
+		same, other = {}, {}  # ground props already placed: of `names` (kept `gap` away) and the rest (kept `space` away)
+
+		def add(grid, x, z, cell):
+			grid.setdefault((int(x // cell), int(z // cell)), []).append((x, z))
+
+		def near(grid, x, z, r):
+			cx, cz = int(x // max(r, 1.0)), int(z // max(r, 1.0))
+			return any((x - a) ** 2 + (z - b) ** 2 < r * r for i in (cx - 1, cx, cx + 1) for j in (cz - 1, cz, cz + 1) for a, b in grid.get((i, j), ()))
+
+		for ob in self.col.objects:
+			kind = ob.data.name.split("_")[-1] if ob.type == "MESH" and ob.data else None
+			if kind and kind not in road and ob.location.z < 30:  # ground props only
+				if kind in names:
+					add(same, ob.location.x, -ob.location.y, max(gap, 1.0))
+				else:
+					add(other, ob.location.x, -ob.location.y, max(space, 1.0))
+
+		def crowded(x, z):
+			return (gap and near(same, x, z, gap)) or (space and near(other, x, z, space))
+
+		while d < end:
+			for side in (-1, 1):
+				o = side * rng.uniform(lo, hi)
+				pos, yaw = self.beside(d + rng.uniform(-every / 3, every / 3), o)
+				x, z = pos[0], pos[2]
+				if not self.owns(x, z) or not self.clear_of_road(x, z, clear):
+					continue
+				if crowded(x, z):
+					continue
+				turn = (yaw + (math.pi / 2 if side > 0 else -math.pi / 2)) if face_road else rng.uniform(0, math.tau)
+				self.place(rng.choice(names), (x, -1.0, z), turn, rng.uniform(*scale))
+				add(same, x, z, max(gap, 1.0))
+				n += 1
+			d += every
+		return n
+
 	def along(self, every, offsets, names, jitter=0.0, start=40.0, end=None, scale=(1.0, 1.0), face_road=True):
 		"""Every `every` studs, at each signed offset from the centre line, a random prop of `names`."""
 		end = self.length - 70 if end is None else end

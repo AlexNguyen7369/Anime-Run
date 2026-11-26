@@ -359,7 +359,7 @@ def rules_ok(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 	return True
 
 
-def find_spot(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
+def find_spot(local, origin, yaw, pos, e, sc, ctx, exempt, why=None, prefer=None, scan=4000):
 	"""The rules_ok base centre on a SPOT_STEP grid through `pos` over the own ground with the fewest other-track draft
 	props overlapping the mesh's box (counted box to box, axis-aligned in world: a close upper bound of props_overlap),
 	ties to the spot nearest `pos`. Returns (spot, that count) or None."""
@@ -399,12 +399,25 @@ def find_spot(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 		count[i : i + 2048] = (
 			(np.abs(wx[i : i + 2048, None] - pc[None, :, 0]) < ext[0] + pe[None, :, 0]) & (np.abs(wz[i : i + 2048, None] - pc[None, :, 2]) < ext[2] + pe[None, :, 2])
 		).sum(1)
+	# prefer(p2): a legal spot it accepts wins (2026-11-26 re-fit: a hero seen from the run cameras); else the first legal
+	# one. After the first legal spot, only `scan` more candidates are tried for a preferred one.
+	first, left = None, None
 	for k in np.lexsort((d, count)):
-		if near[k]:
-			p2 = (float(X[k]), pos[1], float(Z[k]))
-			if rules_ok(local, origin, yaw, p2, e, sc, ctx, exempt, why):
+		if not near[k]:
+			continue
+		p2 = (float(X[k]), pos[1], float(Z[k]))
+		if first is not None:
+			left -= 1
+			if left < 0:
+				break
+			if not prefer(p2):
+				continue
+		if rules_ok(local, origin, yaw, p2, e, sc, ctx, exempt, why):
+			if prefer is None or prefer(p2):
 				return p2, int(count[k])
-	return None
+			if first is None:
+				first, left = (p2, int(count[k])), scan
+	return first
 
 
 def seen_by(k, pts):
@@ -427,6 +440,20 @@ def seen_by(k, pts):
 		z = v @ F
 		ok = z > 1
 		if ((np.abs((v @ r)[ok] / z[ok]) <= tv * 16 / 9) & (np.abs((v @ u)[ok] / z[ok]) <= tv)).any():
+			out.append(f)
+	return out
+
+
+def seen_near(k, pts, reach=1600.0):
+	"""seen_by, but only by a run shot whose eye is within `reach` studs of some point of pts: in frame and near enough to
+	read (2026-11-26 re-fit: the wide layout's straights are up to about 7,000 studs long)."""
+	import numpy as np
+
+	out = []
+	for f in seen_by(k, pts):
+		p, right, t = k.at(k.length * f)
+		eye = np.array((p.x + right.x * 10 - t.x * 14, p.z + right.z * 10 - t.z * 14))
+		if np.sqrt(((pts[:, [0, 2]] - eye) ** 2).sum(1)).min() <= reach:
 			out.append(f)
 	return out
 
@@ -1006,7 +1033,8 @@ def export(number, glb=True, plan=False, zone=None):
 		if best is None:  # fewest other-track props over it, then nearest the approved spot
 			found = []
 			for q in cands:
-				r = find_spot(hero_tris[h], origin, yaw, q[1], q[2], q[3], ctx, h in exempt)
+				view = lambda p_, q=q: bool(seen_near(k, game_tris(hero_tris[h], origin, yaw, p_, q[2], q[3]).reshape(-1, 3)[::25]))  # noqa: E731
+				r = find_spot(hero_tris[h], origin, yaw, q[1], q[2], q[3], ctx, h in exempt, prefer=view)
 				if r:
 					found.append((r[1], math.dist(q[1], r[0]), q, r[0]))
 			if found:

@@ -642,6 +642,8 @@ def build(k):
 		if k.owns(x, z) and grid.clear(x, z, 120):
 			k.place("Forest", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(1.4, 2.6))
 			n += 1
+	# Wide layout (2026-11-26 re-fit): more of the golden forest past the walls, out to this track's ground midline
+	print("BAND forest", k.band(["Forest"], 80, (WALL_OFF + 30, 375), scale=(1.4, 2.6), gap=60, seed=1))
 	# The Great Barrier: a true sphere over everything, its gold lattice lines visible in the sky from the road
 	k.place("Barrier", (c.x, -1.0, c.z), 0.0, RB)
 	# Sunset: a golden-yellow sun band at the horizon, warm peach above, dusky rose overhead

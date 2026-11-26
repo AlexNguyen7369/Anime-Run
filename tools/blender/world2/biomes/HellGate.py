@@ -552,8 +552,14 @@ def build(k):
 	p, right, t = k.at(L)
 	R = 2600.0
 
+	import chain
+
+	every = [Vector(w) for t_ in chain.build() for w in t_["Waypoints"][::2]]  # every track's road (2026-11-26 re-fit)
+
 	def clear(ctr, R):
-		for w in k.wps:
+		if not k.owns(ctr.x, ctr.z):
+			return False
+		for w in every:
 			v = Vector((w.x - ctr.x, 0, w.z - ctr.z))
 			if (v.dot(right) / (R * WIDE + 50)) ** 2 + (v.dot(t) / (R + 50)) ** 2 <= 1.0:
 				return False
@@ -688,4 +694,8 @@ def build(k):
 	p, right, t = k.at(L)
 	q = p + t * 26  # past the road's end: frame face 16 studs out, the void 28+
 	k.place("DarkGate", (q.x, p.y - 1.0, q.z), facing((-t.x, -t.z)), 2.0)  # x2, front toward the runner
+	# Wide layout (2026-11-26 re-fit): the rolling hills and colossal hands out to this track's ground midline (about
+	# 380 out on the inner side), the approved props at their approved scales
+	print("BAND hills", k.band(["Hill"], 380, (260, 375), scale=(80, 160), gap=250, seed=1))
+	print("BAND hands", k.band(["Hand"], 900, (220, 370), scale=(5.0, 6.5), gap=400, seed=2))
 	k.sky([(0.0, HAZE), (0.06, "F0602E"), (0.22, "C02018"), (0.55, "820A12"), (1.0, "3A0208")], strength=1.0, sun=(2.6, "FFEEDD", 40, 15))

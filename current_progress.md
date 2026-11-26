@@ -326,6 +326,7 @@
 303. 2026-11-26 — Alex Nguyen — Ran the second re-fit pass on World 2 Tracks 6 and 7 against agent-3's pass-2 Drafts: Track 6 re-exported with the cross-track additions (935 placed, 0 dropped), Track 7 unchanged, both clean in the biome harness apart from the two no-spot heroes.
 304. 2026-11-26 — Alex Nguyen — Made the World 2 export leave out mid props whose box meets a checkpoint area or the spawn floor (the game's Prune), re-exported Tracks 1-5 and 8-10 (pass 3) and checked all ten Drafts: 0 of 12,948 rows on another track's ground or on a checkpoint.
 305. 2026-11-26 — Alex Nguyen — Rendered and blind-scored the World 2 re-fit of Tracks 1-5 and 8-10 (game 6-7, context 3-5 against approved 7-8) and wrote the round 1 report with counts, checks, faults and the upload list (docs/proposals/W2_REFIT_REPORT.md).
+306. 2026-11-26 — Alex Nguyen — World 2 re-fit round 2 tools: hero spot search prefers the run cameras' views, kit.band backdrop over each track's own band, an approximate fog for context renders, the proposed sky-prop rule (WORLD2_SPEC) and owner questions 37-38 (LairTower, Abyss scale).
 
 ## What's next
 **Round 2 of the World 2 re-fit: bring each moved or missing hero back into its run views on its own band (T1 castle, T5 Defence HQ, T9 church, T10 Abyss, T8 LairTower), close the long straights' 0.9 views with the track's own props, and settle a sky-prop rule for the context views.**

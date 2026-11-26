@@ -233,6 +233,13 @@ written before the swap.
   changes, a full count (props and heroes per track) goes to the owner; the freezes and the re-export hold stand until
   then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
   legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
+- Sky props on the wide layout (**proposed**, agent-3, 2026-11-26, re-fit round 2; lead's ask, not yet owner-approved): a
+  prop that stands high off the ground (sky doors and arms, clouds, floating rocks and smoke, a tower's chains) stays inside
+  its own track's band: its base centre on its own ground (as every prop) and its whole box within the ground its road owns,
+  so nothing of one track hangs over another's land. Its top stays under SKY_TOP (**proposed** 300 studs over the ground)
+  unless it is at least SKY_FAR (**proposed** 1,500 studs) from every other track's road, so its silhouette is not seen above
+  another track's horizon through that track's fog. To be checked in context renders with the game's fog (an approximation
+  in Blender; the Studio check decides).
 - Track 6 lit landmark (owner 2026-11-25, "lit landmarj approved"; renders went to the owner, who approved the merge (choice E, 2026-11-26)): at the bend
   (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
   centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,

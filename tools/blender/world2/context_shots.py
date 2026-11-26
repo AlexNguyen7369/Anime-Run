@@ -2,7 +2,7 @@
 closest render to what a player sees). Built = the exported rows on each track's own ground (game_shots.built_rows).
 Missing: game terrain and ground colours of the other tracks, Prune, streaming distance, the other tracks' lights, the
 game's own lighting, the plaza, moved heroes of other tracks. The sky, sun and lamps are the reviewed track's.
-Headless: Blender -b --factory-startup --python tools/blender/world2/context_shots.py -- <number ...> [--fast] [--out=<folder>]
+Headless: Blender -b --factory-startup --python tools/blender/world2/context_shots.py -- <number ...> [--fast] [--out=<folder>] [--fog=<studs>]
 """
 
 import importlib
@@ -38,6 +38,28 @@ def keep_built(k, number):
 	print("BUILT", number, k.biome, "shown", shown, "of", len(rows), flush=True)
 
 
+FOG = None  # --fog=<studs>: half-visibility distance of an approximate fog (the game's Atmosphere is not modelled exactly)
+
+
+def add_fog(scene, half):
+	"""An even fog over the whole scene: the world gets a scattering volume that halves what is seen every `half` studs
+	(Beer-Lambert), tinted by the sky's horizon. An approximation of the game's Atmosphere fog (Kit.fromDraft: Density 0.3
+	by day, 0.22 at night) for the sky-prop rule's check (WORLD2_SPEC "Sky props", proposed); a Studio check decides."""
+	import math
+
+	nt = scene.world.node_tree
+	out = next(n for n in nt.nodes if n.type == "OUTPUT_WORLD")
+	vol = nt.nodes.new("ShaderNodeVolumePrincipled")
+	vol.inputs["Density"].default_value = math.log(2) / half
+	vol.inputs["Color"].default_value = (0.8, 0.8, 0.8, 1.0)
+	nt.links.new(vol.outputs["Volume"], out.inputs["Volume"])
+	for attr, v in (("volumetric_end", 20000.0), ("volumetric_start", 1.0), ("volumetric_tile_size", "8")):
+		try:
+			setattr(scene.eevee, attr, v)
+		except (AttributeError, TypeError) as err:
+			print("FOG setting skipped:", attr, err)
+
+
 def run(number, fast):
 	import bpy
 	import kit
@@ -58,7 +80,9 @@ def run(number, fast):
 				ob.hide_render = True
 		keep_built(k, n)
 	scene.world = world
-	bt.shots(own, scene.camera, os.path.join(bt.OUT, "track%02d_%s" % (number, own.biome), "context"))
+	if FOG:
+		add_fog(scene, FOG)
+	bt.shots(own, scene.camera, os.path.join(bt.OUT, "track%02d_%s" % (number, own.biome), "context_fog" if FOG else "context"))
 
 
 def main():
@@ -66,6 +90,8 @@ def main():
 	out = next((a.split("=", 1)[1] for a in argv if a.startswith("--out=")), None)
 	if out:  # another review set's folder (relative to the repo root), e.g. assets/world2_draft/relayout_2026-11-26
 		bt.OUT = os.path.join(bt.ROOT, out)
+	global FOG
+	FOG = next((float(a.split("=", 1)[1]) for a in argv if a.startswith("--fog=")), None)
 	for n in [int(a) for a in argv if not a.startswith("--")]:
 		run(n, "--fast" in argv)
 

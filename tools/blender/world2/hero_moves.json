@@ -2,29 +2,7 @@
  "AntIsland": {},
  "DemonCastle": {},
  "DevilTokyo": {},
- "ElvenPlains": {
-  "RuinedCastle": {
-   "From": [
-    -1377.174,
-    -18.5,
-    -3232.215
-   ],
-   "OverlapsFrom": [
-    30,
-    "T7 Mound 122x280x81"
-   ],
-   "OverlapsTo": [
-    6,
-    "T2 RuinA 151x252x71"
-   ],
-   "Studs": 3691.5,
-   "To": [
-    -297.174,
-    -18.5,
-    297.785
-   ]
-  }
- },
+ "ElvenPlains": {},
  "GoldenCity": {
   "Church": {
    "From": [
@@ -87,11 +65,11 @@
     0,
     null
    ],
-   "Studs": 1699.6,
+   "Studs": 60.0,
    "To": [
-    3737.465,
+    2227.465,
     -3.0,
-    -2099.475
+    -2939.475
    ]
   }
  },

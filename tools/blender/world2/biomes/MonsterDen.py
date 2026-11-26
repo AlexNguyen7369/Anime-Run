@@ -785,6 +785,9 @@ def build(k):
 		if k.clear_of_road(x, z, 40):
 			k.place(name, (x, -1.0, z), math.atan2(-t.x, -t.z), 1.2)
 	k.light((g.x - t.x * 80, 260, g.z - t.z * 80), "D8C8B8", energy=1.5e6, radius=60)
+	# Wide layout (2026-11-26 re-fit): the cavern's pillars, ruins and flesh walls out to this track's ground midline
+	# (about 380 out), the approved field props at their approved scales
+	print("BAND cavern", k.band(["RockPillar", "RockPillar", "CityChunk", "Graveyard", "Colonnade", "FleshWall"], 60, (200, 370), scale=(1.2, 2.2), gap=55, seed=1))
 	k.sky([(0.0, "161219"), (0.2, "0A080C"), (1.0, "030204")], strength=1.0, sun=(1.6, "B8B0E0", 35, 120))
 	# Warm lamps along the road, and high soft fill lights so the cavern shapes read
 	d = 40

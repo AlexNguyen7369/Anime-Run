@@ -758,6 +758,9 @@ def build(k):
 	v = (t * math.cos(az) - right * math.sin(az)) * dist * math.cos(el)
 	moon.location = kit.rb(eye.x + v.x, ey + dist * math.sin(el), eye.z + v.z)
 	k.col.objects.link(moon)
+	# Wide layout (2026-11-26 re-fit): the cedar-forested hills out to this track's ground midline (about 380 out), the
+	# approved Cedar at its approved scales, so the run views end in forest, not bare ground
+	print("BAND Cedar", k.band(["Cedar"], 34, (110, 370), scale=(0.9, 1.5), gap=26, seed=1, space=36))
 	k.sky([(0.0, "2C5488"), (0.06, "1A3460"), (0.35, "0B1838"), (1.0, "030812")], strength=1.0, sun=(1.5, "8FB0FF", 38, 160))
 	for ob in k.col.objects:  # soft moonlight: wide light angle, so cedar shadows on the verge are soft
 		if ob.type == "LIGHT" and ob.data.type == "SUN":

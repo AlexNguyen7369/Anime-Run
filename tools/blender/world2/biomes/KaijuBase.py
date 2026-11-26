@@ -1944,6 +1944,9 @@ def build(k):
 		if k.clear_of_road(x, z, 420) and all(math.hypot(x - ax, z - az) > r for ax, az, r in tall_avoid):
 			k.place(k.rng.choice(["Office", "Apartment", "Office"]), (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(1.2, 2.4))
 			placed += 1
+	# Wide layout (2026-11-26 re-fit): the wrecked city's far blocks out to this track's ground midline (about 380 out),
+	# the approved far-skyline props at their approved scales, so the straights do not run into empty lots
+	print("BAND city", k.band(["Office", "Apartment", "Office", "CityBlock"], 70, (190, 370), scale=(1.2, 2.0), gap=85, seed=1, space=70))
 	corpse_sites(k, city_end, [(d - 460, d + 460) for d, _, _ in corpses], avoid, tall_avoid)
 	# Clear day with big cumulus clouds (sky dressing, the game's Sky clouds; not prop assets)
 	k.sky(
