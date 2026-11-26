@@ -443,6 +443,24 @@ if process.env.WORLD == "2" then
 				check(string.sub(def.Mesh, 1, #key + 4) == "W2_" .. key .. "_", def.Mesh .. " key uses the biome key")
 			end
 		end
+		-- the track sky's row (docs/WORLD2_SPEC.md "Track skies"): the profile's Skybox, Faces form, ids 0 until uploaded
+		local skyKey = t.Atmosphere and t.Atmosphere.Sky and t.Atmosphere.Sky.Skybox
+		if skyKey then
+			used[skyKey] = true
+			local row = t.Assets[skyKey]
+			local faces = type(row) == "table" and type(row.Faces) == "table"
+			for _, face in { "Bk", "Dn", "Ft", "Lf", "Rt", "Up" } do
+				faces = faces and string.match(row.Faces[face] or "", "^rbxassetid://%d+$") ~= nil
+			end
+			check(
+				faces
+					and row.Kind == "Skybox"
+					and row.TrackSky == true
+					and row.Id == row.Faces.Bk
+					and skyKey == "W2_" .. key .. "_Sky",
+				key .. "/" .. skyKey .. " sky ledger row"
+			)
+		end
 		for asset in t.Assets or {} do
 			check(used[asset] == true, key .. "/" .. asset .. " ledger row is used")
 		end

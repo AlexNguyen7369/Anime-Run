@@ -3,11 +3,12 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
-- Skies merge: stopped before merging orch/world2/w2-skies (7faffd03). You asked for "pictures again before the merge" (design log 2026-11-26), so I did not pre-approve it. Question: are the toned-down skies on https://claude.ai/artifact/XAGPYh1kpojUd35tXm58NJ good to merge? State: audit found only that gate, now written into WORLD2_SPEC (ffa6c958); world2_skies 81/81.
+- Track effects LIVE: stays off until you approve the effects and motions (your words). Previews: assets/world2_draft/track_fx/previews/ on orch/world2/w2-track-vfx. Questions: does your "tone down the haze" cover Track 10's red ground-haze particles? Are DemonCastle's black-violet drakes too close to Kaizel's wyvern look?
 - Studio test run and Play check: my script writes to the cloud place were denied. Question: allow execute_luau script writes, or connect Rojo to w2-ingame? State: orch/world2/cast-ingame pushed.
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Skies: merged orch/world2/w2-skies into the World 2 branch after the owner approved the pictures ("skies merge is fine, approved"); world2_skies 81/81, audit's one finding (the owner's merge gate) written into the spec.
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you

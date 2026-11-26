@@ -314,7 +314,13 @@
 293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 281. 2026-11-26 — Alex Nguyen — Started the World 2 wide-layout round: owner ruling (about 600 studs between tracks, straight allowed) recorded as owner question 36, and layout, impact and render-audit tasks sent to agents 1-3.
-294. 2026-11-26 — Alex Nguyen — Drafted World 2 track effects behind TrackFxConfig.LIVE = false (client-only smoke, steam, haze, embers and motes on named props, generic drakes and a spirit eel on track-local loops, sway, bob and flicker on placed props), with 4 in-house textures, 4 Blender meshes, preview GIFs, a spec section and the track_fx checks (lune only; nothing uploaded).
+314. 2026-11-25 — Alex Nguyen — Drew in-house gradient skies for World 2 Tracks 10, 2, 9 and 7 from their drafts with previews for the owner, and coded them behind an off switch with zero ids (nothing uploaded).
+315. 2026-11-26 — Alex Nguyen — Fixed the World 2 skies after review: fog meets each sky, a softer Demon Castle horizon, a proposed dusk light for Ant Island, redone previews (all behind the off switch).
+316. 2026-11-26 — Alex Nguyen — Put the four uploaded, reviewed World 2 sky ids into their ledger rows, wrote the owner's choice F steps into the spec and switch, and made the sky tests check the off and id-0 cases by setting them for the check.
+317. 2026-11-26 — Alex Nguyen — Switched the four World 2 track skies on in their own commit, for the Studio check before merging (owner choice F).
+318. 2026-11-26 — Alex Nguyen — Toned down the haze of the four World 2 skied tracks while their sky shows (Density 0.22, Haze 0.5; owner: "tone down the haze across all a bit"), sky colours kept.
+319. 2026-11-26 — Alex Nguyen — Merged the four World 2 track skies with the toned-down haze into the World 2 branch (owner approved the Studio pictures).
+320. 2026-11-26 — Alex Nguyen — Drafted World 2 track effects behind TrackFxConfig.LIVE = false (client-only smoke, steam, haze, embers and motes on named props, generic drakes and a spirit eel on track-local loops, sway, bob and flicker on placed props), with 4 in-house textures, 4 Blender meshes, preview GIFs, a spec section and the track_fx checks (lune only; nothing uploaded).
 
 ## What's next
 **Show the owner the track effects previews (assets/world2_draft/track_fx/previews), and on approval upload the 8 track effect assets, record their ids and the rules audit in TrackFxConfig.Assets, then check the effects in Studio on the re-laid World 2 tracks before LIVE goes on.**

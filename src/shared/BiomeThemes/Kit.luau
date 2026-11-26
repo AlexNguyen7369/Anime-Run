@@ -467,7 +467,8 @@ end
 -- are the draft's largest kit parts and whose Mesh is "W2_<key>_<Prop>" (a ledger row, spec 4.2 / 4.4), except
 -- PartsOnly props (1-2 parts, built exactly). The draft's placements and lamps go to BiomeDressing's Placed layer; the
 -- procedural layers stay empty. Sky and sun map to an Atmosphere profile (spec 5.2; every mapped number is a
--- placeholder). o = { Assets, Gate, Terrain, Audio, Particles?, Atmosphere? (overrides) }
+-- placeholder). o = { Assets, Gate, Terrain, Audio, Particles?, Skybox? (a ledger key), SkyLook? (overrides while that sky shows),
+-- Atmosphere? (overrides) }
 -- Low ground clutter a draft repeats hundreds of times casts no shadow (BIOME_ENVIRONMENT_SPEC 8: shadow casters):
 -- grass tufts (2.6 studs tall), flower patches (1.8), flagstone strips (0.9) and crowd figures (21). Everything else,
 -- heroes and the larger repeated props (Cedar, SkyDoor, Pine, Brush, Tree, Wagon) included, keeps its shadow until the
@@ -478,6 +479,40 @@ local NO_SHADOW = {
 	GoldenCity = { People = true },
 	DemonCastle = { Edge = true },
 }
+
+-- The colour tools/blender/world2/track_sky.py draws at height z (sine of the elevation, -1..1) for a draft sky: the stops
+-- mixed in linear light, times Strength, back to sRGB and clipped (the draft's own Blender world). Keep the two in step.
+local function toLinear(c)
+	return if c <= 0.04045 then c / 12.92 else ((c + 0.055) / 1.055) ^ 2.4
+end
+local function toSrgb(c)
+	c = math.clamp(c, 0, 1)
+	return if c <= 0.0031308 then c * 12.92 else 1.055 * c ^ (1 / 2.4) - 0.055
+end
+local function skyColor(sky, z)
+	local stops = sky.Stops
+	local a, b, t = stops[1], stops[1], 0
+	if z >= stops[#stops][1] then
+		a, b = stops[#stops], stops[#stops]
+	elseif z > stops[1][1] then
+		for i = 2, #stops do
+			if z <= stops[i][1] then
+				a, b, t = stops[i - 1], stops[i], (z - stops[i - 1][1]) / (stops[i][1] - stops[i - 1][1])
+				break
+			end
+		end
+	end
+	local k = sky.Strength or 1
+	local function channel(x, y)
+		local la, lb = toLinear(x), toLinear(y)
+		return toSrgb((la + (lb - la) * t) * k)
+	end
+	return Color3.new(channel(a[2].R, b[2].R), channel(a[2].G, b[2].G), channel(a[2].B, b[2].B))
+end
+local SKY_DECAY_HEIGHT = 0.035 -- proposed: the fog's Decay is the drawn sky about 2 degrees up
+-- The haze while a track's own sky shows, toned down "a bit" (owner 2026-11-26: "just tone down the haze across all a bit,
+-- colors are fine just too much"; was the day look's Density 0.3 and Haze 1): the colours stay the sky's. Proposed.
+local SKY_FOG = { Density = 0.22, Haze = 0.5 }
 
 local function fromDraft(key, draft, o)
 	local props = {}
@@ -538,6 +573,28 @@ local function fromDraft(key, draft, o)
 			MoonAngularSize = 11,
 		},
 	})
+	-- An in-house gradient skybox drawn from these same stops (docs/WORLD2_SPEC.md "Track skies", owner 2026-11-25): its
+	-- ledger row key. Shown only once the row has real ids, is reviewed and Shared/TrackSkyConfig.LIVE is on (BiomeEnvironment.Row).
+	profile.Sky.Skybox = o.Skybox
+	-- With that sky shown (BiomeEnvironment.Profile), the fog takes the drawn sky's own colours at the horizon so no seam
+	-- shows where they meet, at a lighter haze (SKY_FOG), plus the theme's SkyLook (light that matches the draft under its sky). All proposed.
+	if o.Skybox then
+		local withSky = {
+			Atmosphere = {
+				Color = lift(skyColor(draft.Sky, 0), look.Fog),
+				Decay = lift(skyColor(draft.Sky, SKY_DECAY_HEIGHT), look.Fog * 0.6),
+				Density = math.min(profile.Atmosphere.Density, SKY_FOG.Density),
+				Haze = math.min(profile.Atmosphere.Haze, SKY_FOG.Haze),
+			},
+		}
+		for group, values in o.SkyLook or {} do
+			withSky[group] = withSky[group] or {}
+			for k, value in values do
+				withSky[group][k] = value
+			end
+		end
+		profile.WithSky = withSky
+	end
 	for group, values in o.Atmosphere or {} do
 		profile[group] = profile[group] or {}
 		for k, value in values do
@@ -570,9 +627,32 @@ local function draftMesh(tris, id, reviewed, prompt, notes)
 	return { Kind = "Mesh", Lane = "B", Tris = tris, Id = id, Reviewed = reviewed, Prompt = prompt, Notes = notes }
 end
 
+-- The ledger row (spec 4.4 Faces form) of a World 2 track sky (docs/WORLD2_SPEC.md "Track skies"): six faces from three
+-- images drawn by tools/blender/world2/track_sky.py (one Side image on Bk, Ft, Lf and Rt, plus Up and Dn). ids = { Side, Up,
+-- Dn } asset numbers, 0 until uploaded; a 0 id is never shown (BiomeEnvironment.Row), nor is any row of this kind while
+-- Shared/TrackSkyConfig.LIVE is off. Reviewed by the rules audit, as every row.
+local function draftSky(ids, reviewed, notes)
+	local function id(n)
+		return "rbxassetid://" .. string.format("%d", n or 0)
+	end
+	local side = id(ids.Side)
+	return {
+		Kind = "Skybox",
+		Lane = "A", -- as the plaza's SkyGolden: drawn in-house by code, nothing generated
+		Id = side,
+		Faces = { Bk = side, Ft = side, Lf = side, Rt = side, Up = id(ids.Up), Dn = id(ids.Dn) },
+		Reviewed = reviewed,
+		Prompt = "none: in-house python vertical gradient from the approved draft's sky stops, no text, symbols or shapes",
+		Notes = notes,
+		TrackSky = true,
+	}
+end
+
 return {
 	fromDraft = fromDraft,
 	draftMesh = draftMesh,
+	draftSky = draftSky,
+	skyColor = skyColor,
 	M = M,
 	hex = hex,
 	rgb = rgb,
