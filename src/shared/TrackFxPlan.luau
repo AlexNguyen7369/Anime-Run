@@ -61,6 +61,35 @@ function TrackFxPlan.Area(preset, row, size)
 	return Vector3.new(math.max(preset.Area.X, f.X), math.max(preset.Area.Y, f.Y), math.max(preset.Area.Z, f.Z))
 end
 
+-- Open Cloud's GLB import turns an effect mesh 180 degrees about Y (WORLD2_SPEC "Track effects", import turn): its posed
+-- frame, turned back about the mesh's own centre, so it faces as drafted (head at -Z, along the flight path).
+local IMPORT_TURN = CFrame.Angles(0, math.pi, 0)
+function TrackFxPlan.MeshTurn(cf)
+	return cf * IMPORT_TURN
+end
+
+-- A drake's part frames on its path frame `cf` (looking along its travel): the body bobbing with `flap` (-1..1) and banked
+-- by `turn`, the wings hinged on it, the right wing the left mesh turned about its long axis. `raw`: the drafted pose,
+-- without the import turn (tests compare the two).
+function TrackFxPlan.DrakePose(cf, D, flap, turn, raw)
+	local body = cf
+		* CFrame.new(0, -flap * D.Bob, 0)
+		* CFrame.Angles(0, 0, math.clamp(turn * 40, -1, 1) * math.rad(D.Bank))
+	local angle = math.rad(D.FlapAngle) * flap
+	local half = D.WingSize.X / 2
+	local hl = D.WingHinge
+	local left = body * CFrame.new(-hl.X, hl.Y, hl.Z) * CFrame.Angles(0, 0, -angle) * CFrame.new(-half, 0, 0)
+	local right = body
+		* CFrame.new(hl.X, hl.Y, hl.Z)
+		* CFrame.Angles(0, 0, angle)
+		* CFrame.new(half, 0, 0)
+		* CFrame.Angles(0, 0, math.pi) -- the same wing mesh turned about the long axis
+	if raw then
+		return { Body = body, Left = left, Right = right }
+	end
+	return { Body = TrackFxPlan.MeshTurn(body), Left = TrackFxPlan.MeshTurn(left), Right = TrackFxPlan.MeshTurn(right) }
+end
+
 -- Transparency keys of a row's emitter: the row's own (WORLD2_SPEC "Track effects", Track 10's haze) or its preset's
 function TrackFxPlan.Transparency(preset, row)
 	return row.Transparency or preset.Transparency

@@ -736,6 +736,10 @@ def build(k):
 	for g in range(7):
 		x = rng.uniform(k.lo.x + 150, k.hi.x - 150)
 		z = rng.uniform(k.lo.z + 150, k.hi.z - 150)
+		for _ in range(400):  # a river starts on this track's own ground (wide layout, 2026-11-26 re-fit)
+			if k.owns(x, z):
+				break
+			x, z = rng.uniform(k.lo.x + 150, k.hi.x - 150), rng.uniform(k.lo.z + 150, k.hi.z - 150)
 		head = rng.uniform(0, math.tau)
 		for i in range(10):
 			if k.clear_of_road(x, z, 90):
@@ -757,10 +761,35 @@ def build(k):
 		k.place("CityChunk", (cx, -1.0, cz), math.atan2(e.x - cx, e.z - cz) + math.pi, 1.7)
 		k.light((cx + right.x * 60, 80, cz + right.z * 60), "FFB070", energy=1.5e6, radius=20)
 	# 03: the lair tower framed whole, far ahead, a lava moat at its foot, lit from the runner's side
-	tx, tz = _in_view(k, 0.62, 300)
-	_clear_near(k, tx, tz, 330, big)
-	_clear_view(k, 0.62, tx, tz, 140, big, keep_low=False)  # the tunnel roof ahead opens onto the tower
-	k.place("LairTower", (tx, -1.0, tz), 0.0, 4.2)
+	# Owner 2026-11-26 (design log, "Approve 1-4", item 2): a hero with no spot at its approved scale stands at the largest
+	# scale that fits its own ground. The approved 4.2 (about 798 wide) does not fit the wide layout's band; the tower takes
+	# the largest scale (0.05 steps) with a spot ahead of a run camera (0.62 first, as approved), its centre on this track's
+	# ground and its footprint (190 studs at 1) 30+ clear of its road (so of every road), nearest the camera's axis; turn 0.
+	tx = tz = None
+	for step in range(70, 9, -1):  # from 3.5: a larger tower cannot be 30 clear of its road inside a 380 band
+		sc = step * 0.05
+		half = 95.0 * sc
+		for f in (0.62, 0.33, 0.9, 0.06):
+			e, t, right = _eye(k, f)
+			spots = []
+			for a in range(300, 1501, 25):
+				for side in (-1, 1):
+					for o in range(int(half + 40), 376, 15):
+						x, z = e.x + t.x * a + right.x * side * o, e.z + t.z * a + right.z * side * o
+						spots.append((o / a, x, z))
+			for _, x, z in sorted(spots):
+				dist, who = k.road_near(x, z)
+				if who == k.track["Number"] and dist >= half + 30 and k.in_ground(x, z):
+					tx, tz, tsc, tf = x, z, sc, f
+					break
+			if tx is not None:
+				break
+		if tx is not None:
+			break
+	print("LAIRTOWER at", (round(tx), round(tz)), "scale", tsc, "seen from", tf)
+	_clear_near(k, tx, tz, 95.0 * tsc + 30, big)
+	_clear_view(k, tf, tx, tz, 140 * tsc / 4.2, big, keep_low=False)  # the tunnel roof ahead opens onto the tower
+	k.place("LairTower", (tx, -1.0, tz), 0.0, tsc)
 	e, t, right = _eye(k, 0.62)
 	k.light((tx + (e.x - tx) * 0.35, 520, tz + (e.z - tz) * 0.35), "C8D0E0", energy=3e7, radius=80)
 	k.light((tx - (e.x - tx) * 0.3, 300, tz - (e.z - tz) * 0.3), "FF8A40", energy=3e7, radius=60)  # rim from behind
@@ -781,6 +810,9 @@ def build(k):
 		if k.clear_of_road(x, z, 40):
 			k.place(name, (x, -1.0, z), math.atan2(-t.x, -t.z), 1.2)
 	k.light((g.x - t.x * 80, 260, g.z - t.z * 80), "D8C8B8", energy=1.5e6, radius=60)
+	# Wide layout (2026-11-26 re-fit): the cavern's pillars, ruins and flesh walls out to this track's ground midline
+	# (about 380 out), the approved field props at their approved scales
+	print("BAND cavern", k.band(["RockPillar", "RockPillar", "CityChunk", "Graveyard", "Colonnade", "FleshWall"], 60, (200, 370), scale=(1.2, 2.2), gap=55, seed=1))
 	k.sky([(0.0, "161219"), (0.2, "0A080C"), (1.0, "030204")], strength=1.0, sun=(1.6, "B8B0E0", 35, 120))
 	# Warm lamps along the road, and high soft fill lights so the cavern shapes read
 	d = 40

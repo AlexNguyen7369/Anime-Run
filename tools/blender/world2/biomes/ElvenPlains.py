@@ -22,16 +22,30 @@ import math
 import roads
 from roads import Roads
 
-# (prop, world x, z, scale) behind the finish: the spots beside the 0.9 axis free of Track 2's ruins, which fill the axis itself
-BEHIND_FINISH = [("RuinWall", 306, 425, 1.0), ("Pine", 322, 410, 1.3), ("Pine", 310, 408, 1.2), ("Pine", 325, 420, 1.3), ("Pine", 405, 402, 1.3), ("Pine", 418, 395, 1.3), ("Pine", 412, 410, 1.3), ("Pine", 420, 406, 1.2)]
+# Hand-set spots are road-relative (tools/blender/world2/roadframe.py, kit.spot): d studs along the centre line (past the
+# finish: along the last straight), off studs right of it (negative: left). Turns are relative to the road's heading at d.
+# On the approved 2026-11-23 chain they give the same world spots as the world x, z they replace (2026-11-26 re-fit).
 
-# (world x, z, turn off the town's direction) of the army's ranks, one in each of three run views (0.06, 0.33, 0.62): each passes
-# export_props.rules_ok (exact triangles and parts fallback against every road, pads, plaza, own ground)
-RANKS = [(-26, -275, 0.0), (85.5, 277.9, 0.0), (-149.4, -412.4, 0.24)]
+# (prop, d, off, scale) behind the finish: the spots beside the 0.9 axis free of Track 2's ruins, which fill the axis itself;
+# each stands square to the last straight (turn pi from its heading)
+BEHIND_FINISH = [("RuinWall", 3224.917868, 54.0, 1.0), ("Pine", 3209.917868, 38.0, 1.3), ("Pine", 3207.917868, 50.0, 1.2), ("Pine", 3219.917868, 35.0, 1.3), ("Pine", 3201.917868, -45.0, 1.3), ("Pine", 3194.917868, -58.0, 1.3), ("Pine", 3209.917868, -52.0, 1.3), ("Pine", 3205.917868, -60.0, 1.2)]
 
-# (world x, z, yaw) of the 4 low mounds (the approved draft's count), at 0.8: found by search over this track's own ground
-# (off every road, standing in no other track's prop)
-MOUNDS = [(-296, -354, -2.26), (152, -266, 2.98), (-188, 30, -1.57), (-252, 262, 2.67)]
+# (d, off, along, turn from the road's heading, run view) of the army's ranks, one in each of three run views (0.06, 0.33,
+# 0.62): each passes export_props.rules_ok (exact triangles and parts fallback against every road, pads, plaza, own ground).
+# The turn is the approved one (toward the town on the approved chain, plus 0.24 for the third) kept relative to the road,
+# so a rank stands to its road as approved wherever the town ends up (2026-11-26 re-fit)
+RANKS = [(337.592536, -75.0, 0.01, 1.354861, 0.06), (1039.307609, -67.9, 0.0, -1.722429, 0.33), (1991.011477, -62.628058, 0.0, 1.497386, 0.62)]
+
+# (d, off, turn from the road's heading) of the 4 low mounds (the approved draft's count), at 0.8: found by search over this
+# track's own ground (off every road, standing in no other track's prop)
+MOUNDS = [(1886.372285, -75.252069, -1.567259), (505.051386, -67.755838, 4.707895), (50.0, -70.0, -1.57), (1350.017089, -66.780501, 1.57033)]
+
+# Spots seen from the 0.06 run camera, as (along, off) from the centre line at 0.06 of the length, in the road's frame there
+TOWN_AT = (3122.913, 738.0)  # the hill town on the horizon ahead of the start straight
+CASTLE_AT = (3052.913, -1382.0)  # the ruined castle at 1.5 beside it
+MOUNTAIN_AT = (5052.913, 818.0)  # the snow massif behind the town (square to the road there)
+RANK_ROW = 178.913  # the row a turned or moved rank searches, off = right + 118
+RUINS_06 = ((176.913, -32.0, 0.0, 1.3), (182.913, 14.0, -0.35, 1.2), (142.913, -82.0, 0.6, 1.0))  # (along, off, turn, scale)
 
 MODEL_SHOTS = ["Town", "RuinedCastle", "Rank", "HeroStatue", "Cottage"]  # hero close-ups (build_track.model_shots); Rank is the headless army
 
@@ -572,21 +586,54 @@ def build(k):
 	# Landmark 1: the hill town on the horizon ahead of the start straight, gate and scar toward the runner, in the
 	# 1,800-stud gap between Track 9's road and Track 10's
 	sp, _, _ = k.at(k.length * 0.06)
+	d06 = k.length * 0.06
+
+	def at06(along, off):
+		"""World (x, z) of a spot given in the road's frame at the 0.06 run camera (TOWN_AT, RUINS_06 ...)."""
+		return k.spot(d06, off, along)
+
+	def rel06(x, z):
+		"""(along, off) of world (x, z) in the road's frame at the 0.06 run camera."""
+		_, t, right = k.at(d06)
+		return (x - sp.x) * t.x + (z - sp.z) * t.z, (x - sp.x) * right.x + (z - sp.z) * right.z
+
 	TS = 1.6
-	tx, tz = 620.0, -3220.0
-	k.place("Town", (tx, -1.0, tz), math.atan2(-(sp.x - tx), -(sp.z - tz)), TS)
+	tx, tz = at06(*TOWN_AT)
+	# Owner 2026-11-26 ("Approve 1-4", design log fe810a44): a hero with no spot at its approved scale stands at the largest
+	# scale that fits its own ground. The town (approved 1.6, gate toward the 0.06 camera) is searched from 1.6 down, ahead
+	# of a run camera (0.06 first), its turn the approved one (front to that camera), its real footprint (the mesh's
+	# bounds) clear of every road by 24.5, pads and the plaza, base centre on this track's own ground.
+	vs = k.props["Town"].data.vertices
+	# about its origin (where it is placed), the larger side each way: conservative if the mesh is off-centre
+	town_w = 2 * max(abs(v.co.x) for v in vs)
+	town_d = 2 * max(abs(v.co.y) for v in vs)
+	import herofit
+
+	hit = herofit.best(k, town_w, town_d, 1.6, aheads=range(240, 2401, 80), sides=range(-1000, 1001, 80), owns=k.owns)
+	town_at = (hit[4], hit[1], hit[2], hit[3], round(hit[0], 3)) if hit else None
+	if town_at:
+		f, tx, tz, yaw, TS = town_at
+		k.place("Town", (tx, -1.0, tz), yaw, TS)
+		taken.append((tx, tz, max(town_w, town_d) * TS / 2))
+		print("TOWN at", round(tx), round(tz), "scale", TS, "for the", f, "camera")
+	else:
+		k.place("Town", (tx, -1.0, tz), math.atan2(-(sp.x - tx), -(sp.z - tz)), TS)  # no spot: the export drops it
+		print("TOWN no spot even shrunk")
 	# Landmark 2: the ruined castle, at its approved 1.5 beside the town on the horizon (no gap on this track's ground holds
 	# it). game_shots.py --castle-052 builds the owner's option instead: 0.52, dead ahead at the end of the start straight
 	option = "castle_052" in roads.OPTIONS
+	castle_at = None
 	# game_shots.py --turned: the other option for the owner, not exported: the statues and ranks turned to the runner, with one more
 	# of each than the approved rules allow where they stand (default: statue square to the road, rank toward the town)
 	turned = "turned" in roads.OPTIONS
 	best = None
-	for x in range(-190, -90, 4) if option else ():
-		for z in range(-310, -220, 4):
+	for side in range(-72, 28, 4) if option else ():
+		for j in range(23):
+			along = 212.913 - 4 * j
+			x, z = at06(along, side)
 			yaw = math.atan2(-(sp.x - x), -(sp.z - z))
 			if r.fits(x, z, yaw, 226 * 0.52, 190 * 0.52, clear=24.2):
-				off = abs(x - sp.x) + 0.3 * abs(z + 260)
+				off = abs(side) + 0.3 * abs(along - 162.913)
 				if best is None or off < best[0]:
 					best = (off, x, z, yaw)
 	if best:
@@ -594,10 +641,39 @@ def build(k):
 		k.place("RuinedCastle", (x, -1.0, z), yaw, 0.52)
 		taken.append((x, z, 74))
 	else:
-		x, z = -1500.0, -3150.0
-		yaw = math.atan2(-(sp.x - x), -(sp.z - z))
-		assert r.fits(x, z, yaw, 372, 302, own=False)
-		k.place("RuinedCastle", (x, -1.0, z), yaw, 1.5)
+		# Wide layout (re-fit round 2, 2026-11-26): the approved spot, beside the town on the horizon, is other tracks'
+		# ground now, and the export's hero rule moved the castle 3,692 studs, out of every run view. So it is searched
+		# on this track's own band ahead of a run camera (the approved 0.06 one first), at its approved 1.5 and with its
+		# approved turn: its front to that camera. The footprint must clear every road by 24.5, every pad and the plaza.
+		castle_at = None
+		for f in (0.06, 0.33, 0.62, 0.9):
+			p, right, t = k.at(k.length * f)
+			ex, ez = p.x + right.x * 10, p.z + right.z * 10
+			best = None
+			for ahead in range(260, 1300, 20):
+				for side in range(-380, 381, 20):
+					if abs(side) < 190 or abs(side) > ahead * 0.7:  # off the road, inside the camera's view
+						continue
+					x, z = ex + t.x * ahead + right.x * side, ez + t.z * ahead + right.z * side
+					yaw = math.atan2(-(ex - x), -(ez - z))
+					if not k.owns(x, z) or not r.fits(x, z, yaw, 226 * 1.5, 190 * 1.5, clear=24.5):
+						continue
+					score = math.hypot(ahead, side * 1.5)
+					if best is None or score < best[0]:
+						best = (score, x, z, yaw)
+			if best:
+				_, x, z, yaw = best
+				castle_at = (f, x, z)
+				break
+		if castle_at:
+			k.place("RuinedCastle", (x, -1.0, z), yaw, 1.5)
+			taken.append((x, z, 190))
+			print("CASTLE at", round(x), round(z), "for the", castle_at[0], "camera")
+		else:
+			x, z = at06(*CASTLE_AT)
+			yaw = math.atan2(-(sp.x - x), -(sp.z - z))
+			k.place("RuinedCastle", (x, -1.0, z), yaw, 1.5)  # the export's hero rule then places it (hero_moves.json)
+			print("CASTLE no spot in view on own ground")
 
 	# Open lines from the run cameras to the landmarks: no tree on them
 	sight = []
@@ -617,8 +693,12 @@ def build(k):
 	for f, d, off in ((0.9, 2800, 42), (0.9, 2838, 58), (0.33, 1075, -70), (0.33, 1110, -70), (0.06, 228, -46)):
 		pos, _ = facing(k, d, off)
 		see(f, pos[0], pos[2])
-	see(0.06, -150, -274)
-	see(0.06, -110, -280)
+	see(0.06, *at06(176.913, -32.0))
+	if not option and castle_at:  # the castle in its camera's view: no tree on that line
+		see(*castle_at)
+	if town_at:  # nor on the town's
+		see(town_at[0], town_at[1], town_at[2])
+	see(0.06, *at06(182.913, 8.0))
 
 	def stand_rank(x, z, yaw=None, shifts=(0.0, 0.12, -0.12, 0.25, -0.25)):
 		"""A rank facing the town (the approved turn, within 0.25 rad); True where it fits."""
@@ -640,7 +720,8 @@ def build(k):
 			return False
 		if name in ("Pine", "Forest") and hidden(pos[0], pos[2], w * scale):
 			return False
-		if name == "Pine" and pos[0] > sp.x and pos[2] < sp.z and math.hypot(pos[0] - sp.x, pos[2] - sp.z) < 170:
+		ahead, side = rel06(pos[0], pos[2])
+		if name == "Pine" and side > 0 and ahead > 0 and math.hypot(ahead, side) < 170:
 			return False  # no pine before the infield ruin in the 0.06 view
 		if not free(pos[0], pos[2], rad) or not r.fits(pos[0], pos[2], yaw, w * scale, dep * scale):
 			return False
@@ -649,15 +730,30 @@ def build(k):
 		return True
 
 	if not turned:
-		for x, z, sh in RANKS:
-			if option and x == -26:  # the castle stands there: the next free spot east of it
-				any(stand_rank(x2, -276) for x2 in range(0, 120, 4))
+		for d, off, along, turn, view in RANKS:
+			if option and view == 0.06:  # the castle stands there: the next free spot on along the row
+				any(stand_rank(*at06(RANK_ROW, x2 + 118)) for x2 in range(0, 120, 4))
 				continue
-			k.place("Rank", (x, -1.0, z), math.atan2(-(tx - x), -(tz - z)) + sh)
+			if view == 0.62:
+				# Re-fit round 2: the approved 0.62 view had this rank close on its left; on the wide layout its hand-set spot
+				# is far down the road, so it is searched just ahead of that camera (left, the approved side), approved turn.
+				d62 = k.length * 0.62
+				for dd in range(110, 320, 10):
+					x2, z2 = k.spot(d62 + dd, off)
+					if free(x2, z2, 50) and r.fits(x2, z2, k.heading(d62 + dd) + turn, 104, 66, clear=24.5):
+						d, along, x, z = d62 + dd, 0.0, x2, z2
+						print("Rank 0.62 at", round(dd), "ahead of its camera")
+						break
+			x, z = k.spot(d, off, along)
+			k.place("Rank", (x, -1.0, z), k.heading(d) + turn)
 			taken.append((x, z, 50))
-			see({-26: 0.06, 85.5: 0.33, -149.4: 0.62}[x], x, z)
-	for x, z, yaw in MOUNDS:
-		k.place("Mound", (x, -1.0, z), yaw, 0.8)
+			see(view, x, z)
+			if view == 0.62:  # both ends of the wide block too (round 2)
+				for e in (-45, 45):
+					see(view, *k.spot(d + e, off))
+	for d, off, turn in MOUNDS:
+		x, z = k.spot(d, off)
+		k.place("Mound", (x, -1.0, z), k.heading(d) + turn, 0.8)
 		taken.append((x, z, 56))
 	# Landmark 3: villages along the first lap and the last straight; the hero's statue on the green of two of them
 	# The hero's statue where the 0.06 run camera sees it, left of the castle, and one by the finish for the 0.9 camera
@@ -672,13 +768,14 @@ def build(k):
 			break
 	# the end of the start straight: a rank on its mound under the broken walls of a ruin (the castle's place)
 	if not option:
-		for x, z, turn, sc in ((-150, -274, 0.0, 1.3), (-104, -280, -0.35, 1.2), (-200, -240, 0.6, 1.0)):
+		for along, side, turn, sc in RUINS_06:
+			x, z = at06(along, side)
 			yaw = math.atan2(-(sp.x - x), -(sp.z - z)) + turn
 			if free(x, z, 18) and r.fits(x, z, yaw, 41 * sc, 21 * sc):
 				k.place("RuinWall", (x, -1.0, z), yaw, sc)
 				taken.append((x, z, 24))
 		if turned:
-			any(stand_rank(x, -276) for x in range(-56, 40, 6))
+			any(stand_rank(*at06(RANK_ROW, x + 118)) for x in range(-56, 40, 6))
 	# Finish: the statue and a ruin group beside the last straight, a rank of the army across it
 	for d, off in ((2800, 42), (2790, 42), (2770, 42)):
 		if put("HeroStatue", d, off, 0.9 if turned else 0.0, size=(24, 24), rad=18):
@@ -690,16 +787,21 @@ def build(k):
 	for d, off, turn, sc in ((2838, 58, 0.5, 1.1), (2745, 62, -0.4, 1.0), (2700, 66, 0.2, 1.2), (2846, -50, 0.3, 1.0)):
 		put("RuinWall", d, off, turn, sc)
 	for f, statue, houses in (
-		(0.045, False, ((-60, -58, 0.0), (-26, -62, 0.1), (46, -58, -0.1), (80, -64, 0.2), (-44, -98, 0.3), (-4, -100, -0.2), (36, -98, 0.1))),
+		# Re-fit round 2 (2026-11-26): the first and last villages moved just ahead of the 0.06 and 0.9 run cameras (from
+		# 0.045 and 0.80), where the approved views showed them close on the left, past the 0.06 rank; same houses, offsets
+		# and turns.
+		(0.142, False, ((-60, -58, 0.0), (-26, -62, 0.1), (46, -58, -0.1), (80, -64, 0.2), (-44, -98, 0.3), (-4, -100, -0.2), (36, -98, 0.1))),
 		(0.30, False, ((-50, -58, 0.4), (40, -62, -0.3), (74, -58, 0.5), (-20, -100, 0.2), (24, -98, -0.4))),
 		(0.30, False, ((-30, 58, 0.2), (10, 60, -0.3), (48, 58, 0.3))),
-		(0.80, False, ((-60, -60, 0.5), (-24, -96, -0.3), (14, -58, 0.2), (30, -98, -0.6))),
+		(0.915, False, ((-60, -60, 0.5), (-24, -96, -0.3), (14, -58, 0.2), (30, -98, -0.6))),
 	):
 		d0 = k.length * f + 30
 		if statue:
 			put("HeroStatue", d0, -42, size=(24, 24), rad=16)
 		for dd, off, turn in houses:
-			put("Cottage", d0 + dd, off, turn, k.rng.uniform(0.9, 1.05), size=(30, 29), rad=17)
+			if put("Cottage", d0 + dd, off, turn, k.rng.uniform(0.9, 1.05), size=(30, 29), rad=17) and f in (0.142, 0.915):
+				pos, _ = facing(k, d0 + dd, off)  # the near villages in the 0.06 and 0.9 views: no tree in front of them
+				see(0.06 if f < 0.5 else 0.9, pos[0], pos[2])
 
 	def outer(d):
 		p, right, _ = k.at(d)
@@ -757,12 +859,12 @@ def build(k):
 
 	def scatter(count, names, rad, scale, pad):
 		placed = tries = 0
-		while placed < count and tries < count * 60:
+		while placed < count and tries < count * 300:  # wide layout: most of the box is other tracks' ground
 			tries += 1
 			x, z = k.rng.uniform(k.lo.x - pad, k.hi.x + pad), k.rng.uniform(k.lo.z - pad, k.hi.z + pad)
 			name, sc, yaw = k.rng.choice(names), k.rng.uniform(*scale), k.rng.uniform(0, math.tau)
 			w, dep = BOX[name]
-			if not (name in ("Pine", "Forest") and hidden(x, z, w * sc)) and free(x, z, rad) and r.fits(x, z, yaw, w * sc, dep * sc):
+			if k.owns(x, z) and not (name in ("Pine", "Forest") and hidden(x, z, w * sc)) and free(x, z, rad) and r.fits(x, z, yaw, w * sc, dep * sc):
 				k.place(name, (x, -1.0, z), yaw, sc)
 				taken.append((x, z, rad))
 				placed += 1
@@ -772,7 +874,8 @@ def build(k):
 	scatter(40, ["Pine"], 7, (0.9, 1.5), 220)
 	# The snow massif behind the hill town (ref 01) past Track 10's road: the draft's only horizon pieces with the town, off
 	# this track's own ground, so not built (docs/WORLD2_SPEC.md). Scale over 1.26 keeps the exported mesh in its 3 pieces.
-	k.place("Mountain", (700, -1.0, -5150), 0.0, 1.35)
+	mx, mz = at06(*MOUNTAIN_AT)
+	k.place("Mountain", (mx, -1.0, mz), k.heading(d06), 1.35)
 	# More woods that fit this track's own land, none over another track's props
 	near = r.neighbours(own_ground=True)
 	(lox, loz), (hix, hiz) = r.ground(4)
@@ -782,16 +885,34 @@ def build(k):
 		name, sc = k.rng.choice((("Forest", 1.0), ("Pine", 1.5), ("Pine", 1.2)))
 		w, dep = {"FarWood": (248, 180)}.get(name, BOX.get(name))
 		yaw = k.rng.choice((0.0, math.pi / 2))
-		if free(x, z, w * sc / 2) and r.fits(x, z, yaw, w * sc, dep * sc) and not r.overlaps(near, x, z, yaw, w * sc, dep * sc):
+		# round 2: woods in patches with open meadows between (a smooth mask), not one even carpet over the wide band
+		meadow = math.sin(x * 0.006 + 1.1) * math.cos(z * 0.005 - 0.7) + 0.5 * math.sin((x + z) * 0.011) < -0.15
+		if meadow or hidden(x, z, w * sc):
+			continue
+		if k.owns(x, z) and free(x, z, w * sc / 2) and r.fits(x, z, yaw, w * sc, dep * sc) and not r.overlaps(near, x, z, yaw, w * sc, dep * sc):
 			k.place(name, (x, -1.0, z), yaw, sc)
 			taken.append((x, z, w * sc / 2))
 			n += 1
 	print("BACKDROP", n)
+	# Re-fit round 2 (2026-11-26): on the wide layout the 0.9 view runs down a long straight past the finish onto the next
+	# track's ground, so this track closes it itself: conifer woods (the approved Forest and Pine) thickening toward the
+	# finish, out to the gap midline on both sides, the band rising with distance from the camera.
+	d0 = k.length * 0.9
+	for d in range(int(d0) + 60, int(k.length) - 20, 28):
+		depth = (d - d0) / (k.length - d0)  # 0 at the camera, 1 at the finish
+		for side in (-1, 1):
+			for o in range(150, 370, 34):
+				if k.rng.random() > 0.45 + 0.5 * depth:
+					continue
+				name, sc = ("Forest", k.rng.uniform(0.95, 1.15)) if o > 200 or k.rng.random() < 0.5 else ("Pine", k.rng.uniform(1.2, 1.6))
+				put(name, d + k.rng.uniform(-8, 8), side * (o + k.rng.uniform(-8, 8)), 0.0, sc, rad=30 if name == "Forest" else 7, faces=False)
 	# Behind the finish, on the 0.9 view's axis
-	for name, x, z, sc in BEHIND_FINISH:
+	for name, d, off, sc in BEHIND_FINISH:
 		w, dep = BOX[name]
-		if free(x, z, 6) and r.fits(x, z, 0.0, w * sc, dep * sc):
-			k.place(name, (x, -1.0, z), 0.0, sc)
+		x, z = k.spot(d, off)
+		yaw = k.heading(d) + math.pi
+		if free(x, z, 6) and r.fits(x, z, yaw, w * sc, dep * sc):
+			k.place(name, (x, -1.0, z), yaw, sc)
 			taken.append((x, z, 8))
 	if option:  # pines at the mound's foot, under its overhanging corner towers (a fault of the mesh)
 		_, x, z, yaw = best

@@ -102,29 +102,29 @@ return Kit.fromDraft("DemonCastle", require(script.Parent.DemonCastleDraft), {
 		),
 		W2_DemonCastle_ChainTower_p1 = draftMesh(
 			7772,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://120687988116627", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: giant plain window gridded castle slab tower with climbing orange flame sheets, floor ledges, three huge rusty chains from the sky, an open top deck ringed by pale curved horns round a seated purple and gold figure and a beam of light",
 			"piece of ChainTower (2048-stud limit, WORLD2_SPEC 2026-11-24; the 12-mesh cap counts it once); hero landmark, 1 placed; build/world2/export/DemonCastle/W2_DemonCastle_ChainTower_p1.glb"
 		),
 		W2_DemonCastle_ChainTower_p2 = draftMesh(
 			2578,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://89632633969530", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: giant plain window gridded castle slab tower with climbing orange flame sheets, floor ledges, three huge rusty chains from the sky, an open top deck ringed by pale curved horns round a seated purple and gold figure and a beam of light",
 			"piece of ChainTower (2048-stud limit, WORLD2_SPEC 2026-11-24; the 12-mesh cap counts it once); hero landmark, 1 placed; build/world2/export/DemonCastle/W2_DemonCastle_ChainTower_p2.glb"
 		),
 		W2_DemonCastle_ChainTower_p3 = draftMesh(
 			7808,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://103738420560221", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: giant plain window gridded castle slab tower with climbing orange flame sheets, floor ledges, three huge rusty chains from the sky, an open top deck ringed by pale curved horns round a seated purple and gold figure and a beam of light",
 			"piece of ChainTower (2048-stud limit, WORLD2_SPEC 2026-11-24; the 12-mesh cap counts it once); hero landmark, 1 placed; build/world2/export/DemonCastle/W2_DemonCastle_ChainTower_p3.glb"
 		),
 		W2_DemonCastle_ChainTower_p4 = draftMesh(
 			2704,
-			nil, -- Id: tools/blender/world2/upload_props.py
-			nil, -- Reviewed: the rules audit
+			"rbxassetid://81168454533761", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: giant plain window gridded castle slab tower with climbing orange flame sheets, floor ledges, three huge rusty chains from the sky, an open top deck ringed by pale curved horns round a seated purple and gold figure and a beam of light",
 			"piece of ChainTower (2048-stud limit, WORLD2_SPEC 2026-11-24; the 12-mesh cap counts it once); hero landmark, 1 placed; build/world2/export/DemonCastle/W2_DemonCastle_ChainTower_p4.glb"
 		),

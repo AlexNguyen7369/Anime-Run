@@ -285,11 +285,52 @@ def props_overlap(local, origin, yaw, pos, e, sc, ctx):
 	return len(hits), max(hits)[1] if hits else None
 
 
+def pads_hit(local, origin, yaw, pos, e, sc, boxes):
+	"""The placed mesh's box grown by PRUNE_CLEAR meets a checkpoint area or the spawn floor (blockers()): what the game's
+	Prune removes (BiomeDressing.Prune, kept for World 2's Placed props)."""
+	import numpy as np
+
+	c, R, own = hero_box(local, origin, yaw, pos, e, sc)
+	half = own + PRUNE_CLEAR
+	ext = np.abs(R) @ half
+	for bc, bR, bh, column in boxes:
+		bext = np.abs(np.array(bR)) @ np.array(bh)
+		if np.any(np.abs(c[[0, 2]] - np.array(bc)[[0, 2]]) >= ext[[0, 2]] + bext[[0, 2]]):
+			continue
+		cc = c.copy()
+		if column:
+			cc[1] = bc[1]
+		elif abs(c[1] - bc[1]) >= ext[1] + bext[1]:
+			continue
+		if obb_overlap(cc, R, half, bc, bR, bh):
+			return True
+	return False
+
+
+_LINES = {}
+
+
+def owner_at(world):
+	"""The track that owns world point (x, y, z) by the owner's ground rule (WORLD2_SPEC "Ground ownership", 2026-11-25,
+	by base centre): the one whose centre line is nearest (its waypoints, at most 12 studs apart). Measured on the chain
+	the drafts are built on (chain.build)."""
+	import numpy as np
+
+	if not _LINES:
+		import chain
+
+		for t in chain.build():
+			_LINES[t["Number"]] = np.array([(p[0], p[2]) for p in t["Waypoints"]])
+	q = np.array((world[0], world[2]))
+	return min(_LINES, key=lambda n: np.sqrt(((_LINES[n] - q) ** 2).sum(1)).min())
+
+
 def rules_ok(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 	"""Every rule one whole Placed hero (before any cut into pieces) must pass: base centre on its own Ground
 	(ground_rect) and within STREAM_RADIUS of its own centre line; its mesh box grown by PRUNE_CLEAR clear of every
 	checkpoint area and the spawn area (BiomeDressing.Prune); its triangles clear of every track's road corridor (own
-	track skipped when exempt). `why` (a dict) counts the failures."""
+	track skipped when exempt); its base centre on the ground its own road owns (owner_at). `why` (a dict) counts the
+	failures."""
 	import numpy as np
 
 	def fail(rule):
@@ -302,22 +343,12 @@ def rules_ok(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 		return fail("ground")
 	if np.sqrt(((ctx["line"] - (pos[0], pos[2])) ** 2).sum(1)).min() > STREAM_RADIUS:
 		return fail("stream")
+	if owner_at(to_world(origin, yaw, pos)) != ctx["number"]:
+		return fail("owner")
 	if ctx.get("zone") and zone_of(ctx["zone"], np.array([to_world(origin, yaw, pos)])[:, [0, 2]])[0] != ctx["number"]:
 		return fail("zone")
-	c, R, own = hero_box(local, origin, yaw, pos, e, sc)
-	half = own + PRUNE_CLEAR
-	ext = np.abs(R) @ half
-	for bc, bR, bh, column in ctx["boxes"]:
-		bext = np.abs(np.array(bR)) @ np.array(bh)
-		if np.any(np.abs(c[[0, 2]] - np.array(bc)[[0, 2]]) >= ext[[0, 2]] + bext[[0, 2]]):
-			continue
-		cc = c.copy()
-		if column:
-			cc[1] = bc[1]
-		elif abs(c[1] - bc[1]) >= ext[1] + bext[1]:
-			continue
-		if obb_overlap(cc, R, half, bc, bR, bh):
-			return fail("pads")
+	if pads_hit(local, origin, yaw, pos, e, sc, ctx["boxes"]):
+		return fail("pads")
 	import clearance
 
 	tris = game_tris(local, origin, yaw, pos, e, sc)
@@ -328,7 +359,7 @@ def rules_ok(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 	return True
 
 
-def find_spot(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
+def find_spot(local, origin, yaw, pos, e, sc, ctx, exempt, why=None, prefer=None, scan=4000):
 	"""The rules_ok base centre on a SPOT_STEP grid through `pos` over the own ground with the fewest other-track draft
 	props overlapping the mesh's box (counted box to box, axis-aligned in world: a close upper bound of props_overlap),
 	ties to the spot nearest `pos`. Returns (spot, that count) or None."""
@@ -368,12 +399,25 @@ def find_spot(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 		count[i : i + 2048] = (
 			(np.abs(wx[i : i + 2048, None] - pc[None, :, 0]) < ext[0] + pe[None, :, 0]) & (np.abs(wz[i : i + 2048, None] - pc[None, :, 2]) < ext[2] + pe[None, :, 2])
 		).sum(1)
+	# prefer(p2): a legal spot it accepts wins (2026-11-26 re-fit: a hero seen from the run cameras); else the first legal
+	# one. After the first legal spot, only `scan` more candidates are tried for a preferred one.
+	first, left = None, None
 	for k in np.lexsort((d, count)):
-		if near[k]:
-			p2 = (float(X[k]), pos[1], float(Z[k]))
-			if rules_ok(local, origin, yaw, p2, e, sc, ctx, exempt, why):
+		if not near[k]:
+			continue
+		p2 = (float(X[k]), pos[1], float(Z[k]))
+		if first is not None:
+			left -= 1
+			if left < 0:
+				break
+			if not prefer(p2):
+				continue
+		if rules_ok(local, origin, yaw, p2, e, sc, ctx, exempt, why):
+			if prefer is None or prefer(p2):
 				return p2, int(count[k])
-	return None
+			if first is None:
+				first, left = (p2, int(count[k])), scan
+	return first
 
 
 def seen_by(k, pts):
@@ -396,6 +440,20 @@ def seen_by(k, pts):
 		z = v @ F
 		ok = z > 1
 		if ((np.abs((v @ r)[ok] / z[ok]) <= tv * 16 / 9) & (np.abs((v @ u)[ok] / z[ok]) <= tv)).any():
+			out.append(f)
+	return out
+
+
+def seen_near(k, pts, reach=1600.0):
+	"""seen_by, but only by a run shot whose eye is within `reach` studs of some point of pts: in frame and near enough to
+	read (2026-11-26 re-fit: the wide layout's straights are up to about 7,000 studs long)."""
+	import numpy as np
+
+	out = []
+	for f in seen_by(k, pts):
+		p, right, t = k.at(k.length * f)
+		eye = np.array((p.x + right.x * 10 - t.x * 14, p.z + right.z * 10 - t.z * 14))
+		if np.sqrt(((pts[:, [0, 2]] - eye) ** 2).sum(1)).min() <= reach:
 			out.append(f)
 	return out
 
@@ -912,12 +970,30 @@ def export(number, glb=True, plan=False, zone=None):
 	corr = clearance.corridors(build_track.load_chain().values())
 	local = {n: local_tris(k.props[n].data, centres[n]) for n in names}
 	ptris = {n: parts_tris(props[n]["parts"]) for n in names}  # what the game builds while a mesh has no Id
-	kept, dropped = [], {}
+	kept, dropped, off_ground, on_pads, pad_boxes = [], {}, {}, {}, blockers()
+	off_rect, ground = {}, ground_rect(number)  # BiomeDressing builds a Placed prop only with its base centre on its Ground
 	for name, pos, e, sc in placed:
 		skip = (number,) if name in exempt else ()
 		hits = clearance.intrudes(game_tris(local[name], origin, yaw, pos, e, sc), corr, skip)
 		if not hits and len(ptris[name]):  # its parts fallback must clear the roads too (box per part)
 			hits = clearance.intrudes(game_tris(ptris[name], origin, yaw, pos, e, sc), corr, skip)
+		if not hits and not props[name]["hero"] and pads_hit(local[name], origin, yaw, pos, e, sc, pad_boxes):
+			on_pads[game[name]] = on_pads.get(game[name], 0) + 1  # the game's Prune would remove it: left out here
+			props[name]["count"] -= 1
+			continue
+		if not hits and not props[name]["hero"]:
+			(glo, ghi) = ground
+			if not (glo[0] <= pos[0] <= ghi[0] and glo[1] <= pos[2] <= ghi[1]):  # off the Ground rect: never built
+				off_rect[game[name]] = off_rect.get(game[name], 0) + 1
+				props[name]["count"] -= 1
+				continue
+		if not hits:
+			owner = owner_at(to_world(origin, yaw, pos))
+			if owner != number:  # ground ownership: the spot is another track's (its road is nearer)
+				off_ground.setdefault(owner, {}).setdefault(game[name], 0)
+				off_ground[owner][game[name]] += 1
+				props[name]["count"] -= 1
+				continue
 		if hits:
 			for t in hits:
 				dropped.setdefault(t, {}).setdefault(game[name], 0)
@@ -967,7 +1043,8 @@ def export(number, glb=True, plan=False, zone=None):
 		if best is None:  # fewest other-track props over it, then nearest the approved spot
 			found = []
 			for q in cands:
-				r = find_spot(hero_tris[h], origin, yaw, q[1], q[2], q[3], ctx, h in exempt)
+				view = lambda p_, q=q: bool(seen_near(k, game_tris(hero_tris[h], origin, yaw, p_, q[2], q[3]).reshape(-1, 3)[::25]))  # noqa: E731
+				r = find_spot(hero_tris[h], origin, yaw, q[1], q[2], q[3], ctx, h in exempt, prefer=view)
 				if r:
 					found.append((r[1], math.dist(q[1], r[0]), q, r[0]))
 			if found:
@@ -1012,6 +1089,9 @@ def export(number, glb=True, plan=False, zone=None):
 		"Dropped": len(placed) - len(kept),
 		"Kept": len(kept),
 		"By": {"track %d" % t: d for t, d in sorted(dropped.items())},
+		"OffGround": {"track %d" % t: d for t, d in sorted(off_ground.items())},
+		"OnPads": on_pads,
+		"OffRect": off_rect,
 		"Heroes": {game[h]: props[h]["count"] if h in props else None for h in heroes},
 		"Moved": moved,
 		"Lowered": lowered,
@@ -1019,11 +1099,16 @@ def export(number, glb=True, plan=False, zone=None):
 	print("ROADTEST %d %s %s" % (number, biome, json.dumps(road)))
 	# Oversize meshes: cut into pieces under PART_MAX at their largest kept scale; the pieces replace the prop
 	changed, pieces, objs, group = [], {}, {}, 0
-	# (an unplaced prop is cut at scale 1, so its pieces keep their defs and ledger rows while it waits for a spot)
+	# An unplaced prop over PART_MAX at scale 1 is not written (2026-11-26 re-fit, lead: its uploaded pieces were cut at
+	# their placed scale, so pieces cut at 1 would not match them; their ledger rows leave the live rows, ids kept in notes)
 	for n in [n for n in names if not props[n]["partsOnly"]]:
 		big = [max([q[3][i] for q in kept if q[0] == n] or [1.0]) for i in range(3)]
 		cut = cells(props[n]["size"], big)
 		if cut == (1, 1, 1):
+			continue
+		if not any(q[0] == n for q in kept):
+			props.pop(n)
+			warns.append("%s: unplaced and over %d studs, not written" % (game[n], PART_MAX))
 			continue
 		lo, hi = bnds[n]
 		step = [(hi[i] - lo[i]) / cut[i] for i in range(3)]
@@ -1062,7 +1147,7 @@ def export(number, glb=True, plan=False, zone=None):
 				big_axis = max(props[pn]["size"][i] * sc[i] for i in range(3))
 				assert big_axis < 2048, (pn, big_axis)
 		kept = out
-	names = [n for n in names if n not in pieces] + [pn for made in pieces.values() for pn, _ in made]
+	names = [n for n in names if n not in pieces and n in props] + [pn for made in pieces.values() for pn, _ in made]
 	# biggest first, so the game's part budget trims the small props (BiomeDressing builds the heroes before them)
 	kept.sort(key=lambda p: -(props[p[0]]["size"][0] * props[p[0]]["size"][2] * p[3][0] * p[3][2]))
 	lights = sorted(((to_local(origin, yaw, p), col, e) for p, col, e in rec["lights"]), key=lambda x: -x[2])

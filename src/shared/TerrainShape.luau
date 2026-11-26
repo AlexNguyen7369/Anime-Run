@@ -25,6 +25,11 @@ TerrainShape.COARSE = 64 -- studs per coarse cell for nodes past the stamp radiu
 TerrainShape.POLY_STEP = 64 -- placeholder: studs between ZonePolyline points
 TerrainShape.PLAZA_MARGIN = 64 -- placeholder: zone 0 = plaza + this
 TerrainShape.SKIRT = 900 -- placeholder: terrain past the outermost road edge
+-- World 2's laps are 760 apart (WORLD2_SPEC "World 2 track layout", owner 2026-11-26), so the gap midline and its seam
+-- (spec 2.2) lie about 380 studs out, past STAMP. There each node past the stamp gets its own distances (to the
+-- polyline segments near its coarse cell) instead of the cell's, so the seam is a line, not 64-stud steps. World 1's
+-- laps keep the seam inside STAMP and its grid as it was.
+TerrainShape.EXACT_FAR = require(script.Parent.WorldConfig).Id == 2
 TerrainShape.PAD_BUCKET = 64 -- studs per bucket cell of the pad lookup (AddPad)
 TerrainShape.EMBANK_BELOW = 3 -- placeholder: an Embank corridor sits this far below the road
 -- placeholder: an Embank corridor sits EMBANK_BELOW under the lowest road Y within this many studs (grid nodes of the
@@ -195,6 +200,56 @@ local function bySlab(x, z)
 	return false
 end
 
+-- EXACT_FAR: the polyline segments of every track that can be nearest or second nearest to some node of the coarse
+-- cell centred (cx, cz), given each track's nearest point distance `best` from the centre. A node is at most `reach`
+-- from the centre, so its nearest segment of track n starts within best[n] + 2 reach + POLY_STEP of it, and a track
+-- whose best is more than 2 reach past the second smallest can be neither.
+local function nearSegments(polys, best, cx, cz)
+	local reach = TerrainShape.COARSE * math.sqrt(2) / 2
+	local first, second = math.huge, math.huge
+	for _, d in best do
+		if d < first then
+			first, second = d, first
+		elseif d < second then
+			second = d
+		end
+	end
+	local near = {}
+	for n, d in best do
+		if d <= second + 2 * reach then
+			local poly, keep = polys[n], {}
+			local r = d + 2 * reach + TerrainShape.POLY_STEP
+			for k = 1, #poly - 1 do
+				local dx, dz = poly[k].X - cx, poly[k].Y - cz
+				if dx * dx + dz * dz <= r * r then
+					table.insert(keep, poly[k])
+					table.insert(keep, poly[k + 1])
+				end
+			end
+			near[n] = keep
+		end
+	end
+	return near
+end
+
+-- EXACT_FAR: the two nearest tracks at node (x, z) and their distances, over the cell's nearSegments
+local function exactFar(near, x, z)
+	local t1, d1, t2, d2 = NONE, math.huge, NONE, math.huge
+	for n, segs in near do
+		local m = math.huge
+		for k = 1, #segs, 2 do
+			local a, b = segs[k], segs[k + 1]
+			m = math.min(m, (segment(x, z, a.X, a.Y, b.X, b.Y)))
+		end
+		if m < d1 then
+			t2, d2, t1, d1 = t1, d1, n, m
+		elseif m < d2 then
+			t2, d2 = n, m
+		end
+	end
+	return t1, d1, t2, d2
+end
+
 -- Track n's centre line resampled every POLY_STEP studs (XZ), first and last waypoints included
 local function polyline(pts)
 	local out = { Vector2.new(pts[1].X, pts[1].Z) }
@@ -350,6 +405,9 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 							c[3], c[4] = n, d
 						end
 					end
+					if TerrainShape.EXACT_FAR then
+						c.Near = nearSegments(polys, best, cx, cz)
+					end
 					coarse[key] = c
 					work += 1
 					if work % 300 == 0 then
@@ -357,10 +415,18 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 					end
 				end
 				local o = k * REC
-				buffer.writeu8(buf, o, c[1])
-				buffer.writeu16(buf, o + 2, q16(math.max(STAMP, c[2])))
-				buffer.writeu8(buf, o + 1, c[3])
-				buffer.writeu16(buf, o + 4, q16(math.max(STAMP, c[4])))
+				if c.Near then
+					local t1, d1, t2, d2 = exactFar(c.Near, x0 + i * CELL, z0 + j * CELL)
+					buffer.writeu8(buf, o, t1)
+					buffer.writeu16(buf, o + 2, q16(math.max(STAMP, d1)))
+					buffer.writeu8(buf, o + 1, t2)
+					buffer.writeu16(buf, o + 4, q16(math.max(STAMP, d2)))
+				else
+					buffer.writeu8(buf, o, c[1])
+					buffer.writeu16(buf, o + 2, q16(math.max(STAMP, c[2])))
+					buffer.writeu8(buf, o + 1, c[3])
+					buffer.writeu16(buf, o + 4, q16(math.max(STAMP, c[4])))
+				end
 				buffer.writei16(buf, o + 6, 8 * 1)
 			end
 		end
@@ -472,6 +538,45 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 			Max = hi + Vector2.one * (20 + TerrainShape.SKIRT),
 		},
 	}
+	-- Coast hulls (spec 2.2 "Coast", Under): the sea of a profile whose Coast names a prop is the water round that prop's
+	-- Placed rows (World 2 AntIsland: its blockade ships), each a box of the def's Size x scale in XZ, turned as
+	-- BiomeDressing turns the row; bucketed like the pads, by every PAD_BUCKET cell its Reach + Blend touches
+	for _, e in entries do
+		local theme = Themes[e.Biome]
+		local coast = theme and theme.Terrain and theme.Terrain.Coast
+		if coast and coast.Under then
+			local B = TerrainShape.PAD_BUCKET
+			local hullReach = (coast.Reach or 0) + (coast.Blend or 24)
+			local hulls = {}
+			for _, row in theme.Placed or {} do
+				local def = row[1] == coast.Under and theme.Props[row[1]]
+				if def then
+					local cf = e.Origin * CFrame.new(row[2], row[3], row[4]) * CFrame.fromEulerAnglesYXZ(0, row[5], 0)
+					local sc = row[6] or 1
+					local r = Vector2.new(cf.RightVector.X, cf.RightVector.Z).Unit
+					local l = Vector2.new(cf.LookVector.X, cf.LookVector.Z).Unit
+					local hull = {
+						C = Vector2.new(cf.X, cf.Z),
+						R = r,
+						L = l,
+						HX = def.Size.X * sc / 2,
+						HZ = def.Size.Z * sc / 2,
+					}
+					local ex = math.abs(r.X) * hull.HX + math.abs(l.X) * hull.HZ + hullReach
+					local ez = math.abs(r.Y) * hull.HX + math.abs(l.Y) * hull.HZ + hullReach
+					for i = math.floor((hull.C.X - ex) / B), math.floor((hull.C.X + ex) / B) do
+						for j = math.floor((hull.C.Y - ez) / B), math.floor((hull.C.Y + ez) / B) do
+							local key = i * 65536 + j
+							hulls[key] = hulls[key] or {}
+							table.insert(hulls[key], hull)
+						end
+					end
+				end
+			end
+			state.Hulls = state.Hulls or {}
+			state.Hulls[e.Number] = hulls
+		end
+	end
 	-- 4. Tunnels (spec 3.5, option A): each tunnel segment as a flat box in XZ, bucketed like the pads. Column keeps
 	-- the box (walls, ceiling and a voxel of margin) clear of voxels and heaps earth over it.
 	for _, e in entries do
@@ -816,6 +921,34 @@ local function biomeY(n, d, x, z, roadY, dc, p)
 			shape = sec.Ridge.Shape or "Hills"
 		end
 	end
+	-- A coast (spec 2.2 "Coast", World 2 AntIsland): from Coast.From studs off this road outward the ground is a sea basin
+	-- (bed Coast.Depth under the profile's Water.Level), blended in over Coast.Blend. The corridor and clear boxes
+	-- returned above, so the road, its walls, the pads and the grass strip never get water.
+	local coast = prof.Coast
+	if coast and de > coast.From then
+		local f = smooth((de - coast.From) / (coast.Blend or 24))
+		if coast.Under then
+			-- only round the hulls: full within Reach of a hull's box, back to land over Blend past it
+			local e = math.huge
+			local bk = TerrainShape.PAD_BUCKET
+			for _, h in
+				state.Hulls and state.Hulls[n] and state.Hulls[n][math.floor(x / bk) * 65536 + math.floor(z / bk)] or {}
+			do
+				local dx, dz = x - h.C.X, z - h.C.Y
+				local ex = math.max(math.abs(dx * h.R.X + dz * h.R.Y) - h.HX, 0)
+				local ez = math.max(math.abs(dx * h.L.X + dz * h.L.Y) - h.HZ, 0)
+				e = math.min(e, math.sqrt(ex * ex + ez * ez))
+			end
+			f *= 1 - smooth((e - (coast.Reach or 0)) / (coast.Blend or 24))
+		end
+		-- the bed Coast.Depth under the water (default 6, the Water shape's); props snap to it (SnapToTerrain), so a
+		-- shallow sea keeps a ship's hull about that deep
+		local bed = (prof.Water and prof.Water.Level or -3) - (coast.Depth or 6)
+		y += (bed - y) * f
+		if f >= 0.5 then
+			band, shape = "Ridge", "Water"
+		end
+	end
 	if prof.Far and n == state.Last and de > MID then
 		local f = smooth((de - MID) / TerrainShape.FAR_BLEND)
 		y += (shapeY(prof.Far, 1, x, z, n + 100, prof) - y) * f
@@ -945,6 +1078,47 @@ function TerrainShape.Column(x, z)
 		surface = M.Ground -- the grid's clear-box distance can read over 0 (so Ridge) inside the grown box's edge cells
 	end
 	return y, waterY, surface, mats.Cliff or DEFAULT_MATERIALS.Cliff, prof.CliffSlope or 0.9, lo, hi
+end
+
+-- How Server/TerrainBuilder writes a column as voxels (the game's terrain, not the shape above): RES-stud voxels, the
+-- occupancy written LIFT lower so the drawn surface sits at the column's top (LIFT calibrated in Studio 2026-10-30:
+-- corridor Height -1 written that way rendered at y 1.00, flush with the road top). One function for the writer and the
+-- biome harness, so a check on drawn water is a check on what the game builds.
+TerrainShape.VOXEL_RES = 4
+TerrainShape.VOXEL_LIFT = TerrainShape.VOXEL_RES / 2
+
+-- The voxel whose bottom is `yb` in a column of top `y`, water top `w` (or nil) and tunnel hollow `tlo`..`thi` (or
+-- nil): "Ground", "Water" or "Air", and its occupancy. A voxel the ground reaches into is ground, so water fills only
+-- whole voxels above the ground's: a sea shallower than that grid step draws no water at all.
+function TerrainShape.Voxel(y, w, tlo, thi, yb)
+	local res, lift = TerrainShape.VOXEL_RES, TerrainShape.VOXEL_LIFT
+	-- under a tunnel's earth the column stops at the tunnel floor; the voxel at the hollow top stays air
+	local inHole = tlo and yb < thi
+	local o = math.clamp(((inHole and tlo or y) - lift - yb) / res, 0, 1)
+	if o > 0 then
+		return "Ground", o
+	elseif w and not inHole and yb < w - lift then
+		return "Water", math.clamp((w - lift - yb) / res, 0, 1)
+	end
+	return "Air", 0
+end
+
+-- Studs of water the writer draws at (x, z): the water voxels' occupancy times RES (0 where Column has water but no
+-- voxel holds it)
+function TerrainShape.DrawnWater(x, z)
+	local y, w, _, _, _, tlo, thi = TerrainShape.Column(x, z)
+	if not w then
+		return 0
+	end
+	local res = TerrainShape.VOXEL_RES
+	local depth = 0
+	for yb = math.floor(math.min(tlo or y, y) / res) * res - res, math.ceil(w / res) * res, res do
+		local kind, o = TerrainShape.Voxel(y, w, tlo, thi, yb)
+		if kind == "Water" then
+			depth += o * res
+		end
+	end
+	return depth
 end
 
 -- The ground a prop stands on: the top, or the tunnel floor inside a tunnel box

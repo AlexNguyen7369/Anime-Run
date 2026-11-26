@@ -16,7 +16,15 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	-- Flat ground at the corridor height, as the draft's ground plane (spec 3.3 Blocks)
 	Terrain = {
 		Ridge = { Shape = "Blocks" },
-		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Ground },
+		-- The approved island's sea (WORLD2_SPEC "Track 7's sea", BIOME_ENVIRONMENT_SPEC 2.2 "Coast"; proposed): Water round
+		-- the blockade ships (Under: each Ship row's hull box, full within Reach of it, back to land over Blend), from 240
+		-- studs off the road, so the ships (312 out, their hulls from about 280) float and the nest, its ants and the
+		-- volcano past the coast stay on the draft's grass (the 3 ships on the nest are out of the draft, 2026-11-27). Depth 4 (was 2): the game's 4-stud voxels draw no water over a
+		-- bed under 3 studs deep (Studio 2026-11-26: ships on sand); 4 draws the same water voxel as Docks' 6. The ships
+		-- snap to the bed, so they float about 4 deep.
+		Coast = { From = 240, Blend = 24, Depth = 4, Under = "Ship", Reach = 24 },
+		Water = { Level = -3 },
+		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Sand },
 		CliffSlope = 0.9,
 	},
 	-- In-house gradient sky from the draft's stops (owner 2026-11-25, question 33; docs/WORLD2_SPEC.md "Track skies")
@@ -27,13 +35,20 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	SkyLook = {
 		Lighting = {
 			ClockTime = 17.6,
-			Brightness = 1.4,
-			ExposureCompensation = -0.3,
-			OutdoorAmbient = hex("D8946A"):Lerp(hex("6E6670"), 0.5),
+			-- brighter dusk (owner 2026-11-26 "too dim cant see much/dark", WORLD2_SPEC "Track lighting"; proposed): was 1.4,
+			-- -0.3 and the orange half toward grey
+			Brightness = 2.1,
+			ExposureCompensation = 0.2,
+			OutdoorAmbient = hex("D8946A"):Lerp(hex("6E6670"), 1 / 3),
 		},
 		Grade = { Saturation = -0.1, TintColor = Color3.new(1, 1, 1):Lerp(hex("FFB070"), 0.3) },
 	},
 	Audio = { Volume = 0.35 }, -- no sounds yet
+	-- The sea's look (WORLD2_SPEC "Track 7's sea"; proposed): the approved draft's sea colour (biomes/AntIsland.py OCEAN
+	-- 1C4260), set on the client per zone (Client/BiomeEnvironment), so only this zone's water has it
+	Atmosphere = {
+		Water = { Color = hex("1C4260"), Transparency = 0.3, Reflectance = 0.25, WaveSize = 0.15, WaveSpeed = 8 },
+	},
 	-- Asset ledger (spec 4.4): the track sky's row (Kit.draftSky), then one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {

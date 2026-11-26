@@ -519,19 +519,38 @@ local function checkCheckpoint(checks, spec, layout, expect)
 	local perTrack = type(TrackBuilder.CashFor) == "function" and TrackBuilder.CashFor(1) or 0
 	local second = type(TrackBuilder.CashFor) == "function" and TrackBuilder.CashFor(2) or 0
 	local third = type(TrackBuilder.CashFor) == "function" and TrackBuilder.CashFor(3) or 0
-	-- owner 2026-10-27 (track rule 6): Cash = PayoutCurve.Cash(Number), $100 on Track 1, x10 then x7.5 alternating
-	check(checks, "cash_track1_is_base", perTrack, PAYOUT.CASH[1], perTrack == PAYOUT.CASH[1])
-	local wantCash = type(spec.Number) == "number" and spec.Number >= 1 and PAYOUT.cash(spec.Number) or -1
-	check(checks, "cash_equal_payout_curve", cash or -1, wantCash, cash ~= nil and wantCash >= 1 and cash == wantCash)
+	-- owner 2026-10-27 (track rule 6): Cash = PayoutCurve.Cash(Number), $100 on Track 1, x10 then x7.5 alternating.
+	-- World 2 (design doc 4.47, owner 2026-11-24; WORLD2_SPEC "Rewards"): Track N pays World 1 Track 10's Cash x
+	-- WORLD2_STEP^N, so Track 1 is that x WORLD2_STEP and each track x WORLD2_STEP more. The step is a placeholder, so it
+	-- is read from the config (as track2_pays_ten_times_track1 does); World 1's numbers stay the doc's literals.
 	local PayoutCurve = PAYOUT.module()
-	local curveCash = PayoutCurve and type(PayoutCurve.Cash) == "function" and PayoutCurve.Cash(spec.Number) or nil
+	local world2 = require(Shared:WaitForChild("WorldConfig")).Id == 2
+	local step = world2 and PayoutCurve and PayoutCurve.WORLD2_STEP or nil
+	local base = world2 and step and PAYOUT.CASH[10] * step or PAYOUT.CASH[1]
+	check(checks, "cash_track1_is_base", perTrack, base, perTrack == base)
+	local wantCash = -1
+	if type(spec.Number) == "number" and spec.Number >= 1 then
+		wantCash = world2 and step and PAYOUT.CASH[10] * step ^ spec.Number or PAYOUT.cash(spec.Number)
+	end
+	check(checks, "cash_equal_payout_curve", cash or -1, wantCash, cash ~= nil and wantCash >= 1 and cash == wantCash)
+	local curveCash = nil
+	if world2 then
+		curveCash = PayoutCurve and type(PayoutCurve.TrackCash) == "function" and PayoutCurve.TrackCash(spec.Number, 2)
+			or nil
+	else
+		curveCash = PayoutCurve and type(PayoutCurve.Cash) == "function" and PayoutCurve.Cash(spec.Number) or nil
+	end
 	check(checks, "cash_uses_payout_curve", curveCash or -1, cash or -1, cash ~= nil and curveCash == cash)
+	local up2, up3 = 10, 7.5 -- World 1: x10 then x7.5
+	if world2 then
+		up2, up3 = step or -1, step or -1 -- World 2: x WORLD2_STEP per track
+	end
 	check(
 		checks,
 		"cash_scale_exponential",
 		third,
-		7.5 * second,
-		perTrack >= 1 and second == 10 * perTrack and third == 7.5 * second
+		up3 * second,
+		perTrack >= 1 and second == up2 * perTrack and third == up3 * second
 	)
 	check(
 		checks,
@@ -559,7 +578,10 @@ local function checkCheckpoint(checks, spec, layout, expect)
 			local hudMod = Shared:FindFirstChild("HudFormat")
 			local HudFormat = hudMod and require(hudMod)
 			local want = (cash and HudFormat) and HudFormat.MoneyText(pad:GetAttribute("Cash")) or "?"
-			local literal = ({ [1] = "$100", [10] = "$31.6b" })[spec.Number]
+			-- the doc's literals: World 1 $100 to $31.6b; World 2 "$63.3b" to "$32.4t" (WORLD2_SPEC "Rewards")
+			local literals = require(Shared:WaitForChild("WorldConfig")).Id == 2 and { [1] = "$63.3b", [10] = "$32.4t" }
+				or { [1] = "$100", [10] = "$31.6b" }
+			local literal = literals[spec.Number]
 			if literal then
 				check(checks, "pad_text_literal", label and 1 or 0, 1, label ~= nil and label.Text == literal)
 			end
@@ -634,7 +656,12 @@ end
 
 function Scenarios.track(trackName)
 	local label = "track:" .. trackName
-	local testModule = script.Parent.TrackTests:FindFirstChild(trackName)
+	-- World 2's briefs live in TrackTests/World2 (WORLD2_SPEC "World 2 track layout"); World 1's at the top
+	local briefs = script.Parent.TrackTests
+	if require(Shared:WaitForChild("WorldConfig")).Id == 2 then
+		briefs = briefs:FindFirstChild("World2") or briefs
+	end
+	local testModule = briefs:FindFirstChild(trackName)
 	if not testModule then
 		return result(label, { { name = "test_file_exists", value = 0, limit = 1, pass = false } }, {})
 	end
@@ -12347,6 +12374,8 @@ Scenarios.boss_models_placed = require(script.Parent.World2ProofTests).boss_mode
 Scenarios.awakening = require(script.Parent.AwakeningTests).awakening -- design doc 4.47 Awakening, WORLD2_SPEC "Awakening"
 Scenarios.world2_rewards = require(script.Parent.World2RewardsTests).world2_rewards -- design doc 4.47 World 2 rewards
 Scenarios.world2_skies = require(script.Parent.World2SkyTests).world2_skies -- WORLD2_SPEC "Track skies" (owner question 33)
+Scenarios.world2_lighting = require(script.Parent.World2LightingTests).world2_lighting -- WORLD2_SPEC "Track lighting", brighter tracks
+Scenarios.w2_mesh_turn = require(script.Parent.World2MeshTurnTests).w2_mesh_turn -- WORLD2_SPEC "Blender first", import turn
 -- WORLD2_SPEC "Track effects (draft, owner approval pending)": off by default, World 2 only, budget caps
 Scenarios.track_fx = require(script.Parent.TrackFxTests).track_fx
 Scenarios.harness_save = require(script.Parent.HarnessSaveTests).harness_save -- design doc 4.24 "Harness saves"

@@ -1,7 +1,7 @@
 """The 6 review shots of a swapped track with only the props the game builds, into trackNN_<Biome>/game/ (the draft's own
 shots also hold horizon pieces off the track's ground). Built = a row of the exported <Biome>Draft.luau on its own
 ground, less the rows listed in --removed=<json> {biome: [row number]} (what the game's Prune takes, from the harness).
-Headless: Blender -b --factory-startup --python tools/blender/world2/game_shots.py -- <number ...> [--removed=<json>] [--fast]
+Headless: Blender -b --factory-startup --python tools/blender/world2/game_shots.py -- <number ...> [--removed=<json>] [--fast] [--out=<folder>]
 --castle-052, --turned or both (Track 1): that not exported layout option, every prop on the own ground, into
 option_castle_052/, option_turned/ or option_castle_turned/. Only these flags switch it on (roads.OPTIONS).
 """
@@ -67,6 +67,9 @@ def run(number, removed, fast):
 
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :]
+	out = next((a.split("=", 1)[1] for a in argv if a.startswith("--out=")), None)
+	if out:  # another review set's folder (relative to the repo root), e.g. assets/world2_draft/relayout_2026-11-26
+		bt.OUT = os.path.join(bt.ROOT, out)
 	path = next((a.split("=", 1)[1] for a in argv if a.startswith("--removed=")), None)
 	roads.OPTIONS = frozenset(n for n, flag in (("castle_052", "--castle-052"), ("turned", "--turned")) if flag in argv)
 	removed = json.load(open(path)) if path else {}

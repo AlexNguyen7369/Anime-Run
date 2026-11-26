@@ -1,7 +1,7 @@
 --!nonstrict
 -- World 2 Track 4 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Haunted Tunnel Road run.
--- Same route as World 1's Track 4 (Circuit), so its length, spiral lap and validator results carry over
--- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
+-- Route: World 2's square spiral of long straights (WORLD2_SPEC "World 2 track layout", owner 2026-11-26; pitch 760
+-- and corner radius 420 proposed), the target length of docs/TRACKS_AND_BIOMES_SPEC.md "Lengths". Palette proposed.
 return {
 	Name = "W2HauntedTunnel",
 	Description = "Haunted Tunnel Road run: a cursed mountain tunnel, flickering lamps and a moonlit school gate.",
@@ -19,42 +19,10 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 150 },
-		{ Type = "Slope", Length = 150, Rise = 20 }, -- stone stair path up and down
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Slope", Length = 150, Rise = -20 },
-		{ Type = "Straight", Length = 274.458 },
-		{ Type = "Turn", Angle = -90, Radius = 215 }, -- corner
-		{ Type = "Straight", Length = 130 },
-		{ Type = "Turn", Angle = 30, Radius = 120 }, -- wisteria grove bends
-		{ Type = "Turn", Angle = -60, Radius = 120 },
-		{ Type = "Turn", Angle = 30, Radius = 120 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Turn", Angle = 60, Radius = 120 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Straight", Length = 335 },
-		{ Type = "Turn", Angle = -90, Radius = 260 }, -- corner
-		{ Type = "Straight", Length = 180 },
-		{ Type = "Turn", Angle = 26, Radius = 140 }, -- dark forest bend
-		{ Type = "Turn", Angle = -52, Radius = 140 },
-		{ Type = "Turn", Angle = 26, Radius = 140 },
-		{ Type = "Straight", Length = 120 },
-		{ Type = "Slope", Length = 150, Rise = 20 }, -- stone stair path up and down
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Slope", Length = 150, Rise = -20 },
-		{ Type = "Straight", Length = 122.512 },
-		{ Type = "Turn", Angle = -90, Radius = 260 }, -- corner
-		{ Type = "Straight", Length = 150 },
-		{ Type = "Turn", Angle = 30, Radius = 120 }, -- wisteria grove bends
-		{ Type = "Turn", Angle = -60, Radius = 120 },
-		{ Type = "Turn", Angle = 30, Radius = 120 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Turn", Angle = 60, Radius = 120 },
-		{ Type = "Turn", Angle = -30, Radius = 120 },
-		{ Type = "Straight", Length = 420 },
-		{ Type = "Turn", Angle = -90, Radius = 260 }, -- corner
-		{ Type = "Straight", Length = 295.974 }, -- finish straight
+		{ Type = "Straight", Length = 1147.9067 }, -- start straight
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 2440 },
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 858.2243 }, -- finish straight
 	},
 }

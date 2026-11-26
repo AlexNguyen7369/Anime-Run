@@ -110,9 +110,12 @@ local function runAll()
 		names = kept
 		if trackTests then
 			for _, module in trackTests:GetChildren() do
-				table.insert(skipped, { "track:" .. module.Name, TestConfig.World1TrackTests })
+				if module:IsA("ModuleScript") then
+					table.insert(skipped, { "track:" .. module.Name, TestConfig.World1TrackTests })
+				end
 			end
-			trackTests = nil
+			-- World 2's own briefs (WORLD2_SPEC "World 2 track layout"), run as track:<Name> like World 1's
+			trackTests = trackTests:FindFirstChild("World2")
 		end
 	end
 	for _, skip in skipped do

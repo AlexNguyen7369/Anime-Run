@@ -69,6 +69,9 @@ Nothing car-shaped stays in the game:
   the plaza centre (XZ) is greater than the previous track's; Track 1 has the smallest.
 - Owner 2026-10-30: a track's "biome sector" may be a ring band of the spiral (about 1.5 laps around the plaza),
   not an angular wedge.
+- 2026-11-26: World 2's layout follows WORLD2_SPEC "World 2 track layout" (owner: a wider World 2 layout, spacing
+  "About 600 studs" road edge to road edge; the square spiral of long straights is the lead's pick and the >= 600 floor
+  the lead's reading, both under the owner's nightly pre-approval); it still spirals outward. World 1 is unchanged.
 
 ## 4. Spawn hub: anime town plaza
 

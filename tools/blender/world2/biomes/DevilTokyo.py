@@ -2,7 +2,7 @@
 anime's street scenes (refs and landmark list: docs/world2_refs/DevilTokyo.md):
 - the hunters' headquarters: the tallest mass in town, a pale grey stepped government block with deep horizontal slabs
   (Kasumigaseki style), sparse lit offices, a lit forecourt and a large changed emblem (ring and diamond, not the real
-  mark) on the roof edge (not placed: no legal spot on own ground, owner 2026-11-25);
+  mark) on the roof edge (back on its legal spot, owner 2026-11-26);
 - the partners' apartment: a 7-storey mansion block with balconies on one face and the open corridor face (walkway,
   railing, row of steel doors, lit stair slits) on the other; some face the road with the corridor;
 - a 2-storey wooden apartment with an open steel corridor, outside stairs and a vending cluster at its end;
@@ -653,11 +653,18 @@ LOWBLOCKS = [(830, 1, 80), (2650, 1, 80), (4720, 1, 80)]
 LOW = ("Apaato", "Konbini", "Apaato")  # under 21 studs: allowed where a taller front would hide an HQ
 
 
-def street(k, r, side, names, front, start, end, gap, avoid, sight=(), flip=0.0, near=None):
+# A back row keeps one building in BACK_EVERY of its free slots (the others stay open ground, spacing unchanged). On the
+# approved, crowded layout the neighbours' props blocked most of it; on the wide layout (WORLD2_SPEC "World 2 track
+# layout", 2026-11-26) nothing does, so this keeps Track 6 at about the approved building count (325 + 3 %) instead of
+# 596, for the tri budget and the approved look. Lead's decision 2026-11-26, proposed.
+BACK_EVERY = 7
+
+
+def street(k, r, side, names, front, start, end, gap, avoid, sight=(), flip=0.0, near=None, every=1):
 	"""Buildings shoulder to shoulder along one side: each one's road face sits about `front` studs from the centre line.
 	`avoid`: (x, z, radius) plots kept free; `sight`: plots where only LOW fronts stand. `flip`: share of mansions turned
 	to show the corridor face to the road. `near` (a back row): only where no other track's prop stands."""
-	d, last = start, None
+	d, last, slot = start, None, 0
 	while d < end:
 		pick = [n for n in names if n != last] or names
 		for name in [k.rng.choice(pick)] + ["ShopHouse", "Mansion", "Apaato", "Konbini"]:
@@ -673,6 +680,10 @@ def street(k, r, side, names, front, start, end, gap, avoid, sight=(), flip=0.0,
 				continue
 			if near is not None and r.overlaps(near, pos[0], pos[2], yaw, w, dep):
 				continue
+			slot += 1
+			if (slot - 1) % every:  # an open slot of a thinned back row: same spacing, no building
+				d += w + k.rng.uniform(*gap)
+				break
 			if name == "Mansion" and near is None and k.rng.random() < flip:  # a back row keeps its balconies to the road
 				yaw += math.pi  # Aki's apartment beat: the corridor face toward the road
 			k.place(name, pos, yaw)
@@ -706,7 +717,7 @@ def build(k):
 	r = Roads(k.track["Number"])
 	L = k.length
 	end = L - 70
-	# Track 6's road is one long lap between Track 5's and Track 7's, 118 to 150 studs off each: one street front a side,
+	# Track 6's road is one lap of the square spiral, 760 studs from Track 5's and Track 7's (2026-11-26): one street front a side,
 	# then the next track's land. Street edge both sides: pavement, kerb, guardrail, lamps with pools, poles with wires.
 	# A kit is skipped on a tight bend where its straight 48-stud length would bring a road-side corner (local x +-24,
 	# z -6.4) within 24 studs of the centre line.
@@ -734,16 +745,21 @@ def build(k):
 		eye = p + right * 10
 		for x, z, yaws in spots:
 			for yaw in yaws:
-				if not r.fits(x, z, yaw, 192, 130, own=False, clear=24.5):
+				if not r.fits(x, z, yaw, 192, 130, own=True, clear=24.5):
 					continue
-				# Not placed (owner 2026-11-25, "yes to all": left out for now): no legal spot on this track's own ground. The
-				# spot's plot and sight line stay free, so the approved layout does not change; the mesh and its Props entry stay.
+				# Owner 2026-11-26 ("Approve 1-4", design log fe810a44): the HQ comes back on its legal spot on this track's own
+				# ground (left out "for now" 2026-11-25), with its floodlights.
+				fx, fz = -math.sin(yaw), -math.cos(yaw)  # the front (-Z)
+				k.place("HQ", (x - fx * 19, 0.0, z - fz * 19), yaw)  # x, z is its box's centre: the forecourt runs out in front
+				for side in (-1, 1):  # floodlights washing the pale front
+					at = (x + fx * 60 + fz * side * 40, 30, z + fz * 60 - fx * side * 40)
+					k.light(at, "E8F0FF", energy=100000, radius=10).data.use_shadow = False
 				avoid.append((x, z, 120))
 				hq_at.append((x, z))
 				ahead = math.hypot(x - eye.x, z - eye.z)
 				for j in range(200, int(ahead) - 100, 30):  # the axis stays low, so the runner sees it from the straight
 					sight.append((eye.x + (x - eye.x) * j / ahead, eye.z + (z - eye.z) * j / ahead, 12 + 60 * j / ahead))
-				print("HQ plot (left out) at", f, round(x), round(z), "overlaps", len(r.overlaps(near_all, x, z, yaw, 190, 128)))
+				print("HQ at", f, round(x), round(z), "overlaps", len(r.overlaps(near_all, x, z, yaw, 190, 128)))
 				return
 
 	p, right, t = k.at(L * 0.06)
@@ -761,7 +777,7 @@ def build(k):
 			along = (x - ex) * t.x + (z - ez) * t.z
 			if along < 300 or abs((x - ex) * t.z - (z - ez) * t.x) > along * 1.2:
 				continue  # out of view
-			if r.nearest([(x, z)])[0][0] > 85 and r.fits(x, z, back, 192, 130, own=False, clear=24.5) and len(r.overlaps(near_all, x, z, back, 190, 128)) <= 3:
+			if r.nearest([(x, z)])[0][0] > 85 and r.fits(x, z, back, 192, 130, own=True, clear=24.5) and len(r.overlaps(near_all, x, z, back, 190, 128)) <= 3:
 				spots.append((abs((x - ex) * t.z - (z - ez) * t.x) / along, x, z))
 	print("HQ 0.9 legal spots, approved turn, at most 3 overlaps:", len(spots))
 	stand_hq(0.9, [(x, z, (back,)) for _, x, z in sorted(spots)[:1]])
@@ -816,7 +832,7 @@ def build(k):
 	street(k, r, -1, ["ShopHouse", "Mansion", "Konbini", "Apaato", "Mansion"], 40, 20, end, (2, 8), avoid, sight, flip=0.5)
 	street(k, r, 1, ["ShopHouse", "Apaato", "Mansion", "Mansion", "Konbini"], 40, 20, end, (2, 8), avoid, sight, flip=0.5)
 	for side in (-1, 1):
-		street(k, r, side, ["Mansion", "ShopHouse"], 80, 0, end, (4, 10), avoid, sight, near=near)
+		street(k, r, side, ["Mansion", "ShopHouse"], 80, 0, end, (4, 10), avoid, sight, near=near, every=BACK_EVERY)
 	# Skyline: the office towers are placed last, by cross_track.py (FILL), in the gaps left on this track's own ground
 	# Wires over the street: one set per 48 studs from the left kits' second pole, only on straights
 	# where a kit's pole takes the far end
@@ -831,7 +847,7 @@ def build(k):
 	# (sides alternating); the rest are dimmer and only light the draft.
 	k.sky([(0.0, "3A4A5A"), (0.06, "22344A"), (0.25, "122236"), (1.0, "060C18")], strength=1.0, sun=(0.6, "6FA8C0", 35, 140))
 	main = set()
-	main_n = 46 if len(hq_at) < 2 else 44
+	main_n = 48 - 2 * len(hq_at)  # each HQ's 2 floodlights and the lamps: 48 in all
 	for j in range(main_n):
 		want, s = L * (j + 0.5) / main_n, 1 if j % 2 else -1
 		kd, ks, _ = min((q for q in kits if q[1] == s), key=lambda q: abs(q[0] - want))

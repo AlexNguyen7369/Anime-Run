@@ -627,11 +627,11 @@ local function freshDraft(biome)
 end
 -- (c) A placed prop stands where its draft row says (the transform the exporter road-tested): its mesh part has the
 -- row's CFrame (origin * (X, Y, Z) * YXZ(RX, Yaw, RZ), up by half its height) and Size (the draft Size times Scale or
--- Stretch); without a mesh (NOMESH, PartsOnly, parts fallback) every fallback part <Name><i> has its centre at
+-- Stretch), turned as BiomeDressing.MeshCFrame turns it (`turn`: the game def's ImportTurn); without a mesh (NOMESH, PartsOnly, parts fallback) every fallback part <Name><i> has its centre at
 -- base * (Pos * Scale) and the draft part's size, up to the axis swap Kit.fromDraft makes for a cylinder (the only
 -- change Kit may make: part shapes, mesh names and shadows; never a size or a placement). Stretched rows check the
 -- part centres only. Returns ok, why.
-local function placedOk(origin, row, def, prop, name)
+local function placedOk(origin, row, def, prop, name, turn)
 	local s = row[9] or row[6]
 	local base = origin
 		* R.CFrame.new(row[2], row[3], row[4])
@@ -639,12 +639,17 @@ local function placedOk(origin, row, def, prop, name)
 	local mesh = prop:FindFirstChild(name)
 	if mesh then
 		local size = def.Size * s
-		local want, got = base * R.CFrame.new(0, size.Y / 2, 0), mesh.CFrame
+		-- the placement function's own frame (BiomeDressing.MeshCFrame: a World 2 draft mesh is turned 180 degrees about its
+		-- own centre against the import turn, WORLD2_SPEC "Blender first"), at the draft row's base and size: any other drift
+		-- still fails
+		local want, got = BD.MeshCFrame({ Size = size, ImportTurn = turn }, base), mesh.CFrame
 		if
 			(got.Position - want.Position).Magnitude < 0.01
 			and (mesh.Size - size).Magnitude < 0.01
-			and got.RightVector:Dot(want.RightVector) > 0.99999
-			and got.UpVector:Dot(want.UpVector) > 0.99999
+			-- unit vectors on both sides: the angle limit stays exactly 0.99999 (about 0.26 deg), only a vector's length (float32
+			-- drift in Lune's CFrame, 1e-5 on GoldenCity Placed_483 on the wide layout) no longer counts as an angle
+			and got.RightVector.Unit:Dot(want.RightVector.Unit) > 0.99999
+			and got.UpVector.Unit:Dot(want.UpVector.Unit) > 0.99999
 		then
 			return true
 		end
@@ -876,7 +881,7 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 		gcheck(p1 ~= nil and p2 ~= nil, "both pieces build when the whole prop's base is on the ground")
 		for n, pc in { p1, p2 } do
 			local row = n == 1 and { "Piece_p1", 0, -1, -150, 0, 1 } or { "Piece_p2", 99999, -1, 99999, 0, 1 }
-			local ok, why = placedOk(entries[1].Origin, row, piece, pc, piece.Name)
+			local ok, why = placedOk(entries[1].Origin, row, piece, pc, piece.Name, piece.ImportTurn)
 			gcheck(ok, "piece " .. n .. " stands where its row says: " .. (why or ""))
 		end
 		gcheck(
@@ -1070,6 +1075,335 @@ do
 	table.insert(clear, { Min = centre - half, Max = centre + half })
 end
 TS.Prepare(entries, clear, { spawnArea })
+-- PLATE (WORLD_REDESIGN_SPEC 3: the safety baseplate covers every track part plus the margin, 20 placeholder): Main
+-- builds the plate before the late tracks have parts, so its box is TrackBuilder.PlateBox (the terrain box and every
+-- track's Ground rect, from the layouts). Every built Ground tile's world box, grown by 20, must lie inside it (Studio
+-- world_layout world_baseplate_covers_everything, 2026-11-26: a T10 Ground corner was outside).
+do
+	local TB = req(Shared.TrackBuilder)
+	local TS = req(Shared.TerrainShape)
+	local pass, fail = 0, 0
+	local box = TS.Box()
+	if box and TB.PlateBox then
+		local lo, hi = TB.PlateBox(entries, box.Min, box.Max)
+		for _, e in entries do
+			for _, part in e.Model:GetDescendants() do
+				if part:IsA("BasePart") and part.Name == "Ground" then
+					local cf, size = part.CFrame, part.Size
+					local half = R.Vector2.new(
+						math.abs(cf.RightVector.X) * size.X / 2 + math.abs(cf.LookVector.X) * size.Z / 2,
+						math.abs(cf.RightVector.Z) * size.X / 2 + math.abs(cf.LookVector.Z) * size.Z / 2
+					) + R.Vector2.new(20, 20)
+					local c = R.Vector2.new(cf.Position.X, cf.Position.Z)
+					if
+						c.X - half.X >= lo.X
+						and c.Y - half.Y >= lo.Y
+						and c.X + half.X <= hi.X
+						and c.Y + half.Y <= hi.Y
+					then
+						pass += 1
+					else
+						fail += 1
+						print(
+							string.format(
+								"PLATE FAIL %s Ground at %.0f, %.0f outside the plate box",
+								e.Model.Name,
+								c.X,
+								c.Y
+							)
+						)
+					end
+				end
+			end
+		end
+	else
+		fail += 1
+		print("PLATE FAIL no TrackBuilder.PlateBox or no terrain box")
+	end
+	print(string.format("PLATE CHECKS pass=%d fail=%d", pass, fail))
+end
+-- PLATE TILES: Main's plate as built (the parts of the first JOIN tracks and the spawn area, the terrain box, PlateBox,
+-- MARGIN 64; TrackBuilder.PlateTiles), and every Ground part's margin-grown corners and centre on a tile, judged exactly as
+-- Studio's world_layout world_baseplate_covers_everything (margin 20, |offset| <= half size). Reproduces the seam tie of
+-- 2026-11-26: a Ground tile's centre exactly on the line between two plate tiles. PLATE_OVERLAP=0 in the environment shows it.
+do
+	local TB = req(Shared.TrackBuilder)
+	local TS = req(Shared.TerrainShape)
+	local JOIN, MARGIN, TEST_MARGIN = 5, 64, 20
+	local lo, hi = R.Vector2.new(math.huge, math.huge), R.Vector2.new(-math.huge, -math.huge)
+	local function grow(root)
+		for _, d in root:GetDescendants() do
+			if d:IsA("BasePart") then
+				local cf, size = d.CFrame, d.Size
+				local hx = math.abs(cf.RightVector.X) * size.X / 2
+					+ math.abs(cf.UpVector.X) * size.Y / 2
+					+ math.abs(cf.LookVector.X) * size.Z / 2
+				local hz = math.abs(cf.RightVector.Z) * size.X / 2
+					+ math.abs(cf.UpVector.Z) * size.Y / 2
+					+ math.abs(cf.LookVector.Z) * size.Z / 2
+				lo = R.Vector2.new(math.min(lo.X, d.Position.X - hx), math.min(lo.Y, d.Position.Z - hz))
+				hi = R.Vector2.new(math.max(hi.X, d.Position.X + hx), math.max(hi.Y, d.Position.Z + hz))
+			end
+		end
+	end
+	for i, e in entries do
+		if i <= JOIN then
+			grow(e.Model)
+		end
+	end
+	grow(spawnArea)
+	local box = TS.Box()
+	lo = R.Vector2.new(math.min(lo.X, box.Min.X), math.min(lo.Y, box.Min.Y))
+	hi = R.Vector2.new(math.max(hi.X, box.Max.X), math.max(hi.Y, box.Max.Y))
+	lo, hi = TB.PlateBox(entries, lo, hi)
+	lo -= R.Vector2.new(MARGIN, MARGIN)
+	hi += R.Vector2.new(MARGIN, MARGIN)
+	local overlap = process.env.PLATE_OVERLAP and tonumber(process.env.PLATE_OVERLAP) or nil
+	local tiles = TB.PlateTiles(lo, hi, overlap)
+	-- as the Studio test: the point in each tile's CFrame (float32, as the engine's), against the tile's half size
+	local frames = {}
+	for _, t in tiles do
+		table.insert(frames, { R.CFrame.new(t.Centre.X, -68, t.Centre.Y), R.Vector3.new(t.Size.X, 1, t.Size.Y) })
+	end
+	-- with SLACK studs to spare: a point exactly on a seam between two tiles (the 2026-11-26 tie) has none without the
+	-- overlap, and float error then puts it on neither in the engine (Lune's rounding happens to fall the other way)
+	local SLACK = 0.01
+	local function covered(x, z)
+		for _, f in frames do
+			local l = f[1]:PointToObjectSpace(R.Vector3.new(x, -68, z))
+			if math.abs(l.X) <= f[2].X / 2 - SLACK and math.abs(l.Z) <= f[2].Z / 2 - SLACK then
+				return true
+			end
+		end
+		return false
+	end
+	local pass, fail, big = 0, 0, 0
+	for _, t in tiles do
+		big = math.max(big, t.Size.X, t.Size.Y)
+	end
+	for _, e in entries do
+		for _, part in e.Model:GetDescendants() do
+			if part:IsA("BasePart") and part.Name == "Ground" then
+				local cf, size = part.CFrame, part.Size
+				local hx = math.abs(cf.RightVector.X) * size.X / 2
+					+ math.abs(cf.LookVector.X) * size.Z / 2
+					+ TEST_MARGIN
+				local hz = math.abs(cf.RightVector.Z) * size.X / 2
+					+ math.abs(cf.LookVector.Z) * size.Z / 2
+					+ TEST_MARGIN
+				local c = cf.Position
+				for _, pt in
+					{
+						{ c.X - hx, c.Z - hz },
+						{ c.X + hx, c.Z + hz },
+						{ c.X - hx, c.Z + hz },
+						{ c.X + hx, c.Z - hz },
+						{ c.X, c.Z },
+					}
+				do
+					if covered(pt[1], pt[2]) then
+						pass += 1
+					else
+						fail += 1
+						print(
+							string.format(
+								"PLATE TILES FAIL %s Ground point (%.3f, %.3f) on no tile",
+								e.Model.Name,
+								pt[1],
+								pt[2]
+							)
+						)
+					end
+				end
+			end
+		end
+	end
+	if big > 2048 then
+		fail += 1
+		print(string.format("PLATE TILES FAIL a tile is %.2f studs, over a part's 2048", big))
+	end
+	print(string.format("PLATE TILES CHECKS pass=%d fail=%d (%d tiles)", pass, fail, #tiles))
+end
+-- World 2's seam (WORLD2_SPEC "World 2 track layout"; TerrainShape.EXACT_FAR): with laps 760 apart the gap midline lies
+-- past the stamp, so the grid's nearest track and distance there must be the true ones (to the centre waypoints, <= 12
+-- studs apart) within SEAM_TOL, and the nearest track the true one wherever the second is more than 2 SEAM_TOL farther.
+if process.env.WORLD == "2" then
+	local SEAM_TOL, pts = 4, {}
+	for _, e in entries do
+		for k, w in e.Layout.Waypoints do
+			local p = e.Origin:PointToWorldSpace(w)
+			table.insert(pts, { e.Number, p.X, p.Z })
+		end
+	end
+	-- inside the grid only (the centre lines' box plus STAMP); past it the grid answers by its nearest edge node
+	local box = { Min = R.Vector2.new(math.huge, math.huge), Max = R.Vector2.new(-math.huge, -math.huge) }
+	for _, q in pts do
+		box.Min = R.Vector2.new(math.min(box.Min.X, q[2]), math.min(box.Min.Y, q[3]))
+		box.Max = R.Vector2.new(math.max(box.Max.X, q[2]), math.max(box.Max.Y, q[3]))
+	end
+	box.Min -= R.Vector2.one * TS.STAMP
+	box.Max += R.Vector2.one * TS.STAMP
+	local pass, fail, worst, seed = 0, 0, 0, 12345
+	for _ = 1, 3000 do
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		local x = box.Min.X + (seed / 2147483648) * (box.Max.X - box.Min.X)
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		local z = box.Min.Y + (seed / 2147483648) * (box.Max.Y - box.Min.Y)
+		local best, bestN, second = math.huge, nil, math.huge
+		local near = {}
+		for _, q in pts do
+			local d = math.sqrt((q[2] - x) ^ 2 + (q[3] - z) ^ 2)
+			if d < (near[q[1]] or math.huge) then
+				near[q[1]] = d
+			end
+		end
+		for n, d in near do
+			if d < best then
+				best, bestN, second = d, n, best
+			elseif d < second then
+				second = d
+			end
+		end
+		if best > TS.STAMP + 16 and best < 600 then
+			local zone, d = TS.Owner(x, z, bestN)
+			local ok = math.abs(d - best) <= SEAM_TOL and (zone == bestN or second - best <= 2 * SEAM_TOL)
+			worst = math.max(worst, math.abs(d - best))
+			if ok then
+				pass += 1
+			else
+				fail += 1
+			end
+		end
+	end
+	print(
+		string.format(
+			"W2 SEAM CHECKS pass=%d fail=%d worst %.1f studs%s",
+			pass,
+			fail,
+			worst,
+			fail > 0 and " FAIL" or ""
+		)
+	)
+end
+-- Track 7's sea (BIOME_ENVIRONMENT_SPEC 2.2 "Coast", WORLD2_SPEC): drawn water under every blockade ship, none under
+-- the base of any other AntIsland prop but the shore cliffs, none in any road's
+-- corridor (every 4th centre waypoint of every track, across W/2 + 24 each side every 8 studs), and every other zone's
+-- terrain unchanged: a checksum of Column (height to 1/4 stud, material, water) on a 96-stud grid, points that are not
+-- AntIsland's and not within the seam blend of it, against the value before the sea (SEA_OTHER_HASH).
+if process.env.WORLD == "2" then
+	local Themes = req(Shared.BiomeThemes)
+	local SEA_OTHER_HASH = 106734784 -- the red run's value (before the sea, 2026-11-26): the other zones' terrain must not move
+	local seaN, ships, wet, dryCorr, wetCorr = nil, 0, 0, 0, 0
+	local MIN_DRAWN, dryShips = 1, {} -- studs of drawn water under each sampled point
+	local landProps, wetLand = 0, {}
+	for i, e in entries do
+		if e.Biome == "AntIsland" then
+			seaN = e.Number
+			for _, prop in models[i].Environment:GetChildren() do
+				local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+				local row = k and Themes.AntIsland.Placed[k]
+				if row and row[1] ~= "Ship" and row[1] ~= "Cliff" then
+					-- the island's land: the sea is the ships' band, so every other prop's base is dry (the nest and its
+					-- ants stand past the coast at a spiral corner, on the draft's grass)
+					local b = e.Origin:PointToWorldSpace(R.Vector3.new(row[2], row[3], row[4]))
+					landProps += 1
+					if TS.DrawnWater(b.X, b.Z) > 0 then
+						table.insert(wetLand, string.format("%s %s at %.0f,%.0f", prop.Name, row[1], b.X, b.Z))
+					end
+				end
+				if k and Themes.AntIsland.Placed[k][1] == "Ship" then
+					local ps = parts(prop)
+					local c = R.Vector3.zero
+					for _, part in ps do
+						c += part.Position
+					end
+					c /= math.max(1, #ps)
+					ships += 1
+					-- the water the game's writer draws (TS.DrawnWater, the writer's own voxel rule), not Column's water
+					-- level: a 2-stud sea had a level under every ship and no water voxel (Studio 2026-11-26, ships on
+					-- sand). Under the centre and the hull's quarter points along and across it.
+					local hull = ps[1]
+					local along, across =
+						hull.CFrame.LookVector * hull.Size.Z / 4, hull.CFrame.RightVector * hull.Size.X / 4
+					local dry = 0
+					for _, q in { c, c + along, c - along, c + across, c - across } do
+						if TS.DrawnWater(q.X, q.Z) < MIN_DRAWN then
+							dry += 1
+						end
+					end
+					wet += dry == 0 and 1 or 0
+					if dry > 0 and #dryShips < 4 then
+						table.insert(
+							dryShips,
+							string.format("%s at %.0f,%.0f (%d of 5 points dry)", prop.Name, c.X, c.Z, dry)
+						)
+					end
+				end
+			end
+		end
+		for k = 1, #e.Layout.Waypoints, 4 do
+			local w = e.Origin:PointToWorldSpace(e.Layout.Waypoints[k])
+			local nxt = e.Origin:PointToWorldSpace(e.Layout.Waypoints[math.min(k + 1, #e.Layout.Waypoints)])
+			local t = (nxt - w) * R.Vector3.new(1, 0, 1)
+			if t.Magnitude > 1e-3 then
+				local right = R.Vector3.new(-t.Unit.Z, 0, t.Unit.X)
+				local half = e.Layout.Width / 2 + 24
+				for off = -half, half, 8 do
+					local q = w + right * off
+					local _, waterY = TS.Column(q.X, q.Z)
+					if waterY then
+						wetCorr += 1
+					else
+						dryCorr += 1
+					end
+				end
+			end
+		end
+	end
+	local box, h, pts = TS.Box(), 0, 0
+	for x = box.Min.X, box.Max.X, 96 do
+		for z = box.Min.Y, box.Max.Y, 96 do
+			local zone = TS.Zone(x, z)
+			local own, dOwn = TS.Owner(x, z, zone)
+			local _, dSea = TS.Owner(x, z, seaN)
+			if zone ~= seaN and dSea - dOwn > 24 then
+				local y, waterY, surface = TS.Column(x, z)
+				local v = string.format("%d|%s|%s", math.round(y * 4), tostring(surface), tostring(waterY))
+				for c = 1, #v do
+					h = (h * 31 + string.byte(v, c)) % 2147483647
+				end
+				pts += 1
+			end
+		end
+	end
+	local hashOk = SEA_OTHER_HASH == nil or SEA_OTHER_HASH == h
+	print(
+		string.format(
+			"W2 SEA ships %d, drawn water under %d%s%s",
+			ships,
+			wet,
+			ships > 0 and wet == ships and "" or " FAIL",
+			#dryShips > 0 and ": " .. table.concat(dryShips, ", ") or ""
+		)
+	)
+	print(
+		string.format(
+			"W2 SEA land props %d, in drawn water %d%s",
+			landProps,
+			#wetLand,
+			landProps > 0 and #wetLand == 0 and "" or " FAIL: " .. table.concat(wetLand, ", ", 1, math.min(#wetLand, 6))
+		)
+	)
+	print(string.format("W2 SEA corridor points %d dry, %d wet%s", dryCorr, wetCorr, wetCorr == 0 and "" or " FAIL"))
+	print(
+		string.format(
+			"W2 SEA other zones %d points, checksum %d%s",
+			pts,
+			h,
+			hashOk and "" or " FAIL (was " .. tostring(SEA_OTHER_HASH) .. ")"
+		)
+	)
+end
 -- docs/BUGS.md w2-grass-through-road: the engine grows grass blades on Grass terrain taller than the 2 studs between the
 -- corridor's top and the road's, so no column under a road, its walls or a clear slab (checkpoint apron, WinPad, plaza
 -- floor) is Grass. Every waypoint, across the road and its walls every 4 studs.
@@ -1293,7 +1627,10 @@ if process.env.WORLD == "2" then
 				if k then
 					kept += 1
 					local row = raw.Placed[k]
-					local ok, why = placedOk(e.Origin, row, raw.Props[row[1]], prop, row[1])
+					-- the game theme's def says whether its mesh takes the import turn (Kit.fromDraft)
+					local gameDef = req(Shared.BiomeThemes)[e.Biome].Props[row[1]]
+					local ok, why =
+						placedOk(e.Origin, row, raw.Props[row[1]], prop, row[1], gameDef and gameDef.ImportTurn)
 					if ok then
 						tpass += 1
 					else
