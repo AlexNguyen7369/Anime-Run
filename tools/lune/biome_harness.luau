@@ -627,11 +627,11 @@ local function freshDraft(biome)
 end
 -- (c) A placed prop stands where its draft row says (the transform the exporter road-tested): its mesh part has the
 -- row's CFrame (origin * (X, Y, Z) * YXZ(RX, Yaw, RZ), up by half its height) and Size (the draft Size times Scale or
--- Stretch); without a mesh (NOMESH, PartsOnly, parts fallback) every fallback part <Name><i> has its centre at
+-- Stretch), turned as BiomeDressing.MeshCFrame turns it (`turn`: the game def's ImportTurn); without a mesh (NOMESH, PartsOnly, parts fallback) every fallback part <Name><i> has its centre at
 -- base * (Pos * Scale) and the draft part's size, up to the axis swap Kit.fromDraft makes for a cylinder (the only
 -- change Kit may make: part shapes, mesh names and shadows; never a size or a placement). Stretched rows check the
 -- part centres only. Returns ok, why.
-local function placedOk(origin, row, def, prop, name)
+local function placedOk(origin, row, def, prop, name, turn)
 	local s = row[9] or row[6]
 	local base = origin
 		* R.CFrame.new(row[2], row[3], row[4])
@@ -639,9 +639,10 @@ local function placedOk(origin, row, def, prop, name)
 	local mesh = prop:FindFirstChild(name)
 	if mesh then
 		local size = def.Size * s
-		-- every World 2 draft mesh is turned 180 degrees about its own centre against the import turn (WORLD2_SPEC "Blender
-		-- first", import turn): same centre and box, rotation turned
-		local want, got = base * R.CFrame.new(0, size.Y / 2, 0) * R.CFrame.Angles(0, math.pi, 0), mesh.CFrame
+		-- the placement function's own frame (BiomeDressing.MeshCFrame: a World 2 draft mesh is turned 180 degrees about its
+		-- own centre against the import turn, WORLD2_SPEC "Blender first"), at the draft row's base and size: any other drift
+		-- still fails
+		local want, got = BD.MeshCFrame({ Size = size, ImportTurn = turn }, base), mesh.CFrame
 		if
 			(got.Position - want.Position).Magnitude < 0.01
 			and (mesh.Size - size).Magnitude < 0.01
@@ -880,7 +881,7 @@ if process.env.WORLD == "2" then -- draft placements kept by the budget and own-
 		gcheck(p1 ~= nil and p2 ~= nil, "both pieces build when the whole prop's base is on the ground")
 		for n, pc in { p1, p2 } do
 			local row = n == 1 and { "Piece_p1", 0, -1, -150, 0, 1 } or { "Piece_p2", 99999, -1, 99999, 0, 1 }
-			local ok, why = placedOk(entries[1].Origin, row, piece, pc, piece.Name)
+			local ok, why = placedOk(entries[1].Origin, row, piece, pc, piece.Name, piece.ImportTurn)
 			gcheck(ok, "piece " .. n .. " stands where its row says: " .. (why or ""))
 		end
 		gcheck(
@@ -1478,7 +1479,9 @@ if process.env.WORLD == "2" then
 				if k then
 					kept += 1
 					local row = raw.Placed[k]
-					local ok, why = placedOk(e.Origin, row, raw.Props[row[1]], prop, row[1])
+					-- the game theme's def says whether its mesh takes the import turn (Kit.fromDraft)
+					local gameDef = req(Shared.BiomeThemes)[e.Biome].Props[row[1]]
+					local ok, why = placedOk(e.Origin, row, raw.Props[row[1]], prop, row[1], gameDef and gameDef.ImportTurn)
 					if ok then
 						tpass += 1
 					else
