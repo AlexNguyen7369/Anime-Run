@@ -156,6 +156,8 @@ end
 
 -- One prop as a Model whose base centre is `base` and whose -Z faces the road. `inTunnel`: it stands inside a
 -- Tunnel (spec 3.5), so SnapToTerrain leaves it where it is.
+-- World 2's always-loaded landmarks (Shared/World2Landmarks); nil in World 1, which has none
+local W2_LANDMARKS = require(script.Parent.WorldConfig).Id == 2 and require(script.Parent.World2Landmarks) or nil
 BiomeDressing.YIELD_EVERY = 200 -- placeholder: props placed between yields of a build
 local placedSinceYield = 0
 local function place(folder, biome, def, base, name, glow, particles, inTunnel)
@@ -790,6 +792,11 @@ local function placed(folder, biome, theme, origin, count, budget, onGround)
 					* CFrame.fromEulerAnglesYXZ(m[7] or 0, m[5], m[8] or 0)
 				count += place(folder, biome, def, base, "Placed_" .. k, def.Hero, nil, true)
 				local model = folder:FindFirstChild("Placed_" .. k)
+				if model and W2_LANDMARKS and W2_LANDMARKS.Is(biome, m[1], base.Position.X, base.Position.Z) then
+					-- WORLD2_SPEC "Hero landmarks always loaded" (proposed): seen across the wide layout's gaps, past the
+					-- 1,024-stud streaming radius, so it never streams out
+					model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+				end
 				if model then
 					if m.Group then
 						model:SetAttribute("PlacedGroup", m.Group)
