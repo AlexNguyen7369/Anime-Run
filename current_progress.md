@@ -339,8 +339,9 @@
 297. 2026-11-26 — Alex Nguyen — Corrected the support fix after its rules audit (road-top convention, 0.15 corner allowance, every row checked under the road), recorded the freeze exception in WORLD2_SPEC, and tightened road_surface_clear with a road-deck check; Studio 55/55.
 330. 2026-11-26 — Alex Nguyen — Made road_surface_clear enforce the 0.05 support clearance under every road (Studio 55/55 on the final rows), re-shot the Track 2, 5 and 7 after pictures on them, and merged the World 2 branch.
 331. 2026-11-26 — Alex Nguyen — Corrected the opening words of WORLD2_SPEC's road-supports exception to name the 6 sunk rows' bases, after the third rules audit.
+332. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batch 10 (HellGate, 10 meshes in their approved colours; harness 12655/0).
 
 ## What's next
-**Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**
+**Run the remaining World 2 re-export batches in plan order (7, 1, 6, 2, 3, 4, 5, 9, 8): upload, Studio side-by-side check, review, apply, harness, commit each.**
 
-**Why this is next:** the owner approved tonight's uploads, everything up to the send is ready, and dark props are the last rendering fault that does not depend on the re-lay.
+**Why this is next:** batch 10 passed the colour check the owner asked for before batch 2, so the other tracks' dark props can now be replaced the same way.
