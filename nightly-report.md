@@ -18,6 +18,7 @@
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Final World 2 Studio pass on the landing candidate (orch/world2/w2-landing c8af98ff): all 10 new track briefs green (84-85 checks each: finishes, pads, checkpoints, no overlap with the plaza, runners at normal and max speed, cash), chain 14/14, spawn_area 201/201, auto_toggle 158/158, world2_skies 81/81, world2_team 43/43, world2_cast 121/121, boss_event 1870/1870, plaza_pieces 306/306, plaza_build 171/171; UI: ui_team 71/71 (first full pass), ui_boss_gate, ui_boss_guide, ui_world2_welcome, ui_hud_look_by_world green. Open: world_layout 11/12 (a baseplate seam tie), ui_boss 486/487 (flaky camera check), Track 7 ships on dry ground. World 1 Studio not open.
 - Track 2 ChainTower: 4 pieces uploaded (cut from the approved mesh, audited, sizes checked in Studio); ids go in with the layout landing.
 - Gojio guide on at the World 2 boss gate (World 1 off, like the gate): Studio boss_guide 101/0, ui_boss_guide 36/0, ui_boss_gate 14/0. Track 10 red haze a little less opaque (effects still off).
 - Scenery refit round 2: every World 2 track scores 7 or above in fresh blind review (T1 7.2, T2 7, T3 7, T4 7, T5 7, T6 7.3, T7 7, T8 8, T9 7, T10 7); every hero placed (shrink-to-fit by your word: T1 Town 1.015, T3 HeroHQ 0.562, T7 volcano 0.389, T8 LairTower 3.45, T10 Abyss r500); T6 HQ back; Track 7 now has a sea. Landing into the World 2 branch in progress.
