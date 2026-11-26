@@ -3,6 +3,8 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- Track 6 HQ: still out by your 2026-11-25 ruling ("for now"). It now has a legal spot on its own ground at the 0.9 axis, world (-2714, 2418), 0 overlaps. Question: bring it back?
+- Track 7 IslandVolcano: still no spot at its approved scale 1.25 (needs 975+ studs from every road; the best spot has 498). Question: allow a smaller scale (0.43 fits), or keep it out?
 - Dark props re-export uploads: your "Yes, upload tonight" is recorded (52b436aa), but agent-2's session permission check denied the first upload (batch 10, 10 Hell's Gate meshes); nothing was sent. I did not run it from another session (that would bypass the denial). Ready: orch/world2/w2-render-audit, bake done (119 meshes), `dry 10` OK. To do: allow uploads in agent-2's session (or run `python3 upload_reexport.py upload 10` from tools/blender/world2 in /home/dev/AnimeRun-orch/w2-render-audit with the key and creator set), then the Studio colour check before batch 2.
 - Boss gate guide (Gojio) in World 2: the gate (draft A) is on in World 2, off in World 1; Gojio's own switch (BossGuideConfig.LIVE) is yours by BOSS_GUIDE_SPEC, so he is not standing at the gate yet. Question: turn Gojio on with the World 2 gate?
 - Track effects LIVE: stays off until you approve the effects and motions (your words). Previews: assets/world2_draft/track_fx/previews/ on orch/world2/w2-track-vfx. Questions: does your "tone down the haze" cover Track 10's red ground-haze particles? Are DemonCastle's black-violet drakes too close to Kaizel's wyvern look?
@@ -17,6 +19,7 @@
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you
+- T6 DevilTokyo back row thinned to every 7th slot (with 760 gaps nothing blocked it, so it would have doubled the buildings, about 1.9M more tris). T7 AntIsland coast runs along the road (the old oval would have covered the inner laps); its Nest now faces its road (was a random turn) so its ants stand on its own ground.
 - World 2 layout C is level: the square spiral has no hills (agent-1 removed the Slopes from all World 2 routes; no rule needs them). Hills can be put back inside straights later without changing the plan. Revert: ask for slopes in straights.
 - Refit per-track fixes (agent-3): T1 Ranks keep their turn to the road; T2 castle plinth 300 from its road (was 340); T3 hero apartment follows the bend; T5 kaiju site 1 is 4 studs further out (mesh unchanged); T9 city wall runs along its own band instead of an ellipse over Tracks 1-8.
 - Spawn: the plaza no longer moves; the floor grows on its three open sides only (west edge by Track 1 stays). The first plan (1.2x around a moved centre) broke three fixed rules (walk spawn 159.5 from Track 1's start vs 150, the fixed radius-84 ring, design doc 4.43's unchanged items) and was reverted.
