@@ -31,22 +31,66 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   most 0.22 and no Haze; the others Brightness at least 1.4, Ambient at least 0.36, OutdoorAmbient at least 0.6. Fog
   colours are lifted to 0.3 so the distance never fades to black. The horizon colour is the first sky stop at or over 0.
 - A theme's own `Atmosphere` overrides still win (Track 4's moon size).
-- Track skies: **open question for the owner** (docs/BUGS.md w2-hell-sky, found 2026-11-25 by reading code). The approved
-  drafts' skies (`<Key>Draft.Sky.Stops`) are rendered in Blender only. In game no World 2 profile sets
-  `Sky.Skybox` (BIOME_ENVIRONMENT_SPEC 5.2) and no theme has a Skybox row, so the place's default Roblox sky shows on every
-  track: blue by day. Only the fog colour (`Atmosphere.Color`, the horizon stop) carries the draft hue. The look was never
-  defined, so nothing is coded. By reading, the profile is applied in zone 10 (`BiomeEnvironment.Profile` gives
-  HellGate's `Atmosphere`; no override found).
-  The pale ground is the draft's (`Ground` B8AA8C, Sand: "a pale plain under a red sky"), not a fault.
-  **Proposed**: one in-house gradient skybox per World 2 day track whose draft sky is not a plain daylight blue, drawn
-  as the plaza's (`tools/blender/plaza/plaza_sky.py`, Lane A, no prompt): a vertical gradient by true elevation from the
-  draft's stops (stop value x 90 degrees; below 0 the first stop), one Side image on Bk/Ft/Lf/Rt plus Up and Dn, row key
-  `W2_<Key>_Sky` in the theme's Assets, set as the theme's `Atmosphere.Sky.Skybox`; `CelestialBodiesShown` stays on.
-  Tracks it would cover: 10 HellGate (FF8A4A at the horizon to 3A0208 overhead) first, then 3 DemonCastle, 9 GoldenCity
-  and 7 AntIsland (warm skies). The blue-sky day tracks (ElvenPlains, KaijuBase, RuinedCityZ) and the night tracks
-  (DevilTokyo, HauntedTunnel, MonsterDen: ClockTime 0, Roblox's night sky) would keep the default. Needs: the owner's word
-  on the look (and which tracks), an upload and a rules review of each image; Track 10's layout and meshes stay frozen
-  (a skybox touches neither).
+- Track skies. Owner 2026-11-25 (owner question 33, design doc change log): "Four tracks": Hell's Gate first, then Demon
+  Castle, Golden City and Ant Island get in-house gradient skies made from their approved drafts' sky colours; the other
+  tracks keep the default sky; renders to the owner before upload. (Found as docs/BUGS.md w2-hell-sky: no World 2
+  profile had a `Sky.Skybox`, so the place's default blue sky showed on every track; the pale Track 10 ground is the
+  draft's `Ground` B8AA8C, Sand, not a fault.) Tracks: 10 HellGate, 2 DemonCastle (agent-1's proposal said 3), 9
+  GoldenCity, 7 AntIsland. ElvenPlains, KaijuBase, RuinedCityZ, DevilTokyo, HauntedTunnel and MonsterDen keep the default.
+  Everything below is **proposed**:
+  - Drawing (`tools/blender/world2/track_sky.py`, offline, no network, deterministic, `--self-test`): a plain vertical
+    gradient by true elevation, read from the draft's `<Key>Draft.Sky` (stops and Strength) and drawn exactly as the
+    draft's Blender world: a stop at p sits at elevation asin(p) (the draft ramp runs on the view direction's height; the
+    first proposal's p x 90 degrees was not the draft's look), linear-light mixing, times Strength, sRGB (Standard),
+    clipped at 1; below the first stop that stop's colour. No text, symbols, logos or shapes; the sun disc is the
+    engine's (`CelestialBodiesShown` stays on). 512 px, one Side image on Bk, Ft, Lf and Rt plus Up and Dn (three
+    uploads per track), as the plaza's SkyGolden. Files: `assets/world2_draft/skies/trackNN_<Key>/W2_<Key>_Sky*.png`,
+    `manifest.json` (stops, sha256). Checked against a Cycles panorama of each draft's own world
+    (`track_sky_preview.py`): mean difference under 1 level of 255 (Demon Castle's horizon row up to 120 where its
+    stops jump within one pixel row).
+  - Previews for the owner (`track_sky_preview.py`, Blender, offline): `preview.png` per track, the Studio picture of
+    2026-11-25 (`assets/world2_draft/audit/lighting_2026-11-25/T<N>_road.jpg`) beside the same picture with its blue sky
+    pixels replaced by the new sky (approximate: no haze or fog redone), the draft's run render and the panorama. Track 2
+    has no Studio picture: a level view over flat draft-coloured ground instead.
+  - Game: `Kit.fromDraft` takes the theme's `Skybox = "W2_<Key>_Sky"` as the profile's `Sky.Skybox`; the row is
+    `Kit.draftSky` (Kind Skybox, Lane A as the plaza's, Faces form, `TrackSky = true`): Id and Bk, Ft, Lf, Rt = the
+    Side image, plus Up and Dn. `BiomeEnvironment.Row` never uses a row with any id 0 (the whole set or nothing), an
+    unreviewed row, nor a `TrackSky` row while `Shared/TrackSkyConfig.LIVE` is false; then every track shows the
+    place's default sky. With the switch on, a track's six faces apply in its zone only (`BiomeEnvironment.SkyboxFace`;
+    the client writes the place's own faces back on leaving), swapped under the blend's haze (BIOME_ENVIRONMENT_SPEC
+    5.3), and its profile takes the WithSky rule below (fog Color and Decay from the drawn sky on all four tracks; Ant
+    Island's light too); without its sky a track's fog and lighting are `Kit.fromDraft`'s, floors included.
+    Tests: `world2_skies` (both worlds). Track 10's layout and meshes stay frozen (a skybox touches neither).
+  - Upload and switch-on (owner 2026-11-26, choice F, design doc change log: "the four track skies (Hell's Gate,
+    Golden City, Ant Island, Demon Castle) are uploaded, then each is reviewed and checked in Studio before it is switched
+    on"): (1) the twelve images (three per track) are uploaded under the owner's account (done 2026-11-26); (2) the rules
+    auditor reviews each image and signs its row's `Reviewed` (done 2026-11-26, all twelve faces); (3) the ids go into
+    the four `draftSky` rows; (4) each sky is checked in Studio (its six faces in its zone only, the default sky back on
+    leaving, the fog meeting the sky, Ant Island's light) before `TrackSkyConfig.LIVE` is switched on in the World 2
+    branch; the switch-on is its own commit so it can be checked in Studio before it is merged. (4) was done 2026-11-26 (`world2_skies` 81/81). Merge gate (owner 2026-11-26, design doc change log: "pictures again before the merge"): new Studio pictures of the four tracks at the toned-down haze go to the owner before this switch-on merges into the World 2 branch.
+  - Review round 2026-11-26 (agent-3, images only: Golden City 8, Hell's Gate 7, Demon Castle 7, Ant Island 6):
+    - Horizon seam: while a track's own sky shows, its profile takes `WithSky` (`Kit.fromDraft`, applied by
+      `BiomeEnvironment.Profile` only then): fog `Atmosphere.Color` = the drawn sky at the horizon and `Decay` = the
+      drawn sky 2 degrees up (`SKY_DECAY_HEIGHT` 0.035), so the haze meets the sky in its own colours. Owner 2026-11-26,
+      after the Studio pictures: "reccommended option, just tone down the haze across all a bit, colors are fine just too
+      much": while the sky shows, Density 0.22 (was 0.3) and Haze 0.5 (was 1) on all four (`Kit` `SKY_FOG`, values
+      proposed); Glare and the colours unchanged. Off, or with an id 0, the theme's own profile is returned as today. The pale blue-grey line in the first
+      previews was the default sky's pale band left in the Studio picture by the picture edit; the redone previews
+      replace it and recolour Track 10's fog band by the fog change.
+    - Demon Castle: its dark stop under the horizon moves from -0.012 to -0.035 in the drawing only
+      (`track_sky.py SOFTEN`), so the orange horizon meets the dark below in about 10 px of a 512 px face instead of a
+      1-2 px line; nothing at or over the horizon changes. No Studio picture of Track 2 exists in the repo (searched
+      `assets/`: only World 1's Forest T2 and Track 2 model close-ups), so its board keeps the level game view.
+    - Ant Island: `assets/world2_draft/audit/lighting_2026-11-25/T7_road.jpg` is filed as Track 7, but its scenery is
+      not Ant Island's: the orange blocks match Golden City's CityBlock and the timber houses and pines are not in Ant
+      Island's draft (its props near the road are Brush, Bank, ThatchHouse, Ruin). By the draft placements, 79 Golden
+      City CityBlocks and 153 Haunted Tunnel cedars stand within 150 studs of Track 7's centre line, so the picture is
+      most likely Track 7's road with neighbouring tracks' scenery (the ground-ownership question); not confirmed in
+      Studio. Under its sky Ant Island takes `SkyLook`: ClockTime 17.6 (was 17.2), Brightness 1.4 (the day floor, was
+      1.44), ExposureCompensation -0.3 (was 0), OutdoorAmbient A37D6D (halfway from the draft's horizon D8946A to its
+      sky 6E6670, was 997966), Grade Saturation -0.1 (was 0.18) and TintColor 30% toward the sun FFB070 (was 15%). The
+      road-and-runner floors still hold (tested). `studio_sky_dusk.png` previews it as a picture regrade (no new
+      shadows).
 
 ## Save
 - `Shared/WorldConfig.Id` comes from `ReplicatedStorage.WorldId` (the World 2 place only); a client waits for `game.Loaded`

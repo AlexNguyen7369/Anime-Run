@@ -183,12 +183,7 @@ local function bind(e)
 end
 
 local function skyboxFace(face)
-	local key = profile.Sky and profile.Sky.Skybox
-	local row = Env.Asset(zone, key, "Skybox")
-	if not row then
-		return nil
-	end
-	return row.Faces and row.Faces[face] or row.Id
+	return Env.SkyboxFace(zone, profile, face) -- nil: the place's own face (target falls back to e.Server)
 end
 
 -- The value an entry blends to in the current zone
