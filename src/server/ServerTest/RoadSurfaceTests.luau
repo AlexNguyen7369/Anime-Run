@@ -4,8 +4,8 @@
 --  * no visible part of the scenery crosses a road's top surface (World 2's draft road supports, Fill / Bank / Pier,
 --    stuck up to 1.6 studs through the asphalt on every climb: flat boxes topped at the road's centre height; fixed in the
 --    Blender generators, kit.support_top);
---  * no visible scenery part reaches into a road's deck: none holds a point DECK above the road's underside (a support
---    stays SUPPORT_CLEARANCE 0.05 under it, kit.support_top); this is stricter than the crossing check;
+--  * no visible scenery part reaches into a road's deck or its clearance: none holds a point just inside
+--    SUPPORT_CLEARANCE (0.05) under the road's underside (kit.support_top); stricter than the crossing check;
 --  * no terrain stands above, or flush with, a road's top, and no Grass lies under a road (W2_VISUAL_BUGS w2-grass-through-road).
 -- Scenery is every built track's (a neighbour's part over this road counts). Not checked: MeshParts (their box is not their
 -- shape: arches and tunnel rings span the road; the exporter's triangle road test covers draft meshes offline), and the
@@ -22,7 +22,7 @@ local STEP_X, STEP_Z = 3, 2 -- studs between road surface samples
 local LIFT = 0.05 -- a sample sits this far over the road top
 local SINK = 0.3 -- a crossing part also holds the point this far under the road top
 local GRASS_REACH = 4 -- Grass whose top is less than this under the road top would grow blades through it
-local DECK = 0.02 -- a deck sample sits this far over the road's underside
+local DECK = -0.049 -- a deck sample sits this far over the road's underside: just inside SUPPORT_CLEARANCE (0.05) under it
 
 local function report(name)
 	local r = { scenario = name, pass = true, checks = {}, metrics = {} }

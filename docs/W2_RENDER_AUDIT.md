@@ -73,9 +73,10 @@ re-exported (W2_REEXPORT_PLAN batches 1 to 10).
   checked row by row against the built road, 0.03 to 0.29 under the 0.05 line, none above.
 - On-demand Studio scenario `road_surface_clear`: base 29 pass / 7 fail. Superseded rows (8b48b407, 103 of them inside the
   road deck): 34 pass / 0 fail, before the deck check existed. Final rows (2402f2c7) with the deck check: 55 pass / 0 fail
-  (640,798 road samples, 2026-11-26).
-- Pictures `T2_fill_after.jpg`, `T5_pier_after.jpg`, `T7_bank_after.jpg` were taken on the superseded rows (tops 0.2 to
-  0.5 higher than shipped); they are re-shot on the final rows in the next Studio slot.
+  (640,798 road samples, 2026-11-26); then with the deck sample just inside the 0.05 clearance under the road's underside
+  (DECK -0.049, enforcing SUPPORT_CLEARANCE): 55 pass / 0 fail.
+- Pictures `T2_fill_after.jpg`, `T5_pier_after.jpg`, `T7_bank_after.jpg`: re-shot on the final rows (2402f2c7), same cameras
+  as the before shots.
 - biome_harness WORLD=2 differs from the base only by one KaijuBase shadow caster: a shortened Pier fell under the
   30-stud size at which a prop casts a shadow (BIOME_ENVIRONMENT_SPEC 8).
 - GiantCorpse (lead 2026-11-26): kept as it is. Not re-exported or re-uploaded; it carries the kaiju exception and the owner
