@@ -1,3 +1,10 @@
+## RESUME HERE (2026-11-26 evening, new VM alex-dev.avlis.dev): World 2 landing candidate nearly ready
+- Landing candidate: origin/orch/world2/w2-landing 9f452d68 = World 2 branch + square-spiral layout + scenery re-fit (all tracks 7+ blind) + mesh import-turn fix + world-aware cash checks + brighter lighting + baseplate tile overlap. Audits PASS (doc items fixed in cef1c58f). Studio final pass on c8af98ff: all 10 W2 track briefs green, 24/25 server scenarios, ui_team 71/71 first time.
+- Open before merging it into feature/alex/world2-place: agent-1 T7 ships on dry ground (orch/world2/w2-sea-edge, uncommitted work in /home/dev/AnimeRun-orch/w2-sea-edge; partial copy in ~/from-old-devbox), agent-1 ui_boss wait_view_held_throughout flake, agent-2 Studio seam check (world_layout 12/12).
+- Then: merge origin/main (PR #30 vm-skills, #32 vm-handoff) into world2-place, full Studio pass both worlds (World 1 Studio not open so far), PR to main with a fresh reviewer.
+- Rojo on the VM serves /home/dev/Anime-Run detached at 9f452d68; World 2 Studio connected (5d820b19). Owner questions: nightly-report.md "Blocked" and docs/OWNER_QUESTIONS.md (plaza facing, neighbour skylines, sky props).
+- Not merged on purpose: orch/world2/w2-hero-stream (Persistent landmarks; the far cut is engine draw distance), orch/world2/w2-t1-neighbours (moot), feature/alex/kaiju-export (duplicate upload).
+
 ## RESUME HERE (2026-11-26 day, devbox): World 2 wide-layout round started (owner)
 - Owner 2026-11-26: "biomes/tracks on world 2 are much too close ... Spacing per track in terms of width should be much larger, can have the track be straight even, not just circular. There should little to no overlaps in other tracks and fix rendering on all tracks". Answers: spacing about 600 studs road to road (Recommended); rendering faults = ground/grass/z-fighting, other tracks visible, dark props (not pop-in).
 - agent-1: layout options (spiral wider pitch, straight zigzag/spokes, best idea), measured, plan images; orch/world2/w2-wide-layout, docs/proposals/W2_WIDE_LAYOUT.md. Offline only.
