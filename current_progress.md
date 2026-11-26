@@ -323,8 +323,9 @@
 300. 2026-11-26 — Alex Nguyen — Corrected the Track 6/7 re-fit per the lead: Track 6's HQ out again with the approved lamps, the island volcano kept at its approved scale (no spot), all 48 Track 7 ships moved inside the Ground rect, and the lead's three re-fit decisions recorded as proposed in WORLD2_SPEC.
 301. 2026-11-26 — Alex Nguyen — Re-exported World 2 Tracks 1-5 and 8-10 on the final square-spiral Segments (66856b89): every approved hero placed but T1 Town, T3 HeroHQ and T8 LairTower (no spot at approved scale); T2 ChainTower now has a spot; both kaiju placements kept; uploaded ledger Ids kept.
 302. 2026-11-26 — Alex Nguyen — Regenerated cross_track.json for World 2 Tracks 1 and 6 on the square spiral (Track 6's lit landmark spots searched on the new road under the approved rule) and ran the second export pass of Tracks 1-5 and 8-10 against every track's new Draft.
+303. 2026-11-26 — Alex Nguyen — Ran the second re-fit pass on World 2 Tracks 6 and 7 against agent-3's pass-2 Drafts: Track 6 re-exported with the cross-track additions (935 placed, 0 dropped), Track 7 unchanged, both clean in the biome harness apart from the two no-spot heroes.
 
 ## What's next
-**Second re-fit pass of World 2 once agent-3's Tracks 1-5 and 8-10 Drafts are on the 66856b89 Segments: re-run the T6/T7 neighbour checks and the WORLD=2 biome harness until PIN, ROAD and TRANSFORM are green for all ten tracks.**
+**Clear the last World 2 biome harness fails on agent-3's tracks (pass 3: Prune-on-pads drops, Track 1 and 10 draft drops, the pinned Mirror/Kerb/Office boxes, the ElvenPlains ledger row), then a full World 2 Studio pass before the World 2 PR.**
 
-**Why this is next:** neighbour checks read the other tracks' committed Drafts, and the remaining harness fails are other tracks' stale placements on T6/T7's roads; the World 2 PR waits on a green harness.
+**Why this is next:** Tracks 6 and 7 are clean; the World 2 PR waits on a green harness for all ten tracks and on the Studio checks.
