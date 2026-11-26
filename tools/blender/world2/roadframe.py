@@ -86,3 +86,33 @@ def locate(wps, x, z):
 		d -= 0.01
 	(cx, cz), (tx, tz), (rx, rz) = frame(wps, d)  # off and along in the frame point() uses at d
 	return d, (x - cx) * rx + (z - cz) * rz, (x - cx) * tx + (z - cz) * tz
+
+
+class Owners:
+	"""The owner's ground rule (WORLD2_SPEC "Ground ownership", 2026-11-25, by base centre): a spot belongs to the track
+	whose centre line is nearest, measured to its waypoints (at most 12 studs apart), as export_props.owner_at does.
+	`tracks`: chain.build() rows. Waypoints are bucketed on a CELL grid and searched ring by ring."""
+
+	CELL = 128.0
+
+	def __init__(self, tracks):
+		self.b = {}
+		for t in tracks:
+			for p in t["Waypoints"]:
+				x, z = _xz(p)
+				self.b.setdefault((int(x // self.CELL), int(z // self.CELL)), []).append((x, z, t["Number"]))
+
+	def owner(self, x, z):
+		cx, cz = int(x // self.CELL), int(z // self.CELL)
+		best, who, r = math.inf, None, 0
+		while r < 4096:
+			for i in range(cx - r, cx + r + 1):
+				for j in (range(cz - r, cz + r + 1) if i in (cx - r, cx + r) else (cz - r, cz + r)):
+					for px, pz, n in self.b.get((i, j), ()):
+						d = (px - x) ** 2 + (pz - z) ** 2
+						if d < best:
+							best, who = d, n
+			if who is not None and (r * self.CELL) ** 2 > best:
+				return who
+			r += 1
+		return who

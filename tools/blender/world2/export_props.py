@@ -285,11 +285,30 @@ def props_overlap(local, origin, yaw, pos, e, sc, ctx):
 	return len(hits), max(hits)[1] if hits else None
 
 
+_LINES = {}
+
+
+def owner_at(world):
+	"""The track that owns world point (x, y, z) by the owner's ground rule (WORLD2_SPEC "Ground ownership", 2026-11-25,
+	by base centre): the one whose centre line is nearest (its waypoints, at most 12 studs apart). Measured on the chain
+	the drafts are built on (chain.build)."""
+	import numpy as np
+
+	if not _LINES:
+		import chain
+
+		for t in chain.build():
+			_LINES[t["Number"]] = np.array([(p[0], p[2]) for p in t["Waypoints"]])
+	q = np.array((world[0], world[2]))
+	return min(_LINES, key=lambda n: np.sqrt(((_LINES[n] - q) ** 2).sum(1)).min())
+
+
 def rules_ok(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 	"""Every rule one whole Placed hero (before any cut into pieces) must pass: base centre on its own Ground
 	(ground_rect) and within STREAM_RADIUS of its own centre line; its mesh box grown by PRUNE_CLEAR clear of every
 	checkpoint area and the spawn area (BiomeDressing.Prune); its triangles clear of every track's road corridor (own
-	track skipped when exempt). `why` (a dict) counts the failures."""
+	track skipped when exempt); its base centre on the ground its own road owns (owner_at). `why` (a dict) counts the
+	failures."""
 	import numpy as np
 
 	def fail(rule):
@@ -302,6 +321,8 @@ def rules_ok(local, origin, yaw, pos, e, sc, ctx, exempt, why=None):
 		return fail("ground")
 	if np.sqrt(((ctx["line"] - (pos[0], pos[2])) ** 2).sum(1)).min() > STREAM_RADIUS:
 		return fail("stream")
+	if owner_at(to_world(origin, yaw, pos)) != ctx["number"]:
+		return fail("owner")
 	if ctx.get("zone") and zone_of(ctx["zone"], np.array([to_world(origin, yaw, pos)])[:, [0, 2]])[0] != ctx["number"]:
 		return fail("zone")
 	c, R, own = hero_box(local, origin, yaw, pos, e, sc)
@@ -909,12 +930,19 @@ def export(number, glb=True, plan=False, zone=None):
 	corr = clearance.corridors(build_track.load_chain().values())
 	local = {n: local_tris(k.props[n].data, centres[n]) for n in names}
 	ptris = {n: parts_tris(props[n]["parts"]) for n in names}  # what the game builds while a mesh has no Id
-	kept, dropped = [], {}
+	kept, dropped, off_ground = [], {}, {}
 	for name, pos, e, sc in placed:
 		skip = (number,) if name in exempt else ()
 		hits = clearance.intrudes(game_tris(local[name], origin, yaw, pos, e, sc), corr, skip)
 		if not hits and len(ptris[name]):  # its parts fallback must clear the roads too (box per part)
 			hits = clearance.intrudes(game_tris(ptris[name], origin, yaw, pos, e, sc), corr, skip)
+		if not hits:
+			owner = owner_at(to_world(origin, yaw, pos))
+			if owner != number:  # ground ownership: the spot is another track's (its road is nearer)
+				off_ground.setdefault(owner, {}).setdefault(game[name], 0)
+				off_ground[owner][game[name]] += 1
+				props[name]["count"] -= 1
+				continue
 		if hits:
 			for t in hits:
 				dropped.setdefault(t, {}).setdefault(game[name], 0)
@@ -1009,6 +1037,7 @@ def export(number, glb=True, plan=False, zone=None):
 		"Dropped": len(placed) - len(kept),
 		"Kept": len(kept),
 		"By": {"track %d" % t: d for t, d in sorted(dropped.items())},
+		"OffGround": {"track %d" % t: d for t, d in sorted(off_ground.items())},
 		"Heroes": {game[h]: props[h]["count"] if h in props else None for h in heroes},
 		"Moved": moved,
 		"Lowered": lowered,
