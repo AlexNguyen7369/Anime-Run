@@ -383,8 +383,9 @@
 380. 2026-11-26 — Alex Nguyen — Closed the World 2 re-fit's last landing reds on my side: the TRANSFORM check compares unit vectors (Lune float drift), the baseplate covers every track's Ground by construction (TrackBuilder.PlateBox, harness PLATE check), Track 10's Abyss re-placed 400 studs ahead of the 0.9 camera (radius 210), and the audit's spec text.
 381. 2026-11-26 — Alex Nguyen — Made the track briefs' four cash checks and the pad-label literal world-aware (World 2's base, x2 per track and "$63.3b"/"$32.4t"; World 1 unchanged in effect), so the World 2 briefs no longer fail on World 1 constants.
 382. 2026-11-26 — Alex Nguyen — Corrected World 2 prop facing: Open Cloud's GLB import turns meshes 180 degrees about Y, so World 2 placement turns each mesh back about its centre (BiomeDressing.MeshCFrame); w2_mesh_turn 9/0, harness TRANSFORM 13,007/0, Studio before/after pictures (Konbini, Mansion, ChainTower, GiantCorpse).
+383. 2026-11-26 — Alex Nguyen — Raised World 2 track lighting (owner 2026-11-26 "too dim"): channel and luminance floors up, Track 7 dusk brighter; rule and tests first, Studio before/after on six tracks, rules audit PASS.
 
 ## What's next
-**Finish the final World 2 Studio pass on the landing candidate (orch/world2/w2-landing), fix the Track 7 ships standing on dry ground, then merge the candidate into feature/alex/world2-place and open the World 2 PR into main with a fresh reviewer.**
+**The lead merges orch/world2/w2-brighter into the World 2 landing and the owner looks at the brighter tracks (Track 10's paler red).**
 
-**Why this is next:** the layout, re-fit, facing fix and cash checks are audited offline; only the live Studio results and the T7 sea gap stand between them and the World 2 branch, and the PR to main waits on that branch.
+**Why this is next:** the owner asked for the brighter tracks before the World 2 landing goes further.

@@ -268,7 +268,12 @@ function Tests.world2_skies()
 			-- the road-and-runner floors (WORLD2_SPEC "Track lighting") still hold with the sky
 			flag(
 				("live_%d_floors"):format(n),
-				l.Brightness >= 1.4 and top(l.Ambient) >= 0.36 and top(l.OutdoorAmbient) >= 0.6
+				l.Brightness >= 1.7 and top(l.Ambient) >= 0.42 - 1e-3 and top(l.OutdoorAmbient) >= 0.66 - 1e-3, -- raised 2026-11-26 (Color3 float32)
+				("%s %s %s"):format(
+					tostring(l.Brightness),
+					tostring(l.Ambient and top(l.Ambient)),
+					tostring(l.OutdoorAmbient and top(l.OutdoorAmbient))
+				)
 			)
 			if n ~= 7 then
 				flag(("live_%d_light_unchanged"):format(n), p.Lighting == theme.Lighting and p.Grade == theme.Grade)
@@ -277,13 +282,14 @@ function Tests.world2_skies()
 		local ant = Env.Profile(7)
 		local l, g = ant.Lighting or {}, ant.Grade or {}
 		flag("live_7_dusk_clock", l.ClockTime == 17.6, l.ClockTime, 17.6)
-		flag("live_7_dusk_brightness", l.Brightness == 1.4, l.Brightness, 1.4)
-		flag("live_7_dusk_exposure", l.ExposureCompensation == -0.3, l.ExposureCompensation, -0.3)
+		-- brighter dusk (WORLD2_SPEC "Track lighting", owner 2026-11-26 "too dim"): was 1.4, -0.3, A37D6D
+		flag("live_7_dusk_brightness", l.Brightness == 2.1, l.Brightness, 2.1)
+		flag("live_7_dusk_exposure", l.ExposureCompensation == 0.2, l.ExposureCompensation, 0.2)
 		flag(
 			"live_7_dusk_outdoor",
-			near(l.OutdoorAmbient, "A37D6D", 1.5 / 255),
+			near(l.OutdoorAmbient, "B4846B", 1.5 / 255),
 			l.OutdoorAmbient and l.OutdoorAmbient:ToHex(),
-			"A37D6D"
+			"B4846B"
 		)
 		flag("live_7_dusk_saturation", g.Saturation == -0.1, g.Saturation, -0.1)
 		flag("live_7_own_light_untouched", Themes.AntIsland.Atmosphere.Lighting.ClockTime ~= 17.6)
