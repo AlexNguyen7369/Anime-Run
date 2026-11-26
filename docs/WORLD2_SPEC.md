@@ -347,6 +347,11 @@ written before the swap.
   those, a spot a run camera has in frame within 1,600 studs first (export_props.find_spot / seen_near, **proposed**), else
   the nearest. The move lives in tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves on the
   square spiral: Track 5 DefenseHQ 60, Track 9 Church 310, Track 10 DarkGate 90 (none on Tracks 1-4, 6-8).
+- Hero landmarks always loaded (2026-11-26, the owner's "fix rendering on all tracks", lead's decision, **proposed**):
+  World 2's hero landmarks (each theme's Hero props, the ones the export marks Hero: close-up models placed at most 4
+  times) stream Persistent, so a landmark seen across the wide layout (Track 2's ChainTower from 1,100 to 2,300 studs,
+  Track 10's Abyss past 1,300) does not stream out at the 1,024-stud StreamingTargetRadius; every other Placed prop keeps
+  its mode (heroes Atomic before, mid props default). The global radius stays. World 1 unchanged (its heroes stay Atomic).
 - Shrink to fit (owner 2026-11-26, "Approve 1-4", design log fe810a44): a hero with no spot at its approved scale stands at
   the largest scale that fits its own ground (its real mesh box and the game's parts fallback clear of every road by
   24.5, pads and the plaza, base centre on its own ground and Ground rect), with its approved turn, where a run camera
