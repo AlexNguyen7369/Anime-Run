@@ -48,7 +48,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Catalog = require(Shared:WaitForChild("CharacterCatalog"))
-local SIZE = require(Shared:WaitForChild("StaminaConfig")).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
+local SIZE = 3 -- both worlds (design doc 4.2, 4.47)
 local Portraits = require(Shared:WaitForChild("CharacterPortraits"))
 local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local SidekickView = require(script.Parent.Parent:WaitForChild("SidekickView"))
@@ -421,6 +421,11 @@ function Module.Build(h)
 
 	-- Design doc 4.40 (owner 2026-11-12): in the second column under Bosses, level with the Items / Rebirth gap.
 	local function checkPlace(res)
+		-- docs/BUGS.md ui-team-boss-button-race: the Bosses button turns visible about 0.5 s after hud_unlock returns;
+		-- wait for it (bounded, SHOW_WAIT) before reading where it is. A button that never shows still fails below.
+		waitIs(function()
+			return shown(h.find(BOSS_BUTTON))
+		end, true)
 		local b, boss, grid = h.find(T.Button), h.find(BOSS_BUTTON), h.find(GRID)
 		local r = b and shown(b) and h.rect(b) or nil
 		local br = boss and shown(boss) and h.rect(boss) or nil
@@ -596,7 +601,7 @@ function Module.Build(h)
 				table.insert(wrong, "Altar" .. n .. " missing or hidden")
 			end
 		end
-		local order = SIZE == 4 and { { 2, 1 }, { 1, 3 }, { 3, 4 } } or { { 2, 1 }, { 1, 3 } } -- World 2: slot 4 right of 3
+		local order = { { 2, 1 }, { 1, 3 } }
 		for _, pair in order do
 			local a, b = rects[pair[1]], rects[pair[2]]
 			if a and b and a.x + a.w / 2 >= b.x + b.w / 2 then
@@ -611,7 +616,7 @@ function Module.Build(h)
 			end
 		end
 		h.checkList(res, "team_altars_in_a_row", wrong)
-		-- Every altar (World 2: slot 4 too) is inside the panel on screen and clear of the left scroll, so it can be tapped
+		-- Every altar is inside the panel on screen and clear of the left scroll, so it can be tapped
 		local page, scroll = h.find(T.Panel), h.find(T.Panel .. "/Ledger/Paper")
 		local box, edge = page and h.rect(page), scroll and h.rect(scroll)
 		local outside = {}

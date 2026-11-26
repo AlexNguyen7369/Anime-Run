@@ -10,7 +10,8 @@ are the owner's too. Owner 2026-11-25 "yes to all": the lines below and popup la
   prompt's reach 8). He faces the spawn beside the gate, outside its 35.3-stud frame, on the side away from the Team altar, which moves to (-35.0, 76.4).
 - Static model, no collision, name label. World 2 loads his model because the rig wears it (4.47 "Models").
 - Off in the game: the gate stand-in is in the code behind `BossGateConfig.LIVE` and he behind `BossGuideConfig.LIVE`, both false until
-  the lead turns them on. He is built only while both are true; with the gate off, nothing of the gate is built either.
+  the lead turns them on. He is built only while both are true; with the gate off, nothing of the gate is built either. Since
+  2026-11-26 (owner, WORLD_REDESIGN_SPEC 4.2) the gate's switch is on in World 2 only; his stays off.
 
 ## How it shows
 - One ProximityPrompt `TalkBossGuide`: E, "Talk", "Gojio", `HoldDuration` 0 like every plaza prompt, 8 studs, gamepad X and touch by the

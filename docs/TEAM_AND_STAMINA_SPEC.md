@@ -4,10 +4,13 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
 
 ## Team
 
-- World 2 amendment (2026-11-24, design doc 4.47): in World 2 the Team has up to **4** slots (slot 4 is open from the
-  first entry; nothing extra is saved, the World 2 Team lives in `Worlds.W2.Team`), and a team bonus needs **any 3**
-  matching members: the preset trio among the members, else 3 of one Series. The number of slots is
-  `StaminaConfig.TEAM_SIZE` (3 in World 1, 4 in World 2); every team count of 3 below is that number in World 2. World 1 is unchanged.
+- World 2 (owner 2026-11-26, design doc 4.47 "Team of 3 in World 2"): the Team has 3 slots in both worlds and every
+  rule below holds unchanged in World 2 (`StaminaConfig.TEAM_SIZE` = 3 in both places). A stored World 2 Team of 4
+  loads as its first 3 owned members; the 4th stays owned (`WORLD2_SPEC` "Save", Team of 3 migration).
+  *Replaced 2026-11-26: "World 2 amendment (2026-11-24, design doc 4.47): in World 2 the Team has up to 4 slots (slot 4
+  is open from the first entry; nothing extra is saved, the World 2 Team lives in `Worlds.W2.Team`), and a team bonus
+  needs any 3 matching members: the preset trio among the members, else 3 of one Series. The number of slots is
+  `StaminaConfig.TEAM_SIZE` (3 in World 1, 4 in World 2); every team count of 3 below is that number in World 2."*
 - `Team` is an ordered list of up to 3 owned character ids, saved in `PlayerData` (`Team = { id1, id2, id3 }`).
 - New players start with `Team = { "starter" }`.
 - Remote `SetTeam(ids)` (client -> server). The server rejects it unless:

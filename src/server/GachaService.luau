@@ -35,7 +35,7 @@ GachaService.TEAM_COOLDOWN = 0.5 -- seconds between accepted SetTeam requests (T
 
 local MAX_COUNT = 1e9
 local STARTER = CharacterCatalog.STARTER_ID
-local TEAM_SIZE = StaminaConfig.TEAM_SIZE -- 3, World 2: 4 (design doc 4.47: slot 4 open from the first entry; nothing saved)
+local TEAM_SIZE = StaminaConfig.TEAM_SIZE -- 3 in both worlds (design doc 4.2, 4.47)
 local EXCLUSIVE_PASS = "exclusive_runner"
 
 local rng = Random.new()
@@ -655,7 +655,7 @@ function GachaService.PickStarter(player, id)
 	return true
 end
 
--- Sets the Team (docs/TEAM_AND_STAMINA_SPEC.md "Team"): 1-TEAM_SIZE (3; World 2: 4) distinct owned string ids, on foot only. Anything else changes nothing. Returns ok, reason.
+-- Sets the Team (docs/TEAM_AND_STAMINA_SPEC.md "Team"): 1-TEAM_SIZE (3) distinct owned string ids, on foot only. Anything else changes nothing. Returns ok, reason.
 function GachaService.SetTeam(player, ids)
 	if player:GetAttribute("AutoRacing") == true then
 		return false, "Stop running to change your Team"
@@ -981,8 +981,9 @@ function GachaService.Apply(player, saved)
 			end
 		end
 	end
-	-- Team: unowned or unknown ids removed, duplicates dropped, an empty Team is the starter; saves before VERSION 13
-	-- had one Equipped id, which becomes a Team of one
+	-- Team: unowned or unknown ids removed, duplicates dropped, the first TEAM_SIZE kept (a World 2 Team of 4 from the
+	-- team-of-4 build loses only its place: the rest stay owned, docs/WORLD2_SPEC.md "Save"), an empty Team is the
+	-- starter; saves before VERSION 13 had one Equipped id, which becomes a Team of one
 	local team = {}
 	local savedTeam = type(saved.Team) == "table" and saved.Team or { saved.Equipped }
 	for _, id in savedTeam do

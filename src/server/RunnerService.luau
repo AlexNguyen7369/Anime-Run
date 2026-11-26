@@ -170,11 +170,31 @@ function RunnerService.WalkSpawnCFrame()
 	return SpawnArea.WalkCFrame(start and start.CFrame or CFrame.new(0, 0, 0))
 end
 
+-- A real player's spot at the walk spawn, clear of the other players' avatars (SpawnArea.ScatterCFrame, WORLD_REDESIGN_SPEC 4).
+-- Test players without a client stand at the centre.
+local function walkSpot(player, character)
+	local centre = RunnerService.WalkSpawnCFrame()
+	if typeof(player) ~= "Instance" or not player:IsA("Player") then
+		return centre
+	end
+	local occupied = {}
+	for _, other in Players:GetPlayers() do
+		local root = other ~= player
+			and other.Character ~= character
+			and other.Character
+			and other.Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			table.insert(occupied, root.Position)
+		end
+	end
+	return SpawnArea.ScatterCFrame(centre, occupied, math.random())
+end
+
 -- Puts the avatar at the walk spawn. A real player's client owns its character's physics and, right after it leaves
 -- the runner, can send back its old position (beside where the runner was) and undo a single server teleport: for
 -- PLACE_HOLD seconds the avatar is put back whenever it is far from the spot (unless a newer request arrived).
 local function placeAtWalkSpawn(player, character, gen, target)
-	target = target or RunnerService.WalkSpawnCFrame()
+	target = target or walkSpot(player, character)
 	character:PivotTo(target)
 	for _, d in character:GetDescendants() do
 		if d:IsA("BasePart") then
