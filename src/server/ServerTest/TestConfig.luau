@@ -16,7 +16,7 @@ return {
 		environment = "names World 1's ten biomes; World 2's are checked offline only (tools/lune/biome_harness.luau, WORLD=2), no Studio scenario yet",
 	},
 	-- Every TrackTests file is the brief of one World 1 track (owner limits per track).
-	World1TrackTests = "briefs of World 1's ten tracks; World 2's tracks have no briefs yet (the runner scenario runs all ten, world_layout places them)",
+	World1TrackTests = "briefs of World 1's ten tracks; World 2 runs its own, TrackTests/World2",
 	Scenarios = {
 		"runner",
 		"scrap",
