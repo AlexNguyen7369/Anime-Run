@@ -67,7 +67,7 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
     auditor reviews each image and signs its row's `Reviewed` (done 2026-11-26, all twelve faces); (3) the ids go into
     the four `draftSky` rows; (4) each sky is checked in Studio (its six faces in its zone only, the default sky back on
     leaving, the fog meeting the sky, Ant Island's light) before `TrackSkyConfig.LIVE` is switched on in the World 2
-    branch; the switch-on is its own commit so it can be checked in Studio before it is merged.
+    branch; the switch-on is its own commit so it can be checked in Studio before it is merged. (4) was done 2026-11-26 (`world2_skies` 81/81). Merge gate (owner 2026-11-26, design doc change log: "pictures again before the merge"): new Studio pictures of the four tracks at the toned-down haze go to the owner before this switch-on merges into the World 2 branch.
   - Review round 2026-11-26 (agent-3, images only: Golden City 8, Hell's Gate 7, Demon Castle 7, Ant Island 6):
     - Horizon seam: while a track's own sky shows, its profile takes `WithSky` (`Kit.fromDraft`, applied by
       `BiomeEnvironment.Profile` only then): fog `Atmosphere.Color` = the drawn sky at the horizon and `Decay` = the

@@ -36,7 +36,7 @@
  "ground": "2E2232",
  "key": "DemonCastle",
  "ledger_key": "W2_DemonCastle_Sky",
- "note": "Bk, Ft, Lf and Rt are the same image. Not uploaded; renders go to the owner first (owner 2026-11-25).",
+ "note": "Bk, Ft, Lf and Rt are the same image. Uploaded 2026-11-26 (ids in the draftSky rows); reviewed by the rules auditor; Studio-checked (owner 2026-11-25).",
  "sha256": {
   "Bk": "81419435c82d0e83dc3af2ad4551484174ff77454b5586d81f82be194ceb8729",
   "Dn": "7977d15f0db784c36d78d485327b32ea61d1e80c163c2a748f1e69ebc75b55ae",

@@ -32,7 +32,7 @@
  "ground": "B8AA8C",
  "key": "HellGate",
  "ledger_key": "W2_HellGate_Sky",
- "note": "Bk, Ft, Lf and Rt are the same image. Not uploaded; renders go to the owner first (owner 2026-11-25).",
+ "note": "Bk, Ft, Lf and Rt are the same image. Uploaded 2026-11-26 (ids in the draftSky rows); reviewed by the rules auditor; Studio-checked (owner 2026-11-25).",
  "sha256": {
   "Bk": "13b8d2261838311d8f3d9352576870fe5c5a3175a843bafaafd2b553860acb86",
   "Dn": "6ab8db1a8c98dd273d3ec88b49fad08a6faab1101d1ca179afbdc66603020cbd",

@@ -36,7 +36,7 @@
  "ground": "E2B24E",
  "key": "GoldenCity",
  "ledger_key": "W2_GoldenCity_Sky",
- "note": "Bk, Ft, Lf and Rt are the same image. Not uploaded; renders go to the owner first (owner 2026-11-25).",
+ "note": "Bk, Ft, Lf and Rt are the same image. Uploaded 2026-11-26 (ids in the draftSky rows); reviewed by the rules auditor; Studio-checked (owner 2026-11-25).",
  "sha256": {
   "Bk": "cb43f2e8a969f8a7296897594df172e997af630bb4a2c20cdb6f12d60c8afbfe",
   "Dn": "48da3b16f9f3be40f08e15459e50988b14eb337784e8c418e6cc437e3ec94581",

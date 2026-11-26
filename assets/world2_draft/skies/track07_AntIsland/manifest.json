@@ -32,7 +32,7 @@
  "ground": "1C4260",
  "key": "AntIsland",
  "ledger_key": "W2_AntIsland_Sky",
- "note": "Bk, Ft, Lf and Rt are the same image. Not uploaded; renders go to the owner first (owner 2026-11-25).",
+ "note": "Bk, Ft, Lf and Rt are the same image. Uploaded 2026-11-26 (ids in the draftSky rows); reviewed by the rules auditor; Studio-checked (owner 2026-11-25).",
  "sha256": {
   "Bk": "f8897440e67d48dbdf31448f075af9a885edf0e9ceccb869dd6d04f60018663e",
   "Dn": "94d698b626a2fb9218acd9f0202692876315e7a869054306240f1a983f1be213",
