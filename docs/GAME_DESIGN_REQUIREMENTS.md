@@ -829,8 +829,10 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - Speed: a per-world cruise table; the studs/s band stays World 1's (48-800). World 1 characters run at x0.1 there
   (**proposed**), World 2 adds the Eternal rarity (780, **proposed**).
 - **World 2's UI is World 1's** (owner 2026-11-24: "UI and GUI should stay exactly the same with world 1 with the
-  exception of a 4th team slot"): the two worlds share one look, HUD and panels alike. What differs in World 2 is the
-  fourth team slot (Team panel, TeamHud row, boss team). The World 2 welcome popup and
+  exception of a 4th team slot"; the exception is gone, owner 2026-11-26: "Remove 4th team slot mechanic (this includes
+  fixing ui and everything that is related to 4 members"): the two worlds share one look, HUD and panels alike, the
+  Team panel, the TeamHud row and the boss team included (3 slots in both). *Replaced 2026-11-26: "What differs in
+  World 2 is the fourth team slot (Team panel, TeamHud row, boss team)" (2026-11-24).* The World 2 welcome popup and
   the Awakening bar exist only in World 2 and stay (owner 2026-11-25, "keep awakening bar and welcome popup"). Which look the HUD has is
   4.46 "HUD look" (owner's latest ruling of 2026-11-24): the old HUD, in both worlds.
 - Arriving in World 2 resets nothing (owner 2026-11-24: "world 2 should not reset character so they dont need to go
@@ -838,22 +840,26 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   freely afterwards; a World 2 team that holds only the placeholder starter counts as none, **proposed**), and World 2
   never opens the starter choice (4.21), the roll tutorial or the first-join flow (4.24). A save that owns no character
   runs as the placeholder starter there.
-- World 2 only: a **team of 4** (slot 4 unlocked on first entry; this amends 4.2 and 4.8 for World 2: bonuses need any 3
-  matching members) and **Awakening** (duplicate Copies buy up to 5 stars per character; owner 2026-11-24: each star gives +3% cruise and
+- **Team of 3 in World 2** (owner 2026-11-26: "Remove 4th team slot mechanic"): World 2's Team has 3 slots, exactly as
+  World 1's; 4.2 and 4.8 hold unchanged in both worlds (a bonus needs a full team of 3). *Replaced 2026-11-26: "World 2
+  only: a team of 4 (slot 4 unlocked on first entry; this amends 4.2 and 4.8 for World 2: bonuses need any 3 matching
+  members)" (2026-11-23/24).* A save whose World 2 Team holds 4 loses nothing: it loads as its first 3 owned members
+  and the 4th stays owned, in the Bag, with its Copies, stars and gear (migration rule: `WORLD2_SPEC` "Save").
+- World 2 only: **Awakening** (duplicate Copies buy up to 5 stars per character; owner 2026-11-24: each star gives +3% cruise and
   +3% stamina, so +15% of each at 5 stars; star costs 1, 2, 4, 8, 16 Copies are **placeholders**).
 - World 2 rewards (owner 2026-11-24): first-clear Gems pay again on World 2 tracks (they are new tracks); World 2
   tracks pay more Money than World 1: Track N pays World 1 Track 10's Money times a growing multiplier (x2 per track
   step is a **placeholder**).
 - World awareness (**proposed**, `WORLD2_SPEC` "World HUD and welcome"): a small "World N" label on the HUD, a
-  "Travelling to World N..." toast while a trip runs, and a one-time World 2 welcome popup (team of 4, new summon pool,
+  "Travelling to World N..." toast while a trip runs, and a one-time World 2 welcome popup (new summon pool,
   the return gate), given once per save (`Worlds.W2.Welcomed`).
 - World 2 HUD look: the same as World 1's, the old HUD of 4.46 "HUD look" (owner 2026-11-24: "revert HUD to world 1
   hud or old hud. not scrol hud. Scroll Gui can stay."; the orchestrator reads it as both worlds). History of that
   day: first "edit world2 ui to be old hud instead of scroll hud, gui can stay" (old HUD in World 2 only,
   `HudPlaque.Old = WorldConfig.Id == 2`), then the "World 2's UI is World 1's" ruling above (option A in both), then
   this one. Panels, pages, popups, toasts, banners and the boss event UI keep the Scroll Dojo look in both worlds.
-- Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with the World 2 team of
-  4; no World 2 bosses yet.
+- Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with a team of 3 as in
+  World 1 (owner 2026-11-26; *replaced: "with the World 2 team of 4"*); no World 2 bosses yet.
 - Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,
   Kaiju No. 8 and Frieren (owner 2026-11-23). World 2 rolls only World 2 characters.
 - Cast and Sidekicks (owner 2026-11-23): the full World 2 cast and a new 12-Sidekick set are drafted as models and digital art

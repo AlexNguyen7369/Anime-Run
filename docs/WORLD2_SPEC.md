@@ -64,6 +64,20 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   of that day (docs/BUGS.md w2-sendback-stale-team). Every other key, per world and
   shared, is written together as before (`Fold` `keep`, while the player's runtime attribute `SendingBack` is on; not
   saved). Once it may stay the attribute is cleared and it saves as before.
+- Team of 3 migration (owner 2026-11-26, design doc 4.47 "Team of 3 in World 2"): the World 2 Team has 3 slots
+  (`StaminaConfig.TEAM_SIZE` = 3 in both places). A stored `Worlds.W2.Team` of 4 (written by the team-of-4 build,
+  2026-11-24 to 2026-11-26) is not rewritten by any migration step and nothing is renamed or reused:
+  - On load `GachaService.Apply` keeps the first 3 ids of the stored Team, in order, that are still owned and distinct
+    (the rule every save past the size already had); the others are only off the Team. A 4th member stays owned: its
+    `Cars` entry, Copies, Awakening stars, worn Sidekick and Relics belong to the character, not the slot, so it is in the
+    Bag and the Team roster and can be put back on the Team. `EquippedCharacter` is the kept Team's slot 1, which the
+    trim never changes.
+  - The next World 2 save writes those 3 to `Worlds.W2.Team` and `Equipped` = `Team[1]` (`Fold`), so Team and Equipped
+    stay consistent. A `keep` save (being sent back) leaves `Worlds.W2.Team` and `Equipped` as stored, as above; the next
+    load trims again. World 1's top-level Team is never touched.
+  - The shared `LastBossTeam` (the boss event's last team) of 4 ids loads as its first 3 that can still fight
+    (`BossEventService`), as before for any longer list.
+  - VERSION unchanged (19). Tests: `world2_team` (both worlds).
 - `Worlds.W2.Welcomed` (true once World 2's welcome was given; absent = not yet): a one-way flag
   (`WorldSave.FLAG_KEYS`), never cleared by a save without it. VERSION unchanged: an older save has none and is
   welcomed once; World 1 servers (old and new) keep `Worlds` whole as they keep every unknown key. `Fold` keeps the
@@ -103,7 +117,8 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 - HUD look (owner 2026-11-24, design doc 4.46 "HUD look" and 4.47): World 2's HUD is World 1's, and both keep the
   always-on HUD's look from before the Scroll Dojo redesign (4.40, main at `6a36029^1`); every panel, popup and the
   boss event UI keep the 4.46 look. No switch (`Client/HudPlaque` is removed, main PR #29). Positions
-  and behaviour are unchanged. World 2 differs only by the fourth team slot.
+  and behaviour are unchanged. Nothing differs in look between the worlds (owner 2026-11-26: the fourth team slot is
+  removed; *replaced 2026-11-26: "World 2 differs only by the fourth team slot" (2026-11-24)*).
 - World label: `Client/WorldHud` shows "World N" (`WorldConfig.Id`) under the top-right pills, as wide as and
   right-aligned with HudChrome's right column, in the gap above it (phones: the HUD's UIScales): the old top-right
   pills' dark round pill with white outlined text, in both worlds. Display only; shown in both worlds.
@@ -113,7 +128,7 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
 ### Welcome
 - `Server/WorldWelcome` sets `World2Welcomed` (saved, above) and `World2WelcomeShow` (session) the first time a
   loaded player stays in World 2 (`CanEnter`; not an arrival that is sent back; Studio playtests always). `Client/World2Welcome`
-  (World 2 only) shows one small handscroll popup (4.46): "WORLD 2", "Welcome to the Rift Shrine", "Team of 4 unlocked",
+  (World 2 only) shows one small handscroll popup (4.46): "WORLD 2", "Welcome to the Rift Shrine",
   "New summon pool", "The World 1 gate in the plaza takes you back"; Close, OK or a click outside closes it; reduced
   effects fade. Words **proposed**.
 - Tests: ServerTest `world2_welcome`; UiTest `ui_world_label`, `ui_world2_welcome`, `ui_hud_look_by_world`
@@ -346,6 +361,9 @@ Design doc 4.47 (owner 2026-11-24): World 2 only; duplicate Copies buy up to 5 s
   `Worlds.W2` without `Awakening`, so the stars would be lost while the Copies spent on them stay spent (Copies are
   shared). From 2895923 on, `WorldSave.Fold` keeps every `Worlds.W2` key it does not know, in World 2 as in World 1
   (test `awakening`, `unknown_keys`).
-- Team of 4 (2026-11-24): an older World 2 build caps the Team at 3 and rebuilds `Worlds.W2`, so it would drop slot 4
-  and the `Welcomed` flag. Shut down every older World 2 server when this ships, and publish World 1 first or together
-  with World 2 (test `world2_team`).
+- *Replaced 2026-11-26 (owner: the fourth slot is removed): "Team of 4 (2026-11-24): an older World 2 build caps the
+  Team at 3 and rebuilds `Worlds.W2`, so it would drop slot 4 and the `Welcomed` flag. Shut down every older World 2
+  server when this ships, and publish World 1 first or together with World 2 (test `world2_team`)."*
+- Team of 3 (2026-11-26): shut down every World 2 server of the team-of-4 build when this ships. One left running lets
+  a player save 4 again; that is harmless (the next load trims it to 3, "Save" above) but the Team would flip between
+  4 and 3. The `Welcomed` flag and unknown `Worlds.W2` keys are kept by both builds (test `world2_team`).
