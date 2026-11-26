@@ -329,6 +329,23 @@ def _road_dist(k, x, z):
 	return min(math.hypot(w.x - x, w.z - z) for w in k.wps[::step])
 
 
+_RECT = {}
+
+
+def _owns_well(k, x, z, m=25.0):
+	"""On this track's own ground with a margin (the export judges ground by its own nearest-road test, so a spot right
+	on the gap midline can fall either way) and inside its Ground rect (TrackBuilder: the game builds a Placed prop only
+	there). Round 2 re-fit."""
+	if "r" not in _RECT:
+		from roads import Roads
+
+		_RECT["r"] = Roads(k.track["Number"]).ground(10)
+	(lx, lz), (hx, hz) = _RECT["r"]
+	if not (lx <= x <= hx and lz <= z <= hz):
+		return False
+	return k.owns(x, z) and all(k.owns(x + dx, z + dz) for dx, dz in ((m, 0), (-m, 0), (0, m), (0, -m)))
+
+
 def _shots(k):
 	"""The fixed runner cameras of build_track.shots: (fraction, eye (x, y, z), heading (x, z))."""
 	out = []
@@ -980,15 +997,26 @@ def build(k):
 		for side in (-1, 1):  # the hound statues on the approach, facing the runner
 			(x, _, z), hyaw = k.beside(g - 62, side * 84)  # 84: the flung arms and flared ears stay 24+ off the road
 			k.place("Hound", (x, -1.0, z), hyaw + math.pi, 1.0)
+	# Edge and rampart pieces stop short of every checkpoint area (the export and the game's Prune drop them there;
+	# round 2 re-fit): spans of road within 110 studs of a pad disc are skipped
+	from roads import Roads
+
+	rr = Roads(k.track["Number"])
+
+	def by_pad(d):
+		(x, _, z), _ = k.beside(d, 0)
+		return min(math.hypot(x - px, z - pz) for px, pz in rr.pads) < 110
+
+	pad_skip = tuple((d - 22, d + 22) for d in range(0, int(L) + 1, 22) if by_pad(d))
 	d = 20.0
 	while d < L - 40:
-		if not any(a <= d <= b for a, b in skip):
+		if not any(a <= d <= b for a, b in skip + pad_skip):
 			for side in (-1, 1):
 				(x, y, z), yaw = k.beside(d, side * 32, 0.9)
 				if k.clear_of_road(x, z, 31):
 					k.place("Edge", (x, y, z), yaw)
 		d += 44
-	_row(k, 44, (-48, 48), ["Rampart"], start=30, skip=skip)
+	_row(k, 44, (-48, 48), ["Rampart"], start=30, skip=skip + pad_skip)
 	_row(k, 110, (-95, 95), ["RuinB"], start=60, jitter=20, skip=skip)
 	_row(k, 120, (-170, 170), ["RuinA", "Crag"], start=20, jitter=24, scale=(0.8, 1.4))
 	# The one castle: the spot (and turn) seen by the most fixed runner cameras, its chains and anchors clear of the road
@@ -1000,7 +1028,10 @@ def build(k):
 	for x, z in cands:
 		if _road_dist(k, x, z) < PLINTH_CLEAR - 1 or not k.owns(x, z):
 			continue
-		seen = [s for s in shots if _sees(s, x, z, HT, half=30.0, up=42.0)]
+		# seen = the tower's mid-body in the frame (the camera's half-angles are about 51 across and 35 up). Round 2 of the
+		# wide-layout re-fit (2026-11-26): its top at 1,300 under 42 degrees needed 1,435+ studs of road ahead, which no
+		# camera has on this track's straights, so no spot counted as seen; a near tower's top leaves the frame naturally
+		seen = [s for s in shots if _sees(s, x, z, HT / 2, half=45.0, up=33.0)]
 		# a spot no camera sees still counts, below every seen one, nearest a camera first: on the wide layout a seen spot
 		# may not clear the checkpoints (2026-11-26 re-fit)
 		dmax = max(math.hypot(x - s[1][0], z - s[1][2]) for s in seen) if seen else min(math.hypot(x - s[1][0], z - s[1][2]) for s in shots)
@@ -1034,12 +1065,35 @@ def build(k):
 	print("EXTRA 06_castle at", round(pick[1] / L, 2), "of the track,", round(pick[0]), "deg off the road heading")
 	k.field(40, ["RuinA", "RuinB", "RuinA"], clearance=150, margin=700, scale=(1.0, 2.2))
 	k.field(20, ["Crag"], clearance=110, margin=800, scale=(1.2, 3.0))
+	# Round 2 of the wide-layout re-fit (2026-11-26): the band of own ground out to the gap midline (about 330) filled with
+	# the approved backdrop props at their approved scales, about the approved backdrop density (2.6 per 10k stud2), so the
+	# long straights' views no longer run to bare ground. Lower pieces in the outer part of the band (no sky-prop rule yet).
+	BAND = {"Crag": (27, 21, (1.5, 3.0)), "RuinB": (55, 49, (1.0, 2.2)), "RuinA": (72, 34, (1.0, 1.6))}
+	band = 0
+	d = 30.0
+	while d < L - 40:
+		for side in (-1, 1):
+			for o in (190, 250, 305):
+				dd = d + k.rng.uniform(-15, 15)
+				off = side * (o + k.rng.uniform(-18, 18))
+				name = k.rng.choice(("Crag", "Crag", "RuinB", "RuinB", "RuinA"))
+				w, dep, sc = BAND[name]
+				scale = k.rng.uniform(*sc)
+				if abs(off) > 280 and name == "RuinA":
+					scale = min(scale, 1.2)
+				(x, _, z), yaw = k.beside(dd, off)
+				yaw += k.rng.uniform(-0.4, 0.4) + (math.pi / 2 if off > 0 else -math.pi / 2)
+				if _owns_well(k, x, z) and k.clear_of_road(x, z, 150) and rr.fits(x, z, yaw, w * scale, dep * scale, clear=26.0):
+					k.place(name, (x, -1.0, z), yaw, scale)
+					band += 1
+		d += 42
+	print("BAND", band)
 	p5, r5, t5 = k.at(L * 0.48)  # build_track's raised side camera (05_side): keep scatter out of its near frame
 	e5 = (p5.x + r5.x * 140 - t5.x * 60, p5.z + r5.z * 140 - t5.z * 60)
 	for ob in list(k.col.objects):  # keep the plinth, chains and anchors clear of the scatter
 		if ob.type == "MESH" and ob.data.name.split("_")[-1] in ("RuinA", "RuinB", "Crag"):
 			lx, lz = ob.location.x, -ob.location.y
-			if math.hypot(lx - tx, lz - tz) < 360 or math.hypot(lx - e5[0], lz - e5[1]) < 120:
+			if math.hypot(lx - tx, lz - tz) < 360 or math.hypot(lx - e5[0], lz - e5[1]) < 120 or not _owns_well(k, lx, lz, 15.0):
 				bpy.data.objects.remove(ob)
 				k.instances -= 1
 	# Floating burning rock slabs and smoke clouds, never above the road
@@ -1050,7 +1104,7 @@ def build(k):
 			x, z = k.rng.uniform(k.lo.x - 900, k.hi.x + 900), k.rng.uniform(k.lo.z - 900, k.hi.z + 900)
 			# smoke 400 off its road on the approved chain; 170 (the cloud's edge just clear of it, 450+ up) now that it keeps
 			# to its own ground, which ends about 329 out on the wide layout (2026-11-26 re-fit)
-			if k.owns(x, z) and k.clear_of_road(x, z, 80 if name == "Chunk" else 170) and math.hypot(x - tx, z - tz) > 400:
+			if _owns_well(k, x, z) and k.clear_of_road(x, z, 80 if name == "Chunk" else 170) and math.hypot(x - tx, z - tz) > 400:
 				k.place(name, (x, k.rng.uniform(lo_y, hi_y), z), k.rng.uniform(0, math.tau), k.rng.uniform(*sc))
 				placed += 1
 	# Wyverns: two crossing the 33% run shot's sky, four circling the castle top
@@ -1058,10 +1112,14 @@ def build(k):
 	for D, off, y, sc in ((190, -110, 70, 1.4), (380, 100, 135, 1.7)):
 		x, z = p.x + t.x * D + right.x * off, p.z + t.z * D + right.z * off
 		k.place("Wyvern", (x, p.y + y, z), math.atan2(-right.x, -right.z) + 0.5, sc)
-	for i in range(4):
-		a = i * math.tau / 4 + 0.4
-		r = 420 + i * 70
-		k.place("Wyvern", (tx + math.cos(a) * r, HT * (0.72 + 0.08 * i), tz + math.sin(a) * r), -a + math.pi, 5.0)
+	for i in range(4):  # each on this track's own ground (round 2 re-fit: two fell on Track 4's), nearest its approved spot
+		for da in (0.0, 0.3, -0.3, 0.6, -0.6, 0.9, -0.9, 1.2, -1.2, 1.5, -1.5):
+			a = i * math.tau / 4 + 0.4 + da
+			r = 420 + i * 70
+			x, z = tx + math.cos(a) * r, tz + math.sin(a) * r
+			if _owns_well(k, x, z):
+				k.place("Wyvern", (x, HT * (0.72 + 0.08 * i), z), -a + math.pi, 5.0)
+				break
 	# Purple-black sky down to an ember-orange horizon; below it the ground colour, so the ground plane's far edge melts in
 	k.sky([(-0.012, "2E2232"), (0.0, "FF7A2A"), (0.04, "C0442A"), (0.12, "6A2038"), (0.3, "2A0E2E"), (1.0, "08040C")], strength=0.9, sun=(2.2, "FFD0B0", 22, 210))
 	k.light((tx, 300, tz), "FF7A2A", energy=9000000, radius=160)
