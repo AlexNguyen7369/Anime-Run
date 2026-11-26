@@ -249,6 +249,88 @@ written before the swap.
   No spot at the approved scale (not built): Track 1 Town and RuinedCastle, Track 2 ChainTower, Track 3 HeroHQ and Crater, Track 4
   School and OldWoodHouse, Track 5 DefenseHQ, Track 6 HQ, Track 7 IslandVolcano.
 
+## Track effects (draft, owner approval pending)
+Owner 2026-11-26 (design doc change log, verbatim): "Begin drafting vfx for dynamic smoke on tracks and vfx for moving
+dragons and dyanmic movement for some track assets to increase immersive experience. You can go ahead and approve the
+assets that you draft up for and i iwll approve the vfx and motions after it is fully finished." So the lead approves the
+new meshes and textures; the effects and motions stay drafts until the owner approves them. **Every number below is
+proposed.**
+
+- Off: `Shared/TrackFxConfig.LIVE = false`. `TrackFxConfig.Enabled(worldId)` is true only when LIVE and in World 2, so
+  World 1 never builds anything (its biome keys have no row either). Turning it on needs the owner's approval of the
+  previews, then the uploads below and their ids in the ledger.
+- Client only (BIOME_ENVIRONMENT_SPEC 5): `Client/TrackFx` (started by `Client/TrackFxRun`), data in
+  `Shared/TrackFxConfig`, math in `Shared/TrackFxPlan`. The server never reads them. Every instance is local; a moved
+  prop is moved locally and put back at its server CFrame when the effect lets go of it.
+- Only the track the camera is in runs (`BiomeEnvironment.ZoneAt` at the camera focus); a zone change tears the old one
+  down. REDUCED EFFECTS (`ReduceEffects`, BIOME_ENVIRONMENT_SPEC 8) turns all of it off; lamp brightness is then left to
+  `Client/BiomeEnvironment`.
+- Anchors: a named placed prop (its draft key, read from the `Placed_<i>` model: the mesh child's name, the fallback parts'
+  name or the lane C `Mesh` attribute; `Offset` is a point of its box, -1..1 per axis) or a track-local spot (`At` along
+  the centre line, `Side`, `Lateral`, `Height`, from `TrackBuilder.Layout` and the track's `Start` part). Never a world
+  position, so the effects follow the re-laid tracks.
+- Assets: in-house only (design doc 5, BIOME_ENVIRONMENT_SPEC 4.4 Lane B): Blender geometry
+  (`tools/blender/world2/track_fx.py`) and numpy textures (`tools/blender/world2/track_fx_textures.py`, the roblox-vfx
+  method). The dragon and the eel are generic: no anime's dragon design (no whiskers, antlers, pearl, coiling serpent
+  dragon or any show's markings). An effect whose asset has no `Id` is not built.
+
+### Effects per track
+| Track | Smoke and particles (prop: preset, most at once) | Dragons | Motion |
+|---|---|---|---|
+| 1 ElvenPlains | Cottage: Chimney 4; Forest: GroundHaze 3 | 1 drake, green-bronze | Pine sway (2 deg, 4.6 s), 30 |
+| 2 DemonCastle | Smoke: SmokeColumn 4 (violet-black, magenta below); RuinB: Embers 3 and RubbleSmoke 3; Rampart: brazier Chimney 4 | 2 drakes, black-violet | Wyvern statues bob (3 studs, 6 s), 6; lamps flicker (fire) |
+| 3 RuinedCityZ | Collapsed: RubbleSmoke 4; OfficeBroken: RubbleSmoke 3; Rubble: GroundHaze 3 (dust) | none | none |
+| 4 HauntedTunnel | Cedar: GroundHaze 5 (cold mist); Portal: GroundHaze 2 | 1 spirit eel, pale cyan, see-through | Cedar sway (1.5 deg, 5.5 s), 30; lamps stutter and cut out |
+| 5 KaijuBase | Smoke: SmokeColumn 4 (grey); GiantCorpse: Steam 2; Rubble: RubbleSmoke 4 | none | none |
+| 6 DevilTokyo | Konbini, ShopHouse: roof-vent Steam 4 each | none | CrossWire sway (0.8 deg, 3.8 s), 16; lamps buzz |
+| 7 AntIsland | IslandVolcano: SmokeColumn 1 (when it is placed); Camp: RubbleSmoke 3; ThatchHouse: Chimney 4 | 1 drake, rust | Ship bob (0.8 studs, 3 deg roll, 5 s), 10; Brush sway (3 deg), 24 |
+| 8 MonsterDen | LavaChasm: Steam 3 and Embers 3 (spread over the river); RockPillar: GroundHaze 4 | none (low ceiling) | lamps flicker |
+| 9 GoldenCity | Square: gold Motes 4 (the city is frozen: no smoke, no motion) | none | none |
+| 10 HellGate | Hill: red GroundHaze 4 | none | SkyDoor bob (4 studs, 9 s), 24; ArmA / ArmB sway (1.2 deg), 8 each |
+
+Track 10 and the other frozen tracks: the effects change no layout, mesh or placement; they only add local particles
+and local motion on the approved props.
+
+### Budget (proposed)
+- Per track (only the camera's track runs): at most 14 emitters and 400 steady-state particles (sum of Rate x mean
+  Lifetime); Rate at most 10 per emitter; cull at 600 studs by default, per preset 350 to 1200, never past 1400.
+  The configured worst cases (every row at its Max): 4 to 14 emitters, 38 to 253 particles (DemonCastle highest).
+- Dragons: at most 2 per track, hidden past 3000 studs; each loop keeps 150+ studs (3D) from its own track's centre line
+  (measured on the current routes: 270 to 380). Loops: 200 to 260 radius, 300 to 360 up, 380 to 440 to the side,
+  64 to 85 s a lap; drakes flap every 1.8 s (32 deg) and glide a third of the time.
+- Motion: at most 40 moving props per track within 350 studs, 24 flickering lamps within 300; updated 30 times a second.
+  Sway at most 5 deg, bob at most 5 studs.
+
+### Assets (approved by the lead 2026-11-26 on the owner's word; not uploaded)
+| Key | Kind | Size | Tris |
+|---|---|---|---|
+| TrackFx_SmokePuff | Texture, 4 x 4 flipbook | 1024 x 1024 | |
+| TrackFx_Wisp | Texture, 4 x 4 flipbook | 1024 x 1024 | |
+| TrackFx_Haze | Texture | 512 x 512 | |
+| TrackFx_Ember | Texture | 128 x 128 | |
+| TrackFx_DrakeBody | Mesh (vertex colours, tinted per track) | 11.1 x 13.7 x 71, used at x1.6 | 196 |
+| TrackFx_DrakeWing | Mesh (one wing; the right is the same mesh turned) | 44 x 1.75 x 26, x1.6 | 60 |
+| TrackFx_EelHead | Mesh | 6.3 x 9 x 15, x2.5 | 92 |
+| TrackFx_EelSegment | Mesh (14 per eel, tapering) | 5.9 x 9 x 11, x2.5 | 52 |
+
+A drake is 196 + 2 x 60 = 316 tris; an eel 92 + 14 x 52 = 820. Files: `assets/world2_draft/track_fx/textures/` and
+`meshes/`. Upload (after the lead's go): the 4 textures and 4 meshes, 8 assets, then ids and the rules audit's
+`Reviewed` in `TrackFxConfig.Assets`.
+
+### Previews for the owner
+`assets/world2_draft/track_fx/previews/`: `overview.jpg` (one frame of each), and per effect a 12-frame GIF and a
+`_sheet.jpg`: smoke_demoncastle, smoke_kaijubase, smoke_elvenplains, smoke_ruinedcityz, smoke_antisland,
+steam_deviltokyo, haze_hauntedtunnel, haze_hellgate, lava_monsterden, motes_goldencity, dragon_drake, dragon_drake_flap,
+dragon_eel, motion_pine_sway, motion_ship_bob, motion_skydoor_bob, motion_flicker; `meshes_*.png` turnarounds;
+`textures_review.png`. Rendered headless in Blender 5.2 with the approved props' GLBs and a Python copy of the
+presets (the in-game look needs Studio).
+
+### Tests
+- ServerTest `track_fx` (lune, both worlds): LIVE off by default, World 1 never on, rows only for World 2 biomes, presets
+  and every track's worst case inside the budget, anchors name props of the biome's approved draft, dragons capped and
+  clear of the road, the nearest-first pick never past a cap, flicker in 0..1.
+- Not run: Studio (needs the uploads and LIVE on in a test session), frame time on a phone.
+
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's
   world; `Everything()` is every world's. `GachaConfig.Roll`, `Odds` and `OddsPercents` take an optional `world`.
