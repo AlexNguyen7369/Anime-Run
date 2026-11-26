@@ -81,8 +81,8 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 		),
 		W2_ElvenPlains_RuinedCastle = draftMesh(
 			3940,
-			"rbxassetid://116693689699601", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			nil, -- Id: tools/blender/world2/upload_props.py
+			nil, -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: ruined castle on a rocky rise: a long hall with rows of tall paired arched windows and a broken vault",
 			"hero landmark, 1 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_RuinedCastle.glb"
 		),
