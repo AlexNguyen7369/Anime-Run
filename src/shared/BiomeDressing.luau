@@ -158,6 +158,16 @@ end
 -- Tunnel (spec 3.5), so SnapToTerrain leaves it where it is.
 BiomeDressing.YIELD_EVERY = 200 -- placeholder: props placed between yields of a build
 local placedSinceYield = 0
+-- Open Cloud's GLB import turns the geometry 180 degrees about Y (X and Z negated): a World 2 draft mesh
+-- (def.ImportTurn, Kit.fromDraft) is turned back about its own centre, so it faces as in its approved Blender draft and a
+-- split mesh's pieces join (docs/WORLD2_SPEC.md "Blender first", import turn). Its box is symmetric: size and footprint
+-- checks are unchanged. Other meshes keep their placement.
+local IMPORT_TURN = CFrame.Angles(0, math.pi, 0)
+function BiomeDressing.MeshCFrame(def, base)
+	local cf = base * CFrame.new(0, def.Size.Y / 2, 0)
+	return def.ImportTurn and cf * IMPORT_TURN or cf
+end
+
 local function place(folder, biome, def, base, name, glow, particles, inTunnel)
 	-- Heroes clone a template whose LevelOfDetail was set ahead of time (owner 2026-11-01): runtime scripts can not write it.
 	local template = def.Hero and game:GetService("ReplicatedStorage"):FindFirstChild("HeroLodTemplate")
@@ -174,8 +184,11 @@ local function place(folder, biome, def, base, name, glow, particles, inTunnel)
 	end
 	if mesh then
 		mesh.Name = def.Name
-		mesh.CFrame = base * CFrame.new(0, def.Size.Y / 2, 0)
+		mesh.CFrame = BiomeDressing.MeshCFrame(def, base)
 		mesh.Parent = model
+		if def.ImportTurn then
+			model:SetAttribute("ImportTurn", true) -- its mesh's frame is turned from the draft's (Client/TrackFx turns it back)
+		end
 	end
 	if def.Pad then
 		model:SetAttribute("Pad", true) -- SnapToTerrain levels a small pad under it (spec 3.2)

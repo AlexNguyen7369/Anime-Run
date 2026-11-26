@@ -113,6 +113,11 @@ local function propsOf(model)
 				local cf, size
 				if main and main:IsA("BasePart") then
 					cf, size = main.CFrame, main.Size
+					if main:IsA("MeshPart") and m:GetAttribute("ImportTurn") then
+						-- the draft's frame: the mesh is turned 180 degrees for the import (WORLD2_SPEC "Blender first"), the
+						-- rows' offsets are the draft's
+						cf *= CFrame.Angles(0, math.pi, 0)
+					end
 				else
 					cf, size = m:GetBoundingBox()
 				end
