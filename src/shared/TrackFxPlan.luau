@@ -61,6 +61,11 @@ function TrackFxPlan.Area(preset, row, size)
 	return Vector3.new(math.max(preset.Area.X, f.X), math.max(preset.Area.Y, f.Y), math.max(preset.Area.Z, f.Z))
 end
 
+-- Transparency keys of a row's emitter: the row's own (WORLD2_SPEC "Track effects", Track 10's haze) or its preset's
+function TrackFxPlan.Transparency(preset, row)
+	return row.Transparency or preset.Transparency
+end
+
 -- Track-local CFrame at fraction `at` of a centre line (waypoints, track-local), facing along the road
 function TrackFxPlan.AlongTrack(waypoints, at)
 	local total, lengths = 0, { 0 }

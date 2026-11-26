@@ -64,7 +64,7 @@ local function makeEmitter(preset, row, cf, name, area)
 	e.EmissionDirection = Enum.NormalId.Top
 	e.Shape = Enum.ParticleEmitterShape.Box
 	e.Size = sequence(preset.Size)
-	e.Transparency = sequence(preset.Transparency)
+	e.Transparency = sequence(Plan.Transparency(preset, row))
 	if preset.Squash then
 		e.Squash = sequence(preset.Squash)
 	end

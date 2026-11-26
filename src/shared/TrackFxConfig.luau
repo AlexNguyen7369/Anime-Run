@@ -270,7 +270,8 @@ TrackFxConfig.Presets = {
 }
 
 -- Per World 2 biome key (Shared/Tracks/World2 spec.Biome). Smoke rows: { Preset, Prop or At/Side/Lateral/Height,
--- Offset, Fill = part of the prop's box the emitter covers (optional, TrackFxPlan.Area), Color = { bottom, top } colour
+-- Offset, Fill = part of the prop's box the emitter covers (optional, TrackFxPlan.Area), Transparency = keys replacing
+-- the preset's (optional, TrackFxPlan.Transparency), Color = { bottom, top } colour
 -- keys, Max = most anchors of the row alive at once }. Dragons: { Kind
 -- "Drake"|"Eel", Color, At, Side, Lateral, Radius, Altitude, Period (s per lap), Phase }. Motion: { Prop, Kind
 -- "Sway"|"Bob"|"Spin", numbers }; Flicker: lamps the draft placed (Lamp_<i>, BiomeDressing.PLACED_LIGHTS).
@@ -577,6 +578,9 @@ TrackFxConfig.Tracks = {
 				Prop = "Hill",
 				Offset = v(0, -0.6, 0),
 				Color = { hex("C8504A"), hex("D8786A") },
+				-- a little less opaque than GroundHaze (plateau 0.78): owner 2026-11-26 "tone down track 10 red haze tiny
+				-- bit" (proposed)
+				Transparency = { { 0, 1 }, { 0.25, 0.82 }, { 0.75, 0.82 }, { 1, 1 } },
 				Max = 4,
 			},
 		},
