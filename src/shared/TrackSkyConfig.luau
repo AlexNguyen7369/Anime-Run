@@ -7,6 +7,6 @@
 -- While off, or for a row with an id 0 or unreviewed, every track shows the place's own sky (BiomeEnvironment.Row).
 local TrackSkyConfig = {}
 
-TrackSkyConfig.LIVE = false
+TrackSkyConfig.LIVE = true -- switched on for the Studio check before merging (owner choice F, 2026-11-26)
 
 return TrackSkyConfig

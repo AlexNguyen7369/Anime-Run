@@ -41,6 +41,8 @@ function Tests.world2_skies()
 	local configModule = Shared:FindFirstChild("TrackSkyConfig")
 	local Config = configModule and require(configModule)
 	flag("switch_module", Config ~= nil and type(Config.LIVE) == "boolean")
+	-- owner choice F: on once the four are uploaded and reviewed (the Studio check runs on this commit before merging)
+	flag("switch_on", Config ~= nil and Config.LIVE == true, Config and tostring(Config.LIVE), "true")
 	flag("skybox_face_api", type(Env.SkyboxFace) == "function")
 	if not (Config and type(Env.SkyboxFace) == "function") then
 		return r
