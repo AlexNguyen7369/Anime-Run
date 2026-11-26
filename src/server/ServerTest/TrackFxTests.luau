@@ -267,8 +267,8 @@ function Tests.track_fx()
 				local spec = byBiome[key]
 				for i, def in track.Dragons or {} do
 					local waypoints = TrackBuilder.Layout(spec).Waypoints
-					local path, k = Plan.FitLoop(waypoints, def, origins[spec.Number], spec.Number, lines)
-					r.metrics[("%s_dragon%d_fit"):format(key, i)] = k and math.floor(k * 100) / 100 or "not built"
+					local path, fit = Plan.FitLoop(waypoints, def, origins[spec.Number], spec.Number, lines)
+					r.metrics[("%s_dragon%d_fit"):format(key, i)] = fit and math.floor(fit * 100) / 100 or "not built"
 					if not path then
 						path = {}
 					end
@@ -287,7 +287,7 @@ function Tests.track_fx()
 						("[FX] %s dragon %d: %s"):format(
 							key,
 							i,
-							k and ("loop at " .. math.floor(k * 100) .. "%") or "not built (no room)"
+							fit and ("loop at " .. math.floor(fit * 100) .. "%") or "not built (no room)"
 						)
 					)
 					local world = {}
