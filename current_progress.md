@@ -320,8 +320,10 @@
 317. 2026-11-26 — Alex Nguyen — Switched the four World 2 track skies on in their own commit, for the Studio check before merging (owner choice F).
 318. 2026-11-26 — Alex Nguyen — Toned down the haze of the four World 2 skied tracks while their sky shows (Density 0.22, Haze 0.5; owner: "tone down the haze across all a bit"), sky colours kept.
 319. 2026-11-26 — Alex Nguyen — Merged the four World 2 track skies with the toned-down haze into the World 2 branch (owner approved the Studio pictures).
+320. 2026-11-26 — Alex Nguyen — Drafted World 2 track effects behind TrackFxConfig.LIVE = false (client-only smoke, steam, haze, embers and motes on named props, generic drakes and a spirit eel on track-local loops, sway, bob and flicker on placed props), with 4 in-house textures, 4 Blender meshes, preview GIFs, a spec section and the track_fx checks (lune only; nothing uploaded).
+321. 2026-11-26 — Alex Nguyen — Fixed the track effects audit (real-name check over the ledger), merged the World 2 branch, laid the dragons and eel out by distance so the eel no longer bunches, added the Track 10 haze, Track 9 and Kaizel notes, and uploaded the 8 track effect assets (all moderation Approved, ids in TrackFxConfig, LIVE still off).
 
 ## What's next
-**Show the owner agent-1's measured World 2 layout options (with agent-3's impact map and agent-2's render audit), get the pick, and write it into WORLD_REDESIGN_SPEC section 3 and WORLD2_SPEC before any code.**
+**Show the owner the track effects previews (assets/world2_draft/track_fx/previews) with the Kaizel and Track 10 haze questions, then check the effects in Studio on the re-laid World 2 tracks with LIVE on in a test session before it goes on for players.**
 
-**Why this is next:** the re-lay of every World 2 track, the scenery placements and the render fixes all build on the chosen layout, and a new form needs a written rule first.
+**Why this is next:** the assets are uploaded and in the ledger, so only the owner's approval of the effects and a Studio check stand between the draft and the game.

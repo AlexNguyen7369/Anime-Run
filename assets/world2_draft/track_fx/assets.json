@@ -1,0 +1,66 @@
+{
+ "TrackFx_DrakeBody": {
+  "Hash": "18f611a5d46e9b4e0bb6fa87a0f9f239ad5d0442bf7b2d6025557af461c2bdf0",
+  "Kind": "Model",
+  "Mesh": "99358143355177",
+  "MeshModeration": "Approved",
+  "Model": "128203234362835",
+  "Moderation": "Approved"
+ },
+ "TrackFx_DrakeWing": {
+  "Hash": "088c7635a1a25261deac2e5132a02e7c152a8f60ea921b7e454a459043391fc8",
+  "Kind": "Model",
+  "Mesh": "70831317809815",
+  "MeshModeration": "Approved",
+  "Model": "97155744574570",
+  "Moderation": "Approved"
+ },
+ "TrackFx_EelHead": {
+  "Hash": "407b7ce97e75641f4a416cc5a260138037374d2634046c22fe85be8ea970d283",
+  "Kind": "Model",
+  "Mesh": "81336925420911",
+  "MeshModeration": "Approved",
+  "Model": "129183633171315",
+  "Moderation": "Approved"
+ },
+ "TrackFx_EelSegment": {
+  "Hash": "4b3fa6d46c4e0da16ac60afd4b5b1122c2adeff16acdb52ea3c4dcb4ab92cbf2",
+  "Kind": "Model",
+  "Mesh": "125251547523736",
+  "MeshModeration": "Approved",
+  "Model": "140101377134796",
+  "Moderation": "Approved"
+ },
+ "TrackFx_Ember": {
+  "Decal": "118705205041971",
+  "Hash": "ea2548e13f7264345c5971a7ad58b26bd59a8c3b51ed5204b1ffae18a47f5fe2",
+  "Image": "130564448358590",
+  "ImageModeration": "Approved",
+  "Kind": "Decal",
+  "Moderation": "Approved"
+ },
+ "TrackFx_Haze": {
+  "Decal": "134622627756910",
+  "Hash": "dfa94c4f26ecf5395a99b52861e4342fceea9c1d06791dc4eb10609cbf9f5a24",
+  "Image": "133212472173493",
+  "ImageModeration": "Approved",
+  "Kind": "Decal",
+  "Moderation": "Approved"
+ },
+ "TrackFx_SmokePuff": {
+  "Decal": "97289512542692",
+  "Hash": "fb3be377bbc676a3b486c0979d8b06a96b861986cb4b3ea562f3284a34fce0f8",
+  "Image": "131238123745137",
+  "ImageModeration": "Approved",
+  "Kind": "Decal",
+  "Moderation": "Approved"
+ },
+ "TrackFx_Wisp": {
+  "Decal": "109316241038637",
+  "Hash": "8e7d8e095cf72a04724740344c7006ff536d1e843d7cb426308f864da6ef95a7",
+  "Image": "121171857790986",
+  "ImageModeration": "Approved",
+  "Kind": "Decal",
+  "Moderation": "Approved"
+ }
+}
