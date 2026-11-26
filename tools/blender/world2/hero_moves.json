@@ -1,28 +1,6 @@
 {
  "AntIsland": {},
- "DemonCastle": {
-  "ChainTower": {
-   "From": [
-    540.661,
-    -2.0,
-    -749.022
-   ],
-   "OverlapsFrom": [
-    786,
-    "T7 Mound 122x280x81"
-   ],
-   "OverlapsTo": [
-    659,
-    "T7 Chamber 207x155x122"
-   ],
-   "Studs": 830.9,
-   "To": [
-    1370.504,
-    -2.0,
-    -791.096
-   ]
-  }
- },
+ "DemonCastle": {},
  "DevilTokyo": {},
  "ElvenPlains": {
   "RuinedCastle": {
@@ -36,87 +14,87 @@
     null
    ],
    "OverlapsTo": [
-    2,
-    "T3 Blocks 217x2x217"
+    1,
+    "T5 Apartment 88x125x76"
    ],
-   "Studs": 3171.6,
+   "Studs": 3691.5,
    "To": [
-    1042.826,
+    -297.174,
     -18.5,
-    -1182.215
+    297.785
    ]
   }
  },
- "GoldenCity": {},
- "HauntedTunnel": {},
- "HellGate": {
-  "DarkGate": {
+ "GoldenCity": {
+  "Church": {
    "From": [
-    8489.657,
-    -9.0,
-    -190.557
+    7707.793,
+    -2.0,
+    -3794.59
    ],
    "OverlapsFrom": [
-    1,
-    "T1 Mountain_p3 1462x1071x987"
+    0,
+    null
    ],
    "OverlapsTo": [
     0,
     null
    ],
-   "Studs": 184.4,
+   "Studs": 310.0,
    "To": [
-    8529.657,
+    7397.793,
+    -2.0,
+    -3794.59
+   ]
+  }
+ },
+ "HauntedTunnel": {},
+ "HellGate": {
+  "DarkGate": {
+   "From": [
+    2971.995,
     -9.0,
-    -10.557
+    7378.838
+   ],
+   "OverlapsFrom": [
+    0,
+    null
+   ],
+   "OverlapsTo": [
+    0,
+    null
+   ],
+   "Studs": 90.0,
+   "To": [
+    2881.995,
+    -9.0,
+    7378.838
    ]
   }
  },
  "KaijuBase": {
   "DefenseHQ": {
    "From": [
-    2983.463,
+    2227.465,
     -3.0,
-    -2123.473
+    -2879.475
    ],
    "OverlapsFrom": [
-    0,
-    null
+    15,
+    "T9 Forest 221x145x180"
    ],
    "OverlapsTo": [
     0,
     null
    ],
-   "Studs": 60.0,
+   "Studs": 1699.6,
    "To": [
-    2983.463,
+    3737.465,
     -3.0,
-    -2183.473
+    -2099.475
    ]
   }
  },
  "MonsterDen": {},
- "RuinedCityZ": {
-  "Crater": {
-   "From": [
-    1315.26,
-    -4.93,
-    473.068
-   ],
-   "OverlapsFrom": [
-    191,
-    "T1 Forest 104x57x61"
-   ],
-   "OverlapsTo": [
-    0,
-    null
-   ],
-   "Studs": 1432.7,
-   "To": [
-    2735.26,
-    -4.93,
-    283.068
-   ]
-  }
- }
+ "RuinedCityZ": {}
 }

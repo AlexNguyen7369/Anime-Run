@@ -875,7 +875,6 @@ def _clearance(k, skip=("Road", "Wall", "Dash", "Apron", "WinPad", "Ground", "Fi
 
 
 _BOX = {}  # the ChainTower mesh's box centre and half size, Roblox local (x, z)
-REACH = 150  # studs: a checkpoint area round its finish (100 x 60 with aprons) or the plaza (188 x 220), from its centre
 
 
 def _box_centre(k, x, z, yaw):
@@ -888,24 +887,36 @@ def _box_centre(k, x, z, yaw):
 		_BOX["c"] = ((min(v.co.x for v in vs) + max(v.co.x for v in vs)) / 2, -(min(v.co.y for v in vs) + max(v.co.y for v in vs)) / 2)  # Blender y = -Roblox z
 		_BOX["h"] = ((max(v.co.x for v in vs) - min(v.co.x for v in vs)) / 2, (max(v.co.y for v in vs) - min(v.co.y for v in vs)) / 2)
 	bx, bz = _BOX["c"]
-	c, s_ = math.cos(yaw), math.sin(yaw)
-	return x + bx * c + bz * s_, z - bx * s_ + bz * c
+	c, s_ = math.cos(yaw), math.sin(yaw)  # the placed object's turn, as _tower_ok's chains (Blender turns by -yaw)
+	return x + bx * c - bz * s_, z + bx * s_ + bz * c
 
 
 def _pads_clear(k, x, z, yaw):
-	"""The ChainTower's mesh box (chains and anchors included), grown as the game's Prune grows it, clear of every track's
-	checkpoint area and of the spawn plaza: export_props.rules_ok "pads" (2026-11-26 re-fit). Each finish (and the plaza
-	centre) must lie outside the box grown by Prune's 8 and REACH, a checkpoint area's or the plaza's reach."""
-	import chain
+	"""The ChainTower's mesh box (chains and anchors included), grown by Prune's 8, clear of every track's checkpoint area
+	and of the spawn floor: export_props.rules_ok "pads", with its blockers and box test (2026-11-26 re-fit)."""
+	import export_props as ep
+	import numpy as np
 
-	if "ends" not in _BOX:
-		_BOX["ends"] = [(t["Waypoints"][-1][0], t["Waypoints"][-1][2]) for t in chain.build()] + [(0.0, 0.0)]
+	if "blockers" not in _BOX:
+		_BOX["blockers"] = ep.blockers()
+		vs = k.props["ChainTower"].data.vertices
+		_BOX["y"] = (min(v.co.z for v in vs), max(v.co.z for v in vs))  # Blender z = Roblox y
 	cx, cz = _box_centre(k, x, z, yaw)
-	c, s_ = math.cos(yaw), math.sin(yaw)
-	hx, hz = _BOX["h"][0] + 8 + REACH, _BOX["h"][1] + 8 + REACH
-	for ex, ez in _BOX["ends"]:
-		dx, dz = ex - cx, ez - cz
-		if abs(dx * c - dz * s_) < hx and abs(dx * s_ + dz * c) < hz:  # the point in the mesh's own frame
+	y0, y1 = _BOX["y"]
+	c = np.array((cx, -1.0 + (y0 + y1) / 2, cz))
+	R = np.array(ep.yaw_rot(-yaw))  # the placed object's turn (see _box_centre)
+	half = np.array((_BOX["h"][0], (y1 - y0) / 2, _BOX["h"][1])) + 8.0
+	ext = np.abs(R) @ half
+	for bc, bR, bh, column in _BOX["blockers"]:
+		bc, bR, bh = np.array(bc), np.array(bR), np.array(bh)
+		if np.any(np.abs(c[[0, 2]] - bc[[0, 2]]) >= ext[[0, 2]] + (np.abs(bR) @ bh)[[0, 2]]):
+			continue
+		cc = c.copy()
+		if column:
+			cc[1] = bc[1]
+		elif abs(c[1] - bc[1]) >= ext[1] + (np.abs(bR) @ bh)[1]:
+			continue
+		if ep.obb_overlap(cc, R, half, bc, bR, bh):
 			return False
 	return True
 
@@ -927,7 +938,7 @@ def _tower_clear(k, x, z, yaw):
 		_BOX["corr"] = clearance.corridors(build_track.load_chain().values())
 	L = _BOX["tris"]
 	c, s_ = math.cos(yaw), math.sin(yaw)
-	w = np.stack((x + L[..., 0] * c + L[..., 2] * s_, L[..., 1] - 1.0, z - L[..., 0] * s_ + L[..., 2] * c), -1)
+	w = np.stack((x + L[..., 0] * c - L[..., 2] * s_, L[..., 1] - 1.0, z + L[..., 0] * s_ + L[..., 2] * c), -1)
 	return not clearance.intrudes(w, _BOX["corr"])
 
 

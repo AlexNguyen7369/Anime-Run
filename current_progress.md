@@ -319,6 +319,7 @@
 296. 2026-11-26 — Alex Nguyen — Made the World 2 drafts' hand-set world spots road-relative (Track 1 ranks, mounds, horizon town, castle and massif, behind-finish props; Track 5's two left-out Apartments; Track 6's landmark, tower turn and Konbini in cross_track), with the same placements on the approved chain (Tracks 1, 5 and 6 compared instance by instance).
 297. 2026-11-26 — Alex Nguyen — Added the nearest-road ground rule to the World 2 export and draft scatters (export_props.owner_at, kit.owns) and a review-shot --out folder, and exported Tracks 8-10 on the square spiral as a first pass (GoldenCity's wall and forest along its own band; stale hero moves and cross-track rows cleared).
 298. 2026-11-26 — Alex Nguyen — Re-placed World 2 Track 1 (Elven Ruin Plains) on the square spiral: 1,478 rows on its own ground (approved 355), the ranks keep their approved turn to the road, the ruined castle moved to a legal spot, the Town still has no spot at its approved scale.
+299. 2026-11-26 — Alex Nguyen — Re-exported World 2 Tracks 1-5 and 8-10 on the final square-spiral Segments (66856b89): every approved hero placed but T1 Town, T3 HeroHQ and T8 LairTower (no spot at approved scale); T2 ChainTower now has a spot; both kaiju placements kept; uploaded ledger Ids kept.
 
 ## What's next
 **Re-place every World 2 track's scenery, heroes, kaiju site and Track 6 landmark on the square-spiral layout (orch/world2/w2-wide-layout Segments), check clearance and ground ownership, then render the review set into assets/world2_draft/relayout_2026-11-26/.**
