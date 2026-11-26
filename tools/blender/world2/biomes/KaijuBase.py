@@ -1080,7 +1080,7 @@ def kaiju_corpse(k):
 
 
 
-SITES = ((1057.0, -92.0, 1.0, -2.0), (2683.0, -91.0, 1.0, -1.0))  # d, off, scale, turn (degrees): the two legal pockets beside Track 5's city half
+SITES = ((1057.0, -96.0, 1.0, -2.0), (2683.0, -91.0, 1.0, -1.0))  # d, off, scale, turn (degrees): the two legal pockets beside Track 5's city half
 
 FILL = []  # (x, z, prop) of the last build's added fill, for kaiju_reference.py
 
@@ -1928,11 +1928,11 @@ def build(k):
 			gz += 160
 		gx += 160
 	placed, tries = 0, 0  # smoke columns, clear of the road rows, towers and landmarks
-	while placed < 9 and tries < 800:
+	while placed < 9 and tries < 8000:  # own ground only (2026-11-26 re-fit)
 		tries += 1
 		x = k.rng.uniform(k.lo.x - 200, k.hi.x + 200)
 		z = k.rng.uniform(k.lo.z - 200, k.hi.z + 200)
-		if k.clear_of_road(x, z, 220) and all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid + towers + tall_avoid):
+		if k.owns(x, z) and k.clear_of_road(x, z, 220) and all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid + towers + tall_avoid):
 			ob = k.place("Smoke", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(1.2, 1.8))
 			ob.visible_shadow = False  # smoke casts no hard shadow
 			placed += 1

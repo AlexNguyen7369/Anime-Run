@@ -857,7 +857,9 @@ def build(k):
 	# 01: the hero's apartment on the right, its blank end wall turned toward the camera, the balconies in view
 	e, t = _eye(k, 0.06)
 	_, right, _ = k.at(L * 0.06)
-	ax, az = e.x + t.x * 150 + right.x * 62, e.z + t.z * 150 + right.z * 62
+	# 136 studs on along the road and 72 right of it from the 0.06 point (on a straight: 150 ahead of the eye, 62 right of
+	# it, as approved); along the road, so in a bend it keeps its place beside the road (2026-11-26 re-fit)
+	(ax, _, az), _ = k.beside(L * 0.06 + 136, 72)
 	pos, yaw = k.beside(L * 0.06 + 81, 52)
 	_clear_view(k, e, ax, az, 40, BUILD + ("Kerb", "Rubble", "Barricade"))
 	_clear_near(k, ax, az, 42, BUILD + ("Rubble", "Barricade"))

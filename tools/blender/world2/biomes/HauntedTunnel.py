@@ -728,11 +728,11 @@ def build(k):
 		(x, _, z), _ = orig(d, off)
 		avoid.append((x, z, r))
 	placed, tries = 0, 0
-	while placed < 190 and tries < 6000:
+	while placed < 190 and tries < 60000:  # own ground only (2026-11-26 re-fit): most of the box is other tracks'
 		tries += 1
 		x = k.rng.uniform(k.lo.x - 350, k.hi.x + 350)
 		z = k.rng.uniform(k.lo.z - 350, k.hi.z + 350)
-		if all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid) and k.clear_of_road(x, z, 70):
+		if k.owns(x, z) and all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid) and k.clear_of_road(x, z, 70):
 			k.place("Cedar", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(0.9, 1.5))
 			placed += 1
 	placed, tries = 0, 0  # far ridges, kept well away from the landmarks so none stands in front of them

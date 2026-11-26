@@ -355,6 +355,9 @@ def _sees(shot, x, z, top, half=14.0, up=31.0):
 
 # --- props ---
 W, H0, HT = 280, 20, 1300  # tower slab width, foot and top heights
+# studs from the road centre line to the plinth's centre: 340 on the approved chain; 300 on the wide layout (2026-11-26
+# re-fit), whose own ground ends at the gap midline about 329 out (the plinth's edge still 160 off the road)
+PLINTH_CLEAR = 300
 SKY_R, SKY_Y = 1150, 2050  # huge chains hang in from anchors high off to the sides: radius from the tower centre, height
 CHAIN_AT = ((20, 1120), (160, 1040), (295, 960), (215, 1180))  # chain runs: azimuth (deg) and the height they bite into the slab
 
@@ -871,9 +874,67 @@ def _clearance(k, skip=("Road", "Wall", "Dash", "Apron", "WinPad", "Ground", "Fi
 	print("CLEARANCE", out)
 
 
+_BOX = {}  # the ChainTower mesh's box centre and half size, Roblox local (x, z)
+REACH = 150  # studs: a checkpoint area round its finish (100 x 60 with aprons) or the plaza (188 x 220), from its centre
+
+
+def _box_centre(k, x, z, yaw):
+	"""World (x, z) of the ChainTower mesh's box centre with its plinth at (x, z) turned `yaw`: what the export and the game
+	judge ground ownership by (the chain anchors put it far off the plinth)."""
+	me = k.props["ChainTower"].data
+	if _BOX.get("mesh") != me.name:
+		vs = me.vertices
+		_BOX["mesh"] = me.name
+		_BOX["c"] = ((min(v.co.x for v in vs) + max(v.co.x for v in vs)) / 2, -(min(v.co.y for v in vs) + max(v.co.y for v in vs)) / 2)  # Blender y = -Roblox z
+		_BOX["h"] = ((max(v.co.x for v in vs) - min(v.co.x for v in vs)) / 2, (max(v.co.y for v in vs) - min(v.co.y for v in vs)) / 2)
+	bx, bz = _BOX["c"]
+	c, s_ = math.cos(yaw), math.sin(yaw)
+	return x + bx * c + bz * s_, z - bx * s_ + bz * c
+
+
+def _pads_clear(k, x, z, yaw):
+	"""The ChainTower's mesh box (chains and anchors included), grown as the game's Prune grows it, clear of every track's
+	checkpoint area and of the spawn plaza: export_props.rules_ok "pads" (2026-11-26 re-fit). Each finish (and the plaza
+	centre) must lie outside the box grown by Prune's 8 and REACH, a checkpoint area's or the plaza's reach."""
+	import chain
+
+	if "ends" not in _BOX:
+		_BOX["ends"] = [(t["Waypoints"][-1][0], t["Waypoints"][-1][2]) for t in chain.build()] + [(0.0, 0.0)]
+	cx, cz = _box_centre(k, x, z, yaw)
+	c, s_ = math.cos(yaw), math.sin(yaw)
+	hx, hz = _BOX["h"][0] + 8 + REACH, _BOX["h"][1] + 8 + REACH
+	for ex, ez in _BOX["ends"]:
+		dx, dz = ex - cx, ez - cz
+		if abs(dx * c - dz * s_) < hx and abs(dx * s_ + dz * c) < hz:  # the point in the mesh's own frame
+			return False
+	return True
+
+
+def _tower_clear(k, x, z, yaw):
+	"""The ChainTower's real triangles, plinth at (x, z) turned `yaw` (on the ground, y -1), clear of every track's road
+	corridor (clearance.py: 24 studs lateral, 14 overhead), as the export's road test judges them (2026-11-26 re-fit)."""
+	import clearance
+	import numpy as np
+
+	if "tris" not in _BOX:
+		import build_track
+
+		me = k.props["ChainTower"].data
+		me.calc_loop_triangles()
+		v = np.array([vv.co[:] for vv in me.vertices])
+		t = np.array([tri.vertices[:] for tri in me.loop_triangles])
+		_BOX["tris"] = v[t][..., [0, 2, 1]] * np.array([1.0, 1.0, -1.0])  # Blender (x, y, z) -> Roblox (x, z = -y, y)
+		_BOX["corr"] = clearance.corridors(build_track.load_chain().values())
+	L = _BOX["tris"]
+	c, s_ = math.cos(yaw), math.sin(yaw)
+	w = np.stack((x + L[..., 0] * c + L[..., 2] * s_, L[..., 1] - 1.0, z - L[..., 0] * s_ + L[..., 2] * c), -1)
+	return not clearance.intrudes(w, _BOX["corr"])
+
+
 def _tower_ok(k, x, z, yaw):
-	"""The plinth 340+ from the road, and each huge chain's ground track 40+ from it (24-stud rule, with margin)."""
-	if _road_dist(k, x, z) < 340:
+	"""The plinth PLINTH_CLEAR+ from the road and on this track's own ground, and each huge chain's ground track 40+ from
+	it (24-stud rule, with margin)."""
+	if _road_dist(k, x, z) < PLINTH_CLEAR - 1 or not k.owns(x, z):
 		return False
 	c, s_ = math.cos(yaw), math.sin(yaw)
 	for (ax, _, az), _b in _chain_runs():
@@ -922,22 +983,23 @@ def build(k):
 	# The one castle: the spot (and turn) seen by the most fixed runner cameras, its chains and anchors clear of the road
 	shots = _shots(k)
 	best = None
-	cx0, cz0 = (k.lo.x + k.hi.x) / 2, (k.lo.z + k.hi.z) / 2
-	for i in range(-32, 33):
-		for j in range(-32, 33):
-			x, z = cx0 + i * 100, cz0 + j * 100
-			if _road_dist(k, x, z) < 340:
-				continue
-			seen = [s for s in shots if _sees(s, x, z, HT, half=30.0, up=42.0)]
-			if not seen:
-				continue
-			dmax = max(math.hypot(x - s[1][0], z - s[1][2]) for s in seen)
-			score = (len(seen), -dmax)
-			if best is None or score > best[0]:
-				for yd in range(0, 90, 15):
-					if _tower_ok(k, x, z, math.radians(yd)):
-						best = (score, x, z, math.radians(yd), seen)
-						break
+	# candidates beside the road in the strip of own ground past PLINTH_CLEAR (a grid over the box: 100-stud steps missed
+	# the narrow strip the wide layout leaves; 2026-11-26 re-fit)
+	cands = [k.spot(d, side * o) for d in range(0, int(L), 40) for side in (-1, 1) for o in (PLINTH_CLEAR, PLINTH_CLEAR + 10, PLINTH_CLEAR + 20)]
+	for x, z in cands:
+		if _road_dist(k, x, z) < PLINTH_CLEAR - 1 or not k.owns(x, z):
+			continue
+		seen = [s for s in shots if _sees(s, x, z, HT, half=30.0, up=42.0)]
+		# a spot no camera sees still counts, below every seen one, nearest a camera first: on the wide layout a seen spot
+		# may not clear the checkpoints (2026-11-26 re-fit)
+		dmax = max(math.hypot(x - s[1][0], z - s[1][2]) for s in seen) if seen else min(math.hypot(x - s[1][0], z - s[1][2]) for s in shots)
+		score = (len(seen), -dmax)
+		if best is None or score > best[0]:
+			for yd in range(0, 360, 15):
+				if _tower_ok(k, x, z, math.radians(yd)) and k.owns(*_box_centre(k, x, z, math.radians(yd))) and _pads_clear(k, x, z, math.radians(yd)) and _tower_clear(k, x, z, math.radians(yd)):
+					best = (score, x, z, math.radians(yd), seen)
+					break
+	assert best, "no castle spot on own ground clear of the road, the checkpoints and the plaza (box half %s)" % (_BOX.get("h"),)
 	_, tx, tz, tyaw, seen = best
 	ob = k.place("ChainTower", (tx, -1.0, tz), 0.0)
 	ob.rotation_euler = (0, 0, -tyaw)  # Roblox yaw about Y turns +X toward +Z, Blender's about Z the other way
@@ -972,10 +1034,12 @@ def build(k):
 	# Floating burning rock slabs and smoke clouds, never above the road
 	for name, n, lo_y, hi_y, sc in (("Chunk", 50, 60, 260, (0.8, 1.9)), ("Smoke", 12, 450, 800, (0.8, 1.4))):
 		placed, tries = 0, 0
-		while placed < n and tries < 3000:
+		while placed < n and tries < 30000:
 			tries += 1
 			x, z = k.rng.uniform(k.lo.x - 900, k.hi.x + 900), k.rng.uniform(k.lo.z - 900, k.hi.z + 900)
-			if k.clear_of_road(x, z, 80 if name == "Chunk" else 400) and math.hypot(x - tx, z - tz) > 400:
+			# smoke 400 off its road on the approved chain; 170 (the cloud's edge just clear of it, 450+ up) now that it keeps
+			# to its own ground, which ends about 329 out on the wide layout (2026-11-26 re-fit)
+			if k.owns(x, z) and k.clear_of_road(x, z, 80 if name == "Chunk" else 170) and math.hypot(x - tx, z - tz) > 400:
 				k.place(name, (x, k.rng.uniform(lo_y, hi_y), z), k.rng.uniform(0, math.tau), k.rng.uniform(*sc))
 				placed += 1
 	# Wyverns: two crossing the 33% run shot's sky, four circling the castle top
