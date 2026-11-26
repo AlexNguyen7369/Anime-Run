@@ -7752,6 +7752,13 @@ local SPAWN_START_COOLDOWN = 2
 local SPAWN_WALK_ROOT_HEIGHT = 3
 local SPAWN_WALK_CLEARANCE = 75 -- RunnerService WALK_CLEARANCE
 local SPAWN_LOCATION_SIZE = Vector3.new(12, 1, 12)
+-- Spawn scatter (WORLD_REDESIGN_SPEC 4, lead's choice under owner 2026-11-26, proposed): spacing, rings { radius, spots }, and the
+-- spawn disc's radius less an avatar's half width (1.5) that every spot keeps inside
+-- The wider floor (design doc 4.43, WORLD_REDESIGN_SPEC 4 "Plaza size", proposed): world edges, growth part count, tree pit (x, z size)
+local SPAWN_FLOOR_REACH = { West = -94, East = 131.6, North = 132, South = -119 }
+local SPAWN_FLOOR_PARTS = 4 -- east, south, and the north side in two either side of the tree pit
+local SPAWN_SAKURA_PIT = Vector2.new(24, 22) -- x 68 to 92, z 110 to 132
+local SPAWN_SCATTER = { Spacing = 3.5, Rings = { { 4, 6 }, { 8, 12 } }, Disc = 9.5 - 1.5 }
 local SPAWN_GEOM_TOL = 0.5 -- studs: footprints match the spec within this
 local SPAWN_TOP_TOL = 0.1 -- studs: tops match the spec within this
 local SPAWN_TOUCH_GAP = 1 -- studs: "touches" = horizontal gap at most this
@@ -7918,6 +7925,97 @@ function Scenarios.spawn_area()
 		and type(A.WalkCFrame) == "function"
 		and type(A.Bounds) == "function"
 	check(checks, "spawn_api_exists", apiOk and 1 or 0, 1, apiOk)
+	-- Spawn scatter (owner 2026-11-26 "expand spawn location radius to your descretion"; WORLD_REDESIGN_SPEC 4, lead's choice,
+	-- proposed): a real player stands at the walk spawn when no other avatar is within SPACING of it, else at the first free
+	-- spot of two rings (6 at 4 studs, 12 at 8), on the spawn disc (radius 9.5), facing as the walk spawn does.
+	local scatterOk = moduleOk and type(A.ScatterCFrame) == "function" and type(A.SCATTER) == "table"
+	check(checks, "spawn_scatter_api", scatterOk and 1 or 0, 1, scatterOk)
+	if scatterOk then
+		local sc = A.SCATTER
+		local rings = sc.Rings or {}
+		local shape = sc.Spacing == SPAWN_SCATTER.Spacing
+			and #rings == #SPAWN_SCATTER.Rings
+			and rings[1].Radius == SPAWN_SCATTER.Rings[1][1]
+			and rings[1].Spots == SPAWN_SCATTER.Rings[1][2]
+			and rings[2].Radius == SPAWN_SCATTER.Rings[2][1]
+			and rings[2].Spots == SPAWN_SCATTER.Rings[2][2]
+		check(checks, "spawn_scatter_numbers", shape and 1 or 0, 1, shape)
+		local centre = CFrame.lookAt(Vector3.new(10, 6.4, -20), Vector3.new(-30, 6.4, 20))
+		local first = A.ScatterCFrame(centre, {}, 0.37)
+		local dFirst = (first.Position - centre.Position).Magnitude
+		check(checks, "spawn_scatter_alone_at_centre", dFirst, 0.01, dFirst <= 0.01)
+		local placed, worstGap, farthest, sameFrame = {}, math.huge, 0, true
+		local spots = 1 + SPAWN_SCATTER.Rings[1][2] + SPAWN_SCATTER.Rings[2][2]
+		for i = 1, spots + 1 do -- one more than the spots: the last finds none free and takes the farthest
+			local cf = A.ScatterCFrame(centre, placed, (i * 0.618) % 1)
+			local off = cf.Position - centre.Position
+			farthest = math.max(farthest, Vector2.new(off.X, off.Z).Magnitude)
+			sameFrame = sameFrame and math.abs(off.Y) <= 0.01 and cf.LookVector:Dot(centre.LookVector) >= 0.999
+			if i <= spots then
+				for _, p in placed do
+					worstGap = math.min(worstGap, Vector2.new(p.X - cf.X, p.Z - cf.Z).Magnitude)
+				end
+			end
+			table.insert(placed, cf.Position)
+		end
+		check(checks, "spawn_scatter_spaced", worstGap, SPAWN_SCATTER.Spacing, worstGap >= SPAWN_SCATTER.Spacing)
+		check(checks, "spawn_scatter_on_disc", farthest, SPAWN_SCATTER.Disc, farthest <= SPAWN_SCATTER.Disc + 0.01)
+		check(checks, "spawn_scatter_faces_as_walk_spawn", sameFrame and 1 or 0, 1, sameFrame)
+	end
+	-- The wider floor (design doc 4.43 "Wider floor", WORLD_REDESIGN_SPEC 4 "Plaza size", lead's choice under owner 2026-11-26,
+	-- proposed): the west edge stays, the east, north and south edges move out; nothing approved moves. FloorRects are world
+	-- (x, z) boxes of the growth parts; with the approved Floor they cover the whole reach but the Great Sakura's tree pit.
+	local reach = A.FLOOR_REACH
+	local reachOk = type(reach) == "table"
+		and reach.West == SPAWN_FLOOR_REACH.West
+		and reach.East == SPAWN_FLOOR_REACH.East
+		and reach.North == SPAWN_FLOOR_REACH.North
+		and reach.South == SPAWN_FLOOR_REACH.South
+	check(checks, "spawn_floor_reach", reachOk and 1 or 0, 1, reachOk)
+	local rects = type(A.FloorRects) == "function" and A.FloorRects() or {}
+	check(checks, "spawn_floor_growth_parts", #rects, SPAWN_FLOOR_PARTS, #rects == SPAWN_FLOOR_PARTS)
+	local covered, apart, insideReach = 188 * 220, true, true
+	for i, r in rects do
+		covered += (r.Max.X - r.Min.X) * (r.Max.Y - r.Min.Y)
+		insideReach = insideReach
+			and r.Min.X >= SPAWN_FLOOR_REACH.West - 0.01
+			and r.Max.X <= SPAWN_FLOOR_REACH.East + 0.01
+			and r.Min.Y >= SPAWN_FLOOR_REACH.South - 0.01
+			and r.Max.Y <= SPAWN_FLOOR_REACH.North + 0.01
+		-- none overlaps the approved floor (x +-94, z +-110) or another growth part
+		for j, o in rects do
+			if
+				j ~= i
+				and r.Min.X < o.Max.X - 0.01
+				and o.Min.X < r.Max.X - 0.01
+				and r.Min.Y < o.Max.Y - 0.01
+				and o.Min.Y < r.Max.Y - 0.01
+			then
+				apart = false
+			end
+		end
+		if r.Min.X < 93.99 and r.Max.X > -93.99 and r.Min.Y < 109.99 and r.Max.Y > -109.99 then
+			apart = false
+		end
+	end
+	local reachArea = (SPAWN_FLOOR_REACH.East - SPAWN_FLOOR_REACH.West)
+		* (SPAWN_FLOOR_REACH.North - SPAWN_FLOOR_REACH.South)
+	local wantArea = reachArea - SPAWN_SAKURA_PIT.X * SPAWN_SAKURA_PIT.Y
+	check(checks, "spawn_floor_covers_reach", covered, wantArea, math.abs(covered - wantArea) <= 0.5 and insideReach)
+	check(checks, "spawn_floor_parts_apart", apart and 1 or 0, 1, apart)
+	-- the Great Sakura (approved (80, 118), trunk radius 3.2) stands in open ground: no floor part under its trunk
+	local trunkClear = true
+	for _, r in rects do
+		if 80 + 3.2 > r.Min.X and 80 - 3.2 < r.Max.X and 118 + 3.2 > r.Min.Y and 118 - 3.2 < r.Max.Y then
+			trunkClear = false
+		end
+	end
+	check(checks, "spawn_floor_sakura_pit", trunkClear and 1 or 0, 1, trunkClear and #rects > 0)
+	-- The boss gate (owner 2026-11-26): on in World 2 at spot S4, off in World 1 (WORLD_REDESIGN_SPEC 4.2)
+	local GateSwitch = sharedModule("BossGateConfig")
+	local worldId = sharedModule("WorldConfig") and sharedModule("WorldConfig").Id or 1
+	local gateShipped = GateSwitch ~= nil and GateSwitch.LIVE == (worldId == 2)
+	check(checks, "spawn_boss_gate_on_in_world2_only", gateShipped and 1 or 0, 1, gateShipped)
 	local serviceOk = RunnerService ~= nil
 		and RaceService ~= nil
 		and PlayerData ~= nil
@@ -12242,12 +12340,15 @@ Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
 Scenarios.world2_welcome = require(script.Parent.World2WelcomeTests).world2_welcome -- WORLD2_SPEC "Welcome"
 Scenarios.boss_guide = require(script.Parent.BossGuideTests).boss_guide -- docs/BOSS_GUIDE_SPEC.md
-Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 team of 4
+Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 Team of 3 in World 2 and its migration
 -- deliverables w2-summon, w2-boss: Summon gives this place's Sidekick set with shared pity; boss models are in the place
 Scenarios.world2_summon = require(script.Parent.World2ProofTests).world2_summon
 Scenarios.boss_models_placed = require(script.Parent.World2ProofTests).boss_models_placed
 Scenarios.awakening = require(script.Parent.AwakeningTests).awakening -- design doc 4.47 Awakening, WORLD2_SPEC "Awakening"
 Scenarios.world2_rewards = require(script.Parent.World2RewardsTests).world2_rewards -- design doc 4.47 World 2 rewards
+Scenarios.world2_skies = require(script.Parent.World2SkyTests).world2_skies -- WORLD2_SPEC "Track skies" (owner question 33)
+-- WORLD2_SPEC "Track effects (draft, owner approval pending)": off by default, World 2 only, budget caps
+Scenarios.track_fx = require(script.Parent.TrackFxTests).track_fx
 Scenarios.harness_save = require(script.Parent.HarnessSaveTests).harness_save -- design doc 4.24 "Harness saves"
 -- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): another world's models load on demand (Server/CharacterModelService)
 Scenarios.character_models = require(script.Parent.CharacterModelTests).character_models

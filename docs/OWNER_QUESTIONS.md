@@ -229,8 +229,9 @@ Nothing here is decided; the game runs the proposed default named in each item u
 4. Upgrade gates read World 2's own `BestTrack`, so tier 3+ upgrade tiles relock in World 2 until its tracks are
    beaten. Keep, or gate on the best of both worlds?
 5. Slot 4 has no aura or trail: `MarketConfig.SLOTS` = 3 in the shared save. Add a fourth slot in World 2, or keep 3?
+   (Moot 2026-11-26: the owner removed the fourth team slot, design doc 4.47.)
 6. `LastBossTeam` is shared; a World 2 team of 4 saved there loses its fourth member in World 1. Keep, or save it per
-   world?
+   world? (Moot 2026-11-26: World 2's team is 3, design doc 4.47.)
 7. 11 World 2 hero landmarks fit nowhere on their own ground at the approved scale (largest fitting scale in
    brackets): HQ 0.75, ChainTower 0.20, HeroHQ none, Crater 0.40, School 0.60, OldWoodHouse 0.60, GiantCorpse 0.50,
    DefenseHQ 0.90, Town 0.60, RuinedCastle 0.90, IslandVolcano 0.30. Shrink them, drop them, or widen the junction
@@ -346,3 +347,4 @@ In the World 2 place the server harness reports these as SKIP with a reason, cou
 33. Answered ("Four tracks", 2026-11-25). World 2 skies: no World 2 track has a sky of its own; every track shows Roblox's default sky, so Hell's Gate (Track 10, card "The red sky of Hell") shows a blue sky (agent-1, from code, 2026-11-25; feature/alex/w2-bugs2). Proposed: in-house gradient skyboxes made from each approved draft's sky colours, Track 10 first, then 3 DemonCastle, 9 GoldenCity, 7 AntIsland; blue-sky day tracks and night tracks keep the default. Needs your word, then upload and review. Track 10's layout and meshes stay frozen.
 34. Answered ("0 to 4 is fine", 2026-11-25). Brown strip round slabs (orch/world2/w2-visual2, offline only): your "brown strip of 2 to 4 studs" named the road. Round finish slabs, the plaza and the effects floor the strip now reaches at most 4 studs, but because terrain is drawn in 4-stud blocks it is 0 to 4 studs depending on where a slab edge falls (some slabs get 0 to 1 stud of brown). Accept 0 to 4 there, or must it be at least 2 (that would push some sides past 4)?
 35. Answered ("keep the overlap is ok", 2026-11-26). Track 6 against the new kaiju: the kaiju's boxes overlap Track 6 props (19 at site 1, 20 at site 2; "shown, not ruled on"). The game keeps Track 6's committed layout, so in game those Track 6 buildings and the kaiju stand into each other. Re-running Track 6's layout tool against the new kaiju would take out or move about 30 Track 6 props near the two sites, around (-950..-720, 700..910) and (-960..-780, -1010..-870), and move two Offices (765 -> 746 placements). Options: re-run Track 6 against the kaiju (renders first), or keep the overlaps.
+36. Open (owner 2026-11-26): World 2 tracks re-laid much wider, about 600 studs road to road (owner pick), straight allowed, little to no overlap. Which layout option (agent-1 proposal, pending) and its rule entry for WORLD_REDESIGN_SPEC section 3 ("spirals outward", placeholder) and WORLD2_SPEC (spacing choice overruled). Rendering faults to fix: ground/grass/z-fighting, other tracks visible, dark props.

@@ -7,7 +7,7 @@
 -- placeholders.
 local Kit = require(script.Parent.Parent.Kit)
 
-local M, hex, gate, draftMesh = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh
+local M, hex, gate, draftMesh, draftSky = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh, Kit.draftSky
 
 return Kit.fromDraft("HellGate", require(script.Parent.HellGateDraft), {
 	DisplayName = "Hell's Gate",
@@ -19,10 +19,17 @@ return Kit.fromDraft("HellGate", require(script.Parent.HellGateDraft), {
 		Materials = { Corridor = M.Sand, Ridge = M.Sand, Cliff = M.Rock, Bed = M.Sand },
 		CliffSlope = 0.9,
 	},
+	-- In-house gradient sky from the draft's stops (owner 2026-11-25, question 33; docs/WORLD2_SPEC.md "Track skies")
+	Skybox = "W2_HellGate_Sky",
 	Audio = { Volume = 0.35 }, -- no sounds yet
-	-- Asset ledger (spec 4.4): one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
+	-- Asset ledger (spec 4.4): the track sky's row (Kit.draftSky), then one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {
+		W2_HellGate_Sky = draftSky(
+			{ Side = 86680490565696, Up = 90282386160927, Dn = 93152644275483 }, -- ids: uploaded 2026-11-26 (owner choice F)
+			"2026-11-26 rules-auditor", -- Reviewed: the rules audit
+			"assets/world2_draft/skies/track10_HellGate (tools/blender/world2/track_sky.py)"
+		),
 		W2_HellGate_DoorClosed = draftMesh(
 			424,
 			"rbxassetid://103360673639051", -- Id: tools/blender/world2/upload_props.py

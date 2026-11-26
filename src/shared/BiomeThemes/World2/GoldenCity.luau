@@ -7,7 +7,7 @@
 -- placeholders.
 local Kit = require(script.Parent.Parent.Kit)
 
-local M, hex, gate, draftMesh = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh
+local M, hex, gate, draftMesh, draftSky = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh, Kit.draftSky
 
 return Kit.fromDraft("GoldenCity", require(script.Parent.GoldenCityDraft), {
 	DisplayName = "Golden City",
@@ -19,10 +19,17 @@ return Kit.fromDraft("GoldenCity", require(script.Parent.GoldenCityDraft), {
 		Materials = { Corridor = M.Pavement, Ridge = M.Pavement, Cliff = M.Rock, Bed = M.Ground },
 		CliffSlope = 0.9,
 	},
+	-- In-house gradient sky from the draft's stops (owner 2026-11-25, question 33; docs/WORLD2_SPEC.md "Track skies")
+	Skybox = "W2_GoldenCity_Sky",
 	Audio = { Volume = 0.35 }, -- no sounds yet
-	-- Asset ledger (spec 4.4): one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
+	-- Asset ledger (spec 4.4): the track sky's row (Kit.draftSky), then one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {
+		W2_GoldenCity_Sky = draftSky(
+			{ Side = 81386184856083, Up = 110292604700791, Dn = 127822365813655 }, -- ids: uploaded 2026-11-26 (owner choice F)
+			"2026-11-26 rules-auditor", -- Reviewed: the rules audit
+			"assets/world2_draft/skies/track09_GoldenCity (tools/blender/world2/track_sky.py)"
+		),
 		W2_GoldenCity_RowA = draftMesh(
 			2930,
 			"rbxassetid://78005577651563", -- Id: tools/blender/world2/upload_props.py

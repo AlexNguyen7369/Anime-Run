@@ -184,11 +184,13 @@ local function run(scenario, pending)
 	end
 
 	local oldOpen = WorldConfig.GATE_OPEN
-	-- The boss gate's off switch (lead 2026-11-25): its checks below run with it on; boss_gate_off_* with it off.
+	-- The boss gate's switch (lead 2026-11-25): its checks below run with it on; boss_gate_off_* with it off. As shipped it is on
+	-- in World 2 only (owner 2026-11-26: "Ensure boss gate added to world 2 location"; World 1 keeps it off).
 	local Switch, GuideSwitch = H.module(Shared, "BossGateConfig"), H.module(Shared, "BossGuideConfig")
 	local gateWas, guideWas = Switch and Switch.LIVE, GuideSwitch and GuideSwitch.LIVE
 	local ok, err = xpcall(function()
-		flag("boss_gate_off_by_default", gateWas == false, text(gateWas), "false")
+		local gateShipped = world == 2
+		flag("boss_gate_switch_by_world", gateWas == gateShipped, text(gateWas), tostring(gateShipped))
 		Switch.LIVE = false
 		local offArea = SpawnArea.Build(CFrame.new())
 		flag("boss_gate_off_not_built", offArea:FindFirstChild("BossGate") == nil)
@@ -245,6 +247,35 @@ local function run(scenario, pending)
 				end
 			end
 		end
+
+		-- The wider floor (design doc 4.43, WORLD_REDESIGN_SPEC 4 "Plaza size", proposed): growth parts of the Floor's paving and top
+		-- join it on the east, south and north; the approved Floor stays 188 x 220 on the spawn
+		local floorPart = area:FindFirstChild("Floor")
+		flag(
+			"floor_approved_size",
+			floorPart ~= nil and math.abs(floorPart.Size.X - 188) < 0.01 and math.abs(floorPart.Size.Z - 220) < 0.01
+		)
+		local lo, hi = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
+		local growth, sameLook = 0, true
+		for _, d in area:GetChildren() do
+			if d:IsA("BasePart") and (d.Name == "Floor" or string.sub(d.Name, 1, 5) == "Floor") then
+				growth += d.Name ~= "Floor" and 1 or 0
+				local c, h = flat(d.CFrame.Position) - HUB, Vector2.new(d.Size.X, d.Size.Z) / 2
+				lo, hi = lo:Min(c - h), hi:Max(c + h)
+				local top = d.CFrame.Position.Y + d.Size.Y / 2
+				sameLook = sameLook
+					and floorPart ~= nil
+					and d.Material == floorPart.Material
+					and d.Color == floorPart.Color
+					and math.abs(top - FLOOR) < 0.01
+					and d.Anchored
+					and d.CanCollide ~= false
+			end
+		end
+		flag("floor_growth_parts", growth == 4, growth, 4)
+		flag("floor_growth_same_paving", sameLook)
+		local floorReach = ("%.1f %.1f %.1f %.1f"):format(lo.X, hi.X, lo.Y, hi.Y)
+		flag("floor_reach", floorReach == "-94.0 131.6 -119.0 132.0", floorReach, "-94.0 131.6 -119.0 132.0")
 
 		-- The fuller layout's statue and posts
 		local exclusive = PlazaAssets.Exclusive

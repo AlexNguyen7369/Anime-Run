@@ -884,11 +884,11 @@ function setups.team_states_clear(player)
 	restoreHudUnlock(player)
 end
 
--- ui_hitboxes: a full Team (3; World 2: 4), the minibar row as a player with a full kept Team sees it (FillTeam, c80e4de).
+-- ui_hitboxes: a full Team (3), the minibar row as a player with a full kept Team sees it (FillTeam, c80e4de).
 -- With two members the empty third circle draws smaller than a portrait and the row's OpenTeam padding depends on the save.
 -- Team changes are locked during a run, so the run stops first; restore:team_full puts the Team and the run back.
 function setups.team_full(player)
-	local size = require(Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
+	local size = require(Shared.StaminaConfig).TEAM_SIZE -- 3 in both worlds (design doc 4.47)
 	local team = string.split(player:GetAttribute("Team") or "", ",")
 	if #team >= size and team[size] ~= "" then
 		return

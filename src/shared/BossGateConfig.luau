@@ -4,12 +4,15 @@
 -- (x, z); a gate-local offset is (right, toward the spawn) in studs with the gate facing the spawn. Every number but the
 -- approved spot is proposed.
 local SidekickConfig = require(script.Parent.SidekickConfig)
+local WorldConfig = require(script.Parent.WorldConfig)
 
 local BossGateConfig = {}
 
--- The gate's off switch; the lead turns it on. While false nothing of the gate is built: no model, prompt or attribute. The
--- moved Index, Team altar and statue do not depend on it. The guide needs this one and his own (BossGuideConfig.IsLive).
-BossGateConfig.LIVE = false
+-- The gate's switch, per world. While false nothing of the gate is built: no model, prompt or attribute. The moved Index, Team
+-- altar and statue do not depend on it. The guide needs this one and his own (BossGuideConfig.IsLive). On in World 2 (owner
+-- 2026-11-26: "Ensure boss gate added to world 2 location, gate A of approved gate blends"); World 1 keeps it off.
+BossGateConfig.LIVE_IN = { [1] = false, [2] = true }
+BossGateConfig.LIVE = BossGateConfig.LIVE_IN[WorldConfig.Id] == true
 
 BossGateConfig.SPOT = Vector2.new(2.5, 94.8) -- S4, owner 2026-11-25
 -- Studs toward the spawn: at the exact spot the base is 0.2 from the floor's south edge; up to 2.5 is allowed

@@ -1,0 +1,78 @@
+{
+ "draft_stops": [
+  [
+   0.0,
+   "FFE27A"
+  ],
+  [
+   0.05,
+   "FFD060"
+  ],
+  [
+   0.14,
+   "FFB458"
+  ],
+  [
+   0.3,
+   "F0A070"
+  ],
+  [
+   0.6,
+   "C88A80"
+  ],
+  [
+   1.0,
+   "8A6A88"
+  ]
+ ],
+ "faces": {
+  "Bk": "W2_GoldenCity_SkyBk.png",
+  "Dn": "W2_GoldenCity_SkyDn.png",
+  "Ft": "W2_GoldenCity_SkyFt.png",
+  "Lf": "W2_GoldenCity_SkyLf.png",
+  "Rt": "W2_GoldenCity_SkyRt.png",
+  "Up": "W2_GoldenCity_SkyUp.png"
+ },
+ "ground": "E2B24E",
+ "key": "GoldenCity",
+ "ledger_key": "W2_GoldenCity_Sky",
+ "note": "Bk, Ft, Lf and Rt are the same image. Uploaded 2026-11-26 (ids in the draftSky rows); reviewed by the rules auditor; Studio-checked (owner 2026-11-25).",
+ "sha256": {
+  "Bk": "cb43f2e8a969f8a7296897594df172e997af630bb4a2c20cdb6f12d60c8afbfe",
+  "Dn": "48da3b16f9f3be40f08e15459e50988b14eb337784e8c418e6cc437e3ec94581",
+  "Ft": "cb43f2e8a969f8a7296897594df172e997af630bb4a2c20cdb6f12d60c8afbfe",
+  "Lf": "cb43f2e8a969f8a7296897594df172e997af630bb4a2c20cdb6f12d60c8afbfe",
+  "Rt": "cb43f2e8a969f8a7296897594df172e997af630bb4a2c20cdb6f12d60c8afbfe",
+  "Up": "eb1f5ec57cd55e567bd23d3349d228b04bc7307a75835a774a57dce23c948068"
+ },
+ "size": 512,
+ "source": "src/shared/BiomeThemes/World2/GoldenCityDraft.luau Sky",
+ "stops": [
+  [
+   0.0,
+   "FFE27A"
+  ],
+  [
+   0.05,
+   "FFD060"
+  ],
+  [
+   0.14,
+   "FFB458"
+  ],
+  [
+   0.3,
+   "F0A070"
+  ],
+  [
+   0.6,
+   "C88A80"
+  ],
+  [
+   1.0,
+   "8A6A88"
+  ]
+ ],
+ "strength": 1.3,
+ "track": 9
+}
