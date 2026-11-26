@@ -330,6 +330,7 @@
 307. 2026-11-26 — Alex Nguyen — Gave World 2 Track 7 its approved sea as terrain Water past 280 studs off the road (rules, red-first harness rows, a gated Coast profile field), so all 48 blockade ships float and no road corridor or other zone changed.
 308. 2026-11-26 — Alex Nguyen — Gave Track 7's sea the approved draft's water colour (client-side, Ant Island only) and confirmed the World 1 biome harness is unchanged from the base.
 309. 2026-11-26 — Alex Nguyen — World 2 re-fit round 2 tools: hero spot search prefers the run cameras' views, kit.band backdrop over each track's own band, an approximate fog for context renders, the proposed sky-prop rule (WORLD2_SPEC) and owner questions 37-38 (LairTower, Abyss scale).
+310. 2026-11-26 — Alex Nguyen — Placed World 2's Track 8 LairTower (3.45) and Track 10 Abyss (radius 500) at the largest scale that fits their own ground, in run-camera view (owner 2026-11-26), kept every row on the game's Ground rectangle, and re-rendered Tracks 4, 5, 8, 9 and 10.
 
 ## What's next
 **Owner decision on Track 7's island volcano (its approved scale 1.25 has no spot; 0.43 fits), the one change the blind reviewers' T7 overview fault (6.3, bar 7) points to; then the lead's merge of the World 2 branches and the Studio pass.**

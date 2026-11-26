@@ -268,14 +268,18 @@ written before the swap.
   ships float as in the approved draft instead of standing on grass. World 2 AntIsland only; road corridor, walls,
   checkpoints and the grass-strip rule unchanged (BIOME_ENVIRONMENT_SPEC 2.2 "Coast"). Its water colour is the approved
   draft's sea, 1C4260 (transparency 0.3, reflectance 0.25, waves 0.15 / 8; proposed), set per zone on the client.
-- Hero moves (2026-11-24; positions are re-fitted to the new layout (agent-3 round)): a hero landmark with no placement that passes every game rule moves whole (all its pieces, its
-  approved scale and turn) to the nearest spot on its own track's ground that clears its own and every other track's
-  corridor, the spawn area and every checkpoint and win pad; the biome drafts stay as approved and the move lives in
-  tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves: Track 4 Hospital (1377, 609) to (1589, 821), 300; Track 5 Railgun (1865, -307) to
-  (-362, -1230), 2410; Track 7 Nest (-486, 1809) to (-486, 2059), 250; Track 8 Coliseum (2707, 132) to (3167, 132),
-  460; Track 8 LairTower (-680, 1795) to (3294, -2179), 5620; Track 10 DarkGate (3485, 3478) to (3402, 3512), 90.
-  No spot at the approved scale (not built): Track 1 Town and RuinedCastle, Track 2 ChainTower, Track 3 HeroHQ and Crater, Track 4
-  School and OldWoodHouse, Track 5 DefenseHQ, Track 6 HQ, Track 7 IslandVolcano.
+- Hero moves (2026-11-24; re-fitted to the wide layout 2026-11-26): a hero landmark with no placement that passes every game rule moves whole (all its pieces, its
+  scale and turn) to a spot on its own track's ground that clears its own and every other track's corridor, the spawn area
+  and every checkpoint and win pad, and lies on its Ground rectangle (BiomeDressing builds a Placed prop only there); among
+  those, a spot a run camera has in frame within 1,600 studs first (export_props.find_spot / seen_near, **proposed**), else
+  the nearest. The move lives in tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves on the
+  square spiral (agent-3's tracks; agent-1's have none): Track 5 DefenseHQ 60, Track 9 Church 310, Track 10 DarkGate 90.
+  Owner 2026-11-26 (design log, "Approve 1-4", item 2): a hero with no spot at its approved scale stands at the largest
+  scale that fits its own ground, where a run camera sees it, at its approved turn where it can: Track 8 LairTower 3.45
+  (approved 4.2), ahead of the 0.62 camera; Track 10 Abyss radius 500 (its rule's old floor was 800; never in a Draft
+  before), ahead of the 0.9 camera; Track 1 Town, Track 3 HeroHQ, Track 6 HQ and Track 7 IslandVolcano: agent-1
+  (orch/world2/w2-refit-b). No spot at any scale: none on Tracks 4, 5, 8, 9, 10. Track 9's Barrier (the dome over the
+  whole city) is not placed: it is a sphere over every road (as before).
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's

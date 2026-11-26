@@ -203,6 +203,22 @@ class Kit:
 		(cx, cz), (tx, tz), (rx, rz) = roadframe.frame(self.wps, d)
 		return cx + tx * along + rx * off, cz + tz * along + rz * off
 
+	def in_ground(self, x, z):
+		"""True where world (x, z) is on this track's Ground rectangle (export_props.ground_rect: the waypoints' box padded by
+		Width * 3 + 200 in its start frame), the only place the game builds a Placed prop (BiomeDressing)."""
+		import export_props as ep
+
+		if not hasattr(self, "_rect"):
+			self._rect = ep.ground_rect(self.track["Number"]), ep.origins()[self.track["Number"]]
+		(lo, hi), (origin, yaw) = self._rect
+		lx, _, lz = ep.to_local(origin, yaw, (x, 0.0, z))
+		return lo[0] <= lx <= hi[0] and lo[1] <= lz <= hi[1]
+
+	def road_near(self, x, z):
+		"""(distance to the nearest road centre line of any track, its number): roadframe.Owners.nearest."""
+		self.owns(x, z)  # makes the owner lookup
+		return _OWNERS.nearest(x, z)
+
 	def owns(self, x, z):
 		"""True where this track owns the ground at world (x, z): its centre line is the nearest (roadframe.Owners, the
 		owner's 2026-11-25 rule by base centre). Scatter draws over the track's box retry until they land on it, so the
@@ -310,7 +326,7 @@ class Kit:
 				o = side * rng.uniform(lo, hi)
 				pos, yaw = self.beside(d + rng.uniform(-every / 3, every / 3), o)
 				x, z = pos[0], pos[2]
-				if not self.owns(x, z) or not self.clear_of_road(x, z, clear):
+				if not self.owns(x, z) or not self.in_ground(x, z) or not self.clear_of_road(x, z, clear):
 					continue
 				if crowded(x, z):
 					continue

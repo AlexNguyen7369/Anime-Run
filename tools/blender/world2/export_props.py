@@ -968,6 +968,7 @@ def export(number, glb=True, plan=False, zone=None):
 	local = {n: local_tris(k.props[n].data, centres[n]) for n in names}
 	ptris = {n: parts_tris(props[n]["parts"]) for n in names}  # what the game builds while a mesh has no Id
 	kept, dropped, off_ground, on_pads, pad_boxes = [], {}, {}, {}, blockers()
+	off_rect, ground = {}, ground_rect(number)  # BiomeDressing builds a Placed prop only with its base centre on its Ground
 	for name, pos, e, sc in placed:
 		skip = (number,) if name in exempt else ()
 		hits = clearance.intrudes(game_tris(local[name], origin, yaw, pos, e, sc), corr, skip)
@@ -977,6 +978,12 @@ def export(number, glb=True, plan=False, zone=None):
 			on_pads[game[name]] = on_pads.get(game[name], 0) + 1  # the game's Prune would remove it: left out here
 			props[name]["count"] -= 1
 			continue
+		if not hits and not props[name]["hero"]:
+			(glo, ghi) = ground
+			if not (glo[0] <= pos[0] <= ghi[0] and glo[1] <= pos[2] <= ghi[1]):  # off the Ground rect: never built
+				off_rect[game[name]] = off_rect.get(game[name], 0) + 1
+				props[name]["count"] -= 1
+				continue
 		if not hits:
 			owner = owner_at(to_world(origin, yaw, pos))
 			if owner != number:  # ground ownership: the spot is another track's (its road is nearer)
@@ -1081,6 +1088,7 @@ def export(number, glb=True, plan=False, zone=None):
 		"By": {"track %d" % t: d for t, d in sorted(dropped.items())},
 		"OffGround": {"track %d" % t: d for t, d in sorted(off_ground.items())},
 		"OnPads": on_pads,
+		"OffRect": off_rect,
 		"Heroes": {game[h]: props[h]["count"] if h in props else None for h in heroes},
 		"Moved": moved,
 		"Lowered": lowered,

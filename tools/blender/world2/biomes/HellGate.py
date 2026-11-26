@@ -565,11 +565,13 @@ def build(k):
 				return False
 		return True
 
+	# Owner 2026-11-26 ("Approve 1-4", item 2): below the old 800 floor if that is what fits; the largest radius whose dome
+	# clears every road by 50 with its centre on this track's ground, ahead of the 0.9 run camera as approved
 	while True:
 		ctr = p + t * (R + 60)
-		if R <= 800 or clear(ctr, R):
+		if R <= 100 or clear(ctr, R):
 			break
-		R -= 50
+		R -= 50 if R > 800 else 25
 	print("ABYSS radius", R)
 	ob = k.place("Abyss", (ctr.x, -1.0, ctr.z), facing((t.x, t.z)), R)
 	ob.visible_shadow = False

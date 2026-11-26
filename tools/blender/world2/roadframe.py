@@ -103,6 +103,10 @@ class Owners:
 				self.b.setdefault((int(x // self.CELL), int(z // self.CELL)), []).append((x, z, t["Number"]))
 
 	def owner(self, x, z):
+		return self.nearest(x, z)[1]
+
+	def nearest(self, x, z):
+		"""(distance to the nearest centre-line waypoint of any track, that track's number)."""
 		cx, cz = int(x // self.CELL), int(z // self.CELL)
 		best, who, r = math.inf, None, 0
 		while r < 4096:
@@ -113,6 +117,6 @@ class Owners:
 						if d < best:
 							best, who = d, n
 			if who is not None and (r * self.CELL) ** 2 > best:
-				return who
+				return math.sqrt(best), who
 			r += 1
-		return who
+		return math.sqrt(best), who
