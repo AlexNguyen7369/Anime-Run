@@ -54,7 +54,7 @@ local GATE = {
 local STALLS = {
 	{
 		Name = "ShopStall",
-		At = with(Vector2.new(-83.942, -3.109), Vector2.zero), -- the four named stalls move with the spawn unscaled
+		At = hubSpot(Vector2.new(-83.942, -3.109)),
 		Prompt = "OpenShop",
 		Action = "Open Shop",
 		Object = "SHOP",
@@ -62,7 +62,7 @@ local STALLS = {
 	},
 	{
 		Name = "PotionsStall",
-		At = with(Vector2.new(-57.158, -61.555), Vector2.zero),
+		At = hubSpot(Vector2.new(-57.158, -61.555)),
 		Prompt = "OpenPotions",
 		Action = "Potions",
 		Object = "POTIONS",
@@ -70,7 +70,7 @@ local STALLS = {
 	},
 	{
 		Name = "Marketplace",
-		At = with(Vector2.new(3.109, -83.942), Vector2.zero),
+		At = hubSpot(Vector2.new(3.109, -83.942)),
 		Prompt = "OpenMarket",
 		Action = "Browse Market",
 		Object = "Market",
@@ -78,7 +78,7 @@ local STALLS = {
 	},
 	{
 		Name = "IndexBoard",
-		At = with(Vector2.new(76.7, -34.2), Vector2.zero),
+		At = hubSpot(Vector2.new(76.7, -34.2)),
 		Prompt = "OpenIndex",
 		Action = "Open Index",
 		Object = "Runner Index",

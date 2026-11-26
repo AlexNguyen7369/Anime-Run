@@ -28,13 +28,6 @@ function PlazaLayout.With(v, anchor)
 	return out(v, flat(v) + PlazaLayout.CENTRE + a * PlazaLayout.SCALE - a)
 end
 
--- World spot of an approved point that moves with the spawn unscaled: the terrace and its statue, and the four named stalls (Shop,
--- Potions, Market, Index) with their signs, headers and merchants (lead 2026-11-26: the owner rule "Readable from spawn", read as at
--- least 16 px, holds only at their approved distance; WORLD_REDESIGN_SPEC 4 "Plaza size").
-function PlazaLayout.Near(v)
-	return PlazaLayout.With(v, Vector2.zero)
-end
-
 -- An approved offset from the spawn, scaled (an anchor's place relative to the spawn).
 function PlazaLayout.Offset(v)
 	return out(v, flat(v) * PlazaLayout.SCALE)

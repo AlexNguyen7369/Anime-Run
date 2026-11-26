@@ -33,10 +33,6 @@ local function hub(approved)
 	return PlazaLayout.Spot(approved) + SpawnArea.TO_HUB
 end
 SpawnArea.Hub = hub
--- Hub-local spot of an approved world spot that moves with the spawn unscaled (PlazaLayout.Near)
-local function near(approved)
-	return PlazaLayout.Near(approved) + SpawnArea.TO_HUB
-end
 SpawnArea.CENTRE = hub(Vector2.zero) -- local (x, z) of the plaza centre (the Floor's centre and the Spawn)
 SpawnArea.FLOOR_SIZE = PlazaLayout.APPROVED_FLOOR * PlazaLayout.SCALE -- studs (x, z) (placeholder, design doc 4.43)
 SpawnArea.PAD_CENTRE = hub(Vector2.new(-84, 78)) -- local (x, z) of the StartPad, under the torii
@@ -65,12 +61,11 @@ local LANTERN_GLOW = Color3.fromRGB(255, 196, 120)
 
 -- Spawn showpiece (owner 2026-11-11, design doc 4.43, WORLD_REDESIGN_SPEC 4): the six service buildings stand on a ring of
 -- radius 84 round the spawn as approved (100.8 since the 1.2x plaza), every front facing it (CENTRE). Approved world spots;
--- mesh origins from tools/blender/plaza/build_plaza.py (ring_spot). The Shop, Potions, Market and Index keep their approved
--- distance from the spawn (owner rule "Readable from spawn" for their merchants' names; WORLD_REDESIGN_SPEC 4 "Plaza size").
-local SHOP_POS = near(Vector2.new(-83.942, -3.109))
-local POTIONS_POS = near(Vector2.new(-57.158, -61.555))
-local MARKET_POS = near(Vector2.new(3.109, -83.942))
-local INDEX_POS = near(Vector2.new(76.7, -34.2)) -- the fuller layout (WORLD_REDESIGN_SPEC 4.2)
+-- mesh origins from tools/blender/plaza/build_plaza.py (ring_spot).
+local SHOP_POS = hub(Vector2.new(-83.942, -3.109))
+local POTIONS_POS = hub(Vector2.new(-57.158, -61.555))
+local MARKET_POS = hub(Vector2.new(3.109, -83.942))
+local INDEX_POS = hub(Vector2.new(76.7, -34.2)) -- the fuller layout (WORLD_REDESIGN_SPEC 4.2)
 local ALTAR_POS = hub(Vector2.new(57.158, 61.555))
 -- The terrace under the spawn (4.43): step radii bottom up, each TERRACE_STEP tall; the SpawnLocation and the walk spawn
 -- sit on the top step. Server/PlazaDressing lays the Showpiece mesh (spawn disc, moat, lanterns) over these plain steps.

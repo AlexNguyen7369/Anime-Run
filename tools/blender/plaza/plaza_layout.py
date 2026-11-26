@@ -20,11 +20,6 @@ BOSS_GATE = (2.5, 94.8)  # spot S4 (BossGateConfig.SPOT); the meshes stand 1.5 s
 WORLD_GATE = (76.0, -96.0)
 GREAT_SAKURA = (80.0, 118.0)
 
-# The four named stalls keep their approved spots from the spawn (lead 2026-11-26, owner rule "Readable from spawn" at the proposed
-# 16 px: their merchants' names cannot grow, so the stalls do not move out); they and their signs, headers and merchants move with the
-# spawn unscaled.
-READABLE = SPAWN
-
 # What each generated row moves with: key -> anchor (a row's own spot when it is an anchor)
 PLACED = {
 	"MainPath": PAD,
@@ -33,12 +28,12 @@ PLACED = {
 	"Showpiece": SPAWN,
 	"SkyLoop": SPAWN,
 	"LegendPedestal": SPAWN,
-	"MarketSign": READABLE,
+	"MarketSign": MARKET,
 	"GreatSakura": GREAT_SAKURA,
-	"SHOPStall": READABLE,
-	"POTIONSStall": READABLE,
-	"MarketStall": READABLE,
-	"IndexBoard": READABLE,
+	"SHOPStall": SHOP,
+	"POTIONSStall": POTIONS,
+	"MarketStall": MARKET,
+	"IndexBoard": INDEX,
 	"SenseiDais": PAD,
 	"AltarGreatLotusLocked": ALTAR,
 	"AltarGreatLotusUnlocked": ALTAR,
@@ -49,8 +44,8 @@ PLACED = {
 	"WorldGateLocked": WORLD_GATE,
 	"WorldGateOpen": WORLD_GATE,
 }
-SIGNS = {"SHOP": READABLE, "POTIONS": READABLE, "RUNNER INDEX": READABLE, "RACE START": PAD, "MARKET": READABLE}
-LANDMARKS = {"Market": READABLE, "RaceStart": PAD}
+SIGNS = {"SHOP": SHOP, "POTIONS": POTIONS, "RUNNER INDEX": INDEX, "RACE START": PAD, "MARKET": MARKET}
+LANDMARKS = {"Market": MARKET, "RaceStart": PAD}
 
 
 def spot(x, z):
