@@ -313,8 +313,9 @@
 292. 2026-11-26 — Alex Nguyen — Made Rengoko's Market name as readable as the others per the owner's "Readable, rare overlap" ruling: 1.75 studs, in front of the top of the hair, clear of the sign in every view, with the ruling's raised side views allowed in the test and a line-of-sight hair check.
 293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
+294. 2026-11-26 — Alex Nguyen — Audited World 2 rendering on all 10 tracks in Studio: grass, terrain and white-mesh fixes hold; draft road supports cut through the sloped road on Tracks 2-5 and 7; neighbouring tracks crowd the view, every uploaded mesh still ships dark colours, and every track uses the stock sky (docs/W2_RENDER_AUDIT.md).
 
 ## What's next
-**Look at the two kaiju sites in Studio on orch/world2/kaiju-land (mesh loads, hide colour, nothing standing inside the bodies), rules-audit the branch, then merge it into the World 2 branch.**
+**Cut the draft road-support props (Fill, Bank, Pier) to TrackBuilder's SUPPORT_CLEARANCE under the lowest road underside at build time, with a Studio check that nothing crosses a road's top surface, and verify it before and after on Tracks 2-5 and 7.**
 
-**Why this is next:** the kaiju is in the Draft only on this branch; the re-export's batch 5 and the World 2 PR both wait for it to be in the World 2 branch.
+**Why this is next:** it is the owner's first rendering priority, the only ground or z-fight fault the audit found, and a layout-proof code-only fix that the wider re-lay will not undo.
