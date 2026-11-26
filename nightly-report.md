@@ -3,6 +3,7 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- Dark props re-export uploads: your "Yes, upload tonight" is recorded (52b436aa), but agent-2's session permission check denied the first upload (batch 10, 10 Hell's Gate meshes); nothing was sent. I did not run it from another session (that would bypass the denial). Ready: orch/world2/w2-render-audit, bake done (119 meshes), `dry 10` OK. To do: allow uploads in agent-2's session (or run `python3 upload_reexport.py upload 10` from tools/blender/world2 in /home/dev/AnimeRun-orch/w2-render-audit with the key and creator set), then the Studio colour check before batch 2.
 - Boss gate guide (Gojio) in World 2: the gate (draft A) is on in World 2, off in World 1; Gojio's own switch (BossGuideConfig.LIVE) is yours by BOSS_GUIDE_SPEC, so he is not standing at the gate yet. Question: turn Gojio on with the World 2 gate?
 - Track effects LIVE: stays off until you approve the effects and motions (your words). Previews: assets/world2_draft/track_fx/previews/ on orch/world2/w2-track-vfx. Questions: does your "tone down the haze" cover Track 10's red ground-haze particles? Are DemonCastle's black-violet drakes too close to Kaizel's wyvern look?
 - Studio test run and Play check: my script writes to the cloud place were denied. Question: allow execute_luau script writes, or connect Rojo to w2-ingame? State: orch/world2/cast-ingame pushed.
