@@ -366,6 +366,70 @@ function Tests.track_fx()
 		flag("eel_segment_count_kept", E.Segments == 14, E.Segments, 14)
 	end
 
+	-- Import turn (WORLD2_SPEC "Track effects", owner 2026-11-27 "fix the facing now"): each uploaded effect mesh is turned
+	-- 180 degrees about Y; placed through TrackFxPlan, its geometry faces as drafted. Area-weighted centroids relative to the
+	-- box centre, mesh units at its uploaded size (studs), measured 2026-11-27: GLB { draft }, uploaded EditableMesh { up }.
+	do
+		local MEASURED = {
+			DrakeBody = { Vector3.new(0, -1.228, -4.671), Vector3.new(0, -1.228, 4.671), Vector3.new(11.09, 13.7, 71) },
+			DrakeWing = { Vector3.new(4.535, 0, -2.229), Vector3.new(-4.535, 0, 2.229), Vector3.new(44, 1.75, 26) },
+			EelHead = { Vector3.new(0, -1.27, 1.044), Vector3.new(0, -1.27, -1.044), Vector3.new(6.28, 9.03, 15) },
+			EelSegment = { Vector3.new(0, -1.26, 0.016), Vector3.new(0, -1.26, -0.016), Vector3.new(5.91, 9, 11) },
+		}
+		local turnApi = type(Plan.MeshTurn) == "function" and type(Plan.DrakePose) == "function"
+		flag("fx_mesh_turn_api", turnApi)
+		local turned = true
+		for _, m in MEASURED do
+			turned = turned and (Vector3.new(-m[1].X, m[1].Y, -m[1].Z) - m[2]).Magnitude < 1e-3
+		end
+		flag("fx_import_turns_geometry_180", turned)
+		-- a frame flying along +X (a path frame looks along its travel), the drafts put the head at -Z
+		local cf = CFrame.lookAt(Vector3.new(10, 50, -20), Vector3.new(20, 50, -20))
+		local function placed(frame, key, size)
+			local m = MEASURED[key]
+			local scale = Vector3.new(size.X / m[3].X, size.Y / m[3].Y, size.Z / m[3].Z)
+			return frame * (m[2] * scale)
+		end
+		local function draftAt(frame, key, size)
+			local m = MEASURED[key]
+			local scale = Vector3.new(size.X / m[3].X, size.Y / m[3].Y, size.Z / m[3].Z)
+			return frame * (m[1] * scale)
+		end
+		if turnApi then
+			local D = Config.Drake
+			local pose = Plan.DrakePose(cf, D, 0.3, 0)
+			-- the body as drafted, its mass toward its head, ahead along the flight path
+			local body = placed(pose.Body, "DrakeBody", D.BodySize)
+			local draftBody = draftAt(Plan.DrakePose(cf, D, 0.3, 0, true).Body, "DrakeBody", D.BodySize)
+			flag(
+				"drake_body_as_drafted",
+				(body - draftBody).Magnitude < 0.01,
+				math.floor((body - draftBody).Magnitude * 1000) / 1000,
+				0.01
+			)
+			flag("drake_head_leads", (body - cf.Position):Dot(cf.LookVector) > 0)
+			-- the wings mirror each other across the body
+			local l = pose.Body:PointToObjectSpace(placed(pose.Left, "DrakeWing", D.WingSize))
+			local rw = pose.Body:PointToObjectSpace(placed(pose.Right, "DrakeWing", D.WingSize))
+			flag(
+				"drake_wings_mirror",
+				math.abs(l.X + rw.X) < 0.01 and math.abs(l.Y - rw.Y) < 0.01 and math.abs(l.Z - rw.Z) < 0.01
+			)
+			flag(
+				"drake_wings_as_drafted",
+				(l - pose.Body:PointToObjectSpace(
+					draftAt(Plan.DrakePose(cf, D, 0.3, 0, true).Left, "DrakeWing", D.WingSize)
+				)).Magnitude < 0.01
+			)
+			-- the eel's head and segment as drafted: the head's mass ahead of its frame
+			local E = Config.Eel
+			local head = placed(Plan.MeshTurn(cf), "EelHead", E.HeadSize)
+			flag("eel_head_as_drafted", (head - draftAt(cf, "EelHead", E.HeadSize)).Magnitude < 0.01)
+			local seg = placed(Plan.MeshTurn(cf), "EelSegment", E.SegmentSize)
+			flag("eel_segment_as_drafted", (seg - draftAt(cf, "EelSegment", E.SegmentSize)).Magnitude < 0.01)
+		end
+	end
+
 	-- The nearest-first pick never passes a cap
 	local candidates = {}
 	for i = 1, 40 do
