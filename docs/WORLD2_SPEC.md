@@ -448,6 +448,11 @@ proposed.**
   (`tools/blender/world2/track_fx.py`) and numpy textures (`tools/blender/world2/track_fx_textures.py`, the roblox-vfx
   method). The dragon and the eel are generic: no anime's dragon design (no whiskers, antlers, pearl, coiling serpent
   dragon or any show's markings). An effect whose asset has no `Id` is not built.
+- Import turn (owner 2026-11-27 "fix the facing now"; as for the scenery, "Blender first"): the four effect meshes
+  (DrakeBody, DrakeWing, EelHead, EelSegment) came through the same Open Cloud GLB import and are turned 180 degrees about
+  Y (measured: GLB against the uploaded mesh, X and Z negated on all four), so the drakes flew tail first. `TrackFx` turns
+  each effect mesh back about its own centre (`TrackFxPlan.MeshTurn`) after its pose: the head leads along the flight
+  path, the eel's head leads its segments, and the right wing stays the left wing turned about the long axis.
 
 ### Effects per track
 | Track | Smoke and particles (prop: preset, most at once) | Dragons | Motion |

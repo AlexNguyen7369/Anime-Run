@@ -408,31 +408,20 @@ local function updateDragon(d, t, camera)
 		local beat = (t / D.FlapPeriod) % 1
 		local gliding = (lap * 3) % 1 < D.GlideShare
 		local flap = gliding and 0.15 or math.sin(beat * math.pi * 2)
-		local body = cf
-			* CFrame.new(0, -flap * D.Bob, 0)
-			* CFrame.Angles(0, 0, math.clamp(turn * 40, -1, 1) * math.rad(D.Bank))
-		d.Parts.Body.CFrame = body
-		local angle = math.rad(D.FlapAngle) * flap
-		local half = D.WingSize.X / 2
-		local hl = D.WingHinge
-		d.Parts.Left.CFrame = body
-			* CFrame.new(-hl.X, hl.Y, hl.Z)
-			* CFrame.Angles(0, 0, -angle)
-			* CFrame.new(-half, 0, 0)
-		d.Parts.Right.CFrame = body
-			* CFrame.new(hl.X, hl.Y, hl.Z)
-			* CFrame.Angles(0, 0, angle)
-			* CFrame.new(half, 0, 0)
-			* CFrame.Angles(0, 0, math.pi) -- the same wing mesh turned about the long axis
+		-- each mesh turned back against the import turn (TrackFxPlan.MeshTurn, WORLD2_SPEC "Track effects")
+		local pose = Plan.DrakePose(cf, D, flap, turn)
+		d.Parts.Body.CFrame = pose.Body
+		d.Parts.Left.CFrame = pose.Left
+		d.Parts.Right.CFrame = pose.Right
 	else
 		local E = Config.Eel
-		d.Parts.Head.CFrame = cf
+		d.Parts.Head.CFrame = Plan.MeshTurn(cf)
 		for i, seg in d.Parts.Segments do
 			local scf = pathFrame(d, dist - Plan.EelBack(i))
 			local wave = math.sin(t / E.WavePeriod * math.pi * 2 - i / E.WaveLength * math.pi * 2)
 				* E.Wave
 				* (i / E.Segments)
-			seg.CFrame = scf * CFrame.new(wave, 0, 0)
+			seg.CFrame = Plan.MeshTurn(scf * CFrame.new(wave, 0, 0))
 		end
 	end
 end
