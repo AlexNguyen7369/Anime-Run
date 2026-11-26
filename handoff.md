@@ -1,3 +1,30 @@
+## Linux VM moved (2026-11-26): new address alex-dev.avlis.dev
+- The VM is now `alex-dev.avlis.dev` (was `devbox.avlis.dev`). Connect with `ssh devbox`: the Mac's `~/.ssh/config` alias `devbox` points at the new address. Same user (`dev`), same SSH key, same Cloudflare login (`cloudflared access ssh`).
+- Host key accepted on first use: `ED25519 SHA256:0MEc73Td1Om5b6j0fDh7UvbrmtrDW5YWw0P0r2aX3KQ` (not checked against a second source).
+- Specs: Ubuntu 24.04, 8 CPUs, 16 GB RAM, RTX 4000 SFF Ada 20 GB, NVIDIA driver 595.91.07.
+- The home directory was copied on 2026-11-26 about 20:07 UTC, without `~/.cache` and npm's download cache.
+- Installed 2026-11-26: Node.js 22.23.5, Claude Code 2.1.332 (`~/.local/bin/claude`), gh 2.45.0 (still logged in), build-essential, tmux 3.4, weston, xwayland, xvfb, `libnvidia-gl-595-server`. Blender 5.2.2 starts headless and Cycles has the GPU enabled for OptiX and CUDA.
+- `claude`, `blender`, `uv`, `rojo` and `lune` are in `~/.local/bin`, which only login shells put on PATH: a one-off command needs `ssh devbox 'bash -lc "<command>"'`.
+- Not checked: Claude Code login on the VM, a real render, a weston or Xvfb display session.
+
+## RESUME HERE (2026-11-24, World 2 audit, session animerun-4f): 6 static audits of 30ae7fa done, live pass not done
+- STOP FIRST (animerun-cf's report): a World 2 UiTestRun wrote the owner's live save (World 1 characters reported 47 to 1). Not verified by a second read, not restored; no UiTestRun and no Play with that account until the owner rules. ed10dbc does not isolate the save.
+- Moved to another computer: continue from branch feature/alex/world2-place 26fee8a (its handoff.md top section); all five World 2 branches are on GitHub. Not in git: stashes, .blend files, build/.
+- Read-only; no code changed. Owners: animerun-cf = src/**, tools/blender/world2/**, World 2 Studio; animerun-42 = orch/world2/cast and Sidekick key frames. Findings were sent to both by message.
+- No confirmed P0. Suspected P0: boot stall, Main.server.luau:98-101 builds Tracks 1-5 before SpawnArea and PlayerData; about 52 serial CreateMeshPartAsync with no timeout (BiomeAssets.luau:30). Studio main thread hang warnings began 07:53:49, before that play (07:57:08), so throttling is a confound.
+- Check first in play: offline Prune removes every copy of 21 of 91 meshes (heroes included) and 11 more never place. Triangles within 1024 studs, neighbours included, no LOD: T1-T7 1.76M-3.44M vs 1.5M placeholder (World 1 T1 3.73M).
+- animerun-cf is fixing: upload ids, >2048 parts, WorldTravel, per-world themes, pruning, shadows, lamps, mesh retry and preload, arrival check. None of these reviewed.
+- Next: fresh review of each fix commit against the findings; when animerun-cf says "World 2 free", live reading (frame time, memory, instances, join time); Studio import check of side_lucky and side_acrobat (inverted shells).
+- Cast: 65e21db merged locally into feature/alex/world2-place as 3eee39e (not pushed; animerun-42's push failed "Permission denied (publickey)"). Owner answered the cast questions in animerun-42's session (recorded in 65e21db).
+- PAUSED 2026-11-24: animerun-cf reports the owner said "pause tasks for now"; head 692ce70, UI test files, TeamHud, WorldHud, UiTestSetup, Kit, export_props and layout plots uncommitted in its worktree. No uploads (26 meshes held for the owner), gate closed, place not saved.
+- Reviewed through 692ce70, no open P0 or code P1 except placement: 11 heroes unplaced (ROAD 46/11), moves pending the owner, large-prop shadows to restore. Harness at 692ce70 rerun on a clean copy: 12623/0, TRANSFORM 10644/0, PLAZA 15/0, PIN 11/0 warn 212, exit 1 for the 11 heroes only. Open P3: BackpackUi FULLY AWAKENED and preview text were addressed in 643f601 and 46db38e, UI not seen.
+- Root cause reported by animerun-cf: World 2 tracks' ground rects overlap, so tracks carry each other's scenery; owner to choose zone polygon or nearest centre line after the measurement.
+- animerun-cf's first World 2 Studio run (its report): boot finishes, 10 biomes built, server suites green except world_layout 10/1 (template SpawnLocation, removed, not saved); models were baked, window possibly throttled, so no performance claim. UiTestRun hung after ui_billboards with 9 reds.
+- Triangles within 1024 studs, all meshes, 6b5f773: T1 2.34M down to T7 1.49M (placeholder 1.5M); casters T8 1397, T9 1075; lights T4 48, T8 48.
+- Remote: git@github.com Permission denied (publickey) from every session; World 2 work of 2026-11-24 is local only.
+- Next: review those; then the live Studio reading (frame time, memory, join time, ServerTests, Sidekick models, Random:NextNumber resolution).
+- Owner questions: the 11 unplaced heroes (turn, shrink or drop); World 2 pay curve (Track 1 x1 or x2); Awakening past the 800 cap and boss damage; upgrade tiles in World 2; slot 4 aura; LastBossTeam per world; empty Daily Day 7; Saitamo x0.1; "Tokyo" in ids; archive Konbini/Graveyard old ids; main-branch lag items (RaceService waypoints, RunnerEffectMotion, RunnerView cull); SSH key.
+
 ## RESUME HERE (2026-11-23 nightly, ui-scroll): main all green except ui_run_visual (focus)
 - Full UiTestRun on main 6a36029 (Studio synced on e579995, run started from the Server datamodel, no Client execute_luau during it): `[UITEST] END pass=75 fail=2`. ui_boss_king_arena and ui_character_icons now green (the earlier arena red was my Client polling resetting the camera).
 - Reds: ui_run_visual (window throttled; the owner's no-focus rule, peer animerun-cf declined a one-time focus); ui_layout (Daily claimed-day seal's UIAspectRatioConstraint, unsupported by the layout model) fixed in f12e5ef, rerun ui_layout 891/0, ui_daily_boosts 13/0.
