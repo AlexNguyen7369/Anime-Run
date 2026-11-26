@@ -1,3 +1,11 @@
+## RESUME HERE (2026-11-26 day, devbox): World 2 wide-layout round started (owner)
+- Owner 2026-11-26: "biomes/tracks on world 2 are much too close ... Spacing per track in terms of width should be much larger, can have the track be straight even, not just circular. There should little to no overlaps in other tracks and fix rendering on all tracks". Answers: spacing about 600 studs road to road (Recommended); rendering faults = ground/grass/z-fighting, other tracks visible, dark props (not pop-in).
+- agent-1: layout options (spiral wider pitch, straight zigzag/spokes, best idea), measured, plan images; orch/world2/w2-wide-layout, docs/proposals/W2_WIDE_LAYOUT.md. Offline only.
+- agent-3: impact map of a layout change (drafts, hero moves, kaiju, skies, tests, uploads); orch/world2/w2-layout-impact, docs/proposals/W2_LAYOUT_IMPACT.md. Track 1 neighbours scoring on hold (likely moot).
+- agent-2: render audit all 10 tracks, holds World 2 Studio; orch/world2/w2-render-audit, docs/W2_RENDER_AUDIT.md. No uploads.
+- Rules gate: chain start-on-finish and track lengths are fixed; "spirals outward" is a placeholder; the World 2 spacing choice (WORLD2_SPEC ~241) is overruled. A non-spiral form needs the owner's pick of an option, then a rule entry before code.
+- Still pending from before: skies pictures to the owner and the w2-skies merge.
+
 ## RESUME HERE (2026-11-26 ~01:40, devbox): owner away, Studio disconnected; agents told to stop smoothly
 - World 2 branch feature/alex/world2-place (1a8a1509, pushed, NOT in main): spawn pieces on (14 reviewed, BakedModels both places), merchants on with readable names (owner), locked Mythic owner colours (no contrast limit), kaiju on its reviewed mesh (Model 130671695538312, MeshId 120871855895739; World 2 saved v99), Track 6 lit landmark, send-back and admin fixes, grass strip and white meshes. Studio both worlds green before the last merges; not published.
 - Skies (owner choice F, "tone down the haze a bit"): orch/world2/w2-skies 5e250c96: 12 images uploaded and reviewed (ids in scratchpad lead_private/skyup/ids.tsv and in the rows), LIVE = true, haze Density 0.22 / Haze 0.5 while a sky shows. Studio-checked by the lead (world2_skies 81/81; pictures taken, not yet shown to the owner). Next: show the owner the toned-down pictures (lead_private tool-results), then merge.
