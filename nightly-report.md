@@ -15,6 +15,7 @@
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Re-export batch 10 (Hell's Gate, 10 meshes) uploaded by agent-2 after the owner approved uploads in its own session; Studio colour check and batches 1-9 next.
 - Track effects fixes (from the Studio look): effects now build on the whole track under streaming (origin from the chain), no smoke/haze over any road, dragons and the eel stay over their own track's ground (most only fit once layout C lands), the eel reads as one body. track_fx 76/0 World 1, 102/0 World 2 (106/0 on C). Still LIVE off; frame time not measurable in the throttled Studio window.
 - UI test harness: three pre-existing flaky UI tests fixed without loosening (ui_team BossButton wait, ui_boss camera settle, Daily popup closed before a run); Studio ui_boss_gate 14/14, ui_team 71/71, ui_boss 487/487, each twice in one session; audit PASS. HUD slot-1 placeholder found to be by design (question below).
 - Road supports (rendering, ground/z-fight priority): supports on Tracks 2, 3, 4, 5, 7 no longer poke through sloped road (284 rows cut, 6 sunk at 0.2; generators fixed so the re-lay is right too). Studio road_surface_clear 55/0 (640,798 samples: no part, terrain or grass through any road, all 10 tracks); grass strip fix confirmed holding. Frozen-track exception recorded for your review; after pictures in assets/world2_draft/audit/render_2026-11-26/.
