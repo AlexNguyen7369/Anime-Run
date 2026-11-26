@@ -225,8 +225,9 @@
 221. 2026-11-23 — Alex Nguyen — Merged the Scroll Dojo UI redesign (goal ui-scroll, PR #27) into main after a fresh merge review approved it and its one player-visible note was fixed.
 222. 2026-11-23 — Alex Nguyen — Full UiTestRun on main 6a36029 in Studio: 75 pass, 2 fail (ui_run_visual needs a focused Studio window; ui_layout's Daily claimed-day seal fixed by dropping its UIAspectRatioConstraint, rerun ui_layout 891/0 and ui_daily_boosts 13/0); ui_boss_king_arena and ui_character_icons green.
 223. 2026-11-24 — Alex Nguyen — Vendored the orchestrator, nightly-run and 12 other Claude skills, 3 commands and the rules-auditor brief into .claude/ with a Linux systemd runner installer and project hooks and plugins, so a clone on the VM has them (branch feature/alex/vm-skills).
+224. 2026-11-26 — Alex Nguyen — Recorded the Linux VM's move to alex-dev.avlis.dev in handoff.md (ssh alias, host key, specs, Node.js 22, Claude Code, gh, build-essential, tmux and Blender display libraries installed) and committed the 2026-11-24 World 2 audit handoff section.
 
 ## What's next
-**Merge the feature/alex/vm-skills pull request, then on the Linux VM clone the repo, run `gh auth login` and start the runner with `.claude/skills/orchestrator/scripts/install_systemd.sh`.**
+**Merge the feature/alex/vm-skills pull request, then on the new Linux VM (`ssh devbox`, alex-dev.avlis.dev) clone or pull the repo and start the runner with `.claude/skills/orchestrator/scripts/install_systemd.sh`.**
 
-**Why this is next:** the VM can only load the skills once they are on a branch it clones, and the orchestrator cannot open pull requests there until `gh` is signed in.
+**Why this is next:** the VM now has Node.js, Claude Code and a signed-in `gh`, but it can only load the skills once they are on a branch it clones, and the orchestrator runs there only after the runner is installed.
