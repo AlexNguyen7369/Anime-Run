@@ -320,6 +320,7 @@
 297. 2026-11-26 — Alex Nguyen — Added the nearest-road ground rule to the World 2 export and draft scatters (export_props.owner_at, kit.owns) and a review-shot --out folder, and exported Tracks 8-10 on the square spiral as a first pass (GoldenCity's wall and forest along its own band; stale hero moves and cross-track rows cleared).
 298. 2026-11-26 — Alex Nguyen — Re-placed World 2 Track 1 (Elven Ruin Plains) on the square spiral: 1,478 rows on its own ground (approved 355), the ranks keep their approved turn to the road, the ruined castle moved to a legal spot, the Town still has no spot at its approved scale.
 299. 2026-11-26 — Alex Nguyen — Re-fitted World 2 Tracks 6 (DevilTokyo) and 7 (AntIsland) to the wide layout: Drafts re-exported with 0 drops and 0 off own ground, the HQ and the island volcano placed again, the T7 island laid along the road, review sets rendered.
+300. 2026-11-26 — Alex Nguyen — Corrected the Track 6/7 re-fit per the lead: Track 6's HQ out again with the approved lamps, the island volcano kept at its approved scale (no spot), all 48 Track 7 ships moved inside the Ground rect, and the lead's three re-fit decisions recorded as proposed in WORLD2_SPEC.
 
 ## What's next
 **Second re-fit pass of World 2 once agent-3's Tracks 1-5 and 8-10 Drafts are on the 66856b89 Segments: re-run the T6/T7 neighbour checks and the WORLD=2 biome harness until PIN, ROAD and TRANSFORM are green for all ten tracks.**
