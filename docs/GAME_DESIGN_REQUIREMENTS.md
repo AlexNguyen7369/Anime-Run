@@ -450,7 +450,8 @@ before any Studio work.
   no boss rule, timing or reward. `jk_strongest` (Gojio) stands at it; a player who walks up presses E to start a conversation
   that gives information about the boss gate; text only, nothing granted. He does not talk to a player below rebirth 1 (owner
   2026-11-25). The lines and popup layout B are approved (owner 2026-11-25); sizes and the prompt range stay **proposed**
-  (`docs/BOSS_GUIDE_SPEC.md`; off in the game until the gate is turned on).
+  (`docs/BOSS_GUIDE_SPEC.md`; off in the game until the gate is turned on). The gate is on in World 2 (owner 2026-11-26, change log),
+  off in World 1.
 - Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked
   out. The event lasts 8 minutes in total (owner 2026-11-05), and Phase 2's start adds 2 fresh minutes (owner 2026-11-06):
   - 0:00-1:00, preparation: arrivals stand on the track with a team HUD of 3 slots. Only characters with a Sidekick can be slotted, and the HUD says so. A player with 1 or 2 such characters has a team of 1 or 2. The HUD opens on the team from the player's last event, when it is still valid, and shows the team's average stamina as a number (owner 2026-11-05). Its X closes it only with at least 1 character chosen; otherwise red text, gone in a moment, says to select a character. After closing, the team runs on the track as display only, each with its Sidekick, and an Edit Team button above the minibar reopens the HUD until the spawn (owner 2026-11-05).

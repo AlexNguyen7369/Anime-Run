@@ -73,6 +73,18 @@ Nothing car-shaped stays in the game:
 ## 4. Spawn hub: anime town plaza
 
 - One `SpawnLocation` at the plaza centre (the only one in the place).
+- **Spawn scatter** (owner 2026-11-26: "Go ahead and expand spawn location radius to your descretion"; lead's choice under owner
+  2026-11-26, every number **proposed**): a player put at the walk spawn (join, respawn, Stop) stands at its centre when no
+  other player's avatar is within 3.5 studs of it; otherwise at the first free spot (no avatar within 3.5 studs) of 18 on two
+  rings round it, 6 at 4 studs and 12 at 8 studs (fixed spots, the search starting at a random spot of each ring); with none free, at the spot farthest from
+  every avatar. Every spot is on the spawn disc (radius 9.5) and faces the start gate as the centre does. The server places
+  every avatar after the engine spawns it, so the `SpawnLocation` part keeps its 12 x 12 look (`SpawnArea.SCATTER`,
+  `SpawnArea.ScatterCFrame`, Server/RunnerService; test players without a client stay at the centre).
+- **Plaza size** (same owner words; measured 2026-11-26, nothing moved): Track 1's first straight runs 2 studs from the
+  floor's west edge in both worlds (World 1 Oval, World 2 Elven Plains, and World 2's option C layout, whose Track 1 also
+  starts with a straight from the start gate), so scaled about its centre the plaza keeps clear of every road only up to
+  about 1.02x (floor 191.8 x 224.4). The floor, the ring of radius 84 and the pieces' spots stay as below until the lead or
+  the owner picks a way to grow it (for example moving the plaza centre east of the world origin, a **placeholder**).
 - **Start gate**: a large torii-style gate; walking through it starts the run (the
   IVS `StartPad` rules and cooldown, tag `StartPad`).
 - **Two wings** (owner 2026-11-10, design doc 4.24; replaces the service row; **positions replaced 2026-11-11 by the Spawn showpiece below**): same panels, prompts and remotes as now. Positions were Roblox world (x, z) at the floor, from the Blender draft `assets/plaza_draft/Layout_C.png`. The path axis runs from the spawn (0, 0) to the gate pad (-84, 78).
@@ -111,7 +123,7 @@ positions are **proposed**; warm gold, amber and paper, one pink accent, matchin
 - Total 39 parts, 4 lights. No new client script, asset or sound.
 
 
-### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; on in both worlds, except the boss gate and its guide, which have their own switches; the merchants' switch is on, owner 2026-11-25)
+### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; on in both worlds, except the boss gate and its guide, which have their own switches; the merchants' switch is on, owner 2026-11-25; the boss gate is on in World 2, owner 2026-11-26)
 The same in both worlds unless a line says otherwise (owner: "consistent with world"); replaces "services unchanged" in
 WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels stay; positions stay except those the fuller layout below replaces; every size **proposed**.
 - **Proposed**: a piece with any of its parts missing after loading counts as not loaded, so its stand-in stays (the sky loop has none and is absent).
@@ -122,6 +134,10 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
   popup), closed while no boss event is active and open while one is. **Proposed**: closed, its prompt does nothing; it
   changes no boss rule, timing or reward; below the rebirth level that hides the Bosses button it stays closed.
   Owner 2026-11-25: the closed gate is the approved draft as it was (no added rim or back plate).
+  Owner 2026-11-26: "Ensure boss gate added to world 2 location, gate A of approved gate blends": the gate stands in World 2's
+  spawn at S4 with the uploaded draft A meshes (`BossGateClosed` 125398438490160, `BossGateOpen` 85973554587379);
+  `BossGateConfig.LIVE` is true in World 2 only. World 1 keeps it off (the owner named World 2; lead's reading). The guide
+  keeps his own switch (`BossGuideConfig.LIVE`, off until the lead turns it on).
 - Layout (owner 2026-11-25): the Saitamo statue and the Index board may move so they block nothing (the world gate, the
   Summon altar and the boss gate from the spawn). Fuller layout approved (owner 2026-11-25, same words and reading): statue (-16.5, 4.4), Index (76.7, -34.2), Team altar (-35.0, 76.4), loop posts 45 to 19, 100 to 75, 315 to 322 degrees; to fix while building: the gate's left pillar cut on the join view, the statue over the RACE START sign. The
   Index keeps its prompt, panel and header. The sky loop and its posts stay in that

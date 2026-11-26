@@ -7752,6 +7752,9 @@ local SPAWN_START_COOLDOWN = 2
 local SPAWN_WALK_ROOT_HEIGHT = 3
 local SPAWN_WALK_CLEARANCE = 75 -- RunnerService WALK_CLEARANCE
 local SPAWN_LOCATION_SIZE = Vector3.new(12, 1, 12)
+-- Spawn scatter (WORLD_REDESIGN_SPEC 4, lead's choice under owner 2026-11-26, proposed): spacing, rings { radius, spots }, and the
+-- spawn disc's radius less an avatar's half width (1.5) that every spot keeps inside
+local SPAWN_SCATTER = { Spacing = 3.5, Rings = { { 4, 6 }, { 8, 12 } }, Disc = 9.5 - 1.5 }
 local SPAWN_GEOM_TOL = 0.5 -- studs: footprints match the spec within this
 local SPAWN_TOP_TOL = 0.1 -- studs: tops match the spec within this
 local SPAWN_TOUCH_GAP = 1 -- studs: "touches" = horizontal gap at most this
@@ -7918,6 +7921,48 @@ function Scenarios.spawn_area()
 		and type(A.WalkCFrame) == "function"
 		and type(A.Bounds) == "function"
 	check(checks, "spawn_api_exists", apiOk and 1 or 0, 1, apiOk)
+	-- Spawn scatter (owner 2026-11-26 "expand spawn location radius to your descretion"; WORLD_REDESIGN_SPEC 4, lead's choice,
+	-- proposed): a real player stands at the walk spawn when no other avatar is within SPACING of it, else at the first free
+	-- spot of two rings (6 at 4 studs, 12 at 8), on the spawn disc (radius 9.5), facing as the walk spawn does.
+	local scatterOk = moduleOk and type(A.ScatterCFrame) == "function" and type(A.SCATTER) == "table"
+	check(checks, "spawn_scatter_api", scatterOk and 1 or 0, 1, scatterOk)
+	if scatterOk then
+		local sc = A.SCATTER
+		local rings = sc.Rings or {}
+		local shape = sc.Spacing == SPAWN_SCATTER.Spacing
+			and #rings == #SPAWN_SCATTER.Rings
+			and rings[1].Radius == SPAWN_SCATTER.Rings[1][1]
+			and rings[1].Spots == SPAWN_SCATTER.Rings[1][2]
+			and rings[2].Radius == SPAWN_SCATTER.Rings[2][1]
+			and rings[2].Spots == SPAWN_SCATTER.Rings[2][2]
+		check(checks, "spawn_scatter_numbers", shape and 1 or 0, 1, shape)
+		local centre = CFrame.lookAt(Vector3.new(10, 6.4, -20), Vector3.new(-30, 6.4, 20))
+		local first = A.ScatterCFrame(centre, {}, 0.37)
+		local dFirst = (first.Position - centre.Position).Magnitude
+		check(checks, "spawn_scatter_alone_at_centre", dFirst, 0.01, dFirst <= 0.01)
+		local placed, worstGap, farthest, sameFrame = {}, math.huge, 0, true
+		local spots = 1 + SPAWN_SCATTER.Rings[1][2] + SPAWN_SCATTER.Rings[2][2]
+		for i = 1, spots + 1 do -- one more than the spots: the last finds none free and takes the farthest
+			local cf = A.ScatterCFrame(centre, placed, (i * 0.618) % 1)
+			local off = cf.Position - centre.Position
+			farthest = math.max(farthest, Vector2.new(off.X, off.Z).Magnitude)
+			sameFrame = sameFrame and math.abs(off.Y) <= 0.01 and cf.LookVector:Dot(centre.LookVector) >= 0.999
+			if i <= spots then
+				for _, p in placed do
+					worstGap = math.min(worstGap, Vector2.new(p.X - cf.X, p.Z - cf.Z).Magnitude)
+				end
+			end
+			table.insert(placed, cf.Position)
+		end
+		check(checks, "spawn_scatter_spaced", worstGap, SPAWN_SCATTER.Spacing, worstGap >= SPAWN_SCATTER.Spacing)
+		check(checks, "spawn_scatter_on_disc", farthest, SPAWN_SCATTER.Disc, farthest <= SPAWN_SCATTER.Disc + 0.01)
+		check(checks, "spawn_scatter_faces_as_walk_spawn", sameFrame and 1 or 0, 1, sameFrame)
+	end
+	-- The boss gate (owner 2026-11-26): on in World 2 at spot S4, off in World 1 (WORLD_REDESIGN_SPEC 4.2)
+	local GateSwitch = sharedModule("BossGateConfig")
+	local worldId = sharedModule("WorldConfig") and sharedModule("WorldConfig").Id or 1
+	local gateShipped = GateSwitch ~= nil and GateSwitch.LIVE == (worldId == 2)
+	check(checks, "spawn_boss_gate_on_in_world2_only", gateShipped and 1 or 0, 1, gateShipped)
 	local serviceOk = RunnerService ~= nil
 		and RaceService ~= nil
 		and PlayerData ~= nil

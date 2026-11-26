@@ -138,6 +138,44 @@ function SpawnArea.WalkCFrame(startCFrame)
 	return facing(startCFrame, c.X, c.Y, p.X, p.Y, SpawnArea.SPAWN_TOP + SpawnArea.WALK_ROOT_HEIGHT)
 end
 
+-- Spawn scatter (WORLD_REDESIGN_SPEC 4, owner 2026-11-26 "expand spawn location radius to your descretion"; lead's choice, every
+-- number proposed): no avatar within Spacing studs of another at the walk spawn. Rings round it, each spot on the spawn disc
+-- (radius 9.5).
+SpawnArea.SCATTER = { Spacing = 3.5, Rings = { { Radius = 4, Spots = 6 }, { Radius = 8, Spots = 12 } } }
+
+-- Where a player stands at the walk spawn `centre` (a CFrame) with other avatars at `occupied` (Vector3s): the centre when it is
+-- free, else the first free spot of the rings (fixed spots; the search starts at `turn`, 0 to 1 of a lap, on each ring), else
+-- the spot farthest from every avatar. Every spot keeps the centre's height and facing.
+function SpawnArea.ScatterCFrame(centre, occupied, turn)
+	local spacing = SpawnArea.SCATTER.Spacing
+	local function nearest(cf)
+		local best = math.huge
+		for _, p in occupied do
+			best = math.min(best, Vector2.new(p.X - cf.X, p.Z - cf.Z).Magnitude)
+		end
+		return best
+	end
+	if nearest(centre) >= spacing then
+		return centre
+	end
+	local best, bestGap = centre, nearest(centre)
+	for _, ring in SpawnArea.SCATTER.Rings do
+		local first = math.floor((turn or 0) * ring.Spots)
+		for j = 0, ring.Spots - 1 do
+			local a = ((first + j) % ring.Spots) / ring.Spots * 2 * math.pi
+			local cf = centre * CFrame.new(ring.Radius * math.cos(a), 0, ring.Radius * math.sin(a))
+			local gap = nearest(cf)
+			if gap >= spacing then
+				return cf
+			end
+			if gap > bestGap then
+				best, bestGap = cf, gap
+			end
+		end
+	end
+	return best
+end
+
 -- An anchored part. Decoration (collide = false) also leaves touch and query alone.
 local function block(parent, name, size, cframe, color, material, collide)
 	local p = Instance.new("Part")

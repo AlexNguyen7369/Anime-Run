@@ -184,11 +184,13 @@ local function run(scenario, pending)
 	end
 
 	local oldOpen = WorldConfig.GATE_OPEN
-	-- The boss gate's off switch (lead 2026-11-25): its checks below run with it on; boss_gate_off_* with it off.
+	-- The boss gate's switch (lead 2026-11-25): its checks below run with it on; boss_gate_off_* with it off. As shipped it is on
+	-- in World 2 only (owner 2026-11-26: "Ensure boss gate added to world 2 location"; World 1 keeps it off).
 	local Switch, GuideSwitch = H.module(Shared, "BossGateConfig"), H.module(Shared, "BossGuideConfig")
 	local gateWas, guideWas = Switch and Switch.LIVE, GuideSwitch and GuideSwitch.LIVE
 	local ok, err = xpcall(function()
-		flag("boss_gate_off_by_default", gateWas == false, text(gateWas), "false")
+		local gateShipped = world == 2
+		flag("boss_gate_switch_by_world", gateWas == gateShipped, text(gateWas), tostring(gateShipped))
 		Switch.LIVE = false
 		local offArea = SpawnArea.Build(CFrame.new())
 		flag("boss_gate_off_not_built", offArea:FindFirstChild("BossGate") == nil)
