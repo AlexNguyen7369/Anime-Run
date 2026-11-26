@@ -308,6 +308,7 @@
 287. 2026-11-25 — Alex Nguyen — Dropped the locked Mythic's contrast check per the owner's answer to question 31 (colours kept, no limit); the plaza now has one waiting check.
 288. 2026-11-25 — Alex Nguyen — Turned the plaza merchants on (owner 2026-11-25), made the Sensei dummy check a guard, kept the off checks with the switch set off for the check, and added standing checks for each merchant.
 289. 2026-11-25 — Alex Nguyen — Merchant floating names sized in studs and placed over the head on an attachment so they never cover a stall's sign (test red first, values proposed).
+290. 2026-11-26 — Alex Nguyen — Sized each merchant's name per stall as large as it can be without covering its sign, over the measured hair top, with readability and hair checks; the Marketplace name cannot be readable under its sign (open question, its readability check left red).
 
 ## What's next
 **Audit the white-mesh and grass fix (with the narrowed slab collar), run `biome_runtime` in Studio and look at the grass by the plaza and a finish slab, then merge it into the World 2 branch.**

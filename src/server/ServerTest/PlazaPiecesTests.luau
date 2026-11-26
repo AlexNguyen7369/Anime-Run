@@ -475,6 +475,27 @@ function Tests.plaza_pieces()
 						tostring(label.Size),
 						"studs"
 					)
+					-- owner 2026-11-25 "Readable from spawn": the name at least READABLE_PX tall from the spawn (the head, eye 4.4) on a 1080
+					-- px screen at 70 degrees field of view (proposed), its box wide enough for its letters, and its bottom over the
+					-- merchant's hair, so the hair never covers it. Hair tops: studs over the feet at Scale 1, measured from the built
+					-- meshes (draft_merchants.py load(), 2026-11-26).
+					local READABLE_PX = 16
+					local HAIR = { sea_navigator = 6.236, leaf_medic = 6.484, ds_flame = 6.96, fr_mage = 6.239 }
+					local h1 = label.Size.Y.Scale
+					local fromSpawn = (centre - (spawnPart.CFrame.Position + Vector3.new(0, 4.4, 0))).Magnitude
+					local px = h1 / (2 * fromSpawn * math.tan(math.rad(35))) * 1080
+					flag(w .. "merchant_name_readable_" .. name, px >= READABLE_PX, ("%.1f px"):format(px), READABLE_PX)
+					local text = label:FindFirstChild("Name")
+					local letters = text and #text.Text or 0
+					flag(
+						w .. "merchant_name_fits_text_" .. name,
+						letters > 0 and label.Size.X.Scale >= h1 * 0.6 * letters,
+						label.Size.X.Scale,
+						h1 * 0.6 * letters
+					)
+					local bottom = centre.Y - h1 / 2
+					local hair = marker.WorldCFrame.Position.Y + (HAIR[row.Id] or math.huge) * row.Scale
+					flag(w .. "merchant_name_over_hair_" .. name, bottom >= hair + 0.1, bottom - hair, 0.1)
 				end
 			end
 		end

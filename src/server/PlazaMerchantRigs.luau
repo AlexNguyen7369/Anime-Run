@@ -8,11 +8,28 @@ local RunnerFactory = require(Shared.RunnerFactory)
 
 local PlazaMerchantRigs = {}
 
--- The floating name (owner 2026-11-25: shown, but Kakashe's) sized and placed so it never covers the stall's sign, from the spawn
--- or close by (docs/BUGS.md merchant-names-cover-signs): studs, not pixels, so it does not grow on screen with distance; on an
--- attachment over the merchant's head, not the head, so it stands where the marker says. Proposed values.
-PlazaMerchantRigs.NAME_SIZE = Vector2.new(4, 0.8) -- studs wide and tall
-PlazaMerchantRigs.NAME_OVER_HEAD = 1.2 -- studs from the head's top (5 studs a Scale over the feet) to the name's bottom
+-- The floating name (owner 2026-11-25: shown, but Kakashe's; "Readable from spawn": as large as it can be without covering its stall's
+-- sign or header) never covers the stall's sign, from the spawn or close by (docs/BUGS.md merchant-names-cover-signs): studs, not pixels,
+-- so it does not grow on screen with distance; on an attachment over the merchant's hair, not the head, so it stands where the marker
+-- says. Height: the largest, in 0.05 studs, that keeps every view of the sign clear (PlazaPiecesTests merchant_name_clear_*); Forward:
+-- studs toward the stall's front, where it lets the name grow. Proposed values.
+PlazaMerchantRigs.NAMES = {
+	ShopStall = { Height = 1.7, Forward = 1.5 },
+	PotionsStall = { Height = 1.9, Forward = 1 },
+	Marketplace = { Height = 0.35, Forward = 1 }, -- its sign is 1.29 studs over Rengoko's hair: open question to the owner
+	IndexBoard = { Height = 1.8, Forward = 0 },
+}
+PlazaMerchantRigs.NAME_CHAR_WIDTH = 0.62 -- a letter's width over the name's height (FredokaOne, TextScaled)
+PlazaMerchantRigs.NAME_OVER_HAIR = 0.15 -- studs from the hair's top to the name's bottom
+-- The top of each model's hair, studs over the feet at Scale 1 (the head's centre is 5): measured from the built meshes
+-- (draft_merchants.py load(), 2026-11-26), rounded up
+PlazaMerchantRigs.HAIR_TOP = {
+	sea_navigator = 6.24,
+	leaf_medic = 6.49,
+	ds_flame = 6.96,
+	fr_mage = 6.24,
+	leaf_copycat = 7.34,
+}
 
 -- Service -> the piece its merchant stands in
 local PIECE = {
@@ -80,11 +97,14 @@ function PlazaMerchantRigs.Stand(spawnArea)
 		local nameSpot = Instance.new("Attachment")
 		nameSpot.Name = "NameSpot"
 		nameSpot.Parent = spot.Parent
-		local size = PlazaMerchantRigs.NAME_SIZE
-		nameSpot.WorldCFrame = spot.WorldCFrame
-			* CFrame.new(0, 5 * row.Scale + PlazaMerchantRigs.NAME_OVER_HEAD + size.Y / 2, 0)
+		local look = PlazaMerchantRigs.NAMES[name] or { Height = 1, Forward = 0 }
+		local text = label:FindFirstChild("Name")
+		local h = look.Height
+		local w = h * PlazaMerchantRigs.NAME_CHAR_WIDTH * math.max(#(text and text.Text or ""), 4)
+		local bottom = (PlazaMerchantRigs.HAIR_TOP[row.Id] or 7.4) * row.Scale + PlazaMerchantRigs.NAME_OVER_HAIR
+		nameSpot.WorldCFrame = spot.WorldCFrame * CFrame.new(0, bottom + h / 2, -look.Forward)
 		label.Adornee = nameSpot
-		label.Size = UDim2.fromScale(size.X, size.Y)
+		label.Size = UDim2.fromScale(w, h)
 		label.StudsOffset = Vector3.zero
 		label.StudsOffsetWorldSpace = Vector3.zero
 		rig.Parent = service

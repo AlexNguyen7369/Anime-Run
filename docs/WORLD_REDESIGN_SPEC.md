@@ -141,9 +141,16 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
   smaller one (draft 0.75, the Sensei header stays), and Frierin may load in World 1 (her rig there loads her, 4.47 "Models"). Each shows the rig's floating name but Kakashe,
   who stands under the Sensei header (owner 2026-11-25). **Proposed**: they hold the approved draft's poses (static turns of the existing rigs' limbs, no animation).
   On (`PlazaPieces.MERCHANTS_LIVE`, owner 2026-11-25: "merchants can be added already to merge"); the Sensei merchant replaces
-  SpawnArea's dummy. **Proposed** (docs/BUGS.md merchant-names-cover-signs): each floating name is 4 x 0.8 studs (sized in
-  studs, not pixels), on an attachment 1.2 studs over the merchant's head top, shown within RunnerFactory.NAME_DISTANCE (120);
-  it never covers the stall's sign from the spawn or from 20 to 40 studs in front (`plaza_pieces` merchant_name_clear_*).
+  SpawnArea's dummy. Owner 2026-11-25 "Readable from spawn": each name is as large as it can be without covering its stall's
+  sign or header. **Proposed** (docs/BUGS.md merchant-names-cover-signs): names sized in studs, not pixels, per stall the largest
+  height (0.05 steps) that never covers the stall's sign from the spawn or from 20 to 40 studs in front (`plaza_pieces`
+  merchant_name_clear_*), as wide as its letters (0.62 of the height each); on an attachment 0.15 studs over the merchant's hair
+  top (measured from the built meshes), moved toward the stall's front where that lets it grow; shown within
+  RunnerFactory.NAME_DISTANCE (120); readable means at least 16 px tall from the spawn on a 1080 px screen at 70 degrees field
+  of view (`merchant_name_readable_*`). Shop 1.7 studs, 1.5 forward (16.1 px); Potions 1.9, 1 forward (17.8 px); Index 1.8 (16.8 px);
+  Marketplace 0.35, 1 forward (3.3 px). **Open question** (owner): the Marketplace sign is 1.29 studs over Rengoko's hair and 2.75
+  in front of the merchant, so seen 20 to 40 studs out from 30 degrees to the side it overhangs that gap; no name over the head is both
+  clear of the sign and readable (largest clear 0.36 studs, about 3 px from the spawn).
 - Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
   start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
   the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed (not below rebirth 1, owner 2026-11-25); names and
