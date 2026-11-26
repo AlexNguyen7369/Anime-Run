@@ -355,8 +355,8 @@ proposed.**
   whose loop would need a radius under `MIN_LOOP_RADIUS` (**proposed** 120 studs: tighter turns fold the eel) is not
   built. The 150-stud clearance from its own centre line still holds. Measured 2026-11-26: on today's routes no loop
   fits (the tracks lie about 150 studs apart); on the C layout (orch/world2/w2-wide-layout) Track 2's two drakes fit at
-  70% and 54%, Track 4's eel at 62%, Track 7's drake at 50%, and Track 1's drake does not fit (its At / Side need a new
-  value on that layout).
+  70% and 54%, Track 4's eel at 62%, Track 7's drake at 50%, and Track 1's drake at full size once it flies on the
+  right of its road (`Side` 1, was -1, **proposed**: on the left it never fits on that layout).
 - The eel reads as one body: each segment overlaps the next along the path (segment length at least `EEL_OVERLAP`
   **proposed** 1.6 times the spacing between their centres, with the tail's side-to-side wave counted), so no gap shows.
   Its segments are longer meshes of the same model (scale only: same 14 segments and tris): first segment 40 long (was 27.5,
