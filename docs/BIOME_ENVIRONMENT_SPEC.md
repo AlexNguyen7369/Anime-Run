@@ -63,6 +63,13 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
 | Ridge | 60 to gap midline (about 77) | the biome's `Ridge` shape (hill, cliff, dune, water, cloud drop) |
 | Outer (Track 10 only) | past 77 on the outside | the biome's `Far` shape out to the skirt, 900 studs past Track 10's outer edge (placeholder) |
 
+- World 2 (WORLD2_SPEC "World 2 track layout", owner 2026-11-26): laps are 760 apart (proposed), so past the ridge
+  (77) each biome keeps its ridge top out to the gap midline, about 380 studs from either road, where the seam is.
+  That midline lies past the 120-stud stamp, so World 2's grid gives every node there its own distance to the nearest
+  roads (`TerrainShape.EXACT_FAR`) instead of one per 64-stud coarse cell: the seam is a line, not steps. The
+  cross-section bands above are unchanged; World 1's grid is unchanged. Checked offline by the biome harness's
+  `W2 SEAM` row (grid distance within 4 studs of the true one past the stamp).
+
 - Elevated road (slopes up to Rise 54): biomes with `Embank = true` raise the corridor to road Y - 3 (placeholder)
   under the slope, so hills sit under hills. Supports end up buried, which is fine. City biomes (5, 6) keep
   `Embank = false`: overpasses stay on their supports.
