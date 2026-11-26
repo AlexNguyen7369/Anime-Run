@@ -1,0 +1,221 @@
+{
+	"movement": "Fly",
+	"title": "Darknez Devill: silent cut (proposed)",
+	"end": 1.45,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.4,
+			"desc": "Bows, every hand folds in round the cloak",
+			"root": {
+				"Torso": [
+					0,
+					0.3,
+					-0.2
+				]
+			},
+			"parts": {
+				"Torso": [
+					16,
+					0,
+					0
+				],
+				"Head": [
+					14,
+					0,
+					0
+				],
+				"LeftArm": [
+					-30,
+					0,
+					20
+				],
+				"RightArm": [
+					-20,
+					0,
+					-16
+				],
+				"HandsLeft": [
+					0,
+					30,
+					-26
+				],
+				"HandsRight": [
+					0,
+					-30,
+					26
+				]
+			}
+		},
+		{
+			"name": "Unfold",
+			"t": 0.75,
+			"desc": "Rises tall, hands spread like a halo, sword lifted",
+			"root": {
+				"Torso": [
+					0,
+					0.3,
+					0.5
+				]
+			},
+			"parts": {
+				"Torso": [
+					-14,
+					0,
+					-20
+				],
+				"Head": [
+					-8,
+					0,
+					16
+				],
+				"LeftArm": [
+					-30,
+					-40,
+					0
+				],
+				"RightArm": [
+					-110,
+					20,
+					0
+				],
+				"Sword": [
+					100,
+					0,
+					0
+				],
+				"HandsLeft": [
+					0,
+					-26,
+					12
+				],
+				"HandsRight": [
+					0,
+					26,
+					-12
+				]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.95,
+			"desc": "One flat cut across, all hands point at the target",
+			"root": {
+				"Torso": [
+					0,
+					-0.6,
+					0
+				]
+			},
+			"parts": {
+				"Torso": [
+					14,
+					0,
+					30
+				],
+				"Head": [
+					-8,
+					0,
+					-24
+				],
+				"LeftArm": [
+					30,
+					-20,
+					0
+				],
+				"RightArm": [
+					-50,
+					-40,
+					0
+				],
+				"Sword": [
+					80,
+					0,
+					0
+				],
+				"HandsLeft": [
+					-30,
+					0,
+					-54
+				],
+				"HandsRight": [
+					-30,
+					0,
+					54
+				]
+			},
+			"markers": [
+				{
+					"label": "dark cut",
+					"shape": "crescent",
+					"at": [
+						0,
+						-5.6,
+						3.8
+					],
+					"r": 2.4,
+					"rgb": [
+						0.12,
+						0.08,
+						0.2
+					],
+					"sx": 0.6
+				}
+			]
+		},
+		{
+			"name": "Recovery",
+			"t": 1.2,
+			"desc": "Sinks upright, hands drift back out",
+			"root": {
+				"Torso": [
+					0,
+					0,
+					0.1
+				]
+			},
+			"parts": {
+				"Torso": [
+					-2,
+					0,
+					6
+				],
+				"Head": [
+					4,
+					0,
+					-4
+				],
+				"LeftArm": [
+					-6,
+					0,
+					0
+				],
+				"RightArm": [
+					-8,
+					0,
+					0
+				],
+				"HandsLeft": [
+					0,
+					4,
+					6
+				],
+				"HandsRight": [
+					0,
+					-4,
+					-6
+				],
+				"Sword": [
+					8,
+					0,
+					0
+				]
+			}
+		}
+	],
+	"view": [
+		-0.65,
+		-0.75,
+		0.18
+	]
+}

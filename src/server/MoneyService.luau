@@ -34,9 +34,14 @@ function MoneyService.Setup(player)
 	return money
 end
 
--- Returns the new balance, or nil if the amount is not a sane number of at least $1.
+-- Server/WorldTravel freezes a travelling player after the release save: nothing paid then would be saved.
+local function frozen(player)
+	return player:GetAttribute("Travelling") == true
+end
+
+-- Returns the new balance, or nil if the amount is not a sane number of at least $1 (or the player is travelling).
 function MoneyService.Award(player, amount)
-	if type(amount) ~= "number" or amount ~= amount or amount <= 0 or amount > MAX_AWARD then
+	if frozen(player) or type(amount) ~= "number" or amount ~= amount or amount <= 0 or amount > MAX_AWARD then
 		return nil
 	end
 	amount = math.floor(amount) -- whole dollars only
@@ -52,7 +57,7 @@ end
 
 -- Adds Gems (design doc 4.35) to the player attribute Gems. Returns the new balance, or nil if the amount is not positive.
 function MoneyService.AddGems(player, amount)
-	if type(amount) ~= "number" or amount ~= amount or amount < 1 then
+	if frozen(player) or type(amount) ~= "number" or amount ~= amount or amount < 1 then
 		return nil
 	end
 	local gems = math.min((player:GetAttribute("Gems") or 0) + math.floor(amount), MAX_MONEY)
@@ -63,7 +68,7 @@ end
 -- Takes Gems (design doc 4.36). Returns the new balance, or nil (nothing taken) if the amount is not positive or too much.
 function MoneyService.SpendGems(player, amount)
 	local gems = player:GetAttribute("Gems") or 0
-	if type(amount) ~= "number" or amount ~= amount or amount < 1 or amount > gems then
+	if frozen(player) or type(amount) ~= "number" or amount ~= amount or amount < 1 or amount > gems then
 		return nil
 	end
 	gems -= math.floor(amount)

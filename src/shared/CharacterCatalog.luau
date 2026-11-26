@@ -4,6 +4,7 @@
 -- here: every player has it, it can not be rolled and it is not in the index.
 
 local Characters = script.Parent:WaitForChild("Characters")
+local WorldConfig = require(script.Parent.WorldConfig)
 
 local CharacterCatalog = {}
 
@@ -66,11 +67,13 @@ do
 end
 
 -- The Robux-exclusive runner (design doc 4.35): granted by its gamepass, never rolled, not in the Index. Rarity sets
--- the look; Stamina overrides its stamina (proposed).
+-- the look; Stamina overrides its stamina (proposed). World 1's, so it runs at RaceConfig.CARRY_CRUISE in World 2; the
+-- starters above have no World and run the same in both (design doc 4.47).
 CharacterCatalog.EXCLUSIVE_ID = "punch_hero"
 PICKS[CharacterCatalog.EXCLUSIVE_ID] = {
 	Id = CharacterCatalog.EXCLUSIVE_ID,
 	Name = "Saitamo",
+	World = 1,
 	Rarity = "Mythic",
 	Chance = nil,
 	SpeedMulti = 1,
@@ -88,6 +91,7 @@ for _, module in Characters:GetChildren() do
 		local spec = require(module)
 		spec.Id = spec.Id or module.Name
 		spec.Rollable = true
+		spec.World = spec.World or 1 -- the world that rolls it and lists it in its Index (design doc 4.47)
 		assert(spec.Id ~= CharacterCatalog.STARTER_ID, "character id 'starter' is reserved")
 		assert(spec.Id ~= CharacterCatalog.KAMI_ID, "character id 'kami' is reserved")
 		assert(PICKS[spec.Id] == nil, "character id " .. spec.Id .. " is a reserved starter")
@@ -96,21 +100,33 @@ for _, module in Characters:GetChildren() do
 	end
 end
 
-local byOrder = {}
-local rarestFirst = {}
+local function sorted(list)
+	table.sort(list, function(a, b)
+		return a.Order < b.Order
+	end)
+	return list
+end
+
+local everything = {}
+local byOrder, rarestFirst = {}, {} -- world -> list
+for world = 1, WorldConfig.COUNT do
+	byOrder[world], rarestFirst[world] = {}, {}
+end
 for _, spec in specs do
-	table.insert(byOrder, spec)
+	table.insert(everything, spec)
+	table.insert(byOrder[spec.World], spec)
 	if not spec.Event then -- event-only characters stay in the Index but are not rolled (owner 2026-11-03)
-		table.insert(rarestFirst, spec)
+		table.insert(rarestFirst[spec.World], spec)
 	end
 end
-table.sort(byOrder, function(a, b)
-	return a.Order < b.Order
-end)
--- Largest "1 in N" first; the catch-all (Chance = 1) last
-table.sort(rarestFirst, function(a, b)
-	return (a.Chance or 0) > (b.Chance or 0)
-end)
+sorted(everything)
+for world = 1, WorldConfig.COUNT do
+	sorted(byOrder[world])
+	-- Largest "1 in N" first; the catch-all (Chance = 1) last
+	table.sort(rarestFirst[world], function(a, b)
+		return (a.Chance or 0) > (b.Chance or 0)
+	end)
+end
 
 -- The spec for an Id (the starter and Kami included), or nil.
 function CharacterCatalog.Get(id)
@@ -123,14 +139,19 @@ function CharacterCatalog.Get(id)
 	return PICKS[id] or specs[id]
 end
 
--- Every index character (the starter excluded), in index Order. Do not modify the returned table.
-function CharacterCatalog.All()
-	return byOrder
+-- Every index character of a world (default: this place's; the starter excluded), in index Order. Do not modify the returned table.
+function CharacterCatalog.All(world)
+	return byOrder[world] or byOrder[WorldConfig.Id]
 end
 
--- Every character a roll can give, rarest first, the catch-all last. Do not modify the returned table.
-function CharacterCatalog.Rollable()
-	return rarestFirst
+-- Every character a roll in a world (default: this place's) can give, rarest first, the catch-all last. Do not modify the returned table.
+function CharacterCatalog.Rollable(world)
+	return rarestFirst[world] or rarestFirst[WorldConfig.Id]
+end
+
+-- Every world's index characters: the Index, Copies and teams are shared, so a player may own any of them. Do not modify the returned table.
+function CharacterCatalog.Everything()
+	return everything
 end
 
 -- Kept for the old character API: there are no gamepass characters, so always empty.

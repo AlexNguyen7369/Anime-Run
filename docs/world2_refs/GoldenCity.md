@@ -1,0 +1,35 @@
+# World 2 Track 9 `GoldenCity`: source references
+
+Source: *Frieren: Beyond Journey's End*, Golden Land arc (manga ch. 81-104; anime ep. 38 shot of the gold region). The
+Fortress City of Weise, turned to gold by Macht's curse (Diagoldze), sealed under the Great Barrier of the Golden Land.
+Reference images are look-only: they sit in `build/world2/refs/GoldenCity/` (gitignored), are never shipped, and
+nothing is traced or copied from them. Every prop is rebuilt from primitives in `tools/blender/world2/biomes/GoldenCity.py`
+(design doc section 5: no text, numerals or official symbols). Owner 2026-11-23 (round 2): follow the source over the
+old brief, so the clock tower is replaced by the city's large church.
+
+| Landmark | Visual facts from the source | Source URL(s) | Local ref | Prop |
+|---|---|---|---|---|
+| Street fronts and squares | The largest city of the north: dense three- to five-storey ashlar buildings with regular grids of tall windows, course lines, quoins, low hipped or gable roofs, dormers, narrow tower houses with steep pyramid roofs; wide paved squares with planter boxes of shrubs, a small gabled shrine kiosk, covered wagons | https://frieren.fandom.com/wiki/Weise | `01_weise_manga_ch104.jpg` | `RowA`, `RowB` (84-stud street fronts of three attached buildings each, window grids on fronts and gable ends, quoins, courses, dormers, pediment, shop arches, kerb lanterns and planters), `CityBlock` (eight buildings round a courtyard, on a street grid), `Square` (paving joints, gabled shrine on a stepped plinth, planters, lanterns, benches) |
+| The towering walls | Two layers of towering walls: a long flat-topped wall line with slender round towers carrying tall, sharp cone roofs at intervals, on the skyline | https://frieren.fandom.com/wiki/Weise | `01_weise_manga_ch104.jpg`, `02_macht_arrives_weise_ch89.jpg` | `CityWall`: 130-stud wall run, crenels, slits, a 96-stud round tower with a 96-stud cone; an elliptical ring round the whole city |
+| The lord's estate in the centre | A tall central manor with a steep hipped roof and a gabled centre, ringed by slender turrets with sharp cone spires, in a walled compound with corner turrets | https://frieren.fandom.com/wiki/Weise | `01_weise_manga_ch104.jpg`, `02_macht_arrives_weise_ch89.jpg` | `Palace` (hero): walled court, corner turrets, gatehouse; five-storey pavilion with hipped roof and pediment, wings, eight spired turrets up to 144 studs; placed dead ahead on the runner's sightline at a third of the lap, scale 1.7 |
+| The large church | "A large church" among the city's amenities | https://frieren.fandom.com/wiki/Weise | (no exterior image of Weise's church found) | `Church` (hero): nave with clerestory and steep roof, aisles with lean-to roofs and buttresses, transept, octagonal crossing lantern, apse, west tower with belfry arches, pinnacles and a tall spire, arched portal, a pair of tall lancet windows with mullions under a gablet (the round window was dropped: it read as a clock face); no clock; on the runner's sightline at 62 % |
+| Everything turned to gold, people frozen | The whole city and land are solid gold, roofs and ground included; people frozen mid-step as gold statues (cloaked, hooded adventurers in the manga); at sunset the gold land glows under a golden-yellow sky | https://frieren.fandom.com/wiki/Weise_Region , https://frieren.fandom.com/wiki/Statue | `03_denken_gold_weise_ep38.jpg`, `06_gold_statues.jpg` | All props polished metallic gold (rough 0.24-0.3), gold roofs, metallic gold ground; `People` (hooded cloaked traveller with a staff, woman with basket, running child, smooth cloaks, legs in stride), `Wagon` (gold covered wagon with hooped canopy and the frozen draught horse in front: smooth barrel body, haunch and chest, arched neck, tapered head, ears, mane, hanging tail, legs mid-stride with hooves), `Tree` (trunk with three tiers of leaf clusters), `Forest` (gold forest beyond the walls); lanterns are unlit gold glass (no white glow); sky has a golden-yellow sun band |
+| The Great Barrier | A colossal sphere over the whole Golden Land, seen from outside as a huge smooth globe over the forest | https://frieren.fandom.com/wiki/Weise | `05_golden_land_ch82.jpg` | `Barrier` (hero): smooth high-subdivision sphere (uniform scale, a true sphere), faint gold, with two thin glowing rim rings that read as gold lines in the sky from the road |
+
+Not matched: only one of Weise's two wall rings (12-mesh budget). No exterior picture of Weise's church was found, so
+the church is a generic large European church in the city's ashlar style. The source city is stone under its gold; the
+draft reads as polished metal.
+
+Round 4 (2026-11-23, review 5.5/10): People rebuilt live in Blender against `06_gold_statues.jpg`: legs (thigh and
+shin) and boots below a calf-length cloak, the cloak wrapped over the shoulders, a deep hood with the face sunk in its
+shadow and a hood peak, sleeves joined at the shoulder with a hand at the end; the traveller's hand grips the staff.
+Palace (refs 01, 02): taller six-storey manor under a steep hipped roof, a projecting centre bay under its own steep
+gable, four-storey wings; every turret cone halved and kept below the manor's ridge. Walls (ref 01): one tower per
+520-stud wall run, four times further apart. Horse: tapered forearm/gaskin and cannon with knee and hock joints, one
+front hoof lifted, neck arched in three segments, croup-set tail. Shop arches and doors are shaded gold, not near-black.
+The round gable window on street front B is now a square window. Building backs show a grid of separate windows.
+Townhouse walls are a satin, slightly deeper gold (E2B242, rough 0.7, metal 0.85), window frames rough 0.65 and the
+sun 2.3 (was 2.8), to stop the sun glare. The near-black slabs at the kerb were the merchant block's shop arches (dark
+panes against the blown-out wall): now shaded gold (B88426, satin) set into the wall. The people are satin gold (rough
+0.5) so a cloak seen from behind no longer reflects the dark ground. Planters
+keep two shrubs (tri budget). The Palace sits dead ahead at 33 % at scale 2.3 so the manor reads over the street fronts.

@@ -378,3 +378,18 @@ Deliverables:
 - t5 | HUD option A (wood plaques, lacquer Money/Gems plates) | ui_hud green
 - t6 | Regression: Summon and Team unchanged; full harness once; audit; PR with fresh review
 Out of scope: Summon page, Team Select page, the Upgrades tree (owner 2026-11-20), server rules, costs, any number.
+
+## world2: World 2, a separate place with 10 new tracks (owner 2026-11-23, design doc 4.47)
+Status: active
+Owner-confirmed: 2026-11-23 (plan approved in session; nightly run "everything is approved")
+Branch: feature/alex/world2-place
+Deliverables:
+- w2-place: separate place config, per-world save, locked plaza gate, /world1 /world2. Done when: code committed, WorldSave keeps World 1 keys, and a Studio Play in World 1 shows the locked gate with no red in the world_layout and spawn_area scenarios.
+- w2-blender: all 10 World 2 tracks and the gate built and rendered in Blender (tools/blender/world2). Done when: 6 shots per track plus the gate shots are in assets/world2_draft and the owner has the approval set.
+- w2-game (after approval): game BiomeThemes from the approved drafts, assets uploaded under the ledger rules, Studio screenshots. Done when: the track tests and environment scenarios are green in the World 2 mode.
+- w2-cast (owner 2026-11-23): the World 2 cast and a new 12-Sidekick set (docs/WORLD2_CAST.md) as models and digital art. Done when: model, review views, portrait, head and evidence exist per id, an independent reviewer has scored each, and the owner has the contact sheet. No upload, no catalog row, no game code.
+- w2-hud-old (owner 2026-11-24: "revert HUD to world 1 hud or old hud. not scrol hud. Scroll Gui can stay"; both worlds is the orchestrator's reading, backed by PR #29's 2026-11-23 "too blocky and cluttered"): the always-on HUD has its pre-scroll look, panels keep the Scroll Dojo look (design doc 4.46 "HUD look"). Done when: `ui_hud_look_by_world`, `ui_hud`, `ui_team` and `ui_boss` are green in the World 1 and World 2 Studio and the owner has a screenshot of each.
+- w2-suite (owner 2026-11-24: "finish suite"; with the test-suite session): the server test suite is honest in World 2. Done when: a full World 2 server run ends with only the known owner-upload red (`boss_king_arena` `arena_ids_listed`), and World 1's full run is no worse than before.
+- w2-boss (owner 2026-11-24: "add Boss to world 2", "adding boss back into w2"): World 1's boss events run in World 2 with the team of 4 (design doc 4.47); no new boss. Done when: the World 2 place holds the baked boss models, the boss UI suites are green in World 2, and one full event to the reward popup has been played on a test save.
+- w2-summon (owner 2026-11-24: "summon for w2 including incorporating w2 sidekick cast into w2"): World 2's Summon offers its own 12 Sidekicks (SIDEKICK_SPEC "World 2 set"). Done when: a server test summons 1x and 10x in World 2 with every result in `Lists[2]` and pity carried across worlds, `sidekick_*`, `world2_cast`, `ui_sidekicks` and `ui_sidekick_tutorial` are green in World 2, and the owner has screenshots of the Summon page and Details.
+Out of scope until approval: team of 4, Awakening, the speed table.

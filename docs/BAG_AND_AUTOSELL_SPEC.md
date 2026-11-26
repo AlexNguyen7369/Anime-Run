@@ -37,7 +37,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 3 and 4.36. Numbers are placeholder
 
 ## Prices
 
-Common 2 (owner 2026-11-20, was 5), Uncommon 10, Rare 25, Epic 100, Legendary 500, Mythic 2,500, Secret 10,000. Paid through `MoneyService.Award`, not scaled by Money multis.
+Common 2 (owner 2026-11-20, was 5), Uncommon 10, Rare 25, Epic 100, Legendary 500, Mythic 2,500, Secret 10,000, Eternal 25,000 (World 2, owner 2026-11-24). Paid through `MoneyService.Award`, not scaled by Money multis.
 
 ## Upgrade tree
 

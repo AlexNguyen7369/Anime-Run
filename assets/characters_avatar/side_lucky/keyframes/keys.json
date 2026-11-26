@@ -1,0 +1,284 @@
+{
+ "id": "side_lucky",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.0,
+   1.2
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   2.1
+  ],
+  "LeftArm": [
+   0.84,
+   0.0,
+   1.8
+  ],
+  "LeftLeg": [
+   0.44,
+   0.0,
+   0.7
+  ],
+  "RightArm": [
+   -0.84,
+   0.0,
+   1.8
+  ],
+  "RightLeg": [
+   -0.44,
+   0.0,
+   0.7
+  ],
+  "Tail": [
+   0.0,
+   0.66,
+   0.94
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArm": [
+   0.0,
+   8.0,
+   0.0
+  ],
+  "RightLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Turbo Nyan: coin dash headbutt (proposed)",
+   "end": 1.1,
+   "Release": 0.46,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.3,
+     "desc": "Leans back, both arms swept behind, one foot raised",
+     "root_offset": {
+      "Body": [
+       0,
+       0.25,
+       0.003
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -18,
+       0,
+       -12
+      ],
+      "Head": [
+       -10,
+       0,
+       10
+      ],
+      "LeftArm": [
+       50,
+       0,
+       0
+      ],
+      "LeftLeg": [
+       -30,
+       0,
+       0
+      ],
+      "RightArm": [
+       56,
+       0,
+       0
+      ],
+      "RightLeg": [
+       14,
+       0,
+       0
+      ],
+      "Tail": [
+       20,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.46,
+     "desc": "Sprints in head first at full tilt, arms streaming back",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.5,
+       0.166
+      ]
+     },
+     "rotations": {
+      "Body": [
+       38,
+       0,
+       0
+      ],
+      "Head": [
+       6,
+       0,
+       0
+      ],
+      "LeftArm": [
+       64,
+       18,
+       0
+      ],
+      "LeftLeg": [
+       -40,
+       0,
+       0
+      ],
+      "RightArm": [
+       64,
+       -18,
+       0
+      ],
+      "RightLeg": [
+       34,
+       0,
+       0
+      ],
+      "Tail": [
+       -24,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Switch step",
+     "t": 0.62,
+     "desc": "Legs swap at speed, body rolls",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.45,
+       0.22
+      ]
+     },
+     "rotations": {
+      "Body": [
+       32,
+       0,
+       10
+      ],
+      "Head": [
+       -4,
+       0,
+       -10
+      ],
+      "LeftArm": [
+       50,
+       18,
+       0
+      ],
+      "LeftLeg": [
+       36,
+       0,
+       0
+      ],
+      "RightArm": [
+       70,
+       -18,
+       0
+      ],
+      "RightLeg": [
+       -42,
+       0,
+       0
+      ],
+      "Tail": [
+       -10,
+       0,
+       16
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 0.85,
+     "desc": "Skids upright, one paw raised in the lucky pose",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0.066
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -8,
+       0,
+       0
+      ],
+      "Head": [
+       4,
+       0,
+       0
+      ],
+      "LeftArm": [
+       -30,
+       0,
+       0
+      ],
+      "LeftLeg": [
+       -10,
+       0,
+       0
+      ],
+      "RightArm": [
+       -10,
+       0,
+       0
+      ],
+      "RightLeg": [
+       8,
+       0,
+       0
+      ],
+      "Tail": [
+       8,
+       0,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

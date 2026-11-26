@@ -1,0 +1,2336 @@
+{
+ "positions": {
+  "spots": {
+   "S1": {
+    "pos": [
+     17.4,
+     95.0
+    ],
+    "face": [
+     -0.1802,
+     -0.9836
+    ],
+    "note": "left of the altar, between it and the Team altar, at 0.8 size",
+    "from_altar": 52.0,
+    "from_spawn": 96.6
+   },
+   "S2": {
+    "pos": [
+     78.6,
+     2.5
+    ],
+    "face": [
+     -0.9995,
+     -0.0318
+    ],
+    "note": "right of the altar, on Best Roll's slot (Best Roll moves)",
+    "from_altar": 62.8,
+    "from_spawn": 78.6
+   },
+   "S3": {
+    "pos": [
+     -33.6,
+     89.9
+    ],
+    "face": [
+     0.3501,
+     -0.9367
+    ],
+    "note": "left, one past the Team altar, toward the path",
+    "from_altar": 95.1,
+    "from_spawn": 96.0
+   },
+   "S4": {
+    "pos": [
+     2.5,
+     94.8
+    ],
+    "face": [
+     -0.0264,
+     -0.9997
+    ],
+    "note": "left of the altar at full size (fuller layout: the Team altar moves)",
+    "from_altar": 64.0,
+    "from_spawn": 94.8
+   }
+  },
+  "statue": {
+   "old": [
+    11.6,
+    12.5
+   ],
+   "new": [
+    -16.5,
+    4.4
+   ],
+   "face": [
+    0.9662,
+    -0.2577
+   ]
+  },
+  "index": {
+   "old": [
+    61.555,
+    -57.158
+   ],
+   "new": [
+    76.7,
+    -34.2
+   ],
+   "face": [
+    -0.9133,
+    0.4072
+   ]
+  },
+  "free_slot (S2: Best Roll, S4: Team altar)": [
+   -35.0,
+   76.4
+  ],
+  "posts": {
+   "old": [
+    45,
+    100,
+    200,
+    250,
+    315
+   ],
+   "full": [
+    19,
+    75,
+    200,
+    250,
+    322
+   ]
+  }
+ },
+ "layouts": {
+  "before_w1": {
+   "world gate": {
+    "spawn_visible_pct": 74.1,
+    "blocked_by": {
+     "N_Index": 18.9,
+     "SkyLoop": 7.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 56.6,
+    "blocked_by": {
+     "N_StatueFigure": 38.9,
+     "SkyLoop": 4.5
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -103.8,
+     -61.1
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Index": {
+    "spawn_visible_pct": 94.7,
+    "blocked_by": {
+     "SkyLoop": 5.3
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -180.0,
+     179.8
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     -63.3,
+     -47.2
+    ],
+    "join_in_view_pct": 25,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.2,
+     46.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 96.8,
+    "blocked_by": {
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 94.1
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_N_Index": {
+    "SkyLoop": 15.4,
+    "N_WorldGate": 19.5,
+    "N_Market": 34.0,
+    "N_BestRoll": 42.7,
+    "N_BestRollFigure": 44.9,
+    "floor_x": 22.5,
+    "floor_z": 42.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 25.4,
+    "SkyLoop": 39.5,
+    "N_Altar_B_Body": 44.6,
+    "floor_x": 78.6,
+    "floor_z": 93.7
+   },
+   "clear_N_BestRoll": {
+    "N_Altar_B_Body": 25.0,
+    "N_Altar_B_Petals": 37.9,
+    "N_Index": 42.7,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "SkyLoop": 16.5,
+    "N_Altar_B_Body": 27.9,
+    "N_Altar_B_Petals": 40.8,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "before_S1_w1": {
+   "world gate": {
+    "spawn_visible_pct": 74.1,
+    "blocked_by": {
+     "N_Index": 18.9,
+     "SkyLoop": 7.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 56.6,
+    "blocked_by": {
+     "N_StatueFigure": 38.9,
+     "SkyLoop": 4.5
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -103.8,
+     -61.1
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 96.6,
+    "join_yaw": [
+     -59.8,
+     -43.9
+    ],
+    "join_in_view_pct": 46,
+    "join_unblocked_pct": 23.8
+   },
+   "Index": {
+    "spawn_visible_pct": 94.7,
+    "blocked_by": {
+     "SkyLoop": 5.3
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -180.0,
+     179.8
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     -63.3,
+     -47.2
+    ],
+    "join_in_view_pct": 25,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.2,
+     46.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 96.8,
+    "blocked_by": {
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 94.1
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_TeamAltar": 4.7,
+    "N_Altar_B_Body": 5.2,
+    "N_Altar_B_Petals": 11.4,
+    "SkyLoop": 29.7,
+    "GreatSakura": 35.6,
+    "floor_x": 62.2,
+    "floor_z": 2.5
+   },
+   "clear_N_Index": {
+    "SkyLoop": 15.4,
+    "N_WorldGate": 19.5,
+    "N_Market": 34.0,
+    "N_BestRoll": 42.7,
+    "N_BestRollFigure": 44.9,
+    "floor_x": 22.5,
+    "floor_z": 42.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 25.4,
+    "SkyLoop": 39.5,
+    "N_Altar_B_Body": 44.6,
+    "floor_x": 78.6,
+    "floor_z": 93.7
+   },
+   "clear_N_BestRoll": {
+    "N_Altar_B_Body": 25.0,
+    "N_Altar_B_Petals": 37.9,
+    "N_Index": 42.7,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "BossGate": 4.7,
+    "SkyLoop": 16.5,
+    "N_Altar_B_Body": 27.9,
+    "N_Altar_B_Petals": 40.8,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "min_S1_w1": {
+   "world gate": {
+    "spawn_visible_pct": 93.0,
+    "blocked_by": {
+     "SkyLoop": 7.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 88.2,
+    "blocked_by": {
+     "SkyLoop": 11.8
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -103.8,
+     -61.1
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 96.6,
+    "join_yaw": [
+     -59.8,
+     -43.9
+    ],
+    "join_in_view_pct": 46,
+    "join_unblocked_pct": 100.0
+   },
+   "Index": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -168.9,
+     -147.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     10.0,
+     22.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 88.6,
+    "blocked_by": {
+     "N_StatueFigure": 11.4
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.2,
+     46.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 96.8,
+    "blocked_by": {
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 94.1
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_TeamAltar": 4.7,
+    "N_Altar_B_Body": 5.2,
+    "N_Altar_B_Petals": 11.4,
+    "SkyLoop": 29.7,
+    "GreatSakura": 35.6,
+    "floor_x": 62.2,
+    "floor_z": 2.5
+   },
+   "clear_N_Index": {
+    "N_BestRoll": 15.9,
+    "N_BestRollFigure": 18.1,
+    "SkyLoop": 23.9,
+    "N_WorldGate": 33.8,
+    "floor_x": 10.1,
+    "floor_z": 63.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 8.5,
+    "SkyLoop": 41.7,
+    "floor_x": 73.8,
+    "floor_z": 101.9
+   },
+   "clear_N_BestRoll": {
+    "N_Index": 15.9,
+    "N_Altar_B_Body": 25.0,
+    "N_Altar_B_Petals": 37.9,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "BossGate": 4.7,
+    "SkyLoop": 16.5,
+    "N_Altar_B_Body": 27.9,
+    "N_Altar_B_Petals": 40.8,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "min_S3_w1": {
+   "world gate": {
+    "spawn_visible_pct": 93.0,
+    "blocked_by": {
+     "SkyLoop": 7.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 88.2,
+    "blocked_by": {
+     "SkyLoop": 11.8
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -103.8,
+     -61.1
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 93.6,
+    "blocked_by": {
+     "SkyLoop": 6.4
+    },
+    "walk_from_spawn": 96.0,
+    "join_yaw": [
+     -33.4,
+     -14.0
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 89.4
+   },
+   "Index": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -168.9,
+     -147.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     10.0,
+     22.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 88.6,
+    "blocked_by": {
+     "N_StatueFigure": 11.4
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.2,
+     46.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 96.8,
+    "blocked_by": {
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 94.1
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_TeamAltar": 8.7,
+    "Lantern_0_1": 15.9,
+    "MainPath": 18.2,
+    "Lantern_1_1": 18.3,
+    "SkyLoop": 19.2,
+    "HeroTorii": 21.6,
+    "floor_x": 42.5,
+    "floor_z": 4.1
+   },
+   "clear_N_Index": {
+    "N_BestRoll": 15.9,
+    "N_BestRollFigure": 18.1,
+    "SkyLoop": 23.9,
+    "N_WorldGate": 33.8,
+    "floor_x": 10.1,
+    "floor_z": 63.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 8.5,
+    "SkyLoop": 41.7,
+    "floor_x": 73.8,
+    "floor_z": 101.9
+   },
+   "clear_N_BestRoll": {
+    "N_Index": 15.9,
+    "N_Altar_B_Body": 25.0,
+    "N_Altar_B_Petals": 37.9,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "BossGate": 8.7,
+    "SkyLoop": 16.5,
+    "N_Altar_B_Body": 27.9,
+    "N_Altar_B_Petals": 40.8,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "s2_S2_w1": {
+   "world gate": {
+    "spawn_visible_pct": 93.0,
+    "blocked_by": {
+     "SkyLoop": 7.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 88.2,
+    "blocked_by": {
+     "SkyLoop": 11.8
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -103.8,
+     -61.1
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 99.9,
+    "blocked_by": {},
+    "walk_from_spawn": 78.6,
+    "join_yaw": [
+     -143.2,
+     -113.7
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Index": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -168.9,
+     -147.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     10.0,
+     22.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -23.7,
+     -15.7
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Shop": {
+    "spawn_visible_pct": 88.6,
+    "blocked_by": {
+     "N_StatueFigure": 11.4
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.2,
+     46.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 96.8,
+    "blocked_by": {
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 94.1
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_Index": 6.5,
+    "SkyLoop": 12.8,
+    "N_Altar_B_Body": 14.8,
+    "N_Altar_B_Petals": 18.0,
+    "Showpiece": 37.9,
+    "floor_x": 0.4,
+    "floor_z": 89.8
+   },
+   "clear_N_Index": {
+    "BossGate": 6.5,
+    "SkyLoop": 23.9,
+    "N_WorldGate": 33.8,
+    "floor_x": 10.1,
+    "floor_z": 63.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 8.5,
+    "SkyLoop": 41.7,
+    "floor_x": 73.8,
+    "floor_z": 101.9
+   },
+   "clear_N_BestRoll": {
+    "Lantern_0_1": 15.3,
+    "MainPath": 16.0,
+    "SkyLoop": 16.0,
+    "N_TeamAltar": 17.5,
+    "Lantern_1_1": 22.4,
+    "HeroTorii": 30.5,
+    "floor_x": 50.0,
+    "floor_z": 24.6
+   },
+   "clear_N_TeamAltar": {
+    "SkyLoop": 16.5,
+    "N_BestRoll": 17.5,
+    "N_BestRollFigure": 22.9,
+    "N_Altar_B_Body": 27.9,
+    "N_Altar_B_Petals": 40.8,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "full_S4_w1": {
+   "world gate": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 98.0,
+    "blocked_by": {
+     "SkyLoop": 2.0
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -103.8,
+     -61.1
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 94.8,
+    "join_yaw": [
+     -53.6,
+     -33.5
+    ],
+    "join_in_view_pct": 88,
+    "join_unblocked_pct": 96.7
+   },
+   "Index": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -168.9,
+     -147.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     10.0,
+     22.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 88.6,
+    "blocked_by": {
+     "N_StatueFigure": 11.4
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.2,
+     46.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -23.6,
+     -15.9
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 96.8,
+    "blocked_by": {
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 94.1
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_Altar_B_Body": 14.7,
+    "N_TeamAltar": 18.4,
+    "SkyLoop": 19.7,
+    "N_Altar_B_Petals": 20.8,
+    "GreatSakura": 43.8,
+    "floor_x": 73.8,
+    "floor_z": 0.2
+   },
+   "clear_N_Index": {
+    "N_BestRoll": 15.9,
+    "N_BestRollFigure": 18.1,
+    "SkyLoop": 19.1,
+    "N_WorldGate": 33.8,
+    "floor_x": 10.1,
+    "floor_z": 63.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 8.5,
+    "SkyLoop": 41.7,
+    "floor_x": 73.8,
+    "floor_z": 101.9
+   },
+   "clear_N_BestRoll": {
+    "N_Index": 15.9,
+    "SkyLoop": 19.9,
+    "N_Altar_B_Body": 25.0,
+    "N_Altar_B_Petals": 37.9,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "Lantern_0_1": 17.8,
+    "BossGate": 18.4,
+    "SkyLoop": 18.8,
+    "MainPath": 19.0,
+    "Lantern_1_1": 25.3,
+    "HeroTorii": 32.9,
+    "floor_x": 52.9,
+    "floor_z": 27.5
+   }
+  },
+  "before_w2": {
+   "world gate": {
+    "spawn_visible_pct": 71.2,
+    "blocked_by": {
+     "N_Index": 18.8,
+     "SkyLoop": 10.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 50.7,
+    "blocked_by": {
+     "N_StatueFigure": 46.7,
+     "SkyLoop": 2.6
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -105.5,
+     -59.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Index": {
+    "spawn_visible_pct": 94.7,
+    "blocked_by": {
+     "SkyLoop": 5.3
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -180.0,
+     179.8
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     -63.3,
+     -47.2
+    ],
+    "join_in_view_pct": 25,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.1,
+     46.5
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 77.3,
+    "blocked_by": {
+     "W2_Drones": 19.5,
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 79.0
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_N_Index": {
+    "SkyLoop": 15.4,
+    "N_WorldGate": 19.5,
+    "N_Market": 34.0,
+    "N_BestRoll": 42.7,
+    "N_BestRollFigure": 44.9,
+    "floor_x": 22.5,
+    "floor_z": 42.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 25.4,
+    "SkyLoop": 39.5,
+    "floor_x": 78.6,
+    "floor_z": 93.7
+   },
+   "clear_N_BestRoll": {
+    "N_Altar_A_Body": 22.4,
+    "N_Index": 42.7,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "SkyLoop": 16.5,
+    "N_Altar_A_Body": 25.0,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "before_S1_w2": {
+   "world gate": {
+    "spawn_visible_pct": 71.2,
+    "blocked_by": {
+     "N_Index": 18.8,
+     "SkyLoop": 10.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 50.7,
+    "blocked_by": {
+     "N_StatueFigure": 46.7,
+     "SkyLoop": 2.6
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -105.5,
+     -59.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 96.6,
+    "join_yaw": [
+     -59.8,
+     -43.9
+    ],
+    "join_in_view_pct": 46,
+    "join_unblocked_pct": 23.8
+   },
+   "Index": {
+    "spawn_visible_pct": 94.7,
+    "blocked_by": {
+     "SkyLoop": 5.3
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -180.0,
+     179.8
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     -63.3,
+     -47.2
+    ],
+    "join_in_view_pct": 25,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.1,
+     46.5
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 77.3,
+    "blocked_by": {
+     "W2_Drones": 19.5,
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 79.0
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_TeamAltar": 4.7,
+    "N_Altar_A_Body": 4.9,
+    "N_Altar_A_Float": 24.7,
+    "SkyLoop": 29.7,
+    "GreatSakura": 35.6,
+    "floor_x": 62.2,
+    "floor_z": 2.5
+   },
+   "clear_N_Index": {
+    "SkyLoop": 15.4,
+    "N_WorldGate": 19.5,
+    "N_Market": 34.0,
+    "N_BestRoll": 42.7,
+    "N_BestRollFigure": 44.9,
+    "floor_x": 22.5,
+    "floor_z": 42.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 25.4,
+    "SkyLoop": 39.5,
+    "floor_x": 78.6,
+    "floor_z": 93.7
+   },
+   "clear_N_BestRoll": {
+    "N_Altar_A_Body": 22.4,
+    "N_Index": 42.7,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "BossGate": 4.7,
+    "SkyLoop": 16.5,
+    "N_Altar_A_Body": 25.0,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "min_S1_w2": {
+   "world gate": {
+    "spawn_visible_pct": 90.0,
+    "blocked_by": {
+     "SkyLoop": 10.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 96.7,
+    "blocked_by": {
+     "SkyLoop": 3.3
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -105.5,
+     -59.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 96.6,
+    "join_yaw": [
+     -59.8,
+     -43.9
+    ],
+    "join_in_view_pct": 46,
+    "join_unblocked_pct": 100.0
+   },
+   "Index": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -168.9,
+     -147.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     10.0,
+     22.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 89.2,
+    "blocked_by": {
+     "N_StatueFigure": 10.8
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.1,
+     46.5
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 77.3,
+    "blocked_by": {
+     "W2_Drones": 19.5,
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 79.0
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_TeamAltar": 4.7,
+    "N_Altar_A_Body": 4.9,
+    "N_Altar_A_Float": 24.7,
+    "SkyLoop": 29.7,
+    "GreatSakura": 35.6,
+    "floor_x": 62.2,
+    "floor_z": 2.5
+   },
+   "clear_N_Index": {
+    "N_BestRoll": 15.9,
+    "N_BestRollFigure": 18.1,
+    "SkyLoop": 23.9,
+    "N_WorldGate": 33.8,
+    "floor_x": 10.1,
+    "floor_z": 63.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 8.5,
+    "SkyLoop": 41.7,
+    "floor_x": 73.8,
+    "floor_z": 101.9
+   },
+   "clear_N_BestRoll": {
+    "N_Index": 15.9,
+    "N_Altar_A_Body": 22.4,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "BossGate": 4.7,
+    "SkyLoop": 16.5,
+    "N_Altar_A_Body": 25.0,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "min_S3_w2": {
+   "world gate": {
+    "spawn_visible_pct": 90.0,
+    "blocked_by": {
+     "SkyLoop": 10.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 96.7,
+    "blocked_by": {
+     "SkyLoop": 3.3
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -105.5,
+     -59.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 93.6,
+    "blocked_by": {
+     "SkyLoop": 6.4
+    },
+    "walk_from_spawn": 96.0,
+    "join_yaw": [
+     -33.4,
+     -14.0
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 89.4
+   },
+   "Index": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -168.9,
+     -147.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     10.0,
+     22.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 89.2,
+    "blocked_by": {
+     "N_StatueFigure": 10.8
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.1,
+     46.5
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 77.3,
+    "blocked_by": {
+     "W2_Drones": 19.5,
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 79.0
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_TeamAltar": 8.7,
+    "Lantern_0_1": 15.9,
+    "MainPath": 18.2,
+    "Lantern_1_1": 18.3,
+    "SkyLoop": 19.2,
+    "HeroTorii": 21.6,
+    "floor_x": 42.5,
+    "floor_z": 4.1
+   },
+   "clear_N_Index": {
+    "N_BestRoll": 15.9,
+    "N_BestRollFigure": 18.1,
+    "SkyLoop": 23.9,
+    "N_WorldGate": 33.8,
+    "floor_x": 10.1,
+    "floor_z": 63.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 8.5,
+    "SkyLoop": 41.7,
+    "floor_x": 73.8,
+    "floor_z": 101.9
+   },
+   "clear_N_BestRoll": {
+    "N_Index": 15.9,
+    "N_Altar_A_Body": 22.4,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "BossGate": 8.7,
+    "SkyLoop": 16.5,
+    "N_Altar_A_Body": 25.0,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "s2_S2_w2": {
+   "world gate": {
+    "spawn_visible_pct": 90.0,
+    "blocked_by": {
+     "SkyLoop": 10.0
+    },
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 96.7,
+    "blocked_by": {
+     "SkyLoop": 3.3
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -105.5,
+     -59.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 99.9,
+    "blocked_by": {},
+    "walk_from_spawn": 78.6,
+    "join_yaw": [
+     -143.2,
+     -113.7
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Index": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -168.9,
+     -147.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     10.0,
+     22.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -23.7,
+     -15.7
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Shop": {
+    "spawn_visible_pct": 89.2,
+    "blocked_by": {
+     "N_StatueFigure": 10.8
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.1,
+     46.5
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -43.8,
+     -35.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 77.3,
+    "blocked_by": {
+     "W2_Drones": 19.5,
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 79.0
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_Index": 6.5,
+    "SkyLoop": 12.8,
+    "N_Altar_A_Body": 13.6,
+    "N_Altar_A_Float": 34.2,
+    "Showpiece": 37.9,
+    "floor_x": 0.4,
+    "floor_z": 89.8
+   },
+   "clear_N_Index": {
+    "BossGate": 6.5,
+    "SkyLoop": 23.9,
+    "N_WorldGate": 33.8,
+    "floor_x": 10.1,
+    "floor_z": 63.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 8.5,
+    "SkyLoop": 41.7,
+    "floor_x": 73.8,
+    "floor_z": 101.9
+   },
+   "clear_N_BestRoll": {
+    "Lantern_0_1": 15.3,
+    "MainPath": 16.0,
+    "SkyLoop": 16.0,
+    "N_TeamAltar": 17.5,
+    "Lantern_1_1": 22.4,
+    "HeroTorii": 30.5,
+    "floor_x": 50.0,
+    "floor_z": 24.6
+   },
+   "clear_N_TeamAltar": {
+    "SkyLoop": 16.5,
+    "N_BestRoll": 17.5,
+    "N_BestRollFigure": 22.9,
+    "N_Altar_A_Body": 25.0,
+    "floor_x": 84.4,
+    "floor_z": 19.6
+   }
+  },
+  "full_S4_w2": {
+   "world gate": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 122.4,
+    "join_yaw": [
+     -180.0,
+     179.9
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "altar": {
+    "spawn_visible_pct": 98.5,
+    "blocked_by": {
+     "SkyLoop": 1.5
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -105.5,
+     -59.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "boss gate": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 94.8,
+    "join_yaw": [
+     -53.6,
+     -33.5
+    ],
+    "join_in_view_pct": 88,
+    "join_unblocked_pct": 96.7
+   },
+   "Index": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -168.9,
+     -147.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "statue": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 17.1,
+    "join_yaw": [
+     10.0,
+     22.8
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Best Roll": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -133.6,
+     -123.4
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Shop": {
+    "spawn_visible_pct": 89.2,
+    "blocked_by": {
+     "N_StatueFigure": 10.8
+    },
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     33.1,
+     46.5
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "Potions": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     73.0,
+     90.5
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Market": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     115.2,
+     142.2
+    ],
+    "join_in_view_pct": 0,
+    "join_unblocked_pct": 0
+   },
+   "Team altar": {
+    "spawn_visible_pct": 100.0,
+    "blocked_by": {},
+    "walk_from_spawn": 84.0,
+    "join_yaw": [
+     -23.6,
+     -15.9
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 100.0
+   },
+   "RACE START": {
+    "spawn_visible_pct": 77.3,
+    "blocked_by": {
+     "W2_Drones": 19.5,
+     "SkyLoop": 1.9
+    },
+    "walk_from_spawn": 114.6,
+    "join_yaw": [
+     -7.1,
+     7.1
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 79.0
+   },
+   "Sensei": {
+    "spawn_visible_pct": 92.0,
+    "blocked_by": {
+     "Lantern_0_-1": 5.4,
+     "SkyLoop": 2.7
+    },
+    "walk_from_spawn": 98.7,
+    "join_yaw": [
+     4.2,
+     8.3
+    ],
+    "join_in_view_pct": 100,
+    "join_unblocked_pct": 18.3
+   },
+   "clear_BossGate": {
+    "N_Altar_A_Body": 13.4,
+    "N_TeamAltar": 18.4,
+    "SkyLoop": 19.7,
+    "N_Altar_A_Float": 34.2,
+    "GreatSakura": 43.8,
+    "floor_x": 73.8,
+    "floor_z": 0.2
+   },
+   "clear_N_Index": {
+    "N_BestRoll": 15.9,
+    "N_BestRollFigure": 18.1,
+    "SkyLoop": 19.1,
+    "N_WorldGate": 33.8,
+    "floor_x": 10.1,
+    "floor_z": 63.2
+   },
+   "clear_N_StatuePedestal": {
+    "N_StatueFigure": 0.0,
+    "Showpiece": 0.0,
+    "MainPath": 8.5,
+    "SkyLoop": 41.7,
+    "floor_x": 73.8,
+    "floor_z": 101.9
+   },
+   "clear_N_BestRoll": {
+    "N_Index": 15.9,
+    "SkyLoop": 19.9,
+    "N_Altar_A_Body": 22.4,
+    "floor_x": 1.1,
+    "floor_z": 97.9
+   },
+   "clear_N_TeamAltar": {
+    "Lantern_0_1": 17.8,
+    "BossGate": 18.4,
+    "SkyLoop": 18.8,
+    "MainPath": 19.0,
+    "Lantern_1_1": 25.3,
+    "HeroTorii": 32.9,
+    "floor_x": 52.9,
+    "floor_z": 27.5
+   }
+  }
+ },
+ "closed": {
+  "tris": 10662,
+  "size_xyz": [
+   35.3,
+   29.6,
+   34.7
+  ],
+  "top": 34.7,
+  "glow_parts": []
+ },
+ "open": {
+  "tris": 9970,
+  "size_xyz": [
+   35.3,
+   29.6,
+   37.0
+  ],
+  "top": 37.0,
+  "glow_parts": [
+   "e1",
+   "e2",
+   "e3",
+   "e4",
+   "evoid"
+  ]
+ }
+}

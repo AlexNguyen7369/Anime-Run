@@ -9,6 +9,14 @@
 
 return {
 	Enabled = false,
+	-- Scenarios whose every expectation is World 1's: in another world the harness reports them as SKIP with this
+	-- reason, counted apart from pass and fail. A SKIP is missing World 2 coverage, never a pass: the open list is
+	-- docs/OWNER_QUESTIONS.md "World 2 test coverage gaps".
+	World1Only = {
+		environment = "names World 1's ten biomes; World 2's are checked offline only (tools/lune/biome_harness.luau, WORLD=2), no Studio scenario yet",
+	},
+	-- Every TrackTests file is the brief of one World 1 track (owner limits per track).
+	World1TrackTests = "briefs of World 1's ten tracks; World 2's tracks have no briefs yet (the runner scenario runs all ten, world_layout places them)",
 	Scenarios = {
 		"runner",
 		"scrap",
@@ -27,7 +35,7 @@ return {
 		"bank",
 		"multiplayer",
 		"admin",
-		"roll_anim",
+		"roll_anim", -- both worlds: the reel and the 4.40 bar are held to the place's own cast (World 2: World2CastTests)
 		"upgrades",
 		"weather",
 		"rebirth",
@@ -48,6 +56,16 @@ return {
 		"gems",
 		"sidekicks",
 		"sidekick_rotation",
+		"world2_cast",
+		"world2_welcome", -- WORLD2_SPEC "Welcome": Worlds.W2.Welcomed, once, old saves and World 1 keep it
+		"world2_team",
+		"awakening", -- design doc 4.47: World 2 stars from Copies, World 1 unchanged
+		"world2_rewards", -- WORLD2_SPEC "Rewards": World 2 pad Cash, first-clear Gems per world
+		"world2_summon", -- design doc 4.47 "Pity counts stay shared", SIDEKICK_SPEC "World 2 set": Summon gives this place's set
+		"boss_models_placed", -- the four boss models startBoss loads are in this place's ServerStorage.BakedModels
+		"harness_save", -- design doc 4.24 "Harness saves": a harness run never writes the live save
+		"powerups", -- PowerUpTests: registered in Scenarios but missing here until 2026-11-24
+		"character_models",
 		"sidekick_follow",
 		"sidekick_pity",
 		"sidekick_tutorial",
@@ -67,6 +85,12 @@ return {
 		"runner_effects",
 		"race_progress_map",
 		"world_layout",
+		"world_travel", -- design doc 4.47: one trip at a time, frozen until departure, restored on failure
+		"world_travel_freeze", -- review of 8557dcf: Depart before the release save, freeze, lock retake, hung teleport
+		"biome_runtime", -- World 2 runtime review: BiomeAssets timeout / retry / CastShadow, build yield, draft lamps
+		"world_arrival", -- design doc 4.47: a non-admin who arrives in World 2 while the gate is locked goes back
+		"world_travel_review", -- review of 3258513: arrival save carry, hung trip, InitFailed, Depart, rank "unknown"
+		"world_gate_rule", -- design doc 4.47: one opening rule for the gate, Go and the arrival check (GATE_OPEN stays false)
 		"track_loading",
 		"team_fill", -- audit fixes 2026-11-20 (commit c80e4de): kept rolls fill empty Team slots
 		"auto_restart", -- audit fixes 2026-11-20 (commit c80e4de): Auto restarts 3 s after an exhausted run

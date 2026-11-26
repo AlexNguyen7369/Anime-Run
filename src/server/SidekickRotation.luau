@@ -2,9 +2,11 @@
 -- The 30 minute summon rotation (design doc 4.36, docs/SIDEKICK_SPEC.md "Rotation"): computed from the UTC slot alone, so every
 -- server agrees with no store. Server only, so a client learns the current slot's Secret and never a future one. Clients read
 -- only the ReplicatedStorage attribute SidekickRotation (Public). SidekickArt is read at call time: no Model, out of the tier.
+-- Each world draws only from its own set (design doc 4.47); `world` defaults to this place's.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.SidekickConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.WorldConfig)
 local Art = require(ReplicatedStorage.Shared.SidekickArt)
 
 local Rotation = {}
@@ -14,9 +16,9 @@ local SECRET_SALT = 0x2F6B91D7 -- never replicated: the Secret's seed cannot be 
 local SEED_STEP = 1000003 -- spreads neighbouring slots across the seed range
 local DRAWN = { { "Mythic", 1 }, { "Legendary", 2 }, { "Rare", 2 } }
 
-local function idsOf(rarity, needsModel)
+local function idsOf(world, rarity, needsModel)
 	local ids = {}
-	for _, row in Config.List do
+	for _, row in Config.Lists[world] do
 		if row.Rarity == rarity and (not needsModel or (Art[row.Id] and Art[row.Id].Model)) then
 			table.insert(ids, row.Id)
 		end
@@ -29,21 +31,22 @@ function Rotation.Slot(utc)
 end
 
 -- { Mythic, Legendary, Rare, Common = id arrays, Secret = id }. Holds the whole rotation of any slot: only Public goes to clients.
-function Rotation.For(slot)
+function Rotation.For(slot, world)
+	world = world or WorldConfig.Id
 	local rng = Random.new(slot * SEED_STEP)
-	local rotation = { Common = idsOf("Common") }
+	local rotation = { Common = idsOf(world, "Common") }
 	for _, tier in DRAWN do
-		local pool, drawn = idsOf(tier[1], true), {}
+		local pool, drawn = idsOf(world, tier[1], true), {}
 		for _ = 1, math.min(tier[2], #pool) do
 			table.insert(drawn, table.remove(pool, rng:NextInteger(1, #pool)))
 		end
 		rotation[tier[1]] = drawn
 	end
-	local featured = Config.Get(Config.FeaturedMythic)
+	local featured = Config.Get(Config.FeaturedMythics[world])
 	if featured and featured.Rarity == "Mythic" and Art[featured.Id] and Art[featured.Id].Model then
 		rotation.Mythic = { featured.Id }
 	end
-	local secrets = idsOf("Secret")
+	local secrets = idsOf(world, "Secret")
 	rotation.Secret = secrets[Random.new(slot * SEED_STEP + SECRET_SALT):NextInteger(1, #secrets)]
 	return rotation
 end
@@ -57,8 +60,8 @@ local function publicIds(rotation)
 end
 
 -- id -> percent, in-rotation ids only: listed odds, with what the rest leaves split evenly across Commons. Sums to 100.
-function Rotation.Odds(slot)
-	local rotation = Rotation.For(slot)
+function Rotation.Odds(slot, world)
+	local rotation = Rotation.For(slot, world)
 	local odds, rest = {}, 100
 	local ids = publicIds(rotation)
 	table.insert(ids, rotation.Secret)
@@ -74,19 +77,19 @@ end
 
 -- All a client may see. SecretChoices is the same every slot; SecretId is this slot's Secret, for the Details silhouette (owner 2026-11-05).
 -- Odds holds this slot's ids only, so it reveals no more than Ids and SecretId.
-function Rotation.Public(slot)
+function Rotation.Public(slot, world)
 	local choices = {}
-	for _, row in Config.List do
+	for _, row in Config.Lists[world or WorldConfig.Id] do
 		if row.Rarity == "Secret" then
 			table.insert(choices, { Name = row.Name, Odds = row.Odds })
 		end
 	end
-	local rotation = Rotation.For(slot)
+	local rotation = Rotation.For(slot, world)
 	return {
 		Ids = publicIds(rotation),
 		SecretChoices = choices,
 		SecretId = rotation.Secret,
-		Odds = Rotation.Odds(slot),
+		Odds = Rotation.Odds(slot, world),
 		EndsAt = (slot + 1) * Rotation.SLOT_SECONDS,
 	}
 end

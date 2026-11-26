@@ -973,8 +973,16 @@ function Scenarios.money()
 	end
 
 	-- Pad payout
-	local pad1, spec1 = buildPad("Oval", 0)
-	local pad2, spec2 = buildPad("Hill", 400)
+	-- this world's first two tracks (World 1: Oval and Hill)
+	local chainName = {}
+	for _, name in TrackRegistry.Names() do
+		local numbered = TrackRegistry.Get(name)
+		if numbered and numbered.Number then
+			chainName[numbered.Number] = name
+		end
+	end
+	local pad1, spec1 = buildPad(chainName[1], 0)
+	local pad2, spec2 = buildPad(chainName[2], 400)
 	check(checks, "money_pads_exist", (pad1 and pad2) and 1 or 0, 1, pad1 ~= nil and pad2 ~= nil)
 	if pad1 and pad2 and type(TrackBuilder.CashFor) == "function" then
 		local want1 = TrackBuilder.CashFor(spec1.Number)
@@ -991,13 +999,19 @@ function Scenarios.money()
 
 		-- cooldown is per pad: another pad pays immediately
 		local p2 = Money.Collect(player, pad2, t0 + cooldown + 0.02)
-		-- owner 2026-10-27: Track 2 pays x10 Track 1 (PayoutCurve.GROWTH[1])
+		-- owner 2026-10-27: Track 2 pays x10 Track 1 (PayoutCurve.GROWTH[1]). World 2 (design doc 4.47, WORLD2_SPEC
+		-- "Rewards"): Track N pays World 1's Track 10 x WORLD2_STEP^N, so Track 2 pays WORLD2_STEP times Track 1.
+		-- The World 2 step is a placeholder (docs/OWNER_QUESTIONS.md "world2-awakening-rewards" item 1), so it is read
+		-- from the config; World 1's numbers stay the doc's literals.
+		local world2 = require(ReplicatedStorage.Shared.WorldConfig).Id == 2
+		local step = world2 and PAYOUT.module().WORLD2_STEP or 10
+		local first = world2 and PAYOUT.CASH[10] * step or PAYOUT.CASH[1]
 		check(
 			checks,
 			"track2_pays_ten_times_track1",
 			p2 or -1,
-			10 * want1,
-			spec1.Number == 1 and spec2.Number == 2 and want1 == PAYOUT.CASH[1] and want2 == 10 * want1 and p2 == want2
+			step * want1,
+			spec1.Number == 1 and spec2.Number == 2 and want1 == first and want2 == step * want1 and p2 == want2
 		)
 
 		-- cooldown is per player
@@ -1111,7 +1125,7 @@ function Scenarios.money()
 			if pc("Ratio", n) ~= PAYOUT.RATIO[n] then
 				ratioBad += 1
 			end
-			if pc("Cash", n) ~= PAYOUT.CASH[n] or TrackBuilder.CashFor(n) ~= PAYOUT.CASH[n] then
+			if pc("Cash", n) ~= PAYOUT.CASH[n] or TrackBuilder.CashFor(n, 1) ~= PAYOUT.CASH[n] then -- World 1 curve
 				cashBad += 1
 			end
 		end
@@ -1333,7 +1347,8 @@ function Scenarios.race()
 	end
 
 	-- Runners: an Epic Balanced (~ the old HALF_STAT cruise), a Secret near MAX_CRUISE, and the Common starter
-	local FAST_ID, MAX_ID, SLOW_ID = "ds_sister", "db_hero", Catalog.STARTER_ID
+	local worldChar = require(script.Parent.AcceptanceSupport).worldChar -- World 2: a stand-in at the same cruise
+	local FAST_ID, MAX_ID, SLOW_ID = worldChar("ds_sister"), worldChar("db_hero"), Catalog.STARTER_ID
 	local function cruiseOf(id)
 		return RaceConfig.Cruise(Catalog.Get(id))
 	end
@@ -2968,7 +2983,8 @@ function Scenarios.economy()
 		return ok and v or nil
 	end
 	local starter = Catalog.Get(Catalog.STARTER_ID)
-	local top = Catalog.Get("db_hero") -- Secret
+	-- Secret (World 2: its stand-in, since a World 1 character runs at a tenth there and never reaches the cap)
+	local top = Catalog.Get(require(script.Parent.AcceptanceSupport).worldChar("db_hero"))
 	local capWorst, cruiseCapOk = 0, starter ~= nil and top ~= nil
 	for _, spec in { starter, top } do
 		for _, m in { 1, 1.5, 10 ^ 0.5, 2800, 1e6, 1e100, 1e300 } do
@@ -3049,6 +3065,14 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
+	-- Records in the stores as this place reads and writes them: World 2 keeps its progress keys in Worlds.W2 (design doc 4.47)
+	local WorldSave, WORLD = sharedModule("WorldSave"), sharedModule("WorldConfig").Id
+	local function seeded(record)
+		return WorldSave.Fold(record, nil, WORLD)
+	end
+	local function viewed(record)
+		return WorldSave.View(record, WORLD)
+	end
 	local DATA_VERSION = 19 -- docs/SAVE_SPEC.md: VERSION 19 refunds and drops WorkshopLevel, WorkshopStat, Showcase (design doc 4.43); 18 adds BossCredit; 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
@@ -3287,15 +3311,13 @@ function Scenarios.data()
 	local pNew = newPlayer("ServerTestDataResetNew")
 	PlayerData.Load(pNew, 9003)
 	check(checks, "reset_money_zero", val(pNew, "Money") or -1, 0, val(pNew, "Money") == 0)
-	local startsNew = pNew:GetAttribute("NeedsStarter") == true and pNew:GetAttribute("Rolls") == 0
+	-- World 1: a new save picks a starter and starts with auto-roll off (design doc 4.21). World 2 never asks for a
+	-- starter or the roll tutorial (design doc 4.47, owner 2026-11-24).
+	local asksStarter = require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id == 1
+	local startsNew = (pNew:GetAttribute("NeedsStarter") == true) == asksStarter and pNew:GetAttribute("Rolls") == 0
 	check(checks, "reset_needs_starter", startsNew and 1 or 0, 1, startsNew)
-	check(
-		checks,
-		"new_save_auto_roll_off",
-		pNew:GetAttribute("AutoRoll") == false and 1 or 0,
-		1,
-		pNew:GetAttribute("AutoRoll") == false
-	)
+	local autoOff = (pNew:GetAttribute("AutoRoll") == false) == asksStarter
+	check(checks, "new_save_auto_roll_off", autoOff and 1 or 0, 1, autoOff)
 	-- a save that has rolled keeps auto-roll on (Setup's default) and gets no popup
 	store.data[PlayerData.KeyFor(9004)] = { Rolls = 2, Version = DATA_VERSION }
 	local pRolled = newPlayer("ServerTestDataRolled")
@@ -3388,7 +3410,7 @@ function Scenarios.data()
 	-- docs/SAVE_SPEC.md 2b (VERSION 11): RaceBestTimes, keyed by string track number, each a positive finite time in
 	-- seconds; invalid entries are discarded and older saves load (and save) an empty table
 	local bestStore = makeStore({
-		Player_9450 = {
+		Player_9450 = seeded({
 			Version = 11,
 			Money = 5,
 			Speed = 1,
@@ -3401,7 +3423,7 @@ function Scenarios.data()
 				abc = 5,
 				["6"] = 7.25,
 			},
-		},
+		}),
 		Player_9451 = { Version = 10, Money = 5, Speed = 1 },
 	})
 	PlayerData.SetStore(bestStore)
@@ -3410,7 +3432,7 @@ function Scenarios.data()
 		PlayerData.Load(pb, case[1])
 		local okb = PlayerData.Save(pb, case[1])
 		local times = type(bestStore.data["Player_" .. case[1]]) == "table"
-			and bestStore.data["Player_" .. case[1]].RaceBestTimes
+			and viewed(bestStore.data["Player_" .. case[1]]).RaceBestTimes
 		local same = okb == true and type(times) == "table"
 		if same then
 			for k, v in times do
@@ -3425,6 +3447,81 @@ function Scenarios.data()
 			end
 		end
 		check(checks, "race_best_times_" .. case[3], same and 1 or 0, 1, same)
+	end
+
+	-- The stored shape written out, so the checks above are not only WorldSave against itself (docs/WORLD2_SPEC.md "Save"):
+	-- World 1 at the top level, World 2 in Worlds.W2; each place loads and rewrites its own half only.
+	local function shape(extra)
+		local record = {
+			Version = DATA_VERSION,
+			Money = 5,
+			Cars = { "leaf_medic", "punch_rider" },
+			Equipped = "leaf_medic",
+			Team = { "leaf_medic" },
+			BestTrack = 3,
+			RaceBestTimes = { ["1"] = 42.5 },
+			Worlds = {
+				W2 = {
+					Equipped = "punch_rider",
+					Team = { "punch_rider" },
+					BestTrack = 2,
+					RaceBestTimes = { ["2"] = 9.5 },
+				},
+			},
+		}
+		for key, value in extra or {} do
+			record[key] = value
+		end
+		return record
+	end
+	local shapeStore = makeStore({ Player_9452 = shape() })
+	PlayerData.SetStore(shapeStore)
+	local pw = newPlayer("ServerTestDataWorlds")
+	PlayerData.Load(pw, 9452)
+	local ownTeam, ownTrack = WORLD == 2 and "punch_rider" or "leaf_medic", WORLD == 2 and 2 or 3
+	local teamOk = pw:GetAttribute("Team") == ownTeam
+	check(checks, "worlds_shape_team", teamOk and 1 or 0, 1, teamOk)
+	check(
+		checks,
+		"worlds_shape_best_track",
+		pw:GetAttribute("BestTrack"),
+		ownTrack,
+		pw:GetAttribute("BestTrack") == ownTrack
+	)
+	serverModule("GachaService").SetTeam(pw, { "leaf_medic", "punch_rider" })
+	pw:SetAttribute("BestTrack", 7)
+	local okw = PlayerData.Save(pw, 9452)
+	local saved = shapeStore.data.Player_9452
+	local want = WORLD == 2
+			and {
+				Equipped = "leaf_medic",
+				Team = { "leaf_medic" },
+				BestTrack = 3,
+				RaceBestTimes = { ["1"] = 42.5 },
+				Worlds = {
+					W2 = {
+						Equipped = "leaf_medic",
+						Team = { "leaf_medic", "punch_rider" },
+						BestTrack = 7,
+						RaceBestTimes = { ["2"] = 9.5 },
+					},
+				},
+			}
+		or {
+			Equipped = "leaf_medic",
+			Team = { "leaf_medic", "punch_rider" },
+			BestTrack = 7,
+			RaceBestTimes = { ["1"] = 42.5 },
+			Worlds = shape().Worlds,
+		}
+	for key, value in want do
+		local got = saved[key]
+		if key == "Worlds" then -- Checkpoint has no value here that this check names
+			got = deepCopy(got)
+			got.W2.Checkpoint = nil
+		end
+		local same = okw == true and require(script.Parent.AcceptanceSupport).same(got, value)
+		check(checks, "worlds_shape_saved_" .. key, same and 1 or 0, 1, same)
 	end
 	PlayerData.SetStore(store)
 
@@ -3594,7 +3691,7 @@ function Scenarios.data()
 				and not hasId(snap1.Cars, "starter")
 			check(checks, "gacha_snapshot_shape", snapOk and 1 or 0, 1, snapOk)
 			local savedG = PlayerData.Save(g1, 9501)
-			local recG = gStore.data["Player_9501"]
+			local recG = viewed(gStore.data["Player_9501"])
 			local recOk = savedG == true
 				and type(recG) == "table"
 				and recG.Version == DATA_VERSION
@@ -3646,7 +3743,7 @@ function Scenarios.data()
 			-- cleaning on load (via PlayerData) and via Apply directly
 			local function loadV3(id, name, record)
 				record.Version = 3
-				PlayerData.SetStore(makeStore({ ["Player_" .. id] = record }))
+				PlayerData.SetStore(makeStore({ ["Player_" .. id] = seeded(record) }))
 				local pv3 = newPlayer(name)
 				local okl = PlayerData.Load(pv3, id)
 				return pv3, okl, GachaService.Snapshot(pv3)
@@ -3910,7 +4007,7 @@ function Scenarios.data()
 				TurboCount = 7,
 			})
 			local saved4 = PlayerData.Save(u1, 9601)
-			local rec4 = st.data["Player_9601"]
+			local rec4 = viewed(st.data["Player_9601"])
 			local recOk = saved4 == true
 				and type(rec4) == "table"
 				and rec4.Version == DATA_VERSION
@@ -3971,7 +4068,7 @@ function Scenarios.data()
 					and s3.BestTrack == 0
 					and s3.TurboCount == c.turbo
 				local saved3 = PlayerData.Save(u3, id)
-				local r3 = st3.data["Player_" .. id]
+				local r3 = viewed(st3.data["Player_" .. id])
 				local upOk = saved3 == true
 					and type(r3) == "table"
 					and r3.Version == DATA_VERSION
@@ -5030,7 +5127,41 @@ local GACHA_CATALOG = {}
 for _, row in require(script.Parent.CatalogTests).CAST do
 	table.insert(GACHA_CATALOG, table.clone(row))
 end
-local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" } -- Eternal: design doc 4.47
+-- The expected cast of a world as GACHA_CATALOG rows: World 1's is GACHA_CATALOG itself, World 2's is
+-- World2CastTests' tables (docs/WORLD2_SPEC.md "Cast in game"), ordered by rarity then list order so seeded loops over
+-- it draw the same in every run.
+local function gachaWorldCast(world)
+	if world ~= 2 then
+		return GACHA_CATALOG
+	end
+	local World2Cast = require(script.Parent.World2CastTests)
+	local cast = {}
+	for _, rarity in GACHA_RARITY_ORDER do
+		for _, id in World2Cast.CAST_BY_RARITY[rarity] or {} do
+			local spec = World2Cast.SPEC[id]
+			table.insert(cast, { Id = id, Rarity = rarity, Chance = spec[3], SpeedMulti = spec[4] })
+		end
+	end
+	return cast
+end
+-- One fixture per rarity of a cast, in rarity order: its least rare character that is always rollable. For World 1 these
+-- are GACHA_SEED's seven ids.
+local function gachaSeedsOf(cast)
+	local byRarity = {}
+	for _, c in cast do
+		if not c.Event and c.Chance and (not byRarity[c.Rarity] or c.Chance < byRarity[c.Rarity].Chance) then
+			byRarity[c.Rarity] = c
+		end
+	end
+	local seeds = {}
+	for _, rarity in GACHA_RARITY_ORDER do
+		if byRarity[rarity] then
+			table.insert(seeds, byRarity[rarity])
+		end
+	end
+	return seeds
+end
 local GACHA_STATS = { "Speed", "Money", "Luck", "Stamina" } -- design doc 4.19: the Workshop point is retired
 local GACHA_PER_POINT = { Speed = 0.02, Money = 0.1, Luck = 0.05, Stamina = 0.05 } -- design doc 4.13 / 4.6 (placeholders)
 local GACHA_ROLLS = 100000
@@ -5048,11 +5179,11 @@ local INDEX_SETTLE_CAP = 10
 
 -- Expected "1 in N" result per character at a given luck: rarest first, a character hits with min(1, luck/N), the first hit
 -- wins and the catch-all gets whatever is left.
-local function gachaExpected(luck, event)
+local function gachaExpected(luck, cast)
 	local rollable = {}
 	local catchAll
 	local expected = {}
-	for _, c in GACHA_CATALOG do
+	for _, c in cast or GACHA_CATALOG do
 		expected[c.Id] = 0
 		if c.Event then -- owner 2026-11-03: never rolled, whatever the weather
 			continue
@@ -5190,8 +5321,8 @@ function Scenarios.gacha()
 		1,
 		CharacterCatalog.Get("no_such_car") == nil
 	)
-	local okAll, all = pcall(CharacterCatalog.All)
-	local okRoll, rollable = pcall(CharacterCatalog.Rollable)
+	local okAll, all = pcall(CharacterCatalog.All, 1)
+	local okRoll, rollable = pcall(CharacterCatalog.Rollable, 1)
 	all = okAll and type(all) == "table" and all or {}
 	rollable = okRoll and type(rollable) == "table" and rollable or {}
 	local baseCount, eventCount, baseRollCount, eventRollCount = 0, 0, 0, 0
@@ -5352,7 +5483,7 @@ function Scenarios.gacha()
 	end
 	check(checks, "catalog_spec_chances", #oddsBad, table.concat(oddsBad, ", "), #oddsBad == 0)
 	local tierOk = true
-	for i = 3, #GACHA_RARITY_ORDER do -- Uncommon < Rare < ... < Secret (Common is the catch-all)
+	for i = 3, table.find(GACHA_RARITY_ORDER, "Secret") do -- Uncommon < Rare < ... < Secret (Common is the catch-all); Eternal is World 2 only: World2CastTests
 		local lower, higher = GACHA_RARITY_ORDER[i - 1], GACHA_RARITY_ORDER[i]
 		tierOk = tierOk
 			and rarityMax[lower] ~= nil
@@ -5403,18 +5534,28 @@ function Scenarios.gacha()
 	end
 	check(checks, "rollable_matches_base_cast_once", membershipOk and 1 or 0, 1, membershipOk)
 
-	-- Seeded roll odds at luck 1 and luck 10
-	local validIds = {}
-	for _, c in GACHA_CATALOG do
+	-- Seeded roll odds at luck 1 and luck 10, on each world's own spec table; a weather event rolls the place's pool
+	local placeWorld = sharedModule("WorldConfig").Id
+	local casts = { GACHA_CATALOG, {} }
+	for id, spec in require(script.Parent.World2CastTests).SPEC do
+		table.insert(casts[2], { Id = id, Chance = spec[3] })
+	end
+	local placeCast = casts[placeWorld]
+	local validIds = {} -- the place's, for the service rolls below
+	for _, c in placeCast do
 		validIds[c.Id] = true
 	end
-	local function rollMany(seed, luck, event)
+	local function rollMany(seed, luck, pool, cast)
+		local castIds = {}
+		for _, c in cast do
+			castIds[c.Id] = true
+		end
 		local counts, invalid = {}, 0
 		local ok = pcall(function()
 			local rng = Random.new(seed)
 			for _ = 1, GACHA_ROLLS do
-				local id = GachaConfig.Roll(rng, luck, event)
-				if validIds[id] then
+				local id = GachaConfig.Roll(rng, luck, pool)
+				if castIds[id] then
 					counts[id] = (counts[id] or 0) + 1
 				else
 					invalid += 1
@@ -5425,18 +5566,22 @@ function Scenarios.gacha()
 	end
 	for _, case in
 		{
-			{ luck = 1, seed = GACHA_SEED_LUCK1, tag = "luck1" },
-			{ luck = 10, seed = GACHA_SEED_LUCK10, tag = "luck10" },
+			{ luck = 1, seed = GACHA_SEED_LUCK1, world = 1, tag = "luck1" },
+			{ luck = 10, seed = GACHA_SEED_LUCK10, world = 1, tag = "luck10" },
+			{ luck = 1, seed = GACHA_SEED_LUCK1, world = 2, tag = "w2_luck1" },
+			{ luck = 10, seed = GACHA_SEED_LUCK10, world = 2, tag = "w2_luck10" },
 			{ luck = 1, seed = GACHA_SEED_LUCK1, event = "rain", tag = "rain_luck1" },
 			{ luck = 1, seed = GACHA_SEED_LUCK1, event = "night", tag = "night_luck1" },
 			{ luck = 1, seed = GACHA_SEED_LUCK1, event = "gold", tag = "gold_luck1" },
 		}
 	do
-		local ok, counts, invalid = rollMany(case.seed, case.luck, case.event)
+		local ok, counts, invalid =
+			rollMany(case.seed, case.luck, case.world or case.event, casts[case.world or placeWorld])
 		check(checks, "roll_no_error_" .. case.tag, ok and 1 or 0, 1, ok)
 		check(checks, "roll_always_valid_id_" .. case.tag, invalid, 0, ok and invalid == 0)
-		local expected = gachaExpected(case.luck, case.event)
-		for _, c in GACHA_CATALOG do
+		local cast = casts[case.world or placeWorld]
+		local expected = gachaExpected(case.luck, cast)
+		for _, c in cast do
 			local mean = GACHA_ROLLS * expected[c.Id]
 			local sigma = math.sqrt(GACHA_ROLLS * expected[c.Id] * (1 - expected[c.Id]))
 			local tol = GACHA_SIGMAS * sigma + GACHA_FLOOR
@@ -5450,10 +5595,10 @@ function Scenarios.gacha()
 				ok and (expected[c.Id] == 0 and got == 0 or expected[c.Id] > 0 and math.abs(got - mean) <= tol)
 			)
 		end
-		if case.luck == 10 then
+		if case.tag == "luck10" then
 			-- 10/10: the Uncommon always hits, so the catch-all is never reached
 			local common = counts.sea_navigator or 0
-			check(checks, "luck10_catch_all_never", common, 0, ok and common == 0)
+			check(checks, "luck10_catch_all_never", common, 0, ok and common == 0 and (counts.leaf_medic or 0) > 0)
 		end
 	end
 	-- Bad luck (nil, NaN, below 1) is treated as luck 1: the same seed gives the same sequence
@@ -5561,10 +5706,10 @@ function Scenarios.gacha()
 		check(checks, "service_roll_grants_character", owns(q, id1) and 1 or 0, 1, owns(q, id1))
 		check(checks, "service_roll_increments_rolls", q:GetAttribute("Rolls") or -1, 1, q:GetAttribute("Rolls") == 1)
 		local rng = Random.new(100)
-		local rolledOwned, newMatches = owns(q, id1), true
+		local rolledOwned, newMatches, newJudged = owns(q, id1), true, 0
 		for _ = 1, 20 do
 			local ownedBefore = {}
-			for _, c in GACHA_CATALOG do
+			for _, c in placeCast do
 				ownedBefore[c.Id] = owns(q, c.Id)
 			end
 			local id, isNew = GachaService.Roll(q, rng)
@@ -5572,8 +5717,9 @@ function Scenarios.gacha()
 				rolledOwned = false
 			end
 			-- a duplicate roll returns (id, false); a first discovery (id, true)
-			if validIds[id] and isNew ~= not ownedBefore[id] then
-				newMatches = false
+			if validIds[id] then
+				newJudged += 1
+				newMatches = newMatches and isNew == not ownedBefore[id]
 			end
 		end
 		check(checks, "service_rolls_counted", q:GetAttribute("Rolls") or -1, 21, q:GetAttribute("Rolls") == 21)
@@ -5585,7 +5731,13 @@ function Scenarios.gacha()
 			"1..min(Rolls, base catalog)",
 			rolledOwned and uq >= 1 and uq <= math.min(21, expectedBase) and GachaService.UniqueCount(q) == uq
 		)
-		check(checks, "service_roll_is_new_matches_ownership", newMatches and 1 or 0, 1, newMatches)
+		check(
+			checks,
+			"service_roll_is_new_matches_ownership",
+			newMatches and newJudged or 0,
+			20,
+			newMatches and newJudged == 20
+		)
 		check(checks, "service_roll_no_count_attribute", anyCountAttribute(q) and 1 or 0, 0, not anyCountAttribute(q))
 		local okDefault, idD = pcall(GachaService.Roll, q)
 		check(
@@ -6112,7 +6264,9 @@ function Scenarios.index()
 		local paidF = Money.Collect(pf, pad, 5000)
 		check(checks, "collect_fresh_player_pays_cash", paidF or -1, cash, paidF == cash)
 
-		-- Run cruise follows the equipped character: two identical runs, the starter vs a Rare leaf_copycat.
+		-- Run cruise follows the equipped character: two identical runs, the starter vs a Rare leaf_copycat
+		-- (World 2: its stand-in, since leaf_copycat runs at a tenth there, slower than the starter).
+		local INDEX_FAST_ID = require(script.Parent.AcceptanceSupport).worldChar("leaf_copycat")
 		-- retired: race gain ratio checks (no Speed gain, design doc 4.13). Building the tracks causes long frames,
 		-- so wait for the world to settle before the runs start.
 		local settleStart, streak = os.clock(), 0
@@ -6137,8 +6291,8 @@ function Scenarios.index()
 			PlayerData.Setup(player)
 			GachaService.Setup(player)
 			if k == 2 then
-				GachaService.Grant(player, "leaf_copycat")
-				GachaService.Equip(player, "leaf_copycat")
+				GachaService.Grant(player, INDEX_FAST_ID)
+				GachaService.Equip(player, INDEX_FAST_ID)
 			end
 			local run = RaceService.NewRun(runner, route, player, nil)
 			table.insert(runs, run)
@@ -6161,7 +6315,7 @@ function Scenarios.index()
 		metrics.raceMaxDt = round(raceMaxDt)
 		runs = {}
 		-- design doc 4.13: the run cruises at the character's fixed cruise (rarity x category, SpeedMulti ignored)
-		local want1, want2 = RaceConfig.Cruise(starterSpec), RaceConfig.Cruise(CharacterCatalog.Get("leaf_copycat"))
+		local want1, want2 = RaceConfig.Cruise(starterSpec), RaceConfig.Cruise(CharacterCatalog.Get(INDEX_FAST_ID))
 		check(
 			checks,
 			"race_cruise_scales_with_character",
@@ -6621,9 +6775,12 @@ function Scenarios.npc()
 			local cast =
 				{ "Paine", "Selle", "Arlon", "Akazo", "Jogoh", "Shigaraky", "Mahitoh", "Enelu", "Ulquiorro", "Freezo" }
 			local offCast = 0
-			for n, name in cast do
-				if NpcConfig.For(n).Label ~= name then
-					offCast += 1
+			-- World 1's cast; World 2's enemies are still proposed (docs/WORLD2_SPEC.md), so no list to hold them to
+			if require(game:GetService("ReplicatedStorage").Shared.WorldConfig).Id == 1 then
+				for n, name in cast do
+					if NpcConfig.For(n).Label ~= name then
+						offCast += 1
+					end
 				end
 			end
 			check(checks, "npc_enemy_cast_matches_spec", offCast, 0, offCast == 0)
@@ -7116,10 +7273,11 @@ function Scenarios.npc()
 		end
 
 		-- (a) WIN: fast player (an Epic, ~ the old HALF_STAT cruise), slow NPC on both tracks
-		local fastSpeed = cruiseOfChar("ds_sister")
+		local fastId = require(script.Parent.AcceptanceSupport).worldChar("ds_sister")
+		local fastSpeed = cruiseOfChar(fastId)
 		local a = race(
 			"Win",
-			"ds_sister",
+			fastId,
 			{ [1] = NPC_SLOW, [2] = NPC_SLOW },
 			totalLen / (0.5 * fastSpeed) + 30,
 			function(r, now)
@@ -8660,7 +8818,8 @@ function Scenarios.bank()
 			totalLen += (wps[i] - wps[i - 1]).Magnitude
 		end
 		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, Runner.LIFT, 0)
-		local r = newNpcRacer(api, route, startCF, "Bank", "ds_sister", { [n1] = NPC_SLOW, [n2] = NPC_SLOW }, nil)
+		local bankId = require(script.Parent.AcceptanceSupport).worldChar("ds_sister")
+		local r = newNpcRacer(api, route, startCF, "Bank", bankId, { [n1] = NPC_SLOW, [n2] = NPC_SLOW }, nil)
 		racer = r
 		check(checks, "bank_run_started", r.ok and 1 or 0, 1, r.ok)
 		if not r.ok then
@@ -8676,7 +8835,7 @@ function Scenarios.bank()
 		check(checks, "bank_attribute_starts_zero", num(attr()), 0, attr() == nil)
 		local noCashOut = run.CashOut == nil
 		check(checks, "bank_run_has_cash_out", noCashOut and 0 or 1, 0, noCashOut)
-		local cap = totalLen / (0.5 * cruiseOfChar("ds_sister")) + 30
+		local cap = totalLen / (0.5 * cruiseOfChar(bankId)) + 30
 		local function driveUntil(track, seconds)
 			return frames(seconds, function()
 				if npcFind(r, "Result", track) then
@@ -9662,6 +9821,7 @@ local ROLL_ANIM_HOLD = {
 	Legendary = 1.5,
 	Mythic = 2.5,
 	Secret = 4,
+	Eternal = 5, -- design doc 4.47
 }
 local ROLL_ANIM_LAYOUT = {
 	REEL_CARS = 16,
@@ -9724,13 +9884,64 @@ function Scenarios.roll_anim()
 	end
 	local interval = GachaConfig.ROLL_INTERVAL
 	local tiers = { 3, 2.61, 2.27, 2 } -- the player's roll interval at each Roll Speed tier the spec names
-	local validIds, catchAllId = {}, nil
-	for _, c in GACHA_CATALOG do
+	-- Every character below comes from the place's own expected cast (design doc 4.47: a world's rolls give that
+	-- world's rollable characters only), picked by the part it plays in the rule under test, never by a typed id or
+	-- Chance: World 2's Chance values are proposed. World 1: GACHA_CATALOG, and the picks are the ids named beside them.
+	local placeCast = gachaWorldCast(sharedModule("WorldConfig").Id)
+	local seeds = gachaSeedsOf(placeCast) -- World 1: GACHA_SEED's ids, sea_navigator ... db_hero
+	local topSeed, secondSeed = seeds[#seeds], seeds[#seeds - 1] -- World 1: db_hero (Secret), leaf_crow (Mythic)
+	local validIds, catchAllId, rarest, rareFloor = {}, nil, nil, math.huge
+	for _, c in placeCast do
 		validIds[c.Id] = true
 		if c.Chance == 1 then
 			catchAllId = c.Id
 		end
+		if not c.Event and c.Chance and (not rarest or c.Chance > rarest.Chance) then
+			rarest = c -- World 1: a Secret; World 2 has no Secret, its rarest is an Eternal
+		end
+		-- the least rare Rare-or-rarer odds of this cast (World 1: 500, the start of the Rare band)
+		if c.Chance and c.Rarity ~= "Common" and c.Rarity ~= "Uncommon" then
+			rareFloor = math.min(rareFloor, c.Chance)
+		end
 	end
+	-- Design doc 4.40's bar, on the place's cast: `barThird` as the 3rd-rarest discovered and `barTarget` the character
+	-- nearest above 100 times its odds (the least rare such pair). World 1: db_green (1 in 20) and sea_swords (1 in
+	-- 2000), exactly on the bar.
+	local barThird, barTarget = nil, nil
+	for _, third in placeCast do
+		for _, target in placeCast do
+			local fits = not third.Event
+				and not target.Event
+				and third.Chance > 1
+				and target.Chance >= 100 * third.Chance
+				and target.Chance < secondSeed.Chance
+			if fits then
+				local ratio = target.Chance / third.Chance
+				local best = barThird and barTarget.Chance / barThird.Chance
+				if not best or ratio < best or (ratio == best and third.Chance < barThird.Chance) then
+					barThird, barTarget = third, target
+				end
+			end
+		end
+	end
+	local fixturesOk = catchAllId ~= nil
+		and rarest ~= nil
+		and #seeds >= 3
+		and barThird ~= nil
+		and topSeed.Id ~= catchAllId
+		and secondSeed.Id ~= catchAllId
+	if placeCast == GACHA_CATALOG then -- World 1 keeps its fixed fixtures: the picks are GACHA_SEED, db_green, sea_swords
+		fixturesOk = fixturesOk and #seeds == #GACHA_SEED and barThird.Id == "db_green" and barTarget.Id == "sea_swords"
+		fixturesOk = fixturesOk and rareFloor == GACHA_ODDS_BANDS.Rare[1] and rarest.Rarity == "Secret"
+		for i, c in GACHA_SEED do
+			fixturesOk = fixturesOk and seeds[i] ~= nil and seeds[i].Id == c.Id
+		end
+	end
+	check(checks, "roll_anim_world_fixtures", fixturesOk and 1 or 0, 1, fixturesOk)
+	if not fixturesOk then
+		return result("roll_anim", checks, metrics)
+	end
+	local rarestId = rarest.Id
 
 	-- RollAnimConfig: constants and pure functions
 	local cfgOk = RollAnimConfig ~= nil
@@ -9905,7 +10116,7 @@ function Scenarios.roll_anim()
 			return nil
 		end
 		local lenBad, lastBad, idBad, adjacentBad, lastFillerBad = 0, 0, 0, 0, 0
-		for k, c in GACHA_CATALOG do
+		for k, c in placeCast do
 			for s = 1, 20 do
 				local r = reel(Random.new(1000 * k + s), c.Id)
 				if not r or #r ~= n then
@@ -9938,8 +10149,8 @@ function Scenarios.roll_anim()
 		check(checks, "reel_last_filler_differs_from_result", lastFillerBad, 0, lastFillerBad == 0)
 		local detBad, indepBad = 0, 0
 		for s = 1, 200 do
-			local a = reel(Random.new(s), "db_hero")
-			local b = reel(Random.new(s), "db_hero")
+			local a = reel(Random.new(s), topSeed.Id)
+			local b = reel(Random.new(s), topSeed.Id)
 			local c = reel(Random.new(s), catchAllId)
 			if not (a and b and #a == #b) then
 				detBad += 1
@@ -9979,7 +10190,7 @@ function Scenarios.roll_anim()
 		-- then it is redrawn from Common and Uncommon only, without those ids, weighted 1 / Chance (owner 2026-11-04).
 		-- So Rare and rarer only ever come from the plain roll and are never above their plain odds.
 		local lowWeight = {}
-		for _, c in GACHA_CATALOG do
+		for _, c in placeCast do
 			if not c.Event and (c.Rarity == "Common" or c.Rarity == "Uncommon") then
 				lowWeight[c.Id] = 1 / c.Chance
 			end
@@ -10015,7 +10226,7 @@ function Scenarios.roll_anim()
 		local counts, fillers, reelErr = {}, 0, 0
 		local rng = Random.new(ROLL_ANIM_REEL_SEED)
 		for i = 1, ROLL_ANIM_REELS do
-			local resultId = GACHA_SEED[(i - 1) % #GACHA_SEED + 1].Id
+			local resultId = seeds[(i - 1) % #seeds + 1].Id
 			local r = reel(rng, resultId)
 			if not r or #r ~= n then
 				reelErr += 1
@@ -10027,17 +10238,17 @@ function Scenarios.roll_anim()
 			end
 		end
 		check(checks, "reel_odds_sample_ok", reelErr, 0, reelErr == 0 and fillers == ROLL_ANIM_REELS * (n - 1))
-		local expected = gachaExpected(1)
-		local wantCount = {} -- id -> expected fillers over the sampled reels (the results cycle through GACHA_SEED)
-		for k, c in GACHA_SEED do
-			local reelsOf = ROLL_ANIM_REELS // #GACHA_SEED + (k <= ROLL_ANIM_REELS % #GACHA_SEED and 1 or 0)
+		local expected = gachaExpected(1, placeCast)
+		local wantCount = {} -- id -> expected fillers over the sampled reels (the results cycle through the seeds)
+		for k, c in seeds do
+			local reelsOf = ROLL_ANIM_REELS // #seeds + (k <= ROLL_ANIM_REELS % #seeds and 1 or 0)
 			for _, odds in fillerOdds(expected, c.Id) do
 				for id, p in odds do
 					wantCount[id] = (wantCount[id] or 0) + reelsOf * p
 				end
 			end
 		end
-		for _, c in GACHA_SEED do
+		for _, c in seeds do
 			local mean = wantCount[c.Id]
 			local p = fillers > 0 and mean / fillers or 0
 			local tol = GACHA_SIGMAS * math.sqrt(fillers * p * (1 - p)) + GACHA_FLOOR
@@ -10054,14 +10265,14 @@ function Scenarios.roll_anim()
 		-- The slot right before the result, for rare results and for the catch-all: its non-common share is the rule's exact
 		-- one, and its Rare+ share stays within the plain luck-1 odds whatever was rolled (no fake near-miss)
 		local pRarePlain = 0
-		-- every rollable character (seed + expansion manifest + event variants at 0), not only the seven seeds
-		for _, c in GACHA_CATALOG do
-			if c.Chance and c.Chance >= GACHA_ODDS_BANDS.Rare[1] then
+		-- every rollable character (seed + expansion manifest + event variants at 0), not only the seeds
+		for _, c in placeCast do
+			if c.Chance and c.Chance >= rareFloor then
 				pRarePlain += expected[c.Id]
 			end
 		end
 		local nm = Random.new(ROLL_ANIM_NEAR_MISS_SEED)
-		local cases = { "db_hero", "leaf_crow", catchAllId }
+		local cases = { topSeed.Id, secondSeed.Id, catchAllId }
 		local slots, nonCommon, rarePlus = 0, 0, 0
 		local slotsOf, rareOf = {}, {}
 		for i = 1, ROLL_ANIM_REELS do
@@ -10073,7 +10284,7 @@ function Scenarios.roll_anim()
 				local spec = CharacterCatalog.Get(r[n - 1])
 				if spec and spec.Chance ~= 1 then
 					nonCommon += 1
-					if spec.Chance >= GACHA_ODDS_BANDS.Rare[1] then -- Rare or rarer (odds rev. 2026-10-27)
+					if spec.Chance >= rareFloor then -- Rare or rarer (odds rev. 2026-10-27)
 						rarePlus += 1
 						rareOf[resultId] = (rareOf[resultId] or 0) + 1
 					end
@@ -10138,9 +10349,18 @@ function Scenarios.roll_anim()
 			end
 			check(checks, name, #bad, table.concat(bad, ","), #bad == 0)
 		end
-		local allIds = {}
+		-- The cases below name World 1's characters in both places: IsEmphasized reads only odds, the catalog holds
+		-- every world's rows and a save keeps every world's discoveries. The place's own cast joins the two sweeps.
+		local allIds, wantChance = {}, {} -- wantChance: the test-side odds, never the game catalog's
 		for _, c in GACHA_CATALOG do
 			table.insert(allIds, c.Id)
+			wantChance[c.Id] = c.Chance
+		end
+		for _, c in placeCast do
+			if not table.find(allIds, c.Id) then
+				table.insert(allIds, c.Id)
+				wantChance[c.Id] = c.Chance
+			end
 		end
 		-- Odds: db_hero 1.6e16, leaf_crow 5e9, leaf_hero 1e7, db_tyrant 5e4, leaf_copycat 500, leaf_medic 10, sea_navigator 1
 		local top3 = { "db_hero", "leaf_crow", "db_tyrant" } -- 3rd = 5e4, bar 5e6
@@ -10150,7 +10370,7 @@ function Scenarios.roll_anim()
 		local two = { "db_hero", "leaf_crow" } -- fewer than 3: the starter's 1, bar 100
 		local newCases = {}
 		for _, id in allIds do
-			table.insert(newCases, { id, {}, (CharacterCatalog.Get(id).Chance or 0) >= 100 })
+			table.insert(newCases, { id, {}, (wantChance[id] or 0) >= 100 })
 		end
 		expectAll("emph_nothing_owned_needs_100x_starter", newCases)
 		local ownedCases = {}
@@ -10249,17 +10469,7 @@ function Scenarios.roll_anim()
 		GachaService.Announce = function(player, id, rolls)
 			table.insert(calls, { player = player, id = id, rolls = rolls })
 		end
-		local rarestId = nil
-		for _, spec in GACHA_CATALOG do
-			if
-				not spec.Event
-				and spec.Chance
-				and (not rarestId or spec.Chance > CharacterCatalog.Get(rarestId).Chance)
-			then
-				rarestId = spec.Id
-			end
-		end
-		local secret = seqRoller({ 0 }) -- hits the manifest's rarest base character first
+		local secret = seqRoller({ 0 }) -- hits the place's rarest base character first (rarestId: World 2's is an Eternal)
 		local r1 = newTestPlayer(cleanup, "ServerTestRollAnimP1")
 		GachaService.Setup(r1)
 		local packed = table.pack(pcall(GachaService.Roll, r1, secret))
@@ -10280,29 +10490,29 @@ function Scenarios.roll_anim()
 		check(checks, "service_roll_owned_not_emphasized", second and 1 or 0, 1, second)
 		check(checks, "announce_not_on_owned_roll", #calls, 1, #calls == 1)
 
-		-- Design doc 4.40: 3rd-rarest owned is db_green (1 in 20), bar 1 in 2000: sea_swords, exactly on it, is
-		-- emphasized; the catch-all is not. Audit 2026-11-20 (commit c80e4de): db_scholar dropped to 1 in 600, under
-		-- the old leaf_medic bar of 1 in 1000, so the fixture owns db_green and rolls sea_swords instead.
+		-- Design doc 4.40: 3rd-rarest owned is barThird, the bar is 100 times its odds: barTarget, on the bar, is
+		-- emphasized; the catch-all is not. World 1: db_green (1 in 20), bar 1 in 2000, sea_swords exactly on it (audit
+		-- 2026-11-20, commit c80e4de: db_scholar dropped to 1 in 600, under the old leaf_medic bar of 1 in 1000).
 		local r2 = newTestPlayer(cleanup, "ServerTestRollAnimP2")
 		GachaService.Setup(r2)
-		for _, id in { "db_hero", "leaf_crow", "db_green" } do
+		for _, id in { topSeed.Id, secondSeed.Id, barThird.Id } do
 			GachaService.Grant(r2, id)
 		end
 		local before = #calls
 		local barDraws = {}
-		local barChance = CharacterCatalog.Get("sea_swords").Chance
-		for _, spec in GACHA_CATALOG do
+		local barChance = barTarget.Chance
+		for _, spec in placeCast do
 			if not spec.Event and spec.Chance and spec.Chance > barChance then
 				table.insert(barDraws, 0.99)
 			end
 		end
 		table.insert(barDraws, 0)
 		local okB, idB, newB, _, emphB = pcall(GachaService.Roll, r2, seqRoller(barDraws))
-		local atBar = okB and idB == "sea_swords" and newB == true and emphB == true
+		local atBar = okB and idB == barTarget.Id and newB == true and emphB == true
 		check(checks, "service_roll_100x_third_rarest_emphasized", atBar and 1 or 0, 1, atBar)
 		local annB = #calls == before + 1
 			and calls[#calls].player == r2
-			and calls[#calls].id == "sea_swords"
+			and calls[#calls].id == barTarget.Id
 			and calls[#calls].rolls == r2:GetAttribute("Rolls")
 		check(checks, "announce_100x_third_rarest", #calls - before, 1, annB)
 		before = #calls
@@ -10445,7 +10655,7 @@ function Scenarios.roll_anim()
 			check(checks, "wait_after_uses_player_interval", "no GachaService.WaitAfter or RollAnimConfig", 0, false)
 		end
 
-		-- Timed auto-roll (both run at once): A rolls a forced Secret through StartAutoRoll(player, roller) and must
+		-- Timed auto-roll (both run at once): A rolls the place's forced rarest (a Secret in World 1) through StartAutoRoll(player, roller) and must
 		-- wait ROLL_INTERVAL + ExtraPause before the next roll; B starts with AutoRoll = false and must not roll
 		-- until it is turned back on.
 		local pa = newTestPlayer(cleanup, "ServerTestRollAnimPause")
@@ -10479,7 +10689,7 @@ function Scenarios.roll_anim()
 		local onAt = os.clock()
 		-- measured from the switch: only a roll made AFTER AutoRoll is back on counts as resuming
 		local rollsAtOn = pb:GetAttribute("Rolls") or 0
-		local wantGap = interval + math.max(0, rollAnimDuration("Secret", true, interval) - interval)
+		local wantGap = interval + math.max(0, rollAnimDuration(rarest.Rarity, true, interval) - interval)
 		local deadline = math.max(onAt + interval + ROLL_ANIM_LATE, t0 + interval + wantGap + 2 * ROLL_ANIM_LATE)
 		local resumedAt = nil
 		while os.clock() < deadline do
@@ -11921,8 +12131,15 @@ end
 
 -- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "track:<Track>"
 -- Scenarios that test stamina itself: they run on the real stamina (docs/TEAM_AND_STAMINA_SPEC.md "Tests").
-local STAMINA_SCENARIOS =
-	{ team = true, stamina = true, team_bonus = true, sidekicks = true, boss_event = true, relics = true }
+local STAMINA_SCENARIOS = {
+	team = true,
+	stamina = true,
+	team_bonus = true,
+	sidekicks = true,
+	boss_event = true,
+	relics = true,
+	awakening = true, -- its run_stamina section measures the stars' share of a run's seconds
+}
 function Scenarios.Run(name)
 	local trackTest = string.match(name, "^track:(.+)$")
 	if trackTest then
@@ -12012,6 +12229,18 @@ Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_prog
 Scenarios.track_loading = require(script.Parent.TrackLoadTests).track_loading
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
+-- design doc 4.47: per-world roll pools, Sidekick sets and cruise; World 1 unchanged
+Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
+Scenarios.world2_welcome = require(script.Parent.World2WelcomeTests).world2_welcome -- WORLD2_SPEC "Welcome"
+Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 team of 4
+-- deliverables w2-summon, w2-boss: Summon gives this place's Sidekick set with shared pity; boss models are in the place
+Scenarios.world2_summon = require(script.Parent.World2ProofTests).world2_summon
+Scenarios.boss_models_placed = require(script.Parent.World2ProofTests).boss_models_placed
+Scenarios.awakening = require(script.Parent.AwakeningTests).awakening -- design doc 4.47 Awakening, WORLD2_SPEC "Awakening"
+Scenarios.world2_rewards = require(script.Parent.World2RewardsTests).world2_rewards -- design doc 4.47 World 2 rewards
+Scenarios.harness_save = require(script.Parent.HarnessSaveTests).harness_save -- design doc 4.24 "Harness saves"
+-- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): another world's models load on demand (Server/CharacterModelService)
+Scenarios.character_models = require(script.Parent.CharacterModelTests).character_models
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
 Scenarios.speed_probe = require(script.Parent.SpeedProbeTests).speed_probe
 -- docs/PANEL_ART_GIFTING_SPEC.md: cosmetic effects on the runner, no mass/controls change, equip preserved
@@ -12040,6 +12269,12 @@ do
 		polySeparation = spawnPolySeparation,
 	})
 	Scenarios.world_layout = world.world_layout
+	Scenarios.world_travel = world.world_travel -- design doc 4.47 travel guard and freeze (audit 2026-11-24)
+	Scenarios.world_travel_freeze = world.world_travel_freeze -- review of 8557dcf: nothing earned lost mid-trip
+	Scenarios.biome_runtime = world.biome_runtime -- mesh timeout, retry and shadow flag; build yield; draft lamps
+	Scenarios.world_arrival = world.world_arrival -- design doc 4.47: a non-admin in World 2 goes back while locked
+	Scenarios.world_travel_review = world.world_travel_review -- review of 3258513: arrival carry, hung trip, rank
+	Scenarios.world_gate_rule = world.world_gate_rule -- design doc 4.47: CanEnter (admins, GATE_OPEN, Track 10, rebirth 5)
 	-- docs/TRACKS_AND_BIOMES_SPEC.md "Build order and tests" step 1 (a table, so Scenarios.Run never runs it)
 	Scenarios._trackChain = require(script.Parent.TrackChainTests).make({
 		partPoly = spawnPartPoly,

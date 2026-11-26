@@ -1,0 +1,133 @@
+{
+  "name": "AnimeRunWorld2",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "SummonScreenAssets": {
+        "$path": "assets/studio/SummonScreenAssets.rbxm"
+      },
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "HeroLodTemplate": {
+        "$className": "Model",
+        "$properties": {
+          "ModelStreamingMode": "Atomic",
+          "LevelOfDetail": "SLIM"
+        }
+      },
+      "WorldId": {
+        "$className": "IntValue",
+        "$properties": {
+          "Value": 2
+        }
+      }
+    },
+    "ServerStorage": {
+      "ImpactSounds": {
+        "$path": "assets/sfx/ImpactSounds"
+      },
+      "LateData": {
+        "$path": "src/late"
+      }
+    },
+    "ReplicatedFirst": {
+      "LoadingScreen": {
+        "$path": "src/first/LoadingScreen.client.luau"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "StarterGui": {
+      "$path": "assets/studio/StarterGui.rbxm",
+      "RacerSidekicks": {
+        "$path": "assets/studio/RacerSidekicks.rbxm"
+      }
+    },
+    "TextChatService": {
+      "$properties": {
+        "ChatVersion": "TextChatService"
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "Gravity": 196.2,
+        "StreamingEnabled": true,
+        "StreamingTargetRadius": 1024,
+        "StreamingMinRadius": 256
+      },
+      "Baseplate": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Locked": true,
+          "Size": [
+            2048,
+            16,
+            2048
+          ],
+          "Material": "Plastic",
+          "Color": [
+            76,
+            160,
+            80
+          ],
+          "TopSurface": "Smooth",
+          "BottomSurface": "Smooth",
+          "CFrame": {
+            "CFrame": {
+              "position": [
+                0,
+                -10,
+                0
+              ],
+              "orientation": [
+                [
+                  1,
+                  0,
+                  0
+                ],
+                [
+                  0,
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0,
+                  1
+                ]
+              ]
+            }
+          }
+        },
+        "Texture": {
+          "$className": "Texture",
+          "$properties": {
+            "Face": "Top",
+            "Texture": "rbxassetid://6372755229",
+            "StudsPerTileU": 8,
+            "StudsPerTileV": 8,
+            "Color3": [
+              20,
+              80,
+              28
+            ],
+            "Transparency": 0.5
+          }
+        }
+      }
+    }
+  }
+}

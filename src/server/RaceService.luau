@@ -98,7 +98,8 @@ end
 
 -- The upgrade tree's gate: the best track the player has won (NPC mode) or finished (no NPC). Fakes are Instances too.
 local function reachTrack(player, number)
-	if typeof(player) == "Instance" then
+	-- Travelling: Server/WorldTravel's freeze pays no first-clear Gems, so BestTrack waits too (else that clear is lost)
+	if typeof(player) == "Instance" and player:GetAttribute("Travelling") ~= true then
 		UpgradeService.ReachTrack(player, number)
 	end
 end
@@ -317,7 +318,9 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 					staminaMulti
 						* (
 							typeof(player) == "Instance"
-								and SidekickService.StaminaMulti(player, id) * RelicService.Multi(player, id, "Stamina")
+								and SidekickService.StaminaMulti(player, id)
+									* RelicService.Multi(player, id, "Stamina")
+									* GachaService.AwakenStamina(player, id) -- World 2 stars (1 in World 1)
 							or 1
 						)
 				)
@@ -473,7 +476,10 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 	local function finishRace()
 		local track = raceRoute.Tracks[race.Index]
 		local playerTime = runTime - race.Started
-		local win = playerTime < race.NpcTime
+		-- Server/WorldTravel's freeze: a finish then is no win (nothing paid, no progress), so the track is raced again
+		-- and its first-clear Gems paid on a real win, never skipped by a later BestTrack jump
+		local frozen = typeof(player) == "Instance" and player:GetAttribute("Travelling") == true
+		local win = playerTime < race.NpcTime and not frozen
 		local amount, bonus = 0, 1
 		local bestTime, newBest = RaceTimeService.Best(player, track.Number), false
 		if win then
@@ -482,6 +488,8 @@ function RaceService.NewRun(runner, raceRoute, player, options)
 			bonus = CheckpointConfig.Bonus(race.Index - startIndex) -- tracks past the checkpoint (design doc 4.15)
 			amount = payOut(track.Pad and math.floor(MoneyService.Quote(player, track.Pad) * bonus) or 0, track.Number)
 			-- Gems are paid here, not in rewardTrackWin: payPads shares it and beats no NPC (design doc 4.35).
+			-- BestTrack is this world's (WorldSave), so World 2 tracks pay first-clear Gems again and neither world's
+			-- clear touches the other's (design doc 4.47 "World 2 rewards", owner 2026-11-24).
 			local firstClear = track.Number > (player:GetAttribute("BestTrack") or 0)
 			reachTrack(player, track.Number)
 			rewardTrackWin(track.Number)

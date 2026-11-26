@@ -25,6 +25,7 @@ local CollectionService = game:GetService("CollectionService")
 local BiomeDressing = require(script.Parent.BiomeDressing)
 local UiTheme = require(script.Parent.UiTheme)
 local PayoutCurve = require(script.Parent.PayoutCurve)
+local WorldConfig = require(script.Parent.WorldConfig)
 local HudFormat = require(script.Parent.HudFormat)
 
 local TrackBuilder = {}
@@ -95,9 +96,10 @@ local function flatPiece(center, heading, length)
 	}
 end
 
--- Money the winnings pad pays: grows exponentially with the track number (Shared/PayoutCurve).
-function TrackBuilder.CashFor(number)
-	return PayoutCurve.Cash(number)
+-- Money the winnings pad pays: grows exponentially with the track number (Shared/PayoutCurve). Every Money amount a
+-- track pays (finish, exhaustion share, checkpoint bonus) is a multiple of it. `world` defaults to this place's.
+function TrackBuilder.CashFor(number, world)
+	return PayoutCurve.TrackCash(number, world or WorldConfig.Id)
 end
 
 -- World CFrame of a layout's finish (facing along the last straight). The next track is built with

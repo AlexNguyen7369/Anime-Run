@@ -1,0 +1,92 @@
+biome	key	verdict	reason	sheet
+DevilTokyo	W2_DevilTokyo_HQ	PASS	HQ emblem is an invented ring + dark disc + red diamond, no text	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_HQ.jpg
+DevilTokyo	W2_DevilTokyo_Mansion	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_Mansion.jpg
+DevilTokyo	W2_DevilTokyo_Apaato	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_Apaato.jpg
+DevilTokyo	W2_DevilTokyo_ShopHouse	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_ShopHouse.jpg
+DevilTokyo	W2_DevilTokyo_Konbini	FAIL	White box with teal-green over orange fascia bands and matching pole sign: near copy of 7-Eleven trade dress; ref doc itself requires colours no real chain uses	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_Konbini.jpg
+DevilTokyo	W2_DevilTokyo_Office	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_Office.jpg
+DevilTokyo	W2_DevilTokyo_StreetKit	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_StreetKit.jpg
+DevilTokyo	W2_DevilTokyo_LowBlock	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_LowBlock.jpg
+DevilTokyo	W2_DevilTokyo_Retro	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_Retro.jpg
+DevilTokyo	W2_DevilTokyo_RoofTile	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_RoofTile.jpg
+DevilTokyo	W2_DevilTokyo_CrossWire	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/DevilTokyo/W2_DevilTokyo_CrossWire.jpg
+RuinedCityZ	W2_RuinedCityZ_BrickFlat	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_BrickFlat.jpg
+RuinedCityZ	W2_RuinedCityZ_HeroHQ	PASS	No emblem/text; stepped tower on ribbed hull with radiating highways closely follows the new Hero Association HQ silhouette (not on the listed banned silhouettes; owner call)	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_HeroHQ.jpg
+RuinedCityZ	W2_RuinedCityZ_Overpass	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_Overpass.jpg
+RuinedCityZ	W2_RuinedCityZ_MidRise	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_MidRise.jpg
+RuinedCityZ	W2_RuinedCityZ_OfficeBroken	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_OfficeBroken.jpg
+RuinedCityZ	W2_RuinedCityZ_HighRise	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_HighRise.jpg
+RuinedCityZ	W2_RuinedCityZ_Collapsed	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_Collapsed.jpg
+RuinedCityZ	W2_RuinedCityZ_Barricade	PASS	Warning board is blank (red header, white face)	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_Barricade.jpg
+RuinedCityZ	W2_RuinedCityZ_Kerb	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_Kerb.jpg
+RuinedCityZ	W2_RuinedCityZ_Rubble	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_Rubble.jpg
+RuinedCityZ	W2_RuinedCityZ_Blocks	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_Blocks.jpg
+RuinedCityZ	W2_RuinedCityZ_Crater	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/RuinedCityZ/W2_RuinedCityZ_Crater.jpg
+HauntedTunnel	W2_HauntedTunnel_Cedar	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_Cedar.jpg
+HauntedTunnel	W2_HauntedTunnel_Mountain	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_Mountain.jpg
+HauntedTunnel	W2_HauntedTunnel_Guardrail	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_Guardrail.jpg
+HauntedTunnel	W2_HauntedTunnel_Mirror	PASS	Chevron curve sign is a generic road symbol, no text	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_Mirror.jpg
+HauntedTunnel	W2_HauntedTunnel_TunnelSeg	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_TunnelSeg.jpg
+HauntedTunnel	W2_HauntedTunnel_Portal	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_Portal.jpg
+HauntedTunnel	W2_HauntedTunnel_School	PASS	Rooftop clock is a blank face with two hands (reads as a clock, not a letter)	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_School.jpg
+HauntedTunnel	W2_HauntedTunnel_Hospital	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_Hospital.jpg
+HauntedTunnel	W2_HauntedTunnel_OldWoodHouse	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_OldWoodHouse.jpg
+HauntedTunnel	W2_HauntedTunnel_House	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_House.jpg
+HauntedTunnel	W2_HauntedTunnel_House2	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HauntedTunnel/W2_HauntedTunnel_House2.jpg
+KaijuBase	W2_KaijuBase_Apartment	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_Apartment.jpg
+KaijuBase	W2_KaijuBase_Office	PASS	Roof tank top clipped by roof edge forms a D-like shape seen only from directly above; incidental geometry	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_Office.jpg
+KaijuBase	W2_KaijuBase_Rubble	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_Rubble.jpg
+KaijuBase	W2_KaijuBase_GiantCorpse	PASS	Generic intact kaiju, no gore, no emblem	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_GiantCorpse.jpg
+KaijuBase	W2_KaijuBase_SweeperVan	PASS	Plain red band, blank sign, generic crew heads (no character likeness)	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_SweeperVan.jpg
+KaijuBase	W2_KaijuBase_DefenseHQ	PASS	Badge is the invented orange diamond outline, not the real insignia	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_DefenseHQ.jpg
+KaijuBase	W2_KaijuBase_Hangar	PASS	Door carries three abstract orange chevrons (generic rank shape), no real insignia	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_Hangar.jpg
+KaijuBase	W2_KaijuBase_BaseWall	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_BaseWall.jpg
+KaijuBase	W2_KaijuBase_Railgun	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_Railgun.jpg
+KaijuBase	W2_KaijuBase_CityBlock	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_CityBlock.jpg
+KaijuBase	W2_KaijuBase_Smoke	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/KaijuBase/W2_KaijuBase_Smoke.jpg
+ElvenPlains	W2_ElvenPlains_Flowers	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_Flowers.jpg
+ElvenPlains	W2_ElvenPlains_Pine	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_Pine.jpg
+ElvenPlains	W2_ElvenPlains_Forest	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_Forest.jpg
+ElvenPlains	W2_ElvenPlains_FarWood	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_FarWood.jpg
+ElvenPlains	W2_ElvenPlains_Cottage	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_Cottage.jpg
+ElvenPlains	W2_ElvenPlains_HeroStatue	PASS	Faceless generic bronze swordsman with plain bar clasp and blue flower crown; evokes the show's hero statue scene but no face, name or symbol	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_HeroStatue.jpg
+ElvenPlains	W2_ElvenPlains_Rank	PASS	Generic headless plate armour, no heraldry	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_Rank.jpg
+ElvenPlains	W2_ElvenPlains_RuinWall	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_RuinWall.jpg
+ElvenPlains	W2_ElvenPlains_RuinedCastle	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_RuinedCastle.jpg
+ElvenPlains	W2_ElvenPlains_Town	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_Town.jpg
+ElvenPlains	W2_ElvenPlains_Mountain	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_Mountain.jpg
+ElvenPlains	W2_ElvenPlains_Mound	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/ElvenPlains/W2_ElvenPlains_Mound.jpg
+AntIsland	W2_AntIsland_IslandVolcano	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/AntIsland/W2_AntIsland_IslandVolcano.jpg
+AntIsland	W2_AntIsland_Nest	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/AntIsland/W2_AntIsland_Nest.jpg
+AntIsland	W2_AntIsland_Ant	PASS	Generic spiky ant, no likeness	assets/world2_draft/audit/AntIsland/W2_AntIsland_Ant.jpg
+AntIsland	W2_AntIsland_Chamber	PASS	Generic eggs and ant inside; Queen not modelled	assets/world2_draft/audit/AntIsland/W2_AntIsland_Chamber.jpg
+AntIsland	W2_AntIsland_ThatchHouse	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/AntIsland/W2_AntIsland_ThatchHouse.jpg
+AntIsland	W2_AntIsland_Ruin	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/AntIsland/W2_AntIsland_Ruin.jpg
+AntIsland	W2_AntIsland_Camp	PASS	Helipad is ring + plain centre dot (no H, per source and render)	assets/world2_draft/audit/AntIsland/W2_AntIsland_Camp.jpg
+AntIsland	W2_AntIsland_Ship	PASS	Generic patrol boat, no name or hull number	assets/world2_draft/audit/AntIsland/W2_AntIsland_Ship.jpg
+AntIsland	W2_AntIsland_Mound	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/AntIsland/W2_AntIsland_Mound.jpg
+AntIsland	W2_AntIsland_Cliff	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/AntIsland/W2_AntIsland_Cliff.jpg
+AntIsland	W2_AntIsland_Brush	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/AntIsland/W2_AntIsland_Brush.jpg
+MonsterDen	W2_MonsterDen_Ceiling	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_Ceiling.jpg
+MonsterDen	W2_MonsterDen_FleshWall	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_FleshWall.jpg
+MonsterDen	W2_MonsterDen_LairTower	PASS	Fanged one-eyed monster head is generic, not a named character	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_LairTower.jpg
+MonsterDen	W2_MonsterDen_Coliseum	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_Coliseum.jpg
+MonsterDen	W2_MonsterDen_Shrine	PASS	Relief is an abstract dark creature over scattered marks; no readable glyphs	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_Shrine.jpg
+MonsterDen	W2_MonsterDen_MineRail	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_MineRail.jpg
+MonsterDen	W2_MonsterDen_Graveyard	FAIL	Dome helmets with two eye holes and a teeth grille read as a heap of cartoon skulls; spec 4.1 step 3 bans skulls	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_Graveyard.jpg
+MonsterDen	W2_MonsterDen_Colonnade	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_Colonnade.jpg
+MonsterDen	W2_MonsterDen_CityChunk	PASS	Small bent rebar on a slab forms a Z-like zigzag from above; incidental	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_CityChunk.jpg
+MonsterDen	W2_MonsterDen_RockPillar	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_RockPillar.jpg
+MonsterDen	W2_MonsterDen_LavaChasm	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_LavaChasm.jpg
+MonsterDen	W2_MonsterDen_BoneArch	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/MonsterDen/W2_MonsterDen_BoneArch.jpg
+HellGate	W2_HellGate_DoorClosed	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_DoorClosed.jpg
+HellGate	W2_HellGate_DoorOpen	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_DoorOpen.jpg
+HellGate	W2_HellGate_SkyDoor	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_SkyDoor.jpg
+HellGate	W2_HellGate_Hand	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_Hand.jpg
+HellGate	W2_HellGate_ArmA	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_ArmA.jpg
+HellGate	W2_HellGate_ArmB	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_ArmB.jpg
+HellGate	W2_HellGate_Astronaut	PASS	No mission patch, flag or text; whole figure	assets/world2_draft/audit/HellGate/W2_HellGate_Astronaut.jpg
+HellGate	W2_HellGate_DarkGate	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_DarkGate.jpg
+HellGate	W2_HellGate_Abyss	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_Abyss.jpg
+HellGate	W2_HellGate_Grass	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_Grass.jpg
+HellGate	W2_HellGate_Hill	PASS	Generic in-house shapes; no text, logo, symbol or likeness	assets/world2_draft/audit/HellGate/W2_HellGate_Hill.jpg

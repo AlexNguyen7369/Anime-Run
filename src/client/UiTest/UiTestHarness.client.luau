@@ -44,14 +44,53 @@ for _, name in TRIGGERS do
 	ReplicatedStorage:GetAttributeChangedSignal(name):Connect(start)
 end
 
+-- Design doc 4.24 "Harness saves": nothing runs until the server says this session writes to memory only
+-- (ReplicatedStorage attribute SaveIsolated, set by Server/ServerTest/HarnessSave). A trigger set on the client
+-- alone never reaches the server, so it is refused here.
+local ISOLATE_WAIT = 10
+local function isolated(what)
+	local deadline = os.clock() + ISOLATE_WAIT
+	while ReplicatedStorage:GetAttribute("SaveIsolated") ~= true do
+		if os.clock() > deadline then
+			warn(
+				"[UITEST] REFUSED "
+					.. what
+					.. ": the save is not isolated. Set the trigger attribute from the Server datamodel."
+			)
+			return false
+		end
+		task.wait(0.1)
+	end
+	return true
+end
+
+local function refusal(scenario)
+	return {
+		scenario = scenario,
+		pass = false,
+		error = "save not isolated",
+		checks = { { name = "save_isolated", value = false, limit = true, pass = false } },
+	}
+end
+
 local function runAll()
 	if busy then
 		return
 	end
 	busy = true
+	if not isolated("UiTestRun") then
+		local res = refusal("save_isolated")
+		print("[UITEST] START")
+		print("[UITEST] " .. HttpService:JSONEncode(res))
+		player:SetAttribute("UiTestResult", HttpService:JSONEncode({ pass = 0, fail = 1, results = { res } }))
+		print("[UITEST] END pass=0 fail=1")
+		busy = false
+		return
+	end
 	start()
 	print("[UITEST] START")
 	pcall(UiScenarios.PlayWithoutPasses)
+	pcall(UiScenarios.DismissWelcome)
 	local results, pass, fail = {}, 0, 0
 	for _, name in UiScenarios.Names do
 		local ok, res = pcall(UiScenarios.Run, name)
@@ -91,8 +130,14 @@ local function runClick(id)
 		task.wait(0.1)
 	end
 	busy = true
-	start()
-	local ok, res = pcall(UiScenarios.RunClick, id)
+	local ok, res
+	if isolated("UiTestClick") then
+		start()
+		pcall(UiScenarios.DismissWelcome) -- as before a run: a lone click must not press under World 2's welcome
+		ok, res = pcall(UiScenarios.RunClick, id)
+	else
+		ok, res = true, refusal("click:" .. tostring(id))
+	end
 	if not ok then
 		res = {
 			scenario = "click:" .. tostring(id),
@@ -101,7 +146,9 @@ local function runClick(id)
 			checks = { { name = "click_ran", value = tostring(res), limit = "no error", pass = false } },
 		}
 	end
-	pcall(UiScenarios.CloseFixturePanels)
+	if UiScenarios then
+		pcall(UiScenarios.CloseFixturePanels)
+	end
 	local json = HttpService:JSONEncode(res)
 	print("[UITEST] " .. json)
 	player:SetAttribute("UiTestClickResult", json)
@@ -132,8 +179,16 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 			task.wait(0.1)
 		end
 		busy = true
+		if not isolated("UiTestScenario") then
+			local json = HttpService:JSONEncode(refusal(name))
+			print("[UITEST] " .. json)
+			player:SetAttribute("UiTestScenarioResult", json)
+			busy = false
+			return
+		end
 		start()
 		pcall(UiScenarios.PlayWithoutPasses)
+		pcall(UiScenarios.DismissWelcome)
 		local ok, res = pcall(UiScenarios.Run, name)
 		if not ok then
 			res = {

@@ -106,7 +106,7 @@ function Tests.sidekicks()
 		flag("odds_sum_100", approx(odds, 100), odds, 100)
 		flag("config_costs_positive", Cfg.SummonCost > 0 and Cfg.TenCost > 0 and Cfg.BagSize >= 10)
 		flag("config_unlock_positive", Cfg.UnlockRebirth >= 1, Cfg.UnlockRebirth)
-		flag("kaizel_flies", rowOf.side_wyvern ~= nil and rowOf.side_wyvern.Movement == "Fly")
+		flag("kaizel_flies", Cfg.Get("side_wyvern") ~= nil and Cfg.Get("side_wyvern").Movement == "Fly")
 
 		-- Clone only PlayerData so SetStore never redirects the live player's autosaves.
 		local module = Server.PlayerData:Clone()

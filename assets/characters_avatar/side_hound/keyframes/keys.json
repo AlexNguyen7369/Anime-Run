@@ -1,0 +1,344 @@
+{
+ "id": "side_hound",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.4,
+   3.0
+  ],
+  "Head": [
+   0.0,
+   -1.4,
+   3.9
+  ],
+  "HeadJaw": [
+   0.0,
+   -1.9,
+   3.1
+  ],
+  "HeadNeon": [
+   0.0,
+   -1.4,
+   3.9
+  ],
+  "LegBackLeft": [
+   0.75,
+   1.85,
+   2.6
+  ],
+  "LegBackRight": [
+   -0.75,
+   1.85,
+   2.6
+  ],
+  "LegFrontLeft": [
+   0.85,
+   -0.8,
+   2.8
+  ],
+  "LegFrontRight": [
+   -0.85,
+   -0.8,
+   2.8
+  ],
+  "Tail": [
+   0.0,
+   2.4,
+   2.9
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadJaw": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Rovar: energy blast (proposed)",
+   "end": 1.4,
+   "Release": 0.85,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.35,
+     "desc": "Plants wide, head drawn back, jaw shut",
+     "root_offset": {
+      "Body": [
+       0,
+       0.5,
+       0.294
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -8,
+       0,
+       0
+      ],
+      "Head": [
+       -20,
+       0,
+       0
+      ],
+      "HeadJaw": [
+       -4,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegBackLeft": [
+       14,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       14,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -20,
+       -10,
+       0
+      ],
+      "LegFrontRight": [
+       -20,
+       10,
+       0
+      ],
+      "Tail": [
+       -26,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Charge",
+     "t": 0.65,
+     "desc": "Head low, jaw opening, shoulders hunched",
+     "root_offset": {
+      "Body": [
+       0,
+       0.35,
+       0.052
+      ]
+     },
+     "rotations": {
+      "Body": [
+       10,
+       0,
+       0
+      ],
+      "Head": [
+       12,
+       0,
+       0
+      ],
+      "HeadJaw": [
+       22,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegBackLeft": [
+       -6,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       -6,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -34,
+       -12,
+       0
+      ],
+      "LegFrontRight": [
+       -34,
+       12,
+       0
+      ],
+      "Tail": [
+       -44,
+       0,
+       14
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.85,
+     "desc": "Head snaps up level, jaw wide, blast fires",
+     "root_offset": {
+      "Body": [
+       0,
+       0.2,
+       0.351
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -6,
+       0,
+       0
+      ],
+      "Head": [
+       -10,
+       0,
+       0
+      ],
+      "HeadJaw": [
+       40,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegBackLeft": [
+       20,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       20,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -26,
+       -14,
+       0
+      ],
+      "LegFrontRight": [
+       -26,
+       14,
+       0
+      ],
+      "Tail": [
+       22,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.15,
+     "desc": "Recoils, jaw half shut, shakes its head",
+     "root_offset": {
+      "Body": [
+       0,
+       0.35,
+       0.127
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -4,
+       0,
+       0
+      ],
+      "Head": [
+       6,
+       0,
+       -18
+      ],
+      "HeadJaw": [
+       8,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegBackLeft": [
+       6,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       6,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -8,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       -4,
+       0,
+       0
+      ],
+      "Tail": [
+       0,
+       0,
+       -14
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

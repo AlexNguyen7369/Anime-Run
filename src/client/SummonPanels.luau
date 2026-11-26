@@ -416,13 +416,16 @@ function SummonPanels.new(canvas, deps)
 	function self.Chances()
 		-- A due pity guarantee is the odds now (SIDEKICK_SPEC "No luck ... only pity does, and Details shows it"; section 6):
 		-- the tier reads 100%, split evenly over its Sidekicks (the server picks one of them), every other rarity 0%.
-		local tier = nil
-		if (player:GetAttribute("SidekickPity") or 0) >= SidekickConfig.PityCount - 1 then
-			tier = "Mythic"
-		elseif (player:GetAttribute("SidekickLegendaryPity") or 0) >= SidekickConfig.LegendaryPityCount - 1 then
-			tier = "Legendary"
-		end
 		local list, byRarity, values = oddsList(deps.Rotation()), {}, {}
+		local offered = {}
+		for i, item in list do
+			offered[i] = item.Row
+		end
+		local tier = SidekickConfig.DueTier(
+			player:GetAttribute("SidekickPity") or 0,
+			player:GetAttribute("SidekickLegendaryPity") or 0,
+			offered
+		)
 		local inTier = 0
 		for _, item in list do
 			inTier += (tier and item.Row.Rarity == tier) and 1 or 0

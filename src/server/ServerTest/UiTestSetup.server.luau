@@ -28,6 +28,21 @@ local function live(name)
 	return require(Server:WaitForChild(name))
 end
 
+-- Design doc 4.24 "Harness saves": the session goes to an in-memory save before any fixture runs, and on every
+-- harness trigger the server can see, so a UI run started from the server datamodel is isolated before the client
+-- begins. A trigger set only on a client never reaches here: the client harness then refuses to run.
+local HarnessSave = require(script.Parent:WaitForChild("HarnessSave"))
+for _, name in { "UiTestSetup", "UiTestRun", "UiTestClick", "UiTestScenario" } do
+	local function onTrigger()
+		local value = ReplicatedStorage:GetAttribute(name)
+		if value ~= nil and value ~= false and value ~= "" then
+			HarnessSave.Isolate()
+		end
+	end
+	ReplicatedStorage:GetAttributeChangedSignal(name):Connect(onTrigger)
+	task.spawn(onTrigger)
+end
+
 local snapshots = {} -- [Player] = { gacha, money, autoRacing, autoRoll, upgrades }
 local spied = {} -- [RemoteEvent] = connection (never connect twice)
 local functionSpies = {} -- original RemoteFunction -> { name, proxy }; original callback is untouched.
@@ -65,10 +80,15 @@ local function indexStates(player)
 	local rarest = C.Rollable()[1].Id
 	-- Reset the catalog portion first: a reused Studio player can already own every character,
 	-- which would make this fixture unable to establish the required hidden rarest tile.
+	-- Only this world's characters: the save is shared (design doc 4.47), so the other world's roster stays as it is.
+	local here = {}
+	for _, s in C.All() do
+		here[s.Id] = true
+	end
 	local data = player:FindFirstChild("GachaData")
 	if data then
 		for _, entry in data:GetChildren() do
-			if C.Get(entry.Name) and C.Get(entry.Name).Rollable then
+			if here[entry.Name] and C.Get(entry.Name).Rollable then
 				entry:Destroy()
 			end
 		end
@@ -98,6 +118,19 @@ local function setAutoRoll(player, on)
 end
 
 local setups = {}
+
+-- Stops auto racing and waits until the player is on foot (Team changes are locked during a run).
+local function stopRun(player, label)
+	local RunnerService = live("RunnerService")
+	RunnerService.SetAutoRace(player, false)
+	local start = os.clock()
+	while RunnerService.IsAutoRacing(player) or player:GetAttribute("AutoRacing") == true do
+		if player.Parent ~= Players or os.clock() - start > 5 then
+			error(label .. ": still racing after 5 s")
+		end
+		RunService.Heartbeat:Wait()
+	end
+end
 
 -- Team-of-3 stamina (design doc 4.3) ends an auto race by exhaustion in ~13.5 s (a Common team), which would end the
 -- auto_racing fixture mid-run. From auto_racing until 'restore', this player's runs get untiring stamina through
@@ -248,6 +281,10 @@ end
 -- Run once per test session: the baseline is kept until 'restore' (a second snapshot must never overwrite it with
 -- state the tests already changed, e.g. after emphasized_next or turbo_next).
 local indexBefore = {} -- [Player] = GachaService.Snapshot before the first index_states ('restore' drops it)
+-- Declared here so the full 'restore' can drop them too (an aborted scenario must not leave a stale "was racing").
+local indexRacing = {} -- [Player] = was auto racing before index_states stopped the run to equip
+local teamFullRacing = {} -- [Player] = was auto racing
+local teamFullGranted = {} -- [Player] = { ids team_full granted } (World 2: a new save owns one character)
 function setups.snapshot(player)
 	if snapshots[player] then
 		return
@@ -707,6 +744,7 @@ function setups.restore(player)
 	restoreRelics(player)
 	longStamina[player] = nil
 	indexBefore[player] = nil -- snap.gacha below is older
+	indexRacing[player], teamFullRacing[player], teamFullGranted[player] = nil, nil, nil
 	local snap = snapshots[player]
 	if not snap then
 		error(
@@ -764,10 +802,22 @@ end
 
 -- ui_index asks for it (UiScenarios.Needs): what it replaced comes back with restore:index_states, right after.
 function setups.index_states(player)
+	local G = live("GachaService")
 	if not indexBefore[player] then
-		indexBefore[player] = live("GachaService").Snapshot(player)
+		indexBefore[player] = G.Snapshot(player)
 	end
 	indexStates(player)
+	-- The Index's equipped tile is Team slot 1. Equip moves it there only on foot (Team changes are locked during a
+	-- run), and a save whose slot 1 is the starter (World 2's first session) has no tile for it: equip on foot.
+	local want = player:GetAttribute("EquippedCharacter")
+	if G.TeamList(player)[1] ~= want then
+		local RunnerService = live("RunnerService")
+		if indexRacing[player] == nil then
+			indexRacing[player] = RunnerService.IsAutoRacing(player) == true
+		end
+		stopRun(player, "index_states")
+		G.Equip(player, want)
+	end
 end
 local function restoreIndexStates(player)
 	local saved = indexBefore[player]
@@ -775,6 +825,10 @@ local function restoreIndexStates(player)
 		indexBefore[player] = nil
 		live("GachaService").Apply(player, saved)
 	end
+	if indexRacing[player] then
+		live("RunnerService").SetAutoRace(player, true)
+	end
+	indexRacing[player] = nil
 end
 
 -- Team panel (UiSpec.Team, Client/UiTest/UiTeam; design doc 4.40): index_states, on foot, Team = A,B of three owned
@@ -830,13 +884,13 @@ function setups.team_states_clear(player)
 	restoreHudUnlock(player)
 end
 
--- ui_hitboxes: a full Team of three, the minibar row as a player with three kept characters sees it (FillTeam, c80e4de).
+-- ui_hitboxes: a full Team (3; World 2: 4), the minibar row as a player with a full kept Team sees it (FillTeam, c80e4de).
 -- With two members the empty third circle draws smaller than a portrait and the row's OpenTeam padding depends on the save.
 -- Team changes are locked during a run, so the run stops first; restore:team_full puts the Team and the run back.
-local teamFullRacing = {} -- [Player] = was auto racing
 function setups.team_full(player)
+	local size = require(Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
 	local team = string.split(player:GetAttribute("Team") or "", ",")
-	if #team >= 3 and team[3] ~= "" then
+	if #team >= size and team[size] ~= "" then
 		return
 	end
 	local G, C, RunnerService = live("GachaService"), require(Shared.CharacterCatalog), live("RunnerService")
@@ -844,34 +898,70 @@ function setups.team_full(player)
 		teamBefore[player] = player:GetAttribute("Team") or ""
 	end
 	teamFullRacing[player] = RunnerService.IsAutoRacing(player) == true
-	RunnerService.SetAutoRace(player, false)
-	local start = os.clock()
-	while RunnerService.IsAutoRacing(player) or player:GetAttribute("AutoRacing") == true do
-		if player.Parent ~= Players or os.clock() - start > 5 then
-			error("team_full: still racing after 5 s")
-		end
-		RunService.Heartbeat:Wait()
-	end
+	stopRun(player, "team_full")
 	local data, ids = player:FindFirstChild("GachaData"), {}
 	for _, id in team do
 		if id ~= "" then
 			table.insert(ids, id)
 		end
 	end
-	for _, spec in C.All() do
-		if #ids < 3 and spec.Rollable and data and data:FindFirstChild(spec.Id) and not table.find(ids, spec.Id) then
+	-- Any world's owned character may join (design doc 4.47: the Index and teams are shared)
+	for _, spec in C.Everything() do
+		if #ids < size and spec.Rollable and data and data:FindFirstChild(spec.Id) and not table.find(ids, spec.Id) then
 			table.insert(ids, spec.Id)
 		end
 	end
-	assert(#ids == 3, "team_full: fewer than 3 owned rollable characters")
+	-- Too few owned (a new save has only the starter): grant more; restore:team_full takes exactly these back
+	for _, spec in C.All() do
+		if #ids < size and spec.Rollable and not table.find(ids, spec.Id) then
+			teamFullGranted[player] = teamFullGranted[player] or {}
+			table.insert(teamFullGranted[player], spec.Id)
+			G.Grant(player, spec.Id)
+			table.insert(ids, spec.Id)
+		end
+	end
+	assert(#ids == size, "team_full: fewer than " .. size .. " rollable characters")
 	local ok, why = G.SetTeam(player, ids)
 	assert(ok, "team_full: SetTeam refused: " .. tostring(why))
+	-- The run goes on as it was (a full saved Team returns above without touching it): the row is judged as then seen
+	if teamFullRacing[player] then
+		RunnerService.SetAutoRace(player, true)
+	end
 end
 local function restoreTeamFull(player)
+	-- Stop first: stopRun errors after 5 s, and what was saved must then still be here for the next restore.
+	if teamFullRacing[player] then
+		stopRun(player, "restore:team_full") -- Team changes are locked during a run
+	end
 	local before = teamBefore[player]
 	teamBefore[player] = nil
+	local granted = teamFullGranted[player]
+	teamFullGranted[player] = nil
+	local G = live("GachaService")
 	if before and before ~= "" then
-		live("GachaService").SetTeam(player, string.split(before, ","))
+		G.SetTeam(player, string.split(before, ","))
+	elseif granted then
+		local kept = {}
+		for _, id in G.TeamList(player) do
+			if not table.find(granted, id) then
+				table.insert(kept, id)
+			end
+		end
+		if #kept > 0 then
+			G.SetTeam(player, kept)
+		end
+	end
+	-- Only what the fixture granted goes: a full GachaService.Apply of an older snapshot would also undo the rolls,
+	-- characters and stat points gained since.
+	local data = player:FindFirstChild("GachaData")
+	for _, id in granted or {} do
+		local entry = data and data:FindFirstChild(id)
+		if entry then
+			entry:Destroy()
+		end
+	end
+	if granted then
+		player:SetAttribute("StatPoints", G.FreePoints(player)) -- Grant gave points for each new character
 	end
 	if teamFullRacing[player] then
 		live("RunnerService").SetAutoRace(player, true)
@@ -1693,6 +1783,7 @@ local function runSetup(request)
 	local arg = string.match(request, "^[^:]+:(.*):[^:]*$") -- "<id>:<args>:<nonce>"; nil for "<id>:<nonce>"
 	ReplicatedStorage:SetAttribute("UiTestSetupError", nil)
 	local ok, err = pcall(function()
+		HarnessSave.Isolate()
 		if id == "spy" then
 			spy()
 			return
@@ -1884,6 +1975,7 @@ setupRequest.OnServerInvoke = function(player, request)
 	end
 	local restoreId = string.match(request, "^restore:(.+)$")
 	local ok, err = pcall(function()
+		HarnessSave.Isolate()
 		local rigName, rigId, rigAura, rigTrail, rigSpeed =
 			string.match(request, "^run_visual_rig:([^:]+):([^:]+):([^:]+):([^:]+):([%d%.]+)$")
 		local swapId, swapAura, swapTrail = string.match(request, "^run_visual_swap:([^:]+):([^:]+):([^:]+)$")

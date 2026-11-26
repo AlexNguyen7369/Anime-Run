@@ -378,7 +378,7 @@ function RunnerService.SetAutoRace(player, enabled, duel)
 		return RunnerService.IsAutoRacing(player)
 	end
 	local character = characters[player]
-	if enabled and not isAlive(character) then
+	if enabled and (not isAlive(character) or player:GetAttribute("Travelling") == true) then
 		return RunnerService.IsAutoRacing(player) -- no avatar to seat (dead or not spawned yet)
 	end
 	local gen = setState(player, enabled)
@@ -469,7 +469,7 @@ function RunnerService.PadTouched(player, hit)
 	if player == nil or racing[player] == true or typeof(hit) ~= "Instance" then
 		return false
 	end
-	if player:GetAttribute("BossEvent") == true then
+	if player:GetAttribute("BossEvent") == true or player:GetAttribute("Travelling") == true then
 		return false
 	end
 	local character = characters[player]

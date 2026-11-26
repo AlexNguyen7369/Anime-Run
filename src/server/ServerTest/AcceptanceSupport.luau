@@ -16,6 +16,27 @@ function Support.lateData(name)
 	return folder and Support.module(folder, name)
 end
 
+-- The character a test should drive in this place for World 1's `id`. In World 2 a World 1 character runs at a tenth
+-- of its cruise (design doc 4.47), so a scenario that crosses the track chain with one takes ten times as long: there
+-- the stand-in is this world's rollable character with the nearest cruise. World 1, and ids that run the same in both
+-- worlds (the starter and the starter picks), get `id` back.
+function Support.worldChar(id)
+	local Shared = game:GetService("ReplicatedStorage").Shared
+	local Catalog, RaceConfig = require(Shared.CharacterCatalog), require(Shared.RaceConfig)
+	local spec = Catalog.Get(id)
+	if not spec or RaceConfig.Cruise(spec) == RaceConfig.Cruise(spec, nil, 1) then
+		return id
+	end
+	local want, best, gap = RaceConfig.Cruise(spec, nil, 1), id, math.huge
+	for _, other in Catalog.All() do
+		local cruise = RaceConfig.Cruise(other)
+		if other.Rollable and cruise == RaceConfig.Cruise(other, nil, 1) and math.abs(cruise - want) < gap then
+			best, gap = other.Id, math.abs(cruise - want)
+		end
+	end
+	return best
+end
+
 function Support.report(name)
 	local result = { scenario = name, pass = true, checks = {}, metrics = {} }
 	local function flag(label, ok, value, limit)

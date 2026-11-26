@@ -1,4 +1,40 @@
 {
+ "dan_granny": {
+  "Hash": "7e2dc2b52fedae730327a77eef4a8a232aa19c73f05368052d6442b5d24dcf63",
+  "HeadHash": "c61561162a2f1020e14f0843be65991ef9e392ce52149b1e292f3030e9162089",
+  "HeadImage": "80001487328698",
+  "Image": "116872653503876"
+ },
+ "dan_hex": {
+  "Hash": "31c37b4483d0900d1fe16b6e66e6c780e32a40cc2f15299eafca3060ac00d0d6",
+  "HeadHash": "1478ab8e83e4c58fc768ae59a0b27866cd5e6151da9d0589d3af631e8941ab23",
+  "HeadImage": "101712047296251",
+  "Image": "70719572806202"
+ },
+ "dan_idol": {
+  "Hash": "bee359d6798c10569b433f575799cea1fb665a186abc11dbc52250d34f270da1",
+  "HeadHash": "89fb36659494e9174d01afa280b2fb63dee50e40e7b9f12c7c19956c9e0cb1f2",
+  "HeadImage": "115154168188533",
+  "Image": "119977799985812"
+ },
+ "dan_medium": {
+  "Hash": "07ac77835a5818bede3a44d98194e4346b381b374179a9513c6b7124f01cab37",
+  "HeadHash": "ede7ebda0f9151d51ccd51aa51bb5dd2583a065422d5b69577dda943ec8e5161",
+  "HeadImage": "140475545353112",
+  "Image": "113275672001028"
+ },
+ "dan_psychic": {
+  "Hash": "38a6f72f250358488e06d4a1c04590c576be7c7e4d835fe48822edf0104b2212",
+  "HeadHash": "717b38b3631036fe64a0ae9721ded20510a4db999e433393302073f059c8297b",
+  "HeadImage": "92466128041939",
+  "Image": "98276300243111"
+ },
+ "dan_turbo": {
+  "Hash": "7b79d841cf76332e1fc95cdc981901663bdd1497e5fe7fed249b51633b4c591c",
+  "HeadHash": "09c6ab65068294495948168cd0e1e095cf2a8a639a0317e095d1f294666c63a7",
+  "HeadImage": "74616716265341",
+  "Image": "97254132259630"
+ },
  "db_green": {
   "Decal": "76008424004248",
   "Hash": "0021e5b6dfba09ccd3bbd03d5e05c524ac44dd37700b39461aee32e6346c0d6e",
@@ -95,6 +131,54 @@
   "HeadImage": "93748463687737",
   "Image": "88728976271086"
  },
+ "fr_axe": {
+  "Hash": "9f7dc550b9675c22158bc15ca9933ca962e98c75ded09a7ef07bd04547df9a1e",
+  "HeadHash": "562a8c6858a5b74e99eaaa194961ca705298181a82add4a923da2ce303ebda82",
+  "HeadImage": "125149670097765",
+  "Image": "85472316289237"
+ },
+ "fr_cut": {
+  "Hash": "b8ee8ffd45ab3a8485f9d9283510955300f69ba21d5250ccd223a3d7bfc0685a",
+  "HeadHash": "24bc34be75192bdd4f273e2eebc670accc7067581d1213b2162ce8c5a0d46d38",
+  "HeadImage": "94616435734363",
+  "Image": "114321929506904"
+ },
+ "fr_gold": {
+  "Hash": "92b18d0ad74a45685791c0c6fcfc424a0f0dd39ab410b00b43c9ccbd173aab6b",
+  "HeadHash": "5fe846ed3e7b2a900ae1655b0aa838e05ec9e6efd45ea66c5058ad98410ad63a",
+  "HeadImage": "129674124224464",
+  "Image": "122187864912187"
+ },
+ "fr_great": {
+  "Hash": "208017a510e98ad4ce27047140b9246b5e0c68bdd3a37c26dd740e3f73eb6351",
+  "HeadHash": "040fab6e522cb7c90206a7920005ffd110814e1b01bd6016b43c6e5e7147d384",
+  "HeadImage": "136088524302068",
+  "Image": "92952307895804"
+ },
+ "fr_hero": {
+  "Hash": "e9cc492125ccd13163bc59e0ba74ce151dd95d0ee3841bbec0d6b5d4bd891dfc",
+  "HeadHash": "59021b75a6c37223dfd884cfc2609af9ffb9eff7242f19e1afc5940a86c638e0",
+  "HeadImage": "94798105165454",
+  "Image": "85829282528578"
+ },
+ "fr_mage": {
+  "Hash": "6f72b981a9659e7d10c3bc340e4ea182eb8bd4fe56bcd7ad9841c9443daf53af",
+  "HeadHash": "ada9dd5ff26f8904af760eb6691545f700b29c8b3987725b9917dcc3285abb53",
+  "HeadImage": "81102941299694",
+  "Image": "94914036545557"
+ },
+ "fr_scales": {
+  "Hash": "6ab3b699c9d3ccea153037355b23b02cf4366126e496997cdc3963718593a737",
+  "HeadHash": "fb278a2a0ec9f0ef51c4080cfbb14f7266aecfaa772261717b434c8e785cc26b",
+  "HeadImage": "82457293687167",
+  "Image": "73845782963953"
+ },
+ "fr_staff": {
+  "Hash": "398986bc97f2fe405db7fa1d74e255b522677a8ce88827bc98109b571809096a",
+  "HeadHash": "4950bdfea5bc06450ec1244bef97baf256226ce1f1159728a3fa68cd21c8d309",
+  "HeadImage": "138854736737716",
+  "Image": "130552724824672"
+ },
  "jk_king": {
   "Decal": "109494166130349",
   "Hash": "f3b3890fd253f27ccc590339533a9f56e71f53a9590fbeebc069c6b243605653",
@@ -150,6 +234,42 @@
   "HeadHash": "f05b40f673c4df2dc18d778d35a1179bf28d03123e6e30b1e1106957eb20b23e",
   "HeadImage": "116906123069605",
   "Image": "106603541306809"
+ },
+ "kaiju_axe": {
+  "Hash": "bac1fffd54a97f0c9ef22049f55777a34bb78aef29434546dc32b9471d366210",
+  "HeadHash": "9e3a030db7de21814450e714396a62999d54f19fd7c46f2f7dbf32c7a501878b",
+  "HeadImage": "127232732157411",
+  "Image": "87423824863561"
+ },
+ "kaiju_blade": {
+  "Hash": "872f297a191cd0d1edfefc2e8b989f827d8dbcfbbe51c9817bc3bc621bbc57e5",
+  "HeadHash": "2aafc3984ef777b150ff35ad6109aaf1fabdab3e28782f9c393016ba7df747f9",
+  "HeadImage": "89691680824666",
+  "Image": "77554048959021"
+ },
+ "kaiju_captain": {
+  "Hash": "12f61b65176689d32342bd8233969a0f859082caf74db4a92e90b3d31c34e6be",
+  "HeadHash": "0e43178a3b6b1c78cc56e1ac7549e2e993cbdb918de8eff3b9d9894276194ec9",
+  "HeadImage": "131442284126411",
+  "Image": "105560118578695"
+ },
+ "kaiju_hero": {
+  "Hash": "e3d3423d9ad63927a4c7b5a8bfa429e53c978646c4e919234fb77a27c4c170ae",
+  "HeadHash": "2cde6521d389947f99cec3484ecbf009b8745c23f54ded71963602370eae0411",
+  "HeadImage": "85240446488958",
+  "Image": "94736931627068"
+ },
+ "kaiju_ice": {
+  "Hash": "615de4605e055837887441d44a7d09448f8b8fc157e608b07f66cce456a028c3",
+  "HeadHash": "23334225be4560d1b5dd2819634dc7927200de21ab89fec5244ba01245463195",
+  "HeadImage": "93363038327490",
+  "Image": "138540983361753"
+ },
+ "kaiju_nine": {
+  "Hash": "22b377e2490ce1d2a13f0f348eace079a3e15f793f798b05ffbccfab18bf4de6",
+  "HeadHash": "8992cfe2465a2db5a71e8abe8c433af4161823415d70c410f9cdafa2b3dc3992",
+  "HeadImage": "92964406960741",
+  "Image": "138894074534138"
  },
  "leaf_avenger": {
   "Decal": "87095988223066",
@@ -247,6 +367,18 @@
   "HeadImage": "83018071556826",
   "Image": "119531960093620"
  },
+ "punch_cyborg": {
+  "Hash": "8189c99699b25600e2ed4f6d5d7dabb75db928287695f6b159eb49febf4f027e",
+  "HeadHash": "3394b858cb64800af8fdb716ec291014f3c4d46e9789de678ff775538534045a",
+  "HeadImage": "109521402709164",
+  "Image": "138067090474389"
+ },
+ "punch_fist": {
+  "Hash": "d27720478556da5bb02d37527d24b811e501df5945af46b7039881ea89f6c7c3",
+  "HeadHash": "8d8b798e002150f52eb606ff25c621899a78092db4ffb3344924a73a6aaa9cb6",
+  "HeadImage": "134895557496576",
+  "Image": "133023496300304"
+ },
  "punch_hero": {
   "Decal": "74035650272221",
   "Hash": "2e32d79dcd09459b2471fbdf2cbfdf0a160dabc232d38e6a05130e27b4a2cd72",
@@ -254,6 +386,36 @@
   "HeadHash": "d256ccc233a46ff068b04b02ff60b865c4ce4cc6cdfe1ae81f0982e63da26f5a",
   "HeadImage": "138408988862084",
   "Image": "90519431236954"
+ },
+ "punch_monster": {
+  "Hash": "d54a95dfef1c3ec981a74c242f6656ead384233b1062163220fbd2195e172fd8",
+  "HeadHash": "cc399182f9d95b7157c50629916d45e34c672df364b7cf27733e319b307d82e3",
+  "HeadImage": "129717494949817",
+  "Image": "102101178171408"
+ },
+ "punch_psychic": {
+  "Hash": "58e415d524f6ea939914b056fe26dfd2fc0a02d360e97b8f8387cf846b0f144f",
+  "HeadHash": "4e1d49a4d8815b44ad0a9f593c7c42c91e2c42d4a756dbebbf2028419dc8758e",
+  "HeadImage": "71117932547788",
+  "Image": "126550953477568"
+ },
+ "punch_rider": {
+  "Hash": "f4ca01ef6b99ca7b3c3e1bb55078dc5c317a3ce7ad9cc96b9cfd4e22a26d6323",
+  "HeadHash": "4ac400fb338c0b669b4d76e05d26fdde4a9c17e72b7af228a9d714e98ba100ee",
+  "HeadImage": "99453845228491",
+  "Image": "98980053458077"
+ },
+ "punch_serpent": {
+  "Hash": "a19491d729baaedf7e6bd45872127642c07479fc2747b26b7931f464aba2d94d",
+  "HeadHash": "91a55dfb7340cacc06aeb7ec98e67ba922740c5747f9a067a6c1a6343448b827",
+  "HeadImage": "92082535143107",
+  "Image": "106248845220560"
+ },
+ "punch_speed": {
+  "Hash": "37423e2c593ec741f75a6aeb6ca10b26fe2da234565fcffd6037d677731df152",
+  "HeadHash": "ddac88144478d0a74e622c503e1ed129cf161c80e916b6edc22b45393e442059",
+  "HeadImage": "95963134490376",
+  "Image": "88736201691023"
  },
  "punch_void": {
   "Decal": "110043888034731",
@@ -302,6 +464,12 @@
   "HeadHash": "6944aeb12a769fb1157521eeed28c72c76cf77db0bc5d8c6ac4b77269238d8c6",
   "HeadImage": "113806576301399",
   "Image": "89908465139103"
+ },
+ "saw_katana": {
+  "Hash": "6c5f5125b70b742b482d8aeeb93c38b2811d49bc10bdced46c61a0898b9c94f3",
+  "HeadHash": "f89a05a54bd57332eea0bdf3b44822cdea540c396674c069bce1db2ec5f26237",
+  "HeadImage": "77707142366936",
+  "Image": "80244885441586"
  },
  "saw_nervous": {
   "Decal": "131498918060005",
@@ -367,6 +535,12 @@
   "HeadImage": "94066208181840",
   "Image": "72613724415866"
  },
+ "side_acrobat": {
+  "Hash": "cf650ad1aa8a468f8ea3d270bbe9b7cbf4931427591f14349714eeecc2b50672",
+  "HeadHash": "f1f863031506a35acd9b8d58bae25062e6ab5a3bd43db145961e7ec7d18351b9",
+  "HeadImage": "123401526162525",
+  "Image": "132698612255801"
+ },
  "side_ant": {
   "Decal": "108952152073709",
   "Hash": "121a83f20e35c9b55b0a3ddf41642be359b2126112d0221325be8fdc3b1a00f5",
@@ -374,6 +548,30 @@
   "HeadHash": "413482539a4f9c52b771982cf6b15c56b49327929afe8d303c7b6e235de9a4be",
   "HeadImage": "129297026179030",
   "Image": "87188552266607"
+ },
+ "side_bird": {
+  "Hash": "500667ba415d5826cbe7f7f24dacdba9b798fae3992a62d80674969303ccc4b5",
+  "HeadHash": "dfa31a56e1a86dd8eb53c87bb225e1e25e46bc43716e29b15d4439cb4790962d",
+  "HeadImage": "139918095962055",
+  "Image": "121142938013946"
+ },
+ "side_box": {
+  "Hash": "706a15904de5743681620ef0f7e5c0ba30ec6eb5474389245d1933935d1d283e",
+  "HeadHash": "2840d2596c71c1bf2cc39d88902fc7b72dff699cabec7d032474a4eccdffc7d6",
+  "HeadImage": "82357994478437",
+  "Image": "75370306404505"
+ },
+ "side_brawler": {
+  "Hash": "f8af50c540980f63863db2da2876eaefd47005c8d31c9b38aeab300e5e021723",
+  "HeadHash": "d73fad11920198648c156224c0a7b8661bf8808fe3f2f7793914cbd57558e728",
+  "HeadImage": "134220149168386",
+  "Image": "134083826687137"
+ },
+ "side_cat": {
+  "Hash": "c2e832dd68c147221befd44e3148ee129392a23ab73fee5da59dd73d8031850c",
+  "HeadHash": "2ea3de6c3054fdeec2bd1add2c0fc382014c9bc90d36a145d1fe332b957e21fe",
+  "HeadImage": "83058406157966",
+  "Image": "117970428900002"
  },
  "side_chain": {
   "Decal": "96625299680481",
@@ -399,6 +597,12 @@
   "HeadImage": "128276356237669",
   "Image": "119448828185312"
  },
+ "side_dark": {
+  "Hash": "36a6e22aea16c009fd097f049d372944fa5c5a0dfb6b7db7d405f6ef2e5e4658",
+  "HeadHash": "27dd47ef695b58ef4adee094844db0c72a2c59396a2d44ec92fe734f9ea9d406",
+  "HeadImage": "83197562937390",
+  "Image": "113577032458460"
+ },
  "side_dogs": {
   "Decal": "85358724630465",
   "Hash": "5cdb3c48d3db563b04bc73f0b466aa793c581a0fff6d2ac8e0748812c6d0f1e5",
@@ -406,6 +610,12 @@
   "HeadHash": "b5e31949ff04edeadab3877b7723c0c33deb3e208c09ca488e96c23f74564a6a",
   "HeadImage": "78978754411546",
   "Image": "79265029206445"
+ },
+ "side_dragon": {
+  "Hash": "d12d308f4fe2000495b0e4b14c9ca0efa9255823ffdc3c4dba667549009d0405",
+  "HeadHash": "8a2ed3b11d042cfd4e3b43842f25530a6a2156a6584790c9b037f35937a542ad",
+  "HeadImage": "106638668351121",
+  "Image": "127704348062148"
  },
  "side_fist": {
   "Decal": "128488419443074",
@@ -423,6 +633,18 @@
   "HeadImage": "137910633630283",
   "Image": "123904858057635"
  },
+ "side_general": {
+  "Hash": "83b879970fe968fd7ce5adea76e43cb7fe0281927222ef47a5975087f1bd652a",
+  "HeadHash": "c032a2c62d165c11336b527c4a84ee1232b5309347f0e6c6f6b1d7906b45e136",
+  "HeadImage": "107025125741305",
+  "Image": "87167502379186"
+ },
+ "side_hound": {
+  "Hash": "3cfa5f412aac6e1d90fa262f55ca6754c5a98c43b7324ece4902b329a8a83378",
+  "HeadHash": "40b7c6af4b9922fb9b58230d94fc5ca6a8a9d75d4b6b4591eb077e69f87ee4c9",
+  "HeadImage": "139182099801575",
+  "Image": "110551688719783"
+ },
  "side_king": {
   "Decal": "111824750574159",
   "Hash": "be16fe93207417f0aee4653aef1fac9c667fff9eb519174791ff7866788baaf8",
@@ -438,6 +660,12 @@
   "HeadHash": "83dd4acfafa94c4e228abf49ae0de4f4bb6338084b04ba167f71c63d5748c2d9",
   "HeadImage": "98545701958767",
   "Image": "130776132014249"
+ },
+ "side_lucky": {
+  "Hash": "0aebfb55f4e80a6cba028855f9f8f917fdbee4cf50611c3027a1965f18d89db9",
+  "HeadHash": "50311d886daf55ef30d5763aa6152c90fe7172adc9de7d3bb7258ed2255b06f4",
+  "HeadImage": "74539072927819",
+  "Image": "80141670864393"
  },
  "side_mage": {
   "Decal": "104863104555989",
@@ -479,6 +707,18 @@
   "HeadImage": "76284391914798",
   "Image": "138487188877516"
  },
+ "side_shaman": {
+  "Hash": "b32e6c7ab2f4e97d897f6bb82206a1baf3d50377c0414cfc6524b45e8ab7624e",
+  "HeadHash": "539a67f1f19ca5f37d34e16dd280ab39b4d747d55ec3473cd547372864299136",
+  "HeadImage": "86439536441019",
+  "Image": "100523436949269"
+ },
+ "side_tiger": {
+  "Hash": "e2fa2a65bd2b5b7b9d37071478422224e0d994569496968c84d123961bd4ad71",
+  "HeadHash": "2bbbfdb3b7cf003232ecd4d3bc65680d7b30da0c605d7f75e07321ea408cb25b",
+  "HeadImage": "75949653913999",
+  "Image": "118647515657500"
+ },
  "side_wyvern": {
   "Decal": "122904029476707",
   "Hash": "771ec0a3e3c55f6767d8f0216fca9336dd783c01a73827e84e6b07e0cdc98a9b",
@@ -486,6 +726,12 @@
   "HeadHash": "5c32a657699c78a46ba07ab0e875aa6312e37ff41dc536ae43009380bee6aa2d",
   "HeadImage": "139199490786574",
   "Image": "90210420017655"
+ },
+ "solo_ant": {
+  "Hash": "1c63ad5ed70c5cce0e26f2395020ae0c01e3db0657b9187bd8ed45979453e0fa",
+  "HeadHash": "990efddf4c8f58c4ecf6c58561cd85e3aefe070c8c0a5ba83ab6a16df215c664",
+  "HeadImage": "106656008345925",
+  "Image": "84593589349641"
  },
  "solo_beast": {
   "Decal": "92895029110836",
@@ -502,6 +748,12 @@
   "HeadHash": "04d9a33983478fa8674f45a7fa7dcc62d12823cf6f5baf7d596313fd62facb50",
   "HeadImage": "101012748627129",
   "Image": "77052579143527"
+ },
+ "solo_flame": {
+  "Hash": "3f19868a95ec1258312f23101ff196caddffb8259cd18d144903db1535031f89",
+  "HeadHash": "9bfc02e43837b44d83300c40e593dae061595ff0c654f7ac8016371b726565e8",
+  "HeadImage": "103388816060502",
+  "Image": "88686264372725"
  },
  "solo_goliath": {
   "Decal": "139415933977083",

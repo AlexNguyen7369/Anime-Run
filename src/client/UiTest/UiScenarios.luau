@@ -226,6 +226,11 @@ UiScenarios.Names = {
 	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
+	"ui_late_models", -- another world's model arriving after Ready (UiLateModels; docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed))
+	-- World label, travel toast and the World 2 welcome (UiWorld2; docs/WORLD2_SPEC.md "World HUD", "Welcome")
+	"ui_world_label",
+	"ui_world2_welcome",
+	"ui_hud_look_by_world", -- both worlds: 4.40 HUD, no option A dressing; panels keep the handscroll (design doc 4.46 "HUD look")
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
 	"ui_remote_guards",
 	-- Last: its server setup (emphasized_next) takes the characters away until the emphasized roll happened
@@ -5687,46 +5692,20 @@ function S.ui_hud(res)
 			end
 		end
 		checkList(res, "hud_labels_inside_panel", outside)
-		-- Owner 2026-11-20 (design doc 4.40, 4.46 option A): Money and Gems each sit on a lacquer plate
-		-- (UiSpec.Hud.MoneyPlates), opaque with a gold Border rim; nothing else in Money draws a background or a border
-		-- stroke (text outlines stay).
-		local boxed, clickable, plates = {}, {}, {}
-		for _, p in UiSpec.Hud.MoneyPlates do
-			local plate = findPath(p)
-			local rim = plate and plate:FindFirstChildOfClass("UIStroke")
-			plates[plate or p] = true
-			if not (plate and plate:IsA("GuiObject")) then
-				table.insert(boxed, p .. " missing")
-			elseif plate.BackgroundTransparency > 0.001 then
-				table.insert(boxed, p .. " not opaque: BackgroundTransparency " .. plate.BackgroundTransparency)
-			elseif
-				not (
-					rim
-					and rim.Enabled
-					and rim.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
-					and sameColour(rim.Color, UiSpec.Hud.MoneyPlateRim)
-				)
-			then
-				table.insert(boxed, p .. " has no gold Border rim")
-			end
-		end
+		-- No box (design doc 4.40; 4.46 "HUD look", owner 2026-11-24, both worlds: no option A lacquer plate):
+		-- Money, Gems and everything in them draw no background and no border stroke (text outlines stay).
+		local boxed, clickable = {}, {}
 		for _, o in { hudPanel, table.unpack(hudPanel:GetDescendants()) } do
-			local plate = plates[o] or (o:IsA("UIStroke") and plates[o.Parent]) -- a plate and its own rim
-			if not plate and o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
+			if o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
 				table.insert(boxed, pathOf(o) .. " BackgroundTransparency " .. o.BackgroundTransparency)
-			elseif
-				not plate
-				and o:IsA("UIStroke")
-				and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border
-				and o.Enabled
-			then
+			elseif o:IsA("UIStroke") and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border and o.Enabled then
 				table.insert(boxed, pathOf(o) .. " border stroke")
 			end
 			if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
 				table.insert(clickable, pathOf(o))
 			end
 		end
-		checkList(res, "money_gems_lacquer_plates", boxed)
+		checkList(res, "money_gems_no_box", boxed)
 		checkList(res, "money_gems_non_interactive", clickable)
 	end
 	if not (money and moneyValue) then
@@ -5799,6 +5778,40 @@ function S.ui_hud(res)
 		end
 	end
 	checkList(res, "hud_counters_have_text_gradient", noGradient)
+	-- Design doc 4.46 "HUD look" (owner 2026-11-24, both worlds): the 4.40 read-outs. Both numbers are in the
+	-- game font with no kit role, and the Gems gradient is blue.
+	local wrongLook = {}
+	for _, p in UiSpec.Hud.GradientLabels do
+		local l = findPath(p)
+		if not l then
+			table.insert(wrongLook, p .. " missing")
+		elseif l.Font ~= UiSpec.Hud.ReadoutFont then
+			table.insert(wrongLook, ("%s Font %s, want %s"):format(p, l.Font.Name, UiSpec.Hud.ReadoutFont.Name))
+		elseif l:GetAttribute("AnimeRole") == "Dojo" then
+			table.insert(wrongLook, p .. " has the kit font role (AnimeRole Dojo)")
+		end
+	end
+	local gemsGradient = gemsValue and gemsValue:FindFirstChildOfClass("UIGradient")
+	local keys = gemsGradient and gemsGradient.Color.Keypoints
+	if
+		not (
+			keys
+			and sameColour(keys[1].Value, UiSpec.Hud.GemsGradient[1])
+			and sameColour(keys[#keys].Value, UiSpec.Hud.GemsGradient[2])
+		)
+	then
+		table.insert(
+			wrongLook,
+			("%s gradient %s to %s, want blue %s to %s"):format(
+				UiSpec.Hud.GemsValue,
+				tostring(keys and keys[1].Value),
+				tostring(keys and keys[#keys].Value),
+				tostring(UiSpec.Hud.GemsGradient[1]),
+				tostring(UiSpec.Hud.GemsGradient[2])
+			)
+		)
+	end
+	checkList(res, "hud_readouts_old_look", wrongLook)
 	local toggle = findPath(UiSpec.Hud.Auto)
 	check(
 		res,
@@ -6227,6 +6240,12 @@ function S.ui_stats(res)
 	end
 	local points = attr("StatPoints") or 0
 	local badge = findPath(UiSpec.Hud.PointsBadge)
+	-- A kept roll can add a point just now (a World 2 save discovers often): the badge follows on its changed signal
+	local by = os.clock() + 1
+	while badge and badge.Text ~= tostring(points) and os.clock() < by do
+		task.wait(0.05)
+		points = attr("StatPoints") or 0
+	end
 	if points > 0 then
 		local ok = badge ~= nil and effectivelyVisible(badge) and badge.Text == tostring(points)
 		check(res, "badge_shows_free_points", badge and badge.Text, tostring(points), ok)
@@ -6312,7 +6331,8 @@ end
 
 local function bestOwnedCharacter()
 	local best = nil
-	for _, character in CharacterCatalog.All() do
+	-- every world's characters: the Index and saves are shared, so World 2's profile counts World 1 rolls too
+	for _, character in CharacterCatalog.Everything() do
 		if owned(character.Id) and (best == nil or (character.Chance or 0) > (best.Chance or 0)) then
 			best = character
 		end
@@ -7360,6 +7380,8 @@ function S.ui_showcase(res)
 			and name ~= "RacerItemMenu"
 			-- Closed too: Enabled false until a boss event's return to spawn (Client/BossRewardPopup).
 			and name ~= "RacerBossRewards"
+			-- Closed too: World 2's arrival welcome, Enabled false once dismissed (Client/World2Welcome, DismissWelcome).
+			and name ~= "World2Welcome"
 			and other
 			and other:IsA("ScreenGui")
 			and other.DisplayOrder >= highest
@@ -9115,6 +9137,18 @@ for name, fn in K.sidekickFollow.Scenarios do
 	S[name] = fn
 end
 
+K.lateModels = require(script.Parent.UiLateModels).Build({ check = check })
+for name, fn in K.lateModels.Scenarios do
+	S[name] = fn
+end
+K.world2 = require(script.Parent.UiWorld2).Build({ check = check })
+for name, fn in K.world2.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.world2.After do
+	access.After[cond] = fn
+end
+
 K.sidekickAttack = require(script.Parent.UiSidekickAttack).Build({
 	check = check,
 	requestSetup = UiScenarios.RequestSetup,
@@ -9386,6 +9420,13 @@ function UiScenarios.PlayWithoutPasses()
 		warn("[UITEST] no_passes setup failed, the run keeps this player's passes: " .. tostring(err))
 	end
 	table.clear(events.recs)
+end
+
+-- World 2's arrival welcome (Client/World2Welcome) opens on a save's first World 2 session, and a Studio test save is
+-- welcomed every session: dismissed first, as a player does, so "rest" is the HUD. Local only, as its Close and OK.
+-- ui_world2_welcome and the world2_welcome_* clicks open it again on purpose.
+function UiScenarios.DismissWelcome()
+	player:SetAttribute("World2WelcomeShow", nil)
 end
 
 function UiScenarios.Run(name)

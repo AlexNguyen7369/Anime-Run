@@ -22,6 +22,7 @@ RollAnimConfig.HOLD = {
 	Legendary = 1.5,
 	Mythic = 2.5,
 	Secret = 4,
+	Eternal = 5, -- World 2 (design doc 4.47), proposed
 }
 
 RollAnimConfig.FIT_INTERVAL = 2.8 -- at a shorter roll interval the animation plays faster, so it still fits

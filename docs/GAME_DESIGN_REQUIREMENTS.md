@@ -338,6 +338,7 @@ before any Studio work.
 - **Two wings** (owner 2026-11-10, Layout C, `assets/plaza_draft/Layout_C.png`; replaces Clear plaza's service row, Best Roll gap, Legend placement and Dojo sight rule; **positions replaced 2026-11-11 by the Spawn showpiece ring, 4.43**): the spawn and the RACE START gate stay where they are. Facing the gate from the spawn, the economy wing is one straight row on the right, parallel to the spawn-gate path and facing it: Shop, Potions, Market, Index, from the spawn end toward the gate. The summon wing on the left faces the path too: the Sidekick summon altar (4.36) in the middle, Best Roll on the spawn side, the Saitamo exclusive pedestal on the gate side (owner 2026-11-10; was the 2 Legends). The Sensei stands beside the gate. Positions are in `docs/WORLD_REDESIGN_SPEC.md` section 4 and are **proposed** (tunable within this arrangement). The rest of Clear plaza still holds: no Rebirth shrine, one in-house Market stall, plain path, one Great Sakura, the sky loop.
 - **Clear plaza** (owner 2026-11-04; placement parts replaced by Two wings 2026-11-10): the Rebirth shrine is removed (Rebirth opens from its HUD tile). The Market is one in-house stall with no empty structures and no art from the fork. Repeated decoration is removed: the path is plain, with the RACE START torii and 4 stone lanterns framing its gate end (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
 - **Fresh-save checks** (dev tool, Studio only; orchestrator default): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server.
+- **Harness saves** (dev tool, Studio only; owner 2026-11-24 asked for the fix, wording is the orchestrator's default): a test harness never writes a real save. The first harness trigger of a Studio session (server tests, a UI fixture, a UI run, click or scenario) moves that session's saves to an in-memory copy of the save, read once and never written back; gift routes go to memory and leaderboards are skipped. There is no way back in the same session. The client UI harness refuses to run until the server reports the session isolated. It has no effect on a live server.
 - **Dojo with cyber accents** (owner 2026-11-10, after rejecting the full cyber and the hybrid Studio builds; replaces the "Enclosed cyber dojo" of the same day): no enclosed area, no wall and no blast door. The plaza keeps its look (golden-hour lighting, the Great Sakura, stone lanterns, petals and forest ambience, the wood torii, the stalls as built, the building positions (the showpiece ring since 4.43), wayfinding, service headers and sky loop). Hybrid cyber elements are added on top: neon trim on the torii and stall roofs, small wall screens on the stalls, a holo scanning ring at the RACE START gate, and a few warm-lit drones. Owner approved the accents from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG); sizes, colours and amounts stay **proposed**.
 - **Spawn showpiece** (owner 2026-11-11): the Dojos are gone; the freed ring's new use is in 4.43.
 
@@ -444,6 +445,11 @@ before any Studio work.
 - Boss Sidekicks (owner 2026-11-11): every boss drops a downsized Sidekick of itself from its own chest only (rule and odds in 4.37, 4.38). Rows `side_raga`, `side_mage`, `side_king` in `docs/SIDEKICK_SPEC.md`.
 
 ### 4.37 Boss events (owner 2026-11-04)
+- Boss gate and guide (owner 2026-11-25; WORLD_REDESIGN_SPEC 4.2): a boss gate stands next to the plaza's Summon altar, closed
+  while no boss event is active and open while one is; its prompt opens the same Bosses popup as the Bosses button and changes
+  no boss rule, timing or reward. `jk_strongest` (Gojio) stands at it; a player who walks up presses E to start a conversation
+  that gives information about the boss gate; text only, nothing granted. Wording, sizes, prompt range and the rebirth 1 case
+  **proposed** (`docs/BOSS_GUIDE_SPEC.md`, on the unmerged branch `feature/alex/boss-guide`).
 - Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked
   out. The event lasts 8 minutes in total (owner 2026-11-05), and Phase 2's start adds 2 fresh minutes (owner 2026-11-06):
   - 0:00-1:00, preparation: arrivals stand on the track with a team HUD of 3 slots. Only characters with a Sidekick can be slotted, and the HUD says so. A player with 1 or 2 such characters has a team of 1 or 2. The HUD opens on the team from the player's last event, when it is still valid, and shows the team's average stamina as a number (owner 2026-11-05). Its X closes it only with at least 1 character chosen; otherwise red text, gone in a moment, says to select a character. After closing, the team runs on the track as display only, each with its Sidekick, and an Edit Team button above the minibar reopens the HUD until the spawn (owner 2026-11-05).
@@ -543,11 +549,11 @@ before any Studio work.
 - Auto state (owner 2026-11-05, replaces the grey icon and pulsing ring): the icon is green in both states; while auto race is on, its arrows spin around the still triangle. No spin during the 1 s press lock. It only asks: the server decides (`Remotes.SetAutoRace`).
 - A roll gets the big popup (emphasized view and server announcement, `GachaConfig.IsEmphasized`) only when the character is undiscovered and at least 100 times rarer (`EMPHASIS_MULTI`) than the player's 3rd-rarest discovered character (`EMPHASIS_RANK`). With fewer than 3 discovered, the bar is 100 times the starter, which counts as 1 in 1: 1 in 100. The first 3 discoveries no longer pop up automatically. This replaces the earlier rule of "rarer than the 5th-rarest; any new character below 5 discovered".
 - Icon style (owner 2026-11-10, third pick of the day; replaces the Gold badge): "Tab tilt", rendition 4 of https://claude.ai/artifact/5QMx5w44ZWhRhMXkNxqJty: each HUD icon is today's object standing on a slanted cyan art tab, the same shape as the Index's tabs and header strip, keeping each object's colour. No tile frame and no badge. Covers Index, Items, Rebirth, Quests, Shop, Auto, Upgrade, Daily, Market, Settings, Stats, Gem and Boss (the Boss icon is the purple horned mask). The label sits under the icon (white, dark outline).
-- Turbo bar and Team minibar (owner 2026-11-10, replaces the gold Turbo and minibar look of the same day; owner 2026-11-22: the Turbo bar takes the 4.46 HUD option A look, a wooden frame with a vermilion fill, size, position and behaviour unchanged; the minibar keeps its circles and arc and only takes the lacquer and gold look): both keep their look from before that change, except the minibar stamina arc, which stays a smooth curved band with both ends cut on a slant, a curved parallelogram (owner 2026-11-10; slant about 30 degrees off the radial, **proposed**). Sizes, positions and behaviour unchanged.
+- Turbo bar and Team minibar (owner 2026-11-10, replaces the gold Turbo and minibar look of the same day; owner 2026-11-22: the Turbo bar takes the 4.46 HUD option A look, a wooden frame with a vermilion fill, size, position and behaviour unchanged; the minibar keeps its circles and arc and only takes the lacquer and gold look; owner 2026-11-23: HUD option A is reverted, both keep the look below; owner 2026-11-24: both go back to their look from before option A, the generated Turbo bar and the dark team circles, 4.46 "HUD look"): both keep their look from before that change, except the minibar stamina arc, which stays a smooth curved band with both ends cut on a slant, a curved parallelogram (owner 2026-11-10; slant about 30 degrees off the radial, **proposed**). Sizes, positions and behaviour unchanged.
 - HUD layout (owner 2026-11-10, "split L/R"; replaces the gold frame tiles and the L2 block of the same day): one column on the left edge holds Index, Items and Rebirth, top to bottom; one column on the right edge holds Quests, Shop and Market. Daily and Settings stay as the top-right pills, Auto and Upgrade stay as the bottom pair beside the LEVEL / TURBO LUCK bars, all with the Tab tilt icons. The red count badge stays at the icon's top-left. Panels (4.42) centre between the two columns, 8 px clear of each. Phones shrink both columns (4.27). Keybind letters stay (owner 2026-11-10): each column button shows its key letter at its top-right (white heavy text, dark outline), and on keyboard that key opens the panel, the same as a click, only while the button could be clicked: Index X, Items B, Rebirth R, Quests Q, Shop P, Market M (not S and I: S walks backward, I zooms). Letters show only when a keyboard is in use. No NEW tag. Sizes and gaps are **proposed**. Owner approved the Tab tilt icons and this layout from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG). During a boss event (the local player in the event) both columns hide; the Daily and Settings pills, Auto and Upgrade and the event UI stay (owner 2026-11-10).
 - Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**. Owner approved from Studio screenshots 2026-11-10 (https://claude.ai/artifact/BXmkHjXQaPcXy4xod9fPKD). The Bosses button uses the column buttons' exact cell, icon and label sizes, phone scale included (owner 2026-11-11). At that size it no longer fits in Roblox's top bar, so it sits just below the top bar (gap 6 px, **proposed**), left-aligned with the left column when it fits above the column with room for its pulse. Where it would reach the left column (phones, short desktop windows) it starts right of Roblox's buttons instead (TopbarInset.Min.X plus the gap, never over the column) (owner 2026-11-11). It stays clear of the left column, the Money / Gems readout and the roll at the top centre. Owner 2026-11-12, from a screenshot (replaces the 2026-11-11 placement below the top bar and the same day's top-bar idea): the Bosses button moves into a second column directly right of the left column, placed half a row down, level with the gap between Index and Items. Below it in that second column, level with the gap between Items and Rebirth, sits a new Team button (same cell, icon and label sizes; icon and key letter **proposed**). Team opens the team selection and formation panel, which leaves Items. Owner 2026-11-12, from the drafts (https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp): icon 1 "Trio" (three runners, the lead in front) in more neutral colours (variant N3, sand lead with a grey pair, picked and uploaded on the owner's word 2026-11-12: `assets/ui/hud_tabtilt/Team_N3.png`), and panel A "Line-up" (`assets/ui/team_draft/A_desktop.png`, `A_phone.png`): three big slot cards across the top in run order (runs first, tags in 2nd, tags in last) with each member's portrait, category, cruise and stamina, the team bonus box at their right, and below them the owned roster grid with Sort and Search; tap a character, then a slot; members swap places; tapping a member's own slot removes it. Owner 2026-11-12, after seeing the first build: the panel matches draft A closely: each slot card carries its number badge (1, 2, 3) and its own coloured border and tint (gold, purple, green as drawn), a stamina bar under the member, arrows between the slots; roster cards at the draft's size (two rows of eight on desktop); the green TEAM n badge sits clear of the category dot. The rules of choosing a team do not change (`docs/TEAM_AND_STAMINA_SPEC.md` Team: `SetTeam`, at least 1 member, locked during a run). (Owner 2026-11-17: panel A's layout is replaced by Team Setup, 4.45; the Best team button becomes Quick Setup there.) (Owner 2026-11-20: Team Setup is a full-screen page that covers the Team button; the page's own Close or Back closes it, not the Team button.) Not ruled by the owner, so left out or **proposed**: the Best team button (left out: needs a rule), the summed team stamina figure (**proposed**, display only), key letter T (**proposed**), the per-slot aura and trail buttons (stay in Items). Offsets and the phone layout are **proposed**. Picked-slot lighting (only the slot holding the picked character lightens; draft A's caption lights every slot) and the "+" glyph on an empty slot are **proposed** (orchestrator 2026-11-12, owner to confirm from the Studio capture).
 - Money and Gems counters (owner 2026-11-10): no dark box or border behind Money or Gems (owner 2026-11-20: replaced
-  by HUD option A's lacquer counter plates, 4.46); the Gems counter sits directly under the Money counter (bottom-left); the UNBANKED line is removed. Each checkpoint payout shows a short "Cashed out +$X" notice by the Money counter as the Money counts up. Sizes and timing **proposed**.
+  by HUD option A's lacquer counter plates, 4.46; owner 2026-11-23: option A reverted, no box again; owner 2026-11-24: the plates are gone and this no-box rule stands again, 4.46 "HUD look"); the Gems counter sits directly under the Money counter (bottom-left); the UNBANKED line is removed. Each checkpoint payout shows a short "Cashed out +$X" notice by the Money counter as the Money counts up. Sizes and timing **proposed**.
 
 ### 4.41 Character bag and auto sell (owner 2026-11-04)
 - The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
@@ -743,8 +749,9 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 - Summon (4.45) and Team Select (4.45 "Team Select night dojo") are the style source only: their pages, layouts and
   motion do not change.
 - Scope: every panel and popup (Index, Items, Shop, Market, Quests and Daily, Rebirth, Stats, Settings, Tracks, Duel, starter choice, item menu and its confirms, gift and slot pickers, Auto Sell and Details, the loser card,
-  toasts and banners), the boss event UI (Bosses panel, rewards popup, event HUD), and the HUD buttons and bars. The
-  HUD is redesigned as option A (below). Not in scope (owner 2026-11-20): the Upgrades tree keeps today's look,
+  toasts and banners) and the boss event UI (Bosses panel, rewards popup, event HUD). The always-on HUD (buttons,
+  counters and bars) was in scope as option A (owner 2026-11-23: reverted, "too blocky and cluttered"; owner 2026-11-24: out): it keeps its look from before this
+  redesign ("HUD look" below). Not in scope (owner 2026-11-20): the Upgrades tree keeps today's look,
   full-screen layout and open motion.
 - Look: the Summon parchment kit on a horizontal handscroll (makimono): parchment paper, brown wood rollers at the left
   and right ends with dark caps, leather edge strips, brush wordmark titles with a vertical vermilion kanji (decoration
@@ -779,12 +786,99 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
     brush pills, no scroll: checkpoint bonus, biome welcome, team toast, VS banner, loser card, roll toast.
   - Boss event UI: Bosses panel (live boss with rewards, the others dimmed with "Not this time"), rewards popup, boss
     invite, in-event HUD (boss HP bar, status icons, Leave, dodge bar, team row; side columns hidden as 4.40 says).
-  - HUD option A "wood plaques": cream wood tiles with brush labels, vermilion key-letter seals, lacquer counters for
-    Money and Gems, nameplate team row. Positions, key letters and badges follow 4.40. Replaces the Tab tilt icons.
-    Owner 2026-11-22: the team row keeps today's circles and slanted arc (lacquer and gold look only, not the
-    draft's nameplates); the Turbo bar becomes a wooden bar with a vermilion fill (4.40).
+  - HUD option A "wood plaques" (reverted, owner 2026-11-23; **withdrawn**, owner 2026-11-24; history only, "HUD look" below is the rule): cream
+    wood tiles with brush labels, vermilion key-letter seals, lacquer counters for Money and Gems, a lacquer and gold
+    team row (owner 2026-11-22: circles and slanted arc kept) and a wooden Turbo bar with a vermilion fill.
+    Its code (`Client/HudPlaque`) is removed (main PR #29).
   - The kanji and short sub lines under each title stay (decoration only).
+- **HUD look** (owner 2026-11-24, latest ruling of that day: "revert HUD to world 1 hud or old hud. not scrol hud.
+  Scroll Gui can stay."; the reading is the orchestrator's: the old look in World 1 and World 2 alike): the always-on
+  HUD keeps its look from before this redesign (main at `6a36029^1`, before option A) in both worlds: the 4.40 Tab tilt
+  icons with white outlined labels and key letters and no tile frame, dark round top-right pills, Money and Gems as
+  gradient numbers with no plate (4.40 no-box rule, blue Gems), the Turbo bar's generated look (not the 2026-11-22
+  wooden bar), dark team circles with the team ring and dark plates for the team bonus badge and info card. It covers
+  the left and right columns, the Auto / Upgrade pair, Daily, Market and Settings, the Bosses and Team second column,
+  Money and Gems, the Turbo bar, the team minibar and the World label (4.47; added after the redesign, so it takes
+  the old pills' dark round pill). Every panel, page, popup, toast and banner and the boss event UI (its in-event HUD
+  included) keep the Scroll Dojo look. Positions, sizes, key letters, badges and behaviour do not change (4.40,
+  `HUD_LAYOUT_SPEC`). No switch: `Client/HudPlaque` is removed (main PR #29). This withdraws HUD option A and agrees with the
+  owner's 2026-11-23 verdict on it, "too blocky and cluttered" (PR #29, as the orchestrator reports it).
 - Display only: the server decides every number, cost and claim, as before.
+
+### 4.47 World 2 (owner 2026-11-23)
+- World 2 is a **separate place** in the same universe, built from the same source tree (`world2.project.json` adds
+  `ReplicatedStorage.WorldId = 2`; `Shared/WorldConfig`). Spec: `docs/WORLD2_SPEC.md`.
+- Gate: a World 2 gate stands in the World 1 spawn plaza. It is **locked for everyone** for now ("COMING SOON"); admins
+  travel with `/world2` and back with `/world1`. Opening rule (owner 2026-11-24, confirmed): World 1 Track 10 beaten and rebirth >= 5,
+  no Money cost, nothing resets.
+- Shared across worlds: Money, Gems, Rebirth, stat points, Index, Copies, Sidekicks, Relics, passes. Per world: `BestTrack`,
+  `Checkpoint`, `RaceBestTimes` (World 2 saves them under `Worlds.W2`; World 1's layout is unchanged) and the team.
+- 10 tracks, one per new series first, then classic arcs: Frieren, Solo Levelup, One Punch, Dandadan, Kaiju No. 8,
+  Saw Man (owner 2026-11-25: Tracks 1 and 6 swapped), then Solo Levelup, One Punch, Frieren, Saw Man (names and enemies **proposed**, `WORLD2_SPEC`). Routes reuse
+  World 1's validated track routes; biomes are new.
+- World 2 spawn plaza (owner 2026-11-24: "rift shrine approved"): "Rift Shrine": World 1's plaza layout, footprint,
+  spawn and services unchanged; dusk sky; cyber accents and the plaza sky loop cyan instead of World 1's colour; a
+  generic dimensional rift (a swirling blue-violet disc in a ring of floating stones, not any show's gate design)
+  standing above and beyond the torii on its view axis; five floating rock islands outside the plaza edge; the return
+  gate to World 1 at hub-local (194, -176). Concepts: `assets/world2_draft/plaza/` (B chosen by the owner over A
+  Moonlit Dojo, which the coordinator had built first, and C Ember Dojo). Colours and light levels are
+  **placeholders**.
+- Blender first (owner 2026-11-23): every World 2 track and asset is made and rendered in Blender
+  (`tools/blender/world2`) and approved by the owner before it goes in the game.
+- Speed: a per-world cruise table; the studs/s band stays World 1's (48-800). World 1 characters run at x0.1 there
+  (**proposed**), World 2 adds the Eternal rarity (780, **proposed**).
+- **World 2's UI is World 1's** (owner 2026-11-24: "UI and GUI should stay exactly the same with world 1 with the
+  exception of a 4th team slot"): the two worlds share one look, HUD and panels alike. What differs in World 2 is the
+  fourth team slot (Team panel, TeamHud row, boss team). The World 2 welcome popup and
+  the Awakening bar exist only in World 2 and stay (owner 2026-11-25, "keep awakening bar and welcome popup"). Which look the HUD has is
+  4.46 "HUD look" (owner's latest ruling of 2026-11-24): the old HUD, in both worlds.
+- Arriving in World 2 resets nothing (owner 2026-11-24: "world 2 should not reset character so they dont need to go
+  through tutorial again or choose starter"): a first entry keeps the World 1 team as World 2's first team (changed there
+  freely afterwards; a World 2 team that holds only the placeholder starter counts as none, **proposed**), and World 2
+  never opens the starter choice (4.21), the roll tutorial or the first-join flow (4.24). A save that owns no character
+  runs as the placeholder starter there.
+- World 2 only: a **team of 4** (slot 4 unlocked on first entry; this amends 4.2 and 4.8 for World 2: bonuses need any 3
+  matching members) and **Awakening** (duplicate Copies buy up to 5 stars per character; owner 2026-11-24: each star gives +3% cruise and
+  +3% stamina, so +15% of each at 5 stars; star costs 1, 2, 4, 8, 16 Copies are **placeholders**).
+- World 2 rewards (owner 2026-11-24): first-clear Gems pay again on World 2 tracks (they are new tracks); World 2
+  tracks pay more Money than World 1: Track N pays World 1 Track 10's Money times a growing multiplier (x2 per track
+  step is a **placeholder**).
+- World awareness (**proposed**, `WORLD2_SPEC` "World HUD and welcome"): a small "World N" label on the HUD, a
+  "Travelling to World N..." toast while a trip runs, and a one-time World 2 welcome popup (team of 4, new summon pool,
+  the return gate), given once per save (`Worlds.W2.Welcomed`).
+- World 2 HUD look: the same as World 1's, the old HUD of 4.46 "HUD look" (owner 2026-11-24: "revert HUD to world 1
+  hud or old hud. not scrol hud. Scroll Gui can stay."; the orchestrator reads it as both worlds). History of that
+  day: first "edit world2 ui to be old hud instead of scroll hud, gui can stay" (old HUD in World 2 only,
+  `HudPlaque.Old = WorldConfig.Id == 2`), then the "World 2's UI is World 1's" ruling above (option A in both), then
+  this one. Panels, pages, popups, toasts, banners and the boss event UI keep the Scroll Dojo look in both worlds.
+- Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with the World 2 team of
+  4; no World 2 bosses yet.
+- Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,
+  Kaiju No. 8 and Frieren (owner 2026-11-23). World 2 rolls only World 2 characters.
+- Cast and Sidekicks (owner 2026-11-23): the full World 2 cast and a new 12-Sidekick set are drafted as models and digital art
+  for owner approval; list, names and rarities **proposed** in `docs/WORLD2_CAST.md`.
+  Looks of all 42 approved by the owner 2026-11-23; names and rarities stay **proposed**.
+- Cast in game (owner 2026-11-24: "complete full run until everything is ingame, world2 should have this as their set
+  sidekick gacha rotation. I preapprive all decisions". Then, answering in session the same day, the owner approved:
+  the names and ids as final, the uploads, the model-loading rule, full cruise in World 1, the starters' exemption, no Secrets,
+  shared pity, the per-world Index, the Day 7 cap, the Eternal numbers, the Sidekick attack poses. Other numbers **proposed**):
+  - World 2 rolls only its 43 characters (12 Saw Man / Solo Levelup, Void Saitamo, 21 heroes, 9 rollable villains; Makina
+    is one of the 12). Its Common catch-all is Mumon Rider. World 1's pool and odds do not change. Details lists the odds of
+    the place the player is in, summing to 100% (section 6).
+  - Rarity Eternal, above Secret, World 2 only: cruise 780, stamina 32 s, roll hold 5 s, sells for 25,000. World 2 has no Secret
+    characters. Eternal odds are at most 1 in 9e18 (owner 2026-11-24), the
+    RarestCharacter board's cap; each Eternal has its own odds.
+  - A World 1 character (Saitamo included) runs at x0.1 of its final cruise in World 2. The starter and the starter picks
+    run the same in both worlds, so an empty World 2 team is never stuck. World 2 characters run in World 1 at full cruise.
+  - The Index lists its own world's characters and summon Sidekicks. Discoveries, stat points, Copies, the bag and
+    worn gear stay shared, and every owned character or Sidekick of the other world still shows in the Bag and the Team.
+  - Series names: Dandadun, Kaijo No. 8 and Frierin replace the real titles Dandadan, Kaiju No. 8 and Frieren (section 5).
+  - World 2's enemies are the rollable villains (Track 10: Makina).
+  - Daily login Day 7 in World 2 gives its rarest unowned character up to Legendary (owner 2026-11-24). World 1's Day 7 is unchanged.
+  - Models (owner 2026-11-24): a server loads only its own world's character and Sidekick models at start, plus those every world
+    shows; another world's model loads when a player in the server owns it or a rig wears it.
+  - World 2's Sidekicks are its own set of 12 with its own rotation, World 1's never mix in; featured Mythic Belleon.
+    Numbers are World 1's row of the same rarity. Pity counts stay shared.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -848,8 +942,32 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-25: clarification of the owner's "approved all" (recorded above): where 4.43, 4.45 and WORLD_REDESIGN_SPEC 4 give older Index, Team altar, statue and loop-post spots, WORLD_REDESIGN_SPEC 4.2's fuller layout replaces them. The boss gate keeps its full size and may shift inward up to 2.5 studs of S4 (agent-1's proposed margin, **proposed**).
+- 2026-11-25: owner: "approved all continue the merge", answering the list "the swap, the kaiju, and building the spawn pieces" (4.47, WORLD_REDESIGN_SPEC 4.2). Orchestrator's reading: boss gate spot S4 with the fuller layout, the revised altar B, the small stall clip fixes, and Track 1/6 swap and kaiju go ahead once their checks and the 7 bar pass; the swap's round 6 renders were not seen by the owner yet, so they are sent with the result. Uploads, place saves and publishing are not covered by these words.
+- 2026-11-25: owner: "approved merchant casts, have gojo be at boss gate for to give players info on boss gate when walked up to. (they have to prss e to initiatie convo" (4.24, 4.37, WORLD_REDESIGN_SPEC 4.2): the drafted cast; Gojio (`jk_strongest`) is the boss gate guide, E starts the conversation.
+- 2026-11-25: owner: "have boss gate stand next spawn altar, still send me the three spots for proposal. It does the same as clicking boss button, closed gate if there are not active bosses, Open if there is. Can reformat so saitama statue and index board dont block anything" (4.24, 4.37, 4.43, WORLD_REDESIGN_SPEC 4.2): the Saitamo pedestal and the Index ring slot of 4.43 may move; everything else on the ring stays.
+- 2026-11-25: owner, on the spawn drafts (https://claude.ai/artifact/YQeWdGJUMrYyRH2MMGWyfp): "B gate approved, Have A gate be a boss spawn gate (closed if boss event inactive), A summon altar approved. B markets aproved", merchants take existing anime character models, "consistent with world"; "Only exception is world 1 summon altar is B summon altar instead. World 2 summon altar is A" (4.24, 4.36, 4.43, 4.47, WORLD_REDESIGN_SPEC 4.2). Looks approved as renders; nothing is in the game yet.
+- 2026-11-25: owner: "world2 ui is same as world 1 ui with the exceptionof 4th character slot. keep gui and hud consistent" (4.46 "HUD look", 4.47): confirms the old HUD in both worlds and the Scroll Dojo panels in both; the fourth team slot is the only difference in look. Owner, same day: "keep awakening bar and welcome popup" (World 2 features, they stay).
+- 2026-11-25: owner: "switching HUD back to old HUD (World 1 HUD)" (4.40, 4.46, 4.47): the 2026-11-24 ruling below stands.
+- 2026-11-25: owner: Blender drafts only for a redrafted world gate, a much bigger and more extravagant Summon altar (with market research), and the plaza's markets and merchants (4.24, 4.36, 4.43, 4.47): nothing in game changes until the owner approves the drafts; positions, prompts, sizes and gameplay rules stay as written. Every size in the drafts is **proposed**.
+- 2026-11-25: owner: World 2 ground ownership (4.47, WORLD2_SPEC "Ground ownership"): where two tracks' scenery meets, a spot belongs to the track whose road is nearest; other tracks' props there are moved or removed. A full count goes to the owner before any frozen track changes.
+- 2026-11-25: owner: "switch elven lands with tokyo track (track 1) within world 2" (4.47, WORLD2_SPEC "Tracks"): Elven Ruin Plains is Track 1, Devil Hunter City Track 6. The biome, its name, lighting, card and enemy move; the road, pay, Gems, saved progress and enemy speed stay with the track number (plan approved by the owner the same day).
+- 2026-11-25: owner: rework the dead kaiju of World 2 Track 5 (4.47, WORLD2_SPEC "Render set approvals"): the kaiju and its site are reopened, the rest of Track 5 stays frozen; sized to fit a legal spot; earlier form rulings may be dropped; reference renders need the owner's approval before export or placement.
+- 2026-11-24: owner: "revert HUD to world 1 hud or old hud. not scrol hud. Scroll Gui can stay." (4.46 "HUD look", 4.40, 4.47; the reading is the orchestrator's): the always-on HUD goes back to its look from before 4.46 HUD option A in World 1 and World 2 alike; option A is withdrawn; panels, popups, toasts, banners and the boss event UI keep the Scroll Dojo look. Replaces the HUD part of the same day's "UI and GUI should stay exactly the same" line below; World 2 still differs only by the fourth team slot.
+- 2026-11-24: owner: "UI and GUI should stay exactly the same with world 1 with the exception of a 4th team slot" (4.47): World 2's always-on HUD goes back to the 4.46 look; replaces the same day's "old hud" ruling.
+- 2026-11-24: owner: "fix lighting in tracks" (4.47, WORLD2_SPEC "Track lighting"): World 2 track lighting keeps each draft sky's hue but has brightness floors so the road and the runner read on every track; numbers proposed.
+- 2026-11-24: owner: "world 2 should not reset character so they dont need to go through tutorial again or choose starter" (4.47): a first entry to World 2 keeps the World 1 team; World 2 never opens the starter choice, the roll tutorial or the first-join flow. Replaces "a fresh World 2 team is the starter".
+- 2026-11-24: harness saves (4.24; owner asked for the fix after a UI test run in World 2 reset World 1 characters on a real save; wording is the orchestrator's default): a test harness moves its Studio session to an in-memory copy of the save and never writes a real save, gift route or leaderboard; the client UI harness refuses to run until then.
+- 2026-11-24: owner: "edit world2 ui to be old hud instead of scroll hud, gui can stay": World 2's always-on HUD keeps its look from before 4.46 option A; panels, popups and boss UI keep the Scroll Dojo look; World 1 unchanged (4.47).
+- 2026-11-24: owner: World 2 (4.47): opening rule confirmed (gate stays closed until the owner opens it); Awakening +3% cruise and +3% stamina per star; World 2 pays first-clear Gems again and more Money; World 1 boss events run in World 2 with the team of 4; plaza Rift Shrine; all 10 track drafts approved.
+- 2026-11-24: World 2 names that held a real name are retweaked (4.47, section 5; proposed names): `fr_gold` Makto, `side_shaman` Toskar, `side_dark` Darknez Devill.
+- 2026-11-24: owner (answered in session): World 2 cast names and ids final, uploads confirmed, model-loading rule, Eternal odds at most 9e18, fixed side_lucky and side_acrobat art, the listed cast rules and the Sidekick attack poses approved (4.47).
+- 2026-11-24: World 2 cast in game (4.47; only the in-game goal and the set Sidekick rotation are the owner's words, the rest proposed): its own roll pool (43, catch-all Mumon Rider), Eternal 780, World 1 carry x0.1, its own 12-Sidekick set rotation (featured Belleon), series names Dandadun, Kaijo No. 8 and Frierin; numbers proposed.
+- 2026-11-23: owner: World 2 (4.47): separate place, locked plaza gate with /world2 for admins, per-world progress, 10 tracks Blender-first, per-world cruise, team of 4 and Awakening in World 2, 6 series.
+- 2026-11-23: owner: World 2 (4.47): scenery placed from the approved Blender drafts keeps the drafts' clearance (24+ studs from the road centre line, overhead 14+), not World 1's 8-stud road-edge clearance; track names 'Devil Hunter City' and 'Wrecked Kaiju Base' (no real place names); the 8 approved tracks' meshes are uploaded under the owner's account.
 - 2026-11-20: owner: game-wide Scroll Dojo look from the Summon and Team pages, center-out handscroll open about 0.45 s with input live, HUD and boss UI in scope; references first (4.46 draft; 4.20, 4.42 replaced for redesigned GUIs on approval).
 - 2026-11-20: owner approved the Scroll Dojo references: every frame, HUD option A, Money and Gems on lacquer plates (4.40 no-box rule replaced), Shop in three columns, kanji and sub lines kept, game potion art; the Upgrades tree is left as it is (4.46).
+- 2026-11-23: owner: HUD option A reverted ("too blocky and cluttered"); the HUD buttons, Turbo bar, Team minibar, Bosses and Team buttons and Money / Gems keep the 4.40 look; every panel and popup keeps the 4.46 look (4.40, 4.46).
 - 2026-11-22: owner, HUD option A details: the team row keeps its circles and arc (lacquer and gold look only); the Turbo bar becomes wood with a vermilion fill (4.40, 4.46).
 - 2026-11-22: owner: the summon page's Featured Banner rows keep the Sidekicks' drawn portraits; the summon result still shows the 3D model (4.36, SIDEKICK_SPEC).
 - 2026-11-20: owner: Sidekick summon Details list odds per rarity (section 6, SIDEKICK_SPEC); Team Setup stays full screen and the Team button does not close it (4.40, 4.45).
