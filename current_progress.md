@@ -389,6 +389,10 @@
 386. 2026-11-27 — Alex Nguyen — Confirmed Track 7's sea in Studio (Rojo at 9ddb2ce6): 45/45 ships over written water voxels, world_layout 12/0, picture saved in the audit folder.
 387. 2026-11-27 — Alex Nguyen — Turned the four track-effect meshes back against the Open Cloud import turn (drakes flew tail first); rule and test first, Studio before/after of Track 1's drake.
 388. 2026-11-26 — Alex Nguyen — Track 7 sea drawn as water round the ships (45 of 48 ships kept) and the track-effect meshes turned back for the import, both merged into the landing candidate; Studio: 45/45 ships on water, Track 1 drake flies head first; specs and design log record the owner's words and the freeze exception.
+389. 2026-11-24 — Alex Nguyen — Vendored the orchestrator, nightly-run and 12 other Claude skills, 3 commands and the rules-auditor brief into .claude/ with a Linux systemd runner installer and project hooks and plugins, so a clone on the VM has them (branch feature/alex/vm-skills).
+390. 2026-11-26 — Alex Nguyen — Recorded the Linux VM's move to alex-dev.avlis.dev in handoff.md (ssh alias, host key, specs, Node.js 22, Claude Code, gh, build-essential, tmux and Blender display libraries installed) and committed the 2026-11-24 World 2 audit handoff section.
+391. 2026-11-26 — Alex Nguyen — Merged origin/main (239de24) into feature/alex/vm-skills for PR #30: handoff.md and current_progress.md conflicts resolved by keeping main's text, the VM section added on top and the two branch entries renumbered 268 and 269.
+392. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
 
 ## What's next
 **Merge the landing candidate (orch/world2/w2-landing) into feature/alex/world2-place, merge origin/main into it, run the full Studio pass, then open the World 2 PR into main with a fresh reviewer.**
