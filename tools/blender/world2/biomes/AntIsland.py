@@ -679,22 +679,47 @@ def build(k):
 			dd = far(x, z)
 			if dd > bd:
 				best, bd = (x, z), dd
-	hs = max(0.4, min(1.25, (bd - 60) / 760))
+	# The game's parts fallback is a box per cone, so the shield's corners reach sqrt(2) x its base radius (760 x scale):
+	# that box, not the round mesh, must clear every road corridor (24 studs) with a margin.
+	hs = max(0.4, min(1.25, (bd - 40) / (760 * math.sqrt(2))))
 	k.place("Hallasan", (best[0], -1.0, best[1]), 0.4, hs)
 	print("HALLASAN at", (round(best[0]), round(best[1])), "clear", round(bd), "scale", round(hs, 2))
 	keep = [(best[0], best[1], 760 * hs + 20)]
+	# The nest stands ahead of a run camera (0.33, 0.62, 0.9), 340+ studs off every road, on this track's own ground, its
+	# front (and its fan of ants, 205-262 out on that side) turned to this track's road, so the ants stand on the own
+	# ground between nest and road. On the wide layout's long straights the camera axis stays on the road, so the spot
+	# is searched over the own ground: nearest a camera among spots within 45 degrees of its heading. (Re-fit 2026-11-26:
+	# the turn was random on the approved layout.)
 	nest = None
+	cams = []
 	for f in (0.33, 0.62, 0.9):
 		p, right, t = k.at(L * f)
-		for D in range(260, 1300, 20):
-			x, z = p.x + right.x * 10 + t.x * D, p.z + right.z * 10 + t.z * D
+		cams.append((p.x + right.x * 10, p.z + right.z * 10, t.x, t.z, f))
+	for i in range(121):
+		for j in range(121):
+			x = lo.x - 600 + (hi.x - lo.x + 1200) * i / 120
+			z = lo.z - 600 + (hi.z - lo.z + 1200) * j / 120
+			best_cam = None
+			for ex, ez, tx, tz, f in cams:
+				ahead = (x - ex) * tx + (z - ez) * tz
+				side = abs((x - ex) * tz - (z - ez) * tx)
+				dist = math.hypot(x - ex, z - ez)
+				if ahead > 260 and side < ahead and (best_cam is None or dist < best_cam[0]):
+					best_cam = (dist, f)
+			if best_cam is None or (nest is not None and best_cam[0] >= nest[0]):
+				continue
 			if k.owns(x, z) and far(x, z) >= 340 and all(math.hypot(x - a_, z - b_) > r + 260 for a_, b_, r in keep):
-				if nest is None or D < nest[0]:
-					nest = (D, x, z, f)
-				break
+				# its back ring of ants (up to 200 out, away from the road) on the own ground too
+				w = min(k.wps[:: max(1, len(k.wps) // 1500)], key=lambda w: math.hypot(w.x - x, w.z - z))
+				u = math.hypot(x - w.x, z - w.z)
+				if k.owns(x + (x - w.x) / u * 200, z + (z - w.z) / u * 200):
+					nest = (best_cam[0], x, z, best_cam[1])
 	scorch = []
 	if nest:
-		nest_yaw = k.rng.uniform(0, math.tau)
+		k.rng.uniform(0, math.tau)  # the approved random turn's draw, kept so the scatter after it is unchanged
+		step = max(1, len(k.wps) // 1500)
+		rx, rz = min(((w.x, w.z) for w in k.wps[::step]), key=lambda w: math.hypot(w[0] - nest[1], w[1] - nest[2]))
+		nest_yaw = math.atan2(-(rx - nest[1]), -(rz - nest[2]))  # local -Z (front, the ants) toward the road
 		k.place("Nest", (nest[1], -1.0, nest[2]), nest_yaw, 1.0)
 		th = nest_yaw  # Blender turn theta maps local (x, z) to (x cos + z sin, -x sin + z cos)
 		nest_ants = []
