@@ -125,7 +125,7 @@ return {
 	IndexBoard = {
 		Asset = 115075746119130,
 		Hash = "2bea49dc5fb8adce",
-		Pos = Vector3.new(112.040, 1.000, -41.040),
+		Pos = Vector3.new(96.700, 1.000, -34.200),
 		Face = Vector3.new(-0.9133, 0, 0.4072),
 		Parts = {
 			Body = { Size = Vector3.new(27.515, 13.725, 9.644), Center = Vector3.new(0.000, 6.863, -0.000) },
@@ -139,7 +139,7 @@ return {
 	MarketStall = {
 		Asset = 129542940134303,
 		Hash = "a7050ed71d413496",
-		Pos = Vector3.new(23.731, 1.000, -100.730),
+		Pos = Vector3.new(23.109, 1.000, -83.942),
 		Face = Vector3.new(-0.0370, 0, 0.9993),
 		Parts = {
 			Body = { Size = Vector3.new(32.377, 15.500, 11.931), Center = Vector3.new(0.000, 7.750, -0.066) },
@@ -168,7 +168,7 @@ return {
 	POTIONSStall = {
 		Asset = 123264526991461,
 		Hash = "68b124bae448e7c4",
-		Pos = Vector3.new(-48.590, 1.000, -73.866),
+		Pos = Vector3.new(-37.158, 1.000, -61.555),
 		Face = Vector3.new(0.6804, 0, 0.7328),
 		Parts = {
 			Body = { Size = Vector3.new(25.510, 14.000, 16.281), Center = Vector3.new(0.000, 7.000, -0.000) },
@@ -197,7 +197,7 @@ return {
 	SHOPStall = {
 		Asset = 98958521572101,
 		Hash = "a44856a05d768bbe",
-		Pos = Vector3.new(-80.730, 1.000, -3.731),
+		Pos = Vector3.new(-63.942, 1.000, -3.109),
 		Face = Vector3.new(0.9993, 0, 0.0370),
 		Parts = {
 			Body = { Size = Vector3.new(19.849, 13.038, 12.683), Center = Vector3.new(-0.124, 6.519, -0.000) },

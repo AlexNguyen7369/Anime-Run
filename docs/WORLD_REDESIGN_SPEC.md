@@ -84,13 +84,18 @@ Nothing car-shaped stays in the game:
   lead's choice under owner 2026-11-26, **proposed**; the same in both worlds): the plaza grows 1.2x about its centre and its
   centre moves to world (20, 0) (section 3). One transform, `Shared/PlazaLayout` and `tools/blender/plaza/plaza_layout.py`:
   every approved spot below and in 4.1 / 4.2 is written as approved, with the spawn at (0, 0); its place in the world is
-  (20, 0) + 1.2 x the spot. The spot of each anchor scales: the gate pad, each stall and building (Shop, Potions, Market,
-  Index, Best Roll, Summon altar, Team altar, boss gate S4, world gate) and the Great Sakura. What belongs to an anchor
-  moves with it unscaled, so its look and arrangement stay: the torii, its 4 lanterns, the RACE START sign, the main path
-  and the Sensei with the gate pad (the path's stones keep their length, so plain paving now shows between the terrace and
-  the path's spawn end); each stall's sign, cyber accents, header and merchant with its stall; Gojio with the boss gate.
-  The terrace, the spawn, the sky loop (radius 62) and the Saitamo statue on the middle step move with the spawn unscaled,
-  because their meshes and the terrace steps under them keep their size. The floor is 225.6 x 264 (1.2 x 188 x 220) on the
+  (20, 0) + 1.2 x the spot. The spot of each anchor scales: the gate pad, Best Roll, the Summon altar, the Team altar, the
+  boss gate S4, the world gate and the Great Sakura. What belongs to an anchor moves with it unscaled, so its look and
+  arrangement stay: the torii, its 4 lanterns, the RACE START sign, the main path and the Sensei with the gate pad; Gojio
+  with the boss gate. Moved with the spawn unscaled: the terrace, the spawn, the sky loop (radius 62), the Saitamo statue
+  on the middle step, and the four named stalls (Shop, Potions, Market, Index) with their signs, cyber accents, headers
+  and merchants (lead 2026-11-26): the owner rule "Readable from spawn", read as at least 16 px from the spawn
+  (**proposed**, 4.2 "Merchants"), holds only at their approved distance, since each name is already as large as it can be
+  without covering its stall's sign, and at 1.2x they read 13.3 to 14.8 px. Measured 2026-11-26 (stand-ins, mesh boxes
+  and 4-stud sky-loop legs): the four stalls are at least 16.3 studs from every other piece. Kept as built, both fine by
+  the lead 2026-11-26: the terrace steps stay at radii 26 / 20 / 14 under the unscaled Showpiece mesh (scaled, the
+  collision would no longer match the mesh); the path's stones keep their length and move with the gate, so about 23 studs
+  of plain paving show between the terrace and the path's spawn end. The floor is 225.6 x 264 (1.2 x 188 x 220) on the
   new centre. Uploaded meshes are not re-uploaded; they only move. Measured with the real track chains (2026-11-26): the
   floor is 1.85 studs from Track 1's first straight and the pad 27.2 from Track 1's start (rule: 40) in both worlds and in
   World 2's option C layout; at 1.3x no centre within 30 studs clears Track 1. The track chains stay at

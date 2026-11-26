@@ -7785,7 +7785,7 @@ local SPAWN_LAYOUT_MESHES = {
 	{ "SkyLoop", plazaWith(Vector2.zero, Vector2.zero) },
 	{ "HeroTorii", plazaSpot(SPAWN_APPROVED_PAD) },
 	{ "MainPath", plazaWith(Vector2.zero, SPAWN_APPROVED_PAD) },
-	{ "SHOPStall", plazaSpot(Vector2.new(-83.942, -3.109)) },
+	{ "SHOPStall", plazaWith(Vector2.new(-83.942, -3.109), Vector2.zero) }, -- the named stalls keep their distance
 	{ "GreatSakura", plazaSpot(Vector2.new(80, 118)) },
 	{ "LegendPedestal", plazaWith(Vector2.new(-16.5, 4.4), Vector2.zero) },
 }
@@ -7825,10 +7825,10 @@ local SPAWN_PLAZA = {
 	-- the Index, the Team altar and the boss gate stand as the fuller layout (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2);
 	-- every front faces the spawn (Front = false: the Best Roll pedestal is round)
 	RING = {
-		{ Name = "ShopStall", At = plazaSpot(Vector2.new(-83.9, -3.1)), Front = true },
-		{ Name = "PotionsStall", At = plazaSpot(Vector2.new(-57.2, -61.6)), Front = true },
-		{ Name = "Marketplace", At = plazaSpot(Vector2.new(3.1, -83.9)), Front = true },
-		{ Name = "IndexBoard", At = plazaSpot(Vector2.new(76.7, -34.2)), Front = true },
+		{ Name = "ShopStall", At = plazaWith(Vector2.new(-83.9, -3.1), Vector2.zero), Front = true }, -- named stalls: unscaled
+		{ Name = "PotionsStall", At = plazaWith(Vector2.new(-57.2, -61.6), Vector2.zero), Front = true },
+		{ Name = "Marketplace", At = plazaWith(Vector2.new(3.1, -83.9), Vector2.zero), Front = true },
+		{ Name = "IndexBoard", At = plazaWith(Vector2.new(76.7, -34.2), Vector2.zero), Front = true },
 		{ Name = "BestRoll", At = plazaSpot(Vector2.new(83.9, 3.1)), Front = false },
 		{ Name = "SidekickAltar", At = plazaSpot(Vector2.new(57.2, 61.6)), Front = true },
 		{ Name = "TeamAltar", At = plazaSpot(Vector2.new(-35.0, 76.4)), Front = true }, -- was the slot before the gate axis (4.45)

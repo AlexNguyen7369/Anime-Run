@@ -7625,9 +7625,10 @@ local function billboardsAtHub(res)
 	)
 	-- WORLD_REDESIGN_SPEC 4.2 (owner 2026-11-25, fuller layout): the moved Index and Team altar keep their floating
 	-- headers over them (Client/PlazaWayfinding). World (x, z); 8 studs: a header may hang over its building's front.
-	-- the plaza's transform (WORLD_REDESIGN_SPEC 4 "Plaza size", 2026-11-26): world (20, 0) + 1.2 x the approved spot
+	-- the plaza's transform (WORLD_REDESIGN_SPEC 4 "Plaza size", 2026-11-26): the spawn moves to world (20, 0); the Team altar's spot
+	-- scales 1.2x, the Index keeps its distance from the spawn ("Readable from spawn")
 	for key, approved in { Index = Vector2.new(76.7, -34.2), Team = Vector2.new(-35.0, 76.4) } do
-		local at = Vector2.new(20, 0) + approved * 1.2
+		local at = Vector2.new(20, 0) + approved * (key == "Team" and 1.2 or 1)
 		local anchor = Workspace.Terrain:FindFirstChild("Wayfinding_" .. key)
 		local p = anchor and anchor.WorldPosition
 		local off = p and (Vector2.new(p.X, p.Z) - at).Magnitude or -1

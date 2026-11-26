@@ -160,10 +160,11 @@ function Tests.plaza_pieces()
 		local anchors = {
 			AltarGreatLotusLocked = { Vector2.new(57.158, 61.555) },
 			BossGateClosed = { Vector2.new(2.46, 93.301), Vector2.new(2.5, 94.8) },
-			IndexBoard = { Vector2.new(76.7, -34.2) },
-			MarketStall = { Vector2.new(3.109, -83.942) },
-			POTIONSStall = { Vector2.new(-57.158, -61.555) },
-			SHOPStall = { Vector2.new(-83.942, -3.109) },
+			-- the four named stalls keep their approved distance from the spawn ("Readable from spawn", lead 2026-11-26)
+			IndexBoard = { Vector2.new(76.7, -34.2), Vector2.zero },
+			MarketStall = { Vector2.new(3.109, -83.942), Vector2.zero },
+			POTIONSStall = { Vector2.new(-57.158, -61.555), Vector2.zero },
+			SHOPStall = { Vector2.new(-83.942, -3.109), Vector2.zero },
 			SenseiDais = { Vector2.new(-79.979, 57.891), Vector2.new(-84, 78) },
 			SkyLoop = { Vector2.zero, Vector2.zero },
 			WorldGateLocked = { Vector2.new(76, -96) },
