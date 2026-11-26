@@ -164,9 +164,8 @@ Target from the lead: at least 7 in the game view on every track, from fresh bli
 | Track | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Rows | 1,019 | 980 | 1,021 | 1,191 | 963 | 938 | 1,123 | 1,734 | 1,395 | 2,620 |
-| Approved | 355 | 474 | 475 | 949 | 596 | 765 | 1,718* | 1,435 | 2,012 | 3,888 |
+| Approved | 355 | 474 | 475 | 949 | 596 | 765 | 1,167 | 1,435 | 2,012 | 3,888 |
 
-\* T7's approved Draft count as committed before the re-fit.
 
 Why some tracks are above or below their approved counts:
 - **Above** (T1, T5, T8): each track now owns a band about 380 studs each side of its road. Before, it owned about 60 to
