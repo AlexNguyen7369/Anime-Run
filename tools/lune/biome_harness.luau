@@ -1089,6 +1089,79 @@ if process.env.WORLD == "2" then
 		)
 	)
 end
+-- Track 7's sea (BIOME_ENVIRONMENT_SPEC 2.2 "Coast", WORLD2_SPEC): water under every blockade ship, none in any road's
+-- corridor (every 4th centre waypoint of every track, across W/2 + 24 each side every 8 studs), and every other zone's
+-- terrain unchanged: a checksum of Column (height to 1/4 stud, material, water) on a 96-stud grid, points that are not
+-- AntIsland's and not within the seam blend of it, against the value before the sea (SEA_OTHER_HASH).
+if process.env.WORLD == "2" then
+	local Themes = req(Shared.BiomeThemes)
+	local SEA_OTHER_HASH = 106734784 -- the red run's value (before the sea, 2026-11-26): the other zones' terrain must not move
+	local seaN, ships, wet, dryCorr, wetCorr = nil, 0, 0, 0, 0
+	for i, e in entries do
+		if e.Biome == "AntIsland" then
+			seaN = e.Number
+			for _, prop in models[i].Environment:GetChildren() do
+				local k = tonumber(string.match(prop.Name, "^Placed_(%d+)$"))
+				if k and Themes.AntIsland.Placed[k][1] == "Ship" then
+					local ps = parts(prop)
+					local c = R.Vector3.zero
+					for _, part in ps do
+						c += part.Position
+					end
+					c /= math.max(1, #ps)
+					ships += 1
+					local _, waterY = TS.Column(c.X, c.Z)
+					wet += waterY and 1 or 0
+				end
+			end
+		end
+		for k = 1, #e.Layout.Waypoints, 4 do
+			local w = e.Origin:PointToWorldSpace(e.Layout.Waypoints[k])
+			local nxt = e.Origin:PointToWorldSpace(e.Layout.Waypoints[math.min(k + 1, #e.Layout.Waypoints)])
+			local t = (nxt - w) * R.Vector3.new(1, 0, 1)
+			if t.Magnitude > 1e-3 then
+				local right = R.Vector3.new(-t.Unit.Z, 0, t.Unit.X)
+				local half = e.Layout.Width / 2 + 24
+				for off = -half, half, 8 do
+					local q = w + right * off
+					local _, waterY = TS.Column(q.X, q.Z)
+					if waterY then
+						wetCorr += 1
+					else
+						dryCorr += 1
+					end
+				end
+			end
+		end
+	end
+	local box, h, pts = TS.Box(), 0, 0
+	for x = box.Min.X, box.Max.X, 96 do
+		for z = box.Min.Y, box.Max.Y, 96 do
+			local zone = TS.Zone(x, z)
+			local own, dOwn = TS.Owner(x, z, zone)
+			local _, dSea = TS.Owner(x, z, seaN)
+			if zone ~= seaN and dSea - dOwn > 24 then
+				local y, waterY, surface = TS.Column(x, z)
+				local v = string.format("%d|%s|%s", math.round(y * 4), tostring(surface), tostring(waterY))
+				for c = 1, #v do
+					h = (h * 31 + string.byte(v, c)) % 2147483647
+				end
+				pts += 1
+			end
+		end
+	end
+	local hashOk = SEA_OTHER_HASH == nil or SEA_OTHER_HASH == h
+	print(string.format("W2 SEA ships %d, water under %d%s", ships, wet, ships > 0 and wet == ships and "" or " FAIL"))
+	print(string.format("W2 SEA corridor points %d dry, %d wet%s", dryCorr, wetCorr, wetCorr == 0 and "" or " FAIL"))
+	print(
+		string.format(
+			"W2 SEA other zones %d points, checksum %d%s",
+			pts,
+			h,
+			hashOk and "" or " FAIL (was " .. tostring(SEA_OTHER_HASH) .. ")"
+		)
+	)
+end
 -- docs/BUGS.md w2-grass-through-road: the engine grows grass blades on Grass terrain taller than the 2 studs between the
 -- corridor's top and the road's, so no column under a road, its walls or a clear slab (checkpoint apron, WinPad, plaza
 -- floor) is Grass. Every waypoint, across the road and its walls every 4 studs.
