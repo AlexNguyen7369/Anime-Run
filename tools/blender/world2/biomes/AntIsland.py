@@ -136,8 +136,9 @@ def _bank(k, color):
 	while d < k.length:
 		p, _, t = k.at(d + step / 2)
 		if p.y > 1.5:
-			ob = k.place("Bank", (p.x, -1.0, p.z), math.atan2(-t.x, -t.z))
-			ob.scale = (k.width + 10, step + 0.5, p.y + 0.6)
+			# its top (the cap) under the road over its whole length (kit.support_top), not 0.1 over the centre's height
+			ob, h = k.support("Bank", p.x, p.z, math.atan2(-t.x, -t.z), d - 0.25, d + step + 0.25)
+			ob.scale = (k.width + 10, step + 0.5, h)
 		d += step
 
 

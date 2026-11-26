@@ -194,8 +194,13 @@ def supports(k, color):
 		p, _, _ = k.at(d)
 		if p.y > 3:
 			pos, yaw = k.beside(d, 0)
-			ob = k.place("Pier", (pos[0], p.y - 0.5, pos[2]), yaw)
-			ob.scale = (1, 1, p.y + 0.5)
+			# its top under the road over its 12-stud cap (kit.support_top), not at the centre's height; it hangs from its top
+			top = k.support_top(d - 6, d + 6)
+			h = top + 1.0
+			if h < kit.SUPPORT_MIN:
+				h = kit.SUPPORT_MIN  # sunk, never dropped
+			ob = k.place("Pier", (pos[0], top, pos[2]), yaw)
+			ob.scale = (1, 1, h)
 		d += 24
 
 

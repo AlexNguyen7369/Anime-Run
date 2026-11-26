@@ -299,8 +299,8 @@ def _fill(k, color):
 	while d < k.length:
 		p, _, t = k.at(d + step / 2)
 		if p.y > 1.5:
-			h = p.y - 0.5 + 1.0
-			ob = k.place("Fill", (p.x, -1.0, p.z), math.atan2(-t.x, -t.z))
+			# its top under the road over its whole length (kit.support_top), not at the centre's height
+			ob, h = k.support("Fill", p.x, p.z, math.atan2(-t.x, -t.z), d - 0.25, d + step + 0.25)
 			ob.scale = (k.width + 3, step + 0.5, h)
 		d += step
 
