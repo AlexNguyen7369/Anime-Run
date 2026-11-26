@@ -440,13 +440,13 @@ function Tests.plaza_pieces()
 							for _, up in { 4.4, 8, 12 } do
 								local e = marker.WorldCFrame.Position + dir * dist
 								table.insert(eyes, Vector3.new(e.X, floorY + up, e.Z))
-								raisedSide[#eyes] = up > 4.4 and deg ~= 0
+								raisedSide[#eyes] = up == 12 and deg ~= 0
 							end
 						end
 					end
 					-- Owner 2026-11-26 (Marketplace): "Readable, rare overlap": Rengoko's name is the same readable size as the
 					-- others and may touch the MARKET sign from high side camera angles near the stall, never from the spawn or at
-					-- player eye height. Only there, and only in the raised (eye 8 or 12) side (30 degree) views, may it overlap.
+					-- player eye height. Only there, and only in the raised (eye 12) side (30 degree) views, may it overlap.
 					local mayTouch = name == "Marketplace"
 					local worst, overlaps, allowed = math.huge, 0, 0
 					for i, eye in eyes do

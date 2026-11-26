@@ -311,6 +311,7 @@
 290. 2026-11-25 — Alex Nguyen — Merchant floating names sized in studs and placed over the head on an attachment so they never cover a stall's sign (test red first, values proposed).
 291. 2026-11-26 — Alex Nguyen — Sized each merchant's name per stall as large as it can be without covering its sign, over the measured hair top, with readability and hair checks; the Marketplace name cannot be readable under its sign (open question, its readability check left red).
 292. 2026-11-26 — Alex Nguyen — Made Rengoko's Market name as readable as the others per the owner's "Readable, rare overlap" ruling: 1.75 studs, in front of the top of the hair, clear of the sign in every view, with the ruling's raised side views allowed in the test and a line-of-sight hair check.
+293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
 
 ## What's next
 **Look at the two kaiju sites in Studio on orch/world2/kaiju-land (mesh loads, hide colour, nothing standing inside the bodies), rules-audit the branch, then merge it into the World 2 branch.**

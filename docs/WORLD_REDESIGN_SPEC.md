@@ -151,7 +151,7 @@ WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels s
   Marketplace: its sign is 1.29 studs over Rengoko's hair and 2.75 in front, so no readable name over the hair clears it; owner
   2026-11-26 "Readable, rare overlap": "Rengoko's name is the same readable size as the others (about 1.7 studs) and may touch
   the MARKET sign from high side camera angles near the stall, never from the spawn or at player eye height" (the test allows
-  overlap only in its raised, eye 8 or 12, 30 degree side views). **Proposed**: 1.75 studs, 2.25 forward, its bottom 5.65 over
+  overlap only in its raised, eye 12, 30 degree side views). **Proposed**: 1.75 studs, 2.25 forward, its bottom 5.65 over
   the feet, in front of the top of the hair (the hair reaches at most 0.98 forward; `merchant_name_over_hair_*` checks no view
   sees the name through it), 16.7 px; it clears the sign in all 30 views.
 - Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
