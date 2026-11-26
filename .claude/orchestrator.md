@@ -36,7 +36,7 @@ exclusive_resources:
     queue:
       rule: check that no other session (IVS orchestrator included) is using Studio before a test run; one run at a time
     fallback_when: always (no isolate recipe yet)
-auditor: general-purpose with the rules-auditor brief from ~/Documents/RobloxGames/.claude/agents/rules-auditor.md
+auditor: general-purpose with the rules-auditor brief from .claude/agents/rules-auditor.md
 roster:
   tests_write: general-purpose (tests only, written red first)
   general: general-purpose

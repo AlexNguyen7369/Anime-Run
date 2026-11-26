@@ -1,3 +1,13 @@
+## Linux VM moved (2026-11-26): new address alex-dev.avlis.dev
+- The VM is now `alex-dev.avlis.dev` (was `devbox.avlis.dev`). Connect with `ssh devbox`: the Mac's `~/.ssh/config` alias `devbox` points at the new address. Same user (`dev`), same SSH key, same Cloudflare login (`cloudflared access ssh`).
+- Host key accepted on first use: `ED25519 SHA256:0MEc73Td1Om5b6j0fDh7UvbrmtrDW5YWw0P0r2aX3KQ` (not checked against a second source).
+- Specs: Ubuntu 24.04, 8 CPUs, 16 GB RAM, RTX 4000 SFF Ada 20 GB, NVIDIA driver 595.91.07.
+- The home directory was copied on 2026-11-26 about 20:07 UTC, without `~/.cache` and npm's download cache.
+- Installed 2026-11-26: Node.js 22.23.5, Claude Code 2.1.332 (`~/.local/bin/claude`), gh 2.45.0 (still logged in), build-essential, tmux 3.4, weston, xwayland, xvfb, `libnvidia-gl-595-server`. Blender 5.2.2 starts headless and Cycles has the GPU enabled for OptiX and CUDA.
+- `claude`, `blender`, `uv`, `rojo` and `lune` are in `~/.local/bin`, which only login shells put on PATH: a one-off command needs `ssh devbox 'bash -lc "<command>"'`.
+- Not checked: Claude Code login on the VM, a real render, a weston or Xvfb display session.
+- Next for the VM: clone or pull the repo there (the vendored skills are on main after PR #30), then start the runner with `.claude/skills/orchestrator/scripts/install_systemd.sh`.
+
 ## RESUME HERE (2026-11-25 evening, devbox): PR #31 (World 2 to main) in review, spawn pieces approved, swap round 6 done
 - PR #31: first fresh review CHANGES (lighting condition). Studio lighting check done and recorded in WORLD2_SPEC "Track lighting"; World 1 Studio (TestSaveKey orch1125w1b): data 158, money 43, stamina 35, world_travel 27, world_travel_freeze 23, world_arrival 14, world_layout 12, world_gate_rule 35, spawn_area 187, character_models 5, harness_save 24, environment 416, all green; `boss_models_placed` 8/14 (known). Full World 1 suite not run to the end (runner). Both Studio windows Edit, attributes cleared, not saved.
 - Approved by the owner: spawn layout S4 + fuller, gates, altars, markets, merchants, Gojio guide (WORLD_REDESIGN_SPEC 4.2, design doc 4.37). Unmerged branches: feature/alex/plaza-build 2468a9a6 (agent-1), feature/alex/boss-guide 5182e6c7 (agent-2; re-audit of 1bfdc8a1 FAIL on stale wording only), orch/world2/w2-swap6 017accdb (agent-3: T1 game 7, context 5; T6 7 and 7; rules audit running), feature/alex/agent-2 kaiju.

@@ -272,6 +272,9 @@
 222. 2026-11-23 — Alex Nguyen — Full UiTestRun on main 6a36029 in Studio: 75 pass, 2 fail (ui_run_visual needs a focused Studio window; ui_layout's Daily claimed-day seal fixed by dropping its UIAspectRatioConstraint, rerun ui_layout 891/0 and ui_daily_boosts 13/0); ui_boss_king_arena and ui_character_icons green.
 223. 2026-11-23 — Alex Nguyen — Reverted HUD option A (owner: too blocky and cluttered): HudChrome, TeamHud, Bosses/Team buttons, Turbo bar and Money/Gems back to the 4.40 look, HudPlaque removed, HUD tests restored; every panel and popup keeps the 4.46 Scroll Dojo look.
 267. 2026-11-25 — Alex Nguyen — Merged origin/main (5ef219ed, PR #29) into the World 2 branch on feature/alex/agent-3: HudPlaque and its option A branches removed, World 2's differences and the stricter HUD tests kept (offline checks only, no Studio).
+268. 2026-11-24 — Alex Nguyen — Vendored the orchestrator, nightly-run and 12 other Claude skills, 3 commands and the rules-auditor brief into .claude/ with a Linux systemd runner installer and project hooks and plugins, so a clone on the VM has them (branch feature/alex/vm-skills).
+269. 2026-11-26 — Alex Nguyen — Recorded the Linux VM's move to alex-dev.avlis.dev in handoff.md (ssh alias, host key, specs, Node.js 22, Claude Code, gh, build-essential, tmux and Blender display libraries installed) and committed the 2026-11-24 World 2 audit handoff section.
+270. 2026-11-26 — Alex Nguyen — Merged origin/main (239de24) into feature/alex/vm-skills for PR #30: handoff.md and current_progress.md conflicts resolved by keeping main's text, the VM section added on top and the two branch entries renumbered 268 and 269.
 
 ## What's next
 **Bring the owner the full ground-ownership count (props and heroes of all ten World 2 tracks).**
