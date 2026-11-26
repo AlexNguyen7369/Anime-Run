@@ -365,8 +365,10 @@ written before the swap.
     ground midline (about 380 studs) on its own ground and Ground rect: T4 Cedar, T5 Office and Apartment, T8 cavern props
     (RockPillar, CityChunk, Graveyard, Colonnade, FleshWall), T9 Forest, T10 Hill and Hand. Rows against the approved Drafts:
     T1 1,019 (355), T2 980 (474), T3 1,021 (475), T4 1,191 (949), T5 1,010 (596), T6 937 (765), T7 1,123 (1,167),
-    T8 1,734 (1,435), T9 1,395 (2,012), T10 2,620 (3,888); the own ground grew about five times (bands about 380 a side
+    T8 1,734 (1,435), T9 1,395 (2,012), T10 2,597 (3,888); the own ground grew about five times (bands about 380 a side
     for about 60 to 75), and T9's city grid and T10's sky doors past their own ground or Ground rect are left out.
+    For the owner: Track 10's dark dome (Abyss) now stands before the finish, about 400 studs ahead of the 0.9 run
+    camera (radius 210), not beyond it; re-placing it took out 22 sky doors and 1 hill where it now stands.
   - Track 1 (agent-1's round 2): the first and last villages moved just ahead of the 0.06 and 0.9 run cameras; the woods
     in patches with open meadows between (a smooth mask), not one even carpet over the wide band; the 0.9 view, which
     runs down a long straight past the finish, closed with the track's own woods and ruins.
