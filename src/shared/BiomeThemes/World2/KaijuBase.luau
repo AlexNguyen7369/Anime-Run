@@ -25,22 +25,22 @@ return Kit.fromDraft("KaijuBase", require(script.Parent.KaijuBaseDraft), {
 	Assets = {
 		W2_KaijuBase_Apartment = draftMesh(
 			1908,
-			"rbxassetid://99204856403287", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://110258455071303", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: balconied concrete apartment block with a collapsed corner and scorch marks",
 			"mid prop, 106 placed; build/world2/export/KaijuBase/W2_KaijuBase_Apartment.glb"
 		),
 		W2_KaijuBase_Office = draftMesh(
 			1092,
-			"rbxassetid://86226530341139", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://128183204103400", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: office tower with window bands, a collapsed corner and scorch marks",
 			"mid prop, 113 placed; build/world2/export/KaijuBase/W2_KaijuBase_Office.glb"
 		),
 		W2_KaijuBase_Rubble = draftMesh(
 			316,
-			"rbxassetid://114695284919853", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://135667714284043", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: rubble heap of concrete chunks, slabs and a wrecked car",
 			"mid prop, 158 placed; build/world2/export/KaijuBase/W2_KaijuBase_Rubble.glb"
 		),
@@ -53,8 +53,8 @@ return Kit.fromDraft("KaijuBase", require(script.Parent.KaijuBaseDraft), {
 		),
 		W2_KaijuBase_SweeperVan = draftMesh(
 			2058,
-			"rbxassetid://119746374638988", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://139227479999162", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: white cleanup van with a roof rack and a plain red band, crew sitting on top, no text",
 			"mid prop, 8 placed; build/world2/export/KaijuBase/W2_KaijuBase_SweeperVan.glb"
 		),
@@ -67,36 +67,36 @@ return Kit.fromDraft("KaijuBase", require(script.Parent.KaijuBaseDraft), {
 		),
 		W2_KaijuBase_Hangar = draftMesh(
 			904,
-			"rbxassetid://87550144654218", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://124245265692448", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: military hangar with an armoured vehicle inside",
 			"mid prop, 47 placed; build/world2/export/KaijuBase/W2_KaijuBase_Hangar.glb"
 		),
 		W2_KaijuBase_BaseWall = draftMesh(
 			208,
-			"rbxassetid://140334990873492", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://85045772007880", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low concrete perimeter wall segment",
 			"mid prop, 220 placed; build/world2/export/KaijuBase/W2_KaijuBase_BaseWall.glb"
 		),
 		W2_KaijuBase_Railgun = draftMesh(
 			15488,
-			"rbxassetid://137707160154918", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://94997551318661", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: large rail cannon lying low on a long rail bed with coil discs and cable loops",
 			"hero landmark, 2 placed; build/world2/export/KaijuBase/W2_KaijuBase_Railgun.glb"
 		),
 		W2_KaijuBase_CityBlock = draftMesh(
 			2836,
-			"rbxassetid://89234299895602", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://130202550160005", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: city block of wrecked low rise buildings with craters",
 			"mid prop, 158 placed; build/world2/export/KaijuBase/W2_KaijuBase_CityBlock.glb"
 		),
 		W2_KaijuBase_Smoke = draftMesh(
 			2656,
-			"rbxassetid://84419066261119", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://117423559444173", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: tall grey smoke column",
 			"mid prop, 9 placed; build/world2/export/KaijuBase/W2_KaijuBase_Smoke.glb"
 		),

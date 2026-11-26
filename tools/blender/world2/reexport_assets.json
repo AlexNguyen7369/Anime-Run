@@ -813,6 +813,171 @@
   },
   "Reviewed": "2026-11-26 auditor"
  },
+ "W2_GoldenCity_Church": {
+  "Hash": "2ba2b507d7c17bd9692b2a3dfce9a522375871e45c3a2a7dc80c98b40792524a",
+  "Model": "78470959187567",
+  "Old": {
+   "Mesh": "75460377273832",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_Church",
+    "87235750256921",
+    "75460377273832",
+    "33ae651a297bdff9ad3c83e7656c176bc78495af0c1c609860812444392266a5"
+   ]
+  }
+ },
+ "W2_GoldenCity_CityBlock": {
+  "Hash": "94b98b42aa442dd096bfd63ae8567cc312b0ab4aa4fc774ae38bc8d5fde2b6eb",
+  "Model": "81905340008049",
+  "Old": {
+   "Mesh": "126881660859530",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_CityBlock",
+    "91936370344106",
+    "126881660859530",
+    "0f0ca846bb9621ede96c973a7b490de8a2b363a716ae198dd2f29af3754fddf1"
+   ]
+  }
+ },
+ "W2_GoldenCity_CityWall": {
+  "Hash": "8d9b3d67fbc30df2af321cb4ec5ee4d9fcffe1797bf878cd014bd87da73fac2a",
+  "Model": "105154453231458",
+  "Old": {
+   "Mesh": "114849920865458",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_CityWall",
+    "104623150050701",
+    "114849920865458",
+    "ffd2882981ede63047be31468c6dc5eabea91fe9f12d4d78c6dd2b2dfd7ed693"
+   ]
+  }
+ },
+ "W2_GoldenCity_Forest": {
+  "Hash": "ede6a7dced169fa29513d9a5060487c675cbb6ea41f306840d28012ba24c3d8d",
+  "Model": "104037967386574",
+  "Old": {
+   "Mesh": "104554146717607",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_Forest",
+    "121252939970195",
+    "104554146717607",
+    "7d29c20a2897eacbfdba2517840c11aaa5560d252b096d22db485cfd3e382026"
+   ]
+  }
+ },
+ "W2_GoldenCity_Palace": {
+  "Hash": "566335056d6760ac5bbc50842cbf9677c9313e832e48b6c6f8aa9fa34c110db6",
+  "Model": "86505084191695",
+  "Old": {
+   "Mesh": "110606034322769",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_Palace",
+    "117778166558068",
+    "110606034322769",
+    "ba3b1e98cbf9d57b6c73b198f6379701cb6749e468a13abbc56341fab7cf263f"
+   ]
+  }
+ },
+ "W2_GoldenCity_People": {
+  "Hash": "c3118c1fa19ff98be5d699a3d751ec98e94ece1dfcad2ce037431dc41d803a90",
+  "Model": "97476309654130",
+  "Old": {
+   "Mesh": "98051555364079",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_People",
+    "138932614971350",
+    "98051555364079",
+    "4c8f4a8724aa0fcf1608e09af9d42c274754cacc6333b3a88bd917febc8e3833"
+   ]
+  }
+ },
+ "W2_GoldenCity_RowA": {
+  "Hash": "b180bad8d8c383b950be8653243ad0d68ae731c539cad5bcd6fd9a9b845a3760",
+  "Model": "115152619034144",
+  "Old": {
+   "Mesh": "78005577651563",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_RowA",
+    "71277159799787",
+    "78005577651563",
+    "817a696b10ced02c82cb227c3d6903128d7e9a23ef23ce831baf22e68c812df9"
+   ]
+  }
+ },
+ "W2_GoldenCity_RowB": {
+  "Hash": "1051463238a1f4e832be401a51034327edff3db565961546465f11e5e6d4dfc7",
+  "Model": "116650028911057",
+  "Old": {
+   "Mesh": "79091228891665",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_RowB",
+    "132093456081902",
+    "79091228891665",
+    "a0bf3a752df00eb012d60ddbf1e316f5db4f0ed91814ebd23a0d362bd923bf4c"
+   ]
+  }
+ },
+ "W2_GoldenCity_Square": {
+  "Hash": "d5c4dc5c0b1aa5f3c56b05268d95635bb63c767755f0d12596659c386d42533a",
+  "Model": "104575599413966",
+  "Old": {
+   "Mesh": "139179066978516",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_Square",
+    "94411699489943",
+    "139179066978516",
+    "a62315769ad0c49274af380d81257d3efc263811ef969c86ef3ac6a483e14a78"
+   ]
+  }
+ },
+ "W2_GoldenCity_Tree": {
+  "Hash": "c54b667178dd2067de0c5b219cf8d52a273af22bc0362be01d0cbdeab0d306ad",
+  "Model": "132536888302021",
+  "Old": {
+   "Mesh": "140732085904212",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_Tree",
+    "86579307100843",
+    "140732085904212",
+    "7586386fa8516dba952cdc16a4de7244471344991c644103a9ff42b3dd713e55"
+   ]
+  }
+ },
+ "W2_GoldenCity_Wagon": {
+  "Hash": "8e66450137229707cf9f39549fa143c3828854b48dbf6394afa040e507e2ba7c",
+  "Model": "95851826899847",
+  "Old": {
+   "Mesh": "80676931915228",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "GoldenCity",
+    "W2_GoldenCity_Wagon",
+    "108896166680461",
+    "80676931915228",
+    "e087ce8bef12739b2ba4ad11105ed9a6bc1719288df6f855261c651ab3d1b422"
+   ]
+  }
+ },
  "W2_HauntedTunnel_Cedar": {
   "Hash": "8d99c5f599f2bcc8c8b4523c750ec1733fc6a377408e1b585996b61038f657db",
   "Mesh": "122295868463156",
@@ -1132,7 +1297,10 @@
   "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_Apartment": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "2391489cd9ac007a80927012f486983a63b3c6c65ec85adb25e81b08deaddf85",
+  "Mesh": "110258455071303",
   "Model": "107728844470449",
   "Old": {
    "Mesh": "99204856403287",
@@ -1144,10 +1312,14 @@
     "99204856403287",
     "0f3d872e73d27e4ec1c6c794f7abf67d63eb338f950ca7fd7159589ef6fbfdc1"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_BaseWall": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "9b8ad5a76f2551c731ac8f0ad60b5c95f08a35a0341281af14000035b5aa4fd5",
+  "Mesh": "85045772007880",
   "Model": "121109889890831",
   "Old": {
    "Mesh": "140334990873492",
@@ -1159,10 +1331,14 @@
     "140334990873492",
     "b3b4c049fc6b150c077cd444b7fae4631258414ffba7305040317c053fc9bf62"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_CityBlock": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "e9731bb760afa3f851cd87cdf98c87a448cdf5cfee84838adccb8623959e33b1",
+  "Mesh": "130202550160005",
   "Model": "121952228460315",
   "Old": {
    "Mesh": "89234299895602",
@@ -1174,10 +1350,14 @@
     "89234299895602",
     "3f7f5720f1c66d924960f2ce6506738aaefb9490a53fc7ec02c31a8a86f51076"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_Hangar": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "9a1223e7b405b8243d3bc27f77ff8e4bee0ced9faad3d3162ed52bd6f2a44188",
+  "Mesh": "124245265692448",
   "Model": "112816100561978",
   "Old": {
    "Mesh": "87550144654218",
@@ -1189,10 +1369,14 @@
     "87550144654218",
     "036b6a17b6bce95ec09783f23b3bb98287451863c7c681a980373361cea46aa4"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_Office": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "1038b5c97257499fa00c92cc9755eb60a065095c61ee015f8fe9e665754aeada",
+  "Mesh": "128183204103400",
   "Model": "115525023652116",
   "Old": {
    "Mesh": "86226530341139",
@@ -1204,10 +1388,14 @@
     "86226530341139",
     "b169c152ddac9f42a87f3a3b721458291be10a7fa18d35e313cd1dbcf3babc83"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_Railgun": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "668b38c9b12d1aced1ccdbf75503c2493406c2bdbfc389c15987c9bbe01df5fa",
+  "Mesh": "94997551318661",
   "Model": "95764235503643",
   "Old": {
    "Mesh": "137707160154918",
@@ -1219,10 +1407,14 @@
     "137707160154918",
     "6dedffca279258978da95c5703de7685eb58cd18b463ff57d407b565b3d1f62e"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_Rubble": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "95bf3d9035e6e81353519f7570f3c514f3e7d8266f7e457e8a7867703673c467",
+  "Mesh": "135667714284043",
   "Model": "95624993792237",
   "Old": {
    "Mesh": "114695284919853",
@@ -1234,10 +1426,14 @@
     "114695284919853",
     "c001836c0385c78cdf976b7c5ebbafe12a6ce2f38156fcc562cfc42e36e1ff3d"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_Smoke": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "2776a806d2172211e85421171aea593294afd5196c294cf4c191c5f62758ad75",
+  "Mesh": "117423559444173",
   "Model": "100022017850753",
   "Old": {
    "Mesh": "84419066261119",
@@ -1249,10 +1445,14 @@
     "84419066261119",
     "b3583a1540d3dcedc209efe4e77190bfaa9883536e289f67a92f570ed2ef4705"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_KaijuBase_SweeperVan": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "f5bb0cbbfdac5efe6ccf78e7c28a0e1a6bcaa856bd735840979d2e5c7707a150",
+  "Mesh": "139227479999162",
   "Model": "83887044215739",
   "Old": {
    "Mesh": "119746374638988",
@@ -1264,7 +1464,8 @@
     "119746374638988",
     "89e0a57f73b9a14394274adad2c791ec4efd6c6898bbfde029363dd8dc8a0059"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_RuinedCityZ_Barricade": {
   "Applied": true,
