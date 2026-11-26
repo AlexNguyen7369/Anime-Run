@@ -69,6 +69,12 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   roads (`TerrainShape.EXACT_FAR`) instead of one per 64-stud coarse cell: the seam is a line, not steps. The
   cross-section bands above are unchanged; World 1's grid is unchanged. Checked offline by the biome harness's
   `W2 SEAM` row (grid distance within 4 studs of the true one past the stamp).
+- Coast (World 2, Track 7 AntIsland only; 2026-11-26, the owner's "fix rendering on all tracks", lead's decision,
+  **proposed**): the approved island's sea is terrain Water. A biome profile's `Coast = { From, Blend, Depth }` turns its own
+  zone into a sea basin (bed `Depth` studs under the profile's `Water.Level`; props snap to the bed) from `From` studs off its road outward,
+  blended over `Blend` studs; the corridor, clear boxes (checkpoints, pads, plaza) and the grass-strip rule are untouched,
+  since they return before it. AntIsland: From 280, Blend 24, Depth 2, Level -3, so the blockade ships (312 out) float and the
+  coast cliffs (about 253 out) stand at the shore. Checked by the biome harness's `W2 SEA` rows.
 
 - Elevated road (slopes up to Rise 54): biomes with `Embank = true` raise the corridor to road Y - 3 (placeholder)
   under the slope, so hills sit under hills. Supports end up buried, which is fine. City biomes (5, 6) keep

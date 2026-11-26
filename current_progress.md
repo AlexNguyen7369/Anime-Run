@@ -327,7 +327,9 @@
 304. 2026-11-26 — Alex Nguyen — Made the World 2 export leave out mid props whose box meets a checkpoint area or the spawn floor (the game's Prune), re-exported Tracks 1-5 and 8-10 (pass 3) and checked all ten Drafts: 0 of 12,948 rows on another track's ground or on a checkpoint.
 305. 2026-11-26 — Alex Nguyen — Rendered and blind-scored the World 2 re-fit of Tracks 1-5 and 8-10 (game 6-7, context 3-5 against approved 7-8) and wrote the round 1 report with counts, checks, faults and the upload list (docs/proposals/W2_REFIT_REPORT.md).
 306. 2026-11-26 — Alex Nguyen — Ran World 2 re-fit round 2 on Tracks 1, 2, 3 and 7 (heroes in the run views, bands filled toward the midline, Track 1 woods in patches, Track 7 on grass ground with a mound cluster at 0.62) to blind game-view scores of T1 7.2, T2 7.0, T3 7.0, T6 7.3, T7 6.3.
-307. 2026-11-26 — Alex Nguyen — World 2 re-fit round 2 tools: hero spot search prefers the run cameras' views, kit.band backdrop over each track's own band, an approximate fog for context renders, the proposed sky-prop rule (WORLD2_SPEC) and owner questions 37-38 (LairTower, Abyss scale).
+307. 2026-11-26 — Alex Nguyen — Gave World 2 Track 7 its approved sea as terrain Water past 280 studs off the road (rules, red-first harness rows, a gated Coast profile field), so all 48 blockade ships float and no road corridor or other zone changed.
+308. 2026-11-26 — Alex Nguyen — Gave Track 7's sea the approved draft's water colour (client-side, Ant Island only) and confirmed the World 1 biome harness is unchanged from the base.
+309. 2026-11-26 — Alex Nguyen — World 2 re-fit round 2 tools: hero spot search prefers the run cameras' views, kit.band backdrop over each track's own band, an approximate fog for context renders, the proposed sky-prop rule (WORLD2_SPEC) and owner questions 37-38 (LairTower, Abyss scale).
 
 ## What's next
 **Owner decision on Track 7's island volcano (its approved scale 1.25 has no spot; 0.43 fits), the one change the blind reviewers' T7 overview fault (6.3, bar 7) points to; then the lead's merge of the World 2 branches and the Studio pass.**
