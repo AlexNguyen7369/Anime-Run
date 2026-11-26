@@ -348,10 +348,12 @@ written before the swap.
   the nearest. The move lives in tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves on the
   square spiral: Track 5 DefenseHQ 60, Track 9 Church 310, Track 10 DarkGate 90 (none on Tracks 1-4, 6-8).
 - Hero landmarks always loaded (2026-11-26, the owner's "fix rendering on all tracks", lead's decision, **proposed**):
-  World 2's hero landmarks (each theme's Hero props, the ones the export marks Hero: close-up models placed at most 4
-  times) stream Persistent, so a landmark seen across the wide layout (Track 2's ChainTower from 1,100 to 2,300 studs,
-  Track 10's Abyss past 1,300) does not stream out at the 1,024-stud StreamingTargetRadius; every other Placed prop keeps
-  its mode (heroes Atomic before, mid props default). The global radius stays. World 1 unchanged (its heroes stay Atomic).
+  World 2's landmarks seen across the wide layout's gaps stream Persistent, so they do not stream out at the 1,024-stud
+  StreamingTargetRadius (Track 2's ChainTower from 1,100 to 2,300 studs, Track 10's Abyss past 1,300); the global radius
+  stays. The list (`Shared/World2Landmarks`, 16 models, 86,954 tris kept loaded): Track 1 RuinedCastle and Town, Track 2
+  ChainTower (4 pieces), Track 3 HeroHQ, Track 5 DefenseHQ, Track 6 HQ and its two lit landmarks (bend Mansion, finish
+  Office, by base centre), Track 7 IslandVolcano, Track 8 LairTower, Track 9 Church, Track 10 DarkGate and Abyss. Every
+  other Placed prop keeps its mode (heroes Atomic, mid props default). World 1 unchanged.
 - Shrink to fit (owner 2026-11-26, "Approve 1-4", design log fe810a44): a hero with no spot at its approved scale stands at
   the largest scale that fits its own ground (its real mesh box and the game's parts fallback clear of every road by
   24.5, pads and the plaza, base centre on its own ground and Ground rect), with its approved turn, where a run camera
