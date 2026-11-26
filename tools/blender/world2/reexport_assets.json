@@ -1,6 +1,18 @@
 {
  "W2_AntIsland_Ant": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Compared": {
+   "At": "2026-11-26",
+   "Key": "W2_AntIsland_Ant",
+   "Max": 5e-06,
+   "New": "73462651219732",
+   "Old": "108845152754257",
+   "TrisNew": 2000,
+   "TrisOld": 2000
+  },
   "Hash": "100ab2b582114ab7d288dd130cd53c247b114377f676df4f10904e943a74658e",
+  "Mesh": "73462651219732",
   "Model": "97742457563136",
   "Old": {
    "Mesh": "108845152754257",
@@ -12,10 +24,14 @@
     "108845152754257",
     "aab694a2afe69fb48258c6cb9f58baa6ce78e36d8c5558aef4bc3cfc284d4f17"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_Brush": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "6b01c2be4724fe74a2913d34f701834dbcf785aa0d4e54583a4b4e355d8cb746",
+  "Mesh": "98426012245371",
   "Model": "92601774672211",
   "Old": {
    "Mesh": "137746318604400",
@@ -27,10 +43,14 @@
     "137746318604400",
     "861165c1b842e784839a259f447ee690c452f4a5a8225c0ef38ccf10e72939be"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_Camp": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "6aaacd4faad2f8ddb3fcabba19a0d5ad66ed34e30ed654e9b6c83f34f5723ce0",
+  "Mesh": "130501406342862",
   "Model": "81521915665404",
   "Old": {
    "Mesh": "85683813900111",
@@ -42,10 +62,14 @@
     "85683813900111",
     "db118f2add90f4c700c5178431eab21889fa7f5bfdcf33d0f484d437fda6fb5d"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_Chamber": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "2a617cad4a3dbdbd5c234e0a0aa2a46801c797c1a5a8724470ec85c44f8d98a9",
+  "Mesh": "139970076186570",
   "Model": "98571662585063",
   "Old": {
    "Mesh": "127071148146370",
@@ -57,10 +81,14 @@
     "127071148146370",
     "d49b224c02b4aa1e94c5cb06a07d3b62e4faf87a3e9f822d0eec681e3f42342e"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_Cliff": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "225c132531629bd76c061bcbc55b78c17d8f81bacb523efa136394287436bcea",
+  "Mesh": "124764413940847",
   "Model": "136931273397554",
   "Old": {
    "Mesh": "99845249170958",
@@ -72,10 +100,14 @@
     "99845249170958",
     "6073c335ab9391776248d049d8fd80907b7fa41ba3c277be6bfc1f0dc3802e66"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_Mound": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "15b45b7a9c2e3b443dfd9d748a6d296a17fc63050a09d161eeba5c0c3f1a4d19",
+  "Mesh": "134316544687426",
   "Model": "93811586156063",
   "Old": {
    "Mesh": "103223853324007",
@@ -87,10 +119,23 @@
     "103223853324007",
     "0d1ef7f800f7d40c7c00bf6357e76ad47ea77749178ba7f23ccca9ee5239e520"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_Nest": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Compared": {
+   "At": "2026-11-26",
+   "Key": "W2_AntIsland_Nest",
+   "Max": 1.6e-05,
+   "New": "125455946041466",
+   "Old": "105423028314113",
+   "TrisNew": 10040,
+   "TrisOld": 10040
+  },
   "Hash": "242a7bcd1addce8998865595abb065264524c58e26338d0564c9f4195ce03f3b",
+  "Mesh": "125455946041466",
   "Model": "86245063425934",
   "Old": {
    "Mesh": "105423028314113",
@@ -102,10 +147,14 @@
     "105423028314113",
     "be7e354bfeb75cb16fa6ec758a05718ffd1693ba3b862f866d3761286e411c7c"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_Ruin": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "b782d0333269cbf947dda08c51458c745a670ae191d8f751c69d0208510d6a8f",
+  "Mesh": "74674387670238",
   "Model": "113543012063125",
   "Old": {
    "Mesh": "138092145053862",
@@ -117,10 +166,14 @@
     "138092145053862",
     "a1c9cfdca852dabc22402e9df9270424b7ac87bea27638304c996303b6371dc3"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_Ship": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "16f1dc2e395057e98c8dddef06c1946f45772bed93daf81387681a984d71c2a1",
+  "Mesh": "79087380500183",
   "Model": "120461438984729",
   "Old": {
    "Mesh": "116359125507961",
@@ -132,10 +185,14 @@
     "116359125507961",
     "03d4fe004650ddfd47c09364a60c6ebf460bd101a4a64c57de5953803581806e"
    ]
-  }
+  },
+  "Reviewed": "2026-11-26 auditor"
  },
  "W2_AntIsland_ThatchHouse": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
   "Hash": "fb96860b747714a2859728486eb474ca09d02a6ca0e9edca11a0ed964fd00d87",
+  "Mesh": "85851037078208",
   "Model": "139197565264941",
   "Old": {
    "Mesh": "87977916324970",
@@ -146,6 +203,201 @@
     "94584956965085",
     "87977916324970",
     "72ddf2793ba44f411e04753b64b6a64a5648b8ccaed4f8d4a7e7c3c1efabe534"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_ElvenPlains_Cottage": {
+  "Hash": "ff8cdcc4bcb2140166a5ecc5f67a5bb61b7f7b189d3c4075e75225c059ed2ac4",
+  "Mesh": "93007817546027",
+  "Model": "75102118558772",
+  "Old": {
+   "Mesh": "118131223333716",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Cottage",
+    "71026180319185",
+    "118131223333716",
+    "1aa1b0fc2c27b8343e184fa6cf11997b70bbc2c0c56bcbae69c4a074a1b7c26b"
+   ]
+  }
+ },
+ "W2_ElvenPlains_Flowers": {
+  "Hash": "9b7874245c5f6755580b57f1b9edbf86c19bcfa998f388091a97222c81b457d9",
+  "Mesh": "108411840596472",
+  "Model": "128321205595422",
+  "Old": {
+   "Mesh": "87953167963009",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Flowers",
+    "131212532323767",
+    "87953167963009",
+    "352437213abea1d7b943aa977d052effea746d5cb1a1263e4b0e6611f95bbbf2"
+   ]
+  }
+ },
+ "W2_ElvenPlains_Forest": {
+  "Hash": "6c61c1149ae3850744688a6cca447e9fa79ddb5ae004185565eeb106a0b655ac",
+  "Mesh": "125284792456635",
+  "Model": "99408055367726",
+  "Old": {
+   "Mesh": "136016867288780",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Forest",
+    "86046023678109",
+    "136016867288780",
+    "debbfe5dffa6313627b8904288ce17da56fc855231f779d6fe9fd6a1c3cb2918"
+   ]
+  }
+ },
+ "W2_ElvenPlains_HeroStatue": {
+  "Hash": "3cfd63724a958954255f773f50650193cb0803f07690310c4c3bc3a4ccb2d0c3",
+  "Mesh": "129056411025998",
+  "Model": "107486008841335",
+  "Old": {
+   "Mesh": "89881248403715",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_HeroStatue",
+    "140288583713012",
+    "89881248403715",
+    "8186995d1138cb74861e0242accfc77a5f7589a0a48ccde25179f01acf67a172"
+   ]
+  }
+ },
+ "W2_ElvenPlains_Mound": {
+  "Hash": "651aa9d246e28f5f66a366fdee7ec9807e31f72ddf5aa3dfa06e89cefb066af6",
+  "Mesh": "76424269815338",
+  "Model": "116368749874702",
+  "Old": {
+   "Mesh": "93806218892651",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Mound",
+    "104332137309468",
+    "93806218892651",
+    "598769c00cfb10a60ebacc5d09e930b60147a57290a39e1bb1673d14c8b42554"
+   ]
+  }
+ },
+ "W2_ElvenPlains_Mountain_p1": {
+  "Compared": {
+   "At": "2026-11-26",
+   "Key": "W2_ElvenPlains_Mountain_p1",
+   "Max": 0.000916,
+   "New": "124053807332587",
+   "Old": "116597367160465",
+   "TrisNew": 704,
+   "TrisOld": 704
+  },
+  "Hash": "4f2cae7441d2f60ca21133a8f510a65a26f6bdc500b31ad3fd8980a81b2c771b",
+  "Mesh": "124053807332587",
+  "Model": "80698766427405",
+  "Old": {
+   "Mesh": "116597367160465",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Mountain_p1",
+    "75776332253587",
+    "116597367160465",
+    "ad0b783dce5bd2b90143b30dfc2f01ca41b21081a1d49669ca5e409d5d271c76"
+   ]
+  }
+ },
+ "W2_ElvenPlains_Mountain_p2": {
+  "Compared": {
+   "At": "2026-11-26",
+   "Key": "W2_ElvenPlains_Mountain_p2",
+   "Max": 0.000891,
+   "New": "137279050392448",
+   "Old": "75778727446645",
+   "TrisNew": 820,
+   "TrisOld": 820
+  },
+  "Hash": "9df39b23276055842a825388d74ba0098fc6dc67f852e0f8857b2bc81527ad28",
+  "Mesh": "137279050392448",
+  "Model": "111978251711603",
+  "Old": {
+   "Mesh": "75778727446645",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Mountain_p2",
+    "92957825141107",
+    "75778727446645",
+    "aadb4787ff87c9e9d1799e22e51a6d8048eb9fb0f497bb1dcd9fed4ae73b7e76"
+   ]
+  }
+ },
+ "W2_ElvenPlains_Mountain_p3": {
+  "Hash": "4cfe22fab9e19efaae55f447a6c17ac9466727ce2eff8a76a81549331adbf0ea",
+  "Mesh": "77677269525760",
+  "Model": "108583857850455",
+  "Old": {
+   "Mesh": "140544040618009",
+   "Reviewed": "2026-11-24 auditor (wave 2)",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Mountain_p3",
+    "120285369136211",
+    "140544040618009",
+    "f6275aa6cf61d09dbdfb4c635c1d92ae2d95c277fbe2855b84661ff21e20528e"
+   ]
+  }
+ },
+ "W2_ElvenPlains_Pine": {
+  "Hash": "1095d2480adb2215e2b15f12aa26ca9fb9bea4ba05906f69127cfa7349972017",
+  "Mesh": "123011625620061",
+  "Model": "118545060719861",
+  "Old": {
+   "Mesh": "86341868807167",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Pine",
+    "100211201877531",
+    "86341868807167",
+    "be81b597bd0c92dcbed93b89bf348a56fec8c9d6d457ce6b5fa207393e266c30"
+   ]
+  }
+ },
+ "W2_ElvenPlains_Rank": {
+  "Hash": "5b859ec20cf12aa185d8c48f03f9c209599e679edc23dcb310f7f27ac2bc039e",
+  "Mesh": "135862874513035",
+  "Model": "73273849081663",
+  "Old": {
+   "Mesh": "124439157061642",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_Rank",
+    "121580858656339",
+    "124439157061642",
+    "5276d0f44ce50c36e77f35b6a4b03fa662c35819caaf64ec5f75ef0642510afa"
+   ]
+  }
+ },
+ "W2_ElvenPlains_RuinWall": {
+  "Hash": "e21112ee38c561165899936a22a70eeaa8bca951ea89a2b86279f71768929d65",
+  "Mesh": "113848423688342",
+  "Model": "115412469504347",
+  "Old": {
+   "Mesh": "78041340968634",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "ElvenPlains",
+    "W2_ElvenPlains_RuinWall",
+    "125242780504748",
+    "78041340968634",
+    "cea7f5142170008d68bdfb306937fdb11b18b4f0a6401710d3b69431fec54d76"
    ]
   }
  },
