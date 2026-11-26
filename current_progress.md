@@ -345,6 +345,7 @@
 342. 2026-11-26 — Alex Nguyen — Proved the three UI harness fixes in World 2 Studio, each green twice in one Play session (ui_boss_gate 14/14, ui_team 71/71, ui_boss 487/487), and marked their BUGS.md lines proven.
 343. 2026-11-26 — Alex Nguyen — Merged the three UI test harness fixes (BossButton wait, boss camera settle, Daily popup close) into the World 2 branch; Studio World 2 ui_boss_gate 14/14, ui_team 71/71, ui_boss 487/487, each twice in one Play session; audit PASS.
 332. 2026-11-26 — Alex Nguyen — Looked at the World 2 track effects in Studio on Tracks 2, 4, 5, 7 and 10 (LIVE forced in the test session only) and saved pictures and flags for the owner: effects never build away from a track's streamed-in Start, and Track 4's haze reaches over the road.
+333. 2026-11-26 — Alex Nguyen — Fixed the World 2 track effects (origin from the chain, no smoke over roads, dragon loops kept whole over their own ground, an eel with no gaps), tested on today's routes and the C layout, and checked them in Studio with LIVE forced in the test session only.
 
 ## What's next
 **Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**
