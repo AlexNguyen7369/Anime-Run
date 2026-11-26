@@ -3,6 +3,7 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- Boss gate guide (Gojio) in World 2: the gate (draft A) is on in World 2, off in World 1; Gojio's own switch (BossGuideConfig.LIVE) is yours by BOSS_GUIDE_SPEC, so he is not standing at the gate yet. Question: turn Gojio on with the World 2 gate?
 - Track effects LIVE: stays off until you approve the effects and motions (your words). Previews: assets/world2_draft/track_fx/previews/ on orch/world2/w2-track-vfx. Questions: does your "tone down the haze" cover Track 10's red ground-haze particles? Are DemonCastle's black-violet drakes too close to Kaizel's wyvern look?
 - Studio test run and Play check: my script writes to the cloud place were denied. Question: allow execute_luau script writes, or connect Rojo to w2-ingame? State: orch/world2/cast-ingame pushed.
 - Merge to main and publishing places: not done (never pre-approved).
@@ -12,7 +13,7 @@
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you
-- Spawn: scale the plaza about 1.3x in both worlds (one shared layout), clamped to World 1's track clearances; larger SpawnLocation scatter. Revert: drop orch/world2/w2-spawn-gate.
+- Spawn: 1.3x would cross Track 1's wall (only 2 studs of room; 1.02x is the most in place), so I chose 1.20x with the plaza centre moved 20 studs east, both worlds (floor gap 1.85, pad 27.2 from Track 1's start, rule 40); plus a spawn scatter so players no longer land on one point (18 spots on rings of 4 and 8). Revert: drop the commits on orch/world2/w2-spawn-gate after c92015e3, or the branch.
 - Layout: chose option C (square spiral of long straights, pitch 760, corners R420; smallest gap 643, T6 on 720) over A (wider round spiral, 620, no straights) and B (zigzag, 663, breaks two spiral rules and grows the world to 12k). C keeps every rule and today's world size. Revert: pick A or B from docs/proposals/W2_WIDE_LAYOUT.md (orch/world2/w2-wide-layout 6b4d73b7).
 - Moving tracks whole with connectors was ruled out: agent-3 showed the +5% length slack is 3-8x too short (W2_LAYOUT_IMPACT.md, 00ebd421).
 - Track 1 neighbours round (orch/world2/w2-t1-neighbours): dropped as moot, left unmerged.
