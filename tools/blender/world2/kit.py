@@ -24,6 +24,14 @@ def hexcol(h, a=1.0):
 	return (lin[0], lin[1], lin[2], a)
 
 
+# Road supports under raised road (docs/W2_RENDER_AUDIT.md): a support's top stays SUPPORT_CLEARANCE under the lowest road
+# underside over its length, as the game's own TrackBuilder supports (BiomeDressing.SUPPORT_CLEARANCE), so it never shows
+# through a climb. In place coordinates (k.place's y) the road top is p.y - 0.5 and the road is ROAD_THICKNESS deep.
+ROAD_THICKNESS = 2.0  # TrackBuilder ROAD_THICKNESS
+SUPPORT_CLEARANCE = 0.05  # TrackBuilder / BiomeDressing SUPPORT_CLEARANCE
+SUPPORT_MIN = 0.2  # placeholder: a support never thinner; one that would be sinks into the ground instead
+
+
 class Kit:
 	"""Scene context for one track: its road (Roblox waypoints), materials, prop meshes, instancing and shots."""
 
@@ -156,6 +164,24 @@ class Kit:
 		t = t.normalized() if t.length > 1e-6 else Vector((0, 0, -1))
 		right = Vector((-t.z, 0, t.x))
 		return p, right, t
+
+	def support_top(self, d0, d1, step=0.5):
+		"""Highest top (place y) a road support between d0 and d1 along the road may have: SUPPORT_CLEARANCE under the lowest
+		road underside there. The road is straight between waypoints, so sampling every `step` plus both ends is exact
+		to its waypoints' heights."""
+		n = max(1, int(math.ceil((d1 - d0) / step)))
+		low = min(self.at(d0 + (d1 - d0) * i / n)[0].y for i in range(n + 1))
+		return low - 0.5 - ROAD_THICKNESS - SUPPORT_CLEARANCE
+
+	def support(self, name, x, z, yaw, d0, d1, ground=-1.0):
+		"""Places `name` (a unit box prop standing on its base) as a road support between d0 and d1: its top at support_top,
+		its base on `ground`, or SUPPORT_MIN under the top where the road is too low over it (sunk, never dropped).
+		Returns the object and its height; the caller sets the other two scales."""
+		top = self.support_top(d0, d1)
+		h = top - ground
+		if h < SUPPORT_MIN:
+			ground, h = top - SUPPORT_MIN, SUPPORT_MIN
+		return self.place(name, (x, ground, z), yaw), h
 
 	def beside(self, d, off, y=0.0):
 		"""Roblox point `off` studs right (negative: left) of the road edge... measured from the centre line."""
