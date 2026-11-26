@@ -363,12 +363,15 @@ local function buildDragon(def)
 	for _, seg in parts.Segments or {} do
 		seg.Color = def.Color
 	end
-	local path = Plan.DragonPath(state.Waypoints, def)
+	-- over its own track's ground only, its shape kept (WORLD2_SPEC "Track effects"); none if it cannot fit
+	local path = Plan.FitLoop(state.Waypoints, def, state.Origin, state.Number, lines)
+	if not path then
+		model:Destroy()
+		return nil
+	end
 	for i, p in path do
 		path[i] = state.Origin:PointToWorldSpace(p)
 	end
-	-- over its own track's ground only (WORLD2_SPEC "Track effects")
-	path = Plan.OwnPath(path, state.Number, lines, Plan.DragonFoot(state.Waypoints, def, state.Origin))
 	model.Parent = state.Folder
 	return { Def = def, Model = model, Parts = parts, Path = path, Arc = Plan.ArcTable(path) }
 end

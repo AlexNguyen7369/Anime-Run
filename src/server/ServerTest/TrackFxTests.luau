@@ -185,13 +185,14 @@ function Tests.track_fx()
 		flag("road_clear_24", B.RoadClear == 24, B.RoadClear, 24)
 		flag("min_spread_half", B.MinSpread == 0.5, B.MinSpread, 0.5)
 		flag("own_margin_20", B.OwnMargin == 20, B.OwnMargin, 20)
+		flag("min_loop_radius_120", B.MinLoopRadius == 120, B.MinLoopRadius, 120)
 		flag("eel_overlap_1_6", B.EelOverlap == 1.6, B.EelOverlap, 1.6)
 		local api = type(Plan.ChainOrigins) == "function"
 			and type(Plan.CentreLines) == "function"
 			and type(Plan.ClearSpread) == "function"
 			and type(Plan.SpreadClearance) == "function"
 			and type(Plan.Owner) == "function"
-			and type(Plan.OwnPath) == "function"
+			and type(Plan.FitLoop) == "function"
 		flag("fix_api_exists", api)
 		if api then
 			-- 1. Each track's origin, from the chain alone, is the server-built Start less 0.5. In Studio: the live tracks.
@@ -266,12 +267,15 @@ function Tests.track_fx()
 				local spec = byBiome[key]
 				for i, def in track.Dragons or {} do
 					local waypoints = TrackBuilder.Layout(spec).Waypoints
-					local path = Plan.DragonPath(waypoints, def)
-					for k, p in path do
-						path[k] = origins[spec.Number]:PointToWorldSpace(p)
+					local path, k = Plan.FitLoop(waypoints, def, origins[spec.Number], spec.Number, lines)
+					r.metrics[("%s_dragon%d_fit"):format(key, i)] = k and math.floor(k * 100) / 100 or "not built"
+					if not path then
+						path = {}
 					end
-					path = Plan.OwnPath(path, spec.Number, lines, Plan.DragonFoot(waypoints, def, origins[spec.Number]))
-					local own, n = 0, 128
+					for j, p in path do
+						path[j] = origins[spec.Number]:PointToWorldSpace(p)
+					end
+					local own, n = 0, #path > 0 and 128 or 0
 					for k = 0, n - 1 do
 						local p = Plan.Spline(path, k / n)
 						if Plan.Owner(lines, p.X, p.Z) == spec.Number then
@@ -279,12 +283,26 @@ function Tests.track_fx()
 						end
 					end
 					flag(("%s_dragon%d_over_own_ground"):format(key, i), own == n, own, n)
+					print(
+						("[FX] %s dragon %d: %s"):format(
+							key,
+							i,
+							k and ("loop at " .. math.floor(k * 100) .. "%") or "not built (no room)"
+						)
+					)
 					local world = {}
 					for k, w in waypoints do
 						world[k] = origins[spec.Number]:PointToWorldSpace(w)
 					end
-					local c = Plan.Clearance(path, world)
-					flag(("%s_dragon%d_own_clearance"):format(key, i), c >= B.MinDragonClearance, math.floor(c), 150)
+					if #path > 0 then
+						local c = Plan.Clearance(path, world)
+						flag(
+							("%s_dragon%d_own_clearance"):format(key, i),
+							c >= B.MinDragonClearance,
+							math.floor(c),
+							150
+						)
+					end
 				end
 			end
 		end

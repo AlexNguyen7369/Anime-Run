@@ -23,6 +23,7 @@ TrackFxConfig.Budget = {
 	MaxDragonsPerTrack = 2,
 	DragonCull = 3000, -- studs from the camera past which a dragon is hidden and not updated
 	MinDragonClearance = 150, -- studs from any point of the dragon's path to its own track's centre line (3D)
+	MinLoopRadius = 120, -- studs: a dragon whose loop would have to shrink below this to stay over its own ground is not built
 	OwnMargin = 20, -- studs: every point of a dragon's loop is that much nearer its own centre line than any other track's
 	RoadClear = 24, -- studs: an emitter's spread stays this far (horizontal) from every centre line (the props rule)
 	MinSpread = 0.5, -- a spread too near a road narrows to this share of its width before the emitter moves away

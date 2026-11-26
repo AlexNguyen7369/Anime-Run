@@ -312,50 +312,47 @@ end
 -- points (so the spline between them cannot stray far), and every one not owned by track `n` by Budget.OwnMargin is
 -- pulled straight toward `toward` (height kept) until it is: the loop's anchor on its own centre line (DragonFoot), mid
 -- track, never the start or finish its neighbours share.
--- World point on a dragon's own centre line at its At: what OwnPath pulls toward
-function TrackFxPlan.DragonFoot(waypoints, def, origin)
-	return origin:PointToWorldSpace(TrackFxPlan.AlongTrack(waypoints, def.At).Position)
-end
-
-local OWN_POINTS = 48
-local OWN_PASSES = 4 -- resample and pull again: the spline through pulled points can bulge between them
-local function pullOwn(points, n, lines, margin, toward)
-	local out = {}
-	for i, p in points do
-		local function ok(q)
+-- A dragon loop over its own track's ground (WORLD2_SPEC "Track effects"), its shape kept: the whole loop is shrunk about
+-- its foot on its own centre line (its side offset and its radius by the same factor) to the largest size whose every
+-- sampled point lies over its own track's ground by Budget.OwnMargin. Returns the control points (track-local, as
+-- DragonPath) and the factor, or nil when even a loop of Budget.MinLoopRadius does not fit: that dragon is not built.
+local FIT_SAMPLES = 96
+function TrackFxPlan.FitLoop(waypoints, def, origin, n, lines)
+	local B = Config.Budget
+	local function fits(k)
+		local scaled = table.clone(def)
+		scaled.Lateral, scaled.Radius = def.Lateral * k, def.Radius * k
+		local path = TrackFxPlan.DragonPath(waypoints, scaled)
+		local world = {}
+		for i, p in path do
+			world[i] = origin:PointToWorldSpace(p)
+		end
+		for s = 0, FIT_SAMPLES - 1 do
+			local q = TrackFxPlan.Spline(world, s / FIT_SAMPLES)
 			local owner, d, other = TrackFxPlan.Owner(lines, q.X, q.Z)
-			return owner == n and d + margin <= other
-		end
-		if ok(p) then
-			out[i] = p
-		else
-			local target = Vector3.new(toward.X, p.Y, toward.Z)
-			local lo, hi = 0, 1
-			for _ = 1, 20 do
-				local mid = (lo + hi) / 2
-				if ok(p:Lerp(target, mid)) then
-					hi = mid
-				else
-					lo = mid
-				end
+			if owner ~= n or d + B.OwnMargin > other then
+				return nil
 			end
-			out[i] = p:Lerp(target, hi)
+		end
+		return path
+	end
+	local full = fits(1)
+	if full then
+		return full, 1
+	end
+	local lo, hi = B.MinLoopRadius / def.Radius, 1
+	if not fits(lo) then
+		return nil
+	end
+	for _ = 1, 12 do
+		local mid = (lo + hi) / 2
+		if fits(mid) then
+			lo = mid
+		else
+			hi = mid
 		end
 	end
-	return out
-end
-
-function TrackFxPlan.OwnPath(points, n, lines, toward)
-	local margin = Config.Budget.OwnMargin
-	local path = points
-	for _ = 1, OWN_PASSES do
-		local dense = {}
-		for k = 0, OWN_POINTS - 1 do
-			dense[k + 1] = TrackFxPlan.Spline(path, k / OWN_POINTS)
-		end
-		path = pullOwn(dense, n, lines, margin, toward)
-	end
-	return path
+	return fits(lo), lo
 end
 
 -- Nearest-first pick under the budget. candidates: { { Key, Position, Cost, Cull } }. Returns the kept keys as a set.

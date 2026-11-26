@@ -350,8 +350,13 @@ proposed.**
   the nearest centre line until it clears; one that still touches another road is not built (`TrackFxPlan.ClearSpread`).
 - Dragons over their own ground (2026-11-26): every point of a dragon's loop lies over its own track's ground (its nearest
   centre line, of all World 2 tracks, is its own track's, by `OWN_MARGIN` **proposed** 20 studs), the ownership rule of the
-  scenery (TerrainShape.Owner, the gap midline). A loop control point that is not is pulled straight toward its own
-  centre line until it is (`TrackFxPlan.OwnPath`); the 150-stud clearance from its own centre line still holds.
+  scenery (TerrainShape.Owner, the gap midline). The loop keeps its shape: it is shrunk as a whole about its foot on its
+  own centre line (side offset and radius by one factor) to the largest size that fits (`TrackFxPlan.FitLoop`); a dragon
+  whose loop would need a radius under `MIN_LOOP_RADIUS` (**proposed** 120 studs: tighter turns fold the eel) is not
+  built. The 150-stud clearance from its own centre line still holds. Measured 2026-11-26: on today's routes no loop
+  fits (the tracks lie about 150 studs apart); on the C layout (orch/world2/w2-wide-layout) Track 2's two drakes fit at
+  70% and 54%, Track 4's eel at 62%, Track 7's drake at 50%, and Track 1's drake does not fit (its At / Side need a new
+  value on that layout).
 - The eel reads as one body: each segment overlaps the next along the path (segment length at least `EEL_OVERLAP`
   **proposed** 1.6 times the spacing between their centres, with the tail's side-to-side wave counted), so no gap shows.
   Its segments are longer meshes of the same model (scale only: same 14 segments and tris): first segment 40 long (was 27.5,
