@@ -347,8 +347,9 @@
 344. 2026-11-26 — Alex Nguyen — Looked at the World 2 track effects in Studio on Tracks 2, 4, 5, 7 and 10 (LIVE forced in the test session only) and saved pictures and flags for the owner: effects never build away from a track's streamed-in Start, and Track 4's haze reaches over the road.
 345. 2026-11-26 — Alex Nguyen — Fixed the World 2 track effects (origin from the chain, no smoke over roads, dragon loops kept whole over their own ground, an eel with no gaps), tested on today's routes and the C layout, and checked them in Studio with LIVE forced in the test session only.
 346. 2026-11-26 — Alex Nguyen — Fixed the track effects audit: track_fx runs in World 1 again (76/0; the dragon block skips biomes World 1 lacks), and the spec's measured loop sizes, clearances and test counts are current.
+347. 2026-11-26 — Alex Nguyen — Made Track 10's red GroundHaze a little less opaque (plateau 0.82 from 0.78, proposed) through an optional per-row Transparency, spec first, track_fx red then green (World 1 80/0, World 2 106/0); LIVE stays off.
 
 ## What's next
-**Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**
+**Set BossGuideConfig.LIVE on in World 2 only (owner 2026-11-26), rules first in BOSS_GUIDE_SPEC and design doc 4.37, then the Studio runs boss_guide, ui_boss_guide and ui_boss_gate.**
 
-**Why this is next:** the owner approved tonight's uploads, everything up to the send is ready, and dark props are the last rendering fault that does not depend on the re-lay.
+**Why this is next:** the owner approved Gojio at the World 2 boss gate and it is the last item of the lead's list.
