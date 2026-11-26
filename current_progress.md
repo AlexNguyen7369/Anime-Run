@@ -315,6 +315,7 @@
 294. 2026-11-25 — Alex Nguyen — Proposed moving the frozen tracks' pieces off Track 1's World 2 ground (7 moved, 27 out, one-eyed monster kept) with before and after renders; drafts patched in place, not merged.
 295. 2026-11-25 — Alex Nguyen — Fix round on the Track 1 neighbours proposal: moves may not touch props or enter new run views, so 3 moved and 31 out (Hound and smoke column out), Track 2's road patches traced to EEVEE shadow overflow.
 296. 2026-11-26 — Alex Nguyen — Re-rendered Track 2 context 03 with a 2048 shadow pool and traced Track 3's context faults to their pieces and ground owners (not applied, owner's call).
+280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 
 ## What's next
 **Look at the two kaiju sites in Studio on orch/world2/kaiju-land (mesh loads, hide colour, nothing standing inside the bodies), rules-audit the branch, then merge it into the World 2 branch.**

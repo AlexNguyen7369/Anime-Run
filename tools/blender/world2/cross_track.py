@@ -9,6 +9,8 @@ only read: the rows of its exported <Biome>Draft.luau on its own Ground, with it
    **proposed**): more of our points than that, or our base centre, inside the other mesh, or more of its points than that
    inside ours. Where the other prop stands on OUR ground (it is the one to go) only our points count.
 2. fill: FILL's props, at the first legal spots, under the same rules and off our other props.
+3. landmarks: LANDMARK's lit focal points, set by hand, each in place of at most one of our props; one that is not legal,
+   or that touches any other track's prop (exact triangles), stops the run.
 KEEP (the approved hero rows) is never moved or left out here.
 Headless: Blender -b --factory-startup --python tools/blender/world2/cross_track.py -- [1] [6]
 Import-safe: main() runs only as a script.
@@ -124,6 +126,18 @@ FILL = {
 		woods(20, "Flowers", (1.0, 1.5), 30, 9),
 	],
 	"DevilTokyo": [fronts(("ShopHouse", "Apaato", "Konbini"), (40, 46, 54, 62), 80, 8), towers(41, 70, 5), at("Konbini", 1183.6, -381.5)],
+}
+
+# Track 6's lit focal points (owner 2026-11-25, "lit landmark approved"; design doc change log): at the bend (the 0.06 run
+# camera's axis) and the finish (0.9), where the HQ would stand, from meshes the track already places, unchanged, their lit
+# face turned to the camera's axis. "out": the prop of ours it stands in place of. The HQ stays out; the sight plots stay.
+# Picked from renders of three spots each (bend: this Mansion, an Office or a third Retro behind the outer front; finish:
+# this Office, an Office or a ShopHouse in place of the Mansion at (-222.7, 1138.2)). Spots **proposed**.
+LANDMARK = {
+	"DevilTokyo": [
+		{"what": "bend", "out": [("Apaato", -944.927, 925.065)], "put": ("Mansion", -943.8, 960.0, -1.541, 1.0)},
+		{"what": "finish", "out": [], "put": ("Office", -226.5, 1169.4, -1.518, 0.55)},
+	],
 }
 
 
@@ -422,6 +436,26 @@ class Layout:
 					self.adds.append([p.name, round(p.pos[0], 3), round(p.pos[2], 3), round(p.yaw, 5), round(p.scale, 3)])
 					placed += 1
 			print("FILL", self.biome, rule["what"], placed, "of", rule["count"])
+		for mark in LANDMARK.get(self.biome, ()):
+			for name, x, z in mark["out"]:
+				hit = min((q for q in self.kept if q.name == name), key=lambda q: math.hypot(q.pos[0] - x, q.pos[2] - z), default=None)
+				if hit is None or math.hypot(hit.pos[0] - x, hit.pos[2] - z) > 1.0:
+					raise SystemExit("LANDMARK %s: no %s at (%.3f, %.3f)" % (mark["what"], name, x, z))
+				self.kept.remove(hit)
+				row = [name, round(hit.pos[0], 3), round(hit.pos[2], 3)]
+				added = [a for a in self.adds if a[:3] == row]
+				if added:
+					self.adds.remove(added[0])
+				else:
+					self.rows.append(row + [None] * 3)
+			name, x, z, yaw, scale = mark["put"]
+			p = self.make(name, x, z, yaw, scale)
+			touch = [(q.track, q.name) for q, a, b, bad in self.contacts(p) if a or b or p.touches(q)]
+			if not self.legal(p, self.kept, view=False) or touch:
+				raise SystemExit("LANDMARK %s: %s at (%.1f, %.1f) not legal or touches %s" % (mark["what"], name, x, z, touch))
+			self.kept.append(p)
+			self.adds.append([name, round(x, 3), round(z, 3), round(yaw, 5), round(scale, 3)])
+			print("LANDMARK", self.biome, mark["what"], name, round(x, 1), round(z, 1), "out", mark["out"])
 
 	def report(self):
 		"""Our props on another track's ground, and the neighbours on our ground that ours touch."""

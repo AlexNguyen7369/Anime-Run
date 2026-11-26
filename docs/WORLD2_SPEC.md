@@ -234,9 +234,14 @@ written before the swap.
   then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
   legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
   Reopened by the owner 2026-11-25 ("Go ahead"): the frozen tracks' pieces standing on Track 1's ground and the smoke column
-  on its sightline. **Proposed**, renders to the owner before any merge: 3 moved, 31 out (one of four Track 2 Hounds among them), the one-eyed monster (Track 8
+  on its sightline. Owner 2026-11-26 (choices A to D, design doc change log): 3 moved, 31 out (one of four Track 2 Hounds and the smoke column among them), plus Track 5's Office and Smoke at Track 1's finish out (C) and the ground rule on Track 3's ground (D: Track 5 Smoke, Track 8 RockPillar, Track 2 RuinB; Track 2's Gate stays); the one-eyed monster (Track 8
   FleshWall) and the pieces the game prunes kept (docs/proposals/world2_t1_neighbours, tools/blender/world2/t1_neighbours.py).
   The drafts are patched in place, not re-exported: a re-export of those tracks today also brings unrelated changes.
+- Track 6 lit landmark (owner 2026-11-25, "lit landmarj approved"; renders went to the owner, who approved the merge (choice E, 2026-11-26)): at the bend
+  (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
+  centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,
+  and one more Office tower (scale 0.55, the approved top) with its lit face to the finish axis. The spots are
+  **proposed** (`tools/blender/world2/cross_track.py` LANDMARK); the HQ stays out.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
