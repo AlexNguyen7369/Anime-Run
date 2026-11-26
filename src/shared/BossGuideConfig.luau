@@ -21,20 +21,15 @@ function BossGuideConfig.Name()
 	return CharacterCatalog.Get(BossGuideConfig.ID).Name
 end
 
--- The conversation, in order: { Id, Text }. gateOpen: a boss event is active. rebirth: the player's RebirthLevel; below
--- SidekickConfig.HudFromRebirth the Bosses button is hidden and the gate stays closed (WORLD_REDESIGN_SPEC 4.2, proposed).
-function BossGuideConfig.Pages(gateOpen, rebirth)
-	local gate
-	if rebirth < SidekickConfig.HudFromRebirth then
-		gate = ("The Bosses button shows from Rebirth %d, and Sidekicks unlock at Rebirth %d. Come back then."):format(
-			SidekickConfig.HudFromRebirth,
-			SidekickConfig.UnlockRebirth
-		)
-	elseif gateOpen then
-		gate = "The gate is open: a boss event is running. Walk up to the gate, or press Bosses."
-	else
-		gate = "The gate is closed for now. The Bosses popup shows the time to the next event."
-	end
+-- He talks from the rebirth that shows the Bosses button (owner 2026-11-25: not below rebirth 1).
+function BossGuideConfig.Talks(rebirth)
+	return (rebirth or 0) >= SidekickConfig.HudFromRebirth
+end
+
+-- The conversation, in order: { Id, Text }. gateOpen: a boss event is active.
+function BossGuideConfig.Pages(gateOpen)
+	local gate = gateOpen and "The gate is open: a boss event is running. Walk up to the gate, or press Bosses."
+		or "The gate is closed for now. The Bosses popup shows the time to the next event."
 	return {
 		{
 			Id = "Intro",

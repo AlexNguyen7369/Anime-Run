@@ -340,7 +340,7 @@ UiScenarios.Needs = {
 	ui_team = { "hud_unlock" },
 	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
-	ui_boss_guide = { "quiet" }, -- auto-rolls and runs move what grants_nothing watches
+	ui_boss_guide = { "quiet", "hud_unlock" }, -- he talks from rebirth 1; auto-rolls and runs move what grants_nothing watches
 	ui_bag_full = { "auto_roll_on" },
 	-- An undiscovered tile needs an unowned character: the reused test save can own them all (full_run5)
 	ui_index = { "index_states" },

@@ -45,10 +45,10 @@ return Kit.fromDraft("KaijuBase", require(script.Parent.KaijuBaseDraft), {
 			"mid prop, 158 placed; build/world2/export/KaijuBase/W2_KaijuBase_Rubble.glb"
 		),
 		W2_KaijuBase_GiantCorpse = draftMesh(
-			19518,
-			"rbxassetid://97978579295357", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
-			"in-house Blender parts model, low poly flat colours: giant generic monster corpse lying across city blocks with a craggy rock ridge back, red brown hide, white suited cleanup crews on ropes and teal lattice gantries, no wounds",
+			19889,
+			"rbxassetid://120871855895739", -- Id: uploaded 2026-11-25 (owner: "Kaiju ready to upload"), Model 130671695538312
+			"2026-11-25 rules-auditor", -- Reviewed: the rules audit (BIOME_ENVIRONMENT_SPEC 4.1 step 3)
+			"in-house Blender model, low poly flat colours: invented generic monster lying whole on its side in cracked earth among the building corners it crushed, ridged back, red brown hide, tail wrapped round the front, two teal gantries with a few ropes and cleanup crew at human scale, no wounds",
 			"hero landmark, 2 placed; build/world2/export/KaijuBase/W2_KaijuBase_GiantCorpse.glb"
 		),
 		W2_KaijuBase_SweeperVan = draftMesh(

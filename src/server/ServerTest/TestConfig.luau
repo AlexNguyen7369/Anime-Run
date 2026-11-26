@@ -28,7 +28,8 @@ return {
 		"hud",
 		"auto_toggle",
 		"spawn_area",
-		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: the guards; what waits is plaza_build_pending (OnDemand)
+		"plaza_pieces", -- WORLD_REDESIGN_SPEC 4.2: the pieces' code, off before the upload and on after
+		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: the guards (PlazaBuildTests.PENDING is empty since the merchants, 2026-11-25)
 		"gacha",
 		"catalog",
 		"index",
@@ -89,7 +90,10 @@ return {
 		"world_layout",
 		"world_travel", -- design doc 4.47: one trip at a time, frozen until departure, restored on failure
 		"world_travel_freeze", -- review of 8557dcf: Depart before the release save, freeze, lock retake, hung teleport
+		"biome_mesh_color", -- docs/BUGS.md w2-dark-props: World 2 textureless meshes are white, World 1 as loaded
 		"biome_runtime", -- World 2 runtime review: BiomeAssets timeout / retry / CastShadow, build yield, draft lamps
+		"world2_sendback", -- docs/BUGS.md w2-sendback-stale-team: a sent-back arrival keeps the stored World 2 team
+		"admin_rank", -- docs/BUGS.md admin-ranklookup-yield: no 2 s yield per check while rank lookups fail
 		"world_arrival", -- design doc 4.47: a non-admin who arrives in World 2 while the gate is locked goes back
 		"world_travel_review", -- review of 3258513: arrival save carry, hung trip, InitFailed, Depart, rank "unknown"
 		"world_gate_rule", -- design doc 4.47: one opening rule for the gate, Go and the arrival check (GATE_OPEN stays false)
@@ -101,10 +105,6 @@ return {
 	--   ReplicatedStorage:SetAttribute("ServerTestOnly", "speed_probe"); ReplicatedStorage:SetAttribute("ServerTestRun", true)
 	-- ServerTestOnly (comma-separated names) runs only those scenarios; clear it (nil) for the full suite again.
 	OnDemand = {
-		-- 23 checks of WORLD_REDESIGN_SPEC 4.2 PENDING, red by design (PlazaBuildTests.PENDING; owner 2026-11-25): 13 wait for the
-		-- uploads, 8 for the world gate's build, 1 for the altar's build, 1 for the merchants (passes offline). As work lands,
-		-- rows leave PENDING and this count; at 0 the entry goes.
-		"plaza_build_pending",
 		"speed_probe", -- docs/WORLDS_SPEC.md section 1: highest green cruise speed for RaceConfig.MAX_CRUISE
 		-- docs/BIOME_ENVIRONMENT_SPEC.md section 10 (dev tool, no full-harness gate; each waits for TerrainReady):
 		--   ServerTestOnly = "terrain_built,zone_switch,server_lighting_unchanged,assets_ip"

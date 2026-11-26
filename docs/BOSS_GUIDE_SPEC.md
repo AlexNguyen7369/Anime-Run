@@ -14,7 +14,7 @@ are the owner's too. Owner 2026-11-25 "yes to all": the lines below and popup la
 
 ## How it shows
 - One ProximityPrompt `TalkBossGuide`: E, "Talk", "Gojio", `HoldDuration` 0 like every plaza prompt, 8 studs, gamepad X and touch by the
-  engine's default. On whether the gate is open or closed. `OnePerButton`: the engine shows one E prompt at a time. His prompt
+  engine's default. On whether the gate is open or closed, from rebirth 1. `OnePerButton`: the engine shows one E prompt at a time. His prompt
   and the gate's are 21.4 studs apart, more than their reaches together (8 + 10).
 - The prompt opens one handscroll (4.46), the game's popup style: his portrait, one line, Next (Done on the last), the page count in the footer.
   Closed by Done, its X, a click outside, gamepad B or Escape. A press while it is open does nothing.
@@ -28,11 +28,11 @@ are the owner's too. Owner 2026-11-25 "yes to all": the lines below and popup la
 - Text fit, worked out from the real font file (Kalam Bold), not measured in Roblox: the line is 33 px on desktop, at most 3 lines; 22 px at 667 x 375 and 19 px at
   568 x 320, at most 4 lines. If Roblox draws the font at a full em, the longest line shrinks to 14 and 11 px on those phones.
 - Next draws 24 to 31 px tall, so it and the X take a 44 px hit area on touch (`Client/TouchTarget`).
-- Mock-ups, drawn in Blender, not game captures: `assets/ui/boss_guide_draft` (all eight lines on desktop, the longest on two phones; layout A was not chosen).
+- Mock-ups, drawn in Blender, not game captures: `assets/ui/boss_guide_draft` (all lines on desktop, with the dropped below rebirth 1 line, the longest on two phones; layout A was not chosen).
 
 ## Below rebirth 1
-Open question: the Join, Rewards and When pages still name the popup and the open gate to a player who sees neither.
-The Bosses button is hidden (4.36) and the gate stays closed (4.2, proposed). He still talks; only the last line differs.
+Owner 2026-11-25: he does not talk to a player below rebirth 1 (`SidekickConfig.HudFromRebirth`, the level that shows the Bosses button). He
+still stands there. **Proposed**: his prompt is off for that player and comes on when they reach it; the server builds it off, the client turns it on.
 
 ## Lines
 Approved (owner 2026-11-25). Numbers come from `BossEventConfig` and `SidekickConfig`; the 30 minutes and 5% are owner rules. No odds, prices or placeholder numbers.
@@ -46,12 +46,11 @@ Approved (owner 2026-11-25). Numbers come from `BossEventConfig` and `SidekickCo
 | Rewards | Only a defeat pays, if you dealt at least 5% of that phase's HP. A chest holds one Relic and a tiny chance of the boss's Sidekick. Odds are in Details. |
 | Gate, closed | The gate is closed for now. The Bosses popup shows the time to the next event. |
 | Gate, open | The gate is open: a boss event is running. Walk up to the gate, or press Bosses. |
-| Gate, below rebirth 1 | The Bosses button shows from Rebirth 1, and Sidekicks unlock at Rebirth 2. Come back then. |
 
 Left out on purpose (the approved lines name neither): Money and Gems (amounts and which boss pays what are part **proposed**), the paid spawn, how long an event lasts.
 
 ## Open questions (owner)
-- The talk below rebirth 1 (above).
+None open.
 
 ## Tests
 ServerTest `boss_guide` (`BossGuideTests`); UI `ui_boss_guide`, clicks `boss_guide_close` and `boss_guide_next` (`UiBossGuide`).

@@ -3,21 +3,23 @@
 -- the current rotation's Mythic as its actual 3D model, cloned from the models the summon page uses, turning slowly and
 -- swapped when the pool rotates. Below rebirth 2 it shows a locked look and a "Rebirth 2" label (proposed). Client
 -- display only: reads the published rotation (Client/SidekickView), no remote. Reduced Motion: no turning.
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SidekickConfig"))
+local PlazaPieceLook = require(ReplicatedStorage.Shared:WaitForChild("PlazaPieceLook"))
+local PlazaPieces = require(ReplicatedStorage.Shared:WaitForChild("PlazaPieces"))
 local UiTheme = require(ReplicatedStorage.Shared:WaitForChild("UiTheme"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
-local MODEL_SIZE = 7 -- placeholder: studs, the model's largest extent; fits inside the halo (radius 5)
+local MODEL_SIZE = PlazaPieces.AltarModelSize() -- studs, the model's largest extent
 local TURN_SPEED = math.rad(30) -- placeholder: radians per second
 local TURN_DISTANCE = 250 -- placeholder: studs; farther away the model holds still
-local LOCKED_COLOR = Color3.fromRGB(24, 22, 30) -- placeholder: the locked silhouette
-local LOCKED_TRANSPARENCY = 0.25 -- placeholder
+local LOCKED = PlazaPieces.LockedLook() -- the locked silhouette (placeholders but for the new altars' colours)
 
 local player = Players.LocalPlayer
 local area = Workspace:WaitForChild("SpawnArea")
@@ -43,6 +45,20 @@ label.StudsOffsetWorldSpace = Vector3.new(0, -MODEL_SIZE / 2 - 1, 0)
 label.MaxDistance = 120
 label.LightInfluence = 0
 label.Adornee = spot
+-- The new altar (Shared/PlazaPieces): its label is bigger and stands before the chain, on its LockSpot (proposed)
+local function lockSpot()
+	local altar = area:FindFirstChild("SidekickAltar")
+	return altar and altar:FindFirstChild("LockSpot", true)
+end
+local function placeLabel() -- again on each refresh: the spots stream in and out
+	local at = lockSpot()
+	if at then
+		label.Size = UDim2.new(12, 60, 3, 18)
+		label.StudsOffsetWorldSpace = Vector3.zero
+	end
+	label.Adornee = at or spot
+end
+placeLabel()
 label.Enabled = false
 label.ResetOnSpawn = false -- this script runs once; a respawn must not drop the label
 local text = Instance.new("TextLabel")
@@ -73,10 +89,11 @@ end
 local function refresh()
 	local id = models:GetAttribute("Ready") == true and mythicId() or nil
 	local isLocked = locked()
+	PlazaPieceLook.Altar(isLocked)
 	if not spot.Parent then
 		spot = findSpot() or spot
-		label.Adornee = spot
 	end
+	placeLabel()
 	-- streamed out: show nothing until the altar is back (a parentless attachment reads its offset as world)
 	local key = spot.Parent and id and (id .. (isLocked and ":locked" or "")) or nil
 	label.Enabled = isLocked
@@ -100,9 +117,9 @@ local function refresh()
 			d.CanTouch = false
 			d.CanQuery = false
 			if isLocked then
-				d.Color = LOCKED_COLOR
+				d.Color = LOCKED.Color
 				d.Material = Enum.Material.SmoothPlastic
-				d.Transparency = math.max(d.Transparency, LOCKED_TRANSPARENCY)
+				d.Transparency = math.max(d.Transparency, LOCKED.Transparency)
 				if d:IsA("MeshPart") then
 					d.TextureID = ""
 				end
@@ -135,10 +152,15 @@ player:GetAttributeChangedSignal("RebirthLevel"):Connect(refresh)
 models:GetAttributeChangedSignal("Ready"):Connect(refresh)
 models.ChildAdded:Connect(refresh)
 area.DescendantAdded:Connect(function(d)
-	if d.Name == "ModelSpot" then
+	if d.Name == "ModelSpot" or d.Name == "LockSpot" then
 		refresh()
 	end
 end)
+for _, tag in PlazaPieces.ALTAR_TAGS do
+	CollectionService:GetInstanceAddedSignal(tag):Connect(function()
+		PlazaPieceLook.Altar(locked())
+	end)
+end
 refresh()
 
 RunService.RenderStepped:Connect(function(dt)

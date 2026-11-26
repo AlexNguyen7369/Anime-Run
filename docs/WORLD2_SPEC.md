@@ -16,8 +16,10 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   `assets/world2_draft/audit/lighting_2026-11-25`): all ten tracks' live Lighting values meet the floors below (T8
   OutdoorAmbient read 0.6176 mid-blend); roads and rails read on Tracks 6 to 10 and 1, 4, 8; a placed runner reads on
   night Tracks 1, 4 and 8, and on 4 and 8 in an iPhone 17 Pro emulation. Not seen: real phones, a real run, Tracks 2, 3 and
-  5 in pictures, high or low quality settings. Flaws found, not fixed (docs/BUGS.md): grass through the road on Tracks 6
-  and 7, near-black scenery props on 1, 4, 6, 7, 8 and 10.
+  5 in pictures, high or low quality settings. Flaws found (docs/BUGS.md): grass through the road on Tracks 6
+  and 7 (fixed in code and checked offline, not seen in Studio); near-black scenery props on 1, 4, 6, 7, 8 and 10 (the
+  grey tint is fixed in code, previewed in Studio on live meshes only, the code itself not seen there; the export colours
+  need the re-export and uploads, not done).
 - Owner 2026-11-24: "fix lighting in tracks" (World 2 stays off main until it is fixed; the road-and-runner rule below is
   met as seen above, owner 2026-11-25 "approved all continue the merge"). Seen in Studio before the fix:
   Track 1, 4 and 8 were close to black (Ambient under 30 of 255, Track 8's OutdoorAmbient 15), and Track 2's
@@ -29,15 +31,39 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   most 0.22 and no Haze; the others Brightness at least 1.4, Ambient at least 0.36, OutdoorAmbient at least 0.6. Fog
   colours are lifted to 0.3 so the distance never fades to black. The horizon colour is the first sky stop at or over 0.
 - A theme's own `Atmosphere` overrides still win (Track 4's moon size).
+- Track skies: **open question for the owner** (docs/BUGS.md w2-hell-sky, found 2026-11-25 by reading code). The approved
+  drafts' skies (`<Key>Draft.Sky.Stops`) are rendered in Blender only. In game no World 2 profile sets
+  `Sky.Skybox` (BIOME_ENVIRONMENT_SPEC 5.2) and no theme has a Skybox row, so the place's default Roblox sky shows on every
+  track: blue by day. Only the fog colour (`Atmosphere.Color`, the horizon stop) carries the draft hue. The look was never
+  defined, so nothing is coded. By reading, the profile is applied in zone 10 (`BiomeEnvironment.Profile` gives
+  HellGate's `Atmosphere`; no override found).
+  The pale ground is the draft's (`Ground` B8AA8C, Sand: "a pale plain under a red sky"), not a fault.
+  **Proposed**: one in-house gradient skybox per World 2 day track whose draft sky is not a plain daylight blue, drawn
+  as the plaza's (`tools/blender/plaza/plaza_sky.py`, Lane A, no prompt): a vertical gradient by true elevation from the
+  draft's stops (stop value x 90 degrees; below 0 the first stop), one Side image on Bk/Ft/Lf/Rt plus Up and Dn, row key
+  `W2_<Key>_Sky` in the theme's Assets, set as the theme's `Atmosphere.Sky.Skybox`; `CelestialBodiesShown` stays on.
+  Tracks it would cover: 10 HellGate (FF8A4A at the horizon to 3A0208 overhead) first, then 3 DemonCastle, 9 GoldenCity
+  and 7 AntIsland (warm skies). The blue-sky day tracks (ElvenPlains, KaijuBase, RuinedCityZ) and the night tracks
+  (DevilTokyo, HauntedTunnel, MonsterDen: ClockTime 0, Roblox's night sky) would keep the default. Needs: the owner's word
+  on the look (and which tracks), an upload and a rules review of each image; Track 10's layout and meshes stay frozen
+  (a skybox touches neither).
 
 ## Save
+- `Shared/WorldConfig.Id` comes from `ReplicatedStorage.WorldId` (the World 2 place only); a client waits for `game.Loaded`
+  before reading it, since ReplicatedFirst may require the module first (docs/BUGS.md w2-worldid-race).
 - One save per player (`PlayerStats_v2`, VERSION unchanged at 19 so live World 1 servers never go read-only).
 - `Shared/WorldSave.View` swaps `BestTrack`, `Checkpoint`, `RaceBestTimes`, `Team` and `Equipped` (`WorldConfig.PROGRESS_KEYS`)
   for the world's own on load. First entry (owner 2026-11-24, design doc 4.47): while `Worlds.W2` holds no team, or only
   the placeholder starter, `View` gives World 1's `Team` and `Equipped`, so the team carries over; the first World 2 save
   writes it to `Worlds.W2`. `GachaService.CheckStarter` does nothing in World 2 (no starter choice, auto-roll not turned
   off for the roll tutorial) and `Client/ArrivalState.IsNew` is false there;
-  `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys.
+  `WorldSave.Fold` writes them to `Worlds.W2` and never touches World 1's top-level keys. An arrival not (yet) allowed to
+  stay (Travel and gate: arrival check refused it, or its admin check is unknown and waits for a recheck) keeps
+  `Worlds.W2.Team` and `Worlds.W2.Equipped` as stored (even if the player put another character first: an Equipped
+  alone would give a later first entry a one-member team), so a later real first entry still takes World 1's whole team
+  of that day (docs/BUGS.md w2-sendback-stale-team). Every other key, per world and
+  shared, is written together as before (`Fold` `keep`, while the player's runtime attribute `SendingBack` is on; not
+  saved). Once it may stay the attribute is cleared and it saves as before.
 - `Worlds.W2.Welcomed` (true once World 2's welcome was given; absent = not yet): a one-way flag
   (`WorldSave.FLAG_KEYS`), never cleared by a save without it. VERSION unchanged: an older save has none and is
   welcomed once; World 1 servers (old and new) keep `Worlds` whole as they keep every unknown key. `Fold` keeps the
@@ -60,10 +86,14 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   release save and a kick. If every release save failed, the kick leaves the session lock until `LOCK_TIMEOUT`
   (120 s): the next join waits for it. An admin check that fails ("unknown") is asked again up to `ADMIN_RECHECKS`
   times, then the player counts as no admin.
+- Group rank lookups (`AdminService`, docs/BUGS.md admin-ranklookup-yield): a lookup that failed every try holds for
+  `RANK_RETRY_AFTER` (placeholder 5 s, kept below `ADMIN_RECHECK` so each recheck asks again); checks in that time
+  answer "unknown" at once. Checks at the same time share one lookup and wait for it at most `RANK_LOOK_TIMEOUT`
+  (placeholder 10 s), then answer "unknown". Unknown is never an admin.
 ### Gate
-- `SpawnArea.WorldGate`, hub-local (194, -176) on the plaza's south-east corner, facing the spawn: a dais, two
-  leaning obsidian monoliths, a 16-segment stone ring with a neon lip and a glowing portal disc. In World 1 it is locked:
-  crossed chains, a padlock plate, an invisible barrier, "WORLD 2 / COMING SOON"; touching the barrier shows "COMING
+- `SpawnArea.WorldGate`, hub-local (194, -176) on the plaza's south-east corner, facing the spawn: draft B, the
+  shrine gatehouse (owner 2026-11-25; `docs/WORLD_REDESIGN_SPEC.md` 4.2 has its look, label and touch box). In World 1 it is locked:
+  its locked mesh (barred doors, chain, padlock), an invisible barrier, "WORLD 2 / COMING SOON"; touching the barrier shows "COMING
   SOON". Open but not qualified: "Beat Track 10" / "Reach Rebirth 5" (TeamToast, `RunEvent { Kind = "WorldGate" }`).
   In World 2 it is open ("WORLD 1 / ENTER") and its Portal (tag `WorldGate`, attribute `TargetWorld`) sends a touching
   player back.
@@ -185,6 +215,18 @@ written before the swap.
 - Approved by the owner 2026-11-25: Track 5's dead kaiju, round 5 (1bc5e9f7), frozen; its added surroundings are cut to
   the props that overlap no other track's scenery ("approve round 5, cut to the clear props"). Export, ledger, upload
   and placement in game still need the Track 5 re-export hold lifted and the owner's upload word.
+- Owner 2026-11-25, on the Track 5 fill over the merged swap: "A with 12". Draft A (round 5 fill props the swap freed come
+  back) without Apartments (-471.8, 875.3) and (-613.6, 876.6): 12 props. The option was described as needing no van to move;
+  no van is moved. **Open**: the vans' own spots, and the kaiju's overlaps with other tracks' props (shown, not ruled on).
+- Owner 2026-11-25, question 32 (the kaiju's game export): "drop two vans, keep the rubble under the fill, ok". The two game
+  SweeperVans that touch the kaiju at site 1 (Draft rows 226 and 228) are dropped; the frozen Rubble under the 12 fill props
+  stays; the 4 Rubble rows standing inside the bodies go (read as covered by "ok"). The other five vans stay where they are.
+- Owner 2026-11-25: "Kaiju ready to upload". The reworked GiantCorpse (round 5 mesh) is uploaded (Model 130671695538312, MeshId
+  rbxassetid://120871855895739, geometry hash 7f2f942a...1c651137, 19,889 tris) and reviewed by the rules audit (BIOME_ENVIRONMENT_SPEC
+  4.1 step 3). Its ledger row, `uploaded_assets.tsv` and KaijuBaseDraft (size, parts fallback in the hide colour, the 2 placements, the
+  12 fill rows of "A with 12", the drops of question 32) change together in one commit, so the old mesh never stands in the new box.
+  With its placements it leaves the "No spot at the approved scale" list below. Not covered by these words: the kaiju's overlaps with
+  other tracks' props (still **Open**), the vans' own spots, Studio checks, place saves and publishing.
 - Spawn pieces (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2): gate, boss gate, stalls and merchants are World 1's; the Summon altar is draft A here and draft B in World 1.
 - Ground ownership (owner 2026-11-25, the overlap question): where two tracks' scenery meets, a spot belongs to the track
   whose road (nearest centre line) is nearest; other tracks' props there are moved or removed. Before any frozen track
@@ -204,7 +246,7 @@ written before the swap.
   (-362, -1230), 2410; Track 7 Nest (-486, 1809) to (-486, 2059), 250; Track 8 Coliseum (2707, 132) to (3167, 132),
   460; Track 8 LairTower (-680, 1795) to (3294, -2179), 5620; Track 10 DarkGate (3485, 3478) to (3402, 3512), 90.
   No spot at the approved scale (not built): Track 1 Town and RuinedCastle, Track 2 ChainTower, Track 3 HeroHQ and Crater, Track 4
-  School and OldWoodHouse, Track 5 GiantCorpse and DefenseHQ, Track 6 HQ, Track 7 IslandVolcano.
+  School and OldWoodHouse, Track 5 DefenseHQ, Track 6 HQ, Track 7 IslandVolcano.
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's

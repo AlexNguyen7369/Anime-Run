@@ -5,7 +5,8 @@
 -- Build(spec, origin)  Layout + Parts (road, walls, start line, checkpoint + win pad, grass) under a Model.
 -- EndCFrame(layout, origin)  world pose of the finish; the next track is built from it.
 --
--- CheckpointBox(layout, origin)  XZ box { Min, Max } of the checkpoint area (it holds the finish line and win pad).
+-- CheckpointBox(layout, origin)  XZ box { Min, Max } of the checkpoint area (it holds the finish line and win pad),
+--                                and the area part's CFrame and Size.
 --
 -- Segment types:
 --   { Type = "Straight", Length }                  flat run at the current height
@@ -347,7 +348,7 @@ local function checkeredLine(parent, name, cframe, width, depth, colors)
 	return folder
 end
 
--- The world XZ box of the CheckpointArea part Build makes, without building it (terrain clear boxes, design doc 4.25)
+-- The world XZ box (and CFrame, Size) of the CheckpointArea part Build makes, without building it (terrain clear boxes, design doc 4.25)
 function TrackBuilder.CheckpointBox(layout, origin)
 	local endCF = origin * CFrame.new(layout.EndPosition) * CFrame.Angles(0, layout.EndHeading, 0)
 	local cf = endCF * CFrame.new(0, AREA_TOP - ROAD_THICKNESS / 2, CHECKPOINT_LENGTH / 2)
@@ -356,7 +357,12 @@ function TrackBuilder.CheckpointBox(layout, origin)
 		+ (cf.UpVector * size.Y):Abs() / 2
 		+ (cf.LookVector * size.Z):Abs() / 2
 	local c = cf.Position
-	return { Min = Vector2.new(c.X - half.X, c.Z - half.Z), Max = Vector2.new(c.X + half.X, c.Z + half.Z) }
+	return {
+		Min = Vector2.new(c.X - half.X, c.Z - half.Z),
+		Max = Vector2.new(c.X + half.X, c.Z + half.Z),
+		CFrame = cf, -- the turned part, for TerrainShape's bare ground
+		Size = size,
+	}
 end
 
 function TrackBuilder.Build(spec, origin)

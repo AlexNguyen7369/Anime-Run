@@ -111,30 +111,52 @@ positions are **proposed**; warm gold, amber and paper, one pink accent, matchin
 - Total 39 parts, 4 lights. No new client script, asset or sound.
 
 
-### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders, build not started)
+### 4.2 Redrafted spawn pieces (owner 2026-11-25; looks approved as renders; on in both worlds, except the boss gate and its guide, which have their own switches; the merchants' switch is on, owner 2026-11-25)
 The same in both worlds unless a line says otherwise (owner: "consistent with world"); replaces "services unchanged" in
 WORLD2_SPEC for the stalls. Renders: `assets/plaza_draft2`. Prompts and panels stay; positions stay except those the fuller layout below replaces; every size **proposed**.
+- **Proposed**: a piece with any of its parts missing after loading counts as not loaded, so its stand-in stays (the sky loop has none and is absent).
 - World gate: gate draft B (shrine gatehouse). Position, lock rule and destination unchanged. Proposed: the label moves up,
   a non-disc touch part, a locked and an open mesh.
 - Boss gate (new): gate draft A (stone ring). Owner 2026-11-25: stands next to the Summon altar (read of "spawn altar";
   spot S4 (2.5, 94.8) facing the spawn, full size, owner 2026-11-25 "approved all", orchestrator's reading), does the same as clicking the Bosses button (opens the Bosses
   popup), closed while no boss event is active and open while one is. **Proposed**: closed, its prompt does nothing; it
   changes no boss rule, timing or reward; below the rebirth level that hides the Bosses button it stays closed.
+  Owner 2026-11-25: the closed gate is the approved draft as it was (no added rim or back plate).
 - Layout (owner 2026-11-25): the Saitamo statue and the Index board may move so they block nothing (the world gate, the
   Summon altar and the boss gate from the spawn). Fuller layout approved (owner 2026-11-25, same words and reading): statue (-16.5, 4.4), Index (76.7, -34.2), Team altar (-35.0, 76.4), loop posts 45 to 19, 100 to 75, 315 to 322 degrees; to fix while building: the gate's left pillar cut on the join view, the statue over the RACE START sign. The
   Index keeps its prompt, panel and header. The sky loop and its posts stay in that
   layout. Owner, same day: "propose new format of spawn if needed": a fuller new layout may also be proposed; nothing
   moves until the owner approves it.
 - Summon altar: World 1 draft B (great lotus), World 2 draft A (twin-roof stage). The only difference between the worlds'
-  pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged.
-- Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds.
+  pieces. Prompt, summon page, Rebirth 2 lock and the turning Mythic are unchanged, but the Mythic's size on
+  the new altars: 17.5 studs (World 1), 25 (World 2); the floating header stands over the crest (owner 2026-11-25).
+  Locked, the Mythic is a silhouette of colour (74, 66, 92) on the lotus and (132, 120, 152) on the dark roof stage (owner 2026-11-25), kept after the Studio
+  pictures with no contrast limit (owner 2026-11-25, question 31: "keep colours, drop the limit"; measured worst 1.51 on the lotus and
+  1.03 on the roof stage, `tools/blender/plaza/locked_backdrop.py`, for reference only). **Proposed**: it is opaque, and today's
+  altar keeps (24, 22, 30) at 25% clear.
+- Markets: draft B (rift shrine) for Shop, Potions, Market, Index and Sensei in both worlds. The cyber accents stay on them (owner 2026-11-25).
 - Merchants (owner 2026-11-25, "approved merchant casts"): existing roster models, the same in both worlds: Shop
   `sea_navigator` (Nammi), Potions `leaf_medic` (Sakara), Market `ds_flame` (Rengoko), Index `fr_mage` (Frierin), Sensei
-  `leaf_copycat` (Kakashe), display names the tweaked ones (design doc 5). Static. **Open**: Kakashe's size under the
-  Sensei header (proposed: full size with the header 1.9 studs higher); which models "every world shows" covers (4.47).
+  `leaf_copycat` (Kakashe), display names the tweaked ones (design doc 5). Static. Owner 2026-11-25: Kakashe is the
+  smaller one (draft 0.75, the Sensei header stays), and Frierin may load in World 1 (her rig there loads her, 4.47 "Models"). Each shows the rig's floating name but Kakashe,
+  who stands under the Sensei header (owner 2026-11-25). **Proposed**: they hold the approved draft's poses (static turns of the existing rigs' limbs, no animation).
+  On (`PlazaPieces.MERCHANTS_LIVE`, owner 2026-11-25: "merchants can be added already to merge"); the Sensei merchant replaces
+  SpawnArea's dummy. Owner 2026-11-25 "Readable from spawn": each name is as large as it can be without covering its stall's
+  sign or header. **Proposed** (docs/BUGS.md merchant-names-cover-signs): names sized in studs, not pixels, per stall the largest
+  height (0.05 steps) that never covers the stall's sign from the spawn or from 20 to 40 studs in front (`plaza_pieces`
+  merchant_name_clear_*), as wide as its letters (0.62 of the height each); on an attachment 0.15 studs over the merchant's hair
+  top (measured from the built meshes), moved toward the stall's front where that lets it grow; shown within
+  RunnerFactory.NAME_DISTANCE (120); readable means at least 16 px tall from the spawn on a 1080 px screen at 70 degrees field
+  of view (`merchant_name_readable_*`). Shop 1.7 studs, 1.5 forward (16.1 px); Potions 1.9, 1 forward (17.8 px); Index 1.8 (16.8 px);
+  Marketplace: its sign is 1.29 studs over Rengoko's hair and 2.75 in front, so no readable name over the hair clears it; owner
+  2026-11-26 "Readable, rare overlap": "Rengoko's name is the same readable size as the others (about 1.7 studs) and may touch
+  the MARKET sign from high side camera angles near the stall, never from the spawn or at player eye height" (the test allows
+  overlap only in its raised, eye 12, 30 degree side views). **Proposed**: 1.75 studs, 2.25 forward, its bottom 5.65 over
+  the feet, in front of the top of the hair (the hair reaches at most 0.98 forward; `merchant_name_over_hair_*` checks no view
+  sees the name through it), 16.7 px; it clears the sign in all 30 views.
 - Boss gate guide (owner 2026-11-25): `jk_strongest` (Gojio) stands at the boss gate; a player who walks up presses E to
   start a conversation that gives information about the boss gate. **Proposed**: a short dialogue (what bosses are, when
-  the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed; names and
+  the gate opens, how to join, rewards), text only, nothing granted, usable whether the gate is open or closed (not below rebirth 1, owner 2026-11-25); names and
   wording in the tweaked forms, lines and popup layout B approved by the owner 2026-11-25; the E prompt is separate from the gate's own prompt so both can be reached.
 
 ## 5. Player plots: removed (owner 2026-11-11, design doc 4.43)
