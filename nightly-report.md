@@ -9,6 +9,7 @@
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Track effects draft: merged into the World 2 branch with LIVE off (smoke and haze on 9 tracks, drakes on 3, a spirit eel on Track 4, sway/bob/flicker); 8 assets uploaded, moderation Approved; track_fx 68/0 both worlds; audit PASS. Not seen in Studio yet.
 - Skies: merged orch/world2/w2-skies into the World 2 branch after the owner approved the pictures ("skies merge is fine, approved"); world2_skies 81/81, audit's one finding (the owner's merge gate) written into the spec.
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
