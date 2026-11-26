@@ -864,6 +864,10 @@ def build(k):
 		name, sc = k.rng.choice((("Forest", 1.0), ("Pine", 1.5), ("Pine", 1.2)))
 		w, dep = {"FarWood": (248, 180)}.get(name, BOX.get(name))
 		yaw = k.rng.choice((0.0, math.pi / 2))
+		# round 2: woods in patches with open meadows between (a smooth mask), not one even carpet over the wide band
+		meadow = math.sin(x * 0.006 + 1.1) * math.cos(z * 0.005 - 0.7) + 0.5 * math.sin((x + z) * 0.011) < -0.15
+		if meadow or hidden(x, z, w * sc):
+			continue
 		if k.owns(x, z) and free(x, z, w * sc / 2) and r.fits(x, z, yaw, w * sc, dep * sc) and not r.overlaps(near, x, z, yaw, w * sc, dep * sc):
 			k.place(name, (x, -1.0, z), yaw, sc)
 			taken.append((x, z, w * sc / 2))

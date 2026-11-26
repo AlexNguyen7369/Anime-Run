@@ -666,7 +666,9 @@ def build(k):
 
 	lo, hi = k.lo, k.hi
 	print("ISLAND along the road, coast", COAST, "ships", SHIPS)
-	k.ground(OCEAN, margin=9000, rough=0.75, y=-4.0)  # the approved sea to the horizon (draft only)
+	# The game's terrain here is grass (BiomeThemes/World2/AntIsland Terrain: Ridge Blocks, Grass materials), not sea, so
+	# the draft's ground past the island is that grass too (round 2: the sea read as a black void in the game view).
+	k.ground(GRASS2, margin=9000, rough=1.0, y=-4.0)
 	far = _all_roads(k)
 	_bank(k, SUPPORT)
 	L = k.length
@@ -742,6 +744,22 @@ def build(k):
 		keep.append((nest[1], nest[2], 300))
 		scorch.append((nest[1], nest[2], 520))
 		print("NEST at", (round(nest[1]), round(nest[2])), "ahead of shot", nest[3], "by", nest[0])
+	# Round 2: the approved 0.62 view framed a wreck pile ahead; the nest cannot stand there on the wide layout, so a cluster
+	# of the approved burning mounds (field scales) does, ahead of that camera on this track's own ground.
+	p62, right62, t62 = k.at(L * 0.62)
+	e62x, e62z = p62.x + right62.x * 10, p62.z + right62.z * 10
+	mounds62, placed62 = 0, set()
+	for ahead in range(240, 700, 30):
+		for side in (150, -150, 190, -190, 230, -230):
+			if mounds62 >= 3:
+				break
+			x, z = e62x + t62.x * ahead + right62.x * side, e62z + t62.z * ahead + right62.z * side
+			if k.owns(x, z) and _road_dist(k, x, z) > 110 and far(x, z) > 110 and all(math.hypot(x - a_, z - b_) > r + 80 for a_, b_, r in keep):
+				placed62.add(k.place("Mound", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(1.6, 2.0)).name)
+				keep.append((x, z, 90))
+				scorch.append((x, z, 160))
+				mounds62 += 1
+	print("MOUNDS 0.62", mounds62)
 	cd = L * 0.06 + 110
 	chamber = None
 	for side in (-1, 1):
@@ -783,6 +801,8 @@ def build(k):
 	k.field(12, ["Mound"], clearance=180, margin=300, scale=(1.2, 2.0))
 	k.field(50, ["Choga", "Ruin", "Brush"], clearance=100, margin=300, scale=(1.0, 1.4))
 	for ob in list(k.col.objects):
+		if ob.name in placed62:
+			continue  # the 0.62 view's mounds stand where they were put
 		if ob.type == "MESH" and ob.data.name.split("_")[-1] in ("Brush", "Mound", "Choga", "Ruin"):
 			lx, lz = ob.location.x, -ob.location.y
 			out = _road_dist(k, lx, lz) > COAST * 0.86 or not k.owns(lx, lz)
