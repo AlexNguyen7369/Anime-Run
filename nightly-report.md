@@ -3,6 +3,7 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- Heroes with no spot at approved scale on layout C: T1 Town, T3 HeroHQ, T8 LairTower, T10 Abyss (never placed). Question: allow a smaller scale for any of them, or keep them out?
 - Starter in slot 1: a World 2 save with no team starts as {Starter}, and auto-fill appends kept rolls but never replaces a filled slot (your 2026-11-20 rule), so the placeholder Starter (no model or portrait) stays first until the player edits the team. Not a code fault. Question: should a kept roll replace a team that is only the Starter?
 - Track 6 HQ: still out by your 2026-11-25 ruling ("for now"). It now has a legal spot on its own ground at the 0.9 axis, world (-2714, 2418), 0 overlaps. Question: bring it back?
 - Track 7 IslandVolcano: still no spot at its approved scale 1.25 (needs 975+ studs from every road; the best spot has 498). Question: allow a smaller scale (0.43 fits), or keep it out?
@@ -23,6 +24,7 @@
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you
+- Scenery refit round 1 scored about 6 in blind review (approved sets about 8): heroes out of view, bare horizons on the long straights, each track a thin band. Round 2 (agents 1 and 3): hero spots seen from the run cameras, each track's own ground filled to its midline with its approved backdrop props, a proposed sky-prop rule (stays in its band, hidden by fog from other tracks). Target 7+ per track before landing.
 - T6 DevilTokyo back row thinned to every 7th slot (with 760 gaps nothing blocked it, so it would have doubled the buildings, about 1.9M more tris). T7 AntIsland coast runs along the road (the old oval would have covered the inner laps); its Nest now faces its road (was a random turn) so its ants stand on its own ground.
 - World 2 layout C is level: the square spiral has no hills (agent-1 removed the Slopes from all World 2 routes; no rule needs them). Hills can be put back inside straights later without changing the plan. Revert: ask for slopes in straights.
 - Refit per-track fixes (agent-3): T1 Ranks keep their turn to the road; T2 castle plinth 300 from its road (was 340); T3 hero apartment follows the bend; T5 kaiju site 1 is 4 studs further out (mesh unchanged); T9 city wall runs along its own band instead of an ellipse over Tracks 1-8.
