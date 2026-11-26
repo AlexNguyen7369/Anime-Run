@@ -377,8 +377,9 @@
 374. 2026-11-26 — Alex Nguyen — World 2 re-fit round 2 tools: hero spot search prefers the run cameras' views, kit.band backdrop over each track's own band, an approximate fog for context renders, the proposed sky-prop rule (WORLD2_SPEC) and owner questions 37-38 (LairTower, Abyss scale).
 375. 2026-11-26 — Alex Nguyen — Placed World 2's Track 8 LairTower (3.45) and Track 10 Abyss (radius 500) at the largest scale that fits their own ground, in run-camera view (owner 2026-11-26), kept every row on the game's Ground rectangle, and re-rendered Tracks 4, 5, 8, 9 and 10.
 376. 2026-11-26 — Alex Nguyen — Finished World 2 re-fit round 2 for Tracks 4, 5, 8, 9 and 10 (blind game scores 7, 7, 8, 7, 7), rewrote the pins over all ten final Drafts (harness clean but one known TRANSFORM row) and added the round 2 report.
+377. 2026-11-26 — Alex Nguyen — Uploaded Track 2's ChainTower_p1-p4 (approved tower cut for the 2048-stud limit) after a rules audit PASS and wrote their MeshIds into the DemonCastle ledger (harness 13511/0).
 
 ## What's next
-**Owner review of the World 2 wide-layout re-fit (renders in assets/world2_draft/relayout_2026-11-26, report docs/proposals/W2_REFIT_REPORT.md): the sky-prop rule's numbers, the context views, then the Studio check of the hash-mismatch meshes and the ChainTower uploads.**
+**Studio check of agent-3's re-fit landing (moved and resized heroes, the hash-mismatch meshes, tall props seen through fog), then merge the ChainTower ids with it.**
 
-**Why this is next:** every track now meets the game-view bar; what is left needs the owner (sky-prop thresholds, fog) or Studio (mesh checks, uploads).
+**Why this is next:** agent-3's landing merge needs the Studio look before it lands in the World 2 branch.
