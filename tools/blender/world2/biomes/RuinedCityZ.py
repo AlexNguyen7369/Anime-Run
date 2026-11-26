@@ -86,6 +86,21 @@ def _fill(k, color):
 		d += step
 
 
+_GROUND = {}
+
+
+def _on_ground(k, x, z):
+	"""World (x, z) on this track's own Ground rect (TrackBuilder: waypoint box + Width x 3 + 200): a Placed prop
+	whose base centre is off it is not built by the game (BiomeDressing), so it is not placed here either."""
+	n = k.track["Number"]
+	if n not in _GROUND:
+		from roads import Roads
+
+		_GROUND[n] = Roads(n).ground(0)
+	(lox, loz), (hix, hiz) = _GROUND[n]
+	return lox <= x <= hix and loz <= z <= hiz
+
+
 def _row(k, every, off, names, jitter=0.0, start=40.0, end=None, scale=(1.0, 1.0), clear=None, yaw_jit=0.0):
 	"""Both sides of the road every `every` studs, on the ground (y = -1), -Z facing the road; skipped where another
 	stretch of road passes closer than `clear` (default 0.9 x the offset)."""
@@ -95,7 +110,8 @@ def _row(k, every, off, names, jitter=0.0, start=40.0, end=None, scale=(1.0, 1.0
 		for o in (-off, off):
 			oo = o + k.rng.uniform(-jitter, jitter) * (1 if o > 0 else -1)
 			pos, yaw = k.beside(d + k.rng.uniform(-jitter, jitter), oo)
-			if k.clear_of_road(pos[0], pos[2], clear or abs(oo) * 0.9):
+			# on this track's own ground only (owner 2026-11-25; the wide layout's re-fit, 2026-11-26)
+			if k.clear_of_road(pos[0], pos[2], clear or abs(oo) * 0.9) and k.owns(pos[0], pos[2]) and _on_ground(k, pos[0], pos[2]):
 				yaw += (math.pi / 2 if o > 0 else -math.pi / 2) + k.rng.uniform(-yaw_jit, yaw_jit)
 				k.place(k.rng.choice(names), (pos[0], -1.0, pos[2]), yaw, k.rng.uniform(*scale))
 		d += every
@@ -812,7 +828,7 @@ def build(k):
 	while x < k.hi.x + 700:
 		z = k.lo.z - 700
 		while z < k.hi.z + 700:
-			if math.hypot(x - c.x, z - c.z) > 300 and k.clear_of_road(x, z, 190):
+			if math.hypot(x - c.x, z - c.z) > 300 and k.clear_of_road(x, z, 190) and k.owns(x, z) and _on_ground(k, x, z):
 				k.place("Blocks", (x, -1.0, z), 0.0)
 			z += TILE
 		x += TILE
@@ -823,6 +839,19 @@ def build(k):
 	_row(k, 48, 58, ["MidRise", "OfficeBroken", "MidRise", "Collapsed"], jitter=3, start=30)
 	_row(k, 80, 108, ["MidRise", "Collapsed", "HighRise", "OfficeBroken"], jitter=8, start=20)
 	_row(k, 140, 175, ["HighRise", "OfficeBroken", "Collapsed"], jitter=15, start=50, scale=(1.0, 1.5), yaw_jit=0.4)
+	# Wide layout (WORLD2_SPEC "World 2 track layout", 2026-11-26; re-fit round 2): the city goes on in depth over this
+	# track's own band out to about its midline (380 studs), at about the approved density of buildings, instead of
+	# ending at 175. The outer row keeps to mid-rises (no tower in the band's outer 100 studs). Proposed.
+	_row(k, 58, 235, ["HighRise", "OfficeBroken", "MidRise", "Collapsed", "MidRise"], jitter=18, start=35, scale=(1.0, 1.4), yaw_jit=0.35)
+	_row(k, 52, 300, ["MidRise", "OfficeBroken", "Collapsed", "MidRise"], jitter=20, start=20, scale=(1.0, 1.3), yaw_jit=0.4)
+	_row(k, 50, 355, ["Collapsed", "MidRise", "OfficeBroken"], jitter=12, start=45, scale=(0.9, 1.2), yaw_jit=0.5)
+	# The 0.9 view looks down the last straight past the finish onto the next track's ground: towers flanking the last
+	# stretch (clear of the checkpoint apron and the WinPad) close the skyline at its end. Proposed.
+	for dd, off, sc in ((230, -95, 1.45), (180, 100, 1.4), (140, -120, 1.3), (300, 120, 1.35), (95, 135, 1.25), (260, -150, 1.3)):
+		pos, yaw = k.beside(L - dd, off)
+		if k.clear_of_road(pos[0], pos[2], abs(off) * 0.9) and k.owns(pos[0], pos[2]) and _on_ground(k, pos[0], pos[2]):
+			_clear_near(k, pos[0], pos[2], 34, ("MidRise", "OfficeBroken", "Collapsed", "HighRise"))
+			k.place("HighRise", (pos[0], -1.0, pos[2]), yaw + (math.pi / 2 if off > 0 else -math.pi / 2), sc)
 	BUILD = ("MidRise", "OfficeBroken", "Collapsed", "HighRise")
 	# Expressway crossings on flat straights, piers clear of every lap (none in front of the 33% view: it frames the HQ)
 	for f in (0.14, 0.45, 0.72):
@@ -837,18 +866,22 @@ def build(k):
 				k.place("Overpass", pos, yaw)  # local X runs across the road
 				break
 	# The crater in the infield; the infield and the outskirts fill with ruins, away from its bowl
-	k.place("Crater", (c.x, -1.0, c.z), 0.3, 1.5)
+	if k.owns(c.x, c.z):  # the wide layout's box centre is another track's ground: no infield crater there
+		k.place("Crater", (c.x, -1.0, c.z), 0.3, 1.5)
 	for count, names, clearance, margin, scale in (
 		(25, ["Rubble", "Rubble", "Kerb"], 50, 300, (0.8, 1.5)),
 		(30, ["HighRise", "Collapsed", "MidRise", "OfficeBroken", "MidRise", "OfficeBroken"], 130, 220, (0.9, 1.3)),  # no lone towers out on the plain
 	):
 		placed, tries = 0, 0
-		while placed < count and tries < count * 30:
+		while placed < count and tries < count * 300:  # most of the wide layout's box is other tracks' ground
 			tries += 1
 			x = rng.uniform(k.lo.x - margin, k.hi.x + margin)
 			z = rng.uniform(k.lo.z - margin, k.hi.z + margin)
-			if math.hypot(x - c.x, z - c.z) > 250 and k.clear_of_road(x, z, clearance):
-				k.place(rng.choice(names), (x, -1.0, z), rng.uniform(0, math.tau), rng.uniform(*scale))
+			if math.hypot(x - c.x, z - c.z) > 250 and k.clear_of_road(x, z, clearance) and k.owns(x, z) and _on_ground(k, x, z):
+				name = rng.choice(names)
+				if name == "HighRise" and k.clear_of_road(x, z, 280):
+					name = "MidRise"  # no tower in the band's outer 100 studs
+				k.place(name, (x, -1.0, z), rng.uniform(0, math.tau), rng.uniform(*scale))
 				placed += 1
 	# Heights vary instance to instance (Roblox: Size.Y on the same mesh)
 	for ob in k.col.objects:
@@ -883,7 +916,7 @@ def build(k):
 					continue
 				for off in (31, 35, 39):  # inside a bend the pole's straight wires need more room
 					pos, yaw = k.beside(d, side * off)
-					if k.clear_of_road(pos[0], pos[2], off - 4):
+					if k.clear_of_road(pos[0], pos[2], off - 4) and k.owns(pos[0], pos[2]):
 						break
 				else:
 					continue
