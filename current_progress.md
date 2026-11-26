@@ -286,6 +286,7 @@
 276. 2026-11-25 — Alex Nguyen — Merged the World 2 Track 1 and 6 swap (round 8, HQ left out) into the World 2 branch; offline tests green in both worlds, harness fails only on heroes with no spot; 14 spawn piece models uploaded, not reviewed and not used in game.
 277. 2026-11-25 — Alex Nguyen — Proposed moving the frozen tracks' pieces off Track 1's World 2 ground (7 moved, 27 out, one-eyed monster kept) with before and after renders; drafts patched in place, not merged.
 278. 2026-11-25 — Alex Nguyen — Fix round on the Track 1 neighbours proposal: moves may not touch props or enter new run views, so 3 moved and 31 out (Hound and smoke column out), Track 2's road patches traced to EEVEE shadow overflow.
+279. 2026-11-26 — Alex Nguyen — Re-rendered Track 2 context 03 with a 2048 shadow pool and traced Track 3's context faults to their pieces and ground owners (not applied, owner's call).
 
 ## What's next
 **Show the owner the Track 1 neighbour renders (docs/proposals/world2_t1_neighbours) and merge orch/world2/w2-t1-neighbours on approval, then run the swap and white-mesh fix in Studio.**
