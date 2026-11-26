@@ -314,8 +314,9 @@
 293. 2026-11-26 — Alex Nguyen — Narrowed the Market name's allowed sign overlap to the high (eye 12) side views only, as the owner's ruling says, in the test and the spec.
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 294. 2026-11-26 — Alex Nguyen — Audited World 2 rendering on all 10 tracks in Studio: grass, terrain and white-mesh fixes hold; draft road supports cut through the sloped road on Tracks 2-5 and 7; neighbouring tracks crowd the view, every uploaded mesh still ships dark colours, and every track uses the stock sky (docs/W2_RENDER_AUDIT.md).
+295. 2026-11-26 — Alex Nguyen — Fixed World 2's road supports showing through climbs Blender-first: the generators keep each support under the road (commit 6c2533f0), today's 284 support rows match it, and the new road_surface_clear Studio check went from 7 fails to 34/34 passing.
 
 ## What's next
-**Cut the draft road-support props (Fill, Bank, Pier) to TrackBuilder's SUPPORT_CLEARANCE under the lowest road underside at build time, with a Studio check that nothing crosses a road's top surface, and verify it before and after on Tracks 2-5 and 7.**
+**Re-export World 2's prop meshes in their approved colours (W2_REEXPORT_PLAN batches 1-10, GiantCorpse excluded): bake, dry-run, upload batch 1, compare it in Studio, then upload the rest.**
 
-**Why this is next:** it is the owner's first rendering priority, the only ground or z-fight fault the audit found, and a layout-proof code-only fix that the wider re-lay will not undo.
+**Why this is next:** dark COLOR_0 is the owner's third rendering priority and the last audit fault that is not layout-dependent; the night tracks, the lighting floors and the skied tracks are judged again only after it lands.
