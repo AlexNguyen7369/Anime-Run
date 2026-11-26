@@ -19,7 +19,6 @@ local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local WIDTH = 640 * AnimeSkin.Units.W / 920 -- px at most, as Client/BossRewardPopup (placeholder)
 local LINES = { -- placeholder words (design doc 4.47)
 	Intro = "Welcome to the Rift Shrine",
-	"Team of 4 unlocked",
 	"New summon pool",
 	Hint = "The World 1 gate in the plaza takes you back",
 }

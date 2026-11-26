@@ -229,8 +229,9 @@ Nothing here is decided; the game runs the proposed default named in each item u
 4. Upgrade gates read World 2's own `BestTrack`, so tier 3+ upgrade tiles relock in World 2 until its tracks are
    beaten. Keep, or gate on the best of both worlds?
 5. Slot 4 has no aura or trail: `MarketConfig.SLOTS` = 3 in the shared save. Add a fourth slot in World 2, or keep 3?
+   (Moot 2026-11-26: the owner removed the fourth team slot, design doc 4.47.)
 6. `LastBossTeam` is shared; a World 2 team of 4 saved there loses its fourth member in World 1. Keep, or save it per
-   world?
+   world? (Moot 2026-11-26: World 2's team is 3, design doc 4.47.)
 7. 11 World 2 hero landmarks fit nowhere on their own ground at the approved scale (largest fitting scale in
    brackets): HQ 0.75, ChainTower 0.20, HeroHQ none, Crater 0.40, School 0.60, OldWoodHouse 0.60, GiantCorpse 0.50,
    DefenseHQ 0.90, Town 0.60, RuinedCastle 0.90, IslandVolcano 0.30. Shrink them, drop them, or widen the junction

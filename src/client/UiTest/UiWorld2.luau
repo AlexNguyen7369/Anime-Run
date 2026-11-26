@@ -5,7 +5,7 @@
 --   HudChrome/TopRight and over HudChrome/ShopColumn without touching either; Travelling (set here, locally) shows
 --   TeamToast's "Travelling to World <other>...".
 -- ui_world2_welcome (World 1: no World2Welcome gui at all): Client/World2Welcome opens on World2WelcomeShow with the
---   world name, "Team of 4 unlocked", "New summon pool" and the gate hint, all inside the screen; clearing the attribute (what Close and OK do) closes it;
+--   world name, "New summon pool" (no "Team of 4" line: owner 2026-11-26) and the gate hint, all inside the screen; clearing the attribute (what Close and OK do) closes it;
 --   setting it again the same session does not reopen it. The attribute is set locally; the once-per-save rule is the
 --   server's (ServerTest world2_welcome).
 -- ui_hud_look_by_world (design doc 4.46 "HUD look" and 4.40, owner 2026-11-24, both worlds): the always-on HUD
@@ -116,7 +116,14 @@ function Module.Build(h)
 		local title = panel:FindFirstChild("Title", true)
 		local titleOk = title and string.upper(title.Text) == "WORLD 2"
 		h.check(res, "welcome_world_name", title and title.Text, "WORLD 2", titleOk == true)
-		for _, want in { "Team of 4 unlocked", "New summon pool" } do
+		local teamLine = false -- the fourth slot is gone (design doc 4.47, owner 2026-11-26): no line names it
+		for _, d in panel:GetDescendants() do
+			if d:IsA("TextLabel") and string.find(d.Text, "Team of 4", 1, true) then
+				teamLine = true
+			end
+		end
+		h.check(res, "welcome_no_team_of_4_line", teamLine, false, not teamLine)
+		for _, want in { "New summon pool" } do
 			local found = false
 			for _, d in panel:GetDescendants() do
 				if d:IsA("TextLabel") and d.Text == want and d.Visible then

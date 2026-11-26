@@ -50,7 +50,7 @@ local UiTooltip = require(script.Parent:WaitForChild("UiTooltip"))
 local D = UiTheme.Dojo
 local K = UiTheme.Scroll
 local PK = K.Skins.Parchment -- the Summon page's parchment skin (owner 2026-11-20: "consistent with the Summon UI")
-local SLOTS = StaminaConfig.TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
+local SLOTS = StaminaConfig.TEAM_SIZE -- 3 in both worlds (design doc 4.2, 4.47)
 local SIZE = SLOTS
 local DESIGN_H = 1080 -- the page is laid out in px of a 1080-tall screen
 local STAGE_W = 1920 -- the plate's design width
@@ -74,22 +74,6 @@ local GEO = {
 -- Stage px: each altar's tap area (member and altar top, apart from each other) and its nameplate (the approved draft).
 local HIT = { { 870, 110, 440, 550 }, { 582, 205, 280, 330 }, { 1350, 205, 284, 330 } }
 local PLATES = { { 940, 123, 328, 80 }, { 598, 219, 256, 64 }, { 1362, 219, 262, 64 } }
--- The stage px the altars centre on (layout): the plate's vanishing point for 3 altars.
-local STAGE_MID = CAM.cx
-if SLOTS == 4 then
-	-- World 2's team of 4 (4.47): the same altars set further back on the floor, slot 4 behind slot 3 on the right, so
-	-- all four fit and stay tappable from 4:3 to phone (placeholder until the owner sees it). HIT / PLATES are the
-	-- 3D boxes projected with CAM, as the approved draft's are.
-	GEO = {
-		{ X = 0, Z = -41, rb = 5.19, rt = 4.31, hb = 0.55, ht = 0.70, scale = 0.88, delay = 0 },
-		{ X = -8.4, Z = -55, rb = 3.02, rt = 2.67, hb = 0.26, ht = 0.26, scale = 0.78, delay = 1.12 },
-		{ X = 8.0, Z = -55, rb = 3.02, rt = 2.67, hb = 0.26, ht = 0.26, scale = 0.78, delay = 2.24 },
-		{ X = 15.6, Z = -59, rb = 2.79, rt = 2.47, hb = 0.24, ht = 0.24, scale = 0.72, delay = 3.36 },
-	}
-	HIT = { { 932, 177, 313, 412 }, { 700, 244, 207, 257 }, { 1258, 244, 207, 257 }, { 1494, 260, 178, 224 } }
-	PLATES = { { 932, 191, 313, 80 }, { 690, 258, 227, 64 }, { 1248, 258, 227, 64 }, { 1484, 274, 198, 64 } }
-	STAGE_MID = 1186 -- the four tap areas' middle
-end
 
 -- Drawn icons (owner 2026-11-20: "draw the icons"; assets/ui/team_icons/asset.json).
 local ICON = {
@@ -1276,7 +1260,7 @@ local function layout()
 	W = size.X / k
 	panel.Size = UDim2.fromOffset(W, DESIGN_H)
 	local spare = W - STAGE_W
-	local ox = math.clamp(math.floor((SCROLL_R + W) / 2 - STAGE_MID + 0.5), math.min(0, spare), math.max(0, spare))
+	local ox = math.clamp(math.floor((SCROLL_R + W) / 2 - CAM.cx + 0.5), math.min(0, spare), math.max(0, spare))
 	for _, f in { stage, altarsFrame, petals } do
 		f.Position = UDim2.fromOffset(ox, 0)
 	end
@@ -1353,9 +1337,7 @@ local function drawBonus()
 			string.format('Stamina <font color="#2a8a3a">+%d%%</font>', percent(StaminaConfig.TEAM_BONUS[kind]))
 		cruiseLine.Text = string.format('Cruise <font color="#2a6ad0">×%s</font>', tostring(RaceConfig.PRESET_CRUISE))
 	else
-		noneSub.Text = members < StaminaConfig.BONUS_MEMBERS
-				and (SLOTS == 3 and "Only full teams of 3" or "Needs 3 members") -- World 2: any 3 of 4 (4.47)
-			or "Mixed series"
+		noneSub.Text = members < SLOTS and "Only full teams of 3" or "Mixed series"
 		noneHint.Text = string.format("3 of one series: Stamina +%d%%", percent(StaminaConfig.TEAM_BONUS.Series))
 	end
 end
