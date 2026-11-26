@@ -32,14 +32,15 @@ TrackFxConfig.Budget = {
 }
 
 -- Asset ledger (BIOME_ENVIRONMENT_SPEC 4.4). Lane B: in-house (Blender meshes, numpy textures). Assets approved by the lead
--- on the owner's 2026-11-26 word; not uploaded: Id and Reviewed are nil until the lead says go. An effect whose asset has
--- no Id is not built (no fallback: a missing effect is the same as LIVE false for it).
+-- on the owner's 2026-11-26 word ("You can go ahead and approve the assets that you draft up"), IP review OK; uploaded
+-- 2026-11-26 under the owner's account (tools/blender/world2/upload_track_fx.py, assets/world2_draft/track_fx/assets.json).
+-- The effects stay off (LIVE). An effect whose asset has no Id is not built (no fallback).
 TrackFxConfig.Assets = {
 	TrackFx_SmokePuff = {
 		Kind = "Texture",
 		Lane = "B",
-		Id = nil,
-		Reviewed = nil,
+		Id = "rbxassetid://131238123745137", -- image of Decal 97289512542692 (upload_track_fx.py; moderation Approved)
+		Reviewed = "2026-11-26 rules auditor",
 		Size = "1024 x 1024, 4 x 4 flipbook",
 		Prompt = "in-house numpy drawing: lumpy cel-shaded smoke billow, lit top and shadow side, holes tear it apart",
 		File = "assets/world2_draft/track_fx/textures/TrackFx_SmokePuff.flipbook.png",
@@ -47,8 +48,8 @@ TrackFxConfig.Assets = {
 	TrackFx_Wisp = {
 		Kind = "Texture",
 		Lane = "B",
-		Id = nil,
-		Reviewed = nil,
+		Id = "rbxassetid://121171857790986", -- image of Decal 109316241038637 (upload_track_fx.py; moderation Approved)
+		Reviewed = "2026-11-26 rules auditor",
 		Size = "1024 x 1024, 4 x 4 flipbook",
 		Prompt = "in-house numpy drawing: thin curling smoke strand that draws on and frays",
 		File = "assets/world2_draft/track_fx/textures/TrackFx_Wisp.flipbook.png",
@@ -56,8 +57,8 @@ TrackFxConfig.Assets = {
 	TrackFx_Haze = {
 		Kind = "Texture",
 		Lane = "B",
-		Id = nil,
-		Reviewed = nil,
+		Id = "rbxassetid://133212472173493", -- image of Decal 134622627756910 (upload_track_fx.py; moderation Approved)
+		Reviewed = "2026-11-26 rules auditor",
 		Size = "512 x 512",
 		Prompt = "in-house numpy drawing: wide low soft bank of ground mist",
 		File = "assets/world2_draft/track_fx/textures/TrackFx_Haze.png",
@@ -65,8 +66,8 @@ TrackFxConfig.Assets = {
 	TrackFx_Ember = {
 		Kind = "Texture",
 		Lane = "B",
-		Id = nil,
-		Reviewed = nil,
+		Id = "rbxassetid://130564448358590", -- image of Decal 118705205041971 (upload_track_fx.py; moderation Approved)
+		Reviewed = "2026-11-26 rules auditor",
 		Size = "128 x 128",
 		Prompt = "in-house numpy drawing: hot round spark with a soft halo",
 		File = "assets/world2_draft/track_fx/textures/TrackFx_Ember.png",
@@ -74,8 +75,8 @@ TrackFxConfig.Assets = {
 	TrackFx_DrakeBody = {
 		Kind = "Mesh",
 		Lane = "B",
-		Id = nil,
-		Reviewed = nil,
+		Id = "rbxassetid://99358143355177", -- MeshId inside Model 128203234362835 (upload_track_fx.py, tools/lune/trackfx_meshids; moderation Approved)
+		Reviewed = "2026-11-26 rules auditor",
 		Tris = 196,
 		Prompt = "in-house Blender low poly faceted generic drake: wedge head with two swept horns, long neck, "
 			.. "barrel body, long tail ending in a plain spade, no legs, two-tone grey vertex colours",
@@ -84,8 +85,8 @@ TrackFxConfig.Assets = {
 	TrackFx_DrakeWing = {
 		Kind = "Mesh",
 		Lane = "B",
-		Id = nil,
-		Reviewed = nil,
+		Id = "rbxassetid://70831317809815", -- MeshId inside Model 97155744574570 (upload_track_fx.py, tools/lune/trackfx_meshids; moderation Approved)
+		Reviewed = "2026-11-26 rules auditor",
 		Tris = 60,
 		Prompt = "in-house Blender low poly bat-like membrane wing with three finger spars, flat and double sided, "
 			.. "hinge at its root; the right wing is the same mesh turned 180 degrees about the body's long axis",
@@ -94,8 +95,8 @@ TrackFxConfig.Assets = {
 	TrackFx_EelHead = {
 		Kind = "Mesh",
 		Lane = "B",
-		Id = nil,
-		Reviewed = nil,
+		Id = "rbxassetid://81336925420911", -- MeshId inside Model 129183633171315 (upload_track_fx.py, tools/lune/trackfx_meshids; moderation Approved)
+		Reviewed = "2026-11-26 rules auditor",
 		Tris = 92,
 		Prompt = "in-house Blender low poly spirit eel head: blunt rounded snout, small eyes, a fin crest, no horns, "
 			.. "no whiskers, no limbs",
@@ -104,8 +105,8 @@ TrackFxConfig.Assets = {
 	TrackFx_EelSegment = {
 		Kind = "Mesh",
 		Lane = "B",
-		Id = nil,
-		Reviewed = nil,
+		Id = "rbxassetid://125251547523736", -- MeshId inside Model 140101377134796 (upload_track_fx.py, tools/lune/trackfx_meshids; moderation Approved)
+		Reviewed = "2026-11-26 rules auditor",
 		Tris = 52,
 		Prompt = "in-house Blender low poly eel body segment: six sided tube with a dorsal fin",
 		File = "assets/world2_draft/track_fx/meshes/TrackFx_EelSegment.glb",

@@ -352,21 +352,26 @@ local particles and local motion on the approved props.
 - Motion: at most 40 moving props per track within 350 studs, 24 flickering lamps within 300; updated 30 times a second.
   Sway at most 5 deg, bob at most 5 studs.
 
-### Assets (approved by the lead 2026-11-26 on the owner's word; not uploaded)
-| Key | Kind | Size | Tris |
-|---|---|---|---|
-| TrackFx_SmokePuff | Texture, 4 x 4 flipbook | 1024 x 1024 | |
-| TrackFx_Wisp | Texture, 4 x 4 flipbook | 1024 x 1024 | |
-| TrackFx_Haze | Texture | 512 x 512 | |
-| TrackFx_Ember | Texture | 128 x 128 | |
-| TrackFx_DrakeBody | Mesh (vertex colours, tinted per track) | 11.1 x 13.7 x 71, used at x1.6 | 196 |
-| TrackFx_DrakeWing | Mesh (one wing; the right is the same mesh turned) | 44 x 1.75 x 26, x1.6 | 60 |
-| TrackFx_EelHead | Mesh | 6.3 x 9 x 15, x2.5 | 92 |
-| TrackFx_EelSegment | Mesh (14 per eel, tapering) | 5.9 x 9 x 11, x2.5 | 52 |
+### Assets (approved by the lead 2026-11-26 on the owner's word; uploaded 2026-11-26, all moderation Approved)
+| Key | Kind | Size | Tris | Id in game (uploaded as) |
+|---|---|---|---|---|
+| TrackFx_SmokePuff | Texture, 4 x 4 flipbook | 1024 x 1024 | | image 131238123745137 (Decal 97289512542692) |
+| TrackFx_Wisp | Texture, 4 x 4 flipbook | 1024 x 1024 | | image 121171857790986 (Decal 109316241038637) |
+| TrackFx_Haze | Texture | 512 x 512 | | image 133212472173493 (Decal 134622627756910) |
+| TrackFx_Ember | Texture | 128 x 128 | | image 130564448358590 (Decal 118705205041971) |
+| TrackFx_DrakeBody | Mesh (vertex colours, tinted per track) | 11.1 x 13.7 x 71, used at x1.6 | 196 | MeshId 99358143355177 (Model 128203234362835) |
+| TrackFx_DrakeWing | Mesh (one wing; the right is the same mesh turned) | 44 x 1.75 x 26, x1.6 | 60 | MeshId 70831317809815 (Model 97155744574570) |
+| TrackFx_EelHead | Mesh | 6.3 x 9 x 15, x2.5 | 92 | MeshId 81336925420911 (Model 129183633171315) |
+| TrackFx_EelSegment | Mesh (14 per eel, tapering) | 5.9 x 9 x 11, x2.5 | 52 | MeshId 125251547523736 (Model 140101377134796) |
 
 A drake is 196 + 2 x 60 = 316 tris; an eel 92 + 14 x 52 = 820. Files: `assets/world2_draft/track_fx/textures/` and
-`meshes/`. Upload (after the lead's go): the 4 textures and 4 meshes, 8 assets, then ids and the rules audit's
-`Reviewed` in `TrackFxConfig.Assets`.
+`meshes/`. Uploaded 2026-11-26 under the owner's account (user 232682736, as the other World 2 uploads) by
+`tools/blender/world2/upload_track_fx.py` on the Mac, after the rules audit's IP review ("OK to upload", all 8) and the
+lead's approval on the owner's word. Textures went up as Decals and were resolved to their image ids through the asset
+delivery API; meshes went up as Models and their MeshIds were read from the downloaded Models
+(`tools/lune/trackfx_meshids.luau`), no Studio. Moderation: every Decal, image, Model and MeshId Approved. Ledger:
+`assets/world2_draft/track_fx/assets.json`; ids and `Reviewed = "2026-11-26 rules auditor"` in `TrackFxConfig.Assets`.
+The effects stay off (`LIVE = false`) until the owner approves them.
 
 ### Previews for the owner
 `assets/world2_draft/track_fx/previews/`: `overview.jpg` (one frame of each), and per effect a 12-frame GIF and a
@@ -377,10 +382,10 @@ dragon_eel, motion_pine_sway, motion_ship_bob, motion_skydoor_bob, motion_flicke
 presets (the in-game look needs Studio).
 
 ### Tests
-- ServerTest `track_fx` (lune, both worlds): LIVE off by default, World 1 never on, rows only for World 2 biomes, presets
+- ServerTest `track_fx` (lune, both worlds, 68 checks): LIVE off by default, no real name in any ledger key or prompt, eel segments evenly spaced round the loop, World 1 never on, rows only for World 2 biomes, presets
   and every track's worst case inside the budget, anchors name props of the biome's approved draft, dragons capped and
   clear of the road, the nearest-first pick never past a cap, flicker in 0..1.
-- Not run: Studio (needs the uploads and LIVE on in a test session), frame time on a phone.
+- Not run: Studio (needs LIVE on in a test session; the uploads are done), frame time on a phone.
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's
