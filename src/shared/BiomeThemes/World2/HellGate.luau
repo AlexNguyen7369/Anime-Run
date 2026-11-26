@@ -32,57 +32,57 @@ return Kit.fromDraft("HellGate", require(script.Parent.HellGateDraft), {
 		),
 		W2_HellGate_DoorClosed = draftMesh(
 			424,
-			"rbxassetid://103360673639051", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://100474944578589", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: free standing white panel door in its frame on a sill step, closed",
 			"mid prop, 606 placed; build/world2/export/HellGate/W2_HellGate_DoorClosed.glb"
 		),
 		W2_HellGate_DoorOpen = draftMesh(
 			436,
-			"rbxassetid://92924059243755", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://108988197070205", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: free standing white panel door in its frame on a sill step, standing ajar",
 			"mid prop, 300 placed; build/world2/export/HellGate/W2_HellGate_DoorOpen.glb"
 		),
 		W2_HellGate_SkyDoor = draftMesh(
 			316,
-			"rbxassetid://139840216058271", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://107833772077640", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: upright white panel door in its frame, hung in the sky",
 			"mid prop, 1721 placed; build/world2/export/HellGate/W2_HellGate_SkyDoor.glb"
 		),
 		W2_HellGate_Hand = draftMesh(
 			3404,
-			"rbxassetid://89224357208985", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://126563860780164", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: giant pale open hand rising from a rocky mound, palm forward",
 			"mid prop, 78 placed; build/world2/export/HellGate/W2_HellGate_Hand.glb"
 		),
 		W2_HellGate_ArmA = draftMesh(
 			2216,
-			"rbxassetid://132262295967212", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://139918799530879", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: long pale straight arm hanging in darkness, hand open",
 			"mid prop, 79 placed; build/world2/export/HellGate/W2_HellGate_ArmA.glb"
 		),
 		W2_HellGate_ArmB = draftMesh(
 			2332,
-			"rbxassetid://117086880501132", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://135359517587462", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: long pale arm bent at the elbow, hand open",
 			"mid prop, 64 placed; build/world2/export/HellGate/W2_HellGate_ArmB.glb"
 		),
 		W2_HellGate_Astronaut = draftMesh(
 			2976,
-			"rbxassetid://136258130792853", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://114842349379164", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: kneeling generic retro astronaut in a puffy white suit with a round bubble helmet, praying",
 			"mid prop, 44 placed; build/world2/export/HellGate/W2_HellGate_Astronaut.glb"
 		),
 		W2_HellGate_DarkGate = draftMesh(
 			664,
-			"rbxassetid://88775043666232", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://109517104931927", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: giant panel door standing open on plinths with a moulded lintel",
 			"hero landmark, 1 placed; build/world2/export/HellGate/W2_HellGate_DarkGate.glb"
 		),
@@ -95,15 +95,15 @@ return Kit.fromDraft("HellGate", require(script.Parent.HellGateDraft), {
 		),
 		W2_HellGate_Grass = draftMesh(
 			808,
-			"rbxassetid://102364896212019", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://73324038021307", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: patch of dark grass clumps with two pale flowers",
 			"mid prop, 882 placed; build/world2/export/HellGate/W2_HellGate_Grass.glb"
 		),
 		W2_HellGate_Hill = draftMesh(
 			320,
-			"rbxassetid://118583274718723", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://83204166139174", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low rolling pale hill",
 			"mid prop, 121 placed; build/world2/export/HellGate/W2_HellGate_Hill.glb"
 		),

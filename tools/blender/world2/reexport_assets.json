@@ -1,0 +1,342 @@
+{
+ "W2_AntIsland_Ant": {
+  "Hash": "100ab2b582114ab7d288dd130cd53c247b114377f676df4f10904e943a74658e",
+  "Model": "97742457563136",
+  "Old": {
+   "Mesh": "108845152754257",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Ant",
+    "107517158486183",
+    "108845152754257",
+    "aab694a2afe69fb48258c6cb9f58baa6ce78e36d8c5558aef4bc3cfc284d4f17"
+   ]
+  }
+ },
+ "W2_AntIsland_Brush": {
+  "Hash": "6b01c2be4724fe74a2913d34f701834dbcf785aa0d4e54583a4b4e355d8cb746",
+  "Model": "92601774672211",
+  "Old": {
+   "Mesh": "137746318604400",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Brush",
+    "86558568588423",
+    "137746318604400",
+    "861165c1b842e784839a259f447ee690c452f4a5a8225c0ef38ccf10e72939be"
+   ]
+  }
+ },
+ "W2_AntIsland_Camp": {
+  "Hash": "6aaacd4faad2f8ddb3fcabba19a0d5ad66ed34e30ed654e9b6c83f34f5723ce0",
+  "Model": "81521915665404",
+  "Old": {
+   "Mesh": "85683813900111",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Camp",
+    "106732218872097",
+    "85683813900111",
+    "db118f2add90f4c700c5178431eab21889fa7f5bfdcf33d0f484d437fda6fb5d"
+   ]
+  }
+ },
+ "W2_AntIsland_Chamber": {
+  "Hash": "2a617cad4a3dbdbd5c234e0a0aa2a46801c797c1a5a8724470ec85c44f8d98a9",
+  "Model": "98571662585063",
+  "Old": {
+   "Mesh": "127071148146370",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Chamber",
+    "108225370212095",
+    "127071148146370",
+    "d49b224c02b4aa1e94c5cb06a07d3b62e4faf87a3e9f822d0eec681e3f42342e"
+   ]
+  }
+ },
+ "W2_AntIsland_Cliff": {
+  "Hash": "225c132531629bd76c061bcbc55b78c17d8f81bacb523efa136394287436bcea",
+  "Model": "136931273397554",
+  "Old": {
+   "Mesh": "99845249170958",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Cliff",
+    "117150922468469",
+    "99845249170958",
+    "6073c335ab9391776248d049d8fd80907b7fa41ba3c277be6bfc1f0dc3802e66"
+   ]
+  }
+ },
+ "W2_AntIsland_Mound": {
+  "Hash": "15b45b7a9c2e3b443dfd9d748a6d296a17fc63050a09d161eeba5c0c3f1a4d19",
+  "Model": "93811586156063",
+  "Old": {
+   "Mesh": "103223853324007",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Mound",
+    "113810051870904",
+    "103223853324007",
+    "0d1ef7f800f7d40c7c00bf6357e76ad47ea77749178ba7f23ccca9ee5239e520"
+   ]
+  }
+ },
+ "W2_AntIsland_Nest": {
+  "Hash": "242a7bcd1addce8998865595abb065264524c58e26338d0564c9f4195ce03f3b",
+  "Model": "86245063425934",
+  "Old": {
+   "Mesh": "105423028314113",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Nest",
+    "117882189817945",
+    "105423028314113",
+    "be7e354bfeb75cb16fa6ec758a05718ffd1693ba3b862f866d3761286e411c7c"
+   ]
+  }
+ },
+ "W2_AntIsland_Ruin": {
+  "Hash": "b782d0333269cbf947dda08c51458c745a670ae191d8f751c69d0208510d6a8f",
+  "Model": "113543012063125",
+  "Old": {
+   "Mesh": "138092145053862",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Ruin",
+    "123098924984083",
+    "138092145053862",
+    "a1c9cfdca852dabc22402e9df9270424b7ac87bea27638304c996303b6371dc3"
+   ]
+  }
+ },
+ "W2_AntIsland_Ship": {
+  "Hash": "16f1dc2e395057e98c8dddef06c1946f45772bed93daf81387681a984d71c2a1",
+  "Model": "120461438984729",
+  "Old": {
+   "Mesh": "116359125507961",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_Ship",
+    "123835629614954",
+    "116359125507961",
+    "03d4fe004650ddfd47c09364a60c6ebf460bd101a4a64c57de5953803581806e"
+   ]
+  }
+ },
+ "W2_AntIsland_ThatchHouse": {
+  "Hash": "fb96860b747714a2859728486eb474ca09d02a6ca0e9edca11a0ed964fd00d87",
+  "Model": "139197565264941",
+  "Old": {
+   "Mesh": "87977916324970",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "AntIsland",
+    "W2_AntIsland_ThatchHouse",
+    "94584956965085",
+    "87977916324970",
+    "72ddf2793ba44f411e04753b64b6a64a5648b8ccaed4f8d4a7e7c3c1efabe534"
+   ]
+  }
+ },
+ "W2_HellGate_ArmA": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "89b6c2743c1ba2a8595f4b42cb2b6464e8f6d3a6d5b4c6d0cc64fecaa69d97da",
+  "Mesh": "139918799530879",
+  "Model": "126439925451166",
+  "Old": {
+   "Mesh": "132262295967212",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_ArmA",
+    "111711738618182",
+    "132262295967212",
+    "d43c2599047a69401965a11cc182d3c268508018adabf23f50a4946cb248ea26"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_ArmB": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "a3e26e38bb9618cf46ff886de0d1619ebe361f6b8f25d67fa2e8f93936fa9caf",
+  "Mesh": "135359517587462",
+  "Model": "101757022997407",
+  "Old": {
+   "Mesh": "117086880501132",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_ArmB",
+    "114236250142448",
+    "117086880501132",
+    "de6ff106877c255c4053b24141203811bd8f0a8f7622e3ecf1f21ee82d6222a9"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_Astronaut": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "2e5f40bb3c4677e9e095321800962591443d9c29063402d8219c034213f805a1",
+  "Mesh": "114842349379164",
+  "Model": "134805646732671",
+  "Old": {
+   "Mesh": "136258130792853",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_Astronaut",
+    "90269771935898",
+    "136258130792853",
+    "f885444e003a2a87d639c7c27c663dec3190a93ae91328b64b7cbe301dfce81c"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_DarkGate": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "b6f0994e576aeae1dd6ef48c2374b52d68c83538320b2e428b7f5111dbe23a31",
+  "Mesh": "109517104931927",
+  "Model": "100136632185084",
+  "Old": {
+   "Mesh": "88775043666232",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_DarkGate",
+    "82133863059446",
+    "88775043666232",
+    "96d181b69feb6e618f435d2557b55dc46fcd9d774fbd6c3a14e5f602a32cd9e3"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_DoorClosed": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "ff09e7f844ce657d315e2ab0c057c2becbdf74199947ae697940af7e1aa8d14f",
+  "Mesh": "100474944578589",
+  "Model": "134237657034604",
+  "Old": {
+   "Mesh": "103360673639051",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_DoorClosed",
+    "103300833271795",
+    "103360673639051",
+    "3289bf2a760fa6d8036e81716bb10cfe8416db43f4a182a81070e7463685b063"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_DoorOpen": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "2e60ac91c1b441d5148075b7bc216cb92f0d439f8221d86083125f24ee28f794",
+  "Mesh": "108988197070205",
+  "Model": "116554680061441",
+  "Old": {
+   "Mesh": "92924059243755",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_DoorOpen",
+    "121561983141128",
+    "92924059243755",
+    "350c9a48c026e3d5394ca8647eff3c69cf0630620f8e07ce43937041428e2baa"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_Grass": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "ce2ab5a2e52bc7bd74e2166f0ba066a0f78a3e13b6a87adeb9f8d0578ea6f69f",
+  "Mesh": "73324038021307",
+  "Model": "100760495911677",
+  "Old": {
+   "Mesh": "102364896212019",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_Grass",
+    "128560741218189",
+    "102364896212019",
+    "8ff7ab0a4384000c283dafbcf488acfe36f18eaa5d9c76988bfc77063c2f251b"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_Hand": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "748dfb88afdc8ba8329b77c60e27ab759714bd1ef98947d39f09d3605ef2beb7",
+  "Mesh": "126563860780164",
+  "Model": "90329520960112",
+  "Old": {
+   "Mesh": "89224357208985",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_Hand",
+    "132212131575423",
+    "89224357208985",
+    "a47c5af2ff5a5ff358f160438fda2c69b3e0b54e305e0f559e7d8b5b8d2c286d"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_Hill": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "7e13156f6cffaf25001b70101fb49785027f5dc2b34202b641c43925e2501939",
+  "Mesh": "83204166139174",
+  "Model": "78781180021167",
+  "Old": {
+   "Mesh": "118583274718723",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_Hill",
+    "136058213236044",
+    "118583274718723",
+    "7251a66bee5a9768d7844f9727db35d98d723e9dab7b60091796fc2e278b4485"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ },
+ "W2_HellGate_SkyDoor": {
+  "Applied": true,
+  "Checked": "2026-11-26 agent-2",
+  "Hash": "998ec7077bc196267e060390e6a2aee93deedd8901eb18787a23dfe7c5e3a340",
+  "Mesh": "107833772077640",
+  "Model": "71416801247630",
+  "Old": {
+   "Mesh": "139840216058271",
+   "Reviewed": "2026-11-23 auditor",
+   "Tsv": [
+    "HellGate",
+    "W2_HellGate_SkyDoor",
+    "103793584336794",
+    "139840216058271",
+    "ee11a5a982d104215809f67fffd91aa3fd5ec02e9c167f04125ddd0b25cb7daa"
+   ]
+  },
+  "Reviewed": "2026-11-26 auditor"
+ }
+}
