@@ -339,6 +339,7 @@
 297. 2026-11-26 — Alex Nguyen — Corrected the support fix after its rules audit (road-top convention, 0.15 corner allowance, every row checked under the road), recorded the freeze exception in WORLD2_SPEC, and tightened road_surface_clear with a road-deck check; Studio 55/55.
 330. 2026-11-26 — Alex Nguyen — Made road_surface_clear enforce the 0.05 support clearance under every road (Studio 55/55 on the final rows), re-shot the Track 2, 5 and 7 after pictures on them, and merged the World 2 branch.
 331. 2026-11-26 — Alex Nguyen — Corrected the opening words of WORLD2_SPEC's road-supports exception to name the 6 sunk rows' bases, after the third rules audit.
+332. 2026-11-26 — Alex Nguyen — Merged the World 2 road-support fix (Fill, Pier and Bank tops under the road on climbs, 6 sunk at 0.2) and the render audit into the World 2 branch; Studio road_surface_clear 55/0 over 640,798 samples; audit PASS.
 
 ## What's next
 **Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**
