@@ -10,13 +10,16 @@ local PlazaMerchantRigs = {}
 
 -- The floating name (owner 2026-11-25: shown, but Kakashe's; "Readable from spawn": as large as it can be without covering its stall's
 -- sign or header) never covers the stall's sign, from the spawn or close by (docs/BUGS.md merchant-names-cover-signs): studs, not pixels,
--- so it does not grow on screen with distance; on an attachment over the merchant's hair, not the head, so it stands where the marker
--- says. Height: the largest, in 0.05 studs, that keeps every view of the sign clear (PlazaPiecesTests merchant_name_clear_*); Forward:
+-- so it does not grow on screen with distance; on an attachment over the merchant's hair (or in front of it: Bottom), not the head, so it
+-- stands where the marker says. Height: the largest, in 0.05 studs, that keeps every view of the sign clear (PlazaPiecesTests merchant_name_clear_*); Forward:
 -- studs toward the stall's front, where it lets the name grow. Proposed values.
 PlazaMerchantRigs.NAMES = {
 	ShopStall = { Height = 1.7, Forward = 1.5 },
 	PotionsStall = { Height = 1.9, Forward = 1 },
-	Marketplace = { Height = 0.35, Forward = 1 }, -- its sign is 1.29 studs over Rengoko's hair: open question to the owner
+	-- Its sign is 1.29 studs over Rengoko's hair: owner 2026-11-26 "Readable, rare overlap" (the same readable size as the others,
+	-- may touch the sign only from high side views near the stall). Lower, its bottom (studs over the feet at Scale 1) in front of
+	-- the top of the hair, 2.25 studs forward where the hair (at most 0.98 forward) stays behind it.
+	Marketplace = { Height = 1.75, Forward = 2.25, Bottom = 5.65 },
 	IndexBoard = { Height = 1.8, Forward = 0 },
 }
 PlazaMerchantRigs.NAME_CHAR_WIDTH = 0.62 -- a letter's width over the name's height (FredokaOne, TextScaled)
@@ -101,7 +104,8 @@ function PlazaMerchantRigs.Stand(spawnArea)
 		local text = label:FindFirstChild("Name")
 		local h = look.Height
 		local w = h * PlazaMerchantRigs.NAME_CHAR_WIDTH * math.max(#(text and text.Text or ""), 4)
-		local bottom = (PlazaMerchantRigs.HAIR_TOP[row.Id] or 7.4) * row.Scale + PlazaMerchantRigs.NAME_OVER_HAIR
+		local bottom = look.Bottom and look.Bottom * row.Scale
+			or (PlazaMerchantRigs.HAIR_TOP[row.Id] or 7.4) * row.Scale + PlazaMerchantRigs.NAME_OVER_HAIR
 		nameSpot.WorldCFrame = spot.WorldCFrame * CFrame.new(0, bottom + h / 2, -look.Forward)
 		label.Adornee = nameSpot
 		label.Size = UDim2.fromScale(w, h)

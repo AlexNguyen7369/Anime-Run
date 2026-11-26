@@ -430,7 +430,7 @@ function Tests.plaza_pieces()
 					centre += (label.StudsOffsetWorldSpace or Vector3.zero) + (label.StudsOffset or Vector3.zero)
 					local floorY = marker.WorldCFrame.Position.Y - row.Feet.Y
 					local front = marker.WorldCFrame.LookVector
-					local eyes = {}
+					local eyes, raisedSide = {}, {}
 					for _, up in { 4.4, 8, 12 } do
 						table.insert(eyes, spawnPart.CFrame.Position + Vector3.new(0, up, 0))
 					end
@@ -440,11 +440,16 @@ function Tests.plaza_pieces()
 							for _, up in { 4.4, 8, 12 } do
 								local e = marker.WorldCFrame.Position + dir * dist
 								table.insert(eyes, Vector3.new(e.X, floorY + up, e.Z))
+								raisedSide[#eyes] = up > 4.4 and deg ~= 0
 							end
 						end
 					end
-					local worst, overlaps = math.huge, 0
-					for _, eye in eyes do
+					-- Owner 2026-11-26 (Marketplace): "Readable, rare overlap": Rengoko's name is the same readable size as the
+					-- others and may touch the MARKET sign from high side camera angles near the stall, never from the spawn or at
+					-- player eye height. Only there, and only in the raised (eye 8 or 12) side (30 degree) views, may it overlap.
+					local mayTouch = name == "Marketplace"
+					local worst, overlaps, allowed = math.huge, 0, 0
+					for i, eye in eyes do
 						local look = (centre - eye).Unit
 						local dist = (centre - eye).Magnitude
 						local studsPerPx = 2 * dist * math.tan(math.rad(35)) / 400
@@ -461,12 +466,16 @@ function Tests.plaza_pieces()
 						-- the gap between the two screen boxes (negative: they overlap), in the view's units
 						local gap = math.max(sLo.X - nHi.X, nLo.X - sHi.X, sLo.Y - nHi.Y, nLo.Y - sHi.Y)
 						worst = math.min(worst, gap)
-						overlaps += gap <= 0 and 1 or 0
+						if gap <= 0 and mayTouch and raisedSide[i] then
+							allowed += 1
+						elseif gap <= 0 then
+							overlaps += 1
+						end
 					end
 					flag(
 						w .. "merchant_name_clear_" .. name,
 						overlaps == 0,
-						("%d of %d views overlap"):format(overlaps, #eyes),
+						("%d of %d views overlap (%d allowed raised side views)"):format(overlaps, #eyes, allowed),
 						"0"
 					)
 					flag(
@@ -493,9 +502,54 @@ function Tests.plaza_pieces()
 						label.Size.X.Scale,
 						h1 * 0.6 * letters
 					)
+					-- Over the hair, or in front of it: from none of the 30 views does a line to the name (5 x 3 points) pass through
+					-- the box round the hair (feet frame at Scale 1, X across, Z to the back; measured as HAIR: everything over the
+					-- head's centre)
+					local HAIR_BOX = { ds_flame = { Vector3.new(-1.74, 5, -0.98), Vector3.new(1.74, 6.96, 1.48) } }
 					local bottom = centre.Y - h1 / 2
 					local hair = marker.WorldCFrame.Position.Y + (HAIR[row.Id] or math.huge) * row.Scale
-					flag(w .. "merchant_name_over_hair_" .. name, bottom >= hair + 0.1, bottom - hair, 0.1)
+					local hidden = 0
+					local hairBox = HAIR_BOX[row.Id]
+					if bottom < hair + 0.1 and hairBox then
+						local feet = marker.WorldCFrame * CFrame.Angles(0, math.rad(row.Yaw or 0), 0)
+						local lo, hi = hairBox[1] * row.Scale, hairBox[2] * row.Scale
+						local function through(a, b) -- the segment a-b (feet frame) meets the box
+							local t0, t1 = 0, 1
+							for _, axis in { "X", "Y", "Z" } do
+								local d = b[axis] - a[axis]
+								if math.abs(d) < 1e-9 then
+									if a[axis] < lo[axis] or a[axis] > hi[axis] then
+										return false
+									end
+								else
+									local u, v = (lo[axis] - a[axis]) / d, (hi[axis] - a[axis]) / d
+									t0, t1 = math.max(t0, math.min(u, v)), math.min(t1, math.max(u, v))
+									if t0 > t1 then
+										return false
+									end
+								end
+							end
+							return true
+						end
+						for _, eye in eyes do
+							local look = (centre - eye).Unit
+							local right = look:Cross(Vector3.yAxis).Unit
+							local up = right:Cross(look)
+							local a = feet:PointToObjectSpace(eye)
+							for gx = -2, 2 do
+								for gy = -1, 1 do
+									local p = centre + right * gx / 2 * label.Size.X.Scale / 2 + up * gy * h1 / 2
+									hidden += through(a, feet:PointToObjectSpace(p)) and 1 or 0
+								end
+							end
+						end
+					end
+					flag(
+						w .. "merchant_name_over_hair_" .. name,
+						bottom >= hair + 0.1 or (hairBox ~= nil and hidden == 0),
+						("%.2f over the hair, %d hidden points"):format(bottom - hair, hidden),
+						"0.1 over or 0 hidden"
+					)
 				end
 			end
 		end
