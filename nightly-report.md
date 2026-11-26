@@ -11,6 +11,9 @@
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you
+- Layout: chose option C (square spiral of long straights, pitch 760, corners R420; smallest gap 643, T6 on 720) over A (wider round spiral, 620, no straights) and B (zigzag, 663, breaks two spiral rules and grows the world to 12k). C keeps every rule and today's world size. Revert: pick A or B from docs/proposals/W2_WIDE_LAYOUT.md (orch/world2/w2-wide-layout 6b4d73b7).
+- Moving tracks whole with connectors was ruled out: agent-3 showed the +5% length slack is 3-8x too short (W2_LAYOUT_IMPACT.md, 00ebd421).
+- Track 1 neighbours round (orch/world2/w2-t1-neighbours): dropped as moot, left unmerged.
 - Series names Dandadun, Kaijo No. 8, Frierin; Makto, Toskar, Darknez Devill (the old ones contained real names). Revert: SeriesCatalog / catalog rows.
 - Sidekick key frames baked without your slice approval, on your word that all decisions are pre-approved.
 - World 2 Daily Day 7 capped at Legendary; Eternal chances 6e18 to 9e18; World 1 characters x0.1 cruise in World 2 except the starters.
