@@ -3,6 +3,7 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- (ANSWERED by the owner on return, see the design log: uploads, hero shrink-to-fit, T6 HQ back, Gojio on; effects stay off; T10 haze a tiny bit less; drakes fine; Starter team unchanged.)
 - Heroes with no spot at approved scale on layout C: T1 Town, T3 HeroHQ, T8 LairTower, T10 Abyss (never placed). Question: allow a smaller scale for any of them, or keep them out?
 - Starter in slot 1: a World 2 save with no team starts as {Starter}, and auto-fill appends kept rolls but never replaces a filled slot (your 2026-11-20 rule), so the placeholder Starter (no model or portrait) stays first until the player edits the team. Not a code fault. Question: should a kept roll replace a team that is only the Starter?
 - Track 6 HQ: still out by your 2026-11-25 ruling ("for now"). It now has a legal spot on its own ground at the 0.9 axis, world (-2714, 2418), 0 overlaps. Question: bring it back?
