@@ -3,6 +3,7 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- Track effects LIVE: stays off until you approve the effects and motions (your words). Previews: assets/world2_draft/track_fx/previews/ on orch/world2/w2-track-vfx. Questions: does your "tone down the haze" cover Track 10's red ground-haze particles? Are DemonCastle's black-violet drakes too close to Kaizel's wyvern look?
 - Studio test run and Play check: my script writes to the cloud place were denied. Question: allow execute_luau script writes, or connect Rojo to w2-ingame? State: orch/world2/cast-ingame pushed.
 - Merge to main and publishing places: not done (never pre-approved).
 
