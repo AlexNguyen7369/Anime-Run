@@ -64,6 +64,43 @@ function Tests.track_fx()
 	end
 	flag("presets_within_caps", presetsOk)
 
+	-- Track 10's red haze a little less opaque (owner 2026-11-26: "tone down track 10 red haze tiny bit", WORLD2_SPEC
+	-- "Track effects"): its Hill GroundHaze row's own keys replace the preset's; every other smoke row keeps its preset's
+	local function minT(keys)
+		local m = 1
+		for _, k in keys do
+			m = math.min(m, k[2])
+		end
+		return m
+	end
+	local haze = Config.Presets.GroundHaze
+	local hellRow
+	for _, row in (Config.Tracks.HellGate or {}).Smoke or {} do
+		if row.Preset == "GroundHaze" and row.Prop == "Hill" then
+			hellRow = row
+		end
+	end
+	local hellKeys = Plan.Transparency and hellRow and Plan.Transparency(haze, hellRow)
+	local hellMin = hellKeys and minT(hellKeys) or 0
+	local presetMin = minT(haze.Transparency)
+	flag("t10_haze_less_opaque", hellMin > presetMin, hellMin, presetMin)
+	flag("t10_haze_tiny_bit", hellMin - presetMin <= 0.06 + 1e-9, math.floor((hellMin - presetMin) * 1000) / 1000, 0.06)
+	flag("t10_haze_plateau_0_82", math.abs(hellMin - 0.82) < 1e-9, hellMin, 0.82)
+	local othersKeep = Plan.Transparency ~= nil
+	for key, track in Config.Tracks do
+		for _, row in track.Smoke or {} do
+			local preset = Config.Presets[row.Preset]
+			if
+				row ~= hellRow
+				and (row.Transparency ~= nil or (othersKeep and Plan.Transparency(preset, row) ~= preset.Transparency))
+			then
+				othersKeep = false
+				flag("own_transparency_" .. key, false)
+			end
+		end
+	end
+	flag("other_smoke_rows_keep_preset", othersKeep)
+
 	-- Assets: in-house Lane B, not uploaded, or uploaded only with a review
 	local assetsOk = true
 	for key, row in Config.Assets do
