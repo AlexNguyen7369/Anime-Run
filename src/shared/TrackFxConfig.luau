@@ -23,6 +23,11 @@ TrackFxConfig.Budget = {
 	MaxDragonsPerTrack = 2,
 	DragonCull = 3000, -- studs from the camera past which a dragon is hidden and not updated
 	MinDragonClearance = 150, -- studs from any point of the dragon's path to its own track's centre line (3D)
+	MinLoopRadius = 120, -- studs: a dragon whose loop would have to shrink below this to stay over its own ground is not built
+	OwnMargin = 20, -- studs: every point of a dragon's loop is that much nearer its own centre line than any other track's
+	RoadClear = 24, -- studs: an emitter's spread stays this far (horizontal) from every centre line (the props rule)
+	MinSpread = 0.5, -- a spread too near a road narrows to this share of its width before the emitter moves away
+	EelOverlap = 1.6, -- neighbouring eel segments' mean length over the distance between their centres (wave counted)
 	MaxMovingProps = 40, -- swaying or bobbing props at once per track, nearest the camera
 	MotionDistance = 350, -- studs; farther props stay still at their placed CFrame
 	MaxFlickerLights = 24,
@@ -128,10 +133,12 @@ TrackFxConfig.Drake = {
 TrackFxConfig.Eel = {
 	-- the Blender meshes at x2.5 (head 6.3 x 9 x 15, segment 5.9 x 9 x 11)
 	HeadSize = v(15.7, 22.6, 37.5),
-	SegmentSize = v(14.8, 22.5, 27.5), -- the first segment; each next one is smaller (to 55% at the tail)
+	-- the first segment; each next one is smaller (to 55% at the tail). 40 long (the mesh stretched along the path, same
+	-- tris; was 27.5) so neighbours overlap by Budget.EelOverlap and no gap shows (WORLD2_SPEC "Track effects", 2026-11-26)
+	SegmentSize = v(14.8, 22.5, 40),
 	Segments = 14,
 	Spacing = 21, -- studs between segment centres along the path
-	Wave = 15, -- studs of side-to-side undulation at the tail
+	Wave = 10, -- studs of side-to-side undulation at the tail (was 15: the tail's segments parted at its swing)
 	WavePeriod = 3.2,
 	WaveLength = 9, -- segments per full wave
 	Transparency = 0.35, -- a ghostly eel
@@ -292,7 +299,7 @@ TrackFxConfig.Tracks = {
 				Kind = "Drake",
 				Color = hex("6E8A5A"),
 				At = 0.45,
-				Side = -1,
+				Side = 1, -- was -1: on the C layout the left side is a neighbour's ground (WORLD2_SPEC "Track effects")
 				Lateral = 420,
 				Radius = 220,
 				Altitude = 300,

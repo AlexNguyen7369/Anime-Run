@@ -84,6 +84,9 @@ end
 -- Track state ------------------------------------------------------------------------------------------------------
 
 local state = nil -- { Number, Spec, Model, Origin, Waypoints, Theme, Folder, Emitters, Moving, Lights, Dragons, Conns }
+-- From the chain at Start (TrackFxPlan): every track's origin and every centre line, so nothing waits on a streamed part
+local origins, lines = nil, nil
+local spreads = {} -- emitter key -> { position, area } or false: an anchor's road-clear spread, worked out once
 
 local function folderFor()
 	local folder = workspace:FindFirstChild("TrackFxClient")
@@ -126,17 +129,27 @@ local function refreshSmoke(props, camera)
 	for r, row in state.Theme.Smoke or {} do
 		local preset = Config.Presets[row.Preset]
 		local mine = {}
+		-- every spread kept off every road (WORLD2_SPEC "Track effects"): narrowed or moved once per anchor, or left out
+		local function add(id, cf, area)
+			local key = tostring(r) .. "|" .. tostring(id)
+			if spreads[key] == nil then
+				local pos, clear = Plan.ClearSpread(cf.Position, area or preset.Area, lines)
+				spreads[key] = pos and { pos, clear } or false
+			end
+			local spread = spreads[key]
+			if spread then
+				local _, yaw = cf:ToEulerAnglesYXZ()
+				table.insert(mine, { id, CFrame.new(spread[1]) * CFrame.Angles(0, yaw, 0), spread[2] })
+			end
+		end
 		if row.Prop then
 			for _, p in props do
 				if p.Key == row.Prop then
-					table.insert(
-						mine,
-						{ p.Model, Plan.BoxPoint(p.CFrame, p.Size, row.Offset), Plan.Area(preset, row, p.Size) }
-					)
+					add(p.Model, Plan.BoxPoint(p.CFrame, p.Size, row.Offset), Plan.Area(preset, row, p.Size))
 				end
 			end
 		elseif row.At then
-			table.insert(mine, { "At", state.Origin * Plan.TrackPoint(state.Waypoints, row) })
+			add("At", state.Origin * Plan.TrackPoint(state.Waypoints, row), nil)
 		end
 		-- a row keeps at most Max anchors: its nearest ones
 		table.sort(mine, function(a, b)
@@ -350,7 +363,12 @@ local function buildDragon(def)
 	for _, seg in parts.Segments or {} do
 		seg.Color = def.Color
 	end
-	local path = Plan.DragonPath(state.Waypoints, def)
+	-- over its own track's ground only, its shape kept (WORLD2_SPEC "Track effects"); none if it cannot fit
+	local path = Plan.FitLoop(state.Waypoints, def, state.Origin, state.Number, lines)
+	if not path then
+		model:Destroy()
+		return nil
+	end
 	for i, p in path do
 		path[i] = state.Origin:PointToWorldSpace(p)
 	end
@@ -447,9 +465,8 @@ local function setup(number, chain)
 	end
 	local trackFolder = workspace:FindFirstChild("Track")
 	local model = trackFolder and trackFolder:FindFirstChild(spec.Name)
-	local start = model and model:FindFirstChild("Start")
-	if not start then
-		return -- not built or not streamed in yet: the next poll tries again
+	if not model then
+		return -- not built yet: the next poll tries again (the model itself always replicates; its parts may not)
 	end
 	local TrackBuilder = require(Shared.TrackBuilder)
 	local folder = Instance.new("Folder")
@@ -459,7 +476,7 @@ local function setup(number, chain)
 		Number = number,
 		Spec = spec,
 		Model = model,
-		Origin = start.CFrame * CFrame.new(0, -0.5, 0), -- TrackBuilder: Start sits 0.5 above the origin
+		Origin = origins[number], -- from the chain (TrackFxPlan.ChainOrigins), not the streamed Start part
 		Waypoints = TrackBuilder.Layout(spec).Waypoints,
 		Theme = theme,
 		Folder = folder,
@@ -490,6 +507,9 @@ function TrackFx.Start()
 	for _, spec in TrackRegistry.Chain() do
 		chain[spec.Number] = spec
 	end
+	local TrackBuilder = require(Shared.TrackBuilder)
+	origins = Plan.ChainOrigins(TrackBuilder, TrackRegistry.Chain())
+	lines = Plan.CentreLines(TrackBuilder, TrackRegistry.Chain(), origins)
 	local player = Players.LocalPlayer
 	local camera = workspace.CurrentCamera
 

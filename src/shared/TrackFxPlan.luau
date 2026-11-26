@@ -172,6 +172,185 @@ function TrackFxPlan.Clearance(points, waypoints, samples)
 	return best
 end
 
+-- Every track's origin (the CFrame its Layout is built at), from the chain alone, as Main.server builds it: the first
+-- at TrackBuilder.CHAIN_ORIGIN, each next at the previous one's EndCFrame. Number -> CFrame. Never read from a part, which
+-- may not be streamed in (WORLD2_SPEC "Track effects").
+function TrackFxPlan.ChainOrigins(TrackBuilder, chain)
+	local out, origin = {}, TrackBuilder.CHAIN_ORIGIN
+	for _, spec in chain do
+		out[spec.Number] = origin
+		origin = TrackBuilder.EndCFrame(TrackBuilder.Layout(spec), origin)
+	end
+	return out
+end
+
+local LINE_CELL = 64 -- studs per grid cell of the centre-line segments
+local LINE_REACH = 160 -- a segment is filed in every cell within this of it: nearer queries never miss it
+
+-- Every track's centre line in world space, with a grid of its segments for near queries:
+-- { Lines = { { Number, Points } }, Grid = { ["x,z"] = { { a, b, Number } } } }
+function TrackFxPlan.CentreLines(TrackBuilder, chain, origins)
+	local lines, grid = {}, {}
+	for _, spec in chain do
+		local o = origins[spec.Number]
+		local pts = {}
+		for i, w in TrackBuilder.Layout(spec).Waypoints do
+			pts[i] = o:PointToWorldSpace(w)
+		end
+		table.insert(lines, { Number = spec.Number, Points = pts })
+		for i = 2, #pts do
+			local a, b = pts[i - 1], pts[i]
+			local seg = { a, b, spec.Number }
+			for gx = math.floor((math.min(a.X, b.X) - LINE_REACH) / LINE_CELL), math.floor((math.max(a.X, b.X) + LINE_REACH) / LINE_CELL) do
+				for gz = math.floor((math.min(a.Z, b.Z) - LINE_REACH) / LINE_CELL), math.floor((math.max(a.Z, b.Z) + LINE_REACH) / LINE_CELL) do
+					local key = gx .. "," .. gz
+					grid[key] = grid[key] or {}
+					table.insert(grid[key], seg)
+				end
+			end
+		end
+	end
+	return { Lines = lines, Grid = grid }
+end
+
+-- Horizontal distance from (x, z) to segment a-b, and the closest point's x, z
+local function segDistance(x, z, a, b)
+	local dx, dz = b.X - a.X, b.Z - a.Z
+	local len2 = dx * dx + dz * dz
+	local t = len2 > 0 and math.clamp(((x - a.X) * dx + (z - a.Z) * dz) / len2, 0, 1) or 0
+	local cx, cz = a.X + dx * t, a.Z + dz * t
+	return math.sqrt((x - cx) ^ 2 + (z - cz) ^ 2), cx, cz
+end
+
+-- Per track, the nearest horizontal distance from (x, z) to its centre line and the closest point there. Only tracks
+-- within LINE_REACH are found from the grid; `full` scans every segment (any distance). Number -> { d, x, z }.
+local function nearestByTrack(lines, x, z, full)
+	local best = {}
+	local function take(a, b, n)
+		local d, cx, cz = segDistance(x, z, a, b)
+		local cur = best[n]
+		if not cur or d < cur[1] then
+			best[n] = { d, cx, cz }
+		end
+	end
+	if full then
+		for _, line in lines.Lines do
+			for i = 2, #line.Points do
+				take(line.Points[i - 1], line.Points[i], line.Number)
+			end
+		end
+	else
+		for _, seg in lines.Grid[math.floor(x / LINE_CELL) .. "," .. math.floor(z / LINE_CELL)] or {} do
+			take(seg[1], seg[2], seg[3])
+		end
+	end
+	return best
+end
+
+-- The track whose ground (x, z) is: the nearest centre line of all tracks (the scenery's gap-midline ownership,
+-- TerrainShape.Owner). Returns number, its distance, the next nearest other track's distance.
+function TrackFxPlan.Owner(lines, x, z)
+	local by = nearestByTrack(lines, x, z, true)
+	local n, d, other = nil, math.huge, math.huge
+	for k, v in by do
+		if v[1] < d then
+			n, other, d = k, d, v[1]
+		elseif v[1] < other then
+			other = v[1]
+		end
+	end
+	return n, d, other
+end
+
+-- Radius of an emitter's spread: the circle round its box's footprint (any yaw)
+local function spreadRadius(area)
+	return math.sqrt((area.X / 2) ^ 2 + (area.Z / 2) ^ 2)
+end
+
+-- Nearest road edge clearance of a spread at `pos`: its distance to the nearest centre line less its radius (math.huge
+-- when no centre line is within LINE_REACH)
+function TrackFxPlan.SpreadClearance(pos, area, lines)
+	local d = math.huge
+	for _, v in nearestByTrack(lines, pos.X, pos.Z) do
+		d = math.min(d, v[1])
+	end
+	return d - spreadRadius(area)
+end
+
+-- An emitter kept off every road (WORLD2_SPEC "Track effects", the props rule): its spread clears every centre line by
+-- Budget.RoadClear, first by narrowing it (down to Budget.MinSpread of its width), then by moving it straight away from
+-- the nearest centre line. Returns the position and area to use, or nil when it cannot clear (between two roads).
+function TrackFxPlan.ClearSpread(pos, area, lines)
+	local B = Config.Budget
+	local r = spreadRadius(area)
+	local d, cx, cz = math.huge, nil, nil
+	for _, v in nearestByTrack(lines, pos.X, pos.Z) do
+		if v[1] < d then
+			d, cx, cz = v[1], v[2], v[3]
+		end
+	end
+	if d - r >= B.RoadClear then
+		return pos, area
+	end
+	local scale = (d - B.RoadClear - 0.01) / r
+	if scale >= B.MinSpread then
+		return pos, Vector3.new(area.X * scale, area.Y, area.Z * scale)
+	end
+	local small = Vector3.new(area.X * B.MinSpread, area.Y, area.Z * B.MinSpread)
+	local away = Vector3.new(pos.X - cx, 0, pos.Z - cz)
+	if away.Magnitude < 1e-3 then
+		return nil
+	end
+	local moved = Vector3.new(cx, pos.Y, cz) + away.Unit * (B.RoadClear + spreadRadius(small) + 0.01)
+	if TrackFxPlan.SpreadClearance(moved, small, lines) < B.RoadClear then
+		return nil
+	end
+	return moved, small
+end
+
+-- A dragon loop over its own track's ground (WORLD2_SPEC "Track effects"), its shape kept: the whole loop is shrunk about
+-- its foot on its own centre line (its side offset and its radius by the same factor) to the largest size whose every
+-- sampled point lies over its own track's ground by Budget.OwnMargin. Returns the control points (track-local, as
+-- DragonPath) and the factor, or nil when even a loop of Budget.MinLoopRadius does not fit: that dragon is not built.
+local FIT_SAMPLES = 96
+function TrackFxPlan.FitLoop(waypoints, def, origin, n, lines)
+	local B = Config.Budget
+	local function fits(k)
+		local scaled = table.clone(def)
+		scaled.Lateral, scaled.Radius = def.Lateral * k, def.Radius * k
+		local path = TrackFxPlan.DragonPath(waypoints, scaled)
+		local world = {}
+		for i, p in path do
+			world[i] = origin:PointToWorldSpace(p)
+		end
+		for s = 0, FIT_SAMPLES - 1 do
+			local q = TrackFxPlan.Spline(world, s / FIT_SAMPLES)
+			local owner, d, other = TrackFxPlan.Owner(lines, q.X, q.Z)
+			if owner ~= n or d + B.OwnMargin > other then
+				return nil
+			end
+		end
+		return path
+	end
+	local full = fits(1)
+	if full then
+		return full, 1
+	end
+	local lo, hi = B.MinLoopRadius / def.Radius, 1
+	if not fits(lo) then
+		return nil
+	end
+	for _ = 1, 12 do
+		local mid = (lo + hi) / 2
+		if fits(mid) then
+			lo = mid
+		else
+			hi = mid
+		end
+	end
+	return fits(lo), lo
+end
+
 -- Nearest-first pick under the budget. candidates: { { Key, Position, Cost, Cull } }. Returns the kept keys as a set.
 function TrackFxPlan.Pick(candidates, camera, maxCount, maxCost)
 	local list = {}
