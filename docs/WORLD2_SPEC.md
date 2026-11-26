@@ -329,11 +329,18 @@ proposed.**
 | 6 DevilTokyo | Konbini, ShopHouse: roof-vent Steam 4 each | none | CrossWire sway (0.8 deg, 3.8 s), 16; lamps buzz |
 | 7 AntIsland | IslandVolcano: SmokeColumn 1 (when it is placed); Camp: RubbleSmoke 3; ThatchHouse: Chimney 4 | 1 drake, rust | Ship bob (0.8 studs, 3 deg roll, 5 s), 10; Brush sway (3 deg), 24 |
 | 8 MonsterDen | LavaChasm: Steam 3 and Embers 3 (spread over the river); RockPillar: GroundHaze 4 | none (low ceiling) | lamps flicker |
-| 9 GoldenCity | Square: gold Motes 4 (the city is frozen: no smoke, no motion) | none | none |
-| 10 HellGate | Hill: red GroundHaze 4 | none | SkyDoor bob (4 studs, 9 s), 24; ArmA / ArmB sway (1.2 deg), 8 each |
+| 9 GoldenCity | Square: gold Motes 4 | none | none: the city is turned to solid gold (townsfolk, wagons and trees are gold statues caught mid-step, the approved draft's story), so smoke or sway would contradict it |
+| 10 HellGate | Hill: red GroundHaze 4 (waits for the owner's ruling, below) | none | SkyDoor bob (4 studs, 9 s), 24; ArmA / ArmB sway (1.2 deg), 8 each |
 
-Track 10 and the other frozen tracks: the effects change no layout, mesh or placement; they only add local particles
-and local motion on the approved props.
+Every World 2 track's approved scenery stays frozen: the effects change no layout, mesh or placement; they only add
+local particles and local motion on the approved props.
+- **Open, for the owner:** Track 10's red GroundHaze waits for the owner's ruling on whether "tone down the haze across
+  all a bit" (2026-11-26, the track skies) also covers particle haze. Until then it is drawn as listed; if the ruling
+  covers it, the haze rows of every track (1, 3, 4, 8, 10) get a lower opacity.
+- **Review note (likeness):** the DemonCastle drakes (Track 2, a Solo Levelup biome) are black-violet winged drakes,
+  near the look of Kaizel, the source show's black shadow wyvern mount. The mesh is generic (no rider, no armour, no
+  show markings), but on that track the colour and setting bring it close; the owner may prefer another colour (for
+  example the ember red of Track 7) or one drake. Flagged for the owner's review of the previews.
 
 ### Budget (proposed)
 - Per track (only the camera's track runs): at most 14 emitters and 400 steady-state particles (sum of Rate x mean

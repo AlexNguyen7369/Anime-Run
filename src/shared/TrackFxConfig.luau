@@ -546,7 +546,8 @@ TrackFxConfig.Tracks = {
 		},
 		Flicker = { Depth = 0.3, Speed = 7, Dropout = 0 },
 	},
-	-- Track 9, the gold city is frozen: nothing moves or smokes; gold motes hang over the squares.
+	-- Track 9, a city turned to solid gold: its townsfolk, wagons and trees are gold statues caught mid-step (the
+	-- approved draft's story), so no smoke rises and nothing sways; only gold motes drift over the squares.
 	GoldenCity = {
 		Smoke = {
 			{
@@ -559,7 +560,7 @@ TrackFxConfig.Tracks = {
 			},
 		},
 	},
-	-- Track 10, red plain (approved and frozen: the effects add nothing to its layout or meshes): low red haze on the
+	-- Track 10, red plain (the effects add nothing to its layout or meshes): low red haze on the
 	-- hills, the doors in the sky drift, the hanging arms sway.
 	HellGate = {
 		Smoke = {
