@@ -6,10 +6,14 @@ local BossEventConfig = require(script.Parent.BossEventConfig)
 local BossGateConfig = require(script.Parent.BossGateConfig)
 local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local SidekickConfig = require(script.Parent.SidekickConfig)
+local WorldConfig = require(script.Parent.WorldConfig)
 
 local BossGuideConfig = {}
 
-BossGuideConfig.LIVE = false -- his own switch, turned on by the lead; he is in the game only with the gate's on too (IsLive)
+-- His own switch, per world, the gate's table (BOSS_GUIDE_SPEC): on in World 2 (owner 2026-11-26, "Approve 1-4", item 4),
+-- off in World 1. He is in the game only with the gate's on too (IsLive).
+BossGuideConfig.LIVE_IN = { [1] = false, [2] = true }
+BossGuideConfig.LIVE = BossGuideConfig.LIVE_IN[WorldConfig.Id] == true
 BossGuideConfig.ID = "jk_strongest" -- owner 2026-11-25
 BossGuideConfig.HOLD = 0 -- as every plaza prompt
 

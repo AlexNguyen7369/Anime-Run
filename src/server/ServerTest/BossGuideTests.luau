@@ -216,7 +216,15 @@ function Tests.boss_guide()
 	end
 	local isLive = type(Config.IsLive) == "function" and Config.IsLive
 	local inServer = workspace:FindFirstChild("SpawnArea") ~= nil
-	flag("off_until_turned_on", Config.LIVE == false)
+	-- On in World 2 only, the gate's per-world table (owner 2026-11-26, "Approve 1-4", item 4; BOSS_GUIDE_SPEC)
+	local worldId = require(Shared.WorldConfig).Id
+	flag("live_in_world2_only", Config.LIVE == (worldId == 2), Config.LIVE and 1 or 0, worldId == 2 and 1 or 0)
+	local same = type(Config.LIVE_IN) == "table"
+	for _, id in { 1, 2 } do
+		same = same and Config.LIVE_IN[id] == Gate.LIVE_IN[id]
+	end
+	flag("live_in_matches_gate", same)
+	flag("world1_off", type(Config.LIVE_IN) == "table" and Config.LIVE_IN[1] == false)
 	local want = inServer and isLive and isLive() and 1 or 0
 	flag("live_one_guide", count() == want, count(), want)
 	local guideWas, gateWas = Config.LIVE, Gate.LIVE
