@@ -275,6 +275,7 @@
 268. 2026-11-24 — Alex Nguyen — Vendored the orchestrator, nightly-run and 12 other Claude skills, 3 commands and the rules-auditor brief into .claude/ with a Linux systemd runner installer and project hooks and plugins, so a clone on the VM has them (branch feature/alex/vm-skills).
 269. 2026-11-26 — Alex Nguyen — Recorded the Linux VM's move to alex-dev.avlis.dev in handoff.md (ssh alias, host key, specs, Node.js 22, Claude Code, gh, build-essential, tmux and Blender display libraries installed) and committed the 2026-11-24 World 2 audit handoff section.
 270. 2026-11-26 — Alex Nguyen — Merged origin/main (239de24) into feature/alex/vm-skills for PR #30: handoff.md and current_progress.md conflicts resolved by keeping main's text, the VM section added on top and the two branch entries renumbered 268 and 269.
+271. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
 
 ## What's next
 **Bring the owner the full ground-ownership count (props and heroes of all ten World 2 tracks).**
