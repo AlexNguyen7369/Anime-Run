@@ -385,8 +385,9 @@
 382. 2026-11-26 — Alex Nguyen — Corrected World 2 prop facing: Open Cloud's GLB import turns meshes 180 degrees about Y, so World 2 placement turns each mesh back about its centre (BiomeDressing.MeshCFrame); w2_mesh_turn 9/0, harness TRANSFORM 13,007/0, Studio before/after pictures (Konbini, Mansion, ChainTower, GiantCorpse).
 383. 2026-11-26 — Alex Nguyen — Raised World 2 track lighting (owner 2026-11-26 "too dim"): channel and luminance floors up, Track 7 dusk brighter; rule and tests first, Studio before/after on six tracks, rules audit PASS.
 384. 2026-11-26 — Alex Nguyen — Made the safety baseplate's tiles overlap by 0.1 stud (TrackBuilder.PlateTiles) so no point falls on a seam between two tiles, with a harness row that reproduces the Studio tie, and checked offline that Track 7's 0.62 view is on its own road and ground.
+385. 2026-11-27 — Alex Nguyen — Made Track 7's sea draw as water: the terrain writer and the harness share one voxel rule, the sea follows the ship hulls (4 studs deep), 3 ships on the nest left out (45/45 ships over drawn water), and traced ui_boss's camera flake to the Studio MCP's client execute_luau restoring CameraType (runner fix, check unchanged).
 
 ## What's next
-**The lead merges orch/world2/w2-brighter into the World 2 landing and the owner looks at the brighter tracks (Track 10's paler red).**
+**Confirm Track 7's ships float in Studio with Rojo serving orch/world2/w2-sea-edge, then the lead merges it into the World 2 landing.**
 
-**Why this is next:** the owner asked for the brighter tracks before the World 2 landing goes further.
+**Why this is next:** the sea fix is proven offline only, and the landing candidate needs it before the owner's next World 2 look.
