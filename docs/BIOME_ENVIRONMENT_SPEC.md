@@ -73,10 +73,10 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   **proposed**): the approved island's sea is terrain Water. A biome profile's `Coast = { From, Blend, Depth }` turns its own
   zone into a sea basin (bed `Depth` studs under the profile's `Water.Level`; props snap to the bed) from `From` studs off its road outward,
   blended over `Blend` studs; the corridor, clear boxes (checkpoints, pads, plaza) and the grass-strip rule are untouched,
-  since they return before it. AntIsland: From 280, Blend 24, Depth 2, Level -3, so the blockade ships (312 out) float and the
+  since they return before it. AntIsland: From 280, Blend 24, Depth 2, Level -3 (*replaced 2026-11-26 late by the values below*), so the blockade ships (312 out) float and the
   coast cliffs (about 253 out) stand at the shore. Its bed is the profile's `Materials.Bed`: Sand for AntIsland (was Ground;
   proposed, 2026-11-26). Checked by the biome harness's `W2 SEA` rows.
-  - Round the hulls (2026-11-27, Studio finding: ships on sand; lead's fix "make Coast follow the ship band", **proposed**):
+  - Round the hulls (2026-11-26 late, Studio finding: ships on sand; lead's fix "make Coast follow the ship band", **proposed**):
     `Coast.Under = "<Prop>"` keeps the sea to that prop's Placed rows: full within `Reach` studs of each row's box (def Size
     x scale, turned as the row), back to land over `Blend` past it, and only from `From` off the road. Elsewhere the zone
     keeps its land, so props past the coast (Track 7's nest and its ants at a spiral corner) stay dry.

@@ -388,8 +388,9 @@
 385. 2026-11-27 — Alex Nguyen — Made Track 7's sea draw as water: the terrain writer and the harness share one voxel rule, the sea follows the ship hulls (4 studs deep), 3 ships on the nest left out (45/45 ships over drawn water), and traced ui_boss's camera flake to the Studio MCP's client execute_luau restoring CameraType (runner fix, check unchanged).
 386. 2026-11-27 — Alex Nguyen — Confirmed Track 7's sea in Studio (Rojo at 9ddb2ce6): 45/45 ships over written water voxels, world_layout 12/0, picture saved in the audit folder.
 387. 2026-11-27 — Alex Nguyen — Turned the four track-effect meshes back against the Open Cloud import turn (drakes flew tail first); rule and test first, Studio before/after of Track 1's drake.
+388. 2026-11-26 — Alex Nguyen — Track 7 sea drawn as water round the ships (45 of 48 ships kept) and the track-effect meshes turned back for the import, both merged into the landing candidate; Studio: 45/45 ships on water, Track 1 drake flies head first; specs and design log record the owner's words and the freeze exception.
 
 ## What's next
-**The lead merges orch/world2/w2-sea-edge into the World 2 landing, and the runners switch to waiting on the Server datamodel during UI runs.**
+**Merge the landing candidate (orch/world2/w2-landing) into feature/alex/world2-place, merge origin/main into it, run the full Studio pass, then open the World 2 PR into main with a fresh reviewer.**
 
-**Why this is next:** the sea fix is proven offline and in Studio, and ui_boss passes only when runners stop polling the client mid-run.
+**Why this is next:** every landing item is now verified in Studio and audited; the PR to main is the last step of the World 2 goal.

@@ -279,6 +279,7 @@ written before the swap.
   2026-11-26 layout. Generators: `kit.support_top` and
   `kit.support` (tools/blender/world2/kit.py); Studio check `road_surface_clear` (on demand). The exception covered the old
   layout: on the wide layout (square spiral, 2026-11-26) the roads have no slopes, so there are 0 Fill, Pier and Bank rows.
+- Exception (2026-11-26 late, lead under the owner's "fix rendering on all tracks" and "Preapprove everything until tasks are fully finished", design log): Track 7 (frozen) keeps 45 of its 48 approved blockade ships; the 3 whose hulls met the nest mound at a spiral corner on the wide layout are left out. For the owner's review: assets/world2_draft/audit/sea_2026-11-27/after_T7_Ship_on_water.jpg.
 - In game (owner 2026-11-23): props placed from an approved draft keep the draft's clearance (24+ studs from the road
   centre line, overhead 14+, checked by tools/blender/world2/clearance.py). World 1's 8-stud road-edge clearance
   (BiomeDressing.CLEARANCE) does not prune them.
@@ -352,18 +353,18 @@ written before the swap.
   layout, which would double the approved building count). Track 6's HQ: owner 2026-11-26 ("Approve 1-4", design log
   fe810a44) brings it back on its legal spot on its own ground (0.9 axis, world -2714, 2418) with its 2 floodlights
   (46 lamps, 48 lights), lifting the "for now" of 2026-11-25.
-  Track 7's island runs along the road (coast 260 studs out on both sides, the 48 ships at 312, inside its Ground
+  Track 7's island runs along the road (coast 260 studs out on both sides, the 48 ships at 312 (*replaced 2026-11-26 late: 45 ships, see "Track 7's sea"*), inside its Ground
   rect) instead of an oval round the whole track; its nest is turned to face its road so its ants stand on its own
   ground, a change from the approved random turn, for the owner.
-- Track 7's sea (2026-11-26, the owner's "fix rendering on all tracks", lead's decision, **proposed**): terrain Water from
+- Track 7's sea (2026-11-26, the owner's "fix rendering on all tracks", lead's decision, **proposed**): terrain Water (*From 280, Depth 2 and all 48 ships replaced 2026-11-26 late, see the re-fit below*) from
   280 studs off Track 7's road out to its own ground's edge (the coast and the ships' band), level -3, so the 48 blockade
   ships float as in the approved draft instead of standing on grass. World 2 AntIsland only; road corridor, walls,
   checkpoints and the grass-strip rule unchanged (BIOME_ENVIRONMENT_SPEC 2.2 "Coast"). Its water colour is the approved
   draft's sea, 1C4260 (transparency 0.3, reflectance 0.25, waves 0.15 / 8; proposed), set per zone on the client. The sea's
   bed is Sand (the profile's Materials.Bed, was Ground; proposed, 46ffbe4b), the approved draft's beach under the water.
-  Re-fit 2026-11-27 (Studio: the ships stood on sand, the 2-stud sea drew no water voxel; **proposed**): the sea follows the
+  Re-fit 2026-11-26 late (Studio: the ships stood on sand, the 2-stud sea drew no water voxel; **proposed**): the sea follows the
   ships (BIOME_ENVIRONMENT_SPEC 2.2 "Coast", Under Ship, Reach 24, from 240 off the road, Depth 4), and the 3 ships whose
-  hull met the nest's 400-stud mound at the spiral corner are left out of the draft (45 of 48; the rest unchanged), so no
+  hull met the nest's 400-stud mound at the spiral corner are left out of the draft (45 of 48; the rest unchanged; lead's approval under the owner's pre-approval, a recorded exception to the Track 7 freeze below, for the owner's review), so no
   ship stands on the nest and the nest and its ants stay on dry ground.
 - Hero moves (2026-11-24; re-fitted to the wide layout 2026-11-26): a hero landmark with no placement that passes every game rule moves whole (all its pieces, its
   scale and turn) to a spot on its own track's ground that clears its own and every other track's corridor, the spawn area
@@ -452,7 +453,7 @@ proposed.**
   (`tools/blender/world2/track_fx.py`) and numpy textures (`tools/blender/world2/track_fx_textures.py`, the roblox-vfx
   method). The dragon and the eel are generic: no anime's dragon design (no whiskers, antlers, pearl, coiling serpent
   dragon or any show's markings). An effect whose asset has no `Id` is not built.
-- Import turn (owner 2026-11-27 "fix the facing now"; as for the scenery, "Blender first"): the four effect meshes
+- Import turn (owner 2026-11-26 "fix the facing now, pictures after the layout lands" (design log); as for the scenery, "Blender first"): the four effect meshes
   (DrakeBody, DrakeWing, EelHead, EelSegment) came through the same Open Cloud GLB import and are turned 180 degrees about
   Y (measured: GLB against the uploaded mesh, X and Z negated on all four), so the drakes flew tail first. `TrackFx` turns
   each effect mesh back about its own centre (`TrackFxPlan.MeshTurn`) after its pose: the head leads along the flight
