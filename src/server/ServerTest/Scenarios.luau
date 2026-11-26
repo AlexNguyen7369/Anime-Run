@@ -7754,6 +7754,10 @@ local SPAWN_WALK_CLEARANCE = 75 -- RunnerService WALK_CLEARANCE
 local SPAWN_LOCATION_SIZE = Vector3.new(12, 1, 12)
 -- Spawn scatter (WORLD_REDESIGN_SPEC 4, lead's choice under owner 2026-11-26, proposed): spacing, rings { radius, spots }, and the
 -- spawn disc's radius less an avatar's half width (1.5) that every spot keeps inside
+-- The wider floor (design doc 4.43, WORLD_REDESIGN_SPEC 4 "Plaza size", proposed): world edges, growth part count, tree pit (x, z size)
+local SPAWN_FLOOR_REACH = { West = -94, East = 131.6, North = 132, South = -119 }
+local SPAWN_FLOOR_PARTS = 4 -- east, south, and the north side in two either side of the tree pit
+local SPAWN_SAKURA_PIT = Vector2.new(24, 22) -- x 68 to 92, z 110 to 132
 local SPAWN_SCATTER = { Spacing = 3.5, Rings = { { 4, 6 }, { 8, 12 } }, Disc = 9.5 - 1.5 }
 local SPAWN_GEOM_TOL = 0.5 -- studs: footprints match the spec within this
 local SPAWN_TOP_TOL = 0.1 -- studs: tops match the spec within this
@@ -7958,6 +7962,55 @@ function Scenarios.spawn_area()
 		check(checks, "spawn_scatter_on_disc", farthest, SPAWN_SCATTER.Disc, farthest <= SPAWN_SCATTER.Disc + 0.01)
 		check(checks, "spawn_scatter_faces_as_walk_spawn", sameFrame and 1 or 0, 1, sameFrame)
 	end
+	-- The wider floor (design doc 4.43 "Wider floor", WORLD_REDESIGN_SPEC 4 "Plaza size", lead's choice under owner 2026-11-26,
+	-- proposed): the west edge stays, the east, north and south edges move out; nothing approved moves. FloorRects are world
+	-- (x, z) boxes of the growth parts; with the approved Floor they cover the whole reach but the Great Sakura's tree pit.
+	local reach = A.FLOOR_REACH
+	local reachOk = type(reach) == "table"
+		and reach.West == SPAWN_FLOOR_REACH.West
+		and reach.East == SPAWN_FLOOR_REACH.East
+		and reach.North == SPAWN_FLOOR_REACH.North
+		and reach.South == SPAWN_FLOOR_REACH.South
+	check(checks, "spawn_floor_reach", reachOk and 1 or 0, 1, reachOk)
+	local rects = type(A.FloorRects) == "function" and A.FloorRects() or {}
+	check(checks, "spawn_floor_growth_parts", #rects, SPAWN_FLOOR_PARTS, #rects == SPAWN_FLOOR_PARTS)
+	local covered, apart, insideReach = 188 * 220, true, true
+	for i, r in rects do
+		covered += (r.Max.X - r.Min.X) * (r.Max.Y - r.Min.Y)
+		insideReach = insideReach
+			and r.Min.X >= SPAWN_FLOOR_REACH.West - 0.01
+			and r.Max.X <= SPAWN_FLOOR_REACH.East + 0.01
+			and r.Min.Y >= SPAWN_FLOOR_REACH.South - 0.01
+			and r.Max.Y <= SPAWN_FLOOR_REACH.North + 0.01
+		-- none overlaps the approved floor (x +-94, z +-110) or another growth part
+		for j, o in rects do
+			if
+				j ~= i
+				and r.Min.X < o.Max.X - 0.01
+				and o.Min.X < r.Max.X - 0.01
+				and r.Min.Y < o.Max.Y - 0.01
+				and o.Min.Y < r.Max.Y - 0.01
+			then
+				apart = false
+			end
+		end
+		if r.Min.X < 93.99 and r.Max.X > -93.99 and r.Min.Y < 109.99 and r.Max.Y > -109.99 then
+			apart = false
+		end
+	end
+	local reachArea = (SPAWN_FLOOR_REACH.East - SPAWN_FLOOR_REACH.West)
+		* (SPAWN_FLOOR_REACH.North - SPAWN_FLOOR_REACH.South)
+	local wantArea = reachArea - SPAWN_SAKURA_PIT.X * SPAWN_SAKURA_PIT.Y
+	check(checks, "spawn_floor_covers_reach", covered, wantArea, math.abs(covered - wantArea) <= 0.5 and insideReach)
+	check(checks, "spawn_floor_parts_apart", apart and 1 or 0, 1, apart)
+	-- the Great Sakura (approved (80, 118), trunk radius 3.2) stands in open ground: no floor part under its trunk
+	local trunkClear = true
+	for _, r in rects do
+		if 80 + 3.2 > r.Min.X and 80 - 3.2 < r.Max.X and 118 + 3.2 > r.Min.Y and 118 - 3.2 < r.Max.Y then
+			trunkClear = false
+		end
+	end
+	check(checks, "spawn_floor_sakura_pit", trunkClear and 1 or 0, 1, trunkClear and #rects > 0)
 	-- The boss gate (owner 2026-11-26): on in World 2 at spot S4, off in World 1 (WORLD_REDESIGN_SPEC 4.2)
 	local GateSwitch = sharedModule("BossGateConfig")
 	local worldId = sharedModule("WorldConfig") and sharedModule("WorldConfig").Id or 1

@@ -8,7 +8,7 @@
 -- the Market included.
 -- Everything is placed in the local space of Track 1's flattened Start part (SpawnArea.Base; forward -Z, right +X).
 -- Track 1 starts west of the plaza (local x 0) heading -Z and Track 2 runs along local z 90, so the plaza stays east
--- of x 22 and south of z 68, clear of the Track 1 / Track 2 biome gates at (34, -204) and (79, 56), and the start
+-- of x 22 and south of z 68 (the wider floor reaches local z 52, FLOOR_REACH), clear of the Track 1 / Track 2 biome gates at (34, -204) and (79, 56), and the start
 -- gate stands at its north-west corner, next to Track 1's start. The walk spawn stays within 150 studs of that
 -- start and 75 from any road (auto_toggle / spawn_area).
 
@@ -28,6 +28,23 @@ local SpawnArea = {}
 SpawnArea.CENTRE = Vector2.new(118, -80) -- local (x, z) of the plaza centre (the Floor's centre and the Spawn)
 SpawnArea.FLOOR_SIZE = Vector2.new(188, 220) -- studs (x, z) (placeholder; the old Dojo ring is gone, design doc 4.43)
 SpawnArea.PAD_CENTRE = Vector2.new(34, -2) -- local (x, z) of the StartPad, under the torii
+-- The wider floor (design doc 4.43 "Wider floor", WORLD_REDESIGN_SPEC 4 "Plaza size", lead's choice under owner 2026-11-26,
+-- proposed): world (x, z) edges of the walkable floor. The west edge faces Track 1's first straight and stays; the approved
+-- Floor stays FLOOR_SIZE on the spawn and growth parts join it. Nothing approved moves.
+SpawnArea.FLOOR_REACH = { West = -94, East = 131.6, North = 132, South = -119 }
+SpawnArea.SAKURA_PIT = { 68, 92 } -- world x of the open ground round the Great Sakura's trunk (80, 118), past the old north edge
+
+-- World (x, z) boxes { Name, Min, Max } of the floor's growth parts round the approved Floor.
+function SpawnArea.FloorRects()
+	local r, half = SpawnArea.FLOOR_REACH, SpawnArea.FLOOR_SIZE / 2
+	local pit = SpawnArea.SAKURA_PIT
+	return {
+		{ Name = "FloorEast", Min = Vector2.new(half.X, -half.Y), Max = Vector2.new(r.East, half.Y) },
+		{ Name = "FloorSouth", Min = Vector2.new(r.West, r.South), Max = Vector2.new(r.East, -half.Y) },
+		{ Name = "FloorNorthWest", Min = Vector2.new(r.West, half.Y), Max = Vector2.new(pit[1], r.North) },
+		{ Name = "FloorNorthEast", Min = Vector2.new(pit[2], half.Y), Max = Vector2.new(r.East, r.North) },
+	}
+end
 SpawnArea.PAD_SIZE = 16
 SpawnArea.TOP_Y = 1 -- floor top = road top
 SpawnArea.START_COOLDOWN = 2 -- seconds after a stop or a pad start before the pad can start that player again
@@ -939,6 +956,19 @@ function SpawnArea.Build(startCFrame)
 		Enum.Material.Pavement
 	)
 	model.PrimaryPart = floor
+	-- The wider floor's growth parts: the same paving and top, world (x, z) boxes from the spawn (CENTRE)
+	for _, r in SpawnArea.FloorRects() do
+		local mid, size = (r.Min + r.Max) / 2 + c, r.Max - r.Min
+		local part = block(
+			model,
+			r.Name,
+			Vector3.new(size.X, THICKNESS, size.Y),
+			frame * CFrame.new(mid.X, top - THICKNESS / 2, mid.Y),
+			floor.Color,
+			floor.Material
+		)
+		part.TopSurface = floor.TopSurface
+	end
 
 	-- The terrace under the spawn (design doc 4.43): stone steps a runner walks up, the Showpiece mesh laid over them
 	for i, radius in SpawnArea.TERRACE do

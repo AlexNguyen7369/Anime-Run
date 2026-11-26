@@ -80,11 +80,17 @@ Nothing car-shaped stays in the game:
   every avatar. Every spot is on the spawn disc (radius 9.5) and faces the start gate as the centre does. The server places
   every avatar after the engine spawns it, so the `SpawnLocation` part keeps its 12 x 12 look (`SpawnArea.SCATTER`,
   `SpawnArea.ScatterCFrame`, Server/RunnerService; test players without a client stay at the centre).
-- **Plaza size** (same owner words; measured 2026-11-26, nothing moved): Track 1's first straight runs 2 studs from the
-  floor's west edge in both worlds (World 1 Oval, World 2 Elven Plains, and World 2's option C layout, whose Track 1 also
-  starts with a straight from the start gate), so scaled about its centre the plaza keeps clear of every road only up to
-  about 1.02x (floor 191.8 x 224.4). The floor, the ring of radius 84 and the pieces' spots stay as below until the lead or
-  the owner picks a way to grow it (for example moving the plaza centre east of the world origin, a **placeholder**).
+- **Plaza size** (owner 2026-11-26: "Go ahead and expand spawn location radius to your descretion. You approve this change";
+  lead's choice under owner 2026-11-26, every size **proposed**; design doc 4.43 "Wider floor"; the same in both worlds):
+  the walkable floor grows on its three open sides; nothing approved moves (the spawn at (0, 0), the ring of 84 with its
+  six buildings, and every "Unchanged" item below keep their spots). World (x, z) edges: west -94 (unchanged, 2.00 studs
+  from Track 1's first straight), east 131.6, north 132, south -119, so the floor is 225.6 x 251 (was 188 x 220). The
+  approved `Floor` part stays 188 x 220 on the spawn; growth parts of the same paving and top join it
+  (`SpawnArea.FLOOR_REACH`, `SpawnArea.FloorRects`): FloorEast, FloorSouth and two FloorNorth parts either side of a tree
+  pit of open ground at x 68 to 92 round the Great Sakura's trunk, which stands past the old north edge. Measured with the
+  real track chains (2026-11-26), every gap at least today's 2.00: World 1 and World 2 east 56.4, north 30.0, south 2.00;
+  World 2 option C (66856b89) east clear, north 30.0, south 2.00. South stops at -119: at -132 Track 1's wall would be 0.69
+  studs off. Scenery the spawn-area pruning clears grows with the floor.
 - **Start gate**: a large torii-style gate; walking through it starts the run (the
   IVS `StartPad` rules and cooldown, tag `StartPad`).
 - **Two wings** (owner 2026-11-10, design doc 4.24; replaces the service row; **positions replaced 2026-11-11 by the Spawn showpiece below**): same panels, prompts and remotes as now. Positions were Roblox world (x, z) at the floor, from the Blender draft `assets/plaza_draft/Layout_C.png`. The path axis runs from the spawn (0, 0) to the gate pad (-84, 78).
@@ -97,7 +103,7 @@ Nothing car-shaped stays in the game:
   - Terrace (`Showpiece` mesh over `SpawnArea`'s Terrace1-3 cylinder stand-ins, which keep the collision): 3 steps of radius 26 / 20 / 14, each 0.8 tall, top at y 3.4 (`SpawnArea.SPAWN_TOP`); the SpawnLocation and the walk spawn on the top step; a spawn disc of radius 9.5 with a neon rim; a petal moat from radius 10 to 13.4 with 8 bloom jets and 8 small lanterns baked into the mesh. The spawn mosaic is retired. The path's stones start 27 studs out.
   - Saitamo exclusive pedestal on the middle step at (11.6, 12.5), rig feet at y 5.2, facing the spawn (-0.68, -0.73).
   - Ring of radius 84 (`build_plaza.py` `ring_spot`): one slot every 45 degrees from the gate's angle, the slot on the gate axis empty and the one before it the Team altar (owner 2026-11-17, design doc 4.45: (-3.1, 83.9), a stacked octagonal shrine of 3 tiers with cyan edge light, prompt "Team", sizes **proposed**). Shop (-83.9, -3.1), Potions (-57.2, -61.6), Market (3.1, -83.9), Index (61.6, -57.2), Best Roll (83.9, 3.1), Sidekick summon altar (57.2, 61.6). The draft had the ring at 88, where the Shop and Best Roll backs touched the floor edge (x +-94).
-  - Unchanged: gate pad (-84, 78), torii and its 4 lanterns, Sensei (-80.0, 57.9) facing the path, Great Sakura (80, 118), sky loop (radius 62: the ring stands outside it, the terrace inside), the 188 x 220 floor.
+  - Unchanged: gate pad (-84, 78), torii and its 4 lanterns, Sensei (-80.0, 57.9) facing the path, Great Sakura (80, 118), sky loop (radius 62: the ring stands outside it, the terrace inside), the 188 x 220 `Floor` part (the floor grows round it, "Plaza size" below).
   - Floating headers move with their buildings (Client/PlazaWayfinding). Positions are copied in `SpawnArea`, `LeaderboardConfig.BEST_ROLL`, `PlazaWayfinding`, the `spawn_area` scenario and `PlazaAssets` (generated).
 - **Index board** (scroll wall) and the checkpoint NPC as a **sensei**
   (same `CheckpointService` rules).
