@@ -8,8 +8,6 @@ import os
 import subprocess
 import time
 
-import plaza_layout
-
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 BUILD = os.path.join(REPO, "build", "plaza")
@@ -89,7 +87,6 @@ def write_registry(layout, ledger):
 
 def main():
 	layout = json.load(open(os.path.join(BUILD, "layout.json")))
-	plaza_layout.apply_layout(layout)  # approved frame to the world (WORLD_REDESIGN_SPEC 4 "Plaza size")
 	ledger = json.load(open(LEDGER)) if os.path.exists(LEDGER) else {}
 	for key, a in sorted(layout["Assets"].items()):
 		if ledger.get(key, {}).get("Hash") == a["Hash"]:

@@ -5,7 +5,7 @@ return {
 	AltarGreatLotusLocked = {
 		Asset = 117771915492153,
 		Hash = "3df41d93729506b1",
-		Pos = Vector3.new(88.590, 1.000, 73.866),
+		Pos = Vector3.new(57.158, 1.000, 61.555),
 		Face = Vector3.new(-0.6804, 0, -0.7328),
 		Parts = {
 			Body = { Size = Vector3.new(66.200, 56.094, 41.936), Center = Vector3.new(0.000, 28.047, -2.374) },
@@ -19,7 +19,7 @@ return {
 	AltarGreatLotusUnlocked = {
 		Asset = 105330697943341,
 		Hash = "1bc9f43f871b9768",
-		Pos = Vector3.new(88.590, 1.000, 73.866),
+		Pos = Vector3.new(57.158, 1.000, 61.555),
 		Face = Vector3.new(-0.6804, 0, -0.7328),
 		Parts = {
 			Body = { Size = Vector3.new(66.200, 60.349, 43.201), Center = Vector3.new(0.000, 30.175, -3.006) },
@@ -43,7 +43,7 @@ return {
 	AltarTwinRoofLocked = {
 		Asset = 131215160423062,
 		Hash = "b6e916dd15f34eb4",
-		Pos = Vector3.new(88.590, 1.000, 73.866),
+		Pos = Vector3.new(57.158, 1.000, 61.555),
 		Face = Vector3.new(-0.6804, 0, -0.7328),
 		Parts = {
 			Body = { Size = Vector3.new(67.137, 74.500, 39.785), Center = Vector3.new(0.002, 37.250, -2.082) },
@@ -52,7 +52,7 @@ return {
 	AltarTwinRoofUnlocked = {
 		Asset = 102388779723807,
 		Hash = "7ab221d89d68127d",
-		Pos = Vector3.new(88.590, 1.000, 73.866),
+		Pos = Vector3.new(57.158, 1.000, 61.555),
 		Face = Vector3.new(-0.6804, 0, -0.7328),
 		Parts = {
 			Body = { Size = Vector3.new(67.137, 66.445, 39.785), Center = Vector3.new(0.002, 33.222, -2.082) },
@@ -81,7 +81,7 @@ return {
 	BossGateClosed = {
 		Asset = 125398438490160,
 		Hash = "e8db904463781341",
-		Pos = Vector3.new(22.960, 1.000, 112.261),
+		Pos = Vector3.new(2.460, 1.000, 93.301),
 		Face = Vector3.new(-0.0264, 0, -0.9997),
 		Parts = {
 			Body = { Size = Vector3.new(35.300, 34.700, 29.600), Center = Vector3.new(0.000, 17.350, -0.000) },
@@ -91,7 +91,7 @@ return {
 	BossGateOpen = {
 		Asset = 85973554587379,
 		Hash = "5858dd43d22d12d1",
-		Pos = Vector3.new(22.960, 1.000, 112.261),
+		Pos = Vector3.new(2.460, 1.000, 93.301),
 		Face = Vector3.new(-0.0264, 0, -0.9997),
 		Parts = {
 			Body = { Size = Vector3.new(35.200, 36.950, 29.600), Center = Vector3.new(0.000, 18.475, -0.000) },
@@ -125,7 +125,7 @@ return {
 	IndexBoard = {
 		Asset = 115075746119130,
 		Hash = "2bea49dc5fb8adce",
-		Pos = Vector3.new(112.040, 1.000, -41.040),
+		Pos = Vector3.new(76.700, 1.000, -34.200),
 		Face = Vector3.new(-0.9133, 0, 0.4072),
 		Parts = {
 			Body = { Size = Vector3.new(27.515, 13.725, 9.644), Center = Vector3.new(0.000, 6.863, -0.000) },
@@ -139,7 +139,7 @@ return {
 	MarketStall = {
 		Asset = 129542940134303,
 		Hash = "a7050ed71d413496",
-		Pos = Vector3.new(23.731, 1.000, -100.730),
+		Pos = Vector3.new(3.109, 1.000, -83.942),
 		Face = Vector3.new(-0.0370, 0, 0.9993),
 		Parts = {
 			Body = { Size = Vector3.new(32.377, 15.500, 11.931), Center = Vector3.new(0.000, 7.750, -0.066) },
@@ -168,7 +168,7 @@ return {
 	POTIONSStall = {
 		Asset = 123264526991461,
 		Hash = "68b124bae448e7c4",
-		Pos = Vector3.new(-48.590, 1.000, -73.866),
+		Pos = Vector3.new(-57.158, 1.000, -61.555),
 		Face = Vector3.new(0.6804, 0, 0.7328),
 		Parts = {
 			Body = { Size = Vector3.new(25.510, 14.000, 16.281), Center = Vector3.new(0.000, 7.000, -0.000) },
@@ -197,7 +197,7 @@ return {
 	SHOPStall = {
 		Asset = 98958521572101,
 		Hash = "a44856a05d768bbe",
-		Pos = Vector3.new(-80.730, 1.000, -3.731),
+		Pos = Vector3.new(-83.942, 1.000, -3.109),
 		Face = Vector3.new(0.9993, 0, 0.0370),
 		Parts = {
 			Body = { Size = Vector3.new(19.849, 13.038, 12.683), Center = Vector3.new(-0.124, 6.519, -0.000) },
@@ -216,7 +216,7 @@ return {
 	SenseiDais = {
 		Asset = 79274925542688,
 		Hash = "06c57bf37d8be459",
-		Pos = Vector3.new(-76.779, 1.000, 73.491),
+		Pos = Vector3.new(-79.979, 1.000, 57.891),
 		Face = Vector3.new(0.6805, 0, 0.7328),
 		Parts = {
 			Body = { Size = Vector3.new(7.687, 6.150, 7.687), Center = Vector3.new(0.000, 3.075, -0.000) },
@@ -235,7 +235,7 @@ return {
 	SkyLoop = {
 		Asset = 71711181500455,
 		Hash = "e8b4b0b42f351141",
-		Pos = Vector3.new(20.000, 0.000, 0.000),
+		Pos = Vector3.new(0.000, 0.000, -0.000),
 		Face = Vector3.new(0.0000, 0, 1.0000),
 		Posts = { 19, 75, 200, 250, 322 },
 		Parts = {
@@ -260,7 +260,7 @@ return {
 	WorldGateLocked = {
 		Asset = 91447572769944,
 		Hash = "ef4e146f35366463",
-		Pos = Vector3.new(111.200, 1.000, -115.200),
+		Pos = Vector3.new(76.000, 1.000, -96.000),
 		Face = Vector3.new(-0.6207, 0, 0.7840),
 		Parts = {
 			Body = { Size = Vector3.new(35.544, 36.500, 29.600), Center = Vector3.new(0.000, 18.250, -0.000) },
@@ -299,7 +299,7 @@ return {
 	WorldGateOpen = {
 		Asset = 80093484789171,
 		Hash = "76c8f25b433c9163",
-		Pos = Vector3.new(111.200, 1.000, -115.200),
+		Pos = Vector3.new(76.000, 1.000, -96.000),
 		Face = Vector3.new(-0.6207, 0, 0.7840),
 		Parts = {
 			Body = { Size = Vector3.new(35.544, 36.500, 29.600), Center = Vector3.new(0.000, 18.250, -0.000) },

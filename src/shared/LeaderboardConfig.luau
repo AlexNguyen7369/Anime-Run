@@ -1,10 +1,6 @@
 --!nonstrict
 -- Global leaderboards (docs/LEADERBOARD_SPEC.md): the boards, their signs and their OrderedDataStores.
-local PlazaLayout = require(script.Parent.PlazaLayout)
-
 local LeaderboardConfig = {}
--- hub-local = world + (118, -80); approved world (83.942, 3.109), the ring slot opposite the Shop, moved by Shared/PlazaLayout
-local BEST_ROLL_AT = PlazaLayout.Spot(Vector2.new(83.942, 3.109)) + Vector2.new(118, -80)
 
 LeaderboardConfig.TOP_N = 10
 LeaderboardConfig.REFRESH = 60 -- seconds between reads
@@ -29,8 +25,8 @@ LeaderboardConfig.SIGN_Z = { -32, -64, -96, -128 }
 -- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a): local (X, Z) of its centre, on the showpiece ring (design doc
 -- 4.43, WORLD_REDESIGN_SPEC 4).
 LeaderboardConfig.BEST_ROLL = {
-	X = BEST_ROLL_AT.X,
-	Z = BEST_ROLL_AT.Y,
+	X = 201.942, -- hub-local: world (83.9, 3.1), the ring slot opposite the Shop
+	Z = -76.891,
 	RADIUS = 9,
 	HEIGHT = 2,
 	MODEL_SCALE = 3.5, -- the character stands at this scale, so it reads from across the hub

@@ -26,21 +26,11 @@ local Tests = {}
 
 local TOL = 0.15 -- studs: the approved spots are written to 0.1
 local FLOOR = 1 -- SpawnArea.TOP_Y
--- The plaza's transform (WORLD_REDESIGN_SPEC 4 "Plaza size", lead's choice under owner 2026-11-26): an approved world spot (spawn at
--- (0, 0)) stands at LAYOUT_CENTRE + LAYOUT_SCALE x it; what belongs to an anchor moves with it unscaled. Hub-local = world + TO_HUB.
-local LAYOUT_SCALE, LAYOUT_CENTRE, TO_HUB = 1.2, Vector2.new(20, 0), Vector2.new(118, -80)
-local function hubSpot(approved) -- an anchor, hub-local
-	return LAYOUT_CENTRE + approved * LAYOUT_SCALE + TO_HUB
-end
-local function with(approved, anchor) -- moves with `anchor` unscaled, hub-local
-	return approved - anchor + hubSpot(anchor)
-end
-local PAD = Vector2.new(-84, 78) -- the gate pad, approved world
-local HUB = hubSpot(Vector2.zero) -- SpawnArea.CENTRE: the spawn, hub-local
+local HUB = Vector2.new(118, -80) -- SpawnArea.CENTRE: the spawn, hub-local
 
 -- Draft B (draft_gate.py: --stats, AR, SPRING, DAIS): studs over the floor, gate-local
 local GATE = {
-	At = hubSpot(Vector2.new(76, -96)), -- hub-local; approved world (76, -96)
+	At = Vector2.new(194, -176), -- hub-local, unchanged
 	DoorWidth = 17.2, -- 2 * AR
 	DoorMinWidth = 15, -- no gap wide enough to run past the touch part
 	DoorTop = 24.2, -- SPRING + AR
@@ -54,7 +44,7 @@ local GATE = {
 local STALLS = {
 	{
 		Name = "ShopStall",
-		At = hubSpot(Vector2.new(-83.942, -3.109)),
+		At = Vector2.new(34.058, -83.109),
 		Prompt = "OpenShop",
 		Action = "Open Shop",
 		Object = "SHOP",
@@ -62,7 +52,7 @@ local STALLS = {
 	},
 	{
 		Name = "PotionsStall",
-		At = hubSpot(Vector2.new(-57.158, -61.555)),
+		At = Vector2.new(60.842, -141.555),
 		Prompt = "OpenPotions",
 		Action = "Potions",
 		Object = "POTIONS",
@@ -70,7 +60,7 @@ local STALLS = {
 	},
 	{
 		Name = "Marketplace",
-		At = hubSpot(Vector2.new(3.109, -83.942)),
+		At = Vector2.new(121.109, -163.942),
 		Prompt = "OpenMarket",
 		Action = "Browse Market",
 		Object = "Market",
@@ -78,7 +68,7 @@ local STALLS = {
 	},
 	{
 		Name = "IndexBoard",
-		At = hubSpot(Vector2.new(76.7, -34.2)),
+		At = Vector2.new(194.7, -114.2),
 		Prompt = "OpenIndex",
 		Action = "Open Index",
 		Object = "Runner Index",
@@ -86,15 +76,15 @@ local STALLS = {
 	},
 	{
 		Name = "CheckpointNpc",
-		At = with(Vector2.new(-79.979, 57.891), PAD), -- beside the gate: moves with the pad
-		Face = with(Vector2.new(-11.934, 131.170), PAD),
+		At = Vector2.new(38.021, -22.109),
+		Face = Vector2.new(106.066, 51.170),
 		Prompt = "OpenCheckpoints",
 		Action = "Tracks",
 		Object = "Track overview",
 	},
 	{
 		Name = "TeamAltar",
-		At = hubSpot(Vector2.new(-35, 76.4)),
+		At = Vector2.new(83, -3.6),
 		Prompt = "OpenTeam",
 		Action = "Team",
 		Object = "TEAM SETUP",
@@ -102,7 +92,7 @@ local STALLS = {
 	},
 	{
 		Name = "SidekickAltar",
-		At = hubSpot(Vector2.new(57.158, 61.555)),
+		At = Vector2.new(175.158, -18.445),
 		Prompt = "OpenSidekicks",
 		Action = "Summon",
 		Object = "SIDEKICKS",
@@ -114,11 +104,10 @@ local STALLS = {
 -- it (its base is 0.2 from the floor's south edge at the exact spot, a fault to fix while building).
 local LAYOUT = {
 	PosTol = 2.5,
-	BossGate = hubSpot(Vector2.new(2.5, 94.8)),
-	Statue = Vector2.new(-16.5, 4.4) + LAYOUT_CENTRE, -- world: on the terrace's middle step, moves with the spawn unscaled
-	Spawn = LAYOUT_CENTRE, -- world
+	BossGate = Vector2.new(2.5, 94.8) + HUB,
+	Statue = Vector2.new(-16.5, 4.4), -- world
 	Posts = { 19, 75, 200, 250, 322 }, -- degrees in the world (x, z) plane from +x
-	Floor = Vector2.new(94, 110) * LAYOUT_SCALE, -- half of SpawnArea.FLOOR_SIZE
+	Floor = Vector2.new(94, 110), -- half of SpawnArea.FLOOR_SIZE
 	FloorMargin = 1, -- studs (proposed)
 	GuideApart = 4, -- studs between the gate's and the guide's prompt parts, so both can be reached (proposed)
 }
@@ -263,7 +252,7 @@ local function run(scenario, pending)
 		local exclusive = PlazaAssets.Exclusive
 		local moved = (flat(exclusive.Pos) - LAYOUT.Statue).Magnitude
 		flag("layout_statue", moved <= LAYOUT.PosTol, moved, LAYOUT.PosTol)
-		local front = flat(exclusive.Face).Unit:Dot((LAYOUT.Spawn - LAYOUT.Statue).Unit)
+		local front = flat(exclusive.Face).Unit:Dot(-LAYOUT.Statue.Unit)
 		flag("layout_statue_faces_spawn", front >= 0.98, front, 0.98)
 		local posts = Pieces and Pieces.Ready("SkyLoop") and pieceRows.SkyLoop.Posts
 		local same = type(posts) == "table" and #posts == #LAYOUT.Posts
@@ -569,7 +558,7 @@ local function run(scenario, pending)
 		local spot = find(altar, "Attachment", "ModelSpot")
 		flag("altar_model_spot", spot ~= nil)
 		if spot then
-			local off = (flat(spot.WorldCFrame.Position) - STALLS[#STALLS].At).Magnitude
+			local off = (flat(spot.WorldCFrame.Position) - Vector2.new(175.158, -18.445)).Magnitude
 			flag("altar_model_spot_centred", off <= 1, off, 1) -- draft A's spot is 0.8 ahead of the centre
 		end
 

@@ -7769,26 +7769,6 @@ local SPAWN_STAND_MIN, SPAWN_STAND_MAX = 1.5, 5 -- root height above the floor t
 --   SpawnArea.CheckpointNpc, the summon altar SpawnArea.SidekickAltar (no SpawnArea.SidekickStall since 2026-11-10).
 --   Each opens its panel through the ProximityPrompt named in `Prompt` (nil = none needed).
 --   No SpawnArea.RebirthShrine since 2026-11-04 (design doc 4.24 "Clear plaza"): Rebirth opens from its HUD tile.
--- The plaza's transform (WORLD_REDESIGN_SPEC 3 and 4 "Plaza size", lead's choice under owner 2026-11-26): an approved spot (spawn
--- at (0, 0)) stands in the world at SPAWN_LAYOUT_CENTRE + SPAWN_LAYOUT_SCALE x it; what belongs to an anchor moves with it unscaled.
-local SPAWN_LAYOUT_SCALE, SPAWN_LAYOUT_CENTRE = 1.2, Vector2.new(20, 0)
-local function plazaSpot(approved)
-	return SPAWN_LAYOUT_CENTRE + approved * SPAWN_LAYOUT_SCALE
-end
-local function plazaWith(approved, anchor)
-	return approved - anchor + plazaSpot(anchor)
-end
-local SPAWN_APPROVED_PAD = Vector2.new(-84, 78)
--- Placed meshes (key, world spot): an anchor's scales, a piece of the gate's moves with the pad, the centre's with the spawn
-local SPAWN_LAYOUT_MESHES = {
-	{ "Showpiece", plazaWith(Vector2.zero, Vector2.zero) },
-	{ "SkyLoop", plazaWith(Vector2.zero, Vector2.zero) },
-	{ "HeroTorii", plazaSpot(SPAWN_APPROVED_PAD) },
-	{ "MainPath", plazaWith(Vector2.zero, SPAWN_APPROVED_PAD) },
-	{ "SHOPStall", plazaSpot(Vector2.new(-83.942, -3.109)) },
-	{ "GreatSakura", plazaSpot(Vector2.new(80, 118)) },
-	{ "LegendPedestal", plazaWith(Vector2.new(-16.5, 4.4), Vector2.zero) },
-}
 local SPAWN_PLAZA = {
 	STONE = {
 		[Enum.Material.Cobblestone] = true,
@@ -7819,25 +7799,25 @@ local SPAWN_PLAZA = {
 	-- World (x, z) at the floor: judged within POS_TOL studs (footprint centre) and FACE_TOL degrees.
 	POS_TOL = 2.5, -- about 2, plus room for a footprint centre that is not the build origin (a stall roof's overhang)
 	FACE_TOL = 10,
-	SPAWN_XZ = plazaSpot(Vector2.zero),
-	PAD_XZ = plazaSpot(Vector2.new(-84, 78)),
+	SPAWN_XZ = Vector2.new(0, 0),
+	PAD_XZ = Vector2.new(-84, 78),
 	-- the ring of radius 84 round the spawn, one slot every 45 degrees from the gate's angle (build_plaza.py ring_spot);
 	-- the Index, the Team altar and the boss gate stand as the fuller layout (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2);
 	-- every front faces the spawn (Front = false: the Best Roll pedestal is round)
 	RING = {
-		{ Name = "ShopStall", At = plazaSpot(Vector2.new(-83.9, -3.1)), Front = true },
-		{ Name = "PotionsStall", At = plazaSpot(Vector2.new(-57.2, -61.6)), Front = true },
-		{ Name = "Marketplace", At = plazaSpot(Vector2.new(3.1, -83.9)), Front = true },
-		{ Name = "IndexBoard", At = plazaSpot(Vector2.new(76.7, -34.2)), Front = true },
-		{ Name = "BestRoll", At = plazaSpot(Vector2.new(83.9, 3.1)), Front = false },
-		{ Name = "SidekickAltar", At = plazaSpot(Vector2.new(57.2, 61.6)), Front = true },
-		{ Name = "TeamAltar", At = plazaSpot(Vector2.new(-35.0, 76.4)), Front = true }, -- was the slot before the gate axis (4.45)
-		{ Name = "BossGate", At = plazaSpot(Vector2.new(2.5, 94.8)), Front = true }, -- spot S4
+		{ Name = "ShopStall", At = Vector2.new(-83.9, -3.1), Front = true },
+		{ Name = "PotionsStall", At = Vector2.new(-57.2, -61.6), Front = true },
+		{ Name = "Marketplace", At = Vector2.new(3.1, -83.9), Front = true },
+		{ Name = "IndexBoard", At = Vector2.new(76.7, -34.2), Front = true },
+		{ Name = "BestRoll", At = Vector2.new(83.9, 3.1), Front = false },
+		{ Name = "SidekickAltar", At = Vector2.new(57.2, 61.6), Front = true },
+		{ Name = "TeamAltar", At = Vector2.new(-35.0, 76.4), Front = true }, -- was the slot before the gate axis (4.45)
+		{ Name = "BossGate", At = Vector2.new(2.5, 94.8), Front = true }, -- spot S4
 	},
-	EXCLUSIVE_XZ = plazaWith(Vector2.new(-16.5, 4.4), Vector2.zero), -- the Saitamo pedestal, on the terrace's middle step (fuller layout)
+	EXCLUSIVE_XZ = Vector2.new(-16.5, 4.4), -- the Saitamo pedestal, on the terrace's middle step (fuller layout)
 	TERRACE = { 26, 20, 14 }, -- step radii bottom up
 	TERRACE_STEP = 0.8, -- studs tall
-	SENSEI_XZ = plazaWith(Vector2.new(-80.0, 57.9), Vector2.new(-84, 78)), -- beside the gate: moves with the pad
+	SENSEI_XZ = Vector2.new(-80.0, 57.9),
 	SENSEI_FACE_MIN = 0.5, -- "facing the path": front within 60 degrees of the direction to the path axis
 }
 
@@ -7977,30 +7957,6 @@ function Scenarios.spawn_area()
 		check(checks, "spawn_scatter_spaced", worstGap, SPAWN_SCATTER.Spacing, worstGap >= SPAWN_SCATTER.Spacing)
 		check(checks, "spawn_scatter_on_disc", farthest, SPAWN_SCATTER.Disc, farthest <= SPAWN_SCATTER.Disc + 0.01)
 		check(checks, "spawn_scatter_faces_as_walk_spawn", sameFrame and 1 or 0, 1, sameFrame)
-	end
-	-- The plaza's size and centre (WORLD_REDESIGN_SPEC 3 and 4 "Plaza size", lead's choice under owner 2026-11-26): 1.2 x the
-	-- approved 188 x 220 floor on world (20, 0), hub-local = world + (118, -80); the gate pad's spot scales
-	local hubC = plazaSpot(Vector2.zero) + Vector2.new(118, -80)
-	local hubPad = plazaSpot(SPAWN_APPROVED_PAD) + Vector2.new(118, -80)
-	local centreErr = typeof(A.CENTRE) == "Vector2" and (A.CENTRE - hubC).Magnitude or math.huge
-	check(checks, "spawn_plaza_centre_moved", centreErr, 0.01, centreErr <= 0.01)
-	local floorErr = typeof(A.FLOOR_SIZE) == "Vector2"
-			and (A.FLOOR_SIZE - Vector2.new(188, 220) * SPAWN_LAYOUT_SCALE).Magnitude
-		or math.huge
-	check(checks, "spawn_plaza_floor_scaled", floorErr, 0.01, floorErr <= 0.01)
-	local padErr = typeof(A.PAD_CENTRE) == "Vector2" and (A.PAD_CENTRE - hubPad).Magnitude or math.huge
-	check(checks, "spawn_plaza_pad_scaled", padErr, 0.01, padErr <= 0.01)
-	-- the meshes move with their anchors (Shared/PlazaAssets, generated through tools/blender/plaza/plaza_layout.py)
-	local Layout = sharedModule("PlazaAssets")
-	for _, want in SPAWN_LAYOUT_MESHES do
-		local got = nil
-		for _, row in Layout and Layout.Placed or {} do
-			if row.Key == want[1] and got == nil then
-				got = Vector2.new(row.Pos.X, row.Pos.Z)
-			end
-		end
-		local err = got and (got - want[2]).Magnitude or math.huge
-		check(checks, "spawn_plaza_mesh_" .. want[1], err == math.huge and -1 or err, 0.01, err <= 0.01)
 	end
 	-- The boss gate (owner 2026-11-26): on in World 2 at spot S4, off in World 1 (WORLD_REDESIGN_SPEC 4.2)
 	local GateSwitch = sharedModule("BossGateConfig")

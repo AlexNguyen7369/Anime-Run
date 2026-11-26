@@ -111,8 +111,7 @@ function Tests.make(helpers)
 		local centre = Vector3.new(floor.Position.X, 0, floor.Position.Z)
 
 		-- 1. Hub at the world centre; the one SpawnLocation at the plaza centre
-		-- the plaza's centre is world (20, 0) since 2026-11-26 (WORLD_REDESIGN_SPEC 3, lead's choice under owner 2026-11-26)
-		local dOrigin = flatDist(centre, Vector3.new(20, 0, 0))
+		local dOrigin = flatDist(centre, Vector3.zero)
 		m.hub_centre = ("%.1f, %.1f"):format(centre.X, centre.Z)
 		flag("world_hub_at_world_centre", dOrigin <= CENTRE_TOL, dOrigin, CENTRE_TOL)
 		local spawns = {}

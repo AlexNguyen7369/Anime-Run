@@ -12,7 +12,6 @@ import json
 import os
 import sys
 
-import plaza_layout
 import upload_plaza as up
 
 LEDGER = os.path.join(up.HERE, "plaza_pieces.json")
@@ -92,7 +91,7 @@ def main():
 	argv = sys.argv[1:]
 	if "--self-test" in argv:
 		return self_test()
-	pieces = plaza_layout.apply_pieces(load())  # approved frame to the world (WORLD_REDESIGN_SPEC 4 "Plaza size")
+	pieces = load()
 	ledger = json.load(open(LEDGER)) if os.path.exists(LEDGER) else {}
 	todo = wanted(pieces, ledger, [a for a in argv if not a.startswith("--")])
 	text = table(pieces, ledger)  # fails here, not after an upload

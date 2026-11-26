@@ -5,7 +5,6 @@
 -- Server/PlazaDressing (mesh glow colours, lit lanterns) and Server/PlazaAccents (cyber accents, the rift, the floating
 -- islands). Every World 2 value is a placeholder (design doc 4.47: "Colours and light levels are placeholders"), from
 -- variant B of tools/blender/world2/plaza_w2.py (renders in assets/world2_draft/plaza/B).
-local PlazaLayout = require(script.Parent.PlazaLayout)
 local WorldConfig = require(script.Parent.WorldConfig)
 
 local hex = Color3.fromHex
@@ -37,8 +36,7 @@ local WORLD2 = {
 	-- A generic dimensional rift (plaza_w2.py rift(): no show's gate design): a swirling blue-violet disc in a ring of
 	-- floating stones, above and beyond the torii on its view axis, facing the spawn
 	Rift = {
-		-- beyond the gate: moves with it unscaled (Shared/PlazaLayout, WORLD_REDESIGN_SPEC 4 "Plaza size")
-		Centre = PlazaLayout.With(v(AXIS.X * (AXIS_LEN + 95), 88, AXIS.Z * (AXIS_LEN + 95)), Vector2.new(-84, 78)),
+		Centre = v(AXIS.X * (AXIS_LEN + 95), 88, AXIS.Z * (AXIS_LEN + 95)),
 		Face = -AXIS, -- toward the spawn
 		Radius = 32, -- the stone ring
 		Stones = 22,
@@ -47,8 +45,8 @@ local WORLD2 = {
 		Violet = hex("7A2BFF"),
 		Rim = hex("9FE8FF"),
 	},
-	-- Five floating rock islands outside the plaza floor (approved x +-94, z +-110), clear of the ring, the sky loop and the
-	-- return gate: { x, z, top y, radius }, a lantern on every second one. Approved spots, scaled with the plaza below.
+	-- Five floating rock islands outside the plaza floor (x +-94, z +-110), clear of the ring, the sky loop and the
+	-- return gate: { x, z, top y, radius }, a lantern on every second one
 	Islands = {
 		{ -124, -34, 50, 15 },
 		{ 120, 46, 62, 12 },
@@ -83,10 +81,5 @@ local WORLD2 = {
 		Clouds = { Cover = 0.25, Density = 0.3, Color = hex("F0A8A0") },
 	},
 }
-
-for _, island in WORLD2.Islands do
-	local at = PlazaLayout.Spot(Vector2.new(island[1], island[2]))
-	island[1], island[2] = at.X, at.Y
-end
 
 return WorldConfig.Id == 2 and WORLD2 or {}

@@ -63,7 +63,7 @@ Nothing car-shaped stays in the game:
   hub's start gate and spirals outward, one biome sector per track (Track 1 nearest the hub, Track 10 outermost).
 - Every track and the hub keep the IVS no-overlap rules; the safety baseplate covers everything plus a margin.
 - Exact coordinates are chosen by the world build, inside these rules.
-- Owner 2026-10-30 (placeholders, tunable): world centre = origin (0, 0) (lead's choice under owner 2026-11-26, **proposed**: the plaza's centre, the spawn, moves to world (20, 0) with the 1.2x plaza of section 4; the track chains stay at `TrackBuilder.CHAIN_ORIGIN`); baseplate margin 20 studs; the torii
+- Owner 2026-10-30 (placeholders, tunable): world centre = origin (0, 0); baseplate margin 20 studs; the torii
   start gate is at least 16 studs tall; Track 1 starts within one road width (40 studs) of the start gate.
 - Owner 2026-10-30 (placeholder, tunable): "spirals outward" means each track's mean centre-line distance from
   the plaza centre (XZ) is greater than the previous track's; Track 1 has the smallest.
@@ -80,21 +80,11 @@ Nothing car-shaped stays in the game:
   every avatar. Every spot is on the spawn disc (radius 9.5) and faces the start gate as the centre does. The server places
   every avatar after the engine spawns it, so the `SpawnLocation` part keeps its 12 x 12 look (`SpawnArea.SCATTER`,
   `SpawnArea.ScatterCFrame`, Server/RunnerService; test players without a client stay at the centre).
-- **Plaza size** (owner 2026-11-26: "Go ahead and expand spawn location radius to your descretion. You approve this change";
-  lead's choice under owner 2026-11-26, **proposed**; the same in both worlds): the plaza grows 1.2x about its centre and its
-  centre moves to world (20, 0) (section 3). One transform, `Shared/PlazaLayout` and `tools/blender/plaza/plaza_layout.py`:
-  every approved spot below and in 4.1 / 4.2 is written as approved, with the spawn at (0, 0); its place in the world is
-  (20, 0) + 1.2 x the spot. The spot of each anchor scales: the gate pad, each stall and building (Shop, Potions, Market,
-  Index, Best Roll, Summon altar, Team altar, boss gate S4, world gate) and the Great Sakura. What belongs to an anchor
-  moves with it unscaled, so its look and arrangement stay: the torii, its 4 lanterns, the RACE START sign, the main path
-  and the Sensei with the gate pad (the path's stones keep their length, so plain paving now shows between the terrace and
-  the path's spawn end); each stall's sign, cyber accents, header and merchant with its stall; Gojio with the boss gate.
-  The terrace, the spawn, the sky loop (radius 62) and the Saitamo statue on the middle step move with the spawn unscaled,
-  because their meshes and the terrace steps under them keep their size. The floor is 225.6 x 264 (1.2 x 188 x 220) on the
-  new centre. Uploaded meshes are not re-uploaded; they only move. Measured with the real track chains (2026-11-26): the
-  floor is 1.85 studs from Track 1's first straight and the pad 27.2 from Track 1's start (rule: 40) in both worlds and in
-  World 2's option C layout; at 1.3x no centre within 30 studs clears Track 1. The track chains stay at
-  `TrackBuilder.CHAIN_ORIGIN`.
+- **Plaza size** (same owner words; measured 2026-11-26, nothing moved): Track 1's first straight runs 2 studs from the
+  floor's west edge in both worlds (World 1 Oval, World 2 Elven Plains, and World 2's option C layout, whose Track 1 also
+  starts with a straight from the start gate), so scaled about its centre the plaza keeps clear of every road only up to
+  about 1.02x (floor 191.8 x 224.4). The floor, the ring of radius 84 and the pieces' spots stay as below until the lead or
+  the owner picks a way to grow it (for example moving the plaza centre east of the world origin, a **placeholder**).
 - **Start gate**: a large torii-style gate; walking through it starts the run (the
   IVS `StartPad` rules and cooldown, tag `StartPad`).
 - **Two wings** (owner 2026-11-10, design doc 4.24; replaces the service row; **positions replaced 2026-11-11 by the Spawn showpiece below**): same panels, prompts and remotes as now. Positions were Roblox world (x, z) at the floor, from the Blender draft `assets/plaza_draft/Layout_C.png`. The path axis runs from the spawn (0, 0) to the gate pad (-84, 78).
