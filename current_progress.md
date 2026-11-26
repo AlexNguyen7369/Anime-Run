@@ -340,8 +340,9 @@
 330. 2026-11-26 — Alex Nguyen — Made road_surface_clear enforce the 0.05 support clearance under every road (Studio 55/55 on the final rows), re-shot the Track 2, 5 and 7 after pictures on them, and merged the World 2 branch.
 331. 2026-11-26 — Alex Nguyen — Corrected the opening words of WORLD2_SPEC's road-supports exception to name the 6 sunk rows' bases, after the third rules audit.
 332. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batch 10 (HellGate, 10 meshes in their approved colours; harness 12655/0).
+333. 2026-11-26 — Alex Nguyen — Uploaded, compared, reviewed, Studio-checked and applied World 2 re-export batch 7 (AntIsland, 10 meshes; harness 12655/0).
 
 ## What's next
-**Run the remaining World 2 re-export batches in plan order (7, 1, 6, 2, 3, 4, 5, 9, 8): upload, Studio side-by-side check, review, apply, harness, commit each.**
+**Finish the remaining World 2 re-export batches in plan order (1, 6, 2, 3, 4, 5, 9, 8): upload, Studio side-by-side check, review, apply, harness, commit each.**
 
-**Why this is next:** batch 10 passed the colour check the owner asked for before batch 2, so the other tracks' dark props can now be replaced the same way.
+**Why this is next:** the colour check passed on batches 10 and 7, so the other tracks' dark props can be replaced the same way.
