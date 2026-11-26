@@ -200,7 +200,6 @@ local function bySlab(x, z)
 	return false
 end
 
--- Track n's centre line resampled every POLY_STEP studs (XZ), first and last waypoints included
 -- EXACT_FAR: the polyline segments of every track that can be nearest or second nearest to some node of the coarse
 -- cell centred (cx, cz), given each track's nearest point distance `best` from the centre. A node is at most `reach`
 -- from the centre, so its nearest segment of track n starts within best[n] + 2 reach + POLY_STEP of it, and a track
@@ -251,6 +250,7 @@ local function exactFar(near, x, z)
 	return t1, d1, t2, d2
 end
 
+-- Track n's centre line resampled every POLY_STEP studs (XZ), first and last waypoints included
 local function polyline(pts)
 	local out = { Vector2.new(pts[1].X, pts[1].Z) }
 	local carry = 0
