@@ -63,7 +63,7 @@ pads reach 33 studs: check them against the sky-loop post and the boss gate (14.
 ## 5. Tests
 - Red now: see the header. Guards in `plaza_build` stay green: stall positions, facings and prompts, gate place and lock rule.
 - Written: boss gate on and off, closed or open by phase and rebirth, closed prompt does nothing, the look (`plaza_build`); guide text
-  grants nothing (`boss_guide`); the client wiring (`ui_boss_gate`, `ui_boss_guide`, neither run in Studio yet).
+  grants nothing (`boss_guide`); the client wiring (`ui_boss_gate` 14/0, `ui_boss_guide` 36/0, World 2 Studio 2026-11-26 with both switches on).
 - To write with the code, before each step: header heights over roofs; altar locked look per player (UI); Frierin loaded in World 1 once
   the 4.47 list is ruled; `world_layout` unchanged (the plaza still clears the roads); UiTeam's `TeamAltar` check only finds the
   model by name and stays green. Best Roll, the gate pad, the sensei's spot and `boss_arena` are not touched.

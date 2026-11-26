@@ -11,7 +11,9 @@ are the owner's too. Owner 2026-11-25 "yes to all": the lines below and popup la
 - Static model, no collision, name label. World 2 loads his model because the rig wears it (4.47 "Models").
 - Off in the game: the gate stand-in is in the code behind `BossGateConfig.LIVE` and he behind `BossGuideConfig.LIVE`, both false until
   the lead turns them on. He is built only while both are true; with the gate off, nothing of the gate is built either. Since
-  2026-11-26 (owner, WORLD_REDESIGN_SPEC 4.2) the gate's switch is on in World 2 only; his stays off.
+  2026-11-26 (owner, WORLD_REDESIGN_SPEC 4.2) the gate's switch is on in World 2 only. Since 2026-11-26 (owner, design doc change
+  log: "Approve 1-4", item 4) his is too: `BossGuideConfig.LIVE_IN` matches the gate's `LIVE_IN` (World 2 on, World 1 off), so
+  he stands beside the World 2 gate and nowhere else.
 
 ## How it shows
 - One ProximityPrompt `TalkBossGuide`: E, "Talk", "Gojio", `HoldDuration` 0 like every plaza prompt, 8 studs, gamepad X and touch by the
@@ -55,3 +57,5 @@ None open.
 
 ## Tests
 ServerTest `boss_guide` (`BossGuideTests`); UI `ui_boss_guide`, clicks `boss_guide_close` and `boss_guide_next` (`UiBossGuide`).
+2026-11-26, World 2 Studio Play with his switch on (save isolated, not saved): `boss_guide` 101/0 (he is built beside the gate),
+`ui_boss_guide` 36/0, `ui_boss_gate` 14/0; lune `boss_guide` 101/0 in both worlds.
