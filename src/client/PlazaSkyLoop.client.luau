@@ -31,6 +31,13 @@ local RUNNERS = {
 }
 
 local radius, height = Layout.LoopRadius, Layout.LoopHeight + RunnerFactory.HIP_HEIGHT
+-- the loop's centre: the SkyLoop mesh's place (it moves with the spawn, WORLD_REDESIGN_SPEC 4 "Plaza size")
+local loopCentre = Vector3.zero
+for _, row in Layout.Placed do
+	if row.Key == "SkyLoop" then
+		loopCentre = Vector3.new(row.Pos.X, 0, row.Pos.Z)
+	end
+end
 
 local models = ReplicatedStorage:WaitForChild("CharacterModels")
 if models:GetAttribute("Ready") ~= true then
@@ -138,7 +145,7 @@ RunService.Heartbeat:Connect(function(dt)
 	for _, r in active do
 		r.Angle -= SPEED / radius * dt
 		r.Phase = RunnerVisual.Advance(r.Phase, SPEED, dt)
-		local position = Vector3.new(radius * math.cos(r.Angle), height, radius * math.sin(r.Angle))
+		local position = loopCentre + Vector3.new(radius * math.cos(r.Angle), height, radius * math.sin(r.Angle))
 		local tangent = Vector3.new(math.sin(r.Angle), 0, -math.cos(r.Angle))
 		RunnerVisual.Pose(r.Rig, CFrame.lookAt(position, position + tangent), r.Phase, 1)
 	end

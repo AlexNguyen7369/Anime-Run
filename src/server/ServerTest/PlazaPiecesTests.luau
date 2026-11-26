@@ -155,6 +155,26 @@ function Tests.plaza_pieces()
 		)
 		flag("parts_all_complete", Pieces.Complete({ Parts = { Body = 1 } }, { Body = {} }))
 		flag("merchants_on", oldMerchants == true) -- owner 2026-11-25: "merchants can be added already to merge"
+		-- The plaza's transform (WORLD_REDESIGN_SPEC 4 "Plaza size", lead's choice under owner 2026-11-26): each piece stands at
+		-- world (20, 0) + 1.2 x its anchor's approved spot, moved with it unscaled
+		local anchors = {
+			AltarGreatLotusLocked = { Vector2.new(57.158, 61.555) },
+			BossGateClosed = { Vector2.new(2.46, 93.301), Vector2.new(2.5, 94.8) },
+			IndexBoard = { Vector2.new(76.7, -34.2) },
+			MarketStall = { Vector2.new(3.109, -83.942) },
+			POTIONSStall = { Vector2.new(-57.158, -61.555) },
+			SHOPStall = { Vector2.new(-83.942, -3.109) },
+			SenseiDais = { Vector2.new(-79.979, 57.891), Vector2.new(-84, 78) },
+			SkyLoop = { Vector2.zero, Vector2.zero },
+			WorldGateLocked = { Vector2.new(76, -96) },
+		}
+		for key, a in anchors do
+			local anchor = a[2] or a[1]
+			local want = a[1] - anchor + Vector2.new(20, 0) + anchor * 1.2
+			local row = Pieces.Assets[key]
+			local off = row and (Vector2.new(row.Pos.X, row.Pos.Z) - want).Magnitude or -1
+			flag("piece_moved_with_plaza_" .. key, row ~= nil and off <= 0.01, off, 0.01)
+		end
 		-- owner 2026-11-26: "Ensure boss gate added to world 2 location, gate A of approved gate blends": on in World 2 only
 		flag("boss_gate_on_in_world2_only", oldLive == (oldWorld == 2), tostring(oldLive), tostring(oldWorld == 2))
 		local gateRows = Pieces.Assets.BossGateClosed and Pieces.Assets.BossGateOpen

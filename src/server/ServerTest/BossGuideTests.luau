@@ -81,9 +81,11 @@ function Tests.boss_guide()
 	-- One source: the spot and the reach are Shared/BossGateConfig's, and the two prompts never overlap.
 	local Gate = require(Shared.BossGateConfig)
 	local world = Guide.CFrame(start)
+	-- from the spawn: the plaza's centre is world (20, 0) since 2026-11-26 (WORLD_REDESIGN_SPEC 3, lead's choice under owner)
+	local SPAWN_AT = Vector2.new(20, 0)
 	local function flatAt()
 		local at = Guide.CFrame(start).Position
-		return Vector2.new(at.X, at.Z)
+		return Vector2.new(at.X, at.Z) - SPAWN_AT
 	end
 	flag("stands_by_the_gate_config", (flatAt() - Gate.At(Gate.GUIDE_OFFSET)).Magnitude < 0.01)
 	local near = (flatAt() - Gate.POS).Magnitude

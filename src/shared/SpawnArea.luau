@@ -8,9 +8,9 @@
 -- the Market included.
 -- Everything is placed in the local space of Track 1's flattened Start part (SpawnArea.Base; forward -Z, right +X).
 -- Track 1 starts west of the plaza (local x 0) heading -Z and Track 2 runs along local z 90, so the plaza stays east
--- of x 22 and south of z 68, clear of the Track 1 / Track 2 biome gates at (34, -204) and (79, 56), and the start
--- gate stands at its north-west corner, next to Track 1's start. The walk spawn stays within 150 studs of that
--- start and 75 from any road (auto_toggle / spawn_area).
+-- of Track 1's right wall (1.85 studs off since the 1.2x plaza, WORLD_REDESIGN_SPEC 4 "Plaza size") and clear of Track 2,
+-- and the start gate stands at its north-west corner, next to Track 1's start. The walk spawn stays within 150 studs of
+-- that start and 75 from any road (auto_toggle / spawn_area). Every spot is Shared/PlazaLayout's: approved, then moved.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -19,15 +19,23 @@ local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
 local PlazaHeader = require(script.Parent.PlazaHeader)
 local PlazaMerchants = require(script.Parent.PlazaMerchants)
+local PlazaLayout = require(script.Parent.PlazaLayout)
 local PlazaPieces = require(script.Parent.PlazaPieces)
 local UiTheme = require(script.Parent.UiTheme)
 local WorldConfig = require(script.Parent.WorldConfig)
 
 local SpawnArea = {}
 
-SpawnArea.CENTRE = Vector2.new(118, -80) -- local (x, z) of the plaza centre (the Floor's centre and the Spawn)
-SpawnArea.FLOOR_SIZE = Vector2.new(188, 220) -- studs (x, z) (placeholder; the old Dojo ring is gone, design doc 4.43)
-SpawnArea.PAD_CENTRE = Vector2.new(34, -2) -- local (x, z) of the StartPad, under the torii
+-- Hub-local (x, z) = world + TO_HUB: Track 1's start (TrackBuilder.CHAIN_ORIGIN) is world (-118, 80) heading -Z
+SpawnArea.TO_HUB = Vector2.new(118, -80)
+-- Hub-local spot of an anchor's approved world spot (Shared/PlazaLayout: the 1.2x plaza on world (20, 0))
+local function hub(approved)
+	return PlazaLayout.Spot(approved) + SpawnArea.TO_HUB
+end
+SpawnArea.Hub = hub
+SpawnArea.CENTRE = hub(Vector2.zero) -- local (x, z) of the plaza centre (the Floor's centre and the Spawn)
+SpawnArea.FLOOR_SIZE = PlazaLayout.APPROVED_FLOOR * PlazaLayout.SCALE -- studs (x, z) (placeholder, design doc 4.43)
+SpawnArea.PAD_CENTRE = hub(Vector2.new(-84, 78)) -- local (x, z) of the StartPad, under the torii
 SpawnArea.PAD_SIZE = 16
 SpawnArea.TOP_Y = 1 -- floor top = road top
 SpawnArea.START_COOLDOWN = 2 -- seconds after a stop or a pad start before the pad can start that player again
@@ -52,13 +60,13 @@ local PAPER = Color3.fromRGB(246, 236, 210)
 local LANTERN_GLOW = Color3.fromRGB(255, 196, 120)
 
 -- Spawn showpiece (owner 2026-11-11, design doc 4.43, WORLD_REDESIGN_SPEC 4): the six service buildings stand on a ring of
--- radius 84 round the spawn, every front facing it (CENTRE). Hub-local (x, z) = world + (118, -80); mesh origins from
--- tools/blender/plaza/build_plaza.py (ring_spot).
-local SHOP_POS = Vector2.new(34.058, -83.109) -- world (-83.9, -3.1)
-local POTIONS_POS = Vector2.new(60.842, -141.555) -- world (-57.2, -61.6)
-local MARKET_POS = Vector2.new(121.109, -163.942) -- world (3.1, -83.9)
-local INDEX_POS = Vector2.new(194.7, -114.2) -- world (76.7, -34.2), the fuller layout (WORLD_REDESIGN_SPEC 4.2)
-local ALTAR_POS = Vector2.new(175.158, -18.445) -- world (57.2, 61.6)
+-- radius 84 round the spawn as approved (100.8 since the 1.2x plaza), every front facing it (CENTRE). Approved world spots;
+-- mesh origins from tools/blender/plaza/build_plaza.py (ring_spot).
+local SHOP_POS = hub(Vector2.new(-83.942, -3.109))
+local POTIONS_POS = hub(Vector2.new(-57.158, -61.555))
+local MARKET_POS = hub(Vector2.new(3.109, -83.942))
+local INDEX_POS = hub(Vector2.new(76.7, -34.2)) -- the fuller layout (WORLD_REDESIGN_SPEC 4.2)
+local ALTAR_POS = hub(Vector2.new(57.158, 61.555))
 -- The terrace under the spawn (4.43): step radii bottom up, each TERRACE_STEP tall; the SpawnLocation and the walk spawn
 -- sit on the top step. Server/PlazaDressing lays the Showpiece mesh (spawn disc, moat, lanterns) over these plain steps.
 SpawnArea.TERRACE = { 26, 20, 14 }
@@ -79,7 +87,7 @@ local ALTAR_GOLD = Color3.fromRGB(232, 178, 60)
 local ALTAR_NEON = Color3.fromRGB(46, 200, 208)
 -- The Team altar (design doc 4.45, owner 2026-11-17): a small stacked octagonal shrine facing the spawn, at the fuller
 -- layout's spot (WORLD_REDESIGN_SPEC 4.2, owner 2026-11-25). Sizes and colours proposed.
-local TEAM_ALTAR_POS = Vector2.new(83, -3.6) -- world (-35.0, 76.4)
+local TEAM_ALTAR_POS = hub(Vector2.new(-35, 76.4))
 local TEAM_ALTAR_WIDTH = 12 -- one octagonal slab across the flats (owner 2026-11-17: one slab, sakura emblem)
 local TEAM_ALTAR_HEIGHT = 1.6
 local TEAM_ALTAR_PINK = Color3.fromRGB(255, 150, 190)
@@ -674,7 +682,7 @@ end
 -- solid barrier, "COMING SOON") until WorldConfig.GATE_OPEN; admins use /world2. In World 2 it is open and leads back to
 -- World 1: its Portal part (tag WorldGate, attribute TargetWorld) sends a runner on touch (Server/WorldTravel). Sizes and
 -- colours proposed.
-SpawnArea.WORLD_GATE_POS = Vector2.new(194, -176) -- hub-local (x, z)
+SpawnArea.WORLD_GATE_POS = hub(Vector2.new(76, -96)) -- hub-local (x, z)
 SpawnArea.WORLD_GATE_TAG = "WorldGate"
 local RING_RADIUS = 11
 local RING_SEGMENTS = 16

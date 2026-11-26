@@ -3,6 +3,7 @@
 -- the gate's prompt and the guide's (Gojio, Server/BossGuide) stand so one never shows over the other. Positions are world
 -- (x, z); a gate-local offset is (right, toward the spawn) in studs with the gate facing the spawn. Every number but the
 -- approved spot is proposed.
+local PlazaLayout = require(script.Parent.PlazaLayout)
 local SidekickConfig = require(script.Parent.SidekickConfig)
 local WorldConfig = require(script.Parent.WorldConfig)
 
@@ -14,10 +15,13 @@ local BossGateConfig = {}
 BossGateConfig.LIVE_IN = { [1] = false, [2] = true }
 BossGateConfig.LIVE = BossGateConfig.LIVE_IN[WorldConfig.Id] == true
 
-BossGateConfig.SPOT = Vector2.new(2.5, 94.8) -- S4, owner 2026-11-25
--- Studs toward the spawn: at the exact spot the base is 0.2 from the floor's south edge; up to 2.5 is allowed
+BossGateConfig.SPOT = Vector2.new(2.5, 94.8) -- S4, owner 2026-11-25, approved (spawn at (0, 0))
+-- Studs toward the spawn: at the approved spot on the approved floor the base was 0.2 from the floor's south edge; up to 2.5 is
+-- allowed
 BossGateConfig.SHIFT = 1.5
-BossGateConfig.POS = BossGateConfig.SPOT * (1 - BossGateConfig.SHIFT / BossGateConfig.SPOT.Magnitude)
+-- From the spawn: the spot as Shared/PlazaLayout scales it (1.2x plaza, WORLD_REDESIGN_SPEC 4 "Plaza size"), SHIFT toward the spawn
+local scaled = PlazaLayout.Offset(BossGateConfig.SPOT)
+BossGateConfig.POS = scaled * (1 - BossGateConfig.SHIFT / scaled.Magnitude)
 BossGateConfig.SIZE = Vector3.new(35.3, 37, 29.6) -- draft A's box, full size (draft_boss_gate.py report)
 
 BossGateConfig.PROMPT = "OpenBosses"

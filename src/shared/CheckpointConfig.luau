@@ -3,12 +3,17 @@
 -- Track 1 is always open; track n opens once track n-1 is beaten (BestTrack >= n - 1). Tracks won past the
 -- checkpoint in the same run pay a bonus. The server decides; the client only shows it.
 
+local PlazaLayout = require(script.Parent.PlazaLayout)
+
 local CheckpointConfig = {}
 
 CheckpointConfig.PICK_COOLDOWN = 0.5 -- seconds between accepted SetCheckpoint calls per player
--- hub-local (x, z) = world + (118, -80): world (-80.0, 57.9), beside the gate (WORLD_REDESIGN_SPEC 4, proposed)
-CheckpointConfig.NPC_POS = Vector2.new(38.021, -22.109)
-CheckpointConfig.NPC_FACE = Vector2.new(106.066, 51.170) -- hub-local point the NPC faces: across the path, (0.68, 0.73)
+-- hub-local (x, z) = world + (118, -80): approved world (-80.0, 57.9), beside the gate (WORLD_REDESIGN_SPEC 4, proposed); it moves
+-- with the gate pad unscaled (Shared/PlazaLayout)
+local PAD, TO_HUB = Vector2.new(-84, 78), Vector2.new(118, -80)
+CheckpointConfig.NPC_POS = PlazaLayout.With(Vector2.new(-79.979, 57.891), PAD) + TO_HUB
+-- hub-local point the NPC faces: across the path, (0.68, 0.73)
+CheckpointConfig.NPC_FACE = PlazaLayout.With(Vector2.new(-11.934, 131.17), PAD) + TO_HUB
 CheckpointConfig.PROMPT_DISTANCE = 10
 CheckpointConfig.TEXT_DISTANCE = 80
 CheckpointConfig.BONUS_PER_TRACK = 0.1 -- placeholder: +10% pad cash per track past the checkpoint in one run

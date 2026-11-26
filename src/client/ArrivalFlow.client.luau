@@ -21,8 +21,21 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local PETAL = "rbxassetid://130260166899982"
 local SPARKLE = "rbxasset://textures/particles/sparkles_main.dds"
 local GOLD = Color3.fromRGB(255, 205, 90)
-local SPAWN = Vector3.new(0, 1, 0)
-local GATE = Vector3.new(-84, 1, 78)
+-- Approved spots (spawn at (0, 0)), moved by Shared/PlazaLayout (WORLD_REDESIGN_SPEC 4 "Plaza size"): Spot scales an anchor's
+-- spot, Near moves a point with the spawn unscaled, AtGate with the gate pad
+local PlazaLayout = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("PlazaLayout"))
+local APPROVED_GATE = Vector2.new(-84, 78)
+local function Spot(v)
+	return PlazaLayout.Spot(v)
+end
+local function Near(v)
+	return PlazaLayout.With(v, Vector2.zero)
+end
+local function AtGate(v)
+	return PlazaLayout.With(v, APPROVED_GATE)
+end
+local SPAWN = Near(Vector3.new(0, 1, 0))
+local GATE = Spot(Vector3.new(-84, 1, 78))
 local TO_GATE = (GATE - SPAWN).Unit
 
 local RENDER_BIND = "ArrivalReveal"
@@ -43,15 +56,15 @@ local TRAIL_DISC_SIZE = 6
 local TRAIL_COLOR = Color3.fromRGB(255, 60, 150)
 
 -- Round the far side of the plaza, out past the gate, back through the torii opening and down the path to the spawn.
-local FINAL_POS = Vector3.new(8.8, 8.5, -8.2)
-local FINAL_FOCUS = Vector3.new(-84, 15, 78)
+local FINAL_POS = Near(Vector3.new(8.8, 8.5, -8.2))
+local FINAL_FOCUS = AtGate(Vector3.new(-84, 15, 78))
 local KEYS = {
-	{ Pos = Vector3.new(-30, 75, -80), Focus = Vector3.new(0, 5, 0) },
-	{ Pos = Vector3.new(-135, 55, 20), Focus = Vector3.new(-20, 5, 20) },
-	{ Pos = Vector3.new(-140, 28, 130), Focus = Vector3.new(-84, 16, 78) },
-	{ Pos = Vector3.new(-84, 14, 78), Focus = Vector3.new(0, 4, 0) },
-	{ Pos = Vector3.new(-40, 14, 37), Focus = Vector3.new(0, 4, 0) },
-	{ Pos = Vector3.new(10, 14, -4), Focus = Vector3.new(-20, 6, 18) },
+	{ Pos = Spot(Vector3.new(-30, 75, -80)), Focus = Near(Vector3.new(0, 5, 0)) },
+	{ Pos = Spot(Vector3.new(-135, 55, 20)), Focus = Spot(Vector3.new(-20, 5, 20)) },
+	{ Pos = Spot(Vector3.new(-140, 28, 130)), Focus = AtGate(Vector3.new(-84, 16, 78)) },
+	{ Pos = AtGate(Vector3.new(-84, 14, 78)), Focus = Near(Vector3.new(0, 4, 0)) },
+	{ Pos = Spot(Vector3.new(-40, 14, 37)), Focus = Near(Vector3.new(0, 4, 0)) },
+	{ Pos = Near(Vector3.new(10, 14, -4)), Focus = Near(Vector3.new(-20, 6, 18)) },
 	{ Pos = FINAL_POS, Focus = FINAL_FOCUS }, -- behind the player, looking at the gate: what they walk toward
 }
 local KEY_DISTANCE = { 0 } -- studs along the path, so the speed stays even across unequal gaps

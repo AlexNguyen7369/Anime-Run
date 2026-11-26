@@ -26,6 +26,9 @@ LOOP_POSTS = (19, 75, 200, 250, 322)  # the fuller layout (WORLD_REDESIGN_SPEC 4
 LOOP_H = 30  # sky loop height: clears the gate top from the spawn view (proposed)
 
 # Fixed by the game (read from the live place 2026-11-03)
+# Every spot here is the approved frame (spawn at (0, 0), ring 84, floor 188 x 220). The game stands the plaza 1.2x on world (20, 0)
+# (WORLD_REDESIGN_SPEC 4 "Plaza size", lead's choice under owner 2026-11-26): plaza_layout.py moves each exported position when
+# upload_plaza.py / upload_pieces.py write the tables, so the drafts and renders here keep the approved layout.
 SPAWN = (0, 0)
 PAD = (-84, 78)
 GREAT_SAKURA = (80, 118)  # past the floor's edge (owner 2026-11-11: the Dojo ring is gone, design doc 4.43)
