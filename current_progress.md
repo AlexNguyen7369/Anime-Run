@@ -343,8 +343,9 @@
 333. 2026-11-26 — Alex Nguyen — Uploaded, compared, reviewed, Studio-checked and applied World 2 re-export batch 7 (AntIsland, 10 meshes; harness 12655/0).
 334. 2026-11-26 — Alex Nguyen — Uploaded, compared, reviewed, Studio-checked and applied World 2 re-export batch 1 (ElvenPlains, 11 meshes; harness 12655/0).
 335. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batch 6 (DevilTokyo, 9 meshes; harness 12655/0).
+336. 2026-11-26 — Alex Nguyen — Uploaded, compared, reviewed, Studio-checked and applied World 2 re-export batch 2 (DemonCastle, 10 meshes; harness 12655/0).
 
 ## What's next
-**Finish the remaining World 2 re-export batches in plan order (2, 3, 4, 5, 9, 8): upload, Studio side-by-side check, review, apply, harness, commit each.**
+**Finish the remaining World 2 re-export batches in plan order (3, 4, 5, 9, 8): upload, Studio side-by-side check, review, apply, harness, commit each.**
 
-**Why this is next:** batches 10, 7, 1 and 6 passed, so the other tracks' dark props can be replaced the same way.
+**Why this is next:** batches 10, 7, 1, 6 and 2 passed, so the other tracks' dark props can be replaced the same way.
