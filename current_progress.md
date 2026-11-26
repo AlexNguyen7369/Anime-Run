@@ -341,8 +341,9 @@
 331. 2026-11-26 — Alex Nguyen — Corrected the opening words of WORLD2_SPEC's road-supports exception to name the 6 sunk rows' bases, after the third rules audit.
 332. 2026-11-26 — Alex Nguyen — Merged the World 2 road-support fix (Fill, Pier and Bank tops under the road on climbs, 6 sunk at 0.2) and the render audit into the World 2 branch; Studio road_surface_clear 55/0 over 640,798 samples; audit PASS.
 333. 2026-11-26 — Alex Nguyen — Fixed three UI test harness bugs as test writer (Bosses button race in ui_team, ui_boss camera state carried between runs, Daily Rewards popup left open before a scenario) with bounded waits and setup/teardown, no check dropped or limit widened; Studio proof pending.
+334. 2026-11-26 — Alex Nguyen — Proved the three UI harness fixes in World 2 Studio, each green twice in one Play session (ui_boss_gate 14/14, ui_team 71/71, ui_boss 487/487), and marked their BUGS.md lines proven.
 
 ## What's next
-**Prove the three UI harness fixes in a World 2 Studio slot: ui_team, ui_boss and ui_boss_gate each green twice in a row in one Play session, then mark the BUGS.md lines proven.**
+**Second re-fit pass of World 2 Tracks 6 and 7 once agent-3's Drafts for Tracks 1-5 and 8-10 are on the 66856b89 Segments, until the WORLD=2 biome harness is green for all ten tracks.**
 
-**Why this is next:** the fixes are offline only; the World 2 PR's Studio pass needs these scenarios to be trustworthy, and the BUGS.md entries stay 'proof pending' until then.
+**Why this is next:** the remaining harness fails are other tracks' stale placements on T6/T7's roads; the World 2 PR waits on a green harness and on the UI fixes branch being merged by the lead.
