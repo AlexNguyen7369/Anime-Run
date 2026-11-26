@@ -244,3 +244,11 @@ Replaces the corpse described in the table and in rounds 13 to 16:
   (owner 2026-11-25; `cut_fill`, tested by code against the Draft files on disk). On the merged swap
   (2026-11-25) 14 stay; the owner chose "A with 12": Apartments (-471.8, 875.3) and (-613.6, 876.6), each touching a van as
   placed, are left out (`LEFT_OUT`), so 12 stay (9 Apartment, 3 Office), none touching a van.
+- Export and upload (2026-11-25). Owner: "A with 12" (the fill), "drop two vans, keep the rubble under the fill, ok"
+  (question 32) and "Kaiju ready to upload". Exported by `tools/blender/world2/kaiju_export.py` (docs/proposals/kaiju_export):
+  only GiantCorpse's prop data, its 2 placements and the 12 fill rows (9 Apartment, 3 Office) are new in KaijuBaseDraft; the
+  4 Rubble rows standing inside the bodies and the 2 SweeperVans of rows 226 and 228 are dropped, their slots reused, so no
+  other row's Placed_<n> changes. Uploaded 2026-11-25: Model 130671695538312, MeshId rbxassetid://120871855895739, GLB sha256
+  bc8aa034...7c34e8, geometry hash 7f2f942a...1c651137, 19,889 tris, 297.14 x 115.02 x 144.26 studs; reviewed by the rules
+  audit (BIOME_ENVIRONMENT_SPEC 4.1 step 3, "2026-11-25 rules-auditor"). The ledger row and `uploaded_assets.tsv` carry the
+  new ids; the old mesh (97978579295357) is no longer named. Not seen in Studio yet.

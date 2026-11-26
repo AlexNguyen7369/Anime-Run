@@ -501,6 +501,16 @@ def fallback(parts, centre, keep):
 	return out[:keep]
 
 
+def stand_in_colours(module, parts):
+	"""A biome's stand-in parts (the colour STANDIN, the parts fallback's silhouette, whose faces never ship in the mesh) take its
+	approved hide colour, HIDE, in the parts fallback only. Owner-approved Track 5 kaiju, round 5: the mesh and its GLB do not change."""
+	standin, hide = getattr(module, "STANDIN", None), getattr(module, "HIDE", None)
+	if standin is None:
+		return parts
+	assert hide and hide != standin, (module.__name__, standin, hide)
+	return [dict(q, Color=hide) if q["Color"] == standin else q for q in parts]
+
+
 def bake_glb(src, centre, path):
 	"""One mesh, re-centred, with material base colours baked to a vertex colour layer, written as GLB."""
 	import bpy
@@ -890,7 +900,7 @@ def export(number, glb=True, plan=False, zone=None):
 		# model is a mid prop
 		p["hero"] = n in heroes and p["count"] <= HERO_MAX
 		parts = rec["parts"].get(n, [])
-		p["all_parts"] = fallback(parts, centres[n], len(parts))
+		p["all_parts"] = stand_in_colours(module, fallback(parts, centres[n], len(parts)))
 		p["parts"] = p["all_parts"] if p["partsOnly"] else p["all_parts"][: FALLBACK_PARTS["hero" if p["hero"] else "mid"]]
 	for name, n in mirrored.items():
 		warns.append("%s: %d mirrored instances placed unmirrored" % (game[name], n))
