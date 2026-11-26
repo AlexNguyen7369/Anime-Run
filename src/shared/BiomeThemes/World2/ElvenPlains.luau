@@ -25,22 +25,22 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 	Assets = {
 		W2_ElvenPlains_Flowers = draftMesh(
 			746,
-			"rbxassetid://87953167963009", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://108411840596472", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: patch of low clusters of small pale blue five petal flowers in short grass",
 			"mid prop, 286 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Flowers.glb"
 		),
 		W2_ElvenPlains_Pine = draftMesh(
 			68,
-			"rbxassetid://86341868807167", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://123011625620061", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: conifer tree with a short trunk and four stacked narrowing cone tiers",
 			"mid prop, 290 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Pine.glb"
 		),
 		W2_ElvenPlains_Forest = draftMesh(
 			604,
-			"rbxassetid://136016867288780", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://125284792456635", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small pine wood of seven conifers on a low mound with a dirt path",
 			"mid prop, 141 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Forest.glb"
 		),
@@ -53,29 +53,29 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 		),
 		W2_ElvenPlains_Cottage = draftMesh(
 			1156,
-			"rbxassetid://118131223333716", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://93007817546027", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: half timbered village house: stone ground floor, jettied plaster upper storey, steep shingled gable roof, chimney, shutters, a wattle fence and barrels",
 			"mid prop, 15 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Cottage.glb"
 		),
 		W2_ElvenPlains_HeroStatue = draftMesh(
 			3316,
-			"rbxassetid://89881248403715", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://129056411025998", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: patina statue of a generic caped swordsman on a two course stone plinth, both hands on a sword pommel",
 			"hero landmark, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_HeroStatue.glb"
 		),
 		W2_ElvenPlains_Rank = draftMesh(
 			18224,
-			"rbxassetid://124439157061642", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://135862874513035", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: block of thirty empty suits of dark plate armour in four staggered ranks on a raised mound",
 			"mid prop, 14 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Rank.glb"
 		),
 		W2_ElvenPlains_RuinWall = draftMesh(
 			368,
-			"rbxassetid://78041340968634", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://113848423688342", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: ruined brick coursed castle wall with two tall round arched windows, a broken top and a roofless half tower",
 			"mid prop, 46 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_RuinWall.glb"
 		),
@@ -95,29 +95,29 @@ return Kit.fromDraft("ElvenPlains", require(script.Parent.ElvenPlainsDraft), {
 		),
 		W2_ElvenPlains_Mountain_p1 = draftMesh(
 			704,
-			"rbxassetid://116597367160465", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://124053807332587", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
 			"piece 1 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p1.glb"
 		),
 		W2_ElvenPlains_Mountain_p2 = draftMesh(
 			820,
-			"rbxassetid://75778727446645", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://137279050392448", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
 			"piece 2 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p2.glb"
 		),
 		W2_ElvenPlains_Mountain_p3 = draftMesh(
 			772,
-			"rbxassetid://140544040618009", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-24 auditor (wave 2)", -- Reviewed: the rules audit
+			"rbxassetid://77677269525760", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: broad snow mountain massif with green grey foothills, a dark rock band and smooth snow caps",
 			"piece 3 of 3 of Mountain (2048-stud limit, WORLD2_SPEC 2026-11-24; replaces rbxassetid://133497375541070; the 12-mesh cap counts it once); mid prop, 2 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mountain_p3.glb"
 		),
 		W2_ElvenPlains_Mound = draftMesh(
 			844,
-			"rbxassetid://93806218892651", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://76424269815338", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low grassy mound",
 			"mid prop, 12 placed; build/world2/export/ElvenPlains/W2_ElvenPlains_Mound.glb"
 		),
