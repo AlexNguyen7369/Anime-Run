@@ -307,10 +307,11 @@
 286. 2026-11-25 — Alex Nguyen — Fixed the merchant-poses re-audit wording, pinned the approved locked colours in a test and added the script that measures what stands behind the locked Mythic.
 287. 2026-11-25 — Alex Nguyen — Dropped the locked Mythic's contrast check per the owner's answer to question 31 (colours kept, no limit); the plaza now has one waiting check.
 288. 2026-11-25 — Alex Nguyen — Turned the plaza merchants on (owner 2026-11-25), made the Sensei dummy check a guard, kept the off checks with the switch set off for the check, and added standing checks for each merchant.
-289. 2026-11-25 — Alex Nguyen — Merchant floating names sized in studs and placed over the head on an attachment so they never cover a stall's sign (test red first, values proposed).
-290. 2026-11-26 — Alex Nguyen — Sized each merchant's name per stall as large as it can be without covering its sign, over the measured hair top, with readability and hair checks; the Marketplace name cannot be readable under its sign (open question, its readability check left red).
+289. 2026-11-25 — Alex Nguyen — Landed the reworked Track 5 kaiju: its uploaded, reviewed mesh ids recorded with agent-2's Draft (2 placements, 12 fill props, two vans and four rubble heaps dropped), 4 new harness pins, and the export and upload written into the docs (offline checks only).
+290. 2026-11-25 — Alex Nguyen — Merchant floating names sized in studs and placed over the head on an attachment so they never cover a stall's sign (test red first, values proposed).
+291. 2026-11-26 — Alex Nguyen — Sized each merchant's name per stall as large as it can be without covering its sign, over the measured hair top, with readability and hair checks; the Marketplace name cannot be readable under its sign (open question, its readability check left red).
 
 ## What's next
-**Audit the white-mesh and grass fix (with the narrowed slab collar), run `biome_runtime` in Studio and look at the grass by the plaza and a finish slab, then merge it into the World 2 branch.**
+**Look at the two kaiju sites in Studio on orch/world2/kaiju-land (mesh loads, hide colour, nothing standing inside the bodies), rules-audit the branch, then merge it into the World 2 branch.**
 
-**Why this is next:** the World 2 colour re-export cannot start before it (new meshes would show at 64% brightness), and the next PR into main should carry it.
+**Why this is next:** the kaiju is in the Draft only on this branch; the re-export's batch 5 and the World 2 PR both wait for it to be in the World 2 branch.
