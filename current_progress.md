@@ -355,6 +355,7 @@
 352. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batch 3 (RuinedCityZ, 10 meshes; harness 12655/0).
 353. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batches 5 (KaijuBase, 9 meshes, GiantCorpse untouched) and 4 (HauntedTunnel, 8 meshes; harness 12655/0).
 354. 2026-11-26 — Alex Nguyen — Uploaded, reviewed, Studio-checked and applied World 2 re-export batches 9 (GoldenCity, 11) and 8 (MonsterDen, 12): all 100 re-exported meshes now in the game ledgers (harness 12655/0).
+355. 2026-11-26 — Alex Nguyen — Merged the World 2 colour re-export into the World 2 branch: 100 props re-uploaded in their approved colours (GiantCorpse left out), each batch Studio-compared and reviewed; ledger harness W2 CHECKS 12655/0.
 
 ## What's next
 **Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**

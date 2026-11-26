@@ -15,6 +15,7 @@
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Dark props: all 100 World 2 props re-uploaded in their approved colours and applied (GiantCorpse kept as is); per-batch Studio side-by-sides in assets/world2_draft/audit/reexport_2026-11-26/; ledger harness 12655/0. To look at on track: night tracks 4, 6, 8, lighting floors, Track 8's much lighter LairTower/Colonnade/Coliseum.
 - Re-export batch 10 (Hell's Gate, 10 meshes) uploaded by agent-2 after the owner approved uploads in its own session; Studio colour check and batches 1-9 next.
 - Track effects fixes (from the Studio look): effects now build on the whole track under streaming (origin from the chain), no smoke/haze over any road, dragons and the eel stay over their own track's ground (most only fit once layout C lands), the eel reads as one body. track_fx 76/0 World 1, 102/0 World 2 (106/0 on C). Still LIVE off; frame time not measurable in the throttled Studio window.
 - UI test harness: three pre-existing flaky UI tests fixed without loosening (ui_team BossButton wait, ui_boss camera settle, Daily popup closed before a run); Studio ui_boss_gate 14/14, ui_team 71/71, ui_boss 487/487, each twice in one session; audit PASS. HUD slot-1 placeholder found to be by design (question below).
