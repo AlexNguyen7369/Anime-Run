@@ -1,7 +1,7 @@
 --!nonstrict
 -- The merchants' cast (WORLD_REDESIGN_SPEC 4.2, owner 2026-11-25), the same in both worlds: service model (Shared/SpawnArea)
 -- -> character and where its feet stand, in the service's frame (X right, Y up, -Z the front). Nobody stands there while
--- PlazaPieces.MERCHANTS_LIVE is off. Scale 1 is the built rig (a runner in game is RunnerFactory.SCALE of it); Kakashe is the smaller one, under the
+-- PlazaPieces.MERCHANTS_LIVE is off (it is on: owner 2026-11-25). Scale 1 is the built rig (a runner in game is RunnerFactory.SCALE of it); Kakashe is the smaller one, under the
 -- Sensei header as it is (owner 2026-11-25; 0.75 is the draft's). Feet are draft set B's (tools/blender/plaza/draft_merchants.py CAST), proposed.
 -- Pose: limb -> degrees { x, y, z } about its top (the head about its bottom), as the draft turns it (draft_merchants.py turn(): its own axes, x
 -- right to the keeper's left, y to the back, z up); arms that rest on a counter hold the angle the draft solved. Yaw: degrees. Static poses on the

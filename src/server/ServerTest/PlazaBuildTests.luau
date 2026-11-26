@@ -144,12 +144,11 @@ local function bounds(asset)
 	return hi.X >= lo.X and hi - lo or nil, lo.Y
 end
 
--- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 1 check. The gate's and the
+-- What waits (owner 2026-11-25: guards always on in plaza_build, these on demand in plaza_build_pending). 0 checks (the merchants landed
+-- 2026-11-25; TestConfig's OnDemand entry went with them). The gate's and the
 -- altar's geometry is judged as if the pieces were uploaded (Shared/PlazaPieces; plaza_pieces has the state before). When a
 -- row's work lands, take the row out here: the check is then a guard of plaza_build. Keep the count in TestConfig's comment.
-local PENDING = {
-	merchant_sensei_replaces_the_dummy = "merchants", -- red only on a server: offline has no rig to build
-}
+local PENDING = {}
 
 local function run(scenario, pending)
 	local r, record = H.report(scenario)
@@ -561,7 +560,14 @@ local function run(scenario, pending)
 			flag("altar_model_spot_centred", off <= 1, off, 1) -- draft A's spot is 0.8 ahead of the centre
 		end
 
-		-- Merchants
+		-- Merchants (on: owner 2026-11-25), stood as PlazaDressing does once the stalls are in
+		local Rigs = H.module(script.Parent.Parent, "PlazaMerchantRigs")
+		flag("merchants_switch_on", Pieces.MERCHANTS_LIVE == true)
+		if Rigs then
+			uploaded(function()
+				Rigs.Stand(area)
+			end)
+		end
 		local source = Shared:FindFirstChild("PlazaMerchants")
 		local cast = source and require(source) or nil
 		flag("merchant_cast_module", cast ~= nil, cast and 1 or "no Shared/PlazaMerchants", 1)
@@ -602,13 +608,16 @@ local function run(scenario, pending)
 			flag("merchant_" .. stall .. "_static", at ~= nil and moving == 0, at and moving or "no MerchantSpot", 0)
 		end
 		local npc = area:FindFirstChild("CheckpointNpc")
-		-- Waits for the merchants (PLAZA_BUILD_PLAN 6, step 4): the client view that stands them, then SpawnArea's dummy goes.
-		-- Passes offline without meaning it: only a server can build the dummy's rig.
+		-- the Sensei merchant replaced SpawnArea's dummy (a guard since the switch is on, owner 2026-11-25). Offline SpawnArea
+		-- builds no dummy rig, so offline this only sees the merchant standing; on a server it also sees the dummy gone.
 		local dummy = npc ~= nil and npc:FindFirstChild("Rig") ~= nil
 		flag(
 			"merchant_sensei_replaces_the_dummy",
-			npc ~= nil and not dummy and find(npc, "Attachment", "MerchantSpot") ~= nil,
-			dummy and "the dummy still stands: waits for the merchants" or 1,
+			npc ~= nil
+				and not dummy
+				and find(npc, "Attachment", "MerchantSpot") ~= nil
+				and npc:FindFirstChild("Merchant") ~= nil,
+			dummy and "the dummy still stands" or 1,
 			"no dummy"
 		)
 	end, debug.traceback)

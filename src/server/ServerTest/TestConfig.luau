@@ -29,7 +29,7 @@ return {
 		"auto_toggle",
 		"spawn_area",
 		"plaza_pieces", -- WORLD_REDESIGN_SPEC 4.2: the pieces' code, off before the upload and on after
-		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: the guards; what waits is plaza_build_pending (OnDemand)
+		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: the guards (PlazaBuildTests.PENDING is empty since the merchants, 2026-11-25)
 		"gacha",
 		"catalog",
 		"index",
@@ -106,9 +106,6 @@ return {
 	--   ReplicatedStorage:SetAttribute("ServerTestOnly", "speed_probe"); ReplicatedStorage:SetAttribute("ServerTestRun", true)
 	-- ServerTestOnly (comma-separated names) runs only those scenarios; clear it (nil) for the full suite again.
 	OnDemand = {
-		-- 1 check of WORLD_REDESIGN_SPEC 4.2 PENDING, red by design (PlazaBuildTests.PENDING; owner 2026-11-25): it waits for the
-		-- merchants (passes offline). As work lands, rows leave PENDING and this count; at 0 the entry goes.
-		"plaza_build_pending",
 		"speed_probe", -- docs/WORLDS_SPEC.md section 1: highest green cruise speed for RaceConfig.MAX_CRUISE
 		-- docs/BIOME_ENVIRONMENT_SPEC.md section 10 (dev tool, no full-harness gate; each waits for TerrainReady):
 		--   ServerTestOnly = "terrain_built,zone_switch,server_lighting_unchanged,assets_ip"

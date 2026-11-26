@@ -253,12 +253,26 @@ written before the swap.
 - Owner 2026-11-25, on the Track 5 fill over the merged swap: "A with 12". Draft A (round 5 fill props the swap freed come
   back) without Apartments (-471.8, 875.3) and (-613.6, 876.6): 12 props. The option was described as needing no van to move;
   no van is moved. **Open**: the vans' own spots, and the kaiju's overlaps with other tracks' props (shown, not ruled on).
+- Owner 2026-11-25, question 32 (the kaiju's game export): "drop two vans, keep the rubble under the fill, ok". The two game
+  SweeperVans that touch the kaiju at site 1 (Draft rows 226 and 228) are dropped; the frozen Rubble under the 12 fill props
+  stays; the 4 Rubble rows standing inside the bodies go (read as covered by "ok"). The other five vans stay where they are.
+- Owner 2026-11-25: "Kaiju ready to upload". The reworked GiantCorpse (round 5 mesh) is uploaded (Model 130671695538312, MeshId
+  rbxassetid://120871855895739, geometry hash 7f2f942a...1c651137, 19,889 tris) and reviewed by the rules audit (BIOME_ENVIRONMENT_SPEC
+  4.1 step 3). Its ledger row, `uploaded_assets.tsv` and KaijuBaseDraft (size, parts fallback in the hide colour, the 2 placements, the
+  12 fill rows of "A with 12", the drops of question 32) change together in one commit, so the old mesh never stands in the new box.
+  With its placements it leaves the "No spot at the approved scale" list below. Not covered by these words: the kaiju's overlaps with
+  other tracks' props (still **Open**), the vans' own spots, Studio checks, place saves and publishing.
 - Spawn pieces (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2): gate, boss gate, stalls and merchants are World 1's; the Summon altar is draft A here and draft B in World 1.
 - Ground ownership (owner 2026-11-25, the overlap question): where two tracks' scenery meets, a spot belongs to the track
   whose road (nearest centre line) is nearest; other tracks' props there are moved or removed. Before any frozen track
   changes, a full count (props and heroes per track) goes to the owner; the freezes and the re-export hold stand until
   then. By base centre (owner 2026-11-25, "yes to all"). The Devil Hunter HQ has no
   legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
+- Track 6 lit landmark (owner 2026-11-25, "lit landmarj approved"; renders went to the owner, who approved the merge (choice E, 2026-11-26)): at the bend
+  (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
+  centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,
+  and one more Office tower (scale 0.55, the approved top) with its lit face to the finish axis. The spots are
+  **proposed** (`tools/blender/world2/cross_track.py` LANDMARK); the HQ stays out.
 - 2026-11-24, coordinator's choice pending the owner's confirmation: World 2 keeps World 1's track spacing (the chain
   has no spacing parameter: each track starts on the previous finish, design doc table "Numbered, point-to-point
   track chain"). A hero landmark with no placement that passes every game rule moves whole (all its pieces, its
@@ -268,7 +282,7 @@ written before the swap.
   (-362, -1230), 2410; Track 7 Nest (-486, 1809) to (-486, 2059), 250; Track 8 Coliseum (2707, 132) to (3167, 132),
   460; Track 8 LairTower (-680, 1795) to (3294, -2179), 5620; Track 10 DarkGate (3485, 3478) to (3402, 3512), 90.
   No spot at the approved scale (not built): Track 1 Town and RuinedCastle, Track 2 ChainTower, Track 3 HeroHQ and Crater, Track 4
-  School and OldWoodHouse, Track 5 GiantCorpse and DefenseHQ, Track 6 HQ, Track 7 IslandVolcano.
+  School and OldWoodHouse, Track 5 DefenseHQ, Track 6 HQ, Track 7 IslandVolcano.
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's
