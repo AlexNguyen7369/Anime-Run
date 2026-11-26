@@ -1147,7 +1147,7 @@ def export(number, glb=True, plan=False, zone=None):
 				big_axis = max(props[pn]["size"][i] * sc[i] for i in range(3))
 				assert big_axis < 2048, (pn, big_axis)
 		kept = out
-	names = [n for n in names if n not in pieces] + [pn for made in pieces.values() for pn, _ in made]
+	names = [n for n in names if n not in pieces and n in props] + [pn for made in pieces.values() for pn, _ in made]
 	# biggest first, so the game's part budget trims the small props (BiomeDressing builds the heroes before them)
 	kept.sort(key=lambda p: -(props[p[0]]["size"][0] * props[p[0]]["size"][2] * p[3][0] * p[3][2]))
 	lights = sorted(((to_local(origin, yaw, p), col, e) for p, col, e in rec["lights"]), key=lambda x: -x[2])
