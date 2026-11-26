@@ -353,10 +353,11 @@ proposed.**
   scenery (TerrainShape.Owner, the gap midline). The loop keeps its shape: it is shrunk as a whole about its foot on its
   own centre line (side offset and radius by one factor) to the largest size that fits (`TrackFxPlan.FitLoop`); a dragon
   whose loop would need a radius under `MIN_LOOP_RADIUS` (**proposed** 120 studs: tighter turns fold the eel) is not
-  built. The 150-stud clearance from its own centre line still holds. Measured 2026-11-26: on today's routes no loop
-  fits (the tracks lie about 150 studs apart); on the C layout (orch/world2/w2-wide-layout) Track 2's two drakes fit at
-  70% and 54%, Track 4's eel at 62%, Track 7's drake at 50%, and Track 1's drake at full size once it flies on the
-  right of its road (`Side` 1, was -1, **proposed**: on the left it never fits on that layout).
+  built. The 150-stud clearance from its own centre line still holds. Measured 2026-11-26: on today's routes only
+  Track 1's drake fits (93%); the others are not built (the tracks lie about 150 studs apart). On the C layout
+  (orch/world2/w2-wide-layout) every loop fits: Track 1's drake at full size once it flies on the right of its road
+  (`Side` 1, was -1, **proposed**: on the left it never fits on that layout), Track 2's two drakes at 70% and 54%,
+  Track 4's eel at 62% and Track 7's drake at 50%.
 - The eel reads as one body: each segment overlaps the next along the path (segment length at least `EEL_OVERLAP`
   **proposed** 1.6 times the spacing between their centres, with the tail's side-to-side wave counted), so no gap shows.
   Its segments are longer meshes of the same model (scale only: same 14 segments and tris): first segment 40 long (was 27.5,
@@ -394,9 +395,11 @@ local particles and local motion on the approved props.
 - Per track (only the camera's track runs): at most 14 emitters and 400 steady-state particles (sum of Rate x mean
   Lifetime); Rate at most 10 per emitter; cull at 600 studs by default, per preset 350 to 1200, never past 1400.
   The configured worst cases (every row at its Max): 4 to 14 emitters, 38 to 253 particles (DemonCastle highest).
-- Dragons: at most 2 per track, hidden past 3000 studs; each loop keeps 150+ studs (3D) from its own track's centre line
-  (measured on the current routes: 270 to 380). Loops: 200 to 260 radius, 300 to 360 up, 380 to 440 to the side,
-  64 to 85 s a lap; drakes flap every 1.8 s (32 deg) and glide a third of the time.
+- Dragons: at most 2 per track, hidden past 3000 studs; each loop keeps 150+ studs (3D) from its own track's centre line.
+  Drafted loops: 200 to 260 radius, 300 to 360 up, 360 to 440 to the side, 64 to 85 s a lap; drakes flap every 1.8 s
+  (32 deg) and glide a third of the time. As fitted to their own ground (FitLoop) on the C layout, 2026-11-26: radius
+  124 to 220, 216 to 420 to the side, clearance 247 to 361; on today's routes Track 1's drake only (radius 205,
+  clearance 280).
 - Motion: at most 40 moving props per track within 350 studs, 24 flickering lamps within 300; updated 30 times a second.
   Sway at most 5 deg, bob at most 5 studs.
 
@@ -430,9 +433,12 @@ dragon_eel, motion_pine_sway, motion_ship_bob, motion_skydoor_bob, motion_flicke
 presets (the in-game look needs Studio).
 
 ### Tests
-- ServerTest `track_fx` (lune, both worlds, 68 checks): LIVE off by default, no real name in any ledger key or prompt, eel segments evenly spaced round the loop, World 1 never on, rows only for World 2 biomes, presets
+- ServerTest `track_fx` (lune, both worlds; 2026-11-26: 76 checks in World 1, 102 in World 2 on today's routes, 106 on
+  the C layout): LIVE off by default, no real name in any ledger key or prompt, eel segments evenly spaced round the loop, World 1 never on, rows only for World 2 biomes, presets
   and every track's worst case inside the budget, anchors name props of the biome's approved draft, dragons capped and
-  clear of the road, the nearest-first pick never past a cap, flicker in 0..1.
+  clear of the road, the nearest-first pick never past a cap, flicker in 0..1; since 2026-11-26 also every emitter's
+  spread 24+ off every road, every dragon loop over its own ground, the eel's segments overlapping, and the chain
+  origins equal the live Starts in Studio (offline: biome_harness WORLD=2 "W2 FX ORIGIN CHECKS").
 - Not run: Studio (needs LIVE on in a test session; the uploads are done), frame time on a phone.
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)

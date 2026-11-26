@@ -264,8 +264,8 @@ function Tests.track_fx()
 			end
 			-- 3. Every dragon loop, sampled, lies over its own track's ground and keeps 150 from its own centre line
 			for key, track in Config.Tracks do
-				local spec = byBiome[key]
-				for i, def in track.Dragons or {} do
+				local spec = byBiome[key] -- nil in World 1 (it has no World 2 biome): nothing to check there
+				for i, def in spec and track.Dragons or {} do
 					local waypoints = TrackBuilder.Layout(spec).Waypoints
 					local path, fit = Plan.FitLoop(waypoints, def, origins[spec.Number], spec.Number, lines)
 					r.metrics[("%s_dragon%d_fit"):format(key, i)] = fit and math.floor(fit * 100) / 100 or "not built"
@@ -296,6 +296,7 @@ function Tests.track_fx()
 					end
 					if #path > 0 then
 						local c = Plan.Clearance(path, world)
+						print(("[FX] %s dragon %d: clearance %d"):format(key, i, math.floor(c)))
 						flag(
 							("%s_dragon%d_own_clearance"):format(key, i),
 							c >= B.MinDragonClearance,

@@ -308,10 +308,6 @@ function TrackFxPlan.ClearSpread(pos, area, lines)
 	return moved, small
 end
 
--- A dragon loop over its own track's ground (WORLD2_SPEC "Track effects"): the loop is resampled into OWN_POINTS control
--- points (so the spline between them cannot stray far), and every one not owned by track `n` by Budget.OwnMargin is
--- pulled straight toward `toward` (height kept) until it is: the loop's anchor on its own centre line (DragonFoot), mid
--- track, never the start or finish its neighbours share.
 -- A dragon loop over its own track's ground (WORLD2_SPEC "Track effects"), its shape kept: the whole loop is shrunk about
 -- its foot on its own centre line (its side offset and its radius by the same factor) to the largest size whose every
 -- sampled point lies over its own track's ground by Budget.OwnMargin. Returns the control points (track-local, as
