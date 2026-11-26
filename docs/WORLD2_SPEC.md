@@ -238,8 +238,10 @@ written before the swap.
   its own track's band: its base centre on its own ground (as every prop) and its whole box within the ground its road owns,
   so nothing of one track hangs over another's land. Its top stays under SKY_TOP (**proposed** 300 studs over the ground)
   unless it is at least SKY_FAR (**proposed** 1,500 studs) from every other track's road, so its silhouette is not seen above
-  another track's horizon through that track's fog. To be checked in context renders with the game's fog (an approximation
-  in Blender; the Studio check decides).
+  another track's horizon through that track's fog. Checked by geometry on the Drafts (`tools/blender/world2/sky_check.py`;
+  a Blender fog render was tried and does not model the game's Atmosphere): 1,163 rows over SKY_TOP within SKY_FAR of
+  another road, 994 of them Track 10's sky doors, so the numbers need the owner before they are enforced; the Studio
+  check decides what the game's fog hides.
 - Track 6 lit landmark (owner 2026-11-25, "lit landmarj approved"; renders went to the owner, who approved the merge (choice E, 2026-11-26)): at the bend
   (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
   centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,
