@@ -1684,18 +1684,9 @@ return {
 		{ "People", 1155.235, -2.019, -4207.052, -0.73, 1 },
 	},
 	Heroes = { "Palace", "Church", "People", "Wagon", "RowA" },
-	Lights = {},
-	Ground = { Color = hex("E2B24E"), Y = -1 },
-	Sky = {
-		Stops = {
-			{ 0, hex("FFE27A") },
-			{ 0.05, hex("FFD060") },
-			{ 0.14, hex("FFB458") },
-			{ 0.3, hex("F0A070") },
-			{ 0.6, hex("C88A80") },
-			{ 1, hex("8A6A88") },
-		},
-		Strength = 1.3,
+	Lights = {
 	},
+	Ground = { Color = hex("E2B24E"), Y = -1 },
+	Sky = { Stops = { { 0, hex("FFE27A") }, { 0.05, hex("FFD060") }, { 0.14, hex("FFB458") }, { 0.3, hex("F0A070") }, { 0.6, hex("C88A80") }, { 1, hex("8A6A88") } }, Strength = 1.3 },
 	Sun = { Energy = 2.3, Color = hex("FFD890"), Elevation = 16, Azimuth = 250 },
 }
