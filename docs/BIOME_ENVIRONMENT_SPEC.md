@@ -74,7 +74,8 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   zone into a sea basin (bed `Depth` studs under the profile's `Water.Level`; props snap to the bed) from `From` studs off its road outward,
   blended over `Blend` studs; the corridor, clear boxes (checkpoints, pads, plaza) and the grass-strip rule are untouched,
   since they return before it. AntIsland: From 280, Blend 24, Depth 2, Level -3, so the blockade ships (312 out) float and the
-  coast cliffs (about 253 out) stand at the shore. Checked by the biome harness's `W2 SEA` rows.
+  coast cliffs (about 253 out) stand at the shore. Its bed is the profile's `Materials.Bed`: Sand for AntIsland (was Ground;
+  proposed, 2026-11-26). Checked by the biome harness's `W2 SEA` rows.
 
 - Elevated road (slopes up to Rise 54): biomes with `Embank = true` raise the corridor to road Y - 3 (placeholder)
   under the slope, so hills sit under hills. Supports end up buried, which is fine. City biomes (5, 6) keep
@@ -396,6 +397,13 @@ Assets = {
   (6 ids) with `Id` set to the first face so every row has an `Id` for the checks.
 - Only ids in a ledger are used. The biome final summary lists every ledger row (key, kind, id) for all 10 biomes
   (owner 2026-10-30).
+- Kept ids on a hash mismatch (**proposed**, lead's choice 2026-11-26, World 2 wide-layout re-fit): when the exporter
+  (tools/blender/world2/export_props.py) clears an Id only because a GLB's geometry hash differs from its upload record,
+  and the mesh is unchanged in look and size (the same mesh old and new code export), the uploaded Id is kept and the row
+  listed for a Studio check. On the re-fit (after the colour re-export): AntIsland IslandVolcano, DevilTokyo HQ,
+  ElvenPlains RuinedCastle and Town, HauntedTunnel Mountain, OldWoodHouse and School, HellGate Abyss, KaijuBase
+  DefenseHQ, RuinedCityZ Crater and HeroHQ (11). All 11 load as meshes in Studio (2026-11-26, agent-2, f3f718e8); the
+  look of Crater, OldWoodHouse and School is still to be checked one by one.
 
 ### 4.5 Budget per biome (proposed)
 | Item | Target |

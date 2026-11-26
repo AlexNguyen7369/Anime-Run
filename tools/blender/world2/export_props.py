@@ -1099,11 +1099,16 @@ def export(number, glb=True, plan=False, zone=None):
 	print("ROADTEST %d %s %s" % (number, biome, json.dumps(road)))
 	# Oversize meshes: cut into pieces under PART_MAX at their largest kept scale; the pieces replace the prop
 	changed, pieces, objs, group = [], {}, {}, 0
-	# (an unplaced prop is cut at scale 1, so its pieces keep their defs and ledger rows while it waits for a spot)
+	# An unplaced prop over PART_MAX at scale 1 is not written (2026-11-26 re-fit, lead: its uploaded pieces were cut at
+	# their placed scale, so pieces cut at 1 would not match them; their ledger rows leave the live rows, ids kept in notes)
 	for n in [n for n in names if not props[n]["partsOnly"]]:
 		big = [max([q[3][i] for q in kept if q[0] == n] or [1.0]) for i in range(3)]
 		cut = cells(props[n]["size"], big)
 		if cut == (1, 1, 1):
+			continue
+		if not any(q[0] == n for q in kept):
+			props.pop(n)
+			warns.append("%s: unplaced and over %d studs, not written" % (game[n], PART_MAX))
 			continue
 		lo, hi = bnds[n]
 		step = [(hi[i] - lo[i]) / cut[i] for i in range(3)]

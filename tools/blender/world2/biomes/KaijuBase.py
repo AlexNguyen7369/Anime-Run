@@ -1946,7 +1946,7 @@ def build(k):
 			placed += 1
 	# Wide layout (2026-11-26 re-fit): the wrecked city's far blocks out to this track's ground midline (about 380 out),
 	# the approved far-skyline props at their approved scales, so the straights do not run into empty lots
-	print("BAND city", k.band(["Office", "Apartment", "Office", "CityBlock"], 50, (150, 370), scale=(1.2, 2.0), gap=75, seed=1, space=55))
+	print("BAND city", k.band(["Office", "Apartment", "Office"], 50, (150, 370), scale=(1.2, 2.0), gap=75, seed=1, space=55))
 	corpse_sites(k, city_end, [(d - 460, d + 460) for d, _, _ in corpses], avoid, tall_avoid)
 	# Clear day with big cumulus clouds (sky dressing, the game's Sky clouds; not prop assets)
 	k.sky(
