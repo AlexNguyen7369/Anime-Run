@@ -713,10 +713,23 @@ def build(k):
 			if option and view == 0.06:  # the castle stands there: the next free spot on along the row
 				any(stand_rank(*at06(RANK_ROW, x2 + 118)) for x2 in range(0, 120, 4))
 				continue
+			if view == 0.62:
+				# Re-fit round 2: the approved 0.62 view had this rank close on its left; on the wide layout its hand-set spot
+				# is far down the road, so it is searched just ahead of that camera (left, the approved side), approved turn.
+				d62 = k.length * 0.62
+				for dd in range(110, 320, 10):
+					x2, z2 = k.spot(d62 + dd, off)
+					if free(x2, z2, 50) and r.fits(x2, z2, k.heading(d62 + dd) + turn, 104, 66, clear=24.5):
+						d, along, x, z = d62 + dd, 0.0, x2, z2
+						print("Rank 0.62 at", round(dd), "ahead of its camera")
+						break
 			x, z = k.spot(d, off, along)
 			k.place("Rank", (x, -1.0, z), k.heading(d) + turn)
 			taken.append((x, z, 50))
 			see(view, x, z)
+			if view == 0.62:  # both ends of the wide block too (round 2)
+				for e in (-45, 45):
+					see(view, *k.spot(d + e, off))
 	for d, off, turn in MOUNDS:
 		x, z = k.spot(d, off)
 		k.place("Mound", (x, -1.0, z), k.heading(d) + turn, 0.8)
@@ -753,16 +766,21 @@ def build(k):
 	for d, off, turn, sc in ((2838, 58, 0.5, 1.1), (2745, 62, -0.4, 1.0), (2700, 66, 0.2, 1.2), (2846, -50, 0.3, 1.0)):
 		put("RuinWall", d, off, turn, sc)
 	for f, statue, houses in (
-		(0.045, False, ((-60, -58, 0.0), (-26, -62, 0.1), (46, -58, -0.1), (80, -64, 0.2), (-44, -98, 0.3), (-4, -100, -0.2), (36, -98, 0.1))),
+		# Re-fit round 2 (2026-11-26): the first and last villages moved just ahead of the 0.06 and 0.9 run cameras (from
+		# 0.045 and 0.80), where the approved views showed them close on the left, past the 0.06 rank; same houses, offsets
+		# and turns.
+		(0.142, False, ((-60, -58, 0.0), (-26, -62, 0.1), (46, -58, -0.1), (80, -64, 0.2), (-44, -98, 0.3), (-4, -100, -0.2), (36, -98, 0.1))),
 		(0.30, False, ((-50, -58, 0.4), (40, -62, -0.3), (74, -58, 0.5), (-20, -100, 0.2), (24, -98, -0.4))),
 		(0.30, False, ((-30, 58, 0.2), (10, 60, -0.3), (48, 58, 0.3))),
-		(0.80, False, ((-60, -60, 0.5), (-24, -96, -0.3), (14, -58, 0.2), (30, -98, -0.6))),
+		(0.915, False, ((-60, -60, 0.5), (-24, -96, -0.3), (14, -58, 0.2), (30, -98, -0.6))),
 	):
 		d0 = k.length * f + 30
 		if statue:
 			put("HeroStatue", d0, -42, size=(24, 24), rad=16)
 		for dd, off, turn in houses:
-			put("Cottage", d0 + dd, off, turn, k.rng.uniform(0.9, 1.05), size=(30, 29), rad=17)
+			if put("Cottage", d0 + dd, off, turn, k.rng.uniform(0.9, 1.05), size=(30, 29), rad=17) and f in (0.142, 0.915):
+				pos, _ = facing(k, d0 + dd, off)  # the near villages in the 0.06 and 0.9 views: no tree in front of them
+				see(0.06 if f < 0.5 else 0.9, pos[0], pos[2])
 
 	def outer(d):
 		p, right, _ = k.at(d)

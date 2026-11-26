@@ -666,7 +666,7 @@ def build(k):
 
 	lo, hi = k.lo, k.hi
 	print("ISLAND along the road, coast", COAST, "ships", SHIPS)
-	k.ground(OCEAN, margin=1200, rough=0.75, y=-4.0)
+	k.ground(OCEAN, margin=9000, rough=0.75, y=-4.0)  # the approved sea to the horizon (draft only)
 	far = _all_roads(k)
 	_bank(k, SUPPORT)
 	L = k.length
@@ -701,7 +701,7 @@ def build(k):
 	# the turn was random on the approved layout.)
 	nest = None
 	cams = []
-	for f in (0.33, 0.62, 0.9):
+	for f in (0.62, 0.33, 0.9):
 		p, right, t = k.at(L * f)
 		cams.append((p.x + right.x * 10, p.z + right.z * 10, t.x, t.z, f))
 	for i in range(121):
@@ -709,12 +709,14 @@ def build(k):
 			x = lo.x - 600 + (hi.x - lo.x + 1200) * i / 120
 			z = lo.z - 600 + (hi.z - lo.z + 1200) * j / 120
 			best_cam = None
-			for ex, ez, tx, tz, f in cams:
+			for rank, (ex, ez, tx, tz, f) in enumerate(cams):
 				ahead = (x - ex) * tx + (z - ez) * tz
 				side = abs((x - ex) * tz - (z - ez) * tx)
 				dist = math.hypot(x - ex, z - ez)
-				if ahead > 260 and side < ahead and (best_cam is None or dist < best_cam[0]):
-					best_cam = (dist, f)
+				# round 2: the approved draft showed it ahead of the 0.62 camera, so that camera comes first; within 900
+				score = rank * 10000 + dist
+				if ahead > 260 and side < ahead * 0.8 and dist < 900 and (best_cam is None or score < best_cam[0]):
+					best_cam = (score, f, ex, ez)
 			if best_cam is None or (nest is not None and best_cam[0] >= nest[0]):
 				continue
 			if k.owns(x, z) and far(x, z) >= 340 and all(math.hypot(x - a_, z - b_) > r + 260 for a_, b_, r in keep):
@@ -722,7 +724,7 @@ def build(k):
 				w = min(k.wps[:: max(1, len(k.wps) // 1500)], key=lambda w: math.hypot(w.x - x, w.z - z))
 				u = math.hypot(x - w.x, z - w.z)
 				if k.owns(x + (x - w.x) / u * 200, z + (z - w.z) / u * 200):
-					nest = (best_cam[0], x, z, best_cam[1])
+					nest = (best_cam[0], x, z, best_cam[1], best_cam[2], best_cam[3])
 	scorch = []
 	if nest:
 		k.rng.uniform(0, math.tau)  # the approved random turn's draw, kept so the scatter after it is unchanged
@@ -784,6 +786,11 @@ def build(k):
 		if ob.type == "MESH" and ob.data.name.split("_")[-1] in ("Brush", "Mound", "Choga", "Ruin"):
 			lx, lz = ob.location.x, -ob.location.y
 			out = _road_dist(k, lx, lz) > COAST * 0.86 or not k.owns(lx, lz)
+			if nest and not out:  # nothing tall on the line from the nest's camera to the nest (round 2)
+				ex, ez, nx, nz = nest[4], nest[5], nest[1], nest[2]
+				dx, dz = nx - ex, nz - ez
+				tt = max(0.0, min(0.8, ((lx - ex) * dx + (lz - ez) * dz) / (dx * dx + dz * dz)))
+				out = math.hypot(lx - ex - tt * dx, lz - ez - tt * dz) < 30
 			if out or any(math.hypot(lx - a_, lz - b_) < r for a_, b_, r in keep):
 				bpy.data.objects.remove(ob)
 				k.instances -= 1
