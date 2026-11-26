@@ -66,11 +66,18 @@ re-exported (W2_REEXPORT_PLAN batches 1 to 10).
 
 ## Status (2026-11-26, later)
 - Road supports: **fixed**. The lead chose to fix them Blender-first, because the game must not change a draft's size
-  or placement. The generators keep each support's top `SUPPORT_CLEARANCE` (0.05) under the lowest road underside over
-  its length (`kit.support_top`, commit 6c2533f0); a support that would be under 0.2 studs is sunk, not dropped. The 284
-  support rows of today's five Drafts are rewritten to match (base and footprint kept). On-demand Studio scenario
-  `road_surface_clear`: base 29 pass / 7 fail, fixed 34 pass / 0 fail (640,798 road samples). Pictures:
-  `T2_fill_after.jpg`, `T5_pier_after.jpg`, `T7_bank_after.jpg`.
+  or placement. The generators keep each support's top `SUPPORT_CLEARANCE` (0.05) plus `SUPPORT_SLACK` (0.15) under the
+  lowest road underside over its length (`kit.support_top`: 6c2533f0, corrected by 0edf855d, which reads the road top at
+  the centre line's p.y); a support that would be under 0.2 studs is sunk (6 rows), not dropped. The 284 support rows of
+  today's five Drafts take the corrected generator's tops (2402f2c7; footprint kept, base kept except the 6 sunk);
+  checked row by row against the built road, 0.03 to 0.29 under the 0.05 line, none above.
+- On-demand Studio scenario `road_surface_clear`: base 29 pass / 7 fail. Superseded rows (8b48b407, 103 of them inside the
+  road deck): 34 pass / 0 fail, before the deck check existed. Final rows (2402f2c7) with the deck check: 55 pass / 0 fail
+  (640,798 road samples, 2026-11-26).
+- Pictures `T2_fill_after.jpg`, `T5_pier_after.jpg`, `T7_bank_after.jpg` were taken on the superseded rows (tops 0.2 to
+  0.5 higher than shipped); they are re-shot on the final rows in the next Studio slot.
+- biome_harness WORLD=2 differs from the base only by one KaijuBase shadow caster: a shortened Pier fell under the
+  30-stud size at which a prop casts a shadow (BIOME_ENVIRONMENT_SPEC 8).
 - GiantCorpse (lead 2026-11-26): kept as it is. Not re-exported or re-uploaded; it carries the kaiju exception and the owner
   decides on return.
 

@@ -195,10 +195,11 @@ written before the swap.
   priority "Ground/grass/z-fighting"; the lead's approval under the owner's same-day pre-approval; after pictures for the
   owner's review on return: `assets/world2_draft/audit/render_2026-11-26/T2_fill_after.jpg`, `T5_pier_after.jpg`,
   `T7_bank_after.jpg`; docs/W2_RENDER_AUDIT.md). The draft road supports under raised road (Fill on Tracks 2, 3 and 4,
-  Pier on Track 5, Bank on Track 7) keep their footprint and base; their top sits `SUPPORT_CLEARANCE` (0.05, TrackBuilder's
+  Pier on Track 5, Bank on Track 7) keep their footprint, and their base except where sunk (below); their top sits `SUPPORT_CLEARANCE` (0.05, TrackBuilder's
   own value) under the lowest road underside over the support's length, with `SUPPORT_SLACK` (**placeholder** 0.15, the
   centre line's shortfall at a support's far corners on a curve) more. A support that would be thinner than `SUPPORT_MIN`
-  (**placeholder** 0.2) is that thick and sunk into the ground, never dropped. Generators: `kit.support_top` and
+  (**placeholder** 0.2) is that thick and sunk into the ground (its base moves down), never dropped: 6 rows on the
+  2026-11-26 layout. Generators: `kit.support_top` and
   `kit.support` (tools/blender/world2/kit.py); Studio check `road_surface_clear` (on demand).
 - In game (owner 2026-11-23): props placed from an approved draft keep the draft's clearance (24+ studs from the road
   centre line, overhead 14+, checked by tools/blender/world2/clearance.py). World 1's 8-stud road-edge clearance
