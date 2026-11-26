@@ -30,6 +30,17 @@ Numbers are **proposed** unless the design doc fixes them. Plan of record:
   at least 0.5, OutdoorAmbient at least 0.62 (largest colour channel, 0-1; a lifted colour is also mixed 35% toward grey), ExposureCompensation 1.1, fog Density at
   most 0.22 and no Haze; the others Brightness at least 1.4, Ambient at least 0.36, OutdoorAmbient at least 0.6. Fog
   colours are lifted to 0.3 so the distance never fades to black. The horizon colour is the first sky stop at or over 0.
+- Brighter tracks (owner 2026-11-26 after playing World 2: "adjust sky lighting so not too dim as to make it a bit more
+  visible. Like solo leveling ant track, too dim cant see much/dark"; all **proposed**). Measured from a run camera on
+  each track (Studio, 2026-11-26): the channel floors above let a saturated dusk or red light stay dark (luminance of
+  Ambient / OutdoorAmbient: Track 2 0.235 / 0.396, Track 10 0.129 / 0.434, Track 7 under its sky 0.344 / 0.517 with
+  ExposureCompensation -0.3). So, brightness only (hues, skies and fog colours as approved):
+  - Floors raised: day Brightness at least 1.7, Ambient at least 0.42, OutdoorAmbient at least 0.66; night Brightness at
+    least 2.2, Ambient at least 0.56, OutdoorAmbient at least 0.68, ExposureCompensation 1.25.
+  - Luminance floors on top (Rec. 709 luminance, 0-1; a colour under it is mixed toward grey only as far as needed):
+    Ambient at least 0.28 by day and 0.36 by night, OutdoorAmbient at least 0.46 by day and 0.5 by night.
+  - Track 7 Ant Island under its sky (`SkyLook`): Brightness 2.1 (was 1.4), ExposureCompensation 0.2 (was -0.3),
+    OutdoorAmbient its dusk orange a third toward grey (was half: luminance about 0.56); the dusk ClockTime and grade stay.
 - A theme's own `Atmosphere` overrides still win (Track 4's moon size).
 - Track skies. Owner 2026-11-25 (owner question 33, design doc change log): "Four tracks": Hell's Gate first, then Demon
   Castle, Golden City and Ant Island get in-house gradient skies made from their approved drafts' sky colours; the other
