@@ -318,8 +318,10 @@
 277. 2026-11-25 — Alex Nguyen — Built the World 2 colour re-export (119 meshes baked, batch plan and upload tool with rollback); nothing uploaded or changed in the game.
 278. 2026-11-25 — Alex Nguyen — Fixed the re-export tool after its audit (lost replies, lock, journaled apply, Studio vertex comparison) and recorded the lifted re-export hold; nothing uploaded.
 279. 2026-11-25 — Alex Nguyen — Tightened the re-export tool after its re-audit (signatures, ids, clear) and merged world2-place; nothing uploaded.
+296. 2026-11-26 — Alex Nguyen — Merged the colour re-export tools and baked all 119 meshes; the first upload (Track 10) was blocked by this session's permissions, so nothing was sent.
+297. 2026-11-26 — Alex Nguyen — Corrected the support fix after its rules audit (road-top convention, 0.15 corner allowance, every row checked under the road), recorded the freeze exception in WORLD2_SPEC, and tightened road_surface_clear with a road-deck check; Studio 55/55.
 
 ## What's next
-**Re-export World 2's prop meshes in their approved colours (W2_REEXPORT_PLAN batches 1-10, GiantCorpse excluded): bake, dry-run, upload batch 1, compare it in Studio, then upload the rest.**
+**Upload the World 2 colour re-export, batch 10 first, once the owner allows uploads from this session (or runs `upload_reexport.py upload 10` themselves), then do the Studio colour check before batch 2.**
 
-**Why this is next:** dark COLOR_0 is the owner's third rendering priority and the last audit fault that is not layout-dependent; the night tracks, the lighting floors and the skied tracks are judged again only after it lands.
+**Why this is next:** the owner approved tonight's uploads, everything up to the send is ready, and dark props are the last rendering fault that does not depend on the re-lay.
