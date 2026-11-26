@@ -246,6 +246,14 @@ written before the swap.
   **Proposed**: pitch 760, corner radius 420, first side 1,000 (so every cut between tracks falls in a straight and
   every finish straight runs on the 90-degree grid). Track lengths, the chain rule, the first/last straights and the
   NPC table are unchanged. (Replaces the 2026-11-24 coordinator's choice "World 2 keeps World 1's track spacing".)
+- Re-fit of Tracks 6 and 7 to the wide layout (2026-11-26, lead's decisions under the owner's nightly pre-approval,
+  **proposed**): Track 6's back row of buildings keeps one in 7 free slots (`BACK_EVERY`; nothing blocks it on the wide
+  layout, which would double the approved building count), and Track 6's HQ stays out per the owner's 2026-11-25 ruling
+  although it now has a legal spot on its own ground (0.9 axis, world -2714, 2418), for the owner to bring back.
+  Track 7's island runs along the road (coast 260 studs out on both sides, the 48 ships at 312, inside its Ground
+  rect) instead of an oval round the whole track; its nest is turned to face its road so its ants stand on its own
+  ground, a change from the approved random turn, for the owner. IslandVolcano keeps its approved scale 1.25 and has
+  no spot (it needs 975+ studs from every road).
 - Hero moves (2026-11-24; positions are re-fitted to the new layout (agent-3 round)): a hero landmark with no placement that passes every game rule moves whole (all its pieces, its
   approved scale and turn) to the nearest spot on its own track's ground that clears its own and every other track's
   corridor, the spawn area and every checkpoint and win pad; the biome drafts stay as approved and the move lives in

@@ -576,10 +576,12 @@ def _nature(k):
 # Wide layout (WORLD2_SPEC "World 2 track layout", 2026-11-26): Track 7 is one lap of the square spiral, 760 studs from
 # Tracks 6 and 8, so the island is no longer an oval round the whole track (that oval held the inner laps): it is a long
 # island along the road, its coast COAST studs out on both sides (under the 420 corner radius, so the inner coast never
-# folds, and inside the 380-stud gap midline), the blockade ships SHIPS out, still on this track's own ground. Re-fit
+# folds, and inside the 380-stud gap midline), the blockade ships SHIPS out, still on this track's own ground and its
+# Ground rect. Lead's decision 2026-11-26. Re-fit
 # values, proposed.
-COAST = 300.0
-SHIPS = 340.0
+COAST = 260.0
+SHIPS = 312.0  # base centres inside the track's Ground rect (waypoint box + Width x 3 + 200 = 320), so all are built
+HALLASAN_SCALE = 1.25  # approved
 
 
 def _all_roads(k):
@@ -679,12 +681,19 @@ def build(k):
 			dd = far(x, z)
 			if dd > bd:
 				best, bd = (x, z), dd
-	# The game's parts fallback is a box per cone, so the shield's corners reach sqrt(2) x its base radius (760 x scale):
-	# that box, not the round mesh, must clear every road corridor (24 studs) with a margin.
-	hs = max(0.4, min(1.25, (bd - 40) / (760 * math.sqrt(2))))
-	k.place("Hallasan", (best[0], -1.0, best[1]), 0.4, hs)
-	print("HALLASAN at", (round(best[0]), round(best[1])), "clear", round(bd), "scale", round(hs, 2))
-	keep = [(best[0], best[1], 760 * hs + 20)]
+	# Hero rule (WORLD2_SPEC hero moves): a hero keeps its approved scale. Hallasan's is 1.25 (the approved draft's
+	# formula on the approved layout: 1,177 studs clear), a shield 950 studs in radius: its real mesh needs 975+ studs
+	# from every road. No spot on this track's own ground has that on the wide layout, so it stays on the "no spot"
+	# list (not placed, its mesh and Props entry kept) and reserves no ground.
+	hs = HALLASAN_SCALE
+	keep, placed_hallasan = [], None
+	if bd >= 760 * hs + 24 + 16:
+		k.place("Hallasan", (best[0], -1.0, best[1]), 0.4, hs)
+		placed_hallasan = best
+		keep.append((best[0], best[1], 760 * hs + 20))
+		print("HALLASAN at", (round(best[0]), round(best[1])), "clear", round(bd), "scale", hs)
+	else:
+		print("HALLASAN no spot at its approved scale", hs, "best clear", round(bd), "at", (round(best[0]), round(best[1])))
 	# The nest stands ahead of a run camera (0.33, 0.62, 0.9), 340+ studs off every road, on this track's own ground, its
 	# front (and its fan of ants, 205-262 out on that side) turned to this track's road, so the ants stand on the own
 	# ground between nest and road. On the wide layout's long straights the camera axis stays on the road, so the spot
@@ -825,7 +834,10 @@ def build(k):
 		print("NEST ANTS min road distance", round(min(_road_dist(k, x, z) for x, z in nest_ants), 1))
 	# Review shot of Hallasan from the runner's lane where the road heads most straight at it
 	global EXTRA_SHOTS
-	hx, hz = keep[0][0], keep[0][1]
+	EXTRA_SHOTS = []
+	if not placed_hallasan:
+		return
+	hx, hz = placed_hallasan
 	pick = None
 	d = 60.0
 	while d < L - 60:
