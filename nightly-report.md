@@ -3,6 +3,7 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- Starter in slot 1: a World 2 save with no team starts as {Starter}, and auto-fill appends kept rolls but never replaces a filled slot (your 2026-11-20 rule), so the placeholder Starter (no model or portrait) stays first until the player edits the team. Not a code fault. Question: should a kept roll replace a team that is only the Starter?
 - Track 6 HQ: still out by your 2026-11-25 ruling ("for now"). It now has a legal spot on its own ground at the 0.9 axis, world (-2714, 2418), 0 overlaps. Question: bring it back?
 - Track 7 IslandVolcano: still no spot at its approved scale 1.25 (needs 975+ studs from every road; the best spot has 498). Question: allow a smaller scale (0.43 fits), or keep it out?
 - Dark props re-export uploads: your "Yes, upload tonight" is recorded (52b436aa), but agent-2's session permission check denied the first upload (batch 10, 10 Hell's Gate meshes); nothing was sent. I did not run it from another session (that would bypass the denial). Ready: orch/world2/w2-render-audit, bake done (119 meshes), `dry 10` OK. To do: allow uploads in agent-2's session (or run `python3 upload_reexport.py upload 10` from tools/blender/world2 in /home/dev/AnimeRun-orch/w2-render-audit with the key and creator set), then the Studio colour check before batch 2.
