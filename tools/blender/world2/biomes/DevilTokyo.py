@@ -653,11 +653,18 @@ LOWBLOCKS = [(830, 1, 80), (2650, 1, 80), (4720, 1, 80)]
 LOW = ("Apaato", "Konbini", "Apaato")  # under 21 studs: allowed where a taller front would hide an HQ
 
 
-def street(k, r, side, names, front, start, end, gap, avoid, sight=(), flip=0.0, near=None):
+# A back row keeps one building in BACK_EVERY of its free slots (the others stay open ground, spacing unchanged). On the
+# approved, crowded layout the neighbours' props blocked most of it; on the wide layout (WORLD2_SPEC "World 2 track
+# layout", 2026-11-26) nothing does, so this keeps Track 6 at about the approved building count (325 + 3 %) instead of
+# 596, for the tri budget and the approved look. Lead's decision 2026-11-26, proposed.
+BACK_EVERY = 7
+
+
+def street(k, r, side, names, front, start, end, gap, avoid, sight=(), flip=0.0, near=None, every=1):
 	"""Buildings shoulder to shoulder along one side: each one's road face sits about `front` studs from the centre line.
 	`avoid`: (x, z, radius) plots kept free; `sight`: plots where only LOW fronts stand. `flip`: share of mansions turned
 	to show the corridor face to the road. `near` (a back row): only where no other track's prop stands."""
-	d, last = start, None
+	d, last, slot = start, None, 0
 	while d < end:
 		pick = [n for n in names if n != last] or names
 		for name in [k.rng.choice(pick)] + ["ShopHouse", "Mansion", "Apaato", "Konbini"]:
@@ -673,6 +680,10 @@ def street(k, r, side, names, front, start, end, gap, avoid, sight=(), flip=0.0,
 				continue
 			if near is not None and r.overlaps(near, pos[0], pos[2], yaw, w, dep):
 				continue
+			slot += 1
+			if (slot - 1) % every:  # an open slot of a thinned back row: same spacing, no building
+				d += w + k.rng.uniform(*gap)
+				break
 			if name == "Mansion" and near is None and k.rng.random() < flip:  # a back row keeps its balconies to the road
 				yaw += math.pi  # Aki's apartment beat: the corridor face toward the road
 			k.place(name, pos, yaw)
@@ -706,7 +717,7 @@ def build(k):
 	r = Roads(k.track["Number"])
 	L = k.length
 	end = L - 70
-	# Track 6's road is one long lap between Track 5's and Track 7's, 118 to 150 studs off each: one street front a side,
+	# Track 6's road is one lap of the square spiral, 760 studs from Track 5's and Track 7's (2026-11-26): one street front a side,
 	# then the next track's land. Street edge both sides: pavement, kerb, guardrail, lamps with pools, poles with wires.
 	# A kit is skipped on a tight bend where its straight 48-stud length would bring a road-side corner (local x +-24,
 	# z -6.4) within 24 studs of the centre line.
@@ -816,7 +827,7 @@ def build(k):
 	street(k, r, -1, ["ShopHouse", "Mansion", "Konbini", "Apaato", "Mansion"], 40, 20, end, (2, 8), avoid, sight, flip=0.5)
 	street(k, r, 1, ["ShopHouse", "Apaato", "Mansion", "Mansion", "Konbini"], 40, 20, end, (2, 8), avoid, sight, flip=0.5)
 	for side in (-1, 1):
-		street(k, r, side, ["Mansion", "ShopHouse"], 80, 0, end, (4, 10), avoid, sight, near=near)
+		street(k, r, side, ["Mansion", "ShopHouse"], 80, 0, end, (4, 10), avoid, sight, near=near, every=BACK_EVERY)
 	# Skyline: the office towers are placed last, by cross_track.py (FILL), in the gaps left on this track's own ground
 	# Wires over the street: one set per 48 studs from the left kits' second pole, only on straights
 	# where a kit's pole takes the far end

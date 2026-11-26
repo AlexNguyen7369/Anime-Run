@@ -1,7 +1,8 @@
 """World 2 Track 7: Ant Island (Solo Levelup). Round 2 rebuild 2026-11-23, following the source 1-1: the island raid
 against the ant colony (refs and landmark list: docs/world2_refs/AntIsland.md):
-- Island: our own ground, an elongated oval with a ragged coast, a sand band, dark forest and scorched patches, ringed by
-  dark basalt column cliffs (Cliff) and a ring of blockade ships (Ship) on the sea.
+- Island: our own ground, a long island along the road with a ragged coast on both sides (an oval round the whole track
+  until the wide layout, 2026-11-26), a sand band, dark forest and scorched patches, lined by dark basalt column cliffs
+  (Cliff) and blockade ships (Ship) on the sea just off both coasts.
 - Hallasan (hero, infield): a broad low shield volcano, dark forested slopes, pale rock spread wide and low round a rough
   crater with its lake, many small parasitic cones and ant tunnels dug into the slopes.
 - Nest (hero, ahead of the runner): the colony, a low wide dark-earth cratered mound with rings of dark tunnel mouths, bulky
@@ -572,60 +573,68 @@ def _nature(k):
 	k.prop("Brush", p)
 
 
-def _coast(cx, cz, a, b, th):
-	"""Ragged coastline: island radius factor at angle th."""
-	return 1.0 + 0.05 * math.sin(5 * th + 1.0) + 0.03 * math.sin(11 * th + 2.0) + 0.018 * math.sin(23 * th + 0.5)
+# Wide layout (WORLD2_SPEC "World 2 track layout", 2026-11-26): Track 7 is one lap of the square spiral, 760 studs from
+# Tracks 6 and 8, so the island is no longer an oval round the whole track (that oval held the inner laps): it is a long
+# island along the road, its coast COAST studs out on both sides (under the 420 corner radius, so the inner coast never
+# folds, and inside the 380-stud gap midline), the blockade ships SHIPS out, still on this track's own ground and its
+# Ground rect. Lead's decision 2026-11-26. Re-fit
+# values, proposed.
+COAST = 260.0
+SHIPS = 312.0  # base centres inside the track's Ground rect (waypoint box + Width x 3 + 200 = 320), so all are built
+HALLASAN_SCALE = 1.25  # approved
 
 
-def _ell(cx, cz, a, b, th, phi):
-	"""Point at angle th on an ellipse with semi-axes a, b, turned phi radians, centred on (cx, cz)."""
-	lx, lz = math.cos(th) * a, math.sin(th) * b
-	return cx + lx * math.cos(phi) - lz * math.sin(phi), cz + lx * math.sin(phi) + lz * math.cos(phi)
+def _all_roads(k):
+	"""Distance to the nearest road of ANY track (roads.Roads), for spots that must stay off every track's ground."""
+	global _ROADS
+	if _ROADS is None:
+		from roads import Roads
+
+		_ROADS = Roads(k.track["Number"])
+	return lambda x, z: float(_ROADS.nearest([(x, z)])[0][0])
 
 
-def _rho(cx, cz, a, b, phi, x, z):
-	"""Normalised ellipse radius of a point (1 = on the unragged outline)."""
-	dx, dz = x - cx, z - cz
-	u, v = dx * math.cos(phi) + dz * math.sin(phi), -dx * math.sin(phi) + dz * math.cos(phi)
-	return math.hypot(u / a, v / b)
+_ROADS = None
 
 
-def _island(k, cx, cz, a, b, scorch, phi=0.0):
-	"""Our own ground: an elongated oval island with a ragged coast, a sand band, darker forest and scorched patches.
-	Terrain, not a prop. Returns the coast point function."""
+def _coast_off(d):
+	"""Ragged coastline: the coast's distance from the centre line at distance d along the road."""
+	return COAST * (1.0 + 0.05 * math.sin(d / 260.0 + 1.0) + 0.03 * math.sin(d / 120.0 + 2.0) + 0.018 * math.sin(d / 57.0 + 0.5))
+
+
+def _band(k, scorch):
+	"""The draft's island ground along the road (terrain in the game, not a prop): rows across the road out to the
+	ragged coast on both sides, a sand band and wet edge at the coast, forest, scrub and scorched patches inland."""
 	import bmesh
 
 	from kit import rb
 
-	nr, ns = 26, 220
-	bm = bmesh.new()
 	cols = {"grass": "435E30", "forest": "2E4626", "scrub": "5A6440", "dirt": "6A5A40", "burnt": "2C2620", "sand": "B8A878", "wet": "7A6E58"}
 	names = list(cols)
 	mats = [k.mat(cols[n], 1.0) for n in names]
-	grid = []
-	for i in range(nr + 1):
-		rho = (i / nr) ** 0.7 * 1.02
+	fr = [i / 12 for i in range(-12, 13)]  # across, -1 (left coast) to 1 (right coast)
+	bm = bmesh.new()
+	rows = []
+	d = -60.0
+	while d <= k.length + 60:
+		p, right, _ = k.at(d)
+		c = _coast_off(d) * 1.02
 		row = []
-		for j in range(ns):
-			th = j * math.tau / ns
-			f = _coast(cx, cz, a, b, th)
-			x, z = _ell(cx, cz, a * f * rho, b * f * rho, th, phi)
-			y = -1.0 if rho <= 0.95 else -1.0 - (rho - 0.95) / 0.07 * 3.4
-			row.append(bm.verts.new(rb(x, y, z)))
-		grid.append(row)
-	for i in range(nr):
-		for j in range(ns):
-			v = (grid[i][j], grid[i][(j + 1) % ns], grid[i + 1][(j + 1) % ns], grid[i + 1][j])
-			if i == 0 and v[0] is v[1]:
-				continue
-			face = bm.faces.new(v)
-			rho = ((i + 0.5) / nr) ** 0.7 * 1.02
-			th = (j + 0.5) * math.tau / ns
-			x, z = _ell(cx, cz, a * rho, b * rho, th, phi)
+		for f in fr:
+			q = p + right * (f * c)
+			y = -1.0 if abs(f) <= 0.95 else -1.0 - (abs(f) - 0.95) / 0.07 * 3.4
+			row.append(bm.verts.new(rb(q.x, y, q.z)))
+		rows.append(row)
+		d += 24.0
+	for i in range(len(rows) - 1):
+		for j in range(len(fr) - 1):
+			face = bm.faces.new((rows[i][j], rows[i][j + 1], rows[i + 1][j + 1], rows[i + 1][j]))
+			f = abs((fr[j] + fr[j + 1]) / 2)
+			x, z = rows[i][j].co.x, -rows[i][j].co.y
 			n = math.sin(x * 0.004 + 1.3) * math.cos(z * 0.005 - 0.4) + 0.5 * math.sin(x * 0.011 + z * 0.009)
-			if rho > 0.985:
+			if f > 0.985:
 				kind = "wet"
-			elif rho > 0.93:
+			elif f > 0.93:
 				kind = "sand"
 			elif any(math.hypot(x - sx, z - sz) < r for sx, sz, r in scorch):
 				kind = "burnt"
@@ -638,14 +647,13 @@ def _island(k, cx, cz, a, b, scorch, phi=0.0):
 			else:
 				kind = "grass"
 			face.material_index = names.index(kind)
-	bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+	bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
 	me = bpy.data.meshes.new("W2_AntIsland_Island")
 	bm.to_mesh(me)
 	bm.free()
 	for m in mats:
 		me.materials.append(m)
-	ob = bpy.data.objects.new(me.name, me)
-	k.col.objects.link(ob)
+	k.col.objects.link(bpy.data.objects.new(me.name, me))
 
 
 def build(k):
@@ -657,41 +665,70 @@ def build(k):
 	_nature(k)
 
 	lo, hi = k.lo, k.hi
-	cx, cz = (lo.x + hi.x) / 2, (lo.z + hi.z) / 2
-	# An elongated diagonal oval (2.2 : 1) just big enough that the track and a 300-stud margin sit inside 80% of it
-	phi, ratio = math.radians(35), 2.2
-	need = [(lo.x - 300, lo.z - 300), (hi.x + 300, lo.z - 300), (lo.x - 300, hi.z + 300), (hi.x + 300, hi.z + 300)] + [(w.x, w.z) for w in k.wps[::8]]
-	b = max(_rho(cx, cz, ratio, 1.0, phi, x, z) for x, z in need) / 0.8
-	a = b * ratio
-	print("ISLAND semi-axes", round(a), round(b))
-	k.ground(OCEAN, margin=9000, rough=0.75, y=-4.0)
+	print("ISLAND along the road, coast", COAST, "ships", SHIPS)
+	k.ground(OCEAN, margin=1200, rough=0.75, y=-4.0)
+	far = _all_roads(k)
 	_bank(k, SUPPORT)
 	L = k.length
 	# Hero placements first so the scatter keeps clear of them
 	best, bd = None, 0.0
-	for i in range(31):
-		for j in range(31):
-			x = lo.x + (hi.x - lo.x) * i / 30
-			z = lo.z + (hi.z - lo.z) * j / 30
-			dd = _road_dist(k, x, z)
+	for i in range(81):  # on this track's own ground, farthest from every road (the wide layout's other laps included)
+		for j in range(81):
+			x = lo.x - 600 + (hi.x - lo.x + 1200) * i / 80
+			z = lo.z - 600 + (hi.z - lo.z + 1200) * j / 80
+			if not k.owns(x, z):
+				continue
+			dd = far(x, z)
 			if dd > bd:
 				best, bd = (x, z), dd
-	hs = max(0.4, min(1.25, (bd - 60) / 760))
-	k.place("Hallasan", (best[0], -1.0, best[1]), 0.4, hs)
-	print("HALLASAN at", (round(best[0]), round(best[1])), "clear", round(bd), "scale", round(hs, 2))
-	keep = [(best[0], best[1], 760 * hs + 20)]
+	# Hero rule (WORLD2_SPEC hero moves): a hero keeps its approved scale. Hallasan's is 1.25 (the approved draft's
+	# formula on the approved layout: 1,177 studs clear), a shield 950 studs in radius: its real mesh needs 975+ studs
+	# from every road. No spot on this track's own ground has that on the wide layout, so it stays on the "no spot"
+	# list (not placed, its mesh and Props entry kept) and reserves no ground.
+	hs = HALLASAN_SCALE
+	keep, placed_hallasan = [], None
+	if bd >= 760 * hs + 24 + 16:
+		k.place("Hallasan", (best[0], -1.0, best[1]), 0.4, hs)
+		placed_hallasan = best
+		keep.append((best[0], best[1], 760 * hs + 20))
+		print("HALLASAN at", (round(best[0]), round(best[1])), "clear", round(bd), "scale", hs)
+	else:
+		print("HALLASAN no spot at its approved scale", hs, "best clear", round(bd), "at", (round(best[0]), round(best[1])))
+	# The nest stands ahead of a run camera (0.33, 0.62, 0.9), 340+ studs off every road, on this track's own ground, its
+	# front (and its fan of ants, 205-262 out on that side) turned to this track's road, so the ants stand on the own
+	# ground between nest and road. On the wide layout's long straights the camera axis stays on the road, so the spot
+	# is searched over the own ground: nearest a camera among spots within 45 degrees of its heading. (Re-fit 2026-11-26:
+	# the turn was random on the approved layout.)
 	nest = None
+	cams = []
 	for f in (0.33, 0.62, 0.9):
 		p, right, t = k.at(L * f)
-		for D in range(260, 1300, 20):
-			x, z = p.x + right.x * 10 + t.x * D, p.z + right.z * 10 + t.z * D
-			if _road_dist(k, x, z) >= 340 and all(math.hypot(x - a_, z - b_) > r + 260 for a_, b_, r in keep):
-				if nest is None or D < nest[0]:
-					nest = (D, x, z, f)
-				break
+		cams.append((p.x + right.x * 10, p.z + right.z * 10, t.x, t.z, f))
+	for i in range(121):
+		for j in range(121):
+			x = lo.x - 600 + (hi.x - lo.x + 1200) * i / 120
+			z = lo.z - 600 + (hi.z - lo.z + 1200) * j / 120
+			best_cam = None
+			for ex, ez, tx, tz, f in cams:
+				ahead = (x - ex) * tx + (z - ez) * tz
+				side = abs((x - ex) * tz - (z - ez) * tx)
+				dist = math.hypot(x - ex, z - ez)
+				if ahead > 260 and side < ahead and (best_cam is None or dist < best_cam[0]):
+					best_cam = (dist, f)
+			if best_cam is None or (nest is not None and best_cam[0] >= nest[0]):
+				continue
+			if k.owns(x, z) and far(x, z) >= 340 and all(math.hypot(x - a_, z - b_) > r + 260 for a_, b_, r in keep):
+				# its back ring of ants (up to 200 out, away from the road) on the own ground too
+				w = min(k.wps[:: max(1, len(k.wps) // 1500)], key=lambda w: math.hypot(w.x - x, w.z - z))
+				u = math.hypot(x - w.x, z - w.z)
+				if k.owns(x + (x - w.x) / u * 200, z + (z - w.z) / u * 200):
+					nest = (best_cam[0], x, z, best_cam[1])
 	scorch = []
 	if nest:
-		nest_yaw = k.rng.uniform(0, math.tau)
+		k.rng.uniform(0, math.tau)  # the approved random turn's draw, kept so the scatter after it is unchanged
+		step = max(1, len(k.wps) // 1500)
+		rx, rz = min(((w.x, w.z) for w in k.wps[::step]), key=lambda w: math.hypot(w[0] - nest[1], w[1] - nest[2]))
+		nest_yaw = math.atan2(-(rx - nest[1]), -(rz - nest[2]))  # local -Z (front, the ants) toward the road
 		k.place("Nest", (nest[1], -1.0, nest[2]), nest_yaw, 1.0)
 		th = nest_yaw  # Blender turn theta maps local (x, z) to (x cos + z sin, -x sin + z cos)
 		nest_ants = []
@@ -746,26 +783,37 @@ def build(k):
 	for ob in list(k.col.objects):
 		if ob.type == "MESH" and ob.data.name.split("_")[-1] in ("Brush", "Mound", "Choga", "Ruin"):
 			lx, lz = ob.location.x, -ob.location.y
-			out = _rho(cx, cz, a, b, phi, lx, lz) > 0.86
+			out = _road_dist(k, lx, lz) > COAST * 0.86 or not k.owns(lx, lz)
 			if out or any(math.hypot(lx - a_, lz - b_) < r for a_, b_, r in keep):
 				bpy.data.objects.remove(ob)
 				k.instances -= 1
 	for ob in list(k.col.objects):  # burnt ground round the burning mounds
 		if ob.type == "MESH" and ob.data.name.endswith("_Mound"):
 			scorch.append((ob.location.x, -ob.location.y, 90 * ob.scale.x))
-	_island(k, cx, cz, a, b, scorch, phi)
-	# Basalt column cliffs along the coast, facing the sea; blockade ships ring the island
+	_band(k, scorch)
+	# Basalt column cliffs along both coasts, facing the sea (-Z out); blockade ships just off them, along the coast. The
+	# approved counts (170 cliffs, 48 ships) are spread evenly over the two coasts; a spot off this track's own ground
+	# is skipped.
 	n = 170
 	for i in range(n):
-		th = i * math.tau / n
-		f = _coast(cx, cz, a, b, th) * 0.975
-		x, z = _ell(cx, cz, a * f, b * f, th, phi)
-		out = math.atan2(-(x - cx), -(z - cz))
-		k.place("Cliff", (x, -4.0, z), out + k.rng.uniform(-0.4, 0.4), k.rng.uniform(1.0, 1.7))
-	for i in range(48):  # a dense, even blockade ring just off the coast
-		th = i * math.tau / 48
-		x, z = _ell(cx, cz, a + 260, b + 260, th, phi)
-		k.place("Ship", (x, -4.0, z), -th + k.rng.uniform(-0.15, 0.15), k.rng.uniform(3.0, 3.6))
+		side = 1 if i % 2 else -1
+		d = (i // 2 + 0.5) * L / (n // 2)
+		p, right, t = k.at(d)
+		c = _coast_off(d) * 0.975
+		q = p + right * (side * c)
+		if not k.owns(q.x, q.z):
+			continue
+		out = math.atan2(-(right.x * side), -(right.z * side))
+		k.place("Cliff", (q.x, -4.0, q.z), out + k.rng.uniform(-0.4, 0.4), k.rng.uniform(1.0, 1.7))
+	for i in range(48):
+		side = 1 if i % 2 else -1
+		d = (i // 2 + 0.5) * L / 24
+		p, right, t = k.at(d)
+		q = p + right * (side * SHIPS)
+		if not k.owns(q.x, q.z):
+			continue
+		along = math.atan2(-t.x, -t.z) + (0 if i % 4 < 2 else math.pi)  # bows both ways along the coast
+		k.place("Ship", (q.x, -4.0, q.z), along + k.rng.uniform(-0.15, 0.15), k.rng.uniform(3.0, 3.6))
 	# Overcast dusk over a war zone; cool lamps along the road, floodlit camps, blue glow in the chamber
 	k.sky([(0.0, "D8946A"), (0.04, "A07A70"), (0.12, "6E6670"), (0.35, "4A4C5A"), (1.0, "2A2C38")], strength=0.9, sun=(2.4, "FFB070", 12, 230))
 	d = 40
@@ -786,7 +834,10 @@ def build(k):
 		print("NEST ANTS min road distance", round(min(_road_dist(k, x, z) for x, z in nest_ants), 1))
 	# Review shot of Hallasan from the runner's lane where the road heads most straight at it
 	global EXTRA_SHOTS
-	hx, hz = keep[0][0], keep[0][1]
+	EXTRA_SHOTS = []
+	if not placed_hallasan:
+		return
+	hx, hz = placed_hallasan
 	pick = None
 	d = 60.0
 	while d < L - 60:
