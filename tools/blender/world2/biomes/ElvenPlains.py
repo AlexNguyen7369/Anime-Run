@@ -599,7 +599,26 @@ def build(k):
 
 	TS = 1.6
 	tx, tz = at06(*TOWN_AT)
-	k.place("Town", (tx, -1.0, tz), math.atan2(-(sp.x - tx), -(sp.z - tz)), TS)
+	# Owner 2026-11-26 ("Approve 1-4", design log fe810a44): a hero with no spot at its approved scale stands at the largest
+	# scale that fits its own ground. The town (approved 1.6, gate toward the 0.06 camera) is searched from 1.6 down, ahead
+	# of a run camera (0.06 first), its turn the approved one (front to that camera), its real footprint (the mesh's
+	# bounds) clear of every road by 24.5, pads and the plaza, base centre on this track's own ground.
+	vs = k.props["Town"].data.vertices
+	# about its origin (where it is placed), the larger side each way: conservative if the mesh is off-centre
+	town_w = 2 * max(abs(v.co.x) for v in vs)
+	town_d = 2 * max(abs(v.co.y) for v in vs)
+	import herofit
+
+	hit = herofit.best(k, town_w, town_d, 1.6, aheads=range(240, 2401, 80), sides=range(-1000, 1001, 80), owns=k.owns)
+	town_at = (hit[4], hit[1], hit[2], hit[3], round(hit[0], 3)) if hit else None
+	if town_at:
+		f, tx, tz, yaw, TS = town_at
+		k.place("Town", (tx, -1.0, tz), yaw, TS)
+		taken.append((tx, tz, max(town_w, town_d) * TS / 2))
+		print("TOWN at", round(tx), round(tz), "scale", TS, "for the", f, "camera")
+	else:
+		k.place("Town", (tx, -1.0, tz), math.atan2(-(sp.x - tx), -(sp.z - tz)), TS)  # no spot: the export drops it
+		print("TOWN no spot even shrunk")
 	# Landmark 2: the ruined castle, at its approved 1.5 beside the town on the horizon (no gap on this track's ground holds
 	# it). game_shots.py --castle-052 builds the owner's option instead: 0.52, dead ahead at the end of the start straight
 	option = "castle_052" in roads.OPTIONS
@@ -677,6 +696,8 @@ def build(k):
 	see(0.06, *at06(176.913, -32.0))
 	if not option and castle_at:  # the castle in its camera's view: no tree on that line
 		see(*castle_at)
+	if town_at:  # nor on the town's
+		see(town_at[0], town_at[1], town_at[2])
 	see(0.06, *at06(182.913, 8.0))
 
 	def stand_rank(x, z, yaw=None, shifts=(0.0, 0.12, -0.12, 0.25, -0.25)):

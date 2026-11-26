@@ -246,7 +246,8 @@ written before the swap.
   (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
   centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,
   and one more Office tower (scale 0.55, the approved top) with its lit face to the finish axis. The spots are
-  **proposed** (`tools/blender/world2/cross_track.py` LANDMARK); the HQ stays out.
+  **proposed** (`tools/blender/world2/cross_track.py` LANDMARK). The HQ is back since 2026-11-26 (below); whether the
+  finish Office, the stand-in "where the HQ would stand", stays is open for the owner.
 - World 2 track layout (owner 2026-11-26, verbatim: "biomes/tracks on world 2 are much too close to each other where racing on one track is not immersive. Spacing per track in terms of wdith should be much larger , can have the track be straight even, not just circular. There should little to no overlaps in other tracks"; asked directly, the owner picked a spacing of "About 600
   studs" road edge to road edge between any two World 2 tracks): the chain is a square spiral of long straights
   (docs/proposals/W2_WIDE_LAYOUT.md option C, picked by the lead under the owner's nightly pre-approval 2026-11-26).
@@ -257,12 +258,12 @@ written before the swap.
   NPC table are unchanged. (Replaces the 2026-11-24 coordinator's choice "World 2 keeps World 1's track spacing".)
 - Re-fit of Tracks 6 and 7 to the wide layout (2026-11-26, lead's decisions under the owner's nightly pre-approval,
   **proposed**): Track 6's back row of buildings keeps one in 7 free slots (`BACK_EVERY`; nothing blocks it on the wide
-  layout, which would double the approved building count), and Track 6's HQ stays out per the owner's 2026-11-25 ruling
-  although it now has a legal spot on its own ground (0.9 axis, world -2714, 2418), for the owner to bring back.
+  layout, which would double the approved building count). Track 6's HQ: owner 2026-11-26 ("Approve 1-4", design log
+  fe810a44) brings it back on its legal spot on its own ground (0.9 axis, world -2714, 2418) with its 2 floodlights
+  (46 lamps, 48 lights), lifting the "for now" of 2026-11-25.
   Track 7's island runs along the road (coast 260 studs out on both sides, the 48 ships at 312, inside its Ground
   rect) instead of an oval round the whole track; its nest is turned to face its road so its ants stand on its own
-  ground, a change from the approved random turn, for the owner. IslandVolcano keeps its approved scale 1.25 and has
-  no spot (it needs 975+ studs from every road).
+  ground, a change from the approved random turn, for the owner.
 - Track 7's sea (2026-11-26, the owner's "fix rendering on all tracks", lead's decision, **proposed**): terrain Water from
   280 studs off Track 7's road out to its own ground's edge (the coast and the ships' band), level -3, so the 48 blockade
   ships float as in the approved draft instead of standing on grass. World 2 AntIsland only; road corridor, walls,
@@ -273,13 +274,16 @@ written before the swap.
   and every checkpoint and win pad, and lies on its Ground rectangle (BiomeDressing builds a Placed prop only there); among
   those, a spot a run camera has in frame within 1,600 studs first (export_props.find_spot / seen_near, **proposed**), else
   the nearest. The move lives in tools/blender/world2/hero_moves.json (track-local studs, base centre x, z). Moves on the
-  square spiral (agent-3's tracks; agent-1's have none): Track 5 DefenseHQ 60, Track 9 Church 310, Track 10 DarkGate 90.
-  Owner 2026-11-26 (design log, "Approve 1-4", item 2): a hero with no spot at its approved scale stands at the largest
-  scale that fits its own ground, where a run camera sees it, at its approved turn where it can: Track 8 LairTower 3.45
-  (approved 4.2), ahead of the 0.62 camera; Track 10 Abyss radius 500 (its rule's old floor was 800; never in a Draft
-  before), ahead of the 0.9 camera; Track 1 Town, Track 3 HeroHQ, Track 6 HQ and Track 7 IslandVolcano: agent-1
-  (orch/world2/w2-refit-b). No spot at any scale: none on Tracks 4, 5, 8, 9, 10. Track 9's Barrier (the dome over the
-  whole city) is not placed: it is a sphere over every road (as before).
+  square spiral: Track 5 DefenseHQ 60, Track 9 Church 310, Track 10 DarkGate 90 (none on Tracks 1-4, 6-8).
+- Shrink to fit (owner 2026-11-26, "Approve 1-4", design log fe810a44): a hero with no spot at its approved scale stands at
+  the largest scale that fits its own ground (its real mesh box and the game's parts fallback clear of every road by
+  24.5, pads and the plaza, base centre on its own ground and Ground rect), with its approved turn, where a run camera
+  sees it (`tools/blender/world2/herofit.py` and the biome scripts). On the wide layout: Track 1 Town 1.015 (approved
+  1.6) in the 0.33 view; Track 3 HeroHQ 0.562 (approved 2.3+) in the 0.33 view; Track 7 IslandVolcano 0.389 (approved
+  1.25) seen from the 0.06/0.62/0.9 cameras, the 0.33 view kept for the nest; Track 8 LairTower 3.45 (approved 4.2)
+  ahead of the 0.62 camera, turn 0; Track 10 Abyss radius 500 (its rule's old floor 800; in a Draft for the first time)
+  ahead of the 0.9 camera. Track 1 RuinedCastle and Track 2 ChainTower stand at their approved scales on the wide layout
+  (re-fit round 2). Track 9's Barrier (a dome over every road) stays out, as before.
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)
 - Character files carry `World = 2` (absent = 1). `CharacterCatalog.All(world)` and `Rollable(world)` default to the place's

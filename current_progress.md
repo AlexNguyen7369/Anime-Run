@@ -329,10 +329,11 @@
 306. 2026-11-26 — Alex Nguyen — Ran World 2 re-fit round 2 on Tracks 1, 2, 3 and 7 (heroes in the run views, bands filled toward the midline, Track 1 woods in patches, Track 7 on grass ground with a mound cluster at 0.62) to blind game-view scores of T1 7.2, T2 7.0, T3 7.0, T6 7.3, T7 6.3.
 307. 2026-11-26 — Alex Nguyen — Gave World 2 Track 7 its approved sea as terrain Water past 280 studs off the road (rules, red-first harness rows, a gated Coast profile field), so all 48 blockade ships float and no road corridor or other zone changed.
 308. 2026-11-26 — Alex Nguyen — Gave Track 7's sea the approved draft's water colour (client-side, Ant Island only) and confirmed the World 1 biome harness is unchanged from the base.
-309. 2026-11-26 — Alex Nguyen — World 2 re-fit round 2 tools: hero spot search prefers the run cameras' views, kit.band backdrop over each track's own band, an approximate fog for context renders, the proposed sky-prop rule (WORLD2_SPEC) and owner questions 37-38 (LairTower, Abyss scale).
-310. 2026-11-26 — Alex Nguyen — Placed World 2's Track 8 LairTower (3.45) and Track 10 Abyss (radius 500) at the largest scale that fits their own ground, in run-camera view (owner 2026-11-26), kept every row on the game's Ground rectangle, and re-rendered Tracks 4, 5, 8, 9 and 10.
+309. 2026-11-26 — Alex Nguyen — Applied the owner's 2026-11-26 rulings on World 2: Track 6's HQ back on its legal spot with its floodlights, and Track 1 Town (1.015), Track 3 HeroHQ (0.562) and Track 7 IslandVolcano (0.389) shrunk to the largest scale that fits their own ground in a run camera's view; Track 7 now scores 7/7/7 blind.
+310. 2026-11-26 — Alex Nguyen — World 2 re-fit round 2 tools: hero spot search prefers the run cameras' views, kit.band backdrop over each track's own band, an approximate fog for context renders, the proposed sky-prop rule (WORLD2_SPEC) and owner questions 37-38 (LairTower, Abyss scale).
+311. 2026-11-26 — Alex Nguyen — Placed World 2's Track 8 LairTower (3.45) and Track 10 Abyss (radius 500) at the largest scale that fits their own ground, in run-camera view (owner 2026-11-26), kept every row on the game's Ground rectangle, and re-rendered Tracks 4, 5, 8, 9 and 10.
 
 ## What's next
-**Owner decision on Track 7's island volcano (its approved scale 1.25 has no spot; 0.43 fits), the one change the blind reviewers' T7 overview fault (6.3, bar 7) points to; then the lead's merge of the World 2 branches and the Studio pass.**
+**The lead's landing pass: merge the World 2 layout, re-fit and UI-fix branches, agent-3's PIN=write, then the World 2 Studio pass with the ten track:W2* briefs at normal and max speed.**
 
-**Why this is next:** every other re-fitted track meets the bar; T7's remaining fault is its missing central landmark, which only the owner can unblock.
+**Why this is next:** every re-fitted track now meets the blind bar and the harness is green apart from stale pins; the World 2 PR waits on the merge and the Studio checks.
