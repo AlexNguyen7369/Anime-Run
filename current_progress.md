@@ -324,6 +324,7 @@
 321. 2026-11-26 — Alex Nguyen — Fixed the track effects audit (real-name check over the ledger), merged the World 2 branch, laid the dragons and eel out by distance so the eel no longer bunches, added the Track 10 haze, Track 9 and Kaizel notes, and uploaded the 8 track effect assets (all moderation Approved, ids in TrackFxConfig, LIVE still off).
 322. 2026-11-26 — Alex Nguyen — Merged the World 2 track effects draft (smoke, drakes, spirit eel, prop motion; 8 assets uploaded and approved by moderation) into the World 2 branch with LIVE off; track_fx 68/0 in both worlds, audit PASS.
 323. 2026-11-26 — Alex Nguyen — Removed World 2's fourth team slot per the owner's ruling: Team of 3 in both worlds (rules first, migration rule for a stored W2 team of 4, tests red then green offline), Team panel, TeamHud row, boss team and welcome popup now match World 1.
+324. 2026-11-26 — Alex Nguyen — Merged World 2's return to a Team of 3 into the World 2 branch; Studio World 2: world2_team 43/43, team 45/45, team_bonus 17/17, team_fill 16/16, boss_event 1870/1870, world2_cast 121/121, world2_welcome 24/24, world2_sendback 23/23; ui_team and ui_boss failures are the same on the base (logged in BUGS).
 
 ## What's next
 **Land the World 2 square-spiral layout together with the scenery refit (orch/world2/w2-wide-layout and orch/world2/w2-refit), then run the World 2 track tests in Studio.**

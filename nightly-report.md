@@ -9,6 +9,7 @@
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- Team of 3 in World 2: merged (slot 4 gone from rules, server, Team page, HUD, boss team, welcome popup; a stored 4th member stays owned, the team loads its first 3). Studio World 2: 8 ServerTests all green (boss_event 1870/1870); 5 of 7 UiTests green, ui_team and ui_boss fail the same on the base (BUGS). World 1 Studio was not open, so not run there; offline both worlds green.
 - Track effects draft: merged into the World 2 branch with LIVE off (smoke and haze on 9 tracks, drakes on 3, a spirit eel on Track 4, sway/bob/flicker); 8 assets uploaded, moderation Approved; track_fx 68/0 both worlds; audit PASS. Not seen in Studio yet.
 - Skies: merged orch/world2/w2-skies into the World 2 branch after the owner approved the pictures ("skies merge is fine, approved"); world2_skies 81/81, audit's one finding (the owner's merge gate) written into the spec.
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
