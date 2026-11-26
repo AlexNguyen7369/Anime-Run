@@ -315,8 +315,9 @@
 280. 2026-11-25 — Alex Nguyen — Proposed Track 6's lit landmark from pieces it already places (a Mansion turned to the bend's axis in place of an Apaato, one more Office tower at the finish), re-exported with --no-glb and rendered; merged after the owner's approval (choice E, 2026-11-26) at the renders.
 281. 2026-11-26 — Alex Nguyen — Started the World 2 wide-layout round: owner ruling (about 600 studs between tracks, straight allowed) recorded as owner question 36, and layout, impact and render-audit tasks sent to agents 1-3.
 294. 2026-11-26 — Alex Nguyen — Proposed three wider World 2 layouts measured against the owner's 600-stud road gap (current chain 41; wide spiral 620, zigzag rows 663, square spiral 643), with plans and a tool, recommending the square spiral of long straights.
+295. 2026-11-26 — Alex Nguyen — Laid World 2's chain out as the square spiral of long straights (option C, the lead's pick under the owner's nightly pre-approval): rules first, World 2's own track briefs and a 600-stud road-gap check red then green, exact terrain distances past the stamp so the seam sits on the wider gap midline; World 1 unchanged.
 
 ## What's next
-**Implement the World 2 layout option the lead picks (recommended C, square spiral of long straights) on orch/world2/w2-wide-layout: new Segments in the ten World 2 track files, the lead's rule entries, track tests and TrackValidator green, chain_check.json and the offline lune scenarios.**
+**Re-fit World 2's scenery, hero moves and kaiju rows to the new roads (agent-3's impact map), then run the full World 2 Studio pass (track:<W2 brief> with the runner at normal and max speed, chain, spawn_area) on orch/world2/w2-wide-layout.**
 
-**Why this is next:** the owner ruled World 2's tracks too close; scenery refits (agent-3's map), hero moves and the kaiju rows all depend on the new road positions.
+**Why this is next:** every World 2 draft placement still sits on the old routes (biome harness PIN and ROAD fails), and the runner and live-overlap checks of the new briefs only run in Studio; the World 2 PR waits on both.
