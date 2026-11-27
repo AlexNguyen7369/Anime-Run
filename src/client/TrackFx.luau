@@ -86,7 +86,11 @@ end
 local state = nil -- { Number, Spec, Model, Origin, Waypoints, Theme, Folder, Emitters, Moving, Lights, Dragons, Conns }
 -- From the chain at Start (TrackFxPlan): every track's origin and every centre line, so nothing waits on a streamed part
 local origins, lines = nil, nil
-local spreads = {} -- emitter key -> { position, area } or false: an anchor's road-clear spread, worked out once
+local spreads = {}
+-- the ground under a haze anchor: the terrain only (a tree or a roof is not ground)
+local groundRay = RaycastParams.new()
+groundRay.FilterType = Enum.RaycastFilterType.Include
+groundRay.FilterDescendantsInstances = { workspace.Terrain } -- emitter key -> { position, area } or false: an anchor's road-clear spread, worked out once
 
 local function folderFor()
 	local folder = workspace:FindFirstChild("TrackFxClient")
@@ -135,11 +139,34 @@ local function refreshSmoke(props, camera)
 		local preset = Config.Presets[row.Preset]
 		local mine = {}
 		-- every spread kept off every road (WORLD2_SPEC "Track effects"): narrowed or moved once per anchor, or left out
+		local haze = row.Preset == "GroundHaze"
 		local function add(id, cf, area)
 			local key = tostring(r) .. "|" .. tostring(id)
 			if spreads[key] == nil then
-				local pos, clear = Plan.ClearSpread(cf.Position, area or preset.Area, lines)
-				spreads[key] = pos and { pos, clear } or false
+				-- haze reads from the run: only anchors on its own ground in Budget.HazeBand of its own road
+				if haze and not Plan.HazeBand(lines, cf.Position, state.Number) then
+					spreads[key] = false
+				else
+					local pos, clear = Plan.ClearSpread(cf.Position, area or preset.Area, lines)
+					if pos and haze then
+						-- haze rests on the ground under its anchor; kept for a later pick when the terrain is not in yet
+						local grounded = false
+						pos = Plan.GroundPoint(pos, clear, function(x, z)
+							local hit =
+								workspace:Raycast(Vector3.new(x, pos.Y + 400, z), Vector3.new(0, -1200, 0), groundRay)
+							grounded = hit ~= nil
+							return hit and hit.Position.Y
+						end)
+						if not grounded then
+							pos = nil
+						end
+					end
+					if pos then
+						spreads[key] = { pos, clear }
+					elseif not haze then
+						spreads[key] = false
+					end
+				end
 			end
 			local spread = spreads[key]
 			if spread then
@@ -187,6 +214,11 @@ local function refreshSmoke(props, camera)
 			if part then
 				part.Parent = state.Folder
 				state.Emitters[key] = part
+				-- a new haze emitter starts full (WORLD2_SPEC "Track effects"): one lifetime's worth at once
+				local n = Plan.Prewarm(i[1])
+				if n > 0 then
+					part:FindFirstChildWhichIsA("ParticleEmitter"):Emit(n)
+				end
 			end
 		end
 	end

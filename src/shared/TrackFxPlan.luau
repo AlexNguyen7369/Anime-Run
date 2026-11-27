@@ -342,6 +342,32 @@ function TrackFxPlan.ClearSpread(pos, area, lines)
 	return moved, small
 end
 
+-- A haze anchor that reads from the run (WORLD2_SPEC "Track effects", lead 2026-11-27): on its own track's ground and
+-- Budget.HazeBand studs from its own centre line
+function TrackFxPlan.HazeBand(lines, pos, own)
+	local n, d = TrackFxPlan.Owner(lines, pos.X, pos.Z)
+	local band = Config.Budget.HazeBand
+	return n == own and d >= band[1] and d <= band[2]
+end
+
+-- A haze box resting on the ground under its anchor: groundAt(x, z) gives the ground's height there (nil: none found,
+-- the anchor stays)
+function TrackFxPlan.GroundPoint(pos, area, groundAt)
+	local y = groundAt(pos.X, pos.Z)
+	if y == nil then
+		return pos
+	end
+	return Vector3.new(pos.X, y + area.Y / 2, pos.Z)
+end
+
+-- Particles a new emitter emits at once so it starts full: one lifetime's worth for a preset marked Prewarm, else 0
+function TrackFxPlan.Prewarm(preset)
+	if not preset.Prewarm then
+		return 0
+	end
+	return math.floor(preset.Rate * (preset.Lifetime[1] + preset.Lifetime[2]) / 2 + 0.5)
+end
+
 -- A dragon loop over its own track's ground (WORLD2_SPEC "Track effects"), its shape kept: the whole loop is shrunk about
 -- its foot on its own centre line (its side offset and its radius by the same factor) to the largest size whose every
 -- sampled point lies over its own track's ground by Budget.OwnMargin. Returns the control points (track-local, as

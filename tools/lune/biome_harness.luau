@@ -576,6 +576,53 @@ if process.env.WORLD == "2" then
 		end
 	end
 	print(string.format("W2 FX ORIGIN CHECKS pass=%d fail=%d", opass, ofail))
+	-- haze anchors (WORLD2_SPEC "Track effects", lead 2026-11-27): every GroundHaze row has anchors on its own ground
+	-- within Budget.HazeBand of its own road (Plan.HazeBand); DIAG lists every prop key in the band per haze biome
+	local Config = req(Shared.TrackFxConfig)
+	local chain = req(Shared.TrackRegistry).Chain()
+	local lines = Plan.CentreLines(req(Shared.TrackBuilder), chain, origins)
+	local biomeOf = {}
+	for _, spec in chain do
+		biomeOf[spec.Number] = spec.Biome
+	end
+	local hpass, hfail = 0, 0
+	for _, e in entries do
+		local theme = Config.Tracks[biomeOf[e.Number]]
+		local env = e.Model:FindFirstChild("Environment")
+		if theme and env then
+			local inBand, all = {}, {}
+			for _, m in env:GetChildren() do
+				local key = string.match(m.Name, "^Placed_") and Plan.PropName(m)
+				if key then
+					local cf = m:GetPivot()
+					all[key] = (all[key] or 0) + 1
+					if Plan.HazeBand and Plan.HazeBand(lines, cf.Position, e.Number) then
+						inBand[key] = (inBand[key] or 0) + 1
+					end
+				end
+			end
+			for _, row in theme.Smoke or {} do
+				if row.Preset == "GroundHaze" then
+					local n = inBand[row.Prop] or 0
+					if n > 0 then
+						hpass += 1
+					else
+						hfail += 1
+						print(string.format("W2 FX HAZE BAND FAIL track %d %s: no %s in band", e.Number, biomeOf[e.Number], row.Prop))
+					end
+					if process.env.FXDIAG then
+						local s = {}
+						for k, v in all do
+							table.insert(s, k .. "=" .. (inBand[k] or 0) .. "/" .. v)
+						end
+						table.sort(s)
+						print(string.format("FXDIAG track %d %s row %s: %s", e.Number, biomeOf[e.Number], row.Prop, table.concat(s, " ")))
+					end
+				end
+			end
+		end
+	end
+	print(string.format("W2 FX HAZE BAND CHECKS pass=%d fail=%d", hpass, hfail))
 end
 local spawnArea = R.Instance.new("Part") -- the plaza floor (SpawnArea.FLOOR_SIZE at the origin)
 spawnArea.Size = R.Vector3.new(188, 1, 220)

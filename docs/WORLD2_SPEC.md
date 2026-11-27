@@ -465,17 +465,17 @@ proposed.**
 | 1 ElvenPlains | Cottage: Chimney 4; Forest: GroundHaze 3 | 1 drake, green-bronze | Pine sway (2 deg, 4.6 s), 30 |
 | 2 DemonCastle | Smoke: SmokeColumn 4 (violet-black, magenta below); RuinB: Embers 3 and RubbleSmoke 3; Rampart: brazier Chimney 4 | 2 drakes, black-violet | Wyvern statues bob (3 studs, 6 s), 6; lamps flicker (fire) |
 | 3 RuinedCityZ | Collapsed: RubbleSmoke 4; OfficeBroken: RubbleSmoke 3; Rubble: GroundHaze 3 (dust) | none | none |
-| 4 HauntedTunnel | Cedar: GroundHaze 5 (cold mist); Portal: GroundHaze 2 | 1 spirit eel, pale cyan, see-through | Cedar sway (1.5 deg, 5.5 s), 30; lamps stutter and cut out |
+| 4 HauntedTunnel | Cedar: GroundHaze 5 (cold mist); House: GroundHaze 2 (was Portal, 2026-11-27) | 1 spirit eel, pale cyan, see-through | Cedar sway (1.5 deg, 5.5 s), 30; lamps stutter and cut out |
 | 5 KaijuBase | Smoke: SmokeColumn 4 (grey); GiantCorpse: Steam 2; Rubble: RubbleSmoke 4 | none | none |
 | 6 DevilTokyo | Konbini, ShopHouse: roof-vent Steam 4 each | none | CrossWire sway (0.8 deg, 3.8 s), 16; lamps buzz |
 | 7 AntIsland | IslandVolcano: SmokeColumn 1 (when it is placed); Camp: RubbleSmoke 3; ThatchHouse: Chimney 4 | 1 drake, rust | Ship bob (0.8 studs, 3 deg roll, 5 s), 10; Brush sway (3 deg), 24 |
 | 8 MonsterDen | LavaChasm: Steam 3 and Embers 3 (spread over the river); RockPillar: GroundHaze 4 | none (low ceiling) | lamps flicker |
 | 9 GoldenCity | Square: gold Motes 4 | none | none: the city is turned to solid gold (townsfolk, wagons and trees are gold statues caught mid-step, the approved draft's story), so smoke or sway would contradict it |
-| 10 HellGate | Hill: red GroundHaze 4, a little less opaque than the preset (below) | none | SkyDoor bob (4 studs, 9 s), 24; ArmA / ArmB sway (1.2 deg), 8 each |
+| 10 HellGate | Grass: red GroundHaze 4 (was Hill, 2026-11-27), a little less opaque than the preset (below) | none | SkyDoor bob (4 studs, 9 s), 24; ArmA / ArmB sway (1.2 deg), 8 each |
 
 Every World 2 track's approved scenery stays frozen: the effects change no layout, mesh or placement; they only add
 local particles and local motion on the approved props.
-- Track 10's red haze (owner 2026-11-26, design doc change log: "tone down track 10 red haze tiny bit"): its Hill
+- Track 10's red haze (owner 2026-11-26, design doc change log: "tone down track 10 red haze tiny bit"): its
   GroundHaze row draws a little less opaque than the GroundHaze preset, by the same ratio as first set (18% against 22%
   opaque, 0.818 of the preset's opacity): plateau transparency 0.63 against the preset's 0.55 (**proposed**, 2026-11-27).
   Only Track 10: the other tracks' haze rows keep the preset. A smoke row may carry its own `Transparency` keys
@@ -488,6 +488,17 @@ local particles and local motion on the approved props.
     inside the mesh (row Offset Y 1 or more, or X or Z 1 or more); the off-road rule still moves it. Exception: a row
     marked `Surface` starts on a surface inside its prop's box by design (Track 8's lava river).
   - Every preset stays drawn to at least 300 studs from the camera, so the road (60 to 200 studs off) always sees it.
+  - Ground haze sits on the ground (2026-11-27, **proposed**; Studio showed Track 10's haze emitters 9 to 16 studs under
+    the terrain): a GroundHaze emitter's box rests on the ground under its anchor (a downward ray from above the anchor
+    against the terrain; a tree or a roof is not ground; while the terrain is not loaded the anchor waits), its centre within 3 studs of that ground.
+  - Haze anchors read from the run (lead's choice 2026-11-27, **proposed**): a GroundHaze row uses only anchors on its
+    own track's ground whose distance to its own centre line is 60 to 250 studs (`Budget.HazeBand`), nearest the camera
+    first as before; a row's prop is one of its biome's props with anchors in that band. No portal on Track 4 and no hill on Track 10
+    stands in the band, so those rows move to the biome's prop with the most anchors there: Track 4 House (51 of 155),
+    Track 10 Grass (632 of 878). Offline: biome_harness WORLD=2 "W2 FX HAZE BAND CHECKS".
+  - A new GroundHaze emitter starts full (2026-11-27, **proposed**): on creation it emits one lifetime's worth at once
+    (Rate x mean Lifetime, rounded), so a re-pick while running never shows an empty patch for 15 seconds. The steady
+    budget is unchanged (the same particles a settled emitter holds).
 - Answered (owner 2026-11-26): the DemonCastle drakes stay as drafted ("demoncastle drakes are fine"), and the
   effects stay out of the game until the owner approves them (`LIVE` false).
 - Review note (likeness), answered: the DemonCastle drakes (Track 2, a Solo Levelup biome) are black-violet winged

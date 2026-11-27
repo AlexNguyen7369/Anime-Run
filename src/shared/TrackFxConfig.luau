@@ -25,6 +25,7 @@ TrackFxConfig.Budget = {
 	MinDragonClearance = 150, -- studs from any point of the dragon's path to its own track's centre line (3D)
 	MinLoopRadius = 120, -- studs: a dragon whose loop would have to shrink below this to stay over its own ground is not built
 	OwnMargin = 20, -- studs: every point of a dragon's loop is that much nearer its own centre line than any other track's
+	HazeBand = { 60, 250 }, -- studs from its own centre line a GroundHaze anchor may stand (lead 2026-11-27, proposed)
 	RoadClear = 24, -- studs: an emitter's spread stays this far (horizontal) from every centre line (the props rule)
 	MinSpread = 0.5, -- a spread too near a road narrows to this share of its width before the emitter moves away
 	EelOverlap = 1.6, -- neighbouring eel segments' mean length over the distance between their centres (wave counted)
@@ -218,6 +219,7 @@ TrackFxConfig.Presets = {
 	GroundHaze = {
 		Texture = "TrackFx_Haze",
 		Flipbook = false,
+		Prewarm = true, -- starts full: one lifetime emitted on creation (WORLD2_SPEC "Track effects", 2026-11-27)
 		Rate = 1.2, -- was 0.6: reads as light haze from the run camera (WORLD2_SPEC "Track effects", 2026-11-27)
 		Lifetime = { 14, 18 },
 		Speed = { 0.6, 1.4 },
@@ -411,8 +413,9 @@ TrackFxConfig.Tracks = {
 			},
 			{
 				Preset = "GroundHaze",
-				Prop = "Portal",
-				Offset = v(0, -0.9, -0.9),
+				-- was Portal (no portal 60-250 off the road): the biome's houses in the band (lead 2026-11-27, proposed)
+				Prop = "House",
+				Offset = v(0, -0.9, 0),
 				Color = { hex("9AB0C8"), hex("B4C4D6") },
 				Max = 2,
 			},
@@ -577,7 +580,9 @@ TrackFxConfig.Tracks = {
 		Smoke = {
 			{
 				Preset = "GroundHaze",
-				Prop = "Hill",
+				-- was Hill (every hill past 250 off the road, its haze under the terrain): the biome's grass in the band
+				-- (lead 2026-11-27, proposed)
+				Prop = "Grass",
 				Offset = v(0, -0.6, 0),
 				Color = { hex("C8504A"), hex("D8786A") },
 				-- a little less opaque than GroundHaze (plateau 0.55): 0.818 of its opacity, the ratio of owner 2026-11-26

@@ -395,8 +395,10 @@
 392. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
 393. 2026-11-27 — Alex Nguyen — Moved World 2's Elf Mage and Golden King arena site to (0, 1200, -7700) so it keeps 1,500 studs from the wide layout's baseplate (rule first, harness row red then green, World 1 unchanged); reported the sky arena's fixed height against the ChainTower and the King's empty arena-id list as rulings for the lead.
 394. 2026-11-27 — Alex Nguyen — Raised World 2's sky boss arena to y 2,340 (owner "Raise World 2's arena"), rule and harness row first; World 2 Studio on 8664f262: boss_arena 155/0, boss_event 1870/0, boss_mage_arena 87/0, ui_boss 487/487, arena pictures saved; the King's empty arena-id list logged in BUGS as pre-existing.
+395. 2026-11-27 — Alex Nguyen — Made World 2's track effects visible for the owner's pictures (074041ef): haze plateau 0.55 at rate 1.2 with Track 10 kept at 0.818 of its opacity, 9 smoke rows lifted to their prop tops, cull checked at 300+ studs; tests red first, track_fx 92/0 and 122/0; Studio pictures of Tracks 2, 4, 5 and 7 sent to the owner page.
+396. 2026-11-27 — Alex Nguyen — Ground haze rests on the terrain under its anchor, uses only anchors 60-250 studs from its own road (lead's choice; Track 4 Portal to House, Track 10 Hill to Grass) and starts full on creation; rule and tests red first, track_fx 106/0 and 136/0, harness haze-band check added; LIVE stays false.
 
 ## What's next
-**The lead merges orch/world2/w2-arena-fix into feature/alex/world2-place and reruns the World 2 PR's Studio pass.**
+**Retake Track 10's red haze and Track 7 in World 2 Studio on orch/world2/w2-fx-visible with LIVE injected in the test session only, and send the pictures to agent-1 for the owner page.**
 
-**Why this is next:** the three boss-arena failures were the remaining reds of that pass besides the pre-existing King arena ids.
+**Why this is next:** the owner approves the track effects from those pictures; Track 10's haze was the one effect not yet seen.

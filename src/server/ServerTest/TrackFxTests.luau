@@ -65,7 +65,7 @@ function Tests.track_fx()
 	flag("presets_within_caps", presetsOk)
 
 	-- Track 10's red haze a little less opaque (owner 2026-11-26: "tone down track 10 red haze tiny bit", WORLD2_SPEC
-	-- "Track effects"): its Hill GroundHaze row's own keys replace the preset's; every other smoke row keeps its preset's
+	-- "Track effects"): its GroundHaze row's own keys replace the preset's; every other smoke row keeps its preset's
 	local function minT(keys)
 		local m = 1
 		for _, k in keys do
@@ -76,7 +76,7 @@ function Tests.track_fx()
 	local haze = Config.Presets.GroundHaze
 	local hellRow
 	for _, row in (Config.Tracks.HellGate or {}).Smoke or {} do
-		if row.Preset == "GroundHaze" and row.Prop == "Hill" then
+		if row.Preset == "GroundHaze" then
 			hellRow = row
 		end
 	end
@@ -116,6 +116,64 @@ function Tests.track_fx()
 	end
 	table.sort(inside)
 	flag("rising_rows_start_outside_their_prop", #inside == 0, #inside == 0 and 0 or table.concat(inside, " "), 0)
+
+	-- haze on the ground, read from the run, starting full (WORLD2_SPEC "Track effects", 2026-11-27)
+	local band = Config.Budget.HazeBand
+	flag(
+		"haze_band_60_250",
+		band ~= nil and band[1] == 60 and band[2] == 250,
+		band and (band[1] .. "-" .. band[2]) or "nil",
+		"60-250"
+	)
+	local mock = { -- track 1 along x at z 0, track 2 along x at z 600
+		Lines = {
+			{ Number = 1, Points = { Vector3.new(0, 0, 0), Vector3.new(1000, 0, 0) } },
+			{ Number = 2, Points = { Vector3.new(0, 0, 600), Vector3.new(1000, 0, 600) } },
+		},
+		Grid = {},
+	}
+	local hb = Plan.HazeBand
+	flag("haze_band_fn", hb ~= nil)
+	if hb then
+		flag("haze_band_too_near", hb(mock, Vector3.new(500, 0, 30), 1) == false)
+		flag(
+			"haze_band_inside",
+			hb(mock, Vector3.new(500, 0, 120), 1) == true and hb(mock, Vector3.new(500, 0, -240), 1) == true
+		)
+		flag("haze_band_too_far", hb(mock, Vector3.new(500, 0, -280), 1) == false)
+		flag("haze_band_other_ground", hb(mock, Vector3.new(500, 0, 400), 1) == false)
+	end
+	local gp = Plan.GroundPoint
+	flag("ground_point_fn", gp ~= nil)
+	if gp then
+		local area = haze.Area
+		local onGround = gp(Vector3.new(10, -15, 10), area, function()
+			return -1
+		end)
+		flag("haze_within_3_of_ground", math.abs(onGround.Y - -1) <= 3, math.floor(onGround.Y * 10) / 10, -1)
+		flag("haze_ground_keeps_xz", onGround.X == 10 and onGround.Z == 10)
+		local high = gp(Vector3.new(0, 40, 0), area, function()
+			return 12
+		end)
+		flag("haze_ground_lifts_and_drops", math.abs(high.Y - 12) <= 3, high.Y, 12)
+		local none = gp(Vector3.new(0, 5, 0), area, function()
+			return nil
+		end)
+		flag("haze_no_ground_keeps_anchor", none.Y == 5)
+	end
+	local pw = Plan.Prewarm
+	flag("prewarm_fn", pw ~= nil)
+	if pw then
+		local want = math.floor(haze.Rate * (haze.Lifetime[1] + haze.Lifetime[2]) / 2 + 0.5)
+		flag("haze_prewarm_one_lifetime", pw(haze) == want, pw(haze), want)
+		local others = 0
+		for name, p in Config.Presets do
+			if name ~= "GroundHaze" and pw(p) ~= 0 then
+				others += 1
+			end
+		end
+		flag("only_haze_prewarms", others == 0, others, 0)
+	end
 	local othersKeep = Plan.Transparency ~= nil
 	for key, track in Config.Tracks do
 		for _, row in track.Smoke or {} do
