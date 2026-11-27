@@ -1223,6 +1223,36 @@ do
 		print(string.format("PLATE TILES FAIL a tile is %.2f studs, over a part's 2048", big))
 	end
 	print(string.format("PLATE TILES CHECKS pass=%d fail=%d (%d tiles)", pass, fail, #tiles))
+	-- Boss arena sites (BOSS_EVENT_SPEC "The Elf Mage", her site and the Golden King's): at least 1,500 studs from every
+	-- plate tile by BossMageTests' clear_of_world_1500 measure (the XZ distance from the site's centre to the part's centre,
+	-- less half the part's size; the tile is PLATE_Y studs thick, as the authored baseplate), and inside 8192. The sky
+	-- arena's site is fixed (+Z 7000, owner) and has no such check.
+	local Arena = req(Shared.BossArenaConfig)
+	local PLATE_Y = 16
+	for _, id in { "boss_mage", "boss_king" } do
+		local site = Arena.For(id)
+		local nearest, nearestName = math.huge, "none"
+		for _, t in tiles do
+			local d = (R.Vector2.new(t.Centre.X - site.Center.X, t.Centre.Y - site.Center.Z)).Magnitude
+				- R.Vector3.new(t.Size.X, PLATE_Y, t.Size.Y).Magnitude / 2
+			if d < nearest then
+				nearest, nearestName = d, t.Name
+			end
+		end
+		local reach = math.max(math.abs(site.Center.X), math.abs(site.Center.Z)) + site.WallRadius
+		local ok = nearest >= 1500 and reach < 8192
+		print(
+			string.format(
+				"ARENA SITE %s centre z %.0f: nearest tile %s %.1f (>= 1500), reach %.0f (< 8192)%s",
+				id,
+				site.Center.Z,
+				nearestName,
+				nearest,
+				reach,
+				ok and "" or " FAIL"
+			)
+		)
+	end
 end
 -- World 2's seam (WORLD2_SPEC "World 2 track layout"; TerrainShape.EXACT_FAR): with laps 760 apart the gap midline lies
 -- past the stamp, so the grid's nearest track and distance there must be the true ones (to the centre waypoints, <= 12

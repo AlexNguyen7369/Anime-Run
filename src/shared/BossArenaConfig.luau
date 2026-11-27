@@ -1,6 +1,7 @@
 --!nonstrict
 -- The boss arena's numbers and its closed lane routes (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena").
 local PathDriver = require(script.Parent.PathDriver)
+local WorldConfig = require(script.Parent.WorldConfig)
 
 local BossArenaConfig = {}
 
@@ -75,7 +76,9 @@ build(BossArenaConfig)
 -- The Elf Mage's colosseum (BOSS_EVENT_SPEC "The Elf Mage"), the same fields plus the wall and her hover. All proposed. -Z of the
 -- plaza, mirroring the sky arena's site: as clear of the world, and under 8192.
 local colosseum = { Y = 1200 }
-colosseum.Center = Vector3.new(0, colosseum.Y, -7000)
+-- World 2 (proposed 2026-11-27): 700 further -Z, since the wide layout's baseplate reaches z -5,640 and at -7000 its nearest
+-- tile came within 922 of the site (BossMageTests clear_of_world_1500); the King's wall (250) still reaches only 7,950.
+colosseum.Center = Vector3.new(0, colosseum.Y, WorldConfig.Id == 2 and -7700 or -7000)
 colosseum.InnerRadius = 70
 colosseum.Width = 56
 colosseum.Lanes = 7
