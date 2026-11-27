@@ -394,8 +394,9 @@
 391. 2026-11-26 — Alex Nguyen — Merged origin/main (239de24) into feature/alex/vm-skills for PR #30: handoff.md and current_progress.md conflicts resolved by keeping main's text, the VM section added on top and the two branch entries renumbered 268 and 269.
 392. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
 393. 2026-11-27 — Alex Nguyen — Moved World 2's Elf Mage and Golden King arena site to (0, 1200, -7700) so it keeps 1,500 studs from the wide layout's baseplate (rule first, harness row red then green, World 1 unchanged); reported the sky arena's fixed height against the ChainTower and the King's empty arena-id list as rulings for the lead.
+394. 2026-11-27 — Alex Nguyen — Raised World 2's sky boss arena to y 2,340 (owner "Raise World 2's arena"), rule and harness row first; World 2 Studio on 8664f262: boss_arena 155/0, boss_event 1870/0, boss_mage_arena 87/0, ui_boss 487/487, arena pictures saved; the King's empty arena-id list logged in BUGS as pre-existing.
 
 ## What's next
-**Run boss_mage_arena, boss_king_arena and boss_arena in World 2 Studio on orch/world2/w2-arena-fix, and get the lead's ruling on the sky arena's height check.**
+**The lead merges orch/world2/w2-arena-fix into feature/alex/world2-place and reruns the World 2 PR's Studio pass.**
 
-**Why this is next:** the World 2 PR's Studio pass needs those three server scenarios settled before it can go to main.
+**Why this is next:** the three boss-arena failures were the remaining reds of that pass besides the pre-existing King arena ids.
