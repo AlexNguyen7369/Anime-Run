@@ -1,3 +1,10 @@
+## RESUME HERE (2026-11-27 morning, VM): PR #33 open and approved by a fresh reviewer, waiting for the owner
+- PR #33 (feature/alex/world2-place cf46ddc5 -> main): World 2 round 2 (wide layout, re-fit, rendering fixes, team of 3, boss gate + Gojio, spawn floor, arenas, skies, effects LIVE off). Fresh review APPROVE; notes fixed. Owner said they approve in the morning: do NOT merge without them. World 1 Studio pass (spawn_area, world_layout, plaza_build, ui_team) still owed before merge; World 1 Studio was never open this round.
+- World 2 Studio final pass on 3f2f7863: ServerTest 92/1/11 (only boss_king_arena ids, red on main), UiTest 80/3 (known: run_visual throttling, Summon tile at rebirth 0).
+- Owner approval page: https://claude.ai/artifact/U5mBbHUiTqtNbVuRbVZ4ie (A fog band, B track effects).
+- Waiting branches: orch/world2/w2-edge-haze 86f36fd6 (fog band, owner's look first); orch/world2/w2-fx-visible 0f51991c (stronger haze/smoke, offline green, Studio check blocked: MCPs disconnected in every session; run /mcp).
+- Rojo serves /home/dev/Anime-Run detached at 0f51991c (agent-2's last request). Progress-merge helper: ~/.local/share/animerun/cpmerge.py.
+
 ## RESUME HERE (2026-11-26 evening, new VM alex-dev.avlis.dev): World 2 landing candidate nearly ready
 - Landing candidate: origin/orch/world2/w2-landing 9f452d68 = World 2 branch + square-spiral layout + scenery re-fit (all tracks 7+ blind) + mesh import-turn fix + world-aware cash checks + brighter lighting + baseplate tile overlap. Audits PASS (doc items fixed in cef1c58f). Studio final pass on c8af98ff: all 10 W2 track briefs green, 24/25 server scenarios, ui_team 71/71 first time.
 - Open before merging it into feature/alex/world2-place: agent-1 T7 ships on dry ground (orch/world2/w2-sea-edge, uncommitted work in /home/dev/AnimeRun-orch/w2-sea-edge; partial copy in ~/from-old-devbox), agent-1 ui_boss wait_view_held_throughout flake, agent-2 Studio seam check (world_layout 12/12).
