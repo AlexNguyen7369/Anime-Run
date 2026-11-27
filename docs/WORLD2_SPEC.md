@@ -335,7 +335,8 @@ written before the swap.
   thin Part layers `INSET` 25 studs inside the track's own edge, near solid (0.02) to 150 studs, then fading in 10-stud
   steps (0.12 to 0.93) to the top at 230 (nested full-height layers, long panels: Roblox drops small parts sooner with
   distance), in the current zone's horizon colour (`Atmosphere.Decay` of
-  `BiomeEnvironment.Profile`, the drawn sky about 2 degrees up); only the current zone's are built. A curtain point is where the line square to the road
+  `BiomeEnvironment.Profile`: the drawn sky about 2 degrees up where the track's own sky shows, Kit's lifted mid
+  colour elsewhere); only the current zone's are built. A curtain point is where the line square to the road
   meets the midline with another track (looked for up to `REACH` 700 studs out); none where no other track is that
   near, within `ROAD_CLEAR` 60 studs of any centre line (the joints between tracks) or inside the plaza. Checked offline
   by the biome harness `EDGE` rows (on the midline, off every road, in budget, the band dense and soft-topped, World 1

@@ -482,23 +482,27 @@ Atmosphere = {
 - `Shared/EdgeHaze.EdgesFor(polylines, n, plaza)`: track n's curtain segments along its own land edge, from the
   published `BiomeZone_<n>` polylines (5.1). At each polyline point the line square to the road on each side meets the
   midline with the nearest other track at t = |q - p|^2 / (2 (q - p) . n) (the point where it is as far from that
-  track's point q as from the road); the curtain stands `INSET` inside it. Constants: `STEP` 64, `REACH` 700, `INSET`
-  25, `ROAD_CLEAR` 60. `EdgeHaze.Panels(segments)` joins straight runs into panels of at most `PANEL_MAX` 1024 studs
+  track's point q as from the road); the curtain stands `INSET` inside it. Constants (proposed): points every
+  `TerrainShape.POLY_STEP` 64 studs, `REACH` 700, `INSET` 25, `ROAD_CLEAR` 60, `JUMP` 160 (neighbouring points farther
+  apart are not joined), `MID_TOL` 12 (a curtain point is kept within `MID_TOL`/2 of the midline; the harness allows
+  `MID_TOL`). `EdgeHaze.Panels(segments)` joins straight runs into panels of at most `PANEL_MAX` 1024 studs
   (every joined end within `PANEL_TOL` 6 studs of the panel's line): Roblox stops drawing small parts sooner with
   distance (in Studio a 128-stud panel vanished past about 580 studs while a 512-stud one still drew), so panels are
   kept long.
 - The band (`EdgeHaze.BANDS`, top in studs above the ground, transparency seen): 0.02 from just below the ground to
-  150, then 0.12 to 0.93 in eight 10-stud steps (0.12 more each) to the top at `HEIGHT` 230, so it reads as fog, not a
+  150, then 0.12, 0.24, 0.36, 0.48, 0.6, 0.72, 0.84 and 0.93 in eight 10-stud steps to the top at `HEIGHT` 230, so it reads as fog, not a
   box (15-stud steps showed in Studio). It is drawn as nested layers (`EdgeHaze.Layers()`), all from `BASE` (-3) to
   their step's top, `LAYER_GAP` 0.3 studs apart; one colour, so the seen transparency of a step is the product of the
   layers over it. Every layer is at least 153 studs tall: thin top strips were lost on far panels first and stepped the
   top line at corners (Studio 2026-11-27).
 - `Client/EdgeHaze`: World 2 only (`EdgeHaze.Enabled(WorldConfig.Id)`); thin anchored client-made Parts (SmoothPlastic,
   no collision, query, touch or shadow), one per panel and layer, in the current zone's (`BiomeEnvironment.CurrentZone`)
-  horizon colour (`Atmosphere.Decay`, the drawn sky about 2 degrees up; `Atmosphere.Color` stood out as an orange wall
+  horizon colour (`Atmosphere.Decay`: on a track whose own sky shows, Kit sets it to the drawn sky about 2 degrees
+  up; on the others it is Kit's lifted mid colour; `Atmosphere.Color` stood out as an orange wall
   against Track 7's dark sky); only the current zone's are built, the last zone's are removed. Beams are not used:
-  they do not draw past about 500 studs. Budget: at most 600 curtain segments and 1,500 fog parts a zone, 3,000
-  segments in all.
+  they do not draw past about 500 studs. Budget: at most 600 curtain segments (`ZONE_MAX`) and 1,500 fog parts
+  (`ZONE_PARTS_MAX`) a zone, 3,000 segments in all (`TOTAL_MAX`). Client constants (proposed): parts `THICK` 0.2 studs,
+  each panel `OVERLAP` 0.5 studs longer so bends leave no slit, standing on `GROUND` -1 (TerrainShape.GROUND_TOP).
 
 ## 6. Audio (client only)
 - Source: in-house loops and one-shots. Agents make them with python3 (numpy filtered noise, tones, layered and

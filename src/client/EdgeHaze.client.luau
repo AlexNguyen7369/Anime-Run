@@ -52,7 +52,8 @@ local LAYERS = EdgeHaze.Layers()
 
 local function build(zone)
 	local parts = {}
-	-- the Atmosphere's Decay: Kit sets it to the drawn sky about 2 degrees up, so the band meets the horizon in its colour
+	-- the Atmosphere's Decay: where the track's own sky shows, Kit sets it to the drawn sky about 2 degrees up, so the
+	-- band meets the horizon in its colour (elsewhere it is Kit's lifted mid colour)
 	-- (Atmosphere.Color stood out as an orange wall against Track 7's dark sky in Studio)
 	local color = Env.Profile(zone).Atmosphere.Decay
 	for i, panel in EdgeHaze.Panels(EdgeHaze.EdgesFor(polys, zone, plaza)) do
