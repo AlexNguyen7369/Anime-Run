@@ -333,7 +333,8 @@ written before the swap.
   view along the road and the sky stay as they are (the Atmosphere is unchanged: Density 0.22 and Haze 0.5 while a track
   sky shows, Kit `SKY_FOG`). Built client-only, World 2 only (`Client/EdgeHaze`, the panels from `Shared/EdgeHaze`):
   thin Part layers `INSET` 25 studs inside the track's own edge, near solid (0.02) to 150 studs, then fading in 10-stud
-  layers (0.12 to 0.93) to the top at 230, in the current zone's horizon colour (`Atmosphere.Decay` of
+  steps (0.12 to 0.93) to the top at 230 (nested full-height layers, long panels: Roblox drops small parts sooner with
+  distance), in the current zone's horizon colour (`Atmosphere.Decay` of
   `BiomeEnvironment.Profile`, the drawn sky about 2 degrees up); only the current zone's are built. A curtain point is where the line square to the road
   meets the midline with another track (looked for up to `REACH` 700 studs out); none where no other track is that
   near, within `ROAD_CLEAR` 60 studs of any centre line (the joints between tracks) or inside the plaza. Checked offline

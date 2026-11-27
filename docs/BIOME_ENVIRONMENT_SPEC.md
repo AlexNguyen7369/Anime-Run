@@ -483,11 +483,16 @@ Atmosphere = {
   published `BiomeZone_<n>` polylines (5.1). At each polyline point the line square to the road on each side meets the
   midline with the nearest other track at t = |q - p|^2 / (2 (q - p) . n) (the point where it is as far from that
   track's point q as from the road); the curtain stands `INSET` inside it. Constants: `STEP` 64, `REACH` 700, `INSET`
-  25, `ROAD_CLEAR` 60. `EdgeHaze.Panels(segments)` joins straight runs into panels of at most `PANEL_MAX` 512 studs
-  (every joined end within `PANEL_TOL` 2 studs of the panel's line).
-- The band (`EdgeHaze.BANDS`, bottom, top in studs above the ground, transparency): 0.02 from just below the ground to
-  150, then 0.12 to 0.93 in eight 10-stud layers (0.12 more each) to the top at `HEIGHT` 230, so it reads as fog, not a
-  box (15-stud steps showed in Studio).
+  25, `ROAD_CLEAR` 60. `EdgeHaze.Panels(segments)` joins straight runs into panels of at most `PANEL_MAX` 1024 studs
+  (every joined end within `PANEL_TOL` 6 studs of the panel's line): Roblox stops drawing small parts sooner with
+  distance (in Studio a 128-stud panel vanished past about 580 studs while a 512-stud one still drew), so panels are
+  kept long.
+- The band (`EdgeHaze.BANDS`, top in studs above the ground, transparency seen): 0.02 from just below the ground to
+  150, then 0.12 to 0.93 in eight 10-stud steps (0.12 more each) to the top at `HEIGHT` 230, so it reads as fog, not a
+  box (15-stud steps showed in Studio). It is drawn as nested layers (`EdgeHaze.Layers()`), all from `BASE` (-3) to
+  their step's top, `LAYER_GAP` 0.3 studs apart; one colour, so the seen transparency of a step is the product of the
+  layers over it. Every layer is at least 153 studs tall: thin top strips were lost on far panels first and stepped the
+  top line at corners (Studio 2026-11-27).
 - `Client/EdgeHaze`: World 2 only (`EdgeHaze.Enabled(WorldConfig.Id)`); thin anchored client-made Parts (SmoothPlastic,
   no collision, query, touch or shadow), one per panel and layer, in the current zone's (`BiomeEnvironment.CurrentZone`)
   horizon colour (`Atmosphere.Decay`, the drawn sky about 2 degrees up; `Atmosphere.Color` stood out as an orange wall

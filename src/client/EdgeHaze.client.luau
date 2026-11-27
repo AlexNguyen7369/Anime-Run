@@ -3,7 +3,7 @@
 -- 5.4, docs/WORLD2_SPEC.md "Band-edge haze"): a near-solid soft fog band just inside the current zone's land edge, in
 -- its horizon colour, so the next track's skyline does not show from the run camera. Shared/EdgeHaze finds the panels from
 -- the published BiomeZone_<n> polylines; only the current zone's (Shared/BiomeEnvironment.CurrentZone) are built. Thin
--- Parts, one per panel and layer (EdgeHaze.BANDS): Beams do not draw past about 500 studs. Client only: nothing
+-- Parts, nested full-height layers per panel (EdgeHaze.Layers): Beams do not draw past about 500 studs. Client only: nothing
 -- replicates.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -45,9 +45,10 @@ local holder = Instance.new("Folder")
 holder.Name = "EdgeHaze"
 holder.Parent = Workspace
 
-local Y = -1 -- the ground (TerrainShape.GROUND_TOP)
-local OVERLAP = 0.5 -- studs added to a panel's length, so bends leave no slit
+local GROUND = -1 -- the ground (TerrainShape.GROUND_TOP)
 local THICK = 0.2
+local OVERLAP = 0.5 -- studs added to a panel's length, so bends leave no slit
+local LAYERS = EdgeHaze.Layers()
 
 local function build(zone)
 	local parts = {}
@@ -58,7 +59,9 @@ local function build(zone)
 		local mid = (panel.A + panel.B) / 2
 		local d = panel.B - panel.A
 		local along = Vector3.new(d.X, 0, d.Y).Unit
-		for _, band in EdgeHaze.BANDS do
+		local normal = Vector3.new(along.Z, 0, -along.X)
+		for k, layer in LAYERS do
+			local h = layer[1] - EdgeHaze.BASE
 			local p = Instance.new("Part")
 			p.Name = "Fog" .. i
 			p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch = true, false, false, false
@@ -66,13 +69,15 @@ local function build(zone)
 			p.Material = Enum.Material.SmoothPlastic
 			p.TopSurface, p.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
 			p.Color = color
-			p.Transparency = band[3]
-			p.Size = Vector3.new(d.Magnitude + OVERLAP, band[2] - band[1], THICK)
-			p.CFrame = CFrame.fromMatrix(Vector3.new(mid.X, Y + (band[1] + band[2]) / 2, mid.Y), along, Vector3.yAxis)
+			p.Transparency = layer[2]
+			p.Size = Vector3.new(d.Magnitude + OVERLAP, h, THICK)
+			local at = Vector3.new(mid.X, GROUND + EdgeHaze.BASE + h / 2, mid.Y)
+				+ normal * ((k - 1) * EdgeHaze.LAYER_GAP)
+			p.CFrame = CFrame.fromMatrix(at, along, Vector3.yAxis)
 			p.Parent = holder
 			table.insert(parts, p)
 		end
-		if i % 50 == 0 then
+		if i % 20 == 0 then
 			task.wait()
 		end
 	end

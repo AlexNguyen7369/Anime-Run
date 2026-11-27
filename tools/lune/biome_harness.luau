@@ -1095,21 +1095,37 @@ do
 		local EH = req(mod)
 		check(EH.Enabled(1) == false, "the edge haze is off in World 1")
 		check(EH.Enabled(2) == true, "the edge haze is on in World 2")
-		-- the dense fog band (owner 2026-11-27 "Dense fog band"): near solid at the ground, about 200 studs tall, layers
-		-- stacked without gaps and fading to the top so it reads as fog
+		-- the dense fog band (owner 2026-11-27 "Dense fog band"): near solid at the ground, about 200 studs tall, steps
+		-- rising and fading to the top so it reads as fog; drawn as nested full-height layers whose transparencies
+		-- multiply to each step (no thin strip a far panel loses before the rest)
 		local bands = EH.BANDS or {}
-		local stacked, fading = #bands >= 3, true
+		local rising, fading = #bands >= 3, true
 		for i = 2, #bands do
-			stacked = stacked and bands[i][1] == bands[i - 1][2]
-			fading = fading and bands[i][3] > bands[i - 1][3]
+			rising = rising and bands[i][1] > bands[i - 1][1]
+			fading = fading and bands[i][2] > bands[i - 1][2]
 		end
-		check(stacked and fading, "the fog band's layers stack without gaps and fade to the top")
-		check(#bands > 0 and bands[1][3] <= 0.1, "the fog band is near solid at the ground")
-		check(#bands > 0 and bands[#bands][3] >= 0.8, "the fog band's top layer is faint")
+		check(rising and fading, "the fog band's steps rise and fade to the top")
+		check(#bands > 0 and bands[1][2] <= 0.1, "the fog band is near solid at the ground")
+		check(#bands > 0 and bands[#bands][2] >= 0.8, "the fog band's top step is faint")
 		check(
-			#bands > 0 and EH.HEIGHT == bands[#bands][2] and EH.HEIGHT >= 180 and EH.HEIGHT <= 260,
+			#bands > 0 and EH.HEIGHT == bands[#bands][1] and EH.HEIGHT >= 180 and EH.HEIGHT <= 260,
 			"the fog band is about 200 studs tall"
 		)
+		local layers = type(EH.Layers) == "function" and EH.Layers() or {}
+		local seen, tall = #layers == #bands and #layers > 0, #layers > 0
+		for k, band in bands do
+			local through = 1
+			for j = k, #layers do
+				through *= layers[j][2]
+			end
+			seen = seen and layers[k] ~= nil and layers[k][1] == band[1] and math.abs(through - band[2]) < 1e-6
+		end
+		for _, layer in layers do
+			tall = tall and layer[1] - (EH.BASE or 0) >= bands[1][1]
+		end
+		check(seen, "the nested layers multiply to every step's transparency")
+		check(tall, "every layer is at least the near-solid height (no thin strip)")
+		check(type(EH.Panels) == "function", "Shared/EdgeHaze.Panels exists")
 		if process.env.WORLD == "2" then
 			local polys = {}
 			for _, e in entries do
@@ -1148,11 +1164,11 @@ do
 					#segs <= EH.ZONE_MAX,
 					string.format("track %d has %d curtains (at most %d)", n, #segs, EH.ZONE_MAX)
 				)
-				local panels = EH.Panels(segs)
+				local panels = type(EH.Panels) == "function" and EH.Panels(segs) or {}
 				panelsAll += #panels
 				check(
-					#panels * #bands <= EH.ZONE_PARTS_MAX,
-					string.format("track %d has %d fog parts (at most %d)", n, #panels * #bands, EH.ZONE_PARTS_MAX)
+					#panels > 0 and #panels * #bands <= (EH.ZONE_PARTS_MAX or 0),
+					string.format("track %d has %d fog parts (1 to %d)", n, #panels * #bands, EH.ZONE_PARTS_MAX or 0)
 				)
 				for k, pn in panels do
 					for _, q in { pn.A, pn.B, (pn.A + pn.B) / 2 } do

@@ -395,8 +395,9 @@
 392. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
 393. 2026-11-27 — Alex Nguyen — Added World 2's band-edge haze (owner 1a: low soft curtains just inside each track's land edge, client-only, in the zone's fog colour) with its harness check, and dropped the proposed sky-prop rule and its geometry check (owner 2c).
 394. 2026-11-27 — Alex Nguyen — Rebuilt World 2's band-edge haze as the owner's dense fog band: thin Part layers (near solid to 150 studs, soft 10-stud fade to 230) in each zone's horizon colour, straight curtain runs merged into panels, harness EDGE checks for the band and the part budget; Studio showed the Beam version never drew (zero width, under 500 studs only).
+395. 2026-11-27 — Alex Nguyen — Fixed the dense fog band's stepped top at corners: Studio showed Roblox drops small parts sooner with distance, so far panels lost their thin top strips; now nested full-height layers whose transparencies multiply to each step, and longer panels (1,024 studs, 6-stud tolerance; 305 panels in all), with EDGE checks proven red on the Beam and thin-strip builds.
 
 ## What's next
-**Owner review of the dense fog band pictures (T10 0.62 before/after, T10 0.9, T7 toward T5 before/after, one wide view of the band) before orch/world2/w2-edge-haze merges.**
+**Studio re-check of the dense fog band from Rojo on the final commit (T10 0.62 after, T7 toward T5 after, the wide view and a corner close-up), then the owner review pictures and captions.**
 
-**Why this is next:** the owner asked to see the pictures before it merges; the merge into feature/alex/world2-place, and a Studio run from the merged build, wait on that answer.
+**Why this is next:** the owner sees the pictures before orch/world2/w2-edge-haze merges, and they must come from the committed build, not an injected test.
