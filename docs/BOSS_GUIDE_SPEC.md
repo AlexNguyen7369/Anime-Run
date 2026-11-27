@@ -9,8 +9,8 @@ are the owner's too. Owner 2026-11-25 "yes to all": the lines below and popup la
 - `Shared/BossGateConfig` is the one source (gate spot S4, approved by the owner 2026-11-25 with the fuller layout; moved 1.5 studs toward the spawn, **proposed**; guide offset 21 right and 6 toward the spawn, his
   prompt's reach 8). He faces the spawn beside the gate, outside its 35.3-stud frame, on the side away from the Team altar, which moves to (-35.0, 76.4).
 - Static model, no collision, name label. World 2 loads his model because the rig wears it (4.47 "Models").
-- Off in the game: the gate stand-in is in the code behind `BossGateConfig.LIVE` and he behind `BossGuideConfig.LIVE`, both false until
-  the lead turns them on. He is built only while both are true; with the gate off, nothing of the gate is built either. Since
+- Off in the game: the gate stand-in is in the code behind `BossGateConfig.LIVE` and he behind `BossGuideConfig.LIVE`, both off until
+  turned on (now on in World 2 only, below). He is built only while both are true; with the gate off, nothing of the gate is built either. Since
   2026-11-26 (owner, WORLD_REDESIGN_SPEC 4.2) the gate's switch is on in World 2 only. Since 2026-11-26 (owner, design doc change
   log: "Approve 1-4", item 4) his is too: `BossGuideConfig.LIVE_IN` matches the gate's `LIVE_IN` (World 2 on, World 1 off), so
   he stands beside the World 2 gate and nowhere else.

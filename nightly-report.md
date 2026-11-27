@@ -250,6 +250,7 @@
 5. Full World 2 Studio pass on the PR candidate, then the World 2 PR into main with a fresh reviewer; merge on approval (owner's standing rule). World 1 Studio is not open.
 
 ### Done
+- PR #33 opened (World 2 round 2 into main) and freshly reviewed: APPROVE. Its notes fixed: world2_lighting and w2_mesh_turn now in the full suite (lune World 2 61/0 and 9/0), BOSS_GUIDE_SPEC wording. Reviewer suggests a World 1 Studio pass (spawn_area, world_layout, plaza_build, ui_team) before merging, since the spawn floor, scatter and plaza pieces touch World 1; World 1 Studio was not open.
 - ui_sidekicks order fix: ui_team left the Team page open past the Deploy/Discard question; fixed in the test only (2 new checks, one red on the old code). Studio in order: ui_team 73/0, ui_sidekicks 212/0 (was 34 fails). Merged (b48d3537).
 - Edge fog band (your 1a, dense band): built, Studio-checked (T9's city hidden from T10, T5's from T7, road view unchanged, no corner steps), audit PASS; on orch/world2/w2-edge-haze 86f36fd6, NOT merged until you approve the pictures.
 - UI fixes proven in a full Studio UiTestRun (79 pass / 4 fail, was 77/6): ui_team, ui_motion (hover restore) and ui_boss_mage_vfx now pass; left: ui_run_visual (throttled window), Summon tile at rebirth 0 (known), ui_sidekicks (Team panel left open by an earlier scenario, known order issue, being fixed). Merged into the World 2 branch.
@@ -260,7 +261,7 @@
 
 ### Blocked (needs you)
 - Approval page (private): https://claude.ai/artifact/U5mBbHUiTqtNbVuRbVZ4ie. Question A: approve the edge fog band (orch/world2/w2-edge-haze 86f36fd6)? Question B: approve the track effects (switch LIVE on)? Looks to confirm: World 2 sky arena at 2,340; plaza facing (no change needed).
-- PR #33 (World 2 round 2 into main): fresh review running; not merged, for your approval in the morning (your words). https://github.com/AlexNguyen7369/Anime-Run/pull/33
+- PR #33 (World 2 round 2 into main): fresh review MERGE REVIEW: APPROVE (no blocking items); not merged, for your approval in the morning (your words). https://github.com/AlexNguyen7369/Anime-Run/pull/33
 - Stronger smoke/haze (orch/world2/w2-fx-visible 0f51991c): offline green; its Studio check is blocked because the Studio and Blender MCPs disconnected in every session (tunnel and Studio are up). Run /mcp in each session to reconnect.
 
 ### Skipped
