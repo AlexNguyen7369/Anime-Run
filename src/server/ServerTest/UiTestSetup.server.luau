@@ -855,6 +855,11 @@ function setups.team_states(player)
 		teamAutoRollBefore[player] = { on = player:GetAttribute("AutoRoll") }
 	end
 	setAutoRoll(player, false)
+	-- Rolls kept during an earlier scenario's run wait (GachaService.FillTeam) until the player is on foot; stopping the
+	-- run above fires that fill on a deferred signal, which would land after SetTeam below and add a third member (seen in
+	-- the full UiTestRun, 2026-11-27). Let the signal run, then apply anything still waiting, before the A,B Team is set.
+	task.wait()
+	G.FillTeam(player)
 	unlockHud(player) -- checkPlace measures against the Bosses button, shown from rebirth 1 (c80e4de)
 	-- No Dojo squad since design doc 4.43 (GachaService.ShowcaseIds removed): nothing is excluded.
 	local data, squad, ids = player:FindFirstChild("GachaData"), {}, {}
