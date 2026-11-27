@@ -209,7 +209,7 @@ Open faults on my tracks:
 
 **Context.** Every track scores 5 to 7. Neighbours' tall pieces show in the run views: T10's doors and arms, its Abyss
 dome (now placed), T8's pillars, and clouds. These renders have no fog or draw distance. The proposed sky-prop rule
-(WORLD2_SPEC) checked by geometry (`sky_check.py`) finds 700 rows over 300 studs within 1,500 of another road:
+(WORLD2_SPEC) checked by geometry (`sky_check.py`, removed 2026-11-27 when the owner dropped the rule, "2c") finds 700 rows over 300 studs within 1,500 of another road:
 - T10 sky doors 545;
 - T8 rock pillars 116;
 - T2 smoke, wyverns and tower 20;

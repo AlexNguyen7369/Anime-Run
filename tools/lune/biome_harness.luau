@@ -1075,6 +1075,111 @@ do
 	table.insert(clear, { Min = centre - half, Max = centre + half })
 end
 TS.Prepare(entries, clear, { spawnArea })
+-- EDGE (BIOME_ENVIRONMENT_SPEC 5.4, WORLD2_SPEC "Band-edge haze", owner 2026-11-27 "1a"): Shared/EdgeHaze's curtains
+-- from the published polylines (TerrainShape.ZonePolyline, as BiomeZone_<n>): off in World 1; in World 2 each curtain end
+-- stands near its midline (as far from another track's centre line as from its own, within MID_TOL) on its own ground,
+-- every curtain point ROAD_CLEAR or more from every centre line and outside the plaza, within budget.
+do
+	local pass, fail = 0, 0
+	local function check(ok, name)
+		if ok then
+			pass += 1
+		else
+			fail += 1
+			print("EDGE FAIL " .. name)
+		end
+	end
+	local mod = Shared:FindFirstChild("EdgeHaze")
+	check(mod ~= nil, "Shared/EdgeHaze exists")
+	if mod then
+		local EH = req(mod)
+		check(EH.Enabled(1) == false, "the edge haze is off in World 1")
+		check(EH.Enabled(2) == true, "the edge haze is on in World 2")
+		if process.env.WORLD == "2" then
+			local polys = {}
+			for _, e in entries do
+				local list = {}
+				for x, z in string.gmatch(TS.ZonePolyline(e.Number) or "", "([^,;]+),([^;]+)") do
+					table.insert(list, R.Vector2.new(tonumber(x), tonumber(z)))
+				end
+				polys[e.Number] = list
+			end
+			local function lineDist(q, list)
+				local best = math.huge
+				for i = 2, #list do
+					local a2, b2 = list[i - 1], list[i]
+					local ab = b2 - a2
+					local t = math.clamp((q - a2):Dot(ab) / math.max(ab:Dot(ab), 1e-9), 0, 1)
+					best = math.min(best, (q - (a2 + ab * t)).Magnitude)
+				end
+				return best
+			end
+			local plaza = TS.PlazaRadius()
+			local total, worst = 0, 0
+			for n, list in polys do
+				local segs = EH.EdgesFor(polys, n, plaza)
+				total += #segs
+				check(
+					#segs <= EH.ZONE_MAX,
+					string.format("track %d has %d curtains (at most %d)", n, #segs, EH.ZONE_MAX)
+				)
+				for k, sg in segs do
+					for _, q in { sg.A, sg.B, (sg.A + sg.B) / 2 } do
+						local near, who = math.huge, nil
+						for m, other in polys do
+							local d = lineDist(q, other)
+							if d < near then
+								near, who = d, m
+							end
+						end
+						if near < EH.ROAD_CLEAR - 1 or who ~= n or q.Magnitude <= plaza then
+							check(
+								false,
+								string.format(
+									"track %d curtain %d point (%.0f, %.0f): %.0f from track %s's road",
+									n,
+									k,
+									q.X,
+									q.Y,
+									near,
+									tostring(who)
+								)
+							)
+						end
+					end
+					-- its midline point: as far from another track's centre line as from its own
+					local own, other = lineDist(sg.MidA, list), math.huge
+					for m, o in polys do
+						if m ~= n then
+							other = math.min(other, lineDist(sg.MidA, o))
+						end
+					end
+					worst = math.max(worst, math.abs(own - other))
+					if math.abs(own - other) > EH.MID_TOL then
+						check(
+							false,
+							string.format(
+								"track %d curtain %d midline point (%.0f, %.0f): %.0f from its road, %.0f from the next",
+								n,
+								k,
+								sg.MidA.X,
+								sg.MidA.Y,
+								own,
+								other
+							)
+						)
+					end
+				end
+			end
+			check(
+				total > 0 and total <= EH.TOTAL_MAX,
+				string.format("%d curtains in all (1 to %d)", total, EH.TOTAL_MAX)
+			)
+			print(string.format("EDGE curtains %d, worst midline offset %.1f studs", total, worst))
+		end
+	end
+	print(string.format("EDGE CHECKS pass=%d fail=%d", pass, fail))
+end
 -- PLATE (WORLD_REDESIGN_SPEC 3: the safety baseplate covers every track part plus the margin, 20 placeholder): Main
 -- builds the plate before the late tracks have parts, so its box is TrackBuilder.PlateBox (the terrain box and every
 -- track's Ground rect, from the layouts). Every built Ground tile's world box, grown by 20, must lie inside it (Studio
