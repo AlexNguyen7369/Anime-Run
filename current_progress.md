@@ -394,8 +394,9 @@
 391. 2026-11-26 — Alex Nguyen — Merged origin/main (239de24) into feature/alex/vm-skills for PR #30: handoff.md and current_progress.md conflicts resolved by keeping main's text, the VM section added on top and the two branch entries renumbered 268 and 269.
 392. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
 393. 2026-11-27 — Alex Nguyen — Added World 2's band-edge haze (owner 1a: low soft curtains just inside each track's land edge, client-only, in the zone's fog colour) with its harness check, and dropped the proposed sky-prop rule and its geometry check (owner 2c).
+394. 2026-11-27 — Alex Nguyen — Rebuilt World 2's band-edge haze as the owner's dense fog band: thin Part layers (near solid to 150 studs, soft 10-stud fade to 230) in each zone's horizon colour, straight curtain runs merged into panels, harness EDGE checks for the band and the part budget; Studio showed the Beam version never drew (zero width, under 500 studs only).
 
 ## What's next
-**Studio check of the band-edge haze from the run cameras (T10 at 0.62 and 0.9 without T9's city, T7's sea side without T5's far city, road views unchanged), with before and after pictures; confirm the curtains stand upright (EdgeHaze.client ALONG_AXIS).**
+**Owner review of the dense fog band pictures (T10 0.62 before/after, T10 0.9, T7 toward T5 before/after, one wide view of the band) before orch/world2/w2-edge-haze merges.**
 
-**Why this is next:** the haze is built and checked offline; only Studio shows whether it hides the neighbour skylines without changing the road view, which the owner's 1a asks for.
+**Why this is next:** the owner asked to see the pictures before it merges; the merge into feature/alex/world2-place, and a Studio run from the merged build, wait on that answer.

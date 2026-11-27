@@ -327,18 +327,19 @@ written before the swap.
   legal spot and is left out for now (owner, same words). **Open question**: the plaza's ground; the other heroes with no spot.
 - Sky props on the wide layout: **dropped** (owner 2026-11-27, "2c": rely on the fog). The proposed height rule (SKY_TOP 300
   unless SKY_FAR 1,500 from every other road) is not enforced and its geometry check (`sky_check.py`) is removed.
-- Band-edge haze (owner 2026-11-27, "1a", design log 2c31dbe1; **proposed** values): where one World 2 track's land meets
-  the next (the midline, where the nearer centre line changes), the haze thickens so the next track's skyline does not
-  show from a run camera; the view along the road and the sky stay as they are (the Atmosphere is unchanged: Density 0.22
-  and Haze 0.5 while a track sky shows, Kit `SKY_FOG`). Built client-only, World 2 only (`Client/EdgeHaze`, the curtain
-  points from `Shared/EdgeHaze`): a ring of low soft curtains (Beams, no texture) `INSET` 25 studs inside the track's own
-  edge, every `STEP` 64 studs along it, `HEIGHT` 260 studs tall, transparency 0.35 at the ground to 1 at the top, in the
-  current zone's fog colour (`Atmosphere.Color` of `BiomeEnvironment.Profile`); only the current zone's curtains draw.
-  A curtain point is where the line square to the road meets the midline with another track (looked for up to `REACH`
-  700 studs out); none where no other track is that near, within `ROAD_CLEAR` 60 studs of any centre line (the joints
-  between tracks) or inside the plaza. Checked offline by the biome harness `EDGE` rows (on the midline, off every road,
-  in budget, World 1 untouched) and in Studio from the run cameras (T10 at 0.62 and 0.9 without T9's city; T7's sea side
-  without T5's far city; the road views unchanged).
+- Band-edge haze (owner 2026-11-27, "1a", design log 2c31dbe1; then "Dense fog band (Recommended)", design log
+  8d2cded3; **proposed** values): where one World 2 track's land meets the next (the midline, where the nearer centre
+  line changes), a near-solid soft fog band stands so the next track's skyline does not show from a run camera; the
+  view along the road and the sky stay as they are (the Atmosphere is unchanged: Density 0.22 and Haze 0.5 while a track
+  sky shows, Kit `SKY_FOG`). Built client-only, World 2 only (`Client/EdgeHaze`, the panels from `Shared/EdgeHaze`):
+  thin Part layers `INSET` 25 studs inside the track's own edge, near solid (0.02) to 150 studs, then fading in 10-stud
+  layers (0.12 to 0.93) to the top at 230, in the current zone's horizon colour (`Atmosphere.Decay` of
+  `BiomeEnvironment.Profile`, the drawn sky about 2 degrees up); only the current zone's are built. A curtain point is where the line square to the road
+  meets the midline with another track (looked for up to `REACH` 700 studs out); none where no other track is that
+  near, within `ROAD_CLEAR` 60 studs of any centre line (the joints between tracks) or inside the plaza. Checked offline
+  by the biome harness `EDGE` rows (on the midline, off every road, in budget, the band dense and soft-topped, World 1
+  untouched) and in Studio from the run cameras (T10 at 0.62 and 0.9 without T9's city; T7's sea side without T5's far
+  city; the road views unchanged); pictures, with one wide view of the band, go to the owner before it merges.
 - Track 6 lit landmark (owner 2026-11-25, "lit landmarj approved"; renders went to the owner, who approved the merge (choice E, 2026-11-26)): at the bend
   (0.06 run camera) and the finish (0.9), from meshes the track already places, unchanged, on its own ground by base
   centre, touching no other track's prop: a Mansion with its lit balcony face to the bend's axis in place of one Apaato,

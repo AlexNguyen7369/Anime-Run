@@ -474,18 +474,26 @@ Atmosphere = {
 - Particles fade their Rate out over the first half and in over the second.
 - A new zone during a blend starts from the current mid-blend values.
 
-### 5.4 Band-edge haze (World 2 only; owner 2026-11-27 "1a"; values **proposed**)
-- A neighbour's skyline across the gap between two World 2 tracks is hidden by a thicker haze at the edge of the
-  current track's land (its midline with the next track), not by a thicker Atmosphere: the Atmosphere is one for the
-  whole view, so it would also fog the road ahead and the sky.
-- `Shared/EdgeHaze.Edges(polylines)`: per track, curtain segments along its own land edge, from the published
-  `BiomeZone_<n>` polylines (5.1). At each polyline point the line square to the road on each side meets the midline with
-  the nearest other track at t = |q - p|^2 / (2 (q - p) . n) (the point where it is as far from that track's point q as
-  from the road); the curtain stands `INSET` inside it. Constants: `STEP` 64, `REACH` 700, `INSET` 25, `ROAD_CLEAR` 60,
-  `HEIGHT` 260, transparency 0.35 to 1 (bottom to top).
-- `Client/EdgeHaze`: World 2 only (`EdgeHaze.Enabled(WorldConfig.Id)`); Beams between Attachments on one client-made
-  anchored part, `FaceCamera` off, upright; the current zone's (`BiomeEnvironment.CurrentZone`) curtains draw in its fog
-  colour, the others are off. Budget: at most 600 curtains a zone and 3,000 in all.
+### 5.4 Band-edge haze (World 2 only; owner 2026-11-27 "1a", then "Dense fog band (Recommended)"; values **proposed**)
+- A neighbour's skyline across the gap between two World 2 tracks is hidden by a near-solid soft fog band at the edge of
+  the current track's land (its midline with the next track), not by a thicker Atmosphere: the Atmosphere is one for the
+  whole view, so it would also fog the road ahead and the sky. A light tint was tried first (Beams, transparency 0.35
+  to 1) and did not hide the skylines in Studio; the owner then chose the dense band (2026-11-27).
+- `Shared/EdgeHaze.EdgesFor(polylines, n, plaza)`: track n's curtain segments along its own land edge, from the
+  published `BiomeZone_<n>` polylines (5.1). At each polyline point the line square to the road on each side meets the
+  midline with the nearest other track at t = |q - p|^2 / (2 (q - p) . n) (the point where it is as far from that
+  track's point q as from the road); the curtain stands `INSET` inside it. Constants: `STEP` 64, `REACH` 700, `INSET`
+  25, `ROAD_CLEAR` 60. `EdgeHaze.Panels(segments)` joins straight runs into panels of at most `PANEL_MAX` 512 studs
+  (every joined end within `PANEL_TOL` 2 studs of the panel's line).
+- The band (`EdgeHaze.BANDS`, bottom, top in studs above the ground, transparency): 0.02 from just below the ground to
+  150, then 0.12 to 0.93 in eight 10-stud layers (0.12 more each) to the top at `HEIGHT` 230, so it reads as fog, not a
+  box (15-stud steps showed in Studio).
+- `Client/EdgeHaze`: World 2 only (`EdgeHaze.Enabled(WorldConfig.Id)`); thin anchored client-made Parts (SmoothPlastic,
+  no collision, query, touch or shadow), one per panel and layer, in the current zone's (`BiomeEnvironment.CurrentZone`)
+  horizon colour (`Atmosphere.Decay`, the drawn sky about 2 degrees up; `Atmosphere.Color` stood out as an orange wall
+  against Track 7's dark sky); only the current zone's are built, the last zone's are removed. Beams are not used:
+  they do not draw past about 500 studs. Budget: at most 600 curtain segments and 1,500 fog parts a zone, 3,000
+  segments in all.
 
 ## 6. Audio (client only)
 - Source: in-house loops and one-shots. Agents make them with python3 (numpy filtered noise, tones, layered and

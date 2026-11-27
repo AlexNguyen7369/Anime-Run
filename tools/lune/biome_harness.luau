@@ -1095,6 +1095,21 @@ do
 		local EH = req(mod)
 		check(EH.Enabled(1) == false, "the edge haze is off in World 1")
 		check(EH.Enabled(2) == true, "the edge haze is on in World 2")
+		-- the dense fog band (owner 2026-11-27 "Dense fog band"): near solid at the ground, about 200 studs tall, layers
+		-- stacked without gaps and fading to the top so it reads as fog
+		local bands = EH.BANDS or {}
+		local stacked, fading = #bands >= 3, true
+		for i = 2, #bands do
+			stacked = stacked and bands[i][1] == bands[i - 1][2]
+			fading = fading and bands[i][3] > bands[i - 1][3]
+		end
+		check(stacked and fading, "the fog band's layers stack without gaps and fade to the top")
+		check(#bands > 0 and bands[1][3] <= 0.1, "the fog band is near solid at the ground")
+		check(#bands > 0 and bands[#bands][3] >= 0.8, "the fog band's top layer is faint")
+		check(
+			#bands > 0 and EH.HEIGHT == bands[#bands][2] and EH.HEIGHT >= 180 and EH.HEIGHT <= 260,
+			"the fog band is about 200 studs tall"
+		)
 		if process.env.WORLD == "2" then
 			local polys = {}
 			for _, e in entries do
@@ -1115,7 +1130,17 @@ do
 				return best
 			end
 			local plaza = TS.PlazaRadius()
-			local total, worst = 0, 0
+			local total, worst, panelsAll = 0, 0, 0
+			local function onOwnGround(q, n)
+				local near, who = math.huge, nil
+				for m, other in polys do
+					local d = lineDist(q, other)
+					if d < near then
+						near, who = d, m
+					end
+				end
+				return not (near < EH.ROAD_CLEAR - 1 or who ~= n or q.Magnitude <= plaza), near, who
+			end
 			for n, list in polys do
 				local segs = EH.EdgesFor(polys, n, plaza)
 				total += #segs
@@ -1123,6 +1148,31 @@ do
 					#segs <= EH.ZONE_MAX,
 					string.format("track %d has %d curtains (at most %d)", n, #segs, EH.ZONE_MAX)
 				)
+				local panels = EH.Panels(segs)
+				panelsAll += #panels
+				check(
+					#panels * #bands <= EH.ZONE_PARTS_MAX,
+					string.format("track %d has %d fog parts (at most %d)", n, #panels * #bands, EH.ZONE_PARTS_MAX)
+				)
+				for k, pn in panels do
+					for _, q in { pn.A, pn.B, (pn.A + pn.B) / 2 } do
+						local ok, near, who = onOwnGround(q, n)
+						if not ok then
+							check(
+								false,
+								string.format(
+									"track %d panel %d point (%.0f, %.0f): %.0f from track %s's road",
+									n,
+									k,
+									q.X,
+									q.Y,
+									near,
+									tostring(who)
+								)
+							)
+						end
+					end
+				end
 				for k, sg in segs do
 					for _, q in { sg.A, sg.B, (sg.A + sg.B) / 2 } do
 						local near, who = math.huge, nil
@@ -1175,7 +1225,15 @@ do
 				total > 0 and total <= EH.TOTAL_MAX,
 				string.format("%d curtains in all (1 to %d)", total, EH.TOTAL_MAX)
 			)
-			print(string.format("EDGE curtains %d, worst midline offset %.1f studs", total, worst))
+			print(
+				string.format(
+					"EDGE curtains %d, panels %d (%d fog parts), worst midline offset %.1f studs",
+					total,
+					panelsAll,
+					panelsAll * #bands,
+					worst
+				)
+			)
 		end
 	end
 	print(string.format("EDGE CHECKS pass=%d fail=%d", pass, fail))

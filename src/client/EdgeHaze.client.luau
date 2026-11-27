@@ -1,8 +1,10 @@
 --!nonstrict
--- Band-edge haze, World 2 only (owner 2026-11-27 "1a"; docs/BIOME_ENVIRONMENT_SPEC.md 5.4, docs/WORLD2_SPEC.md "Band-edge
--- haze"): low soft curtains just inside the current zone's land edge, in its fog colour, so the next track's skyline
--- does not show from the run camera. Shared/EdgeHaze finds them from the published BiomeZone_<n> polylines; only the
--- current zone's (Shared/BiomeEnvironment.CurrentZone) draw. Client only: nothing replicates.
+-- Band-edge fog, World 2 only (owner 2026-11-27 "1a", then "Dense fog band (Recommended)"; docs/BIOME_ENVIRONMENT_SPEC.md
+-- 5.4, docs/WORLD2_SPEC.md "Band-edge haze"): a near-solid soft fog band just inside the current zone's land edge, in
+-- its horizon colour, so the next track's skyline does not show from the run camera. Shared/EdgeHaze finds the panels from
+-- the published BiomeZone_<n> polylines; only the current zone's (Shared/BiomeEnvironment.CurrentZone) are built. Thin
+-- Parts, one per panel and layer (EdgeHaze.BANDS): Beams do not draw past about 500 studs. Client only: nothing
+-- replicates.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -17,10 +19,6 @@ if not EdgeHaze.Enabled(WorldConfig.Id) then
 end
 local Env = require(Shared:WaitForChild("BiomeEnvironment"))
 local TrackRegistry = require(Shared:WaitForChild("TrackRegistry"))
-
--- proposed, to confirm in Studio: a Beam with FaceCamera off lies in the plane of its run and its attachments' Axis;
--- the attachments' Axis runs along the edge so the curtain stands across the line of sight
-local ALONG_AXIS = true
 
 local numbers = {}
 for _, spec in TrackRegistry.Chain() do
@@ -43,74 +41,63 @@ for _, n in numbers do
 end
 local plaza = ReplicatedStorage:GetAttribute("PlazaRadius") or 0
 
-local holder = Instance.new("Part") -- the attachments' parent, never drawn
+local holder = Instance.new("Folder")
 holder.Name = "EdgeHaze"
-holder.Anchored, holder.CanCollide, holder.CanQuery, holder.CanTouch = true, false, false, false
-holder.Transparency = 1
-holder.Size = Vector3.one
-holder.CFrame = CFrame.identity
 holder.Parent = Workspace
 
 local Y = -1 -- the ground (TerrainShape.GROUND_TOP)
-local built = {} -- zone -> { Beam }
-
-local function attachment(at, along)
-	local a = Instance.new("Attachment")
-	local x = ALONG_AXIS and along or Vector3.new(along.Z, 0, -along.X) -- else across it, square to the edge
-	a.WorldCFrame = CFrame.fromMatrix(at, x, Vector3.yAxis)
-	a.Parent = holder
-	return a
-end
+local OVERLAP = 0.5 -- studs added to a panel's length, so bends leave no slit
+local THICK = 0.2
 
 local function build(zone)
-	local beams = {}
-	local color = Env.Profile(zone).Atmosphere.Color
-	for i, sg in EdgeHaze.EdgesFor(polys, zone, plaza) do
-		local mid = (sg.A + sg.B) / 2
-		local d = sg.B - sg.A
+	local parts = {}
+	-- the Atmosphere's Decay: Kit sets it to the drawn sky about 2 degrees up, so the band meets the horizon in its colour
+	-- (Atmosphere.Color stood out as an orange wall against Track 7's dark sky in Studio)
+	local color = Env.Profile(zone).Atmosphere.Decay
+	for i, panel in EdgeHaze.Panels(EdgeHaze.EdgesFor(polys, zone, plaza)) do
+		local mid = (panel.A + panel.B) / 2
+		local d = panel.B - panel.A
 		local along = Vector3.new(d.X, 0, d.Y).Unit
-		local beam = Instance.new("Beam")
-		beam.Name = "Curtain" .. i
-		beam.Attachment0 = attachment(Vector3.new(mid.X, Y, mid.Y), along)
-		beam.Attachment1 = attachment(Vector3.new(mid.X, Y + EdgeHaze.HEIGHT, mid.Y), along)
-		beam.Width0, beam.Width1 = d.Magnitude + 2, d.Magnitude + 2 -- a little overlap with the next
-		beam.FaceCamera = false
-		beam.Segments = 1
-		beam.Texture = ""
-		beam.Color = ColorSequence.new(color)
-		beam.Transparency = NumberSequence.new(EdgeHaze.BOTTOM, 1)
-		beam.LightInfluence = 1
-		beam.LightEmission = 0
-		beam.Enabled = false
-		beam.Parent = holder
-		table.insert(beams, beam)
+		for _, band in EdgeHaze.BANDS do
+			local p = Instance.new("Part")
+			p.Name = "Fog" .. i
+			p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch = true, false, false, false
+			p.CastShadow = false
+			p.Material = Enum.Material.SmoothPlastic
+			p.TopSurface, p.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+			p.Color = color
+			p.Transparency = band[3]
+			p.Size = Vector3.new(d.Magnitude + OVERLAP, band[2] - band[1], THICK)
+			p.CFrame = CFrame.fromMatrix(Vector3.new(mid.X, Y + (band[1] + band[2]) / 2, mid.Y), along, Vector3.yAxis)
+			p.Parent = holder
+			table.insert(parts, p)
+		end
 		if i % 50 == 0 then
 			task.wait()
 		end
 	end
-	return beams
+	return parts
 end
 
-local shown = nil
+local shown, parts = nil, {}
 local function show(zone)
 	if zone == shown then
 		return
 	end
-	if shown and built[shown] then
-		for _, b in built[shown] do
-			b.Enabled = false
-		end
-	end
 	shown = zone
+	for _, p in parts do
+		p:Destroy()
+	end
+	parts = {}
 	if type(zone) ~= "number" or zone <= 0 or not polys[zone] then
 		return
 	end
-	built[zone] = built[zone] or build(zone)
+	local made = build(zone)
 	if shown == zone then
-		local color = ColorSequence.new(Env.Profile(zone).Atmosphere.Color)
-		for _, b in built[zone] do
-			b.Color = color
-			b.Enabled = true
+		parts = made
+	else
+		for _, p in made do
+			p:Destroy()
 		end
 	end
 end

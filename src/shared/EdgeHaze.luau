@@ -1,18 +1,34 @@
 --!nonstrict
--- Band-edge haze (World 2 only; owner 2026-11-27 "1a", design log; docs/BIOME_ENVIRONMENT_SPEC.md 5.4, docs/WORLD2_SPEC.md
--- "Band-edge haze"; values proposed). Pure: where one track's land meets the next (the midline, where the nearer centre
--- line changes), a ring of low soft curtains thickens the haze, so the next track's skyline does not show from a run
--- camera while the road view and the sky stay as they are. Client/EdgeHaze draws them.
+-- Band-edge fog (World 2 only; owner 2026-11-27 "1a", then "Dense fog band (Recommended)", design log; docs/BIOME_ENVIRONMENT_SPEC.md
+-- 5.4, docs/WORLD2_SPEC.md "Band-edge haze"; values proposed). Pure: where one track's land meets the next (the midline,
+-- where the nearer centre line changes), a near-solid soft fog band about 200 studs tall stands just inside the land
+-- edge, so the next track's skyline does not show from a run camera while the road and the sky stay as they are.
+-- Client/EdgeHaze draws it as thin Part bands (Beams do not draw past about 500 studs).
 local EdgeHaze = {}
 
 EdgeHaze.REACH = 700 -- proposed: studs out from the road a midline is looked for; none past it (no track that near)
 EdgeHaze.INSET = 25 -- proposed: studs the curtain stands inside its own edge
 EdgeHaze.ROAD_CLEAR = 60 -- proposed: no curtain point nearer any centre line (the joints between tracks)
 EdgeHaze.JUMP = 160 -- studs: two neighbouring curtain points farther apart than this are not joined (a corner)
-EdgeHaze.HEIGHT = 260 -- proposed: studs tall
-EdgeHaze.BOTTOM = 0.35 -- proposed: transparency at the ground, fading to 1 at the top
-EdgeHaze.ZONE_MAX = 600 -- most curtains a zone
-EdgeHaze.TOTAL_MAX = 3000 -- most curtains in all
+-- proposed: the fog band's layers bottom to top, { bottom, top (studs above the ground), transparency }: near solid to
+-- 150, then a soft fade in 10-stud layers so it reads as fog, not a box (Studio 2026-11-27: 15-stud steps showed)
+EdgeHaze.BANDS = {
+	{ -3, 150, 0.02 },
+	{ 150, 160, 0.12 },
+	{ 160, 170, 0.24 },
+	{ 170, 180, 0.36 },
+	{ 180, 190, 0.48 },
+	{ 190, 200, 0.6 },
+	{ 200, 210, 0.72 },
+	{ 210, 220, 0.84 },
+	{ 220, 230, 0.93 },
+}
+EdgeHaze.HEIGHT = 230 -- the band's top (the last layer's)
+EdgeHaze.ZONE_MAX = 600 -- most curtain segments a zone
+EdgeHaze.TOTAL_MAX = 3000 -- most curtain segments in all
+EdgeHaze.PANEL_MAX = 512 -- studs: longest panel (straight run of segments drawn as one)
+EdgeHaze.PANEL_TOL = 2 -- studs: every joined segment end lies this near its panel's line
+EdgeHaze.ZONE_PARTS_MAX = 1500 -- most fog parts a zone (panels x layers)
 EdgeHaze.MID_TOL = 12 -- studs (tests): a curtain's midline point is this near as far from both centre lines
 
 -- The band-edge haze is World 2's only (World 1 keeps its spiral and its own look)
@@ -119,6 +135,54 @@ function EdgeHaze.EdgesFor(polys, n, plaza)
 		end
 	end
 	return segs
+end
+
+-- Straight runs of joined segments as single panels { A, B } (fewer parts): a run continues while each next segment
+-- starts where the last ended, the panel stays at most PANEL_MAX long and every segment end in it lies within
+-- PANEL_TOL of the panel's line
+function EdgeHaze.Panels(segs)
+	local panels = {}
+	local run = nil -- { points }
+	local function lineOk(points)
+		local a, b = points[1], points[#points]
+		local ab = b - a
+		local len = ab.Magnitude
+		if len > EdgeHaze.PANEL_MAX then
+			return false
+		end
+		if len < 1e-6 then
+			return true
+		end
+		local u = ab / len
+		for i = 2, #points - 1 do
+			local d = points[i] - a
+			if math.abs(d.X * u.Y - d.Y * u.X) > EdgeHaze.PANEL_TOL then
+				return false
+			end
+		end
+		return true
+	end
+	local function flush()
+		if run then
+			table.insert(panels, { A = run[1], B = run[#run] })
+		end
+		run = nil
+	end
+	for _, sg in segs do
+		if run and (run[#run] - sg.A).Magnitude < 1e-3 then
+			table.insert(run, sg.B)
+			if not lineOk(run) then
+				table.remove(run)
+				flush()
+				run = { sg.A, sg.B }
+			end
+		else
+			flush()
+			run = { sg.A, sg.B }
+		end
+	end
+	flush()
+	return panels
 end
 
 return EdgeHaze
