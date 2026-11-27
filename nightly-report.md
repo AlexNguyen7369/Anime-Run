@@ -250,6 +250,8 @@
 5. Full World 2 Studio pass on the PR candidate, then the World 2 PR into main with a fresh reviewer; merge on approval (owner's standing rule). World 1 Studio is not open.
 
 ### Done
+- UI fixes proven in a full Studio UiTestRun (79 pass / 4 fail, was 77/6): ui_team, ui_motion (hover restore) and ui_boss_mage_vfx now pass; left: ui_run_visual (throttled window), Summon tile at rebirth 0 (known), ui_sidekicks (Team panel left open by an earlier scenario, known order issue, being fixed). Merged into the World 2 branch.
+- Spawn-piece facing question withdrawn: Studio pictures show the plaza pieces already face as drafted.
 - Boss arenas (World 2): Mage/King site moved to -7700 (clear of the bigger baseplate), sky arena raised to y 2,340 above the ChainTower (your pick); Studio boss_arena 155/0, boss_event 1870/0, boss_mage_arena 87/0, ui_boss 487/487; King arena ids still empty (red on main too, needs its arena images uploaded). Audit PASS. Merged into the World 2 branch.
 
 ### Decisions I made for you
