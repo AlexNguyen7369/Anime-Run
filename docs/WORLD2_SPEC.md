@@ -476,9 +476,18 @@ proposed.**
 Every World 2 track's approved scenery stays frozen: the effects change no layout, mesh or placement; they only add
 local particles and local motion on the approved props.
 - Track 10's red haze (owner 2026-11-26, design doc change log: "tone down track 10 red haze tiny bit"): its Hill
-  GroundHaze row draws a little less opaque than the GroundHaze preset, its plateau transparency 0.82 (**proposed**;
-  the preset's 0.78, so at most 18% opaque instead of 22%). Only Track 10: the other tracks' haze rows keep the preset.
-  A smoke row may carry its own `Transparency` keys (TrackFxConfig), which replace its preset's.
+  GroundHaze row draws a little less opaque than the GroundHaze preset, by the same ratio as first set (18% against 22%
+  opaque, 0.818 of the preset's opacity): plateau transparency 0.63 against the preset's 0.55 (**proposed**, 2026-11-27).
+  Only Track 10: the other tracks' haze rows keep the preset. A smoke row may carry its own `Transparency` keys
+  (TrackFxConfig), which replace its preset's.
+- Seen in pictures (2026-11-27, to make the effects approvable; all **proposed**): Studio pictures from the run cameras
+  showed the drakes and the eel but no smoke and no haze. So:
+  - Ground haze reads as light haze from the run camera: GroundHaze plateau transparency 0.55 (was 0.78) and Rate 1.2
+    (was 0.6).
+  - A rising row (SmokeColumn, Chimney, RubbleSmoke, Steam, Embers) starts at its prop's top or outside its box, never
+    inside the mesh (row Offset Y 1 or more, or X or Z 1 or more); the off-road rule still moves it. Exception: a row
+    marked `Surface` starts on a surface inside its prop's box by design (Track 8's lava river).
+  - Every preset stays drawn to at least 300 studs from the camera, so the road (60 to 200 studs off) always sees it.
 - Answered (owner 2026-11-26): the DemonCastle drakes stay as drafted ("demoncastle drakes are fine"), and the
   effects stay out of the game until the owner approves them (`LIVE` false).
 - Review note (likeness), answered: the DemonCastle drakes (Track 2, a Solo Levelup biome) are black-violet winged
@@ -527,12 +536,11 @@ dragon_eel, motion_pine_sway, motion_ship_bob, motion_skydoor_bob, motion_flicke
 presets (the in-game look needs Studio).
 
 ### Tests
-- ServerTest `track_fx` (lune, both worlds; 2026-11-26: 80 checks in World 1, 106 in World 2 on today's routes, 110 on
-  the C layout): LIVE off by default, no real name in any ledger key or prompt, eel segments evenly spaced round the loop, World 1 never on, rows only for World 2 biomes, presets
+- ServerTest `track_fx` (lune, both worlds; 2026-11-27: 92 checks in World 1, 122 in World 2 on the landed layout): LIVE off by default, no real name in any ledger key or prompt, eel segments evenly spaced round the loop, World 1 never on, rows only for World 2 biomes, presets
   and every track's worst case inside the budget, anchors name props of the biome's approved draft, dragons capped and
   clear of the road, the nearest-first pick never past a cap, flicker in 0..1; since 2026-11-26 also every emitter's
   spread 24+ off every road, every dragon loop over its own ground, the eel's segments overlapping, and the chain
-  origins equal the live Starts in Studio (offline: biome_harness WORLD=2 "W2 FX ORIGIN CHECKS"); Track 10's haze row a little less opaque than its preset (at most 0.06 more transparent) and every other smoke row on its preset's keys.
+  origins equal the live Starts in Studio (offline: biome_harness WORLD=2 "W2 FX ORIGIN CHECKS"); Track 10's haze row 0.818 of its preset's opacity and every other smoke row on its preset's keys; since 2026-11-27 the haze plateau 0.55 at Rate 1.2, every preset drawn to 300+ studs, and every rising row starting at or outside its prop's box (Surface rows excepted); the effect meshes face as drafted (import turn).
 - Not run: Studio (needs LIVE on in a test session; the uploads are done), frame time on a phone.
 
 ## Cast in game (owner 2026-11-24; names, ids and the rules of design doc 4.47 approved; Chance values other than the Eternal cap **proposed**)

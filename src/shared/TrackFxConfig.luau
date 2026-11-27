@@ -218,7 +218,7 @@ TrackFxConfig.Presets = {
 	GroundHaze = {
 		Texture = "TrackFx_Haze",
 		Flipbook = false,
-		Rate = 0.6,
+		Rate = 1.2, -- was 0.6: reads as light haze from the run camera (WORLD2_SPEC "Track effects", 2026-11-27)
 		Lifetime = { 14, 18 },
 		Speed = { 0.6, 1.4 },
 		Acceleration = v(0.3, 0, 0),
@@ -226,7 +226,7 @@ TrackFxConfig.Presets = {
 		Drag = 0,
 		Size = { { 0, 30 }, { 1, 46 } },
 		Squash = { { 0, -0.55 }, { 1, -0.55 } }, -- wide and low
-		Transparency = { { 0, 1 }, { 0.25, 0.78 }, { 0.75, 0.78 }, { 1, 1 } },
+		Transparency = { { 0, 1 }, { 0.25, 0.55 }, { 0.75, 0.55 }, { 1, 1 } }, -- was 0.78
 		RotSpeed = { 0, 0 },
 		LightInfluence = 1,
 		LightEmission = 0,
@@ -270,7 +270,7 @@ TrackFxConfig.Presets = {
 }
 
 -- Per World 2 biome key (Shared/Tracks/World2 spec.Biome). Smoke rows: { Preset, Prop or At/Side/Lateral/Height,
--- Offset, Fill = part of the prop's box the emitter covers (optional, TrackFxPlan.Area), Transparency = keys replacing
+-- Offset (a rising row at the prop's top or outside its box), Surface (true: starts on a surface inside it by design), Fill = part of the prop's box the emitter covers (optional, TrackFxPlan.Area), Transparency = keys replacing
 -- the preset's (optional, TrackFxPlan.Transparency), Color = { bottom, top } colour
 -- keys, Max = most anchors of the row alive at once }. Dragons: { Kind
 -- "Drake"|"Eel", Color, At, Side, Lateral, Radius, Altitude, Period (s per lap), Phase }. Motion: { Prop, Kind
@@ -318,21 +318,21 @@ TrackFxConfig.Tracks = {
 			{
 				Preset = "SmokeColumn",
 				Prop = "Smoke",
-				Offset = v(0, 0.7, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("7A2A6A"), hex("241C28") },
 				Max = 4,
 			},
 			{
 				Preset = "Embers",
 				Prop = "RuinB",
-				Offset = v(0, 0.6, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("FF5FB8"), hex("FF9A3A") },
 				Max = 3,
 			},
 			{
 				Preset = "RubbleSmoke",
 				Prop = "RuinB",
-				Offset = v(0, 0.9, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("5A2A52"), hex("2A2230") },
 				Max = 3,
 			},
@@ -378,14 +378,14 @@ TrackFxConfig.Tracks = {
 			{
 				Preset = "RubbleSmoke",
 				Prop = "Collapsed",
-				Offset = v(0, 0.5, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("9A8E80"), hex("BEB3A4") },
 				Max = 4,
 			},
 			{
 				Preset = "RubbleSmoke",
 				Prop = "OfficeBroken",
-				Offset = v(0, 0.95, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("8A8278"), hex("B4ACA2") },
 				Max = 3,
 			},
@@ -440,21 +440,21 @@ TrackFxConfig.Tracks = {
 			{
 				Preset = "SmokeColumn",
 				Prop = "Smoke",
-				Offset = v(0, 0.7, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("8C8884"), hex("B8B4AE") },
 				Max = 4,
 			},
 			{
 				Preset = "Steam",
 				Prop = "GiantCorpse",
-				Offset = v(0, 0.6, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("F2F4F5"), hex("FFFFFF") },
 				Max = 2,
 			},
 			{
 				Preset = "RubbleSmoke",
 				Prop = "Rubble",
-				Offset = v(0, 0.6, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("8A8580"), hex("ADA8A2") },
 				Max = 4,
 			},
@@ -497,7 +497,7 @@ TrackFxConfig.Tracks = {
 			{
 				Preset = "RubbleSmoke",
 				Prop = "Camp",
-				Offset = v(0, 0.3, 0),
+				Offset = v(0, 1, 0),
 				Color = { hex("6E6258"), hex("A89A8A") },
 				Max = 3,
 			},
@@ -533,6 +533,7 @@ TrackFxConfig.Tracks = {
 				Preset = "Steam",
 				Prop = "LavaChasm",
 				Offset = v(0, 0, 0),
+				Surface = true, -- on the lava river, inside the chasm's box by design (WORLD2_SPEC "Track effects")
 				Fill = v(0.8, 0, 0.5),
 				Color = { hex("FF9A4A"), hex("7A5A50") },
 				Max = 3,
@@ -541,6 +542,7 @@ TrackFxConfig.Tracks = {
 				Preset = "Embers",
 				Prop = "LavaChasm",
 				Offset = v(0, 0, 0),
+				Surface = true, -- on the lava river, inside the chasm's box by design (WORLD2_SPEC "Track effects")
 				Fill = v(0.8, 0, 0.5),
 				Color = { hex("FF7A2A"), hex("FFC060") },
 				Max = 3,
@@ -578,9 +580,9 @@ TrackFxConfig.Tracks = {
 				Prop = "Hill",
 				Offset = v(0, -0.6, 0),
 				Color = { hex("C8504A"), hex("D8786A") },
-				-- a little less opaque than GroundHaze (plateau 0.78): owner 2026-11-26 "tone down track 10 red haze tiny
-				-- bit" (proposed)
-				Transparency = { { 0, 1 }, { 0.25, 0.82 }, { 0.75, 0.82 }, { 1, 1 } },
+				-- a little less opaque than GroundHaze (plateau 0.55): 0.818 of its opacity, the ratio of owner 2026-11-26
+				-- "tone down track 10 red haze tiny bit" (proposed)
+				Transparency = { { 0, 1 }, { 0.25, 0.63 }, { 0.75, 0.63 }, { 1, 1 } },
 				Max = 4,
 			},
 		},

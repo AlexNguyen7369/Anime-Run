@@ -84,8 +84,38 @@ function Tests.track_fx()
 	local hellMin = hellKeys and minT(hellKeys) or 0
 	local presetMin = minT(haze.Transparency)
 	flag("t10_haze_less_opaque", hellMin > presetMin, hellMin, presetMin)
-	flag("t10_haze_tiny_bit", hellMin - presetMin <= 0.06 + 1e-9, math.floor((hellMin - presetMin) * 1000) / 1000, 0.06)
-	flag("t10_haze_plateau_0_82", math.abs(hellMin - 0.82) < 1e-9, hellMin, 0.82)
+	-- the owner's "tiny bit" kept as a ratio: Track 10's haze opacity is 0.818 of the preset's (18% against 22%, 2026-11-26)
+	local ratio = (1 - hellMin) / math.max(1 - presetMin, 1e-6)
+	flag("t10_haze_opacity_ratio_0_818", math.abs(ratio - 0.18 / 0.22) <= 0.02, math.floor(ratio * 1000) / 1000, 0.818)
+	flag("t10_haze_plateau_0_63", math.abs(hellMin - 0.63) < 1e-9, hellMin, 0.63)
+
+	-- Seen in pictures (WORLD2_SPEC "Track effects", 2026-11-27): ground haze reads as light haze from the run camera
+	flag("haze_plateau_0_55", math.abs(presetMin - 0.55) < 1e-9, presetMin, 0.55)
+	flag("haze_rate_1_2", haze.Rate == 1.2, haze.Rate, 1.2)
+	-- every preset stays drawn to 300+ studs from the camera (the road sees it from 60 to 200)
+	local nearCull = {}
+	for name, p in Config.Presets do
+		if Plan.Cull(p) < 300 then
+			table.insert(nearCull, name .. " " .. Plan.Cull(p))
+		end
+	end
+	table.sort(nearCull)
+	flag("presets_drawn_from_the_road", #nearCull == 0, #nearCull == 0 and 0 or table.concat(nearCull, " "), 0)
+	-- a rising row starts at its prop's top or outside its box, never inside the mesh (Surface rows by design)
+	local RISING = { SmokeColumn = true, Chimney = true, RubbleSmoke = true, Steam = true, Embers = true }
+	local inside = {}
+	for key, track in Config.Tracks do
+		for _, row in track.Smoke or {} do
+			if RISING[row.Preset] and row.Prop and not row.Surface then
+				local o = row.Offset or Vector3.zero
+				if o.Y < 1 and math.abs(o.X) < 1 and math.abs(o.Z) < 1 then
+					table.insert(inside, key .. "/" .. row.Prop .. ":" .. row.Preset)
+				end
+			end
+		end
+	end
+	table.sort(inside)
+	flag("rising_rows_start_outside_their_prop", #inside == 0, #inside == 0 and 0 or table.concat(inside, " "), 0)
 	local othersKeep = Plan.Transparency ~= nil
 	for key, track in Config.Tracks do
 		for _, row in track.Smoke or {} do
