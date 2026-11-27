@@ -393,8 +393,9 @@
 390. 2026-11-26 — Alex Nguyen — Recorded the Linux VM's move to alex-dev.avlis.dev in handoff.md (ssh alias, host key, specs, Node.js 22, Claude Code, gh, build-essential, tmux and Blender display libraries installed) and committed the 2026-11-24 World 2 audit handoff section.
 391. 2026-11-26 — Alex Nguyen — Merged origin/main (239de24) into feature/alex/vm-skills for PR #30: handoff.md and current_progress.md conflicts resolved by keeping main's text, the VM section added on top and the two branch entries renumbered 268 and 269.
 392. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
+393. 2026-11-27 — Alex Nguyen — Added World 2's band-edge haze (owner 1a: low soft curtains just inside each track's land edge, client-only, in the zone's fog colour) with its harness check, and dropped the proposed sky-prop rule and its geometry check (owner 2c).
 
 ## What's next
-**Merge the landing candidate (orch/world2/w2-landing) into feature/alex/world2-place, merge origin/main into it, run the full Studio pass, then open the World 2 PR into main with a fresh reviewer.**
+**Studio check of the band-edge haze from the run cameras (T10 at 0.62 and 0.9 without T9's city, T7's sea side without T5's far city, road views unchanged), with before and after pictures; confirm the curtains stand upright (EdgeHaze.client ALONG_AXIS).**
 
-**Why this is next:** every landing item is now verified in Studio and audited; the PR to main is the last step of the World 2 goal.
+**Why this is next:** the haze is built and checked offline; only Studio shows whether it hides the neighbour skylines without changing the road view, which the owner's 1a asks for.

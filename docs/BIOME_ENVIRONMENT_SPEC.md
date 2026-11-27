@@ -474,6 +474,19 @@ Atmosphere = {
 - Particles fade their Rate out over the first half and in over the second.
 - A new zone during a blend starts from the current mid-blend values.
 
+### 5.4 Band-edge haze (World 2 only; owner 2026-11-27 "1a"; values **proposed**)
+- A neighbour's skyline across the gap between two World 2 tracks is hidden by a thicker haze at the edge of the
+  current track's land (its midline with the next track), not by a thicker Atmosphere: the Atmosphere is one for the
+  whole view, so it would also fog the road ahead and the sky.
+- `Shared/EdgeHaze.Edges(polylines)`: per track, curtain segments along its own land edge, from the published
+  `BiomeZone_<n>` polylines (5.1). At each polyline point the line square to the road on each side meets the midline with
+  the nearest other track at t = |q - p|^2 / (2 (q - p) . n) (the point where it is as far from that track's point q as
+  from the road); the curtain stands `INSET` inside it. Constants: `STEP` 64, `REACH` 700, `INSET` 25, `ROAD_CLEAR` 60,
+  `HEIGHT` 260, transparency 0.35 to 1 (bottom to top).
+- `Client/EdgeHaze`: World 2 only (`EdgeHaze.Enabled(WorldConfig.Id)`); Beams between Attachments on one client-made
+  anchored part, `FaceCamera` off, upright; the current zone's (`BiomeEnvironment.CurrentZone`) curtains draw in its fog
+  colour, the others are off. Budget: at most 600 curtains a zone and 3,000 in all.
+
 ## 6. Audio (client only)
 - Source: in-house loops and one-shots. Agents make them with python3 (numpy filtered noise, tones, layered and
   looped seamlessly, 30-60 s, OGG) in `assets/audio/<BiomeKey>/` and upload them under the owner's account (owner
