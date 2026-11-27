@@ -250,6 +250,7 @@
 5. Full World 2 Studio pass on the PR candidate, then the World 2 PR into main with a fresh reviewer; merge on approval (owner's standing rule). World 1 Studio is not open.
 
 ### Done
+- Boss arenas (World 2): Mage/King site moved to -7700 (clear of the bigger baseplate), sky arena raised to y 2,340 above the ChainTower (your pick); Studio boss_arena 155/0, boss_event 1870/0, boss_mage_arena 87/0, ui_boss 487/487; King arena ids still empty (red on main too, needs its arena images uploaded). Audit PASS. Merged into the World 2 branch.
 
 ### Decisions I made for you
 

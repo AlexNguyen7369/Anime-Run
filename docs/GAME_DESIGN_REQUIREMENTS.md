@@ -862,7 +862,7 @@ the owner before any build. Spec: `docs/UI_SCROLL_SPEC.md`. Every size, timing a
   day: first "edit world2 ui to be old hud instead of scroll hud, gui can stay" (old HUD in World 2 only,
   `HudPlaque.Old = WorldConfig.Id == 2`), then the "World 2's UI is World 1's" ruling above (option A in both), then
   this one. Panels, pages, popups, toasts, banners and the boss event UI keep the Scroll Dojo look in both worlds.
-- Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged, with a team of 3 as in
+- Boss events in World 2 (owner 2026-11-24): World 1's boss events run in World 2 unchanged (except the sky arena's height, World 2 about 2,330, owner 2026-11-27), with a team of 3 as in
   World 1 (owner 2026-11-26; *replaced: "with the World 2 team of 4"*); no World 2 bosses yet.
 - Roster: Saw Man and Solo Levelup (the 12, owner 2026-11-05), Void Saitamo, and full casts for One Punch, Dandadan,
   Kaiju No. 8 and Frieren (owner 2026-11-23). World 2 rolls only World 2 characters.
