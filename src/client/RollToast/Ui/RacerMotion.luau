@@ -86,6 +86,9 @@ function Motion.Attach(root)
 				animate(0.94)
 				task.delay(0.08, function()
 					if object.Parent and object.Visible then
+						-- A click that closes the button's panel hides it through an ancestor: MouseLeave never fires and
+						-- `hovering` stays true, so the engine's own hover state decides (World2Welcome's OK stayed at 1.035)
+						hovering = hovering and object.GuiState == Enum.GuiState.Hover
 						animate(hovering and 1.035 or 1)
 					end
 				end)
