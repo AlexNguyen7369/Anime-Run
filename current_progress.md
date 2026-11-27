@@ -393,8 +393,9 @@
 390. 2026-11-26 — Alex Nguyen — Recorded the Linux VM's move to alex-dev.avlis.dev in handoff.md (ssh alias, host key, specs, Node.js 22, Claude Code, gh, build-essential, tmux and Blender display libraries installed) and committed the 2026-11-24 World 2 audit handoff section.
 391. 2026-11-26 — Alex Nguyen — Merged origin/main (239de24) into feature/alex/vm-skills for PR #30: handoff.md and current_progress.md conflicts resolved by keeping main's text, the VM section added on top and the two branch entries renumbered 268 and 269.
 392. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
+393. 2026-11-27 — Alex Nguyen — Moved World 2's Elf Mage and Golden King arena site to (0, 1200, -7700) so it keeps 1,500 studs from the wide layout's baseplate (rule first, harness row red then green, World 1 unchanged); reported the sky arena's fixed height against the ChainTower and the King's empty arena-id list as rulings for the lead.
 
 ## What's next
-**Merge the landing candidate (orch/world2/w2-landing) into feature/alex/world2-place, merge origin/main into it, run the full Studio pass, then open the World 2 PR into main with a fresh reviewer.**
+**Run boss_mage_arena, boss_king_arena and boss_arena in World 2 Studio on orch/world2/w2-arena-fix, and get the lead's ruling on the sky arena's height check.**
 
-**Why this is next:** every landing item is now verified in Studio and audited; the PR to main is the last step of the World 2 goal.
+**Why this is next:** the World 2 PR's Studio pass needs those three server scenarios settled before it can go to main.
