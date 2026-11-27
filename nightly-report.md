@@ -239,3 +239,20 @@
 ### Blocked (needs you)
 
 ### Skipped
+
+## Nightly run 2026-11-27 (second night)
+
+### Queue
+1. Boss arenas: World 2 Mage/King site moved past the bigger baseplate; World 2 sky arena raised above the ChainTower (owner "Raise World 2's arena") (agent-1).
+2. UI fixes from the PR pass: ui_team order, RacerMotion hover restore, Mage beam sampler (agent-2, orch/world2/w2-ui-triage) - Studio proof in a full UiTestRun.
+3. Dense edge fog band (owner pick) - built and pictured; it merges only after the owner sees the pictures (owner's own gate).
+4. Owner pictures: spawn-piece facing, track effects on the new layout (approval page).
+5. Full World 2 Studio pass on the PR candidate, then the World 2 PR into main with a fresh reviewer; merge on approval (owner's standing rule). World 1 Studio is not open.
+
+### Done
+
+### Decisions I made for you
+
+### Blocked (needs you)
+
+### Skipped
