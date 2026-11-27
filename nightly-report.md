@@ -3,6 +3,7 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- (ANSWERED 2026-11-27 "1a, 2c. approved": band-edge haze; sky-prop rule dropped; looks and lead calls approved.)
 - Neighbour skylines: with 656+ stud gaps, a track's tall far scenery can still be seen across open ground: Track 5's far city (offices, smoke) from Track 7's sea side at 400-1,000 studs, Track 9's gold city from Track 10's last views. No prop stands on another track's ground. Question: thicken the haze at the band edges, lower the far city bands, or keep as is?
 - Plaza pieces face the other way too: the 14 spawn pieces went through the same Open Cloud import that turns meshes 180 degrees (SkyLoop measured). You approved them as seen in Studio, so I left them. Question: keep them as they are in game, or turn them to match their Blender drafts?
 - Track 10 Abyss: shrunk to radius 210 and now stands beside the road about 400 studs before the finish (at 500 beyond the finish no run camera could see it); 22 sky doors and a hill near it were removed. Track 9 city wall pieces are stretched up to 1.52x (approved max 1.17x) on corner outsides. For your look.
