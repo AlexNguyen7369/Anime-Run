@@ -395,8 +395,9 @@
 392. 2026-11-26 — Alex Nguyen — Recorded in handoff.md the Mac to VM tunnel on the new address (login launch agent), the verified Studio, Blender and Rojo bridge, the resumed tmux workspace with the lead and agents 1 to 3, and the orchestrator runner's failed first tick on the VM.
 393. 2026-11-27 — Alex Nguyen — Moved World 2's Elf Mage and Golden King arena site to (0, 1200, -7700) so it keeps 1,500 studs from the wide layout's baseplate (rule first, harness row red then green, World 1 unchanged); reported the sky arena's fixed height against the ChainTower and the King's empty arena-id list as rulings for the lead.
 394. 2026-11-27 — Alex Nguyen — Raised World 2's sky boss arena to y 2,340 (owner "Raise World 2's arena"), rule and harness row first; World 2 Studio on 8664f262: boss_arena 155/0, boss_event 1870/0, boss_mage_arena 87/0, ui_boss 487/487, arena pictures saved; the King's empty arena-id list logged in BUGS as pre-existing.
+395. 2026-11-27 — Alex Nguyen — Fixed the full UI run's ui_sidekicks failures: ui_team left the Team page open after its fixture (its close stopped on the Deploy / Discard question); it now closes past it, with two new checks; Studio chain ui_team 73/0 and ui_sidekicks 212/0.
 
 ## What's next
-**The lead merges orch/world2/w2-arena-fix into feature/alex/world2-place and reruns the World 2 PR's Studio pass.**
+**The lead merges orch/world2/w2-sidekicks-order into feature/alex/world2-place and reruns the full World 2 UiTestRun with Server-side waits.**
 
-**Why this is next:** the three boss-arena failures were the remaining reds of that pass besides the pre-existing King arena ids.
+**Why this is next:** ui_sidekicks was the full run's ordering failure; the full pass confirms no other scenario left a panel open.

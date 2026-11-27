@@ -786,6 +786,20 @@ function Module.Build(h)
 			local ab = ids[1] and ids[2] and (ids[1] .. "," .. ids[2]) or "?"
 			check(res, "team_fixture_set", waitIs(team, ab), ab)
 			restore()
+			-- The fixture changed the saved Team under the open page, so its close stops on the Deploy / Discard question
+			-- (docs/BUGS.md ui-team-page-left-open: the page then stayed open, the reopen below counted it as open before,
+			-- and the last restore left Team open over ui_sidekicks). Answer it as Discard does, then reopen.
+			if panelSwitch().IsOpen(T.PanelSwitchName) then
+				panelSwitch().ForceClose(T.PanelSwitchName)
+			end
+			check(
+				res,
+				"team_closed_before_reopen",
+				waitIs(function()
+					return shown(h.find(T.Panel))
+				end, false),
+				false
+			)
 			restore = h.setPanels({ T.Panel }) -- reopen: the draft is the saved Team on open
 			checkDraft(res, "team_ab", { ids[1], ids[2] }, T.Ready, false)
 			local tab = h.find(T.Tabs .. "/Characters")
@@ -823,6 +837,15 @@ function Module.Build(h)
 		if applied then
 			setup(res, "team_states_clear")
 		end
+		-- The next scenario starts with the page shut (ui_sidekicks failed 34 checks under a Team page left open here).
+		check(
+			res,
+			"team_page_closed_at_end",
+			waitIs(function()
+				return shown(h.find(T.Panel))
+			end, false),
+			false
+		)
 	end
 
 	-- Entry points (design doc 4.45). The presses themselves are clicks (open_summon, summon_key_g, open_team_minibar).
