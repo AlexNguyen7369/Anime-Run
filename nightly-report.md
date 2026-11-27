@@ -3,13 +3,52 @@
 ## Nightly run 2026-11-24 00:10 (World 2 cast in game)
 
 ### Blocked (needs you)
+- (ANSWERED 2026-11-27 "1a, 2c. approved": band-edge haze; sky-prop rule dropped; looks and lead calls approved.)
+- Neighbour skylines: with 656+ stud gaps, a track's tall far scenery can still be seen across open ground: Track 5's far city (offices, smoke) from Track 7's sea side at 400-1,000 studs, Track 9's gold city from Track 10's last views. No prop stands on another track's ground. Question: thicken the haze at the band edges, lower the far city bands, or keep as is?
+- Plaza pieces face the other way too: the 14 spawn pieces went through the same Open Cloud import that turns meshes 180 degrees (SkyLoop measured). You approved them as seen in Studio, so I left them. Question: keep them as they are in game, or turn them to match their Blender drafts?
+- Track 10 Abyss: shrunk to radius 210 and now stands beside the road about 400 studs before the finish (at 500 beyond the finish no run camera could see it); 22 sky doors and a hill near it were removed. Track 9 city wall pieces are stretched up to 1.52x (approved max 1.17x) on corner outsides. For your look.
+- Sky props on layout C (Studio, real fog, 2026-11-26): from Track 9 nothing of another track shows; from Track 10's 0.62/0.9 views Track 9's gold city wall and buildings show on the horizon (its ground skyline, not sky props); Track 10's doors do not leak through fog. Pictures: /home/dev/AnimeRun-orch/refit-studio-2026-11-26/. Earlier note: tall pieces (Track 10's sky doors and arms, Track 8's pillars, the Abyss) show across the 656+ stud gaps in context views. Proposed rule (WORLD2_SPEC, not enforced): a sky prop stays in its band and under 300 studs high unless 1,500 from other roads; as written it would remove most of Track 10's approved sky doors (700 rows break it). Question: enforce it, change the numbers, or rely on fog (to be judged in Studio)?
+- (ANSWERED by the owner on return, see the design log: uploads, hero shrink-to-fit, T6 HQ back, Gojio on; effects stay off; T10 haze a tiny bit less; drakes fine; Starter team unchanged.)
+- Heroes with no spot at approved scale on layout C: T1 Town, T3 HeroHQ, T8 LairTower, T10 Abyss (never placed). Question: allow a smaller scale for any of them, or keep them out?
+- Starter in slot 1: a World 2 save with no team starts as {Starter}, and auto-fill appends kept rolls but never replaces a filled slot (your 2026-11-20 rule), so the placeholder Starter (no model or portrait) stays first until the player edits the team. Not a code fault. Question: should a kept roll replace a team that is only the Starter?
+- Track 6 HQ: still out by your 2026-11-25 ruling ("for now"). It now has a legal spot on its own ground at the 0.9 axis, world (-2714, 2418), 0 overlaps. Question: bring it back?
+- Track 7 IslandVolcano: still no spot at its approved scale 1.25 (needs 975+ studs from every road; the best spot has 498). Question: allow a smaller scale (0.43 fits), or keep it out?
+- Dark props re-export uploads: your "Yes, upload tonight" is recorded (52b436aa), but agent-2's session permission check denied the first upload (batch 10, 10 Hell's Gate meshes); nothing was sent. I did not run it from another session (that would bypass the denial). Ready: orch/world2/w2-render-audit, bake done (119 meshes), `dry 10` OK. To do: allow uploads in agent-2's session (or run `python3 upload_reexport.py upload 10` from tools/blender/world2 in /home/dev/AnimeRun-orch/w2-render-audit with the key and creator set), then the Studio colour check before batch 2.
+- Boss gate guide (Gojio) in World 2: the gate (draft A) is on in World 2, off in World 1; Gojio's own switch (BossGuideConfig.LIVE) is yours by BOSS_GUIDE_SPEC, so he is not standing at the gate yet. Question: turn Gojio on with the World 2 gate?
+- Track effects LIVE: stays off until you approve the effects and motions (your words). Previews: assets/world2_draft/track_fx/previews/ on orch/world2/w2-track-vfx. Questions: does your "tone down the haze" cover Track 10's red ground-haze particles? Are DemonCastle's black-violet drakes too close to Kaizel's wyvern look?
 - Studio test run and Play check: my script writes to the cloud place were denied. Question: allow execute_luau script writes, or connect Rojo to w2-ingame? State: orch/world2/cast-ingame pushed.
 - Merge to main and publishing places: not done (never pre-approved).
 
 ### Done
+- LANDED in feature/alex/world2-place (99b31128): the wide World 2 layout (square spiral, smallest gap 656 studs), the scenery re-fit (all tracks 7+ blind), the mesh-facing fix (props and track effects turned back for the import), Track 7's sea (45 ships on water), brighter lighting, baseplate overlap, world-aware cash checks; origin/main (PR #30, #32) merged in. Studio before landing: all 10 track briefs green, ships 45/45 on water, drake flies head first, world_layout 12/12, lighting 61/61, skies 81/81. Full Studio pass for the PR running; World 1 Studio not open.
+- Brighter World 2 lighting (your Studio note): minimum light raised on every track, Ant Island most (Brightness 1.4 -> 2.1); colours, skies and fog kept; world2_lighting 61/0, world2_skies 81/0; before/after pictures in assets/world2_draft/audit/lighting_2026-11-26b/ (Track 10's red ambient is paler). Baseplate tiles now overlap at seams (world_layout tie).
+- Final World 2 Studio pass on the landing candidate (orch/world2/w2-landing c8af98ff): all 10 new track briefs green (84-85 checks each: finishes, pads, checkpoints, no overlap with the plaza, runners at normal and max speed, cash), chain 14/14, spawn_area 201/201, auto_toggle 158/158, world2_skies 81/81, world2_team 43/43, world2_cast 121/121, boss_event 1870/1870, plaza_pieces 306/306, plaza_build 171/171; UI: ui_team 71/71 (first full pass), ui_boss_gate, ui_boss_guide, ui_world2_welcome, ui_hud_look_by_world green. Open: world_layout 11/12 (a baseplate seam tie), ui_boss 486/487 (flaky camera check), Track 7 ships on dry ground. World 1 Studio not open.
+- Track 2 ChainTower: 4 pieces uploaded (cut from the approved mesh, audited, sizes checked in Studio); ids go in with the layout landing.
+- Gojio guide on at the World 2 boss gate (World 1 off, like the gate): Studio boss_guide 101/0, ui_boss_guide 36/0, ui_boss_gate 14/0. Track 10 red haze a little less opaque (effects still off).
+- Scenery refit round 2: every World 2 track scores 7 or above in fresh blind review (T1 7.2, T2 7, T3 7, T4 7, T5 7, T6 7.3, T7 7, T8 8, T9 7, T10 7); every hero placed (shrink-to-fit by your word: T1 Town 1.015, T3 HeroHQ 0.562, T7 volcano 0.389, T8 LairTower 3.45, T10 Abyss r500); T6 HQ back; Track 7 now has a sea. Landing into the World 2 branch in progress.
+- Dark props: all 100 World 2 props re-uploaded in their approved colours and applied (GiantCorpse kept as is); per-batch Studio side-by-sides in assets/world2_draft/audit/reexport_2026-11-26/; ledger harness 12655/0. To look at on track: night tracks 4, 6, 8, lighting floors, Track 8's much lighter LairTower/Colonnade/Coliseum.
+- Re-export batch 10 (Hell's Gate, 10 meshes) uploaded by agent-2 after the owner approved uploads in its own session; Studio colour check and batches 1-9 next.
+- Track effects fixes (from the Studio look): effects now build on the whole track under streaming (origin from the chain), no smoke/haze over any road, dragons and the eel stay over their own track's ground (most only fit once layout C lands), the eel reads as one body. track_fx 76/0 World 1, 102/0 World 2 (106/0 on C). Still LIVE off; frame time not measurable in the throttled Studio window.
+- UI test harness: three pre-existing flaky UI tests fixed without loosening (ui_team BossButton wait, ui_boss camera settle, Daily popup closed before a run); Studio ui_boss_gate 14/14, ui_team 71/71, ui_boss 487/487, each twice in one session; audit PASS. HUD slot-1 placeholder found to be by design (question below).
+- Road supports (rendering, ground/z-fight priority): supports on Tracks 2, 3, 4, 5, 7 no longer poke through sloped road (284 rows cut, 6 sunk at 0.2; generators fixed so the re-lay is right too). Studio road_surface_clear 55/0 (640,798 samples: no part, terrain or grass through any road, all 10 tracks); grass strip fix confirmed holding. Frozen-track exception recorded for your review; after pictures in assets/world2_draft/audit/render_2026-11-26/.
+- Boss gate in World 2 (draft A stone ring, meshes load at its approved spot; World 1 stays off), spawn floor 188 x 220 -> 225.6 x 251 on the three sides away from Track 1 (nothing approved moves; 2.00 studs to Track 1's wall kept), spawn scatter (18 spots). Studio World 2 all green (see progress); World 1 Studio not open. Gojio stays off (yours).
+- Team of 3 in World 2: merged (slot 4 gone from rules, server, Team page, HUD, boss team, welcome popup; a stored 4th member stays owned, the team loads its first 3). Studio World 2: 8 ServerTests all green (boss_event 1870/1870); 5 of 7 UiTests green, ui_team and ui_boss fail the same on the base (BUGS). World 1 Studio was not open, so not run there; offline both worlds green.
+- Track effects draft: merged into the World 2 branch with LIVE off (smoke and haze on 9 tracks, drakes on 3, a spirit eel on Track 4, sway/bob/flicker); 8 assets uploaded, moderation Approved; track_fx 68/0 both worlds; audit PASS. Not seen in Studio yet.
+- Skies: merged orch/world2/w2-skies into the World 2 branch after the owner approved the pictures ("skies merge is fine, approved"); world2_skies 81/81, audit's one finding (the owner's merge gate) written into the spec.
 - Attack key frames and baked attacks for 12 Sidekicks; 127 uploads Approved; characters, pools, rotation, enemies, registries; audit violation fixed (Details at 0% when a due tier has no model).
 
 ### Decisions I made for you
+- Mesh facing: agent-2 found Roblox's Open Cloud import turns every uploaded World 2 mesh 180 degrees about its vertical axis, so in game World 2 props have faced the other way from their approved Blender drafts (obvious on the split ChainTower, which showed as two tops). I chose to correct it in World 2 placement (no re-upload) so props face as approved; Studio before/after pictures will show it. World 1 and the plaza, which you approved as seen in Studio, are only checked, not changed. Revert: drop the turn in BiomeDressing.
+- Far landmarks: Track 2's ChainTower vanishing past about 1,100 studs is Roblox's distance culling at low automatic graphics quality (it draws at high quality), not streaming, haze or LOD. Players on low settings will see the same; nothing in game can lift it. The Persistent change was dropped (orch/world2/w2-hero-stream left unmerged).
+- Scenery refit round 1 scored about 6 in blind review (approved sets about 8): heroes out of view, bare horizons on the long straights, each track a thin band. Round 2 (agents 1 and 3): hero spots seen from the run cameras, each track's own ground filled to its midline with its approved backdrop props, a proposed sky-prop rule (stays in its band, hidden by fog from other tracks). Target 7+ per track before landing.
+- T6 DevilTokyo back row thinned to every 7th slot (with 760 gaps nothing blocked it, so it would have doubled the buildings, about 1.9M more tris). T7 AntIsland coast runs along the road (the old oval would have covered the inner laps); its Nest now faces its road (was a random turn) so its ants stand on its own ground.
+- World 2 layout C is level: the square spiral has no hills (agent-1 removed the Slopes from all World 2 routes; no rule needs them). Hills can be put back inside straights later without changing the plan. Revert: ask for slopes in straights.
+- Refit per-track fixes (agent-3): T1 Ranks keep their turn to the road; T2 castle plinth 300 from its road (was 340); T3 hero apartment follows the bend; T5 kaiju site 1 is 4 studs further out (mesh unchanged); T9 city wall runs along its own band instead of an ellipse over Tracks 1-8.
+- Spawn: the plaza no longer moves; the floor grows on its three open sides only (west edge by Track 1 stays). The first plan (1.2x around a moved centre) broke three fixed rules (walk spawn 159.5 from Track 1's start vs 150, the fixed radius-84 ring, design doc 4.43's unchanged items) and was reverted.
+- Spawn: 1.3x would cross Track 1's wall (only 2 studs of room; 1.02x is the most in place), so I chose 1.20x with the plaza centre moved 20 studs east, both worlds (floor gap 1.85, pad 27.2 from Track 1's start, rule 40); plus a spawn scatter so players no longer land on one point (18 spots on rings of 4 and 8). Revert: drop the commits on orch/world2/w2-spawn-gate after c92015e3, or the branch.
+- Layout: chose option C (square spiral of long straights, pitch 760, corners R420; smallest gap 643, T6 on 720) over A (wider round spiral, 620, no straights) and B (zigzag, 663, breaks two spiral rules and grows the world to 12k). C keeps every rule and today's world size. Revert: pick A or B from docs/proposals/W2_WIDE_LAYOUT.md (orch/world2/w2-wide-layout 6b4d73b7).
+- Moving tracks whole with connectors was ruled out: agent-3 showed the +5% length slack is 3-8x too short (W2_LAYOUT_IMPACT.md, 00ebd421).
+- Track 1 neighbours round (orch/world2/w2-t1-neighbours): dropped as moot, left unmerged.
 - Series names Dandadun, Kaijo No. 8, Frierin; Makto, Toskar, Darknez Devill (the old ones contained real names). Revert: SeriesCatalog / catalog rows.
 - Sidekick key frames baked without your slice approval, on your word that all decisions are pre-approved.
 - World 2 Daily Day 7 capped at Legendary; Eternal chances 6e18 to 9e18; World 1 characters x0.1 cruise in World 2 except the starters.
@@ -183,3 +222,46 @@
 ### Blocked (needs you)
 - Bring main up to date (PR #28): stopped at the merge; the permission check denied `gh pr merge 28`, and merging to main is never pre-approved on a nightly run. Question: merge PR #28 (fresh review APPROVE, mergeable, based on main 6a36029)? State: feature/alex/ui-scroll-redesign pushed, nothing else left.
 - ui_run_visual: fails only because the Studio window is throttled in the background. Question: may a run bring Studio to the front once (it breaks the no-focus rule while you are away)? State: main, no code change needed.
+
+## Nightly run 2026-11-26 (owner pre-approved everything until finished; place publishing and force-push still excluded)
+
+### Queue
+1. World 2 wide layout (about 600 studs between tracks, straight allowed, little to no overlap): agent-1 options, lead picks, implement, re-place scenery (agent-3), Studio verify.
+2. World 2 rendering: ground/grass/z-fighting, other tracks visible, dark props (agent-2 audit, then fixes; re-export uploads).
+3. Skies merge (owner's toned-down choice), zones re-fitted after the re-lay.
+4. Owner's added tasks (2026-11-26, design log f2446967): World 2 back to a team of 3 (subagent, orch/world2/w2-team3); wider spawn + boss gate draft A in World 2 (subagent, orch/world2/w2-spawn-gate); track smoke, dragons and moving props drafts, LIVE off (subagent, orch/world2/w2-track-vfx).
+5. Full Studio pass both worlds, PR World 2 into main, fresh reviewer, merge on approval (owner standing rule).
+
+### Done
+
+### Decisions I made for you
+
+### Blocked (needs you)
+
+### Skipped
+
+## Nightly run 2026-11-27 (second night)
+
+### Queue
+1. Boss arenas: World 2 Mage/King site moved past the bigger baseplate; World 2 sky arena raised above the ChainTower (owner "Raise World 2's arena") (agent-1).
+2. UI fixes from the PR pass: ui_team order, RacerMotion hover restore, Mage beam sampler (agent-2, orch/world2/w2-ui-triage) - Studio proof in a full UiTestRun.
+3. Dense edge fog band (owner pick) - built and pictured; it merges only after the owner sees the pictures (owner's own gate).
+4. Owner pictures: spawn-piece facing, track effects on the new layout (approval page).
+5. Full World 2 Studio pass on the PR candidate, then the World 2 PR into main with a fresh reviewer; merge on approval (owner's standing rule). World 1 Studio is not open.
+
+### Done
+- PR #33 opened (World 2 round 2 into main) and freshly reviewed: APPROVE. Its notes fixed: world2_lighting and w2_mesh_turn now in the full suite (lune World 2 61/0 and 9/0), BOSS_GUIDE_SPEC wording. Reviewer suggests a World 1 Studio pass (spawn_area, world_layout, plaza_build, ui_team) before merging, since the spawn floor, scatter and plaza pieces touch World 1; World 1 Studio was not open.
+- ui_sidekicks order fix: ui_team left the Team page open past the Deploy/Discard question; fixed in the test only (2 new checks, one red on the old code). Studio in order: ui_team 73/0, ui_sidekicks 212/0 (was 34 fails). Merged (b48d3537).
+- Edge fog band (your 1a, dense band): built, Studio-checked (T9's city hidden from T10, T5's from T7, road view unchanged, no corner steps), audit PASS; on orch/world2/w2-edge-haze 86f36fd6, NOT merged until you approve the pictures.
+- UI fixes proven in a full Studio UiTestRun (79 pass / 4 fail, was 77/6): ui_team, ui_motion (hover restore) and ui_boss_mage_vfx now pass; left: ui_run_visual (throttled window), Summon tile at rebirth 0 (known), ui_sidekicks (Team panel left open by an earlier scenario, known order issue, being fixed). Merged into the World 2 branch.
+- Spawn-piece facing question withdrawn: Studio pictures show the plaza pieces already face as drafted.
+- Boss arenas (World 2): Mage/King site moved to -7700 (clear of the bigger baseplate), sky arena raised to y 2,340 above the ChainTower (your pick); Studio boss_arena 155/0, boss_event 1870/0, boss_mage_arena 87/0, ui_boss 487/487; King arena ids still empty (red on main too, needs its arena images uploaded). Audit PASS. Merged into the World 2 branch.
+
+### Decisions I made for you
+
+### Blocked (needs you)
+- Approval page (private): https://claude.ai/artifact/U5mBbHUiTqtNbVuRbVZ4ie. Question A: approve the edge fog band (orch/world2/w2-edge-haze 86f36fd6)? Question B: approve the track effects (switch LIVE on)? Looks to confirm: World 2 sky arena at 2,340; plaza facing (no change needed).
+- PR #33 (World 2 round 2 into main): fresh review MERGE REVIEW: APPROVE (no blocking items); not merged, for your approval in the morning (your words). https://github.com/AlexNguyen7369/Anime-Run/pull/33
+- Stronger smoke/haze (orch/world2/w2-fx-visible 0f51991c): offline green; its Studio check is blocked because the Studio and Blender MCPs disconnected in every session (tunnel and Studio are up). Run /mcp in each session to reconnect.
+
+### Skipped

@@ -6,6 +6,9 @@
 -- Also mirrored into the LocalPlayer attribute "UiTestResult" (JSON) for execute_luau readers. Every result attribute
 -- this harness sets (UiTestResult, UiTestScenarioResult, UiTestClickResult, UiTestClickTarget) is on the CLIENT's
 -- LocalPlayer and does NOT replicate: read it in the client datamodel (or the console), never from the server.
+-- Read it only AFTER the run: a Studio MCP execute_luau call in the Client datamodel puts Camera.CameraType back to its
+-- value at the call's start when it returns, so a client poll during a run breaks a held camera for a frame
+-- (docs/BUGS.md ui-boss-view-mcp-restore). Trigger and wait from the Server datamodel.
 -- Trigger: ReplicatedStorage attribute UiTestRun = true (set it to false first if it is already true).
 -- Clicks: ReplicatedStorage attribute UiTestClick = <UiSpec.Clicks Id> (set it to nil between clicks, and clear
 -- UiTestClickDone before each click); see the protocol in UiSpec.Clicks. Owned by ui-test-writer.
@@ -91,6 +94,7 @@ local function runAll()
 	print("[UITEST] START")
 	pcall(UiScenarios.PlayWithoutPasses)
 	pcall(UiScenarios.DismissWelcome)
+	pcall(UiScenarios.DismissDaily) -- docs/BUGS.md ui-harness-daily-popup
 	local results, pass, fail = {}, 0, 0
 	for _, name in UiScenarios.Names do
 		local ok, res = pcall(UiScenarios.Run, name)
@@ -134,6 +138,7 @@ local function runClick(id)
 	if isolated("UiTestClick") then
 		start()
 		pcall(UiScenarios.DismissWelcome) -- as before a run: a lone click must not press under World 2's welcome
+		pcall(UiScenarios.DismissDaily)
 		ok, res = pcall(UiScenarios.RunClick, id)
 	else
 		ok, res = true, refusal("click:" .. tostring(id))
@@ -189,6 +194,7 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 		start()
 		pcall(UiScenarios.PlayWithoutPasses)
 		pcall(UiScenarios.DismissWelcome)
+		pcall(UiScenarios.DismissDaily) -- docs/BUGS.md ui-harness-daily-popup
 		local ok, res = pcall(UiScenarios.Run, name)
 		if not ok then
 			res = {

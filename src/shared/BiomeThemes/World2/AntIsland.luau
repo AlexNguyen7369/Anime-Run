@@ -7,7 +7,7 @@
 -- placeholders.
 local Kit = require(script.Parent.Parent.Kit)
 
-local M, hex, gate, draftMesh = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh
+local M, hex, gate, draftMesh, draftSky = Kit.M, Kit.hex, Kit.gate, Kit.draftMesh, Kit.draftSky
 
 return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	DisplayName = "Ant Island",
@@ -16,13 +16,47 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 	-- Flat ground at the corridor height, as the draft's ground plane (spec 3.3 Blocks)
 	Terrain = {
 		Ridge = { Shape = "Blocks" },
-		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Ground },
+		-- The approved island's sea (WORLD2_SPEC "Track 7's sea", BIOME_ENVIRONMENT_SPEC 2.2 "Coast"; proposed): Water round
+		-- the blockade ships (Under: each Ship row's hull box, full within Reach of it, back to land over Blend), from 240
+		-- studs off the road, so the ships (312 out, their hulls from about 280) float and the nest, its ants and the
+		-- volcano past the coast stay on the draft's grass (the 3 ships on the nest are out of the draft, 2026-11-27). Depth 4 (was 2): the game's 4-stud voxels draw no water over a
+		-- bed under 3 studs deep (Studio 2026-11-26: ships on sand); 4 draws the same water voxel as Docks' 6. The ships
+		-- snap to the bed, so they float about 4 deep.
+		Coast = { From = 240, Blend = 24, Depth = 4, Under = "Ship", Reach = 24 },
+		Water = { Level = -3 },
+		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Basalt, Bed = M.Sand },
 		CliffSlope = 0.9,
 	},
+	-- In-house gradient sky from the draft's stops (owner 2026-11-25, question 33; docs/WORLD2_SPEC.md "Track skies")
+	Skybox = "W2_AntIsland_Sky",
+	-- Light that matches the draft's dusk under that sky (only while it shows; proposed): a lower sun, light at the day
+	-- floor, less exposure, the outdoor light between the draft's horizon and its grey-violet sky, the grade
+	-- warmer and less saturated. The road-and-runner floors (WORLD2_SPEC "Track lighting") still hold.
+	SkyLook = {
+		Lighting = {
+			ClockTime = 17.6,
+			-- brighter dusk (owner 2026-11-26 "too dim cant see much/dark", WORLD2_SPEC "Track lighting"; proposed): was 1.4,
+			-- -0.3 and the orange half toward grey
+			Brightness = 2.1,
+			ExposureCompensation = 0.2,
+			OutdoorAmbient = hex("D8946A"):Lerp(hex("6E6670"), 1 / 3),
+		},
+		Grade = { Saturation = -0.1, TintColor = Color3.new(1, 1, 1):Lerp(hex("FFB070"), 0.3) },
+	},
 	Audio = { Volume = 0.35 }, -- no sounds yet
-	-- Asset ledger (spec 4.4): one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
+	-- The sea's look (WORLD2_SPEC "Track 7's sea"; proposed): the approved draft's sea colour (biomes/AntIsland.py OCEAN
+	-- 1C4260), set on the client per zone (Client/BiomeEnvironment), so only this zone's water has it
+	Atmosphere = {
+		Water = { Color = hex("1C4260"), Transparency = 0.3, Reflectance = 0.25, WaveSize = 0.15, WaveSpeed = 8 },
+	},
+	-- Asset ledger (spec 4.4): the track sky's row (Kit.draftSky), then one Lane B row per exported draft mesh. Id is set by tools/blender/world2/upload_props.py,
 	-- Reviewed by the rules audit; until both are set the registry builds the parts fallback.
 	Assets = {
+		W2_AntIsland_Sky = draftSky(
+			{ Side = 80259567382435, Up = 135567629453732, Dn = 72479367010394 }, -- ids: uploaded 2026-11-26 (owner choice F)
+			"2026-11-26 rules-auditor", -- Reviewed: the rules audit
+			"assets/world2_draft/skies/track07_AntIsland (tools/blender/world2/track_sky.py)"
+		),
 		W2_AntIsland_IslandVolcano = draftMesh(
 			4404,
 			"rbxassetid://103656959860260", -- Id: tools/blender/world2/upload_props.py
@@ -32,71 +66,71 @@ return Kit.fromDraft("AntIsland", require(script.Parent.AntIslandDraft), {
 		),
 		W2_AntIsland_Nest = draftMesh(
 			10040,
-			"rbxassetid://105423028314113", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://125455946041466", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low wide sandy colony mound with a lumpy cratered surface and dark rimmed tunnel mouths",
 			"hero landmark, 1 placed; build/world2/export/AntIsland/W2_AntIsland_Nest.glb"
 		),
 		W2_AntIsland_Ant = draftMesh(
 			2000,
-			"rbxassetid://108845152754257", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://73462651219732", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: generic giant ant with slate chitin, dark plates, a banded spiked abdomen and an angular spiked head",
 			"mid prop, 15 placed; build/world2/export/AntIsland/W2_AntIsland_Ant.glb"
 		),
 		W2_AntIsland_Chamber = draftMesh(
 			6286,
-			"rbxassetid://127071148146370", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://139970076186570", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: opened cave chamber with a raised tiered carpet of round blue eggs under pale web strands",
 			"hero landmark, 1 placed; build/world2/export/AntIsland/W2_AntIsland_Chamber.glb"
 		),
 		W2_AntIsland_ThatchHouse = draftMesh(
 			900,
-			"rbxassetid://87977916324970", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://85851037078208", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small thatched roof cottage with stone walls",
 			"mid prop, 82 placed; build/world2/export/AntIsland/W2_AntIsland_ThatchHouse.glb"
 		),
 		W2_AntIsland_Ruin = draftMesh(
 			1092,
-			"rbxassetid://138092145053862", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://74674387670238", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small ruined stone building",
 			"mid prop, 63 placed; build/world2/export/AntIsland/W2_AntIsland_Ruin.glb"
 		),
 		W2_AntIsland_Camp = draftMesh(
 			1808,
-			"rbxassetid://85683813900111", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://130501406342862", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: raid camp: a helicopter on a pad, tents, floodlights and sandbag rings",
 			"mid prop, 11 placed; build/world2/export/AntIsland/W2_AntIsland_Camp.glb"
 		),
 		W2_AntIsland_Ship = draftMesh(
 			166,
-			"rbxassetid://116359125507961", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://79087380500183", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small fishing boat",
 			"mid prop, 48 placed; build/world2/export/AntIsland/W2_AntIsland_Ship.glb"
 		),
 		W2_AntIsland_Mound = draftMesh(
 			1076,
-			"rbxassetid://103223853324007", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://134316544687426", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: tall rocky mound",
 			"mid prop, 18 placed; build/world2/export/AntIsland/W2_AntIsland_Mound.glb"
 		),
 		W2_AntIsland_Cliff = draftMesh(
 			444,
-			"rbxassetid://99845249170958", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://124764413940847", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: dark basalt sea cliff",
 			"mid prop, 170 placed; build/world2/export/AntIsland/W2_AntIsland_Cliff.glb"
 		),
 		W2_AntIsland_Brush = draftMesh(
 			420,
-			"rbxassetid://137746318604400", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://98426012245371", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: low bush clump",
 			"mid prop, 805 placed; build/world2/export/AntIsland/W2_AntIsland_Brush.glb"
 		),

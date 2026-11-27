@@ -1067,8 +1067,11 @@ function Module.Build(h)
 					local now = {}
 					for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
 						if d.Name == name and d:IsA("BasePart") and d.Transparency < 1 then
-							now[d] = true
-							if not before[d] then
+							-- a pooled part reused for the next strike can be drawn in two sampled frames in a row (a throttled
+							-- run missed strike 7's cores): each placement carries its own PoolSpawn serial (BossMageVfx.pooled)
+							local serial = d:GetAttribute("PoolSpawn") or true
+							now[d] = serial
+							if before[d] ~= serial then
 								table.insert(out, { T = os.clock() - born, Color = d.Color })
 							end
 						elseif d.Name == name and d:IsA("ParticleEmitter") then

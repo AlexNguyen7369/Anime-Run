@@ -1,0 +1,70 @@
+{
+ "draft_stops": [
+  [
+   0.0,
+   "D8946A"
+  ],
+  [
+   0.04,
+   "A07A70"
+  ],
+  [
+   0.12,
+   "6E6670"
+  ],
+  [
+   0.35,
+   "4A4C5A"
+  ],
+  [
+   1.0,
+   "2A2C38"
+  ]
+ ],
+ "faces": {
+  "Bk": "W2_AntIsland_SkyBk.png",
+  "Dn": "W2_AntIsland_SkyDn.png",
+  "Ft": "W2_AntIsland_SkyFt.png",
+  "Lf": "W2_AntIsland_SkyLf.png",
+  "Rt": "W2_AntIsland_SkyRt.png",
+  "Up": "W2_AntIsland_SkyUp.png"
+ },
+ "ground": "1C4260",
+ "key": "AntIsland",
+ "ledger_key": "W2_AntIsland_Sky",
+ "note": "Bk, Ft, Lf and Rt are the same image. Uploaded 2026-11-26 (ids in the draftSky rows); reviewed by the rules auditor; Studio-checked (owner 2026-11-25).",
+ "sha256": {
+  "Bk": "f8897440e67d48dbdf31448f075af9a885edf0e9ceccb869dd6d04f60018663e",
+  "Dn": "94d698b626a2fb9218acd9f0202692876315e7a869054306240f1a983f1be213",
+  "Ft": "f8897440e67d48dbdf31448f075af9a885edf0e9ceccb869dd6d04f60018663e",
+  "Lf": "f8897440e67d48dbdf31448f075af9a885edf0e9ceccb869dd6d04f60018663e",
+  "Rt": "f8897440e67d48dbdf31448f075af9a885edf0e9ceccb869dd6d04f60018663e",
+  "Up": "743a3a593e04e8a5b0540bec7b3ab3df360c6163f1d3b8ffaaca32c72d479476"
+ },
+ "size": 512,
+ "source": "src/shared/BiomeThemes/World2/AntIslandDraft.luau Sky",
+ "stops": [
+  [
+   0.0,
+   "D8946A"
+  ],
+  [
+   0.04,
+   "A07A70"
+  ],
+  [
+   0.12,
+   "6E6670"
+  ],
+  [
+   0.35,
+   "4A4C5A"
+  ],
+  [
+   1.0,
+   "2A2C38"
+  ]
+ ],
+ "strength": 0.9,
+ "track": 7
+}

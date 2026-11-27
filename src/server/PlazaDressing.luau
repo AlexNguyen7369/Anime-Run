@@ -10,8 +10,11 @@ local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local BossGateConfig = require(Shared.BossGateConfig)
 local Layout = require(Shared.PlazaAssets)
 local UiTheme = require(Shared.UiTheme)
+local PlazaPieceLook = require(Shared.PlazaPieceLook)
+local PlazaPieces = require(Shared.PlazaPieces)
 local Look = require(Shared.PlazaLook) -- World 2's colours and lights (design doc 4.47); empty in World 1
 
 local PlazaDressing = {}
@@ -55,7 +58,8 @@ local function loadAsset(key, row)
 	end
 	local parts = {}
 	for _, d in asset:GetDescendants() do
-		local spec = d:IsA("MeshPart") and row.Parts[d.Name]
+		local name = PlazaPieces.PartName(d.Name)
+		local spec = d:IsA("MeshPart") and row.Parts[name]
 		if spec then
 			d.Anchored = true
 			d.CanCollide = false
@@ -65,9 +69,9 @@ local function loadAsset(key, row)
 			if spec.Glow then
 				d.Material = Enum.Material.Neon
 				d.TextureID = ""
-				d.Color = Color3.fromHex(Look.Glow and Look.Glow[d.Name] or spec.Glow)
+				d.Color = Color3.fromHex(Look.Glow and Look.Glow[name] or spec.Glow)
 				d.CastShadow = false
-				if Look.LampLight and d.Name == "Glow_lamp" then -- lit lanterns (World 2)
+				if Look.LampLight and name == "Glow_lamp" then -- lit lanterns (World 2)
 					local light = Instance.new("PointLight")
 					light.Color = Look.LampLight.Color
 					light.Brightness = Look.LampLight.Brightness
@@ -79,27 +83,36 @@ local function loadAsset(key, row)
 			else
 				d.Material = Enum.Material.SmoothPlastic
 			end
+			d.Name = name
 			d.Parent = nil
-			parts[d.Name] = { Part = d, Center = spec.Center }
+			parts[name] = { Part = d, Center = spec.Center }
 		end
 	end
 	asset:Destroy()
-	if next(parts) then
+	if row == PlazaPieces.Assets[key] and not PlazaPieces.Complete(row, parts) then
+		warn("[PlazaDressing] " .. key .. " misses a part, keeping the stand-in")
+	elseif next(parts) then
 		templates[key] = parts
 	end
 end
 
 -- Clones mesh `key` so its local frame is at `frame`. Returns the model, or nil when it failed to load.
-local function place(key, frame, parent, name)
+local function place(key, frame, parent, tag)
 	local parts = templates[key]
 	if not parts then
 		return nil
 	end
 	local model = Instance.new("Model")
-	model.Name = name or key
+	model.Name = key
 	for _, t in parts do
 		local clone = t.Part:Clone()
 		clone.CFrame = frame * CFrame.new(t.Center) * IMPORT_TURN
+		if tag then
+			if tag == PlazaPieces.ALTAR_TAGS.Locked or tag == BossGateConfig.OPEN_TAG then
+				PlazaPieceLook.Show(clone, false) -- until this player's client shows it (one of the two is shown)
+			end
+			CollectionService:AddTag(clone, tag)
+		end
 		clone.Parent = model
 	end
 	model.Parent = parent
@@ -154,8 +167,11 @@ end
 function PlazaDressing.Start(spawnArea)
 	task.spawn(function()
 		local ok, err = pcall(function()
+			local gate = spawnArea:FindFirstChild("WorldGate")
+			local portal = gate and gate:FindFirstChild("Portal")
+			local plan = PlazaPieces.Plan(Layout, portal ~= nil and portal:GetAttribute("Locked") == true)
 			local pending = 0
-			for key, row in Layout.Assets do
+			for key, row in plan.Assets do
 				pending += 1
 				task.spawn(function()
 					local loaded, problem = pcall(loadAsset, key, row)
@@ -171,8 +187,10 @@ function PlazaDressing.Start(spawnArea)
 
 			local folder = Instance.new("Folder")
 			folder.Name = "PlazaDressing"
-			for _, row in Layout.Placed do
-				place(row.Key, frameOf(row.Pos, row.Face), folder)
+			for _, row in plan.Placed do
+				if PlazaPieces.Loaded(row.Needs, templates) then
+					place(row.Key, frameOf(row.Pos, row.Face), folder, row.Tag)
+				end
 			end
 			-- The trees' meshes do not collide: a solid trunk under each (radius proposed, from build_plaza.py)
 			for _, row in Layout.Placed do
@@ -190,7 +208,7 @@ function PlazaDressing.Start(spawnArea)
 					trunk.Parent = folder
 				end
 			end
-			for _, row in Layout.Signs do
+			for _, row in plan.Signs do
 				sign(row.Text, row.Pos, row.Face, row.Size, Color3.fromHex(row.Color), folder)
 			end
 			folder.Parent = Workspace
@@ -201,6 +219,20 @@ function PlazaDressing.Start(spawnArea)
 					hide(standIn)
 				end
 			end
+			for path, needs in plan.Replaces do
+				local standIn = spawnArea
+				for _, name in string.split(path, "/") do
+					standIn = standIn and standIn:FindFirstChild(name)
+				end
+				if standIn and PlazaPieces.Loaded(needs, templates) then
+					for _, d in standIn:GetDescendants() do -- the meshes carry the boss gate's tags from here on
+						CollectionService:RemoveTag(d, BossGateConfig.CLOSED_TAG)
+						CollectionService:RemoveTag(d, BossGateConfig.OPEN_TAG)
+					end
+					hide(standIn)
+				end
+			end
+			require(script.Parent.PlazaMerchantRigs).Stand(spawnArea)
 		end)
 		if not ok then
 			warn("[PlazaDressing] failed, keeping what is built: " .. tostring(err))

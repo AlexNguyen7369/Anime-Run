@@ -855,6 +855,11 @@ function setups.team_states(player)
 		teamAutoRollBefore[player] = { on = player:GetAttribute("AutoRoll") }
 	end
 	setAutoRoll(player, false)
+	-- Rolls kept during an earlier scenario's run wait (GachaService.FillTeam) until the player is on foot; stopping the
+	-- run above fires that fill on a deferred signal, which would land after SetTeam below and add a third member (seen in
+	-- the full UiTestRun, 2026-11-27). Let the signal run, then apply anything still waiting, before the A,B Team is set.
+	task.wait()
+	G.FillTeam(player)
 	unlockHud(player) -- checkPlace measures against the Bosses button, shown from rebirth 1 (c80e4de)
 	-- No Dojo squad since design doc 4.43 (GachaService.ShowcaseIds removed): nothing is excluded.
 	local data, squad, ids = player:FindFirstChild("GachaData"), {}, {}
@@ -884,11 +889,11 @@ function setups.team_states_clear(player)
 	restoreHudUnlock(player)
 end
 
--- ui_hitboxes: a full Team (3; World 2: 4), the minibar row as a player with a full kept Team sees it (FillTeam, c80e4de).
+-- ui_hitboxes: a full Team (3), the minibar row as a player with a full kept Team sees it (FillTeam, c80e4de).
 -- With two members the empty third circle draws smaller than a portrait and the row's OpenTeam padding depends on the save.
 -- Team changes are locked during a run, so the run stops first; restore:team_full puts the Team and the run back.
 function setups.team_full(player)
-	local size = require(Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4 (design doc 4.47)
+	local size = require(Shared.StaminaConfig).TEAM_SIZE -- 3 in both worlds (design doc 4.47)
 	local team = string.split(player:GetAttribute("Team") or "", ",")
 	if #team >= size and team[size] ~= "" then
 		return
@@ -1375,6 +1380,34 @@ end
 function setups.auto_roll_off(player)
 	assert(snapshots[player], "snapshot required before auto_roll_off ('restore' consumes it: take a fresh 'snapshot')")
 	setAutoRoll(player, false)
+end
+
+-- ui_boss_guide grants_nothing: no auto-roll and no run may move Rolls, Money or Gems while it watches. restore:quiet puts
+-- both back.
+local quietBefore = {} -- [Player] = { roll = AutoRoll before, racing = was auto racing }
+function setups.quiet(player)
+	local RunnerService = live("RunnerService")
+	if not quietBefore[player] then
+		quietBefore[player] = {
+			roll = player:GetAttribute("AutoRoll"),
+			racing = RunnerService.IsAutoRacing(player) == true,
+		}
+	end
+	setAutoRoll(player, false)
+	RunnerService.SetAutoRace(player, false)
+end
+function setups.quiet_restore(player)
+	local before = quietBefore[player]
+	if not before then
+		return
+	end
+	quietBefore[player] = nil
+	if before.roll ~= nil then
+		setAutoRoll(player, before.roll)
+	end
+	if before.racing then
+		live("RunnerService").SetAutoRace(player, true)
+	end
 end
 
 local function progressionSnapshot(player)
@@ -1940,6 +1973,7 @@ local CLIENT_SETUPS = {
 	no_passes = true,
 	index_states = true, -- ui_index; restore:index_states puts the GachaData back
 	data_loading = true, -- ui_remote_guards
+	quiet = true, -- ui_boss_guide; restore:quiet puts AutoRoll and auto racing back
 	sidekick_tutorial_ready = true,
 	auto_racing = true,
 	auto_roll_on = true,
@@ -2104,6 +2138,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			end
 			before.auto_roll_on = nil
 			restoreBagRoom(player)
+		elseif restoreId == "quiet" then
+			setups.quiet_restore(player)
 		elseif restoreId == "sidekick_states" then
 			restoreSidekicks(player)
 		elseif restoreId == "sidekick_tutorial" or restoreId == "sidekick_tutorial_ready" then

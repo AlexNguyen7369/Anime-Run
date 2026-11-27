@@ -63,11 +63,41 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
 | Ridge | 60 to gap midline (about 77) | the biome's `Ridge` shape (hill, cliff, dune, water, cloud drop) |
 | Outer (Track 10 only) | past 77 on the outside | the biome's `Far` shape out to the skirt, 900 studs past Track 10's outer edge (placeholder) |
 
+- World 2 (WORLD2_SPEC "World 2 track layout", owner 2026-11-26): laps are 760 apart (proposed), so past the ridge
+  (77) each biome keeps its ridge top out to the gap midline, about 380 studs from either road, where the seam is.
+  That midline lies past the 120-stud stamp, so World 2's grid gives every node there its own distance to the nearest
+  roads (`TerrainShape.EXACT_FAR`) instead of one per 64-stud coarse cell: the seam is a line, not steps. The
+  cross-section bands above are unchanged; World 1's grid is unchanged. Checked offline by the biome harness's
+  `W2 SEAM` row (grid distance within 4 studs of the true one past the stamp).
+- Coast (World 2, Track 7 AntIsland only; 2026-11-26, the owner's "fix rendering on all tracks", lead's decision,
+  **proposed**): the approved island's sea is terrain Water. A biome profile's `Coast = { From, Blend, Depth }` turns its own
+  zone into a sea basin (bed `Depth` studs under the profile's `Water.Level`; props snap to the bed) from `From` studs off its road outward,
+  blended over `Blend` studs; the corridor, clear boxes (checkpoints, pads, plaza) and the grass-strip rule are untouched,
+  since they return before it. AntIsland: From 280, Blend 24, Depth 2, Level -3 (*replaced 2026-11-26 late by the values below*), so the blockade ships (312 out) float and the
+  coast cliffs (about 253 out) stand at the shore. Its bed is the profile's `Materials.Bed`: Sand for AntIsland (was Ground;
+  proposed, 2026-11-26). Checked by the biome harness's `W2 SEA` rows.
+  - Round the hulls (2026-11-26 late, Studio finding: ships on sand; lead's fix "make Coast follow the ship band", **proposed**):
+    `Coast.Under = "<Prop>"` keeps the sea to that prop's Placed rows: full within `Reach` studs of each row's box (def Size
+    x scale, turned as the row), back to land over `Blend` past it, and only from `From` off the road. Elsewhere the zone
+    keeps its land, so props past the coast (Track 7's nest and its ants at a spiral corner) stay dry.
+  - Depth is what the game draws: the terrain writer's 4-stud voxels (`TerrainShape.Voxel`, shared with the harness) put
+    water only in whole voxels above the ground's, so a bed under about 3 studs deep draws none (Depth 2 drew Sand and no
+    water). AntIsland now: From 240, Blend 24, Depth 4, Under Ship, Reach 24 (the same water voxel as Docks' Depth 6).
+  - The harness checks drawn water (`TerrainShape.DrawnWater`), not the column's water level: under every ship's centre and
+    the quarter points of its hull, none under the base of any other AntIsland prop but the shore cliffs, none in any road's
+    corridor, and every other zone's terrain unchanged.
+
 - Elevated road (slopes up to Rise 54): biomes with `Embank = true` raise the corridor to road Y - 3 (placeholder)
   under the slope, so hills sit under hills. Supports end up buried, which is fine. City biomes (5, 6) keep
   `Embank = false`: overpasses stay on their supports.
 - Clear areas get flat terrain at `GROUND_TOP`: the plaza, checkpoint areas and WinPads, each footprint plus
   `BiomeDressing.CLEARANCE`. These are the same roots `BiomeDressing.Prune` already excludes.
+- Owner 2026-11-25 ("yes to all" item 3): grass off the road on World 2, with a brown strip of 2 to 4 studs. How it is built
+  (**proposed**): in a biome whose corridor is Grass, Grass is Ground within 24 studs of a centre line (`TerrainShape.BARE`)
+  and within 2 studs of a clear area's own footprint, turned with its part and without `CLEARANCE`
+  (`TerrainShape.SLAB_BARE`: the 4-stud voxels draw it up to about 4). The same strip round finish slabs, the plaza and the
+  VFX floor is our reading; the owner named the road. World 1 has no Grass corridor; a future World 1 theme with one would
+  be changed too.
 
 ### 2.3 Where zones meet
 - The seam between zones n and m lies on the gap midline (equal distance). Heights blend linearly across a 32-stud
@@ -338,7 +368,8 @@ Owner 2026-10-31: Track 7 runs inside a tunnel for its whole length. The biome m
 - When the dressing reads a prop def with `Mesh = "<AssetKey>"`, the registry loads the asset with
   `AssetService:CreateMeshPartAsync(Content.fromUri(id))` (pcall) on first use. It caches one template per key and
   clones it per placement. It applies `TextureContent` from the ledger, sizes the clone to the def's `Size` and
-  anchors it. `CanCollide`, `CanTouch` and `CanQuery` are off.
+  anchors it. `CanCollide`, `CanTouch` and `CanQuery` are off. A World 2 template with no texture is white, so its vertex colours
+  are not tinted by the default grey (owner 2026-11-25); World 1 and textured templates keep the colour they load with.
 - Baked copies (owner 2026-11-06): a copy saved in the place at `ServerStorage.BakedModels/<asset id>` is used before
   `CreateMeshPartAsync`, so collaborators in Studio see the mesh (`CHARACTER_GACHA_SPEC` "Avatar pipeline").
 - A load failure, or an unreviewed asset, builds the def's `Parts` instead. Every mesh def keeps a parts fallback, so
@@ -376,6 +407,14 @@ Assets = {
   (6 ids) with `Id` set to the first face so every row has an `Id` for the checks.
 - Only ids in a ledger are used. The biome final summary lists every ledger row (key, kind, id) for all 10 biomes
   (owner 2026-10-30).
+- Kept ids on a hash mismatch (**proposed**, lead's choice 2026-11-26, World 2 wide-layout re-fit): when the exporter
+  (tools/blender/world2/export_props.py) clears an Id only because a GLB's geometry hash differs from its upload record (or
+  the upload has no recorded hash),
+  and the mesh is unchanged in look and size (the same mesh old and new code export), the uploaded Id is kept and the row
+  listed for a Studio check. On the re-fit (after the colour re-export): AntIsland IslandVolcano, DevilTokyo HQ,
+  ElvenPlains RuinedCastle and Town, HauntedTunnel Mountain, OldWoodHouse and School, HellGate Abyss, KaijuBase
+  DefenseHQ, RuinedCityZ Crater and HeroHQ (11; all 11 have no recorded upload hash in uploaded_assets.tsv). All 11 load as meshes in Studio (2026-11-26, agent-2, f3f718e8); the
+  look of Crater, OldWoodHouse and School is still to be checked one by one.
 
 ### 4.5 Budget per biome (proposed)
 | Item | Target |

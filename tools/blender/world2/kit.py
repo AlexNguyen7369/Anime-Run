@@ -12,6 +12,11 @@ import bmesh
 import bpy
 from mathutils import Matrix, Vector
 
+import roadframe
+
+
+_OWNERS = None  # roadframe.Owners of the chain, made on first use
+
 
 def rb(x, y, z):
 	return Vector((x, -z, y))
@@ -22,6 +27,16 @@ def hexcol(h, a=1.0):
 	srgb = [int(h[i : i + 2], 16) / 255 for i in (0, 2, 4)]
 	lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in srgb]
 	return (lin[0], lin[1], lin[2], a)
+
+
+# Road supports under raised road (docs/W2_RENDER_AUDIT.md): a support's top stays SUPPORT_CLEARANCE under the lowest road
+# underside over its length, as the game's own TrackBuilder supports (TrackBuilder SUPPORT_CLEARANCE), so it never shows
+# through a climb. In place coordinates (k.place's y) the road top is the centre line's p.y and the road is ROAD_THICKNESS deep.
+ROAD_THICKNESS = 2.0  # TrackBuilder ROAD_THICKNESS
+SUPPORT_CLEARANCE = 0.05  # TrackBuilder SUPPORT_CLEARANCE
+SUPPORT_SLACK = 0.15  # placeholder: the centre line misses up to 0.12 of the road's height at a support's far corners on a
+# curve (measured against the built road, 2026-11-26), so a support's top stays this much further under
+SUPPORT_MIN = 0.2  # placeholder: a support never thinner; one that would be sinks into the ground instead
 
 
 class Kit:
@@ -157,12 +172,67 @@ class Kit:
 		right = Vector((-t.z, 0, t.x))
 		return p, right, t
 
+	def support_top(self, d0, d1, step=0.5):
+		"""Highest top (place y) a road support between d0 and d1 along the road may have: SUPPORT_CLEARANCE under the lowest
+		road underside there. The road is straight between waypoints, so sampling every `step` plus both ends is exact
+		to its waypoints' heights."""
+		n = max(1, int(math.ceil((d1 - d0) / step)))
+		low = min(self.at(d0 + (d1 - d0) * i / n)[0].y for i in range(n + 1))
+		return low - ROAD_THICKNESS - SUPPORT_CLEARANCE - SUPPORT_SLACK
+
+	def support(self, name, x, z, yaw, d0, d1, ground=-1.0):
+		"""Places `name` (a unit box prop standing on its base) as a road support between d0 and d1: its top at support_top,
+		its base on `ground`, or SUPPORT_MIN under the top where the road is too low over it (sunk, never dropped).
+		Returns the object and its height; the caller sets the other two scales."""
+		top = self.support_top(d0, d1)
+		h = top - ground
+		if h < SUPPORT_MIN:
+			ground, h = top - SUPPORT_MIN, SUPPORT_MIN
+		return self.place(name, (x, ground, z), yaw), h
+
 	def beside(self, d, off, y=0.0):
 		"""Roblox point `off` studs right (negative: left) of the road edge... measured from the centre line."""
 		p, right, t = self.at(d)
 		q = p + right * off
 		yaw = math.atan2(-t.x, -t.z)  # Roblox heading of the road (0 = facing -Z)
 		return (q.x, p.y - 1.0 + y, q.z), yaw
+
+	def spot(self, d, off, along=0.0):
+		"""Roblox world (x, z) of a road-relative spot (roadframe.py): the centre line at d (past the ends along the end
+		straights), then `along` studs on in the road's direction there and `off` studs to its right (negative: left)."""
+		(cx, cz), (tx, tz), (rx, rz) = roadframe.frame(self.wps, d)
+		return cx + tx * along + rx * off, cz + tz * along + rz * off
+
+	def in_ground(self, x, z):
+		"""True where world (x, z) is on this track's Ground rectangle (export_props.ground_rect: the waypoints' box padded by
+		Width * 3 + 200 in its start frame), the only place the game builds a Placed prop (BiomeDressing)."""
+		import export_props as ep
+
+		if not hasattr(self, "_rect"):
+			self._rect = ep.ground_rect(self.track["Number"]), ep.origins()[self.track["Number"]]
+		(lo, hi), (origin, yaw) = self._rect
+		lx, _, lz = ep.to_local(origin, yaw, (x, 0.0, z))
+		return lo[0] <= lx <= hi[0] and lo[1] <= lz <= hi[1]
+
+	def road_near(self, x, z):
+		"""(distance to the nearest road centre line of any track, its number): roadframe.Owners.nearest."""
+		self.owns(x, z)  # makes the owner lookup
+		return _OWNERS.nearest(x, z)
+
+	def owns(self, x, z):
+		"""True where this track owns the ground at world (x, z): its centre line is the nearest (roadframe.Owners, the
+		owner's 2026-11-25 rule by base centre). Scatter draws over the track's box retry until they land on it, so the
+		approved counts stand on the track's own ground on any layout (2026-11-26 re-fit)."""
+		global _OWNERS
+		if _OWNERS is None:
+			import chain
+
+			_OWNERS = roadframe.Owners(chain.build())
+		return _OWNERS.owner(x, z) == self.track["Number"]
+
+	def heading(self, d):
+		"""Roblox heading of the road at d (0 = facing -Z); a hand-set turn is stored relative to it."""
+		return roadframe.heading(self.wps, d)
 
 	def road(self, pal):
 		"""Road ribbon, edge walls and the checkpoint apron, from the track's palette (game colours)."""
@@ -219,6 +289,54 @@ class Kit:
 		return ob
 
 	# --- scatter ---
+	def band(self, names, every, off, scale=(1.0, 1.0), clear=None, start=0.0, end=None, face_road=False, gap=0.0, seed=0, space=30.0):
+		"""Backdrop over this track's own band (2026-11-26 re-fit, wide layout): every `every` studs along the road, on each
+		side, one prop of `names` at a random offset in `off` (lo, hi) from the centre line, on this track's own ground
+		(owns) and at least `clear` (default lo) from every stretch of its road; `gap`: studs kept from the ground props of `names`
+		already placed and from each other, `space` from every other ground prop (by base point). A random turn unless face_road. Its own random stream, so the draft's other props do not change. Returns
+		the number placed."""
+		rng = random.Random(self.track["Number"] * 104729 + seed)
+		lo, hi = off
+		clear = lo if clear is None else clear
+		end = self.length if end is None else end
+		n, d = 0, start
+		road = {"Wall", "Dash", "Apron", "WinPad", "Road", "Ground"}
+		same, other = {}, {}  # ground props already placed: of `names` (kept `gap` away) and the rest (kept `space` away)
+
+		def add(grid, x, z, cell):
+			grid.setdefault((int(x // cell), int(z // cell)), []).append((x, z))
+
+		def near(grid, x, z, r):
+			cx, cz = int(x // max(r, 1.0)), int(z // max(r, 1.0))
+			return any((x - a) ** 2 + (z - b) ** 2 < r * r for i in (cx - 1, cx, cx + 1) for j in (cz - 1, cz, cz + 1) for a, b in grid.get((i, j), ()))
+
+		for ob in self.col.objects:
+			kind = ob.data.name.split("_")[-1] if ob.type == "MESH" and ob.data else None
+			if kind and kind not in road and ob.location.z < 30:  # ground props only
+				if kind in names:
+					add(same, ob.location.x, -ob.location.y, max(gap, 1.0))
+				else:
+					add(other, ob.location.x, -ob.location.y, max(space, 1.0))
+
+		def crowded(x, z):
+			return (gap and near(same, x, z, gap)) or (space and near(other, x, z, space))
+
+		while d < end:
+			for side in (-1, 1):
+				o = side * rng.uniform(lo, hi)
+				pos, yaw = self.beside(d + rng.uniform(-every / 3, every / 3), o)
+				x, z = pos[0], pos[2]
+				if not self.owns(x, z) or not self.in_ground(x, z) or not self.clear_of_road(x, z, clear):
+					continue
+				if crowded(x, z):
+					continue
+				turn = (yaw + (math.pi / 2 if side > 0 else -math.pi / 2)) if face_road else rng.uniform(0, math.tau)
+				self.place(rng.choice(names), (x, -1.0, z), turn, rng.uniform(*scale))
+				add(same, x, z, max(gap, 1.0))
+				n += 1
+			d += every
+		return n
+
 	def along(self, every, offsets, names, jitter=0.0, start=40.0, end=None, scale=(1.0, 1.0), face_road=True):
 		"""Every `every` studs, at each signed offset from the centre line, a random prop of `names`."""
 		end = self.length - 70 if end is None else end
@@ -244,11 +362,11 @@ class Kit:
 	def field(self, count, names, clearance, margin=300, scale=(1.0, 1.0)):
 		"""`count` props at random over the track's area, never within `clearance` of the road."""
 		placed, tries = 0, 0
-		while placed < count and tries < count * 20:
+		while placed < count and tries < count * 200:  # most of a wide layout's box is other tracks' ground
 			tries += 1
 			x = self.rng.uniform(self.lo.x - margin, self.hi.x + margin)
 			z = self.rng.uniform(self.lo.z - margin, self.hi.z + margin)
-			if self.clear_of_road(x, z, clearance):
+			if self.owns(x, z) and self.clear_of_road(x, z, clearance):
 				self.place(self.rng.choice(names), (x, -1.0, z), self.rng.uniform(0, math.tau), self.rng.uniform(*scale))
 				placed += 1
 

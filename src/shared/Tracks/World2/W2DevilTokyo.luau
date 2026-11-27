@@ -1,11 +1,11 @@
 --!nonstrict
--- World 2 Track 1 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Devil Hunter City run.
--- Same route as World 1's Track 1 (Oval), so its length, spiral lap and validator results carry over
--- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths"); only the biome, palette and copy are new. Palette proposed.
+-- World 2 Track 6 (design doc 4.47, docs/WORLD2_SPEC.md "Tracks"): Devil Hunter City run.
+-- Route: World 2's square spiral of long straights (WORLD2_SPEC "World 2 track layout", owner 2026-11-26; pitch 760
+-- and corner radius 420 proposed), the target length of docs/TRACKS_AND_BIOMES_SPEC.md "Lengths". Palette proposed.
 return {
 	Name = "W2DevilTokyo",
 	Description = "Devil Hunter City run: neon night streets, alley corners and the hunters' headquarters tower.",
-	Number = 1,
+	Number = 6,
 	Biome = "DevilTokyo",
 	Width = 40,
 	Closed = false,
@@ -19,30 +19,10 @@ return {
 		WinPad = Color3.fromRGB(255, 205, 70),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 200 },
-		{ Type = "Turn", Angle = -90, Radius = 80 }, -- corner
-		{ Type = "Straight", Length = 168 },
-		{ Type = "Turn", Angle = -90, Radius = 80 }, -- corner
-		{ Type = "Straight", Length = 250 },
-		{ Type = "Turn", Angle = -90, Radius = 80 }, -- corner
-		{ Type = "Straight", Length = 70 },
-		{ Type = "Turn", Angle = 18, Radius = 120 }, -- red arched bridge over the river
-		{ Type = "Turn", Angle = -36, Radius = 120 },
-		{ Type = "Turn", Angle = 18, Radius = 120 },
-		{ Type = "Straight", Length = 99.672 },
-		{ Type = "Turn", Angle = -90, Radius = 80 }, -- corner
-		{ Type = "Straight", Length = 70 },
-		{ Type = "Turn", Angle = -18, Radius = 120 }, -- red arched bridge over the river
-		{ Type = "Turn", Angle = 36, Radius = 120 },
-		{ Type = "Turn", Angle = -18, Radius = 120 },
-		{ Type = "Straight", Length = 136.672 },
-		{ Type = "Turn", Angle = -90, Radius = 125 }, -- corner
-		{ Type = "Straight", Length = 70 },
-		{ Type = "Turn", Angle = 26, Radius = 100 }, -- forest and waterfall gorge bend
-		{ Type = "Turn", Angle = -52, Radius = 100 },
-		{ Type = "Turn", Angle = 26, Radius = 100 },
-		{ Type = "Straight", Length = 132.652 },
-		{ Type = "Turn", Angle = -90, Radius = 125 }, -- corner
-		{ Type = "Straight", Length = 376.544 }, -- finish straight
+		{ Type = "Straight", Length = 3614.2446 }, -- start straight
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 3960 },
+		{ Type = "Turn", Angle = -90, Radius = 420 }, -- corner
+		{ Type = "Straight", Length = 115.0865 }, -- finish straight
 	},
 }

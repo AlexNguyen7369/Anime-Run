@@ -80,9 +80,25 @@ def _fill(k, color):
 	while d < k.length:
 		p, _, t = k.at(d + step / 2)
 		if p.y > 1.5:
-			ob = k.place("Fill", (p.x, -1.0, p.z), math.atan2(-t.x, -t.z))
-			ob.scale = (k.width - 1, step + 0.5, p.y + 0.5)
+			# its top under the road over its whole length (kit.support_top), not at the centre's height
+			ob, h = k.support("Fill", p.x, p.z, math.atan2(-t.x, -t.z), d - 0.25, d + step + 0.25)
+			ob.scale = (k.width - 1, step + 0.5, h)
 		d += step
+
+
+_GROUND = {}
+
+
+def _on_ground(k, x, z):
+	"""World (x, z) on this track's own Ground rect (TrackBuilder: waypoint box + Width x 3 + 200): a Placed prop
+	whose base centre is off it is not built by the game (BiomeDressing), so it is not placed here either."""
+	n = k.track["Number"]
+	if n not in _GROUND:
+		from roads import Roads
+
+		_GROUND[n] = Roads(n).ground(0)
+	(lox, loz), (hix, hiz) = _GROUND[n]
+	return lox <= x <= hix and loz <= z <= hiz
 
 
 def _row(k, every, off, names, jitter=0.0, start=40.0, end=None, scale=(1.0, 1.0), clear=None, yaw_jit=0.0):
@@ -94,7 +110,8 @@ def _row(k, every, off, names, jitter=0.0, start=40.0, end=None, scale=(1.0, 1.0
 		for o in (-off, off):
 			oo = o + k.rng.uniform(-jitter, jitter) * (1 if o > 0 else -1)
 			pos, yaw = k.beside(d + k.rng.uniform(-jitter, jitter), oo)
-			if k.clear_of_road(pos[0], pos[2], clear or abs(oo) * 0.9):
+			# on this track's own ground only (owner 2026-11-25; the wide layout's re-fit, 2026-11-26)
+			if k.clear_of_road(pos[0], pos[2], clear or abs(oo) * 0.9) and k.owns(pos[0], pos[2]) and _on_ground(k, pos[0], pos[2]):
 				yaw += (math.pi / 2 if o > 0 else -math.pi / 2) + k.rng.uniform(-yaw_jit, yaw_jit)
 				k.place(k.rng.choice(names), (pos[0], -1.0, pos[2]), yaw, k.rng.uniform(*scale))
 		d += every
@@ -811,7 +828,7 @@ def build(k):
 	while x < k.hi.x + 700:
 		z = k.lo.z - 700
 		while z < k.hi.z + 700:
-			if math.hypot(x - c.x, z - c.z) > 300 and k.clear_of_road(x, z, 190):
+			if math.hypot(x - c.x, z - c.z) > 300 and k.clear_of_road(x, z, 190) and k.owns(x, z) and _on_ground(k, x, z):
 				k.place("Blocks", (x, -1.0, z), 0.0)
 			z += TILE
 		x += TILE
@@ -822,6 +839,19 @@ def build(k):
 	_row(k, 48, 58, ["MidRise", "OfficeBroken", "MidRise", "Collapsed"], jitter=3, start=30)
 	_row(k, 80, 108, ["MidRise", "Collapsed", "HighRise", "OfficeBroken"], jitter=8, start=20)
 	_row(k, 140, 175, ["HighRise", "OfficeBroken", "Collapsed"], jitter=15, start=50, scale=(1.0, 1.5), yaw_jit=0.4)
+	# Wide layout (WORLD2_SPEC "World 2 track layout", 2026-11-26; re-fit round 2): the city goes on in depth over this
+	# track's own band out to about its midline (380 studs), at about the approved density of buildings, instead of
+	# ending at 175. The outer row keeps to mid-rises (no tower in the band's outer 100 studs). Proposed.
+	_row(k, 58, 235, ["HighRise", "OfficeBroken", "MidRise", "Collapsed", "MidRise"], jitter=18, start=35, scale=(1.0, 1.4), yaw_jit=0.35)
+	_row(k, 52, 300, ["MidRise", "OfficeBroken", "Collapsed", "MidRise"], jitter=20, start=20, scale=(1.0, 1.3), yaw_jit=0.4)
+	_row(k, 50, 355, ["Collapsed", "MidRise", "OfficeBroken"], jitter=12, start=45, scale=(0.9, 1.2), yaw_jit=0.5)
+	# The 0.9 view looks down the last straight past the finish onto the next track's ground: towers flanking the last
+	# stretch (clear of the checkpoint apron and the WinPad) close the skyline at its end. Proposed.
+	for dd, off, sc in ((230, -95, 1.45), (180, 100, 1.4), (140, -120, 1.3), (300, 120, 1.35), (95, 135, 1.25), (260, -150, 1.3)):
+		pos, yaw = k.beside(L - dd, off)
+		if k.clear_of_road(pos[0], pos[2], abs(off) * 0.9) and k.owns(pos[0], pos[2]) and _on_ground(k, pos[0], pos[2]):
+			_clear_near(k, pos[0], pos[2], 34, ("MidRise", "OfficeBroken", "Collapsed", "HighRise"))
+			k.place("HighRise", (pos[0], -1.0, pos[2]), yaw + (math.pi / 2 if off > 0 else -math.pi / 2), sc)
 	BUILD = ("MidRise", "OfficeBroken", "Collapsed", "HighRise")
 	# Expressway crossings on flat straights, piers clear of every lap (none in front of the 33% view: it frames the HQ)
 	for f in (0.14, 0.45, 0.72):
@@ -836,18 +866,22 @@ def build(k):
 				k.place("Overpass", pos, yaw)  # local X runs across the road
 				break
 	# The crater in the infield; the infield and the outskirts fill with ruins, away from its bowl
-	k.place("Crater", (c.x, -1.0, c.z), 0.3, 1.5)
+	if k.owns(c.x, c.z):  # the wide layout's box centre is another track's ground: no infield crater there
+		k.place("Crater", (c.x, -1.0, c.z), 0.3, 1.5)
 	for count, names, clearance, margin, scale in (
 		(25, ["Rubble", "Rubble", "Kerb"], 50, 300, (0.8, 1.5)),
 		(30, ["HighRise", "Collapsed", "MidRise", "OfficeBroken", "MidRise", "OfficeBroken"], 130, 220, (0.9, 1.3)),  # no lone towers out on the plain
 	):
 		placed, tries = 0, 0
-		while placed < count and tries < count * 30:
+		while placed < count and tries < count * 300:  # most of the wide layout's box is other tracks' ground
 			tries += 1
 			x = rng.uniform(k.lo.x - margin, k.hi.x + margin)
 			z = rng.uniform(k.lo.z - margin, k.hi.z + margin)
-			if math.hypot(x - c.x, z - c.z) > 250 and k.clear_of_road(x, z, clearance):
-				k.place(rng.choice(names), (x, -1.0, z), rng.uniform(0, math.tau), rng.uniform(*scale))
+			if math.hypot(x - c.x, z - c.z) > 250 and k.clear_of_road(x, z, clearance) and k.owns(x, z) and _on_ground(k, x, z):
+				name = rng.choice(names)
+				if name == "HighRise" and k.clear_of_road(x, z, 280):
+					name = "MidRise"  # no tower in the band's outer 100 studs
+				k.place(name, (x, -1.0, z), rng.uniform(0, math.tau), rng.uniform(*scale))
 				placed += 1
 	# Heights vary instance to instance (Roblox: Size.Y on the same mesh)
 	for ob in k.col.objects:
@@ -856,7 +890,9 @@ def build(k):
 	# 01: the hero's apartment on the right, its blank end wall turned toward the camera, the balconies in view
 	e, t = _eye(k, 0.06)
 	_, right, _ = k.at(L * 0.06)
-	ax, az = e.x + t.x * 150 + right.x * 62, e.z + t.z * 150 + right.z * 62
+	# 136 studs on along the road and 72 right of it from the 0.06 point (on a straight: 150 ahead of the eye, 62 right of
+	# it, as approved); along the road, so in a bend it keeps its place beside the road (2026-11-26 re-fit)
+	(ax, _, az), _ = k.beside(L * 0.06 + 136, 72)
 	pos, yaw = k.beside(L * 0.06 + 81, 52)
 	_clear_view(k, e, ax, az, 40, BUILD + ("Kerb", "Rubble", "Barricade"))
 	_clear_near(k, ax, az, 42, BUILD + ("Rubble", "Barricade"))
@@ -880,7 +916,7 @@ def build(k):
 					continue
 				for off in (31, 35, 39):  # inside a bend the pole's straight wires need more room
 					pos, yaw = k.beside(d, side * off)
-					if k.clear_of_road(pos[0], pos[2], off - 4):
+					if k.clear_of_road(pos[0], pos[2], off - 4) and k.owns(pos[0], pos[2]):
 						break
 				else:
 					continue
@@ -932,22 +968,66 @@ def build(k):
 				break
 		if done:
 			break
+	# 02: the infield crater (approved: scale 1.5, turn 0.3, the dark bowl the 33% view looks at). Its approved spot, the
+	# track box's centre, is another track's ground on the wide layout, so it stands beside the road ahead of the 0.33
+	# camera instead, its whole bowl clear of every road (24 studs), its base centre on this track's own ground and Ground
+	# rect, the sight line to it cleared; not on the 0.62 crater or an overpass (re-fit round 2, proposed spot).
+	e, t = _eye(k, 0.33)
+	side = Vector((-t.z, 0, t.x))
+	spot = None
+	others = [(ob.location.x, -ob.location.y) for ob in k.col.objects if ob.type == "MESH" and ob.name.split("_")[2] in ("Crater", "Overpass")]
+	for dist in range(350, 1301, 50):
+		for lat in (260, -260, 285, -285, 310, -310):
+			x, z = e.x + t.x * dist + side.x * lat, e.z + t.z * dist + side.z * lat
+			if (
+				_clear_seg(k, x, z, 218 + 24)
+				and k.owns(x, z)
+				and _on_ground(k, x, z)
+				and all(math.hypot(x - a, z - b) > 300 for a, b in others)
+			):
+				spot = (x, z)
+				break
+		if spot:
+			break
+	if spot:
+		x, z = spot
+		_clear_near(k, x, z, 240, BUILD + ("Kerb", "Rubble", "Blocks", "Barricade"))
+		# the street walls between the camera and the bowl go, in a wedge widening to the bowl's width, so the low dark
+		# plateau (about 69 studs high at 1.5) shows from the runner's lane
+		vx, vz = x - e.x, z - e.z
+		ln = math.hypot(vx, vz)
+		for ob in list(k.col.objects):
+			if ob.type != "MESH" or ob.name.split("_")[2] not in BUILD:
+				continue
+			ox, oz = ob.location.x - e.x, -ob.location.y - e.z
+			u = (ox * vx + oz * vz) / (ln * ln)
+			if 0.02 < u < 1.05 and abs(ox * vz - oz * vx) / ln < 25 + 225 * u:
+				k.col.objects.unlink(ob)
+		k.place("Crater", (x, -1.0, z), 0.3, 1.5)
+		print("CRATER 033 at", round(x), round(z))
+	else:
+		print("CRATER 033: no spot")
 	# The Hero Association HQ dominating the skyline, dead ahead of the 33% view (ref New_Hero_Association_Headquarters_
 	# Anime): the nearest spot along that view's heading where its whole footprint clears the road; big enough to fill
 	# about a quarter of the frame height; the street corridor toward it cleared
-	e, t = _eye(k, 0.33)
-	hq, hq_scale = None, 3.0
-	for dist in range(1500, 9001, 100):
-		sc = max(2.3, dist / 800)
-		q = Vector((e.x + t.x * dist, 0, e.z + t.z * dist))
-		if k.clear_of_road(q.x, q.z, 660 * sc + 40):
-			hq, hq_scale = q, sc
-			break
-	if hq is None:
-		hq, hq_scale = Vector((k.hi.x + 1240, 0, k.lo.z - 1620)), 2.3
-	print("HQ", hq, hq_scale)
-	_clear_view(k, e + t * 420, hq.x, hq.z, 160, BUILD)  # only past the end of the straight: the street walls stay
-	k.place("HeroHQ", (hq.x, -1.0, hq.z), 0.4, hq_scale)
+	# Owner 2026-11-26 ("Approve 1-4", design log fe810a44): with no spot at its approved scale (2.3+ on the approved
+	# layout) it stands at the largest scale that fits this track's own ground (tools/blender/world2/herofit.py, its mesh
+	# box, its approved turn 0.4), in a run camera's view (the approved 0.33 first), the street toward it cleared.
+	import herofit
+
+	vs = k.props["HeroHQ"].data.vertices
+	hq_w, hq_d = 2 * max(abs(v.co.x) for v in vs), 2 * max(abs(v.co.y) for v in vs)
+	hit = herofit.best(k, hq_w, hq_d, 2.3, cams=(0.33, 0.06, 0.62, 0.9), aheads=range(240, 2401, 80), sides=range(-1000, 1001, 80), owns=k.owns, base_yaw=0.4)
+	if hit:
+		hq_scale, hx, hz, _, f = hit
+		hq = Vector((hx, 0, hz))
+		e, t = _eye(k, f)
+		_clear_view(k, e + t * 420, hq.x, hq.z, 160, BUILD)  # only past 420 along the view: the street walls stay
+		_clear_near(k, hq.x, hq.z, max(hq_w, hq_d) * hq_scale / 2 + 12, BUILD)  # it now stands inside the city band
+		k.place("HeroHQ", (hq.x, -1.0, hq.z), 0.4, hq_scale)
+		print("HQ at", round(hx), round(hz), "scale", round(hq_scale, 3), "for the", f, "camera")
+	else:
+		print("HQ no spot even shrunk")
 	# 05: the side camera's street: buildings cleared, wrecks, vending machines, cordons and overgrowth at street level
 	p, right, t = k.at(L * 0.48)
 	g = p + right * 140 - t * 60
@@ -956,8 +1036,27 @@ def build(k):
 	while placed < 26 and tries < 600:
 		tries += 1
 		x, z = p.x + right.x * rng.uniform(40, 150) + t.x * rng.uniform(-110, 110), p.z + right.z * rng.uniform(40, 150) + t.z * rng.uniform(-110, 110)
-		if k.clear_of_road(x, z, 34):
+		if k.clear_of_road(x, z, 34) and k.owns(x, z):
 			k.place(("Rubble", "Kerb", "Rubble", "Barricade")[placed % 4], (x, -1.0, z), rng.uniform(0, math.tau), rng.uniform(0.9, 1.4))
 			placed += 1
+	# 05: the side view's frame beyond its wreck street: empty lots (Blocks tiles with no building on them) get the approved
+	# buildings at approved scales, facing the road, so the frame is a city, not grey lots (re-fit round 2, proposed)
+	near = [(ob.location.x, -ob.location.y) for ob in k.col.objects if ob.type == "MESH" and ob.name.split("_")[2] in BUILD + ("Crater", "Overpass", "SaitamaApt")]
+	street = lambda x, z: abs((x - p.x) * t.x + (z - p.z) * t.z) < 130 and 20 < (x - p.x) * right.x + (z - p.z) * right.z < 165  # noqa: E731
+	filled = 0
+	for along in range(-420, 421, 44):
+		for lat in list(range(-370, -50, 44)) + list(range(66, 371, 44)):
+			q = p + t * (along + rng.uniform(-8, 8)) + right * (lat + rng.uniform(-8, 8))
+			if street(q.x, q.z) or not (k.owns(q.x, q.z) and _on_ground(k, q.x, q.z) and _clear_seg(k, q.x, q.z, 58)):
+				continue
+			if any(math.hypot(q.x - a, q.z - b) < 34 for a, b in near):
+				continue
+			name = rng.choice(("MidRise", "OfficeBroken", "Collapsed", "MidRise") if abs(lat) > 270 else ("MidRise", "OfficeBroken", "Collapsed", "HighRise"))
+			_, yaw = k.beside(L * 0.48 + along, lat)
+			ob = k.place(name, (q.x, -1.0, q.z), yaw + (math.pi / 2 if lat > 0 else -math.pi / 2) + rng.uniform(-0.3, 0.3), rng.uniform(1.0, 1.3))
+			ob.scale[2] *= rng.uniform(0.75, 1.3)
+			near.append((q.x, q.z))
+			filled += 1
+	print("05 INFILL", filled)
 	k.sky([(0.0, "E2DCCC"), (0.07, "C6CFD4"), (0.3, "8FB4D8"), (1.0, "3C74BE")], strength=1.0, sun=(4.0, "FFEED6", 46, 150))
 	_enforce_clearance(k)

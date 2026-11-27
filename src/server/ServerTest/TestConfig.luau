@@ -16,7 +16,7 @@ return {
 		environment = "names World 1's ten biomes; World 2's are checked offline only (tools/lune/biome_harness.luau, WORLD=2), no Studio scenario yet",
 	},
 	-- Every TrackTests file is the brief of one World 1 track (owner limits per track).
-	World1TrackTests = "briefs of World 1's ten tracks; World 2's tracks have no briefs yet (the runner scenario runs all ten, world_layout places them)",
+	World1TrackTests = "briefs of World 1's ten tracks; World 2 runs its own, TrackTests/World2",
 	Scenarios = {
 		"runner",
 		"scrap",
@@ -28,6 +28,8 @@ return {
 		"hud",
 		"auto_toggle",
 		"spawn_area",
+		"plaza_pieces", -- WORLD_REDESIGN_SPEC 4.2: the pieces' code, off before the upload and on after
+		"plaza_build", -- WORLD_REDESIGN_SPEC 4.2: the guards (PlazaBuildTests.PENDING is empty since the merchants, 2026-11-25)
 		"gacha",
 		"catalog",
 		"index",
@@ -58,9 +60,14 @@ return {
 		"sidekick_rotation",
 		"world2_cast",
 		"world2_welcome", -- WORLD2_SPEC "Welcome": Worlds.W2.Welcomed, once, old saves and World 1 keep it
+		"boss_guide", -- docs/BOSS_GUIDE_SPEC.md: Gojio at the boss gate, text only
 		"world2_team",
 		"awakening", -- design doc 4.47: World 2 stars from Copies, World 1 unchanged
 		"world2_rewards", -- WORLD2_SPEC "Rewards": World 2 pad Cash, first-clear Gems per world
+		"world2_skies", -- WORLD2_SPEC "Track skies": four draft skies behind TrackSkyConfig.LIVE, id 0 changes nothing
+		"track_fx", -- WORLD2_SPEC "Track effects (draft)": LIVE off, World 1 untouched, budget caps, dragon clearance
+		"world2_lighting", -- WORLD2_SPEC "Track lighting": brightness floors per track (owner 2026-11-26)
+		"w2_mesh_turn", -- WORLD2_SPEC "Blender first": Open Cloud import turn corrected for World 2 meshes
 		"world2_summon", -- design doc 4.47 "Pity counts stay shared", SIDEKICK_SPEC "World 2 set": Summon gives this place's set
 		"boss_models_placed", -- the four boss models startBoss loads are in this place's ServerStorage.BakedModels
 		"harness_save", -- design doc 4.24 "Harness saves": a harness run never writes the live save
@@ -87,7 +94,10 @@ return {
 		"world_layout",
 		"world_travel", -- design doc 4.47: one trip at a time, frozen until departure, restored on failure
 		"world_travel_freeze", -- review of 8557dcf: Depart before the release save, freeze, lock retake, hung teleport
+		"biome_mesh_color", -- docs/BUGS.md w2-dark-props: World 2 textureless meshes are white, World 1 as loaded
 		"biome_runtime", -- World 2 runtime review: BiomeAssets timeout / retry / CastShadow, build yield, draft lamps
+		"world2_sendback", -- docs/BUGS.md w2-sendback-stale-team: a sent-back arrival keeps the stored World 2 team
+		"admin_rank", -- docs/BUGS.md admin-ranklookup-yield: no 2 s yield per check while rank lookups fail
 		"world_arrival", -- design doc 4.47: a non-admin who arrives in World 2 while the gate is locked goes back
 		"world_travel_review", -- review of 3258513: arrival save carry, hung trip, InitFailed, Depart, rank "unknown"
 		"world_gate_rule", -- design doc 4.47: one opening rule for the gate, Go and the arrival check (GATE_OPEN stays false)
@@ -107,5 +117,6 @@ return {
 		"server_lighting_unchanged",
 		"assets_ip",
 		"tunnel_clear", -- spec 3.5: tunnel roof >= 12 over the road, clear of checkpoints
+		"road_surface_clear", -- docs/W2_RENDER_AUDIT.md: no part, terrain or Grass through any road; supports under it
 	},
 }

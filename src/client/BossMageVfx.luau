@@ -305,6 +305,7 @@ local effects, mage = nil, nil
 local tracked = {} -- part -> function giving its CFrame each frame
 local circles = {} -- the barrage's open circles (part -> its outward direction), its beams' origins
 local pools = {} -- name -> idle pooled parts of that name's look (Transparency 1) in this arena's folder
+local poolSerial = 0 -- every pooled placement's serial (PoolSpawn attribute)
 local hitSpot, hitEmitters = nil, {} -- the one spot the hit particles come from, its emitters by name
 local lightPool = {} -- idle floor lights (holder parts with a disabled PointLight)
 local dim = nil -- the room's dim while it runs: { Born, EndAt, Grade, Lights = { light -> its brightness } }
@@ -378,6 +379,9 @@ local function pooled(name, cframe, size, color, transparency, seconds, make, fa
 		end
 	end
 	part.Name, part.Color, part.Transparency = name, color, transparency
+	-- each placement's own serial: a part reused from the pool is a new effect (UiBossMage counts spawns by it)
+	poolSerial += 1
+	part:SetAttribute("PoolSpawn", poolSerial)
 	local decals = {}
 	for _, d in part:GetDescendants() do
 		if d:IsA("Decal") then

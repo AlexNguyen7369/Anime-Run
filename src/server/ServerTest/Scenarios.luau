@@ -519,19 +519,38 @@ local function checkCheckpoint(checks, spec, layout, expect)
 	local perTrack = type(TrackBuilder.CashFor) == "function" and TrackBuilder.CashFor(1) or 0
 	local second = type(TrackBuilder.CashFor) == "function" and TrackBuilder.CashFor(2) or 0
 	local third = type(TrackBuilder.CashFor) == "function" and TrackBuilder.CashFor(3) or 0
-	-- owner 2026-10-27 (track rule 6): Cash = PayoutCurve.Cash(Number), $100 on Track 1, x10 then x7.5 alternating
-	check(checks, "cash_track1_is_base", perTrack, PAYOUT.CASH[1], perTrack == PAYOUT.CASH[1])
-	local wantCash = type(spec.Number) == "number" and spec.Number >= 1 and PAYOUT.cash(spec.Number) or -1
-	check(checks, "cash_equal_payout_curve", cash or -1, wantCash, cash ~= nil and wantCash >= 1 and cash == wantCash)
+	-- owner 2026-10-27 (track rule 6): Cash = PayoutCurve.Cash(Number), $100 on Track 1, x10 then x7.5 alternating.
+	-- World 2 (design doc 4.47, owner 2026-11-24; WORLD2_SPEC "Rewards"): Track N pays World 1 Track 10's Cash x
+	-- WORLD2_STEP^N, so Track 1 is that x WORLD2_STEP and each track x WORLD2_STEP more. The step is a placeholder, so it
+	-- is read from the config (as track2_pays_ten_times_track1 does); World 1's numbers stay the doc's literals.
 	local PayoutCurve = PAYOUT.module()
-	local curveCash = PayoutCurve and type(PayoutCurve.Cash) == "function" and PayoutCurve.Cash(spec.Number) or nil
+	local world2 = require(Shared:WaitForChild("WorldConfig")).Id == 2
+	local step = world2 and PayoutCurve and PayoutCurve.WORLD2_STEP or nil
+	local base = world2 and step and PAYOUT.CASH[10] * step or PAYOUT.CASH[1]
+	check(checks, "cash_track1_is_base", perTrack, base, perTrack == base)
+	local wantCash = -1
+	if type(spec.Number) == "number" and spec.Number >= 1 then
+		wantCash = world2 and step and PAYOUT.CASH[10] * step ^ spec.Number or PAYOUT.cash(spec.Number)
+	end
+	check(checks, "cash_equal_payout_curve", cash or -1, wantCash, cash ~= nil and wantCash >= 1 and cash == wantCash)
+	local curveCash = nil
+	if world2 then
+		curveCash = PayoutCurve and type(PayoutCurve.TrackCash) == "function" and PayoutCurve.TrackCash(spec.Number, 2)
+			or nil
+	else
+		curveCash = PayoutCurve and type(PayoutCurve.Cash) == "function" and PayoutCurve.Cash(spec.Number) or nil
+	end
 	check(checks, "cash_uses_payout_curve", curveCash or -1, cash or -1, cash ~= nil and curveCash == cash)
+	local up2, up3 = 10, 7.5 -- World 1: x10 then x7.5
+	if world2 then
+		up2, up3 = step or -1, step or -1 -- World 2: x WORLD2_STEP per track
+	end
 	check(
 		checks,
 		"cash_scale_exponential",
 		third,
-		7.5 * second,
-		perTrack >= 1 and second == 10 * perTrack and third == 7.5 * second
+		up3 * second,
+		perTrack >= 1 and second == up2 * perTrack and third == up3 * second
 	)
 	check(
 		checks,
@@ -559,7 +578,10 @@ local function checkCheckpoint(checks, spec, layout, expect)
 			local hudMod = Shared:FindFirstChild("HudFormat")
 			local HudFormat = hudMod and require(hudMod)
 			local want = (cash and HudFormat) and HudFormat.MoneyText(pad:GetAttribute("Cash")) or "?"
-			local literal = ({ [1] = "$100", [10] = "$31.6b" })[spec.Number]
+			-- the doc's literals: World 1 $100 to $31.6b; World 2 "$63.3b" to "$32.4t" (WORLD2_SPEC "Rewards")
+			local literals = require(Shared:WaitForChild("WorldConfig")).Id == 2 and { [1] = "$63.3b", [10] = "$32.4t" }
+				or { [1] = "$100", [10] = "$31.6b" }
+			local literal = literals[spec.Number]
 			if literal then
 				check(checks, "pad_text_literal", label and 1 or 0, 1, label ~= nil and label.Text == literal)
 			end
@@ -634,7 +656,12 @@ end
 
 function Scenarios.track(trackName)
 	local label = "track:" .. trackName
-	local testModule = script.Parent.TrackTests:FindFirstChild(trackName)
+	-- World 2's briefs live in TrackTests/World2 (WORLD2_SPEC "World 2 track layout"); World 1's at the top
+	local briefs = script.Parent.TrackTests
+	if require(Shared:WaitForChild("WorldConfig")).Id == 2 then
+		briefs = briefs:FindFirstChild("World2") or briefs
+	end
+	local testModule = briefs:FindFirstChild(trackName)
 	if not testModule then
 		return result(label, { { name = "test_file_exists", value = 0, limit = 1, pass = false } }, {})
 	end
@@ -7752,6 +7779,13 @@ local SPAWN_START_COOLDOWN = 2
 local SPAWN_WALK_ROOT_HEIGHT = 3
 local SPAWN_WALK_CLEARANCE = 75 -- RunnerService WALK_CLEARANCE
 local SPAWN_LOCATION_SIZE = Vector3.new(12, 1, 12)
+-- Spawn scatter (WORLD_REDESIGN_SPEC 4, lead's choice under owner 2026-11-26, proposed): spacing, rings { radius, spots }, and the
+-- spawn disc's radius less an avatar's half width (1.5) that every spot keeps inside
+-- The wider floor (design doc 4.43, WORLD_REDESIGN_SPEC 4 "Plaza size", proposed): world edges, growth part count, tree pit (x, z size)
+local SPAWN_FLOOR_REACH = { West = -94, East = 131.6, North = 132, South = -119 }
+local SPAWN_FLOOR_PARTS = 4 -- east, south, and the north side in two either side of the tree pit
+local SPAWN_SAKURA_PIT = Vector2.new(24, 22) -- x 68 to 92, z 110 to 132
+local SPAWN_SCATTER = { Spacing = 3.5, Rings = { { 4, 6 }, { 8, 12 } }, Disc = 9.5 - 1.5 }
 local SPAWN_GEOM_TOL = 0.5 -- studs: footprints match the spec within this
 local SPAWN_TOP_TOL = 0.1 -- studs: tops match the spec within this
 local SPAWN_TOUCH_GAP = 1 -- studs: "touches" = horizontal gap at most this
@@ -7799,18 +7833,19 @@ local SPAWN_PLAZA = {
 	SPAWN_XZ = Vector2.new(0, 0),
 	PAD_XZ = Vector2.new(-84, 78),
 	-- the ring of radius 84 round the spawn, one slot every 45 degrees from the gate's angle (build_plaza.py ring_spot);
+	-- the Index, the Team altar and the boss gate stand as the fuller layout (owner 2026-11-25, WORLD_REDESIGN_SPEC 4.2);
 	-- every front faces the spawn (Front = false: the Best Roll pedestal is round)
 	RING = {
 		{ Name = "ShopStall", At = Vector2.new(-83.9, -3.1), Front = true },
 		{ Name = "PotionsStall", At = Vector2.new(-57.2, -61.6), Front = true },
 		{ Name = "Marketplace", At = Vector2.new(3.1, -83.9), Front = true },
-		{ Name = "IndexBoard", At = Vector2.new(61.6, -57.2), Front = true },
+		{ Name = "IndexBoard", At = Vector2.new(76.7, -34.2), Front = true },
 		{ Name = "BestRoll", At = Vector2.new(83.9, 3.1), Front = false },
 		{ Name = "SidekickAltar", At = Vector2.new(57.2, 61.6), Front = true },
-		-- the slot before the gate axis (design doc 4.45, owner 2026-11-17); the gate-axis slot stays empty
-		{ Name = "TeamAltar", At = Vector2.new(-3.1, 83.9), Front = true },
+		{ Name = "TeamAltar", At = Vector2.new(-35.0, 76.4), Front = true }, -- was the slot before the gate axis (4.45)
+		{ Name = "BossGate", At = Vector2.new(2.5, 94.8), Front = true }, -- spot S4
 	},
-	EXCLUSIVE_XZ = Vector2.new(11.6, 12.5), -- the Saitamo pedestal, on the terrace's middle step
+	EXCLUSIVE_XZ = Vector2.new(-16.5, 4.4), -- the Saitamo pedestal, on the terrace's middle step (fuller layout)
 	TERRACE = { 26, 20, 14 }, -- step radii bottom up
 	TERRACE_STEP = 0.8, -- studs tall
 	SENSEI_XZ = Vector2.new(-80.0, 57.9),
@@ -7917,6 +7952,97 @@ function Scenarios.spawn_area()
 		and type(A.WalkCFrame) == "function"
 		and type(A.Bounds) == "function"
 	check(checks, "spawn_api_exists", apiOk and 1 or 0, 1, apiOk)
+	-- Spawn scatter (owner 2026-11-26 "expand spawn location radius to your descretion"; WORLD_REDESIGN_SPEC 4, lead's choice,
+	-- proposed): a real player stands at the walk spawn when no other avatar is within SPACING of it, else at the first free
+	-- spot of two rings (6 at 4 studs, 12 at 8), on the spawn disc (radius 9.5), facing as the walk spawn does.
+	local scatterOk = moduleOk and type(A.ScatterCFrame) == "function" and type(A.SCATTER) == "table"
+	check(checks, "spawn_scatter_api", scatterOk and 1 or 0, 1, scatterOk)
+	if scatterOk then
+		local sc = A.SCATTER
+		local rings = sc.Rings or {}
+		local shape = sc.Spacing == SPAWN_SCATTER.Spacing
+			and #rings == #SPAWN_SCATTER.Rings
+			and rings[1].Radius == SPAWN_SCATTER.Rings[1][1]
+			and rings[1].Spots == SPAWN_SCATTER.Rings[1][2]
+			and rings[2].Radius == SPAWN_SCATTER.Rings[2][1]
+			and rings[2].Spots == SPAWN_SCATTER.Rings[2][2]
+		check(checks, "spawn_scatter_numbers", shape and 1 or 0, 1, shape)
+		local centre = CFrame.lookAt(Vector3.new(10, 6.4, -20), Vector3.new(-30, 6.4, 20))
+		local first = A.ScatterCFrame(centre, {}, 0.37)
+		local dFirst = (first.Position - centre.Position).Magnitude
+		check(checks, "spawn_scatter_alone_at_centre", dFirst, 0.01, dFirst <= 0.01)
+		local placed, worstGap, farthest, sameFrame = {}, math.huge, 0, true
+		local spots = 1 + SPAWN_SCATTER.Rings[1][2] + SPAWN_SCATTER.Rings[2][2]
+		for i = 1, spots + 1 do -- one more than the spots: the last finds none free and takes the farthest
+			local cf = A.ScatterCFrame(centre, placed, (i * 0.618) % 1)
+			local off = cf.Position - centre.Position
+			farthest = math.max(farthest, Vector2.new(off.X, off.Z).Magnitude)
+			sameFrame = sameFrame and math.abs(off.Y) <= 0.01 and cf.LookVector:Dot(centre.LookVector) >= 0.999
+			if i <= spots then
+				for _, p in placed do
+					worstGap = math.min(worstGap, Vector2.new(p.X - cf.X, p.Z - cf.Z).Magnitude)
+				end
+			end
+			table.insert(placed, cf.Position)
+		end
+		check(checks, "spawn_scatter_spaced", worstGap, SPAWN_SCATTER.Spacing, worstGap >= SPAWN_SCATTER.Spacing)
+		check(checks, "spawn_scatter_on_disc", farthest, SPAWN_SCATTER.Disc, farthest <= SPAWN_SCATTER.Disc + 0.01)
+		check(checks, "spawn_scatter_faces_as_walk_spawn", sameFrame and 1 or 0, 1, sameFrame)
+	end
+	-- The wider floor (design doc 4.43 "Wider floor", WORLD_REDESIGN_SPEC 4 "Plaza size", lead's choice under owner 2026-11-26,
+	-- proposed): the west edge stays, the east, north and south edges move out; nothing approved moves. FloorRects are world
+	-- (x, z) boxes of the growth parts; with the approved Floor they cover the whole reach but the Great Sakura's tree pit.
+	local reach = A.FLOOR_REACH
+	local reachOk = type(reach) == "table"
+		and reach.West == SPAWN_FLOOR_REACH.West
+		and reach.East == SPAWN_FLOOR_REACH.East
+		and reach.North == SPAWN_FLOOR_REACH.North
+		and reach.South == SPAWN_FLOOR_REACH.South
+	check(checks, "spawn_floor_reach", reachOk and 1 or 0, 1, reachOk)
+	local rects = type(A.FloorRects) == "function" and A.FloorRects() or {}
+	check(checks, "spawn_floor_growth_parts", #rects, SPAWN_FLOOR_PARTS, #rects == SPAWN_FLOOR_PARTS)
+	local covered, apart, insideReach = 188 * 220, true, true
+	for i, r in rects do
+		covered += (r.Max.X - r.Min.X) * (r.Max.Y - r.Min.Y)
+		insideReach = insideReach
+			and r.Min.X >= SPAWN_FLOOR_REACH.West - 0.01
+			and r.Max.X <= SPAWN_FLOOR_REACH.East + 0.01
+			and r.Min.Y >= SPAWN_FLOOR_REACH.South - 0.01
+			and r.Max.Y <= SPAWN_FLOOR_REACH.North + 0.01
+		-- none overlaps the approved floor (x +-94, z +-110) or another growth part
+		for j, o in rects do
+			if
+				j ~= i
+				and r.Min.X < o.Max.X - 0.01
+				and o.Min.X < r.Max.X - 0.01
+				and r.Min.Y < o.Max.Y - 0.01
+				and o.Min.Y < r.Max.Y - 0.01
+			then
+				apart = false
+			end
+		end
+		if r.Min.X < 93.99 and r.Max.X > -93.99 and r.Min.Y < 109.99 and r.Max.Y > -109.99 then
+			apart = false
+		end
+	end
+	local reachArea = (SPAWN_FLOOR_REACH.East - SPAWN_FLOOR_REACH.West)
+		* (SPAWN_FLOOR_REACH.North - SPAWN_FLOOR_REACH.South)
+	local wantArea = reachArea - SPAWN_SAKURA_PIT.X * SPAWN_SAKURA_PIT.Y
+	check(checks, "spawn_floor_covers_reach", covered, wantArea, math.abs(covered - wantArea) <= 0.5 and insideReach)
+	check(checks, "spawn_floor_parts_apart", apart and 1 or 0, 1, apart)
+	-- the Great Sakura (approved (80, 118), trunk radius 3.2) stands in open ground: no floor part under its trunk
+	local trunkClear = true
+	for _, r in rects do
+		if 80 + 3.2 > r.Min.X and 80 - 3.2 < r.Max.X and 118 + 3.2 > r.Min.Y and 118 - 3.2 < r.Max.Y then
+			trunkClear = false
+		end
+	end
+	check(checks, "spawn_floor_sakura_pit", trunkClear and 1 or 0, 1, trunkClear and #rects > 0)
+	-- The boss gate (owner 2026-11-26): on in World 2 at spot S4, off in World 1 (WORLD_REDESIGN_SPEC 4.2)
+	local GateSwitch = sharedModule("BossGateConfig")
+	local worldId = sharedModule("WorldConfig") and sharedModule("WorldConfig").Id or 1
+	local gateShipped = GateSwitch ~= nil and GateSwitch.LIVE == (worldId == 2)
+	check(checks, "spawn_boss_gate_on_in_world2_only", gateShipped and 1 or 0, 1, gateShipped)
 	local serviceOk = RunnerService ~= nil
 		and RaceService ~= nil
 		and PlayerData ~= nil
@@ -8162,8 +8288,14 @@ function Scenarios.spawn_area()
 	end
 
 	-- The ring: each building at its slot, its front toward the spawn
+	local BossGateConfig = sharedModule("BossGateConfig")
+	local gateLive = BossGateConfig ~= nil and BossGateConfig.LIVE == true
 	for _, e in W.RING do
 		local model = area:FindFirstChild(e.Name)
+		if e.Name == "BossGate" and not gateLive then -- switched off (BossGateConfig.LIVE): nothing of it is built
+			check(checks, "plaza_boss_gate_off_absent", model and 1 or 0, 0, model == nil)
+			continue
+		end
 		placed(e.Name, centreOf(model), e.At)
 		if e.Front then
 			faces(e.Name, frontOf(model), (W.SPAWN_XZ - e.At).Unit)
@@ -12193,6 +12325,8 @@ do
 	Scenarios.assets_ip = env.assets_ip
 	Scenarios.tunnel_clear = env.tunnel_clear
 end
+-- docs/W2_RENDER_AUDIT.md: nothing shows through a road (on demand, TestConfig.OnDemand)
+Scenarios.road_surface_clear = require(script.Parent.RoadSurfaceTests).road_surface_clear
 Scenarios.passes = require(script.Parent.MonetizationTests).passes -- docs/MONETIZATION_SPEC.md
 Scenarios.odds = require(script.Parent.MonetizationTests).odds
 Scenarios.bag = require(script.Parent.MonetizationTests).bag -- docs/BAG_AND_AUTOSELL_SPEC.md
@@ -12232,12 +12366,18 @@ Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 -- design doc 4.47: per-world roll pools, Sidekick sets and cruise; World 1 unchanged
 Scenarios.world2_cast = require(script.Parent.World2CastTests).world2_cast
 Scenarios.world2_welcome = require(script.Parent.World2WelcomeTests).world2_welcome -- WORLD2_SPEC "Welcome"
-Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 team of 4
+Scenarios.boss_guide = require(script.Parent.BossGuideTests).boss_guide -- docs/BOSS_GUIDE_SPEC.md
+Scenarios.world2_team = require(script.Parent.World2TeamTests).world2_team -- design doc 4.47 Team of 3 in World 2 and its migration
 -- deliverables w2-summon, w2-boss: Summon gives this place's Sidekick set with shared pity; boss models are in the place
 Scenarios.world2_summon = require(script.Parent.World2ProofTests).world2_summon
 Scenarios.boss_models_placed = require(script.Parent.World2ProofTests).boss_models_placed
 Scenarios.awakening = require(script.Parent.AwakeningTests).awakening -- design doc 4.47 Awakening, WORLD2_SPEC "Awakening"
 Scenarios.world2_rewards = require(script.Parent.World2RewardsTests).world2_rewards -- design doc 4.47 World 2 rewards
+Scenarios.world2_skies = require(script.Parent.World2SkyTests).world2_skies -- WORLD2_SPEC "Track skies" (owner question 33)
+Scenarios.world2_lighting = require(script.Parent.World2LightingTests).world2_lighting -- WORLD2_SPEC "Track lighting", brighter tracks
+Scenarios.w2_mesh_turn = require(script.Parent.World2MeshTurnTests).w2_mesh_turn -- WORLD2_SPEC "Blender first", import turn
+-- WORLD2_SPEC "Track effects (draft, owner approval pending)": off by default, World 2 only, budget caps
+Scenarios.track_fx = require(script.Parent.TrackFxTests).track_fx
 Scenarios.harness_save = require(script.Parent.HarnessSaveTests).harness_save -- design doc 4.24 "Harness saves"
 -- docs/OWNER_QUESTIONS.md "2026-11-24 w2-cast in game" item 1 (proposed): another world's models load on demand (Server/CharacterModelService)
 Scenarios.character_models = require(script.Parent.CharacterModelTests).character_models
@@ -12261,6 +12401,17 @@ end
 -- docs/WORLD_REDESIGN_SPEC.md sections 1, 2 and 7: the placeholder anime runner and the car scrap list
 Scenarios.runner = require(script.Parent.RunnerTests).runner
 Scenarios.scrap = require(script.Parent.RunnerTests).scrap
+-- docs/WORLD_REDESIGN_SPEC.md 4.2 "Redrafted spawn pieces" (owner 2026-11-25): guards, and what waits on demand
+Scenarios.plaza_build = require(script.Parent.PlazaBuildTests).plaza_build
+-- docs/BUGS.md w2-dark-props: a textureless World 2 mesh is not tinted by the part's default grey
+Scenarios.biome_mesh_color = require(script.Parent.BiomeMeshColorTests).biome_mesh_color
+Scenarios.plaza_build_pending = require(script.Parent.PlazaBuildTests).plaza_build_pending
+-- docs/BUGS.md w2-sendback-stale-team: a player sent back from World 2 keeps its stored World 2 team
+Scenarios.world2_sendback = require(script.Parent.World2SendBackTests).world2_sendback
+-- docs/BUGS.md admin-ranklookup-yield: a failed group rank lookup holds, checks at once share one lookup
+Scenarios.admin_rank = require(script.Parent.AdminRankTests).admin_rank
+-- the spawn pieces' code: nothing new before their upload, each piece once after it
+Scenarios.plaza_pieces = require(script.Parent.PlazaPiecesTests).plaza_pieces
 -- docs/WORLD_REDESIGN_SPEC.md sections 3, 5 and 7: the world layout (Dojos removed, design doc 4.43)
 do
 	local world = require(script.Parent.WorldTests).make({

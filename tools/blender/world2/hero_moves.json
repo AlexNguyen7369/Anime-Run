@@ -1,109 +1,78 @@
 {
- "AntIsland": {
-  "Nest": {
-   "From": [
-    -486.27,
-    -9.793,
-    1808.707
-   ],
-   "Studs": 250.0,
-   "To": [
-    -486.27,
-    -9.793,
-    2058.707
-   ]
-  }
- },
+ "AntIsland": {},
  "DemonCastle": {},
- "DevilTokyo": {
-  "Retro": {
-   "From": [
-    52.235,
-    -1.0,
-    -219.482
-   ],
-   "Studs": 10.0,
-   "To": [
-    52.235,
-    -1.0,
-    -229.482
-   ]
-  }
- },
+ "DevilTokyo": {},
  "ElvenPlains": {},
- "GoldenCity": {},
- "HauntedTunnel": {
-  "Hospital": {
+ "GoldenCity": {
+  "Church": {
    "From": [
-    1376.59,
-    -3.452,
-    609.267
+    7707.793,
+    -2.0,
+    -3794.59
    ],
-   "Studs": 300.0,
+   "OverlapsFrom": [
+    0,
+    null
+   ],
+   "OverlapsTo": [
+    0,
+    null
+   ],
+   "Studs": 310.0,
    "To": [
-    1588.722,
-    -3.452,
-    821.399
+    7397.793,
+    -2.0,
+    -3794.59
    ]
   }
  },
+ "HauntedTunnel": {},
  "HellGate": {
   "DarkGate": {
    "From": [
-    3485.452,
+    2971.995,
     -9.0,
-    3477.681
+    7378.838
+   ],
+   "OverlapsFrom": [
+    0,
+    null
+   ],
+   "OverlapsTo": [
+    0,
+    null
    ],
    "Studs": 90.0,
    "To": [
-    3402.303,
+    2881.995,
     -9.0,
-    3512.122
+    7378.838
    ]
   }
  },
  "KaijuBase": {
-  "Railgun": {
+  "DefenseHQ": {
    "From": [
-    1864.772,
-    -3.2,
-    -307.298
+    2227.465,
+    -3.0,
+    -2879.475
    ],
-   "Studs": 2410.0,
+   "OverlapsFrom": [
+    0,
+    null
+   ],
+   "OverlapsTo": [
+    0,
+    null
+   ],
+   "Studs": 60.0,
    "To": [
-    -361.778,
-    -3.2,
-    -1229.565
+    2227.465,
+    -3.0,
+    -2939.475
    ]
   }
  },
- "MonsterDen": {
-  "Coliseum": {
-   "From": [
-    2706.95,
-    -2.0,
-    131.811
-   ],
-   "Studs": 460.0,
-   "To": [
-    3166.95,
-    -2.0,
-    131.811
-   ]
-  },
-  "LairTower": {
-   "From": [
-    -680.084,
-    -2.0,
-    1795.413
-   ],
-   "Studs": 5620.0,
-   "To": [
-    3293.856,
-    -2.0,
-    -2178.527
-   ]
-  }
- },
+ "MonsterDen": {},
  "RuinedCityZ": {}
 }

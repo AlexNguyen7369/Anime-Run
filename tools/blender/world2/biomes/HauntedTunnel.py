@@ -72,8 +72,9 @@ def _fill(k, color):
 	while d < k.length:
 		p, _, t = k.at(d + step / 2)
 		if p.y > 1.5:
-			ob = k.place("Fill", (p.x, -1.0, p.z), math.atan2(-t.x, -t.z))
-			ob.scale = (k.width - 1, step + 0.5, p.y + 0.5)
+			# its top under the road over its whole length (kit.support_top), not at the centre's height
+			ob, h = k.support("Fill", p.x, p.z, math.atan2(-t.x, -t.z), d - 0.25, d + step + 0.25)
+			ob.scale = (k.width - 1, step + 0.5, h)
 		d += step
 
 
@@ -727,11 +728,11 @@ def build(k):
 		(x, _, z), _ = orig(d, off)
 		avoid.append((x, z, r))
 	placed, tries = 0, 0
-	while placed < 190 and tries < 6000:
+	while placed < 190 and tries < 60000:  # own ground only (2026-11-26 re-fit): most of the box is other tracks'
 		tries += 1
 		x = k.rng.uniform(k.lo.x - 350, k.hi.x + 350)
 		z = k.rng.uniform(k.lo.z - 350, k.hi.z + 350)
-		if all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid) and k.clear_of_road(x, z, 70):
+		if k.owns(x, z) and all(math.hypot(x - ax, z - az) > r for ax, az, r in avoid) and k.clear_of_road(x, z, 70):
 			k.place("Cedar", (x, -1.0, z), k.rng.uniform(0, math.tau), k.rng.uniform(0.9, 1.5))
 			placed += 1
 	placed, tries = 0, 0  # far ridges, kept well away from the landmarks so none stands in front of them
@@ -757,6 +758,9 @@ def build(k):
 	v = (t * math.cos(az) - right * math.sin(az)) * dist * math.cos(el)
 	moon.location = kit.rb(eye.x + v.x, ey + dist * math.sin(el), eye.z + v.z)
 	k.col.objects.link(moon)
+	# Wide layout (2026-11-26 re-fit): the cedar-forested hills out to this track's ground midline (about 380 out), the
+	# approved Cedar at its approved scales, so the run views end in forest, not bare ground
+	print("BAND Cedar", k.band(["Cedar"], 34, (110, 370), scale=(0.9, 1.5), gap=26, seed=1, space=36))
 	k.sky([(0.0, "2C5488"), (0.06, "1A3460"), (0.35, "0B1838"), (1.0, "030812")], strength=1.0, sun=(1.5, "8FB0FF", 38, 160))
 	for ob in k.col.objects:  # soft moonlight: wide light angle, so cedar shadows on the verge are soft
 		if ob.type == "LIGHT" and ob.data.type == "SUN":

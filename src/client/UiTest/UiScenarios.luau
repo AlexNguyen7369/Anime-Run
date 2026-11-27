@@ -230,6 +230,8 @@ UiScenarios.Names = {
 	-- World label, travel toast and the World 2 welcome (UiWorld2; docs/WORLD2_SPEC.md "World HUD", "Welcome")
 	"ui_world_label",
 	"ui_world2_welcome",
+	"ui_boss_gate", -- the gate's look and its prompt, closed and open (UiBossGate; WORLD_REDESIGN_SPEC 4.2)
+	"ui_boss_guide", -- Gojio's conversation at the boss gate (UiBossGuide; docs/BOSS_GUIDE_SPEC.md)
 	"ui_hud_look_by_world", -- both worlds: 4.40 HUD, no option A dressing; panels keep the handscroll (design doc 4.46 "HUD look")
 	-- Load guards and cooldowns on the data remotes (bb96973, D7 and D8). Fixture data_loading, restored at once
 	"ui_remote_guards",
@@ -338,6 +340,7 @@ UiScenarios.Needs = {
 	ui_team = { "hud_unlock" },
 	ui_panels = { "hud_unlock" },
 	ui_relics = { "relic_states" },
+	ui_boss_guide = { "quiet", "hud_unlock" }, -- he talks from rebirth 1; auto-rolls and runs move what grants_nothing watches
 	ui_bag_full = { "auto_roll_on" },
 	-- An undiscovered tile needs an unowned character: the reused test save can own them all (full_run5)
 	ui_index = { "index_states" },
@@ -346,7 +349,7 @@ UiScenarios.Needs = {
 }
 -- Put back right after the scenario that asked (RestoreSetups runs only at the end of a full run), so later scenarios
 -- see the saved RebirthLevel again.
-FX.RESTORE_AFTER = { hud_unlock = true, team_full = true, index_states = true }
+FX.RESTORE_AFTER = { hud_unlock = true, team_full = true, index_states = true, quiet = true }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
 UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
@@ -7620,6 +7623,14 @@ local function billboardsAtHub(res)
 		"Pedestal.CharacterMount",
 		mount ~= nil and bestStats ~= nil and bestStats:IsA("BillboardGui") and bestStats.Adornee == mount
 	)
+	-- WORLD_REDESIGN_SPEC 4.2 (owner 2026-11-25, fuller layout): the moved Index and Team altar keep their floating
+	-- headers over them (Client/PlazaWayfinding). World (x, z); 8 studs: a header may hang over its building's front.
+	for key, at in { Index = Vector2.new(76.7, -34.2), Team = Vector2.new(-35.0, 76.4) } do
+		local anchor = Workspace.Terrain:FindFirstChild("Wayfinding_" .. key)
+		local p = anchor and anchor.WorldPosition
+		local off = p and (Vector2.new(p.X, p.Z) - at).Magnitude or -1
+		check(res, "header_" .. key .. "_over_moved_building", off, 8, p ~= nil and off <= 8)
+	end
 end
 
 function S.ui_billboards(res)
@@ -9149,6 +9160,18 @@ for cond, fn in K.world2.After do
 	access.After[cond] = fn
 end
 
+K.bossGate = require(script.Parent.UiBossGate).Build({ check = check })
+for name, fn in K.bossGate.Scenarios do
+	S[name] = fn
+end
+K.bossGuide = require(script.Parent.UiBossGuide).Build({ check = check })
+for name, fn in K.bossGuide.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossGuide.After do
+	access.After[cond] = fn
+end
+
 K.sidekickAttack = require(script.Parent.UiSidekickAttack).Build({
 	check = check,
 	requestSetup = UiScenarios.RequestSetup,
@@ -9427,6 +9450,39 @@ end
 -- ui_world2_welcome and the world2_welcome_* clicks open it again on purpose.
 function UiScenarios.DismissWelcome()
 	player:SetAttribute("World2WelcomeShow", nil)
+end
+
+-- The Daily Rewards popup (Client/BoostDailyUi) opens by itself once per UTC day, up to a second after the save loads,
+-- while today's reward is unclaimed; it counts as an open panel (docs/BUGS.md ui-harness-daily-popup). Closed before a
+-- run the way a player closes it (PanelSwitch "Daily"); after that it stays closed for the day. A bounded wait first
+-- lets a pending auto-open happen, so it cannot open in the middle of a scenario. Scenarios that check the Daily view
+-- open it themselves (setPanels).
+-- (No chunk-level local here: this chunk is at Luau's 200-local limit.)
+function UiScenarios.DismissDaily()
+	local autoOpenWait = 2.5 -- s: BoostDailyUi checks once a second
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	local backdrop = gui and gui:FindFirstChild("DailyBoosts") and gui.DailyBoosts:FindFirstChild("ModalBackdrop")
+	if not (backdrop and backdrop:IsA("GuiObject")) then
+		return
+	end
+	local today = math.floor(os.time() / 86400)
+	if
+		not backdrop.Visible
+		and player:GetAttribute("DataLoaded") == true
+		and player:GetAttribute("DailyLast") ~= today
+	then
+		local deadline = os.clock() + autoOpenWait
+		while not backdrop.Visible and os.clock() < deadline do
+			task.wait(0.05)
+		end
+	end
+	if backdrop.Visible then
+		local switch = panelSwitch()
+		if switch and type(switch.Close) == "function" then
+			switch.Close("Daily")
+		end
+		waitHidden({ backdrop })
+	end
 end
 
 function UiScenarios.Run(name)

@@ -14,6 +14,7 @@
 local H = require(script.Parent.AcceptanceSupport)
 local Shared = game:GetService("ReplicatedStorage").Shared
 local PathDriver = require(Shared.PathDriver)
+local WorldConfig = require(Shared.WorldConfig)
 local Tests = {}
 
 local LAP_TOLERANCE = 50 -- spec rounds lane 4's lap to the nearest hundred: "about 3,700"
@@ -95,7 +96,12 @@ function Tests.boss_arena()
 		flag("inner_radius_550", Cfg.InnerRadius == 550, Cfg.InnerRadius, 550) -- owner 2026-11-06
 		flag("width_80", Cfg.Width == 80, Cfg.Width, 80)
 		flag("lanes_7", Cfg.Lanes == 7, Cfg.Lanes, 7)
-		flag("y_about_1200", near(Cfg.Y, 1200, Y_TOLERANCE), Cfg.Y, 1200)
+		-- World 2: owner 2026-11-27 "Raise World 2's arena", about 2,330 (BOSS_EVENT_SPEC "Height"); World 1 about 1,200
+		if WorldConfig.Id == 2 then
+			flag("y_about_2330_world2", near(Cfg.Y, 2330, Y_TOLERANCE), Cfg.Y, 2330)
+		else
+			flag("y_about_1200", near(Cfg.Y, 1200, Y_TOLERANCE), Cfg.Y, 1200)
+		end
 		flag("center_is_at_y", typeof(Cfg.Center) == "Vector3" and near(Cfg.Center.Y, Cfg.Y, 0.01))
 		local scale = Cfg.BossScale
 		flag("boss_scale_in_range", type(scale) == "number" and scale > 0 and scale <= 1, scale)

@@ -25,8 +25,8 @@ return Kit.fromDraft("RuinedCityZ", require(script.Parent.RuinedCityZDraft), {
 	Assets = {
 		W2_RuinedCityZ_BrickFlat = draftMesh(
 			8356,
-			"rbxassetid://71827032081453", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://125329792828469", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: small brick apartment block with a stacked balcony face and huge blank stained concrete end walls",
 			"hero landmark, 1 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_BrickFlat.glb"
 		),
@@ -39,64 +39,64 @@ return Kit.fromDraft("RuinedCityZ", require(script.Parent.RuinedCityZDraft), {
 		),
 		W2_RuinedCityZ_Overpass = draftMesh(
 			3612,
-			"rbxassetid://130120483743247", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://124550083311797", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: dark elevated expressway deck on deep girders and square piers, chain link fence below, broken off at one end",
 			"hero landmark, 2 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_Overpass.glb"
 		),
 		W2_RuinedCityZ_MidRise = draftMesh(
 			2772,
-			"rbxassetid://110618976116132", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://73158011899896", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: warm grey mid rise apartment block with window grids, balconies, air conditioner units, some boarded shutters, rain streaks and a roof tank",
 			"mid prop, 130 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_MidRise.glb"
 		),
 		W2_RuinedCityZ_OfficeBroken = draftMesh(
 			2556,
-			"rbxassetid://82488362586325", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://82820061701016", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: beige office block with its top corner torn off, broken floor slabs, rebar, a punched hole and cracks",
 			"mid prop, 89 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_OfficeBroken.glb"
 		),
 		W2_RuinedCityZ_HighRise = draftMesh(
 			2480,
-			"rbxassetid://75405867009013", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://73566821854830", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: empty weathered high rise tower with window grids, corner fins, lobby canopy, setback crown and roof mast",
 			"mid prop, 57 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_HighRise.glb"
 		),
 		W2_RuinedCityZ_Collapsed = draftMesh(
 			3000,
-			"rbxassetid://113982394157032", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://101695735392690", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: half collapsed high rise: a window grid shaft, exposed floor slabs on stub columns, a tilted top slab and rubble",
 			"mid prop, 74 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_Collapsed.glb"
 		),
 		W2_RuinedCityZ_Barricade = draftMesh(
 			1218,
-			"rbxassetid://93229397253870", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://110914855028494", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: evacuation cordon: chain link fence with coiled wire, striped barrier, a blank white board on posts and cones, no text",
 			"mid prop, 76 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_Barricade.glb"
 		),
 		W2_RuinedCityZ_Kerb = draftMesh(
 			1236,
-			"rbxassetid://97829263072176", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://85311222639243", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: street kerb set: concrete utility pole with crossarms and transformer, a street lamp, a pair of plain vending machines and a street tree",
 			"mid prop, 34 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_Kerb.glb"
 		),
 		W2_RuinedCityZ_Rubble = draftMesh(
 			544,
-			"rbxassetid://120346568607759", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://118567594153784", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: rubble heap of concrete chunks, cracked slabs, rebar, a broken pipe and a crushed dusty car",
 			"mid prop, 69 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_Rubble.glb"
 		),
 		W2_RuinedCityZ_Blocks = draftMesh(
 			1008,
-			"rbxassetid://97388531264178", -- Id: tools/blender/world2/upload_props.py
-			"2026-11-23 auditor", -- Reviewed: the rules audit
+			"rbxassetid://100517695612442", -- Id: tools/blender/world2/upload_props.py
+			"2026-11-26 auditor", -- Reviewed: the rules audit
 			"in-house Blender parts model, low poly flat colours: city block tile: four raised sidewalk blocks with kerbs, asphalt streets between them, crosswalk stripes and parking lines",
 			"mid prop, 104 placed; build/world2/export/RuinedCityZ/W2_RuinedCityZ_Blocks.glb"
 		),

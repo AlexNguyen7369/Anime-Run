@@ -15,7 +15,7 @@
 local UiSpec = {}
 
 local MarketConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("MarketConfig"))
-local TEAM_SIZE = require(game:GetService("ReplicatedStorage").Shared.StaminaConfig).TEAM_SIZE -- 3; World 2: 4
+local TEAM_SIZE = 3 -- both worlds (design doc 4.2, 4.47)
 -- A MarketConfig item's Name (a readable placeholder when the id is gone, so the spec still loads and the click fails)
 local function marketName(kind, id)
 	local item = MarketConfig.Get(kind, id)
@@ -1655,6 +1655,11 @@ UiSpec.ServerSetup = {
 			.. "needs 'snapshot' first",
 		What = "Turns auto-rolling off (AutoRoll = false): an auto-roll's duplicate sale moves Money mid-check. 'restore' "
 			.. "puts AutoRoll back to the 'snapshot' value.",
+	},
+	{
+		Id = "quiet",
+		When = "asked for by ui_boss_guide itself (UiScenarios.Needs); put back right after it (restore:quiet)",
+		What = "AutoRoll off and auto racing stopped, so only the scenario itself could move Rolls, Money or Gems.",
 	},
 	{
 		Id = "auto_roll_on",
@@ -3621,13 +3626,12 @@ UiSpec.Team = {
 	SummonPanel = "RacerSidekicks/Canvas",
 	Gone = { "BestTeam" }, -- no descendant of Panel has this name (Quick Setup replaced it, 4.45)
 	GoneDirect = { "Slots", "Bonus" }, -- layout A's parts: no child of Panel has these names any more
-	-- owner 2026-11-17 (4.45); World 2's team of 4 adds slot 4 (4.47)
-	SlotLabels = TEAM_SIZE == 4 and { "SLOT 1", "SLOT 2", "SLOT 3", "SLOT 4" } or { "SLOT 1", "SLOT 2", "SLOT 3" },
+	SlotLabels = { "SLOT 1", "SLOT 2", "SLOT 3" }, -- owner 2026-11-17 (4.45); both worlds (4.47)
 	FullScreenTol = 2, -- px: Panel AbsoluteSize against its ScreenGui's
 	TeamName = "Team 1",
 	Ready = "Ready",
 	Unsaved = "Unsaved changes",
-	CountText = "%d / " .. TEAM_SIZE, -- owner 2026-11-19 (4.45 T2); World 2: "/ 4" (4.47)
+	CountText = "%d / " .. TEAM_SIZE, -- owner 2026-11-19 (4.45 T2)
 	PlusText = "+",
 	AddText = "Add Character",
 	RemoveText = "Remove",
@@ -5170,6 +5174,34 @@ do
 		Prepare = rewardsPrepare,
 		NeedSetup = { "spy", "boss_rewards_open" },
 		Expect = { Remote = false, After = { "boss_rewards_closed" } },
+	})
+end
+
+-- Gojio's conversation at the boss gate (docs/BOSS_GUIDE_SPEC.md; UiBossGuide). A PanelSwitch panel: one at a time with the rest.
+UiSpec.Guis.BossGuideUi = {
+	Source = "Client/BossGuideUi",
+	Panels = { "Panel" },
+	Buttons = {
+		{ Path = "Panel/CloseButton", Does = "close_panel", Panel = "BossGuideUi/Panel" },
+		{ Path = "Panel/Next", Does = "local" },
+	},
+}
+UiSpec.PanelSwitch.Names["BossGuideUi/Panel"] = "BossGuide"
+UiSpec.Hitbox.PanelBodies["BossGuideUi/Panel"] = true
+table.insert(CLOSED, "BossGuideUi/Panel")
+for _, c in
+	{
+		{ "boss_guide_close", "Panel/CloseButton", false, "boss_guide_closed" },
+		{ "boss_guide_next", "Panel/Next", true, "boss_guide_advanced" },
+	}
+do
+	table.insert(UiSpec.Clicks, {
+		Id = c[1],
+		Gui = "BossGuideUi",
+		Path = c[2],
+		Prepare = only("BossGuideUi/Panel"),
+		NeedSetup = { "spy" },
+		Expect = { Panels = { ["BossGuideUi/Panel"] = c[3] }, Remote = false, After = { c[4] } },
 	})
 end
 

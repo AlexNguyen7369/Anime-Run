@@ -16,6 +16,7 @@ local TOP = 1 -- SpawnArea.TOP_Y
 
 -- World 2's colours and set pieces (design doc 4.47 "Rift Shrine", placeholders in Shared/PlazaLook); empty in World 1
 local Look = require(ReplicatedStorage.Shared.PlazaLook)
+local PlazaPieces = require(ReplicatedStorage.Shared.PlazaPieces)
 
 -- Warm, in the HUD's gold and navy family (4.40); pink only as a small accent (proposed). World 2 swaps them for cyan.
 local ACCENT = Look.Accent or {}
@@ -33,6 +34,13 @@ local STALLS = {
 	SHOPStall = { Eave = Vector3.new(14.5, -6.75, 8.85), Screen = { 2.5, 4.3, 6.2, 4, 2.2 }, Color = GOLD },
 	POTIONSStall = { Eave = Vector3.new(14.5, -6.75, 8.85), Screen = { -2.5, 4.3, 6.2, 4, 2.2 }, Color = PINK },
 	MarketStall = { Eave = Vector3.new(20, -7.2, 8.75), Screen = { 0, 4.4, 6.8, 5, 1.6 }, Color = AMBER },
+}
+-- The same on set B's stalls once they are uploaded (Shared/PlazaPieces): the trim under the sign board or the canopy's front lip, the
+-- screen on the inner back wall (kept on set B, owner 2026-11-25; heights and depths measured on the draft meshes, proposed)
+local PIECE_STALLS = {
+	SHOPStall = { Eave = Vector3.new(6.4, -5.95, 10.1), Screen = { 0, 3.55, 6.2, 4, 2.2 }, Color = GOLD },
+	POTIONSStall = { Eave = Vector3.new(6, -8.25, 8.8), Screen = { 0, 4.7, 6.2, 4, 2.2 }, Color = PINK },
+	MarketStall = { Eave = Vector3.new(15, -5.5, 8.9), Screen = { 0, 4.4, 6.8, 5, 1.6 }, Color = AMBER },
 }
 local SCAN_RADIUS = 7
 local SCAN_HEIGHT = 8.5 -- ring centre above the floor
@@ -283,7 +291,7 @@ function PlazaAccents.Build()
 	end
 	for key, spec in STALLS do
 		for _, row in rows(key) do
-			stall(folder, frameOf(row), spec)
+			stall(folder, frameOf(row), PlazaPieces.Ready(key) and PIECE_STALLS[key] or spec)
 		end
 	end
 	for i, row in rows("Lantern") do

@@ -17,7 +17,18 @@ local AXIS = v(-84, 0, 78) / AXIS_LEN
 local WORLD2 = {
 	-- Mesh glow parts by name (PlazaAssets Parts "Glow_*"): the sky loop, the spawn rim and the Market sign turn cyan
 	-- (plaza_w2.py B neonb, neonw, neono). Glow_lamp keeps its warm amber.
-	Glow = { Glow_neonb = "#3CE6FF", Glow_neonw = "#C8F8FF", Glow_neono = "#4A8CFF" },
+	Glow = {
+		Glow_neonb = "#3CE6FF",
+		Glow_neonw = "#C8F8FF",
+		Glow_neono = "#4A8CFF",
+		-- the world gate's piece (draft_gate.py COLOURS cyan: the gate back to World 1)
+		Glow_g1 = "#7FE4FF",
+		Glow_g2 = "#22A8EE",
+		Glow_g3 = "#1A5CC4",
+		Glow_gdim1 = "#1C5A90",
+		Glow_gdim2 = "#123F6E",
+		Glow_gvoid = "#071A3C",
+	},
 	-- A PointLight in every Glow_lamp part: the 4 stone lanterns, the 3 stall eaves and the spawn moat ring (B shows them lit)
 	LampLight = { Color = hex("FFB765"), Brightness = 1, Range = 18 },
 	-- Server/PlazaAccents colours (plaza_w2.py B acc1 cyan, acc2 periwinkle, neonw, neono)

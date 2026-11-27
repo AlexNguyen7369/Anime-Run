@@ -496,12 +496,14 @@ Skin.Units = {
 	ButtonSmall = 32,
 }
 -- Text sizes in units: Title and Tab as the Index; Item / Body / Caption read 20 / 16 / 13 px at the Index's own scale.
-Skin.UnitSize = { Title = 72, Section = 40, Item = 34, Body = 28, Caption = 22, Tab = 22, Footer = 20 }
+-- Speech: a character's spoken line (the boss gate guide's popup, layout B, owner 2026-11-25).
+Skin.UnitSize = { Title = 72, Section = 40, Item = 34, Body = 28, Caption = 22, Tab = 22, Footer = 20, Speech = 48 }
 
 -- parts: Title (TextLabel), Icon (ImageLabel, optional; Logo = image id to put on it), Close (GuiButton, optional),
 -- Header (Frame made a transparent band over the header row at the panel's origin, optional), Scroll (false: a paper slip
 -- body, no handscroll, for a card that is no scroll in 4.46, the loser card), H (design height in units on desktop,
--- default Units.H; design doc 4.46 Items: the Backpack is 50 taller, 670; the phone frame stays PhoneH).
+-- default Units.H; design doc 4.46 Items: the Backpack is 50 taller, 670; the phone frame stays PhoneH), Top (content top in units on desktop, default
+-- Units.Top; for a frame without tabs: the boss gate guide, 120).
 -- Returns g: W, H, k, Small; px(units), at(x, y); Place(gui, x, y, w, h); Role(label, role); Tabs({buttons}) -> lit
 -- setters; Button(button, tone); Content = { X, Y, W, H } in units; Footer(text); SetTitle(text); SetLogo(image);
 -- OnLayout(fn(g)) runs now and on every size change; Relayout(); MeasureAt (UI tests). Skin.Frames[panel] = g.
@@ -707,7 +709,7 @@ function Skin.IndexFrame(panel, parts)
 				end
 			end
 		end
-		local top = small and Skin.Units.PhoneTop or Skin.Units.Top
+		local top = small and Skin.Units.PhoneTop or parts.Top or Skin.Units.Top
 		g.Content.X, g.Content.Y, g.Content.W, g.Content.H = 56, top, W - 112, H - top - Skin.Units.Bottom
 		g.Content.TabsY = tabsY
 		for _, hook in hooks do

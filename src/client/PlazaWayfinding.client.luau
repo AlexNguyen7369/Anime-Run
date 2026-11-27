@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Layout = require(Shared:WaitForChild("PlazaAssets"))
 local PlazaHeader = require(Shared:WaitForChild("PlazaHeader"))
+local PlazaPieces = require(Shared:WaitForChild("PlazaPieces"))
 local SidekickConfig = require(Shared:WaitForChild("SidekickConfig"))
 
 local MAX_DISTANCE = 260
@@ -56,7 +57,7 @@ local LABELS = {
 		Text = "TEAM",
 		Shape = "Star",
 		Color = Color3.fromRGB(46, 200, 208), -- UiTheme.Dojo.Cyan, the Team page's accent
-		At = Vector3.new(-3.109, 12, 83.942), -- the Team altar (design doc 4.45), its top tier at about 3.6 plus the emblem
+		At = Vector3.new(-35, 12, 76.4), -- the Team altar (design doc 4.45), its top tier at about 3.6 plus the emblem
 		Size = ROW_SIZE,
 		MaxDistance = ROW_MAX_DISTANCE,
 		HideWithin = ROW_HIDE_WITHIN,
@@ -86,12 +87,20 @@ local LABELS = {
 		Text = "INDEX",
 		Shape = "Star",
 		Color = Color3.fromRGB(240, 180, 30),
-		At = Vector3.new(61.555, 20, -57.158),
+		At = Vector3.new(76.7, 20, -34.2),
 		Size = ROW_SIZE,
 		MaxDistance = ROW_MAX_DISTANCE,
 		HideWithin = ROW_HIDE_WITHIN,
 	},
 }
+
+-- The new altar is taller than today's: its header stands over the crest
+local altar = PlazaPieces.Altar()
+for _, spec in LABELS do
+	if altar and spec.Key == "Sidekicks" then
+		spec.At = Vector3.new(spec.At.X, altar.HeaderY, spec.At.Z)
+	end
+end
 
 local player = Players.LocalPlayer
 local shown = {}

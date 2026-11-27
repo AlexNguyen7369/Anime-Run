@@ -79,7 +79,7 @@ local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
-local TEAM_SIZE = require(Shared:WaitForChild("StaminaConfig")).TEAM_SIZE -- 3; World 2: 4
+local TEAM_SIZE = 3 -- both worlds (design doc 4.47)
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local Spec = require(script.Parent.UiSpec)
@@ -106,6 +106,11 @@ local function labelUnderIcon(b, icon)
 	return b.TextBounds.Y > 0 and textTop >= icon.AbsolutePosition.Y + icon.AbsoluteSize.Y - 1
 end
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
+local BossWaitCamera = require(script.Parent.Parent:WaitForChild("BossWaitCamera"))
+-- docs/BUGS.md ui-boss-camera-state: the camera as this Play session first had it (Custom, its FOV), taken at the first
+-- ui_boss run; every run starts and ends on it, so one run's camera never carries into the next.
+local cameraBaseline = nil
+local CAMERA_SETTLE = 3 -- s: the wait view's return (0.5 s) and an attribute's round trip, bounded
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
 local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
@@ -1065,7 +1070,7 @@ function Module.Build(h)
 		for i = 1, TEAM_SIZE do
 			check(res, "hud_slot" .. i .. "_shown", shown(HUD .. "/Slot" .. i), true)
 		end
-		-- one slot per Team member: 3, World 2's team of 4 (design doc 4.47)
+		-- one slot per Team member: 3 in both worlds (design doc 4.47)
 		local extra = "Slot" .. (TEAM_SIZE + 1)
 		check(res, "hud_no_" .. string.lower(extra), h.find(HUD .. "/" .. extra), nil)
 		local eligible = gearNames()
@@ -2109,6 +2114,28 @@ function Module.Build(h)
 		check(res, "dodge_bar_gone_after_event", waitShown(DODGE, false), false)
 	end
 
+	-- Setup and teardown of ui_boss's camera (docs/BUGS.md ui-boss-camera-state): no wait or event on this player, the
+	-- wait view let go (bounded), then the camera back to the session's baseline.
+	local function settleCamera(res, tag)
+		local camera = workspace.CurrentCamera
+		setup(res, "boss_ui_wait:none")
+		state(res, "Idle", 0, 0, 0, false)
+		local released = waitIs(function()
+			return not BossWaitCamera.Held()
+		end, true, CAMERA_SETTLE)
+		check(res, tag .. "_wait_view_released", released, true)
+		if not cameraBaseline and camera.CameraType == Enum.CameraType.Custom then
+			cameraBaseline = { Fov = camera.FieldOfView }
+		end
+		if camera.CameraType ~= Enum.CameraType.Custom then
+			camera.CameraType = Enum.CameraType.Custom
+		end
+		if cameraBaseline then
+			camera.FieldOfView = cameraBaseline.Fov
+		end
+		task.wait(0.1) -- a frame or two for RunnerView to take the camera back
+	end
+
 	function scenarios.ui_boss(res)
 		h.waitGuis()
 		local gui = h.find(ROOT)
@@ -2121,6 +2148,7 @@ function Module.Build(h)
 		end
 		local started = os.clock()
 		local savedReduce = h.player:GetAttribute("ReduceEffects")
+		settleCamera(res, "setup")
 		local ok, err = xpcall(function()
 			state(res, "Idle", 0, 0, 0, false)
 			onlyShown(res, "rest", {}, { BossButton = true, TeamButton = true }) -- idle: the paid spawn (UiBossPaid)
@@ -2148,6 +2176,7 @@ function Module.Build(h)
 		ReplicatedStorage:SetAttribute("BossWaitEndsAt", nil)
 		h.player:SetAttribute("ReduceEffects", savedReduce)
 		setup(res, "restore:boss_ui")
+		settleCamera(res, "teardown")
 		local spent = os.clock() - started
 		h.check(res, "boss_scenario_time", spent, "< " .. BUDGET, spent < BUDGET)
 	end

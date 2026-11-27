@@ -52,16 +52,29 @@ local CAST = {
 }
 local CAST_SIZE = 43
 local ENEMIES = {
-	"saw_katana",
+	"fr_scales",
 	"solo_flame",
 	"punch_monster",
 	"dan_granny",
 	"kaiju_nine",
-	"fr_scales",
+	"saw_katana",
 	"solo_ant",
 	"punch_serpent",
 	"fr_gold",
 	"saw_control",
+}
+-- docs/WORLD2_SPEC.md "Tracks" (Tracks 1 and 6 swapped, owner 2026-11-25): track id and biome key per slot
+local BIOMES = {
+	"ElvenPlains",
+	"DemonCastle",
+	"RuinedCityZ",
+	"HauntedTunnel",
+	"KaijuBase",
+	"DevilTokyo",
+	"AntIsland",
+	"MonsterDen",
+	"GoldenCity",
+	"HellGate",
 }
 local SIDEKICKS = {
 	side_box = "Common",
@@ -288,6 +301,17 @@ function Tests.world2_cast()
 				npc.World2[number].Model == id and npc.World2[number].Label == catalog.Get(id).Name
 			)
 		end
+		-- the biome moves with a swap, the enemy speed stays with the slot
+		local order = {}
+		for _, module in Shared.Tracks.World2:GetChildren() do
+			local track = require(module)
+			order[track.Number] = track.Name == "W2" .. track.Biome and track.Biome or track.Name
+		end
+		for number, biome in BIOMES do
+			flag("biome_" .. number, order[number] == biome, order[number], biome)
+		end
+		flag("enemy_speed_6", npc.World2[6].Speed == 190, npc.World2[6].Speed, 190)
+		flag("enemy_speed_1", npc.World2[1].Speed == nil, npc.World2[1].Speed, nil)
 	end)
 
 	section("names", function()
