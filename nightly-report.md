@@ -259,5 +259,8 @@
 ### Decisions I made for you
 
 ### Blocked (needs you)
+- Approval page (private): https://claude.ai/artifact/U5mBbHUiTqtNbVuRbVZ4ie. Question A: approve the edge fog band (orch/world2/w2-edge-haze 86f36fd6)? Question B: approve the track effects (switch LIVE on)? Looks to confirm: World 2 sky arena at 2,340; plaza facing (no change needed).
+- PR #33 (World 2 round 2 into main): fresh review running; not merged, for your approval in the morning (your words). https://github.com/AlexNguyen7369/Anime-Run/pull/33
+- Stronger smoke/haze (orch/world2/w2-fx-visible 0f51991c): offline green; its Studio check is blocked because the Studio and Blender MCPs disconnected in every session (tunnel and Studio are up). Run /mcp in each session to reconnect.
 
 ### Skipped
