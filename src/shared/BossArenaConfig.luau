@@ -8,7 +8,10 @@ local BossArenaConfig = {}
 BossArenaConfig.InnerRadius = 550 -- owner 2026-11-06
 BossArenaConfig.Width = 80
 BossArenaConfig.Lanes = 7
-BossArenaConfig.Y = 1200 -- track top; spec: "about 1,200, confirmed by a Studio read"
+-- track top; spec: "about 1,200, confirmed by a Studio read". World 2 (owner 2026-11-27, "Raise World 2's arena"): about
+-- 2,330, above every part in the place (the Track 2 ChainTower tops at 2,207, the dais stem hangs 120 under the track top),
+-- set to 2,340 (proposed). Everything of the sky arena (dais, clouds, routes, camera) follows Y.
+BossArenaConfig.Y = WorldConfig.Id == 2 and 2340 or 1200
 -- +Z of the plaza, past the world (about +-4150, grass to about 4500, BIOME_ENVIRONMENT_SPEC and VfxArea): at least 1,500
 -- studs from its edge, so the streaming target (1024) brings none of it under the arena; the test origins start at
 -- +-20000. Kept under 8192 because PoseAt's heading picks up float noise that doubles past that coordinate.

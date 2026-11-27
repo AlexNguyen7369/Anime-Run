@@ -1223,6 +1223,37 @@ do
 		print(string.format("PLATE TILES FAIL a tile is %.2f studs, over a part's 2048", big))
 	end
 	print(string.format("PLATE TILES CHECKS pass=%d fail=%d (%d tiles)", pass, fail, #tiles))
+	-- The sky arena's height (BOSS_EVENT_SPEC "Height"; owner 2026-11-27 "Raise World 2's arena"): every built track part's
+	-- top under the dais stem's foot, Y - 120, as BossArenaTests arena_above_tallest_part reads the place.
+	do
+		local Arena = req(Shared.BossArenaConfig)
+		local tallest, tallestName = -math.huge, "none"
+		for _, m in models do
+			for _, d in m:GetDescendants() do
+				if d:IsA("BasePart") then
+					local cf, size = d.CFrame, d.Size
+					local top = d.Position.Y
+						+ math.abs(cf.RightVector.Y) * size.X / 2
+						+ math.abs(cf.UpVector.Y) * size.Y / 2
+						+ math.abs(cf.LookVector.Y) * size.Z / 2
+					if top > tallest then
+						tallest, tallestName = top, d:GetFullName()
+					end
+				end
+			end
+		end
+		local limit = Arena.Y - 120
+		print(
+			string.format(
+				"ARENA HEIGHT sky arena y %.0f: tallest part top %.1f (%s) under %.0f%s",
+				Arena.Y,
+				tallest,
+				tallestName,
+				limit,
+				tallest < limit and "" or " FAIL"
+			)
+		)
+	end
 	-- Boss arena sites (BOSS_EVENT_SPEC "The Elf Mage", her site and the Golden King's): at least 1,500 studs from every
 	-- plate tile by BossMageTests' clear_of_world_1500 measure (the XZ distance from the site's centre to the part's centre,
 	-- less half the part's size; the tile is PLATE_Y studs thick, as the authored baseplate), and inside 8192. The sky
